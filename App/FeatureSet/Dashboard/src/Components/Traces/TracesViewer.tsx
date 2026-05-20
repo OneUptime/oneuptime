@@ -22,6 +22,9 @@ import {
 } from "Common/UI/Components/TelemetryViewer/types";
 import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import Service from "Common/Models/DatabaseModels/Service";
+import Host from "Common/Models/DatabaseModels/Host";
+import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -194,6 +197,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   const [error, setError] = useState<string>("");
 
   const [services, setServices] = useState<Array<Service>>([]);
+  const [hosts, setHosts] = useState<Array<Host>>([]);
+  const [dockerHosts, setDockerHosts] = useState<Array<DockerHost>>([]);
+  const [kubernetesClusters, setKubernetesClusters] = useState<
+    Array<KubernetesCluster>
+  >([]);
 
   const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
     range: TimeRange.PAST_ONE_HOUR,
@@ -346,7 +354,37 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       facetGroups[filter.facetKey]!.push(filter.value);
     }
 
+    /*
+     * The serviceId / hostId / dockerHostId / kubernetesClusterId facets
+     * all filter the same underlying `serviceId` column on Span. Union
+     * the selected values into a single `serviceId IN (...)` predicate.
+     */
+    const resourceFacetKeys: Set<string> = new Set<string>([
+      "serviceId",
+      "hostId",
+      "dockerHostId",
+      "kubernetesClusterId",
+    ]);
+    const resourceIds: Set<string> = new Set<string>();
+    for (const key of resourceFacetKeys) {
+      const values: Array<string> | undefined = facetGroups[key];
+      if (values) {
+        for (const v of values) {
+          resourceIds.add(v);
+        }
+      }
+    }
+    if (resourceIds.size > 0) {
+      (query as Record<string, unknown>).serviceId =
+        resourceIds.size === 1
+          ? Array.from(resourceIds)[0]!
+          : new Includes(Array.from(resourceIds));
+    }
+
     for (const key of Object.keys(facetGroups)) {
+      if (resourceFacetKeys.has(key)) {
+        continue;
+      }
       const values: Array<string> = facetGroups[key]!;
       if (values.length === 1) {
         (query as Record<string, unknown>)[key] = values[0]!;
@@ -449,28 +487,62 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     } as Select<Span>;
   }, []);
 
-  // Load services once
+  // Load services / hosts / docker hosts / k8s clusters once
   useEffect(() => {
-    const loadServices: () => Promise<void> = async () => {
+    const loadResources: () => Promise<void> = async () => {
       try {
         const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
         if (!projectId) {
           return;
         }
-        const result: ModelListResult<Service> = await ModelAPI.getList({
-          modelType: Service,
-          query: { projectId: projectId },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: { name: true, serviceColor: true },
-          sort: { name: SortOrder.Ascending },
-        });
-        setServices(result.data || []);
+        const [serviceResult, hostResult, dockerHostResult, clusterResult]: [
+          ModelListResult<Service>,
+          ModelListResult<Host>,
+          ModelListResult<DockerHost>,
+          ModelListResult<KubernetesCluster>,
+        ] = await Promise.all([
+          ModelAPI.getList({
+            modelType: Service,
+            query: { projectId: projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { name: true, serviceColor: true },
+            sort: { name: SortOrder.Ascending },
+          }),
+          ModelAPI.getList({
+            modelType: Host,
+            query: { projectId: projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { name: true, hostIdentifier: true },
+            sort: { name: SortOrder.Ascending },
+          }),
+          ModelAPI.getList({
+            modelType: DockerHost,
+            query: { projectId: projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { name: true, hostIdentifier: true },
+            sort: { name: SortOrder.Ascending },
+          }),
+          ModelAPI.getList({
+            modelType: KubernetesCluster,
+            query: { projectId: projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { name: true, clusterIdentifier: true },
+            sort: { name: SortOrder.Ascending },
+          }),
+        ]);
+        setServices(serviceResult.data || []);
+        setHosts(hostResult.data || []);
+        setDockerHosts(dockerHostResult.data || []);
+        setKubernetesClusters(clusterResult.data || []);
       } catch {
         // non-critical
       }
     };
-    void loadServices();
+    void loadResources();
   }, []);
 
   // Load telemetry attributes for search suggestions
@@ -642,8 +714,26 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       groups["serviceId"]!.push(props.serviceId.toString());
     }
 
-    if (groups["serviceId"] && groups["serviceId"].length > 0) {
-      payload["serviceIds"] = groups["serviceId"];
+    /*
+     * serviceId / hostId / dockerHostId / kubernetesClusterId all filter
+     * the underlying `serviceId` column — union them into a single list.
+     */
+    const resourceIdSet: Set<string> = new Set<string>();
+    for (const k of [
+      "serviceId",
+      "hostId",
+      "dockerHostId",
+      "kubernetesClusterId",
+    ]) {
+      const values: Array<string> | undefined = groups[k];
+      if (values) {
+        for (const v of values) {
+          resourceIdSet.add(v);
+        }
+      }
+    }
+    if (resourceIdSet.size > 0) {
+      payload["serviceIds"] = Array.from(resourceIdSet);
     }
 
     if (groups["statusCode"] && groups["statusCode"].length > 0) {
@@ -737,7 +827,14 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
     const facetsPayload: JSONObject = {
       ...aggregationRequest,
-      facetKeys: ["serviceId", "statusCode", "kind"],
+      facetKeys: [
+        "serviceId",
+        "hostId",
+        "dockerHostId",
+        "kubernetesClusterId",
+        "statusCode",
+        "kind",
+      ],
       limit: 20,
     };
 
@@ -834,6 +931,30 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       }
     }
 
+    const hostNameMap: Record<string, string> = {};
+    for (const host of hosts) {
+      if (host.id) {
+        hostNameMap[host.id.toString()] =
+          host.name || host.hostIdentifier || "Unknown";
+      }
+    }
+
+    const dockerHostNameMap: Record<string, string> = {};
+    for (const dockerHost of dockerHosts) {
+      if (dockerHost.id) {
+        dockerHostNameMap[dockerHost.id.toString()] =
+          dockerHost.name || dockerHost.hostIdentifier || "Unknown";
+      }
+    }
+
+    const clusterNameMap: Record<string, string> = {};
+    for (const cluster of kubernetesClusters) {
+      if (cluster.id) {
+        clusterNameMap[cluster.id.toString()] =
+          cluster.name || cluster.clusterIdentifier || "Unknown";
+      }
+    }
+
     const statusLabelMap: Record<string, string> = {
       [SpanStatus.Ok]: "Ok",
       [SpanStatus.Error]: "Error",
@@ -854,20 +975,38 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         priority: 1,
       },
       {
+        key: "hostId",
+        title: "Host",
+        valueDisplayMap: hostNameMap,
+        priority: 2,
+      },
+      {
+        key: "dockerHostId",
+        title: "Docker Host",
+        valueDisplayMap: dockerHostNameMap,
+        priority: 3,
+      },
+      {
+        key: "kubernetesClusterId",
+        title: "Kubernetes Cluster",
+        valueDisplayMap: clusterNameMap,
+        priority: 4,
+      },
+      {
         key: "statusCode",
         title: "Status",
         valueDisplayMap: statusLabelMap,
         valueColorMap: statusColorMap,
-        priority: 2,
+        priority: 5,
       },
       {
         key: "kind",
         title: "Span Kind",
         valueDisplayMap: SPAN_KIND_LABEL,
-        priority: 3,
+        priority: 6,
       },
     ];
-  }, [services]);
+  }, [services, hosts, dockerHosts, kubernetesClusters]);
 
   // Histogram series
   const histogramSeries: Array<HistogramSeriesOption> = useMemo(() => {

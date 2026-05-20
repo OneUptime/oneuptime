@@ -383,12 +383,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         setIsPageLoading(true);
         setPageError("");
 
-        const [
-          telemetryServices,
-          hosts,
-          dockerHosts,
-          kubernetesClusters,
-        ]: [
+        const [telemetryServices, hosts, dockerHosts, kubernetesClusters]: [
           ListResult<Service>,
           ListResult<Host>,
           ListResult<DockerHost>,
@@ -815,19 +810,15 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         const host: Host | undefined = hostMap[filter.value];
         return {
           ...filter,
-          displayValue:
-            host?.name || host?.hostIdentifier || filter.value,
+          displayValue: host?.name || host?.hostIdentifier || filter.value,
         };
       }
       if (filter.facetKey === "dockerHostId" && dockerHostMap[filter.value]) {
-        const dockerHost: DockerHost | undefined =
-          dockerHostMap[filter.value];
+        const dockerHost: DockerHost | undefined = dockerHostMap[filter.value];
         return {
           ...filter,
           displayValue:
-            dockerHost?.name ||
-            dockerHost?.hostIdentifier ||
-            filter.value,
+            dockerHost?.name || dockerHost?.hostIdentifier || filter.value,
         };
       }
       if (
@@ -839,9 +830,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         return {
           ...filter,
           displayValue:
-            cluster?.name ||
-            cluster?.clusterIdentifier ||
-            filter.value,
+            cluster?.name || cluster?.clusterIdentifier || filter.value,
         };
       }
 

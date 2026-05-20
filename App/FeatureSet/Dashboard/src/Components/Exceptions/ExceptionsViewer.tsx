@@ -19,6 +19,9 @@ import {
 } from "Common/UI/Components/TelemetryViewer/types";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import Service from "Common/Models/DatabaseModels/Service";
+import Host from "Common/Models/DatabaseModels/Host";
+import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import ModelAPI, {
   ListResult as ModelListResult,
 } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -126,6 +129,11 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   const [error, setError] = useState<string>("");
 
   const [services, setServices] = useState<Array<Service>>([]);
+  const [hosts, setHosts] = useState<Array<Host>>([]);
+  const [dockerHosts, setDockerHosts] = useState<Array<DockerHost>>([]);
+  const [kubernetesClusters, setKubernetesClusters] = useState<
+    Array<KubernetesCluster>
+  >([]);
 
   const [searchValue, setSearchValue] = useState<string>("");
   const [submittedSearch, setSubmittedSearch] = useState<string>("");
@@ -151,28 +159,62 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   >([]);
   const [histogramLoading, setHistogramLoading] = useState<boolean>(false);
 
-  // Load services once
+  // Load services / hosts / docker hosts / k8s clusters once
   useEffect(() => {
-    const loadServices: () => Promise<void> = async () => {
+    const loadResources: () => Promise<void> = async () => {
       try {
         const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
         if (!projectId) {
           return;
         }
-        const result: ModelListResult<Service> = await ModelAPI.getList({
-          modelType: Service,
-          query: { projectId },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: { name: true, serviceColor: true },
-          sort: { name: SortOrder.Ascending },
-        });
-        setServices(result.data || []);
+        const [serviceResult, hostResult, dockerHostResult, clusterResult]: [
+          ModelListResult<Service>,
+          ModelListResult<Host>,
+          ModelListResult<DockerHost>,
+          ModelListResult<KubernetesCluster>,
+        ] = await Promise.all([
+          ModelAPI.getList({
+            modelType: Service,
+            query: { projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { name: true, serviceColor: true },
+            sort: { name: SortOrder.Ascending },
+          }),
+          ModelAPI.getList({
+            modelType: Host,
+            query: { projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { name: true, hostIdentifier: true },
+            sort: { name: SortOrder.Ascending },
+          }),
+          ModelAPI.getList({
+            modelType: DockerHost,
+            query: { projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { name: true, hostIdentifier: true },
+            sort: { name: SortOrder.Ascending },
+          }),
+          ModelAPI.getList({
+            modelType: KubernetesCluster,
+            query: { projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { name: true, clusterIdentifier: true },
+            sort: { name: SortOrder.Ascending },
+          }),
+        ]);
+        setServices(serviceResult.data || []);
+        setHosts(hostResult.data || []);
+        setDockerHosts(dockerHostResult.data || []);
+        setKubernetesClusters(clusterResult.data || []);
       } catch {
         // non-critical
       }
     };
-    void loadServices();
+    void loadResources();
   }, []);
 
   useEffect(() => {
@@ -316,7 +358,38 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       }
       facetGroups[f.facetKey]!.push(f.value);
     }
+
+    /*
+     * serviceId / hostId / dockerHostId / kubernetesClusterId all map
+     * to the same underlying `serviceId` column on TelemetryException —
+     * the discriminator only matters at facet bucketing time.
+     */
+    const resourceFacetKeys: Set<string> = new Set<string>([
+      "serviceId",
+      "hostId",
+      "dockerHostId",
+      "kubernetesClusterId",
+    ]);
+    const resourceIds: Set<string> = new Set<string>();
+    for (const key of resourceFacetKeys) {
+      const values: Array<string> | undefined = facetGroups[key];
+      if (values) {
+        for (const v of values) {
+          resourceIds.add(v);
+        }
+      }
+    }
+    if (resourceIds.size > 0) {
+      (q as Record<string, unknown>).serviceId =
+        resourceIds.size === 1
+          ? Array.from(resourceIds)[0]!
+          : new Includes(Array.from(resourceIds));
+    }
+
     for (const key of Object.keys(facetGroups)) {
+      if (resourceFacetKeys.has(key)) {
+        continue;
+      }
       const values: Array<string> = facetGroups[key]!;
       if (values.length === 1) {
         (q as Record<string, unknown>)[key] = values[0]!;
@@ -439,8 +512,27 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       groups["serviceId"]!.push(props.serviceId.toString());
     }
 
-    if (groups["serviceId"] && groups["serviceId"].length > 0) {
-      payload["serviceIds"] = groups["serviceId"];
+    /*
+     * Union serviceId / hostId / dockerHostId / kubernetesClusterId
+     * into a single serviceIds list — they all filter the underlying
+     * `serviceId` column.
+     */
+    const histogramResourceIds: Set<string> = new Set<string>();
+    for (const k of [
+      "serviceId",
+      "hostId",
+      "dockerHostId",
+      "kubernetesClusterId",
+    ]) {
+      const values: Array<string> | undefined = groups[k];
+      if (values) {
+        for (const v of values) {
+          histogramResourceIds.add(v);
+        }
+      }
+    }
+    if (histogramResourceIds.size > 0) {
+      payload["serviceIds"] = Array.from(histogramResourceIds);
     }
     if (groups["exceptionType"] && groups["exceptionType"].length > 0) {
       payload["exceptionTypes"] = groups["exceptionType"];
@@ -498,6 +590,37 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       setPage(1);
     }, []);
 
+  // Lookup maps for resource-type classification
+  const hostIdSet: Set<string> = useMemo(() => {
+    const set: Set<string> = new Set<string>();
+    for (const host of hosts) {
+      if (host.id) {
+        set.add(host.id.toString());
+      }
+    }
+    return set;
+  }, [hosts]);
+
+  const dockerHostIdSet: Set<string> = useMemo(() => {
+    const set: Set<string> = new Set<string>();
+    for (const dockerHost of dockerHosts) {
+      if (dockerHost.id) {
+        set.add(dockerHost.id.toString());
+      }
+    }
+    return set;
+  }, [dockerHosts]);
+
+  const kubernetesClusterIdSet: Set<string> = useMemo(() => {
+    const set: Set<string> = new Set<string>();
+    for (const cluster of kubernetesClusters) {
+      if (cluster.id) {
+        set.add(cluster.id.toString());
+      }
+    }
+    return set;
+  }, [kubernetesClusters]);
+
   // Facet configs
   const facetConfigs: Array<FacetConfig> = useMemo(() => {
     const serviceNameMap: Record<string, string> = {};
@@ -511,6 +634,31 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         }
       }
     }
+
+    const hostNameMap: Record<string, string> = {};
+    for (const host of hosts) {
+      if (host.id) {
+        hostNameMap[host.id.toString()] =
+          host.name || host.hostIdentifier || "Unknown";
+      }
+    }
+
+    const dockerHostNameMap: Record<string, string> = {};
+    for (const dockerHost of dockerHosts) {
+      if (dockerHost.id) {
+        dockerHostNameMap[dockerHost.id.toString()] =
+          dockerHost.name || dockerHost.hostIdentifier || "Unknown";
+      }
+    }
+
+    const clusterNameMap: Record<string, string> = {};
+    for (const cluster of kubernetesClusters) {
+      if (cluster.id) {
+        clusterNameMap[cluster.id.toString()] =
+          cluster.name || cluster.clusterIdentifier || "Unknown";
+      }
+    }
+
     return [
       {
         key: "serviceId",
@@ -520,26 +668,63 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         priority: 1,
       },
       {
+        key: "hostId",
+        title: "Host",
+        valueDisplayMap: hostNameMap,
+        priority: 2,
+      },
+      {
+        key: "dockerHostId",
+        title: "Docker Host",
+        valueDisplayMap: dockerHostNameMap,
+        priority: 3,
+      },
+      {
+        key: "kubernetesClusterId",
+        title: "Kubernetes Cluster",
+        valueDisplayMap: clusterNameMap,
+        priority: 4,
+      },
+      {
         key: "exceptionType",
         title: "Exception Type",
-        priority: 2,
+        priority: 5,
       },
       {
         key: "environment",
         title: "Environment",
-        priority: 3,
+        priority: 6,
       },
     ];
-  }, [services]);
+  }, [services, hosts, dockerHosts, kubernetesClusters]);
 
   const facetData: FacetData = useMemo(() => {
+    /*
+     * `serviceId` on the exception row is a polymorphic resource id
+     * (Service / Host / DockerHost / KubernetesCluster — disambiguated
+     * server-side by the `serviceType` ClickHouse column). The Postgres
+     * TelemetryException projection doesn't expose serviceType, so we
+     * classify each id client-side by looking it up in the project's
+     * resource maps.
+     */
     const byService: Record<string, number> = {};
+    const byHost: Record<string, number> = {};
+    const byDockerHost: Record<string, number> = {};
+    const byCluster: Record<string, number> = {};
     const byType: Record<string, number> = {};
     const byEnv: Record<string, number> = {};
     for (const e of exceptions) {
       if (e.serviceId) {
         const k: string = e.serviceId.toString();
-        byService[k] = (byService[k] || 0) + 1;
+        if (hostIdSet.has(k)) {
+          byHost[k] = (byHost[k] || 0) + 1;
+        } else if (dockerHostIdSet.has(k)) {
+          byDockerHost[k] = (byDockerHost[k] || 0) + 1;
+        } else if (kubernetesClusterIdSet.has(k)) {
+          byCluster[k] = (byCluster[k] || 0) + 1;
+        } else {
+          byService[k] = (byService[k] || 0) + 1;
+        }
       }
       if (e.exceptionType) {
         byType[e.exceptionType] = (byType[e.exceptionType] || 0) + 1;
@@ -562,10 +747,13 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     };
     return {
       serviceId: toFacet(byService),
+      hostId: toFacet(byHost),
+      dockerHostId: toFacet(byDockerHost),
+      kubernetesClusterId: toFacet(byCluster),
       exceptionType: toFacet(byType),
       environment: toFacet(byEnv),
     };
-  }, [exceptions]);
+  }, [exceptions, hostIdSet, dockerHostIdSet, kubernetesClusterIdSet]);
 
   const handleFacetInclude: (facetKey: string, value: string) => void =
     useCallback(
