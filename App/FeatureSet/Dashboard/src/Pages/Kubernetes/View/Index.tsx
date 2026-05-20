@@ -648,17 +648,19 @@ const KubernetesClusterOverview: FunctionComponent<
       );
       fsAvailableAgg.groupBy = { attributes: true };
 
-      const netRxAgg: AggregateBy<Metric> = buildAggregateBy(
-        "k8s.node.network.io.receive",
+      /*
+       * kubeletstats v0.96 ships network IO as a single
+       * `k8s.node.network.io` counter with `direction` attribute
+       * (receive | transmit) per (node, interface). One query, then
+       * split client-side on direction. The split-name variants
+       * (`.receive` / `.transmit`) we used initially do not exist in
+       * the schema — every chart was empty as a result.
+       */
+      const networkAgg: AggregateBy<Metric> = buildAggregateBy(
+        "k8s.node.network.io",
         AggregationType.Max,
       );
-      netRxAgg.groupBy = { attributes: true };
-
-      const netTxAgg: AggregateBy<Metric> = buildAggregateBy(
-        "k8s.node.network.io.transmit",
-        AggregationType.Max,
-      );
-      netTxAgg.groupBy = { attributes: true };
+      networkAgg.groupBy = { attributes: true };
 
       const heartbeatAgg: AggregateBy<Metric> = buildAggregateBy(
         "oneuptime.host.heartbeat",
@@ -670,11 +672,9 @@ const KubernetesClusterOverview: FunctionComponent<
         memResult,
         fsUsageResult,
         fsAvailableResult,
-        netRxResult,
-        netTxResult,
+        networkResult,
         heartbeatResult,
       ]: [
-        AggregatedResult,
         AggregatedResult,
         AggregatedResult,
         AggregatedResult,
@@ -700,11 +700,7 @@ const KubernetesClusterOverview: FunctionComponent<
         }),
         AnalyticsModelAPI.aggregate<Metric>({
           modelType: Metric,
-          aggregateBy: netRxAgg,
-        }),
-        AnalyticsModelAPI.aggregate<Metric>({
-          modelType: Metric,
-          aggregateBy: netTxAgg,
+          aggregateBy: networkAgg,
         }),
         AnalyticsModelAPI.aggregate<Metric>({
           modelType: Metric,
@@ -919,13 +915,20 @@ const KubernetesClusterOverview: FunctionComponent<
        */
       const computeNetRate: (
         result: AggregatedResult,
+        direction: "receive" | "transmit",
       ) => Array<TimeValuePoint> = (
         result: AggregatedResult,
+        direction: "receive" | "transmit",
       ): Array<TimeValuePoint> => {
         const perKey: Map<string, Array<{ t: number; v: number }>> = new Map();
         for (const p of (result.data || []) as Array<AggregatedModel>) {
           const attrs: Record<string, unknown> =
             (p["attributes"] as Record<string, unknown>) || {};
+          const pointDirection: string =
+            (attrs["direction"] as string) || "";
+          if (pointDirection !== direction) {
+            continue;
+          }
           const node: string =
             (attrs["resource.k8s.node.name"] as string) || "";
           const interfaceName: string =
@@ -983,10 +986,14 @@ const KubernetesClusterOverview: FunctionComponent<
           });
       };
 
-      const networkInPoints: Array<TimeValuePoint> =
-        computeNetRate(netRxResult);
-      const networkOutPoints: Array<TimeValuePoint> =
-        computeNetRate(netTxResult);
+      const networkInPoints: Array<TimeValuePoint> = computeNetRate(
+        networkResult,
+        "receive",
+      );
+      const networkOutPoints: Array<TimeValuePoint> = computeNetRate(
+        networkResult,
+        "transmit",
+      );
 
       setCpuSeries(
         cpuPoints.length > 0 ? [{ seriesName: "CPU %", data: cpuPoints }] : [],
