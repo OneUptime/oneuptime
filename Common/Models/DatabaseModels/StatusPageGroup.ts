@@ -53,7 +53,6 @@ import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
     Permission.StatusPageMember,
     Permission.StatusPageViewer,
     Permission.ReadStatusPageGroup,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -111,7 +110,6 @@ export default class StatusPageGroup extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageGroup,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -154,7 +152,6 @@ export default class StatusPageGroup extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageGroup,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -192,7 +189,6 @@ export default class StatusPageGroup extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageGroup,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -236,7 +232,6 @@ export default class StatusPageGroup extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageGroup,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -273,7 +268,6 @@ export default class StatusPageGroup extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageGroup,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -311,7 +305,6 @@ export default class StatusPageGroup extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageGroup,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -349,7 +342,6 @@ export default class StatusPageGroup extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageGroup,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -393,7 +385,6 @@ export default class StatusPageGroup extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageGroup,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -437,7 +428,6 @@ export default class StatusPageGroup extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageGroup,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -473,7 +463,6 @@ export default class StatusPageGroup extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageGroup,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -514,7 +503,6 @@ export default class StatusPageGroup extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageGroup,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -603,7 +591,6 @@ export default class StatusPageGroup extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageGroup,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -645,7 +632,6 @@ export default class StatusPageGroup extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageGroup,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -687,7 +673,6 @@ export default class StatusPageGroup extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageGroup,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

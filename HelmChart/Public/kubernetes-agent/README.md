@@ -4,7 +4,7 @@
 
 # OneUptime Kubernetes Agent
 
-Collects cluster metrics, events, pod logs, **application traces (HTTP/gRPC via eBPF)**, **continuous CPU profiles (eBPF flame graphs)**, and **OS-level node metrics** from your Kubernetes cluster and ships them to OneUptime via OpenTelemetry. Install with one `helm install` command — no code changes or per-app SDK setup needed to see service traffic.
+Collects cluster metrics, events, pod logs, **application traces (HTTP/gRPC via eBPF)**, and **OS-level node metrics** from your Kubernetes cluster and ships them to OneUptime via OpenTelemetry. Install with one `helm install` command — no code changes or per-app SDK setup needed to see service traffic. **Continuous CPU profiles (eBPF flame graphs)** are also available — opt in with `--set profiling.enabled=true`.
 
 Full docs: [Install the Kubernetes Agent](https://oneuptime.com/docs/monitor/kubernetes-agent).
 
@@ -77,7 +77,7 @@ If you try the default `standard` preset on a cluster that blocks hostPath, the 
 | `logs.enabled` | `true` | Turn pod log collection on or off. |
 | `logs.mode` | `""` *(derived from `preset`)* | Advanced override — `daemonset`, `api`, or `disabled`. Explicit value always wins over the preset. |
 | `ebpf.enabled` | `true` | Auto-capture HTTP/gRPC traces from every pod via OpenTelemetry eBPF Instrumentation. See section below. |
-| `profiling.enabled` | `true` | Continuous CPU flame graphs via OpenTelemetry eBPF Profiler — separate DaemonSet, samples stacks at 19Hz, no SDK needed. |
+| `profiling.enabled` | `false` | Continuous CPU flame graphs via OpenTelemetry eBPF Profiler — separate DaemonSet, samples stacks at 19Hz, no SDK needed. Off by default; opt in for more telemetry. |
 | `hostMetrics.enabled` | `true` | Per-node OS metrics (disk I/O, filesystem inodes, NIC errors, paging, load average) via the OTel `hostmetrics` receiver. |
 | `auditLogs.enabled` | `false` | Tail `/var/log/kubernetes/audit.log` from the host. Self-managed clusters only — managed K8s routes audit logs to a cloud sink. |
 | `csi.enabled` | `false` | Scrape Prometheus metrics from CSI (storage) driver pods. |
@@ -85,15 +85,26 @@ If you try the default `standard` preset on a cluster that blocks hostPath, the 
 | `resourceSpecs.enabled` | `true` | Pull full K8s object specs (labels, env vars, status) for the dashboard. |
 | `controlPlane.enabled` | `false` | Scrape etcd / api-server / scheduler / controller-manager. Self-managed clusters only — managed offerings typically don't expose these endpoints. |
 
-### Continuous profiling (`profiling.*`) — on by default
+### Continuous profiling (`profiling.*`) — off by default
 
 A separate DaemonSet runs the [`otelcol-ebpf-profiler`](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) distribution — the same OTel project that produces the OBI auto-instrumentation, with a different build of the collector that bundles the [OpenTelemetry eBPF Profiler receiver](https://github.com/open-telemetry/opentelemetry-ebpf-profiler). It samples stacks at 19Hz across every supported runtime (Go, Java, .NET, Python, Ruby, Node, PHP, Perl, C/C++, Rust) and ships OTLP profiles directly to OneUptime (the existing in-cluster collector is on v0.96.0 which predates the OTLP profiles signal — that's why this is a separate DaemonSet).
 
-When `ebpf.enabled` is also true, the profiler correlates samples with OBI's trace context via the shared bpffs map, so each span gets its own flame graph linkable from the trace view.
+Profiling is **off by default** — it's heavier than the OBI auto-instrumentation (more CPU per node, larger memory footprint) and not every cluster wants always-on flame graphs. Enable it when you want richer telemetry:
+
+```bash
+helm install oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=<NAME> \
+  --set profiling.enabled=true
+```
+
+When `ebpf.enabled` is also true (the default), the profiler correlates samples with OBI's trace context via the shared bpffs map, so each span gets its own flame graph linkable from the trace view.
 
 | Key | Default | Description |
 | --- | --- | --- |
-| `profiling.enabled` | `true` | Master switch. Same kernel and privileged-pod requirements as `ebpf.*` — turn off on GKE Autopilot / EKS Fargate. |
+| `profiling.enabled` | `false` | Master switch. Off by default — opt in for continuous CPU flame graphs. Same kernel and privileged-pod requirements as `ebpf.*` — cannot run on GKE Autopilot / EKS Fargate. |
 | `profiling.image.tag` | `0.152.0` | `otel/opentelemetry-collector-ebpf-profiler` image tag. |
 | `profiling.samplesPerSecond` | `19` | Sampling frequency. Higher = more detail + more CPU. |
 | `profiling.offCpuThreshold` | `0` | (0–1] enables off-CPU profiling at the given sampling probability — diagnoses lock contention and blocking I/O. Off by default. |

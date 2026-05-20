@@ -31,7 +31,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectMember,
     Permission.Viewer,
     Permission.ReadProjectIncomingCallLogItem,
-    Permission.ReadAllProjectResources,
   ],
   delete: [Permission.ProjectOwner, Permission.ProjectAdmin],
   update: [Permission.ProjectOwner, Permission.ProjectAdmin],
@@ -57,7 +56,6 @@ export default class IncomingCallLogItem extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadProjectIncomingCallLogItem,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -90,7 +88,6 @@ export default class IncomingCallLogItem extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadProjectIncomingCallLogItem,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -117,7 +114,6 @@ export default class IncomingCallLogItem extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadProjectIncomingCallLogItem,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -150,7 +146,6 @@ export default class IncomingCallLogItem extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadProjectIncomingCallLogItem,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -177,7 +172,6 @@ export default class IncomingCallLogItem extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadProjectIncomingCallLogItem,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -211,7 +205,6 @@ export default class IncomingCallLogItem extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadProjectIncomingCallLogItem,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -235,7 +228,6 @@ export default class IncomingCallLogItem extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadProjectIncomingCallLogItem,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -268,7 +260,6 @@ export default class IncomingCallLogItem extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadProjectIncomingCallLogItem,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -294,7 +285,6 @@ export default class IncomingCallLogItem extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadProjectIncomingCallLogItem,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -321,7 +311,6 @@ export default class IncomingCallLogItem extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadProjectIncomingCallLogItem,
-      Permission.ReadAllProjectResources,
     ],
     update: [Permission.ProjectOwner, Permission.ProjectAdmin],
   })
@@ -349,7 +338,6 @@ export default class IncomingCallLogItem extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadProjectIncomingCallLogItem,
-      Permission.ReadAllProjectResources,
     ],
     update: [Permission.ProjectOwner, Permission.ProjectAdmin],
   })
@@ -374,7 +362,6 @@ export default class IncomingCallLogItem extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadProjectIncomingCallLogItem,
-      Permission.ReadAllProjectResources,
     ],
     update: [Permission.ProjectOwner, Permission.ProjectAdmin],
   })
@@ -400,7 +387,6 @@ export default class IncomingCallLogItem extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadProjectIncomingCallLogItem,
-      Permission.ReadAllProjectResources,
     ],
     update: [Permission.ProjectOwner, Permission.ProjectAdmin],
   })
@@ -425,7 +411,6 @@ export default class IncomingCallLogItem extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadProjectIncomingCallLogItem,
-      Permission.ReadAllProjectResources,
     ],
     update: [Permission.ProjectOwner, Permission.ProjectAdmin],
   })
@@ -451,7 +436,6 @@ export default class IncomingCallLogItem extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadProjectIncomingCallLogItem,
-      Permission.ReadAllProjectResources,
     ],
     update: [Permission.ProjectOwner, Permission.ProjectAdmin],
   })
@@ -475,7 +459,6 @@ export default class IncomingCallLogItem extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadProjectIncomingCallLogItem,
-      Permission.ReadAllProjectResources,
     ],
     update: [Permission.ProjectOwner, Permission.ProjectAdmin],
   })

@@ -46,7 +46,6 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
     Permission.IncidentMember,
     Permission.IncidentViewer,
     Permission.ReadIncidentNoteTemplate,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -101,7 +100,6 @@ export default class IncidentPostmortemTemplate extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentNoteTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -144,7 +142,6 @@ export default class IncidentPostmortemTemplate extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentNoteTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -181,7 +178,6 @@ export default class IncidentPostmortemTemplate extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentNoteTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -224,7 +220,6 @@ export default class IncidentPostmortemTemplate extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentNoteTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -267,7 +262,6 @@ export default class IncidentPostmortemTemplate extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentNoteTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -310,7 +304,6 @@ export default class IncidentPostmortemTemplate extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentNoteTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -354,7 +347,6 @@ export default class IncidentPostmortemTemplate extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentNoteTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

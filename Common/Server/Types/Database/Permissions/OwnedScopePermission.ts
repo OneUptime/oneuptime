@@ -153,10 +153,9 @@ export default class OwnedScopePermission {
 
   /*
    * Returns the permissions that should be considered to grant access for
-   * this op/model — model-enumerated plus operational wildcards plus the
-   * ReadAllProjectResources runtime alias. Mirrors the logic in
-   * TablePermission.getEffectiveModelPermissions but exposed here because
-   * we need to filter user-permission rows by this set.
+   * this op/model — model-enumerated plus operational wildcards. Mirrors the
+   * logic in TablePermission.getEffectiveModelPermissions but exposed here
+   * because we need to filter user-permission rows by this set.
    */
   private static getEffectivePermissionsForModel(
     modelType: DatabaseBaseModelType,
@@ -166,25 +165,12 @@ export default class OwnedScopePermission {
       TablePermission.getTablePermission(modelType, type);
     const effective: Array<Permission> = [...modelPermissions];
 
-    if (
-      effective.includes(Permission.ReadAllProjectResources) &&
-      !effective.includes(Permission.ReadAllOperationalResources)
-    ) {
-      effective.push(Permission.ReadAllOperationalResources);
-    }
-
     const model: BaseModel = new modelType();
     if (model.isOperationalResource) {
       const wildcard: Permission | null =
         OwnedScopePermission.getWildcardPermissionForOperation(type);
       if (wildcard && !effective.includes(wildcard)) {
         effective.push(wildcard);
-      }
-      if (
-        type === DatabaseRequestType.Read &&
-        !effective.includes(Permission.ReadAllProjectResources)
-      ) {
-        effective.push(Permission.ReadAllProjectResources);
       }
     }
 

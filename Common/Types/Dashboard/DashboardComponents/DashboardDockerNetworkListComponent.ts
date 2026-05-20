@@ -9,6 +9,7 @@ export default interface DashboardDockerNetworkListComponent
   arguments: {
     title?: string | undefined;
     maxRows?: number | undefined;
+    viewMode?: "list" | "honeycomb" | undefined;
     dockerHostIds?: Array<string> | undefined;
   };
 }

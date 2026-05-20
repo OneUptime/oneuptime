@@ -39,7 +39,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.OnCallMember,
     Permission.OnCallViewer,
     Permission.ReadProjectOnCallDutyPolicyEscalationRuleUser,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -90,7 +89,6 @@ export default class OnCallDutyPolicyEscalationRuleUser extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadProjectOnCallDutyPolicyEscalationRuleUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -133,7 +131,6 @@ export default class OnCallDutyPolicyEscalationRuleUser extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadProjectOnCallDutyPolicyEscalationRuleUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -170,7 +167,6 @@ export default class OnCallDutyPolicyEscalationRuleUser extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadProjectOnCallDutyPolicyEscalationRuleUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -214,7 +210,6 @@ export default class OnCallDutyPolicyEscalationRuleUser extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadProjectOnCallDutyPolicyEscalationRuleUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -252,7 +247,6 @@ export default class OnCallDutyPolicyEscalationRuleUser extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadProjectOnCallDutyPolicyEscalationRuleUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -297,7 +291,6 @@ export default class OnCallDutyPolicyEscalationRuleUser extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadProjectOnCallDutyPolicyEscalationRuleUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -335,7 +328,6 @@ export default class OnCallDutyPolicyEscalationRuleUser extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadProjectOnCallDutyPolicyEscalationRuleUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -378,7 +370,6 @@ export default class OnCallDutyPolicyEscalationRuleUser extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadProjectOnCallDutyPolicyEscalationRuleUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -412,7 +403,6 @@ export default class OnCallDutyPolicyEscalationRuleUser extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadProjectOnCallDutyPolicyEscalationRuleUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -456,7 +446,6 @@ export default class OnCallDutyPolicyEscalationRuleUser extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadProjectOnCallDutyPolicyEscalationRuleUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

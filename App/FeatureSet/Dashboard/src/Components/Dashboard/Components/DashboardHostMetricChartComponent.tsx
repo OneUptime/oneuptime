@@ -26,6 +26,8 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
+import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardHostMetricChartComponent;
@@ -143,6 +145,21 @@ const DashboardHostMetricChartComponentElement: FunctionComponent<
     args.hostIdentifier && args.hostIdentifier.trim() !== ""
       ? args.hostIdentifier.trim()
       : undefined;
+  const selectedChartType: DashboardChartType =
+    args.chartType || DashboardChartType.Line;
+
+  const metricChartType: MetricChartType = useMemo(() => {
+    if (selectedChartType === DashboardChartType.Bar) {
+      return MetricChartType.BAR;
+    }
+    if (
+      selectedChartType === DashboardChartType.Area ||
+      selectedChartType === DashboardChartType.StackedArea
+    ) {
+      return MetricChartType.AREA;
+    }
+    return MetricChartType.LINE;
+  }, [selectedChartType]);
 
   const spec: MetricSpec = useMemo(() => {
     return getMetricSpec(metricKind);
@@ -157,41 +174,65 @@ const DashboardHostMetricChartComponentElement: FunctionComponent<
   }, [props.dashboardStartAndEndDate]);
 
   const queryConfig: MetricQueryConfigData = useMemo(() => {
-    const attributes: Record<string, string> = {};
+    const baseAttributes: Record<string, unknown> = {};
     if (hostIdentifier) {
-      attributes[HOST_NAME_ATTRIBUTE] = hostIdentifier;
+      baseAttributes[HOST_NAME_ATTRIBUTE] = hostIdentifier;
     }
+
+    /*
+     * Layer dashboard variable selections on top so a host variable
+     * (e.g. `host.name = $host`) narrows the query to the selected
+     * host. A scalar selection produces a single series; an empty or
+     * multi-select selection keeps the per-host grouping below.
+     */
+    const attributes: Record<string, unknown> =
+      DashboardVariableInterpolation.applyToAttributes(
+        baseAttributes,
+        props.variables,
+      );
+
+    const hostFilter: unknown = attributes[HOST_NAME_ATTRIBUTE];
+    const isSingleHost: boolean =
+      typeof hostFilter === "string" && hostFilter.length > 0;
+    const singleHostLegend: string | undefined = isSingleHost
+      ? (hostFilter as string)
+      : undefined;
 
     return {
       metricAliasData: {
         metricVariable: "host_metric",
         title: args.title || spec.defaultTitle,
         description: args.description,
-        legend: hostIdentifier ? hostIdentifier : "Host",
+        legend: singleHostLegend || "Host",
         legendUnit: spec.legendUnit,
       },
       metricQueryData: {
         filterData: {
           metricName: spec.metricName,
-          attributes: attributes,
+          attributes: attributes as Record<string, string>,
           aggegationType: spec.aggregation,
           aggregateBy: {},
         },
-        groupBy: hostIdentifier
+        groupBy: isSingleHost
           ? undefined
           : {
               attributes: true,
             },
-        groupByAttributeKeys: hostIdentifier
-          ? undefined
-          : [HOST_NAME_ATTRIBUTE],
+        groupByAttributeKeys: isSingleHost ? undefined : [HOST_NAME_ATTRIBUTE],
       },
-      chartType: MetricChartType.LINE,
+      chartType: metricChartType,
       transformAsRate: spec.transformAsRate,
       yAxisValueFormatter: spec.yFormatter,
-      getSeries: hostIdentifier ? undefined : getHostSeries,
+      getSeries: isSingleHost ? undefined : getHostSeries,
     };
-  }, [args.title, args.description, spec, hostIdentifier]);
+  }, [
+    args.title,
+    args.description,
+    spec,
+    hostIdentifier,
+    props.variables,
+    metricChartType,
+  ]);
 
   const metricViewData: MetricViewData = useMemo(() => {
     return {
@@ -233,13 +274,9 @@ const DashboardHostMetricChartComponentElement: FunctionComponent<
     fetchAggregatedResults();
   }, [startAndEndDate, queryConfig, props.refreshTick, fetchAggregatedResults]);
 
-  const hasWidgetHeader: boolean = Boolean(args.title || args.description);
-  const widgetHeaderHeight: number = hasWidgetHeader ? 50 : 0;
   const perChartOverhead: number = 80;
   let heightOfChart: number | undefined =
-    (props.dashboardComponentHeightInPx || 0) -
-    widgetHeaderHeight -
-    perChartOverhead;
+    (props.dashboardComponentHeightInPx || 0) - perChartOverhead;
   if (heightOfChart < 50) {
     heightOfChart = undefined;
   }
@@ -287,18 +324,6 @@ const DashboardHostMetricChartComponentElement: FunctionComponent<
         transition: "opacity 0.2s ease-in-out",
       }}
     >
-      {hasWidgetHeader && (
-        <div className="px-2 pt-2 pb-1 flex-shrink-0">
-          {args.title && (
-            <h3 className="text-sm font-semibold text-gray-700 tracking-tight">
-              {args.title}
-            </h3>
-          )}
-          {args.description && (
-            <p className="mt-0.5 text-xs text-gray-400">{args.description}</p>
-          )}
-        </div>
-      )}
       <div className="flex-1 min-h-0 overflow-hidden">
         <MetricCharts
           metricResults={metricResults}
@@ -333,10 +358,13 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
     return false;
   }
 
-  return JSONFunctions.deepEqual(
-    prev.component.arguments,
-    next.component.arguments,
-  );
+  if (
+    !JSONFunctions.deepEqual(prev.component.arguments, next.component.arguments)
+  ) {
+    return false;
+  }
+
+  return JSONFunctions.deepEqual(prev.variables, next.variables);
 }
 
 export default React.memo(

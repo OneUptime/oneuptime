@@ -104,13 +104,13 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
     title: "SMTP Username",
     description: "Username for your SMTP Server",
   })
   @Column({
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
     nullable: true,
     unique: true,
   })

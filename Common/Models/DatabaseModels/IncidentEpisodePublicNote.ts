@@ -50,7 +50,6 @@ import {
     Permission.IncidentMember,
     Permission.IncidentViewer,
     Permission.ReadIncidentEpisodePublicNote,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -105,7 +104,6 @@ export default class IncidentEpisodePublicNote extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentEpisodePublicNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -148,7 +146,6 @@ export default class IncidentEpisodePublicNote extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentEpisodePublicNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -186,7 +183,6 @@ export default class IncidentEpisodePublicNote extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentEpisodePublicNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -229,7 +225,6 @@ export default class IncidentEpisodePublicNote extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentEpisodePublicNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -267,7 +262,6 @@ export default class IncidentEpisodePublicNote extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentEpisodePublicNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -311,7 +305,6 @@ export default class IncidentEpisodePublicNote extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentEpisodePublicNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -394,7 +387,6 @@ export default class IncidentEpisodePublicNote extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentEpisodePublicNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -437,7 +429,6 @@ export default class IncidentEpisodePublicNote extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentEpisodePublicNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -494,7 +485,6 @@ export default class IncidentEpisodePublicNote extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentEpisodePublicNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -539,7 +529,6 @@ export default class IncidentEpisodePublicNote extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentEpisodePublicNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -582,7 +571,6 @@ export default class IncidentEpisodePublicNote extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentEpisodePublicNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -611,7 +599,6 @@ export default class IncidentEpisodePublicNote extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentEpisodePublicNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -651,7 +638,6 @@ export default class IncidentEpisodePublicNote extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentEpisodePublicNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -692,7 +678,6 @@ export default class IncidentEpisodePublicNote extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentEpisodePublicNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

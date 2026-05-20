@@ -8,6 +8,7 @@ export default interface DashboardMonitorListComponent extends BaseComponent {
   arguments: {
     title?: string | undefined;
     maxRows?: number | undefined;
+    viewMode?: "list" | "honeycomb" | undefined;
     statusFilter?: string | undefined;
     monitorStatusIds?: Array<string> | undefined;
     monitorTypes?: Array<string> | undefined;

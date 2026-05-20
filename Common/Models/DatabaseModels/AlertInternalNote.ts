@@ -50,7 +50,6 @@ import {
     Permission.AlertMember,
     Permission.AlertViewer,
     Permission.ReadAlertInternalNote,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -106,7 +105,6 @@ export default class AlertInternalNote extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -149,7 +147,6 @@ export default class AlertInternalNote extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -187,7 +184,6 @@ export default class AlertInternalNote extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -230,7 +226,6 @@ export default class AlertInternalNote extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -267,7 +262,6 @@ export default class AlertInternalNote extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -311,7 +305,6 @@ export default class AlertInternalNote extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -394,7 +387,6 @@ export default class AlertInternalNote extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -437,7 +429,6 @@ export default class AlertInternalNote extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -487,7 +478,6 @@ export default class AlertInternalNote extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -527,7 +517,6 @@ export default class AlertInternalNote extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

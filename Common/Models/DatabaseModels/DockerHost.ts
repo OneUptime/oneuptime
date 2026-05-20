@@ -50,7 +50,6 @@ import {
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadDockerHost,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -101,7 +100,6 @@ export default class DockerHost extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -144,7 +142,6 @@ export default class DockerHost extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -181,7 +178,6 @@ export default class DockerHost extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -219,7 +215,6 @@ export default class DockerHost extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -256,7 +251,6 @@ export default class DockerHost extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -300,7 +294,6 @@ export default class DockerHost extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -340,7 +333,6 @@ export default class DockerHost extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -376,7 +368,6 @@ export default class DockerHost extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -408,7 +399,6 @@ export default class DockerHost extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -439,7 +429,6 @@ export default class DockerHost extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -470,7 +459,6 @@ export default class DockerHost extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -501,7 +489,6 @@ export default class DockerHost extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -535,7 +522,6 @@ export default class DockerHost extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -576,7 +562,6 @@ export default class DockerHost extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -620,7 +605,6 @@ export default class DockerHost extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -648,7 +632,6 @@ export default class DockerHost extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -686,7 +669,6 @@ export default class DockerHost extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -721,7 +703,6 @@ export default class DockerHost extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

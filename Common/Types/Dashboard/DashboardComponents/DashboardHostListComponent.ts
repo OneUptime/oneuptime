@@ -8,6 +8,7 @@ export default interface DashboardHostListComponent extends BaseComponent {
   arguments: {
     title?: string | undefined;
     maxRows?: number | undefined;
+    viewMode?: "list" | "honeycomb" | undefined;
     statusFilter?: string | undefined;
     osTypeFilter?: string | undefined;
   };

@@ -29,7 +29,9 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import SubscriberUtil from "Common/UI/Utils/StatusPage";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
+import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import React, {
   Fragment,
   FunctionComponent,
@@ -182,6 +184,10 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     emails: string;
     isSubscriptionConfirmed: boolean;
     sendYouHaveSubscribedMessage: boolean;
+    isSubscribedToAllResources?: boolean;
+    statusPageResources?: Array<string>;
+    isSubscribedToAllEventTypes?: boolean;
+    statusPageEventTypes?: Array<StatusPageEventType>;
   }
 
   const handleBulkAddSubmit: (data: BulkAddFormData) => Promise<void> = async (
@@ -226,6 +232,36 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         subscriber.isSubscriptionConfirmed = data.isSubscriptionConfirmed;
         subscriber.sendYouHaveSubscribedMessage =
           data.sendYouHaveSubscribedMessage;
+
+        if (allowSubscribersToChooseResources) {
+          subscriber.isSubscribedToAllResources =
+            data.isSubscribedToAllResources !== false;
+
+          if (
+            !subscriber.isSubscribedToAllResources &&
+            data.statusPageResources
+          ) {
+            subscriber.statusPageResources = data.statusPageResources.map(
+              (resourceId: string): StatusPageResource => {
+                const resource: StatusPageResource = new StatusPageResource();
+                resource._id = resourceId;
+                return resource;
+              },
+            );
+          }
+        }
+
+        if (allowSubscribersToChooseEventTypes) {
+          subscriber.isSubscribedToAllEventTypes =
+            data.isSubscribedToAllEventTypes !== false;
+
+          if (
+            !subscriber.isSubscribedToAllEventTypes &&
+            data.statusPageEventTypes
+          ) {
+            subscriber.statusPageEventTypes = data.statusPageEventTypes;
+          }
+        }
 
         await ModelAPI.create<StatusPageSubscriber>({
           model: subscriber,
@@ -568,6 +604,58 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     fieldType: FormFieldSchemaType.Toggle,
                     required: false,
                   },
+                  ...(allowSubscribersToChooseResources
+                    ? [
+                        {
+                          field: { isSubscribedToAllResources: true },
+                          title: "Subscribe to All Resources",
+                          description:
+                            "Send notifications for all resources to these subscribers.",
+                          fieldType: FormFieldSchemaType.Checkbox,
+                          required: false,
+                          defaultValue: true,
+                        },
+                        {
+                          field: { statusPageResources: true },
+                          title: "Select Resources to Subscribe",
+                          description:
+                            "Please select the resources these subscribers should receive notifications for.",
+                          fieldType: FormFieldSchemaType.CategoryCheckbox,
+                          required: false,
+                          categoryCheckboxProps:
+                            categoryCheckboxOptionsAndCategories,
+                          showIf: (model: FormValues<BulkAddFormData>) => {
+                            return !model || !model.isSubscribedToAllResources;
+                          },
+                        },
+                      ]
+                    : []),
+                  ...(allowSubscribersToChooseEventTypes
+                    ? [
+                        {
+                          field: { isSubscribedToAllEventTypes: true },
+                          title: "Subscribe to All Event Types",
+                          description:
+                            "Send notifications for all event types to these subscribers.",
+                          fieldType: FormFieldSchemaType.Checkbox,
+                          required: false,
+                          defaultValue: true,
+                        },
+                        {
+                          field: { statusPageEventTypes: true },
+                          title: "Select Event Types to Subscribe",
+                          description:
+                            "Please select the event types these subscribers should receive notifications for.",
+                          fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                          required: false,
+                          dropdownOptions:
+                            SubscriberUtil.getDropdownPropsBasedOnEventTypes(),
+                          showIf: (model: FormValues<BulkAddFormData>) => {
+                            return !model || !model.isSubscribedToAllEventTypes;
+                          },
+                        },
+                      ]
+                    : []),
                 ],
               }}
             />

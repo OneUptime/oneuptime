@@ -46,7 +46,6 @@ import {
     Permission.IncidentMember,
     Permission.IncidentViewer,
     Permission.ReadIncidentLabelRule,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -93,7 +92,6 @@ export default class IncidentLabelRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -133,7 +131,6 @@ export default class IncidentLabelRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -167,7 +164,6 @@ export default class IncidentLabelRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -205,7 +201,6 @@ export default class IncidentLabelRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -241,7 +236,6 @@ export default class IncidentLabelRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -282,7 +276,6 @@ export default class IncidentLabelRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -332,7 +325,6 @@ export default class IncidentLabelRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -382,7 +374,6 @@ export default class IncidentLabelRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -432,7 +423,6 @@ export default class IncidentLabelRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -482,7 +472,6 @@ export default class IncidentLabelRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -519,7 +508,6 @@ export default class IncidentLabelRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -556,7 +544,6 @@ export default class IncidentLabelRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -593,7 +580,6 @@ export default class IncidentLabelRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -632,7 +618,6 @@ export default class IncidentLabelRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -682,7 +667,6 @@ export default class IncidentLabelRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -721,7 +705,6 @@ export default class IncidentLabelRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -760,7 +743,6 @@ export default class IncidentLabelRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -801,7 +783,6 @@ export default class IncidentLabelRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

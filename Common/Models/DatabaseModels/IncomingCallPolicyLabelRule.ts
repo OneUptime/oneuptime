@@ -41,7 +41,6 @@ import {
     Permission.ProjectMember,
     Permission.Viewer,
     Permission.ReadIncomingCallPolicyLabelRule,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -85,7 +84,6 @@ export default class IncomingCallPolicyLabelRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadIncomingCallPolicyLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -122,7 +120,6 @@ export default class IncomingCallPolicyLabelRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadIncomingCallPolicyLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -153,7 +150,6 @@ export default class IncomingCallPolicyLabelRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadIncomingCallPolicyLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -188,7 +184,6 @@ export default class IncomingCallPolicyLabelRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadIncomingCallPolicyLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -221,7 +216,6 @@ export default class IncomingCallPolicyLabelRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadIncomingCallPolicyLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -257,7 +251,6 @@ export default class IncomingCallPolicyLabelRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadIncomingCallPolicyLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -304,7 +297,6 @@ export default class IncomingCallPolicyLabelRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadIncomingCallPolicyLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -338,7 +330,6 @@ export default class IncomingCallPolicyLabelRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadIncomingCallPolicyLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -372,7 +363,6 @@ export default class IncomingCallPolicyLabelRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadIncomingCallPolicyLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -419,7 +409,6 @@ export default class IncomingCallPolicyLabelRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadIncomingCallPolicyLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -457,7 +446,6 @@ export default class IncomingCallPolicyLabelRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadIncomingCallPolicyLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

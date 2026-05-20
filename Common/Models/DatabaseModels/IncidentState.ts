@@ -50,7 +50,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.IncidentMember,
     Permission.IncidentViewer,
     Permission.ReadIncidentState,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -104,7 +103,6 @@ export default class IncidentState extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentState,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -145,7 +143,6 @@ export default class IncidentState extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentState,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -181,7 +178,6 @@ export default class IncidentState extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentState,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -217,7 +213,6 @@ export default class IncidentState extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentState,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -252,7 +247,6 @@ export default class IncidentState extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentState,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -292,7 +286,6 @@ export default class IncidentState extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentState,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -334,7 +327,6 @@ export default class IncidentState extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentState,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -362,7 +354,6 @@ export default class IncidentState extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentState,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -400,7 +391,6 @@ export default class IncidentState extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentState,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -433,7 +423,6 @@ export default class IncidentState extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentState,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -476,7 +465,6 @@ export default class IncidentState extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentState,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -514,7 +502,6 @@ export default class IncidentState extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentState,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -552,7 +539,6 @@ export default class IncidentState extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentState,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -591,7 +577,6 @@ export default class IncidentState extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentState,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

@@ -1,6 +1,6 @@
 # Kubernetes 에이전트 설치
 
-OneUptime Kubernetes 에이전트는 Kubernetes 클러스터에서 클러스터 메트릭, 이벤트, 파드 로그, **애플리케이션 트레이스(eBPF를 통한 HTTP/gRPC)**, **연속 CPU 플레임 그래프(eBPF 프로파일러)**, **OS 레벨 노드 메트릭**을 수집하여 OneUptime으로 전송합니다. Helm 차트로 배포되며 단일 명령으로 설치됩니다 — eBPF 자동 계측과 프로파일링이 기본적으로 활성화되어 있으므로 코드 변경 없이 서비스 레벨 트레이스, RED 메트릭, 플레임 그래프를 확인할 수 있습니다.
+OneUptime Kubernetes 에이전트는 Kubernetes 클러스터에서 클러스터 메트릭, 이벤트, 파드 로그, **애플리케이션 트레이스(eBPF를 통한 HTTP/gRPC)**, **OS 레벨 노드 메트릭**을 수집하여 OneUptime으로 전송합니다. Helm 차트로 배포되며 단일 명령으로 설치됩니다 — eBPF 자동 계측이 기본적으로 활성화되어 있으므로 코드 변경 없이 서비스 레벨 트레이스와 RED 메트릭을 확인할 수 있습니다. **연속 CPU 플레임 그래프(eBPF 프로파일러)**도 사용할 수 있으며, 더 많은 텔레메트리를 원할 때 `--set profiling.enabled=true`로 옵트인하십시오.
 
 ## 빠른 시작
 
@@ -161,22 +161,24 @@ kubectl get pods -n oneuptime-kubernetes-agent -l component=ebpf-instrument
 kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
 ```
 
-## 연속 CPU 프로파일링 (기본 활성화)
+## 연속 CPU 프로파일링 (기본 비활성화)
 
 별도의 DaemonSet이 [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler)를 실행합니다 — `otel/opentelemetry-collector-ebpf-profiler` 이미지로 패키징되어 있습니다. 지원되는 모든 런타임(Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C/C++, Rust)에서 19Hz로 on-CPU 스택을 샘플링하고 OTLP 프로파일을 OneUptime으로 전송하며, **Telemetry → Performance Profiles** 아래와 개별 트레이스 스팬에서 연결된 플레임 그래프로 표시됩니다.
+
+프로파일링은 **기본적으로 비활성화**되어 있습니다 — OBI 자동 계측보다 무거우며(노드당 CPU 사용량이 더 많고 메모리 사용량이 더 큼), 모든 클러스터가 항상 켜진 플레임 그래프를 원하는 것은 아닙니다. 더 풍부한 텔레메트리를 원할 때 활성화하십시오: `--set profiling.enabled=true`.
 
 eBPF 자동 계측도 활성화되어 있는 경우(`ebpf.enabled: true`, 기본값), 각 CPU 샘플은 공유된 bpffs 맵을 통해 OBI의 트레이스 컨텍스트와 상관 관계가 지정됩니다 — 따라서 플레임 그래프에 trace_id/span_id가 포함되며 OneUptime UI는 스팬별 플레임 그래프를 보여줄 수 있습니다.
 
 요구 사항:
 
 - **Linux 커널 5.10+** (OBI가 필요로 하는 5.8보다 약간 더 최신 버전).
-- hostPID를 사용하는 특권 파드 — eBPF 자동 계측 DaemonSet과 동일한 제약입니다. GKE Autopilot, EKS Fargate 및 잠긴 환경에서는 비활성화하십시오: `--set profiling.enabled=false`.
+- hostPID를 사용하는 특권 파드 — eBPF 자동 계측 DaemonSet과 동일한 제약입니다. GKE Autopilot, EKS Fargate 또는 기타 잠긴 환경에서는 실행할 수 없습니다.
 
 튜닝:
 
 | 옵션 | 기본값 | 설명 |
 | --- | --- | --- |
-| `profiling.enabled` | `true` | 마스터 스위치. |
+| `profiling.enabled` | `false` | 마스터 스위치. 기본적으로 비활성화; 연속 CPU 플레임 그래프를 사용하려면 옵트인하십시오. |
 | `profiling.image.tag` | `0.152.0` | `otel/opentelemetry-collector-ebpf-profiler` 이미지 태그. 프로파일러는 1.0 이전 버전이므로, 검증된 버전에 고정하십시오. |
 | `profiling.samplesPerSecond` | `19` | 샘플링 주기(Hz). 업스트림 기본값으로, 일반적인 타이머 주파수와의 우발적인 얼라이어싱을 방지합니다. |
 | `profiling.offCpuThreshold` | `0` | (0–1] 범위로 off-CPU 프로파일링을 활성화합니다 — 락 경합과 블로킹 I/O를 진단합니다. tracepoint 오버헤드가 추가되므로 기본적으로 비활성화되어 있습니다. |
@@ -208,7 +210,7 @@ eBPF 자동 계측도 활성화되어 있는 경우(`ebpf.enabled: true`, 기본
 | `logs.mode` | (`preset`에서 파생됨) | `daemonset`, `api` 또는 `disabled`. 프리셋을 재정의합니다. |
 | `logs.api.replicas` | `1` | 로그 테일러 Deployment 복제본 수(API 모드에서만). |
 | `ebpf.enabled` | `true` | OpenTelemetry eBPF Instrumentation을 통해 모든 파드에서 HTTP/gRPC 트레이스를 자동으로 캡처합니다. 위의 섹션을 참조하십시오. |
-| `profiling.enabled` | `true` | OpenTelemetry eBPF Profiler를 통한 연속 CPU 플레임 그래프. 위의 섹션을 참조하십시오. |
+| `profiling.enabled` | `false` | OpenTelemetry eBPF Profiler를 통한 연속 CPU 플레임 그래프. 기본적으로 비활성화; 더 많은 텔레메트리를 위해 옵트인하십시오. 위의 섹션을 참조하십시오. |
 | `hostMetrics.enabled` | `true` | 노드별 OS 메트릭. |
 | `auditLogs.enabled` | `false` | Kubernetes 감사 로그 수집(자체 관리형 클러스터). |
 | `csi.enabled` | `false` | CSI 드라이버 Prometheus 메트릭. |

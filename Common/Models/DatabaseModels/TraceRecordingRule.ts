@@ -55,7 +55,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.TelemetryMember,
     Permission.TelemetryViewer,
     Permission.ReadProjectTraceRecordingRule,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -84,7 +83,6 @@ export default class TraceRecordingRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceRecordingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -124,7 +122,6 @@ export default class TraceRecordingRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceRecordingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -158,7 +155,6 @@ export default class TraceRecordingRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceRecordingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -195,7 +191,6 @@ export default class TraceRecordingRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceRecordingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -232,7 +227,6 @@ export default class TraceRecordingRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceRecordingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -270,7 +264,6 @@ export default class TraceRecordingRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceRecordingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -306,7 +299,6 @@ export default class TraceRecordingRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceRecordingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -345,7 +337,6 @@ export default class TraceRecordingRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceRecordingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -379,7 +370,6 @@ export default class TraceRecordingRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceRecordingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -415,7 +405,6 @@ export default class TraceRecordingRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceRecordingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -442,7 +431,6 @@ export default class TraceRecordingRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceRecordingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -478,7 +466,6 @@ export default class TraceRecordingRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceRecordingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

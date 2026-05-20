@@ -67,7 +67,6 @@ export type WorkspaceMiscData = SlackMiscData | MicrosoftTeamsMiscData;
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.ReadAllProjectResources,
   ],
   delete: [Permission.ProjectOwner, Permission.ProjectAdmin],
   update: [
@@ -99,7 +98,6 @@ class WorkspaceProjectAuthToken extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -135,7 +133,6 @@ class WorkspaceProjectAuthToken extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -188,7 +185,6 @@ class WorkspaceProjectAuthToken extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -219,7 +215,6 @@ class WorkspaceProjectAuthToken extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -253,7 +248,6 @@ class WorkspaceProjectAuthToken extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -286,7 +280,6 @@ class WorkspaceProjectAuthToken extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -327,7 +320,6 @@ class WorkspaceProjectAuthToken extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -359,7 +351,6 @@ class WorkspaceProjectAuthToken extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -401,7 +392,6 @@ class WorkspaceProjectAuthToken extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

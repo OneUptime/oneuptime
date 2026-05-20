@@ -38,7 +38,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ScheduledMaintenanceMember,
     Permission.ScheduledMaintenanceViewer,
     Permission.ReadScheduledMaintenanceNoteTemplate,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -94,7 +93,6 @@ export default class ScheduledMaintenanceNoteTemplate extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceNoteTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -138,7 +136,6 @@ export default class ScheduledMaintenanceNoteTemplate extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceNoteTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -176,7 +173,6 @@ export default class ScheduledMaintenanceNoteTemplate extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceNoteTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -221,7 +217,6 @@ export default class ScheduledMaintenanceNoteTemplate extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceNoteTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -265,7 +260,6 @@ export default class ScheduledMaintenanceNoteTemplate extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceNoteTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -310,7 +304,6 @@ export default class ScheduledMaintenanceNoteTemplate extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceNoteTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -355,7 +348,6 @@ export default class ScheduledMaintenanceNoteTemplate extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceNoteTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

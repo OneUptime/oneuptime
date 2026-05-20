@@ -36,7 +36,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.WorkflowMember,
     Permission.WorkflowViewer,
     Permission.ReadWorkflowLog,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -73,7 +72,6 @@ export default class WorkflowLog extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -109,7 +107,6 @@ export default class WorkflowLog extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -139,7 +136,6 @@ export default class WorkflowLog extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -175,7 +171,6 @@ export default class WorkflowLog extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -205,7 +200,6 @@ export default class WorkflowLog extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -232,7 +226,6 @@ export default class WorkflowLog extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -259,7 +252,6 @@ export default class WorkflowLog extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -286,7 +278,6 @@ export default class WorkflowLog extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

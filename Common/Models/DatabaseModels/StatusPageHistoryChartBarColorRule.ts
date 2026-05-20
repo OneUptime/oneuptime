@@ -44,7 +44,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.StatusPageMember,
     Permission.StatusPageViewer,
     Permission.ReadStatusPageHistoryChartBarColorRule,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -101,7 +100,6 @@ export default class StatusPageHistoryChartBarColorRule extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageHistoryChartBarColorRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -144,7 +142,6 @@ export default class StatusPageHistoryChartBarColorRule extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageHistoryChartBarColorRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -181,7 +178,6 @@ export default class StatusPageHistoryChartBarColorRule extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageHistoryChartBarColorRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -225,7 +221,6 @@ export default class StatusPageHistoryChartBarColorRule extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageHistoryChartBarColorRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -261,7 +256,6 @@ export default class StatusPageHistoryChartBarColorRule extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageHistoryChartBarColorRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -303,7 +297,6 @@ export default class StatusPageHistoryChartBarColorRule extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageHistoryChartBarColorRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -350,7 +343,6 @@ export default class StatusPageHistoryChartBarColorRule extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageHistoryChartBarColorRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -394,7 +386,6 @@ export default class StatusPageHistoryChartBarColorRule extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageHistoryChartBarColorRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -429,7 +420,6 @@ export default class StatusPageHistoryChartBarColorRule extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageHistoryChartBarColorRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

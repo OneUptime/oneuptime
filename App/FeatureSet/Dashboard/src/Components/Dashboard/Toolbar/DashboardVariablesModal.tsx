@@ -11,6 +11,7 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import AutocompleteTextInput from "Common/UI/Components/AutocompleteTextInput/AutocompleteTextInput";
 import DashboardVariable, {
   DashboardVariableType,
 } from "Common/Types/Dashboard/DashboardVariable";
@@ -120,21 +121,16 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
           <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide block mb-1">
             Attribute Key
           </label>
-          <input
-            type="text"
-            list={`attr-options-${variable.id}`}
-            className="w-full text-sm border border-gray-200 rounded-md px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 font-mono"
-            placeholder="e.g. k8s.cluster.name"
+          <AutocompleteTextInput
             value={variable.attributeKey || ""}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              props.onChange({ ...variable, attributeKey: e.target.value });
+            placeholder="e.g. k8s.cluster.name"
+            suggestions={props.telemetryAttributeOptions}
+            className="w-full text-sm border border-gray-200 rounded-md px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 font-mono"
+            outerDivClassName="relative w-full"
+            onChange={(value: string) => {
+              props.onChange({ ...variable, attributeKey: value });
             }}
           />
-          <datalist id={`attr-options-${variable.id}`}>
-            {props.telemetryAttributeOptions.map((attr: string) => {
-              return <option key={attr} value={attr} />;
-            })}
-          </datalist>
           <p className="text-[11px] text-gray-400 mt-1">
             Widgets that filter on this attribute will be scoped to the selected
             value. Choosing &quot;All&quot; leaves widgets unfiltered.

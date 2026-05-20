@@ -426,7 +426,7 @@ class User extends UserModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [Permission.CustomerSupport, Permission.ReadAllProjectResources],
+    read: [Permission.CustomerSupport],
 
     update: [Permission.CustomerSupport],
   })
@@ -480,7 +480,7 @@ class User extends UserModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [Permission.CustomerSupport, Permission.ReadAllProjectResources],
+    read: [Permission.CustomerSupport],
 
     update: [Permission.CustomerSupport],
   })

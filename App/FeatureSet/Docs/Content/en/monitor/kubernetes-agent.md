@@ -1,6 +1,6 @@
 # Install the Kubernetes Agent
 
-The OneUptime Kubernetes agent collects cluster metrics, events, pod logs, **application traces (HTTP/gRPC via eBPF)**, **continuous CPU flame graphs (eBPF profiler)**, and **OS-level node metrics** from your Kubernetes cluster and ships them to OneUptime. It is distributed as a Helm chart and installed with one command — eBPF auto-instrumentation and profiling are both on by default, so you see service-level traces, RED metrics, and flame graphs with no code changes.
+The OneUptime Kubernetes agent collects cluster metrics, events, pod logs, **application traces (HTTP/gRPC via eBPF)**, and **OS-level node metrics** from your Kubernetes cluster and ships them to OneUptime. It is distributed as a Helm chart and installed with one command — eBPF auto-instrumentation is on by default, so you see service-level traces and RED metrics with no code changes. **Continuous CPU flame graphs (eBPF profiler)** are also available — opt in with `--set profiling.enabled=true` when you want more telemetry.
 
 ## Quick start
 
@@ -161,22 +161,24 @@ kubectl get pods -n oneuptime-kubernetes-agent -l component=ebpf-instrument
 kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
 ```
 
-## Continuous CPU profiling (on by default)
+## Continuous CPU profiling (off by default)
 
 A separate DaemonSet runs the [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) — packaged as the `otel/opentelemetry-collector-ebpf-profiler` image. It samples on-CPU stacks at 19Hz across every supported runtime (Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C/C++, Rust) and ships OTLP profiles to OneUptime, where they appear under **Telemetry → Performance Profiles** and as flame graphs linked from individual trace spans.
+
+Profiling is **off by default** — it's heavier than the OBI auto-instrumentation (more CPU per node, larger memory footprint) and not every cluster wants always-on flame graphs. Enable it when you want richer telemetry: `--set profiling.enabled=true`.
 
 When eBPF auto-instrumentation is also on (`ebpf.enabled: true`, the default), each CPU sample is correlated with OBI's trace context via a shared bpffs map — so flame graphs carry trace_id/span_id and the OneUptime UI can show you a per-span flame graph.
 
 Requirements:
 
 - **Linux kernel 5.10+** (slightly newer than the 5.8 OBI needs).
-- Privileged pod with hostPID — same constraints as the eBPF auto-instrumentation DaemonSet. Disable on GKE Autopilot, EKS Fargate, and locked-down environments: `--set profiling.enabled=false`.
+- Privileged pod with hostPID — same constraints as the eBPF auto-instrumentation DaemonSet. Cannot run on GKE Autopilot, EKS Fargate, or other locked-down environments.
 
 Tuning:
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `profiling.enabled` | `true` | Master switch. |
+| `profiling.enabled` | `false` | Master switch. Off by default; opt in for continuous CPU flame graphs. |
 | `profiling.image.tag` | `0.152.0` | `otel/opentelemetry-collector-ebpf-profiler` image tag. The profiler is pre-1.0; pin to a known-good version. |
 | `profiling.samplesPerSecond` | `19` | Sampling frequency in Hz. Upstream default; avoids accidentally aliasing with common timer frequencies. |
 | `profiling.offCpuThreshold` | `0` | (0–1] enables off-CPU profiling — diagnoses lock contention and blocking I/O. Off by default because it adds tracepoint overhead. |
@@ -208,7 +210,7 @@ The chart can also collect:
 | `logs.mode` | (derived from `preset`) | `daemonset`, `api`, or `disabled`. Overrides the preset. |
 | `logs.api.replicas` | `1` | Number of log-tailer Deployment replicas (only in API mode). |
 | `ebpf.enabled` | `true` | Auto-capture HTTP/gRPC traces from every pod via OpenTelemetry eBPF Instrumentation. See section above. |
-| `profiling.enabled` | `true` | Continuous CPU flame graphs via the OpenTelemetry eBPF Profiler. See section above. |
+| `profiling.enabled` | `false` | Continuous CPU flame graphs via the OpenTelemetry eBPF Profiler. Off by default; opt in for more telemetry. See section above. |
 | `hostMetrics.enabled` | `true` | Per-node OS metrics. |
 | `auditLogs.enabled` | `false` | Kubernetes audit log collection (self-managed clusters). |
 | `csi.enabled` | `false` | CSI driver Prometheus metrics. |

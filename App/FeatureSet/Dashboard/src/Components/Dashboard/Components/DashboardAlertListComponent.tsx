@@ -9,7 +9,9 @@ import DashboardAlertListComponent from "Common/Types/Dashboard/DashboardCompone
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
+  ResourceListViewMode,
 } from "./DashboardResourceListBase";
+import { HoneycombTile } from "./DashboardResourceHoneycomb";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import API from "Common/UI/Utils/API/API";
@@ -46,6 +48,8 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const maxRows: number = props.component.arguments.maxRows || 25;
+  const viewMode: ResourceListViewMode =
+    props.component.arguments.viewMode === "honeycomb" ? "honeycomb" : "list";
   const stateFilter: string | undefined = props.component.arguments.stateFilter;
   const severityIds: Array<string> | undefined =
     props.component.arguments.severityIds;
@@ -154,6 +158,46 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
     fetchAlerts();
   }, [fetchAlerts, props.refreshTick]);
 
+  const honeycombTiles: Array<HoneycombTile> = alerts.map(
+    (alert: Alert): HoneycombTile => {
+      const alertId: string = (alert._id as string) || "";
+      const title: string = (alert.title as string) || "Untitled";
+      const stateName: string =
+        (alert.currentAlertState?.name as string) || "—";
+      const stateColor: Color | undefined = alert.currentAlertState?.color as
+        | Color
+        | undefined;
+      const severityName: string = (alert.alertSeverity?.name as string) || "—";
+      const severityColor: Color | undefined = alert.alertSeverity?.color as
+        | Color
+        | undefined;
+
+      const route: Route | undefined = alertId
+        ? RouteUtil.populateRouteParams(RouteMap[PageMap.ALERT_VIEW] as Route, {
+            modelId: new ObjectID(alertId),
+          })
+        : undefined;
+
+      return {
+        id: alertId || title,
+        status: stateName,
+        color: severityColor
+          ? severityColor.toString()
+          : stateColor
+            ? stateColor.toString()
+            : "#9ca3af",
+        route: route,
+        tooltip: {
+          title: title,
+          details: [
+            { label: "State", value: stateName },
+            { label: "Severity", value: severityName },
+          ],
+        },
+      };
+    },
+  );
+
   const rows: Array<ReactElement> = alerts.map((alert: Alert): ReactElement => {
     const alertId: string = (alert._id as string) || "";
     const stateName: string = (alert.currentAlertState?.name as string) || "—";
@@ -235,6 +279,8 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
       isEmpty={alerts.length === 0}
       emptyMessage="No alerts found"
       emptyIcon={IconProp.Alert}
+      viewMode={viewMode}
+      honeycombTiles={honeycombTiles}
     >
       {rows}
     </DashboardResourceListBase>

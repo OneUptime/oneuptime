@@ -48,7 +48,6 @@ import {
     Permission.ScheduledMaintenanceMember,
     Permission.ScheduledMaintenanceViewer,
     Permission.ReadScheduledMaintenanceInternalNote,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -105,7 +104,6 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -148,7 +146,6 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -186,7 +183,6 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -230,7 +226,6 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -267,7 +262,6 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -311,7 +305,6 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -394,7 +387,6 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -437,7 +429,6 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -487,7 +478,6 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -527,7 +517,6 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceInternalNote,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

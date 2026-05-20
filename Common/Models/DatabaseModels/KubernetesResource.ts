@@ -49,7 +49,6 @@ const READ_PERMISSIONS: Array<Permission> = [
   Permission.SettingsMember,
   Permission.SettingsViewer,
   Permission.ReadKubernetesCluster,
-  Permission.ReadAllProjectResources,
 ];
 
 @TenantColumn("projectId")

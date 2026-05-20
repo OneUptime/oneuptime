@@ -44,7 +44,6 @@ import {
     Permission.MonitorMember,
     Permission.MonitorViewer,
     Permission.ReadMonitorLabelRule,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -91,7 +90,6 @@ export default class MonitorLabelRule extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -131,7 +129,6 @@ export default class MonitorLabelRule extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -165,7 +162,6 @@ export default class MonitorLabelRule extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -203,7 +199,6 @@ export default class MonitorLabelRule extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -239,7 +234,6 @@ export default class MonitorLabelRule extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -280,7 +274,6 @@ export default class MonitorLabelRule extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -330,7 +323,6 @@ export default class MonitorLabelRule extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -367,7 +359,6 @@ export default class MonitorLabelRule extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -406,7 +397,6 @@ export default class MonitorLabelRule extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -456,7 +446,6 @@ export default class MonitorLabelRule extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -497,7 +486,6 @@ export default class MonitorLabelRule extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

@@ -1,4 +1,6 @@
 enum Range {
+  PAST_FIVE_MINS = "Past 5 Mins",
+  PAST_FIFTEEN_MINS = "Past 15 Mins",
   PAST_THIRTY_MINS = "Past 30 Mins",
   PAST_ONE_HOUR = "Past 1 Hour",
   PAST_TWO_HOURS = "Past 2 Hours",

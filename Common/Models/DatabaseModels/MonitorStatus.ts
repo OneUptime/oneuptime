@@ -50,7 +50,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.MonitorMember,
     Permission.MonitorViewer,
     Permission.ReadProjectMonitorStatus,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -103,7 +102,6 @@ export default class MonitorStatus extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -144,7 +142,6 @@ export default class MonitorStatus extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -180,7 +177,6 @@ export default class MonitorStatus extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -216,7 +212,6 @@ export default class MonitorStatus extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -251,7 +246,6 @@ export default class MonitorStatus extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -290,7 +284,6 @@ export default class MonitorStatus extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -332,7 +325,6 @@ export default class MonitorStatus extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -361,7 +353,6 @@ export default class MonitorStatus extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -399,7 +390,6 @@ export default class MonitorStatus extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -433,7 +423,6 @@ export default class MonitorStatus extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -476,7 +465,6 @@ export default class MonitorStatus extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -515,7 +503,6 @@ export default class MonitorStatus extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -554,7 +541,6 @@ export default class MonitorStatus extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadProjectMonitorStatus,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

@@ -11,6 +11,7 @@ import IncidentMetricType from "../Incident/IncidentMetricType";
 import MonitorMetricType from "../Monitor/MonitorMetricType";
 import MetricDashboardMetricType from "../Metrics/MetricDashboardMetricType";
 import { DashboardValueTrendDirection } from "./DashboardComponents/DashboardValueComponent";
+import { HostMetricKind } from "./DashboardComponents/DashboardHostMetricChartComponent";
 
 /*
  * Trace / Exception / Profiles entries are intentionally not in this
@@ -25,6 +26,7 @@ export enum DashboardTemplateType {
   Monitor = "Monitor",
   Incident = "Incident",
   Kubernetes = "Kubernetes",
+  Host = "Host",
   Metrics = "Metrics",
 }
 
@@ -62,6 +64,13 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
     description:
       "Pod/node CPU and memory averages, utilization gauges, live pod and node lists, network I/O, restarts, and cluster logs.",
     icon: IconProp.Kubernetes,
+  },
+  {
+    type: DashboardTemplateType.Host,
+    name: "Hosts Dashboard",
+    description:
+      "Per-host CPU, memory, disk and network charts, a live host inventory, CPU utilization gauge, process counts, and recent logs.",
+    icon: IconProp.Server,
   },
   {
     type: DashboardTemplateType.Metrics,
@@ -370,6 +379,62 @@ function createKubernetesNodeListComponent(data: {
       title: data.title,
       maxRows: data.maxRows ?? 20,
       readinessFilter: data.readinessFilter,
+    },
+  };
+}
+
+function createHostListComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+  statusFilter?: string;
+  osTypeFilter?: string;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.HostList,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 6,
+    arguments: {
+      title: data.title,
+      maxRows: data.maxRows ?? 25,
+      statusFilter: data.statusFilter,
+      osTypeFilter: data.osTypeFilter,
+    },
+  };
+}
+
+function createHostMetricChartComponent(data: {
+  title: string;
+  description?: string;
+  metricKind: HostMetricKind;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.HostMetricChart,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 6,
+    arguments: {
+      title: data.title,
+      description: data.description,
+      metricKind: data.metricKind,
     },
   };
 }
@@ -1384,6 +1449,229 @@ function createMetricsDashboardConfig(): DashboardViewConfig {
   };
 }
 
+function createHostDashboardConfig(): DashboardViewConfig {
+  /*
+   * Layout notes:
+   *
+   * - The HostMetricChart widget groups by `host.name` and plots one
+   *   series per host (or a single series when filtered to one host).
+   *   The OTel host receiver emits `system.cpu.utilization` and
+   *   `system.memory.utilization` as [0, 1] ratios, which Value/Gauge
+   *   widgets auto-scale to percent at render time (see
+   *   splitFormattedValue / isFractionScale).
+   *
+   * - The Value widget for "Avg Memory" uses `system.memory.usage`
+   *   (bytes) and is auto-formatted to MB/GB by ValueFormatter, since
+   *   `system.memory.utilization` is not always emitted by default OTel
+   *   host metrics.
+   *
+   * - Disk and Network I/O Value widgets aggregate the raw byte counters
+   *   with Sum. HostMetricChart turns these into per-second rates for
+   *   the chart view; the Value tile shows the unrated total so users
+   *   reading "Disk I/O" against the time window get an absolute byte
+   *   figure rather than a noisy snapshot.
+   */
+  const components: Array<DashboardBaseComponent> = [
+    // Row 0: Title
+    createTextComponent({
+      text: "Hosts Dashboard",
+      top: 0,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Row 1: Key host metrics
+    createValueComponent({
+      title: "Avg CPU",
+      top: 1,
+      left: 0,
+      width: 3,
+      metricConfig: {
+        metricName: MetricDashboardMetricType.SystemCpuUtilization,
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+    createValueComponent({
+      title: "Avg Memory",
+      top: 1,
+      left: 3,
+      width: 3,
+      metricConfig: {
+        metricName: MetricDashboardMetricType.SystemMemoryUsage,
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+    createValueComponent({
+      title: "Disk I/O",
+      top: 1,
+      left: 6,
+      width: 3,
+      metricConfig: {
+        metricName: MetricDashboardMetricType.SystemDiskIo,
+        aggregationType: MetricsAggregationType.Sum,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsBetter,
+    }),
+    createValueComponent({
+      title: "Network I/O",
+      top: 1,
+      left: 9,
+      width: 3,
+      metricConfig: {
+        metricName: MetricDashboardMetricType.SystemNetworkIo,
+        aggregationType: MetricsAggregationType.Sum,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsBetter,
+    }),
+
+    // Row 2-4: Per-host CPU and Memory charts
+    createHostMetricChartComponent({
+      title: "CPU Utilization by Host",
+      metricKind: HostMetricKind.CpuUtilization,
+      top: 2,
+      left: 0,
+      width: 6,
+      height: 3,
+    }),
+    createHostMetricChartComponent({
+      title: "Memory Usage by Host",
+      metricKind: HostMetricKind.MemoryUsage,
+      top: 2,
+      left: 6,
+      width: 6,
+      height: 3,
+    }),
+
+    // Row 5: Section header
+    createTextComponent({
+      text: "Hosts",
+      top: 5,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    /*
+     * Row 6-9: Live host inventory. The widget reads the Postgres host
+     * snapshot, so the header shows the true current count and rows
+     * link to per-host detail pages.
+     */
+    createHostListComponent({
+      title: "All Hosts",
+      top: 6,
+      left: 0,
+      width: 12,
+      height: 4,
+      maxRows: 25,
+    }),
+
+    // Row 10: Section header
+    createTextComponent({
+      text: "Resource Health",
+      top: 10,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    /*
+     * Row 11-13: CPU gauge (auto-scaled from [0,1] ratio to percent),
+     * alongside the filesystem-usage chart so capacity pressure is
+     * visible per host.
+     */
+    createGaugeComponent({
+      title: "Avg CPU Utilization",
+      top: 11,
+      left: 0,
+      width: 4,
+      height: 3,
+      minValue: 0,
+      maxValue: 100,
+      warningThreshold: 70,
+      criticalThreshold: 90,
+      metricConfig: {
+        metricName: MetricDashboardMetricType.SystemCpuUtilization,
+        aggregationType: MetricsAggregationType.Avg,
+      },
+    }),
+    createHostMetricChartComponent({
+      title: "Filesystem Usage by Host",
+      metricKind: HostMetricKind.Filesystem,
+      top: 11,
+      left: 4,
+      width: 8,
+      height: 3,
+    }),
+
+    // Row 14: Section header
+    createTextComponent({
+      text: "I/O Activity",
+      top: 14,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Row 15-17: Disk and network I/O rates per host
+    createHostMetricChartComponent({
+      title: "Disk I/O by Host",
+      metricKind: HostMetricKind.DiskIo,
+      top: 15,
+      left: 0,
+      width: 6,
+      height: 3,
+    }),
+    createHostMetricChartComponent({
+      title: "Network I/O by Host",
+      metricKind: HostMetricKind.NetworkIo,
+      top: 15,
+      left: 6,
+      width: 6,
+      height: 3,
+    }),
+
+    // Row 18: Section header
+    createTextComponent({
+      text: "Processes & Logs",
+      top: 18,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Row 19-21: Process count chart and recent logs
+    createHostMetricChartComponent({
+      title: "Process Count by Host",
+      metricKind: HostMetricKind.ProcessCount,
+      top: 19,
+      left: 0,
+      width: 6,
+      height: 3,
+    }),
+    createLogStreamComponent({
+      title: "Recent Logs",
+      top: 19,
+      left: 6,
+      width: 6,
+      height: 3,
+    }),
+  ];
+
+  return {
+    _type: ObjectType.DashboardViewConfig,
+    components,
+    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 22),
+  };
+}
+
 export function getTemplateConfig(
   type: DashboardTemplateType,
 ): DashboardViewConfig | null {
@@ -1394,6 +1682,8 @@ export function getTemplateConfig(
       return createIncidentDashboardConfig();
     case DashboardTemplateType.Kubernetes:
       return createKubernetesDashboardConfig();
+    case DashboardTemplateType.Host:
+      return createHostDashboardConfig();
     case DashboardTemplateType.Metrics:
       return createMetricsDashboardConfig();
     case DashboardTemplateType.Blank:

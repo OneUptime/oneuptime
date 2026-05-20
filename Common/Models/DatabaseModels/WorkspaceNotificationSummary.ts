@@ -45,7 +45,6 @@ import FilterCondition from "../../Types/Filter/FilterCondition";
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadWorkspaceNotificationSummary,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectAdmin,
@@ -101,7 +100,6 @@ class WorkspaceNotificationSummary extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationSummary,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -144,7 +142,6 @@ class WorkspaceNotificationSummary extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationSummary,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -181,7 +178,6 @@ class WorkspaceNotificationSummary extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationSummary,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -226,7 +222,6 @@ class WorkspaceNotificationSummary extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationSummary,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -271,7 +266,6 @@ class WorkspaceNotificationSummary extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationSummary,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -316,7 +310,6 @@ class WorkspaceNotificationSummary extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationSummary,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -361,7 +354,6 @@ class WorkspaceNotificationSummary extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationSummary,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -403,7 +395,6 @@ class WorkspaceNotificationSummary extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationSummary,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -445,7 +436,6 @@ class WorkspaceNotificationSummary extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationSummary,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -488,7 +478,6 @@ class WorkspaceNotificationSummary extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationSummary,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -529,7 +518,6 @@ class WorkspaceNotificationSummary extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationSummary,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -573,7 +561,6 @@ class WorkspaceNotificationSummary extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationSummary,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -614,7 +601,6 @@ class WorkspaceNotificationSummary extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationSummary,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -655,7 +641,6 @@ class WorkspaceNotificationSummary extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationSummary,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -698,7 +683,6 @@ class WorkspaceNotificationSummary extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationSummary,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -738,7 +722,6 @@ class WorkspaceNotificationSummary extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationSummary,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -778,7 +761,6 @@ class WorkspaceNotificationSummary extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationSummary,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -820,7 +802,6 @@ class WorkspaceNotificationSummary extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationSummary,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -871,7 +852,6 @@ class WorkspaceNotificationSummary extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationSummary,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -913,7 +893,6 @@ class WorkspaceNotificationSummary extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationSummary,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -965,7 +944,6 @@ class WorkspaceNotificationSummary extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationSummary,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,

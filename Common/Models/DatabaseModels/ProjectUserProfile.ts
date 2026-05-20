@@ -43,7 +43,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectMember,
     Permission.Viewer,
     Permission.ReadTeamMemberCustomField,
-    Permission.ReadAllProjectResources,
   ],
   delete: [Permission.ProjectOwner, Permission.ProjectAdmin],
   update: [
@@ -78,7 +77,6 @@ export default class ProjectUserProfile extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTeamMemberCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -116,7 +114,6 @@ export default class ProjectUserProfile extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTeamMemberCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -149,7 +146,6 @@ export default class ProjectUserProfile extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTeamMemberCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -187,7 +183,6 @@ export default class ProjectUserProfile extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTeamMemberCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -221,7 +216,6 @@ export default class ProjectUserProfile extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTeamMemberCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -250,7 +244,6 @@ export default class ProjectUserProfile extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTeamMemberCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -284,7 +277,6 @@ export default class ProjectUserProfile extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTeamMemberCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -310,7 +302,6 @@ export default class ProjectUserProfile extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTeamMemberCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -345,7 +336,6 @@ export default class ProjectUserProfile extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadTeamMemberCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

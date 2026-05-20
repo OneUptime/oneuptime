@@ -9,6 +9,7 @@ export default interface DashboardKubernetesPodListComponent
   arguments: {
     title?: string | undefined;
     maxRows?: number | undefined;
+    viewMode?: "list" | "honeycomb" | undefined;
     kubernetesClusterIds?: Array<string> | undefined;
     namespaces?: string | undefined;
     podPhases?: Array<string> | undefined;

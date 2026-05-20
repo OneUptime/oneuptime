@@ -33,7 +33,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectMember,
     Permission.Viewer,
     Permission.ReadLlmLog,
-    Permission.ReadAllProjectResources,
   ],
   delete: [],
   update: [],
@@ -59,7 +58,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -92,7 +90,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -121,7 +118,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -154,7 +150,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -183,7 +178,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -209,7 +203,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -236,7 +229,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -262,7 +254,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -292,7 +283,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -322,7 +312,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -350,7 +339,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -380,7 +368,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -406,7 +393,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -434,7 +420,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -461,7 +446,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -486,7 +470,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -513,7 +496,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -546,7 +528,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -573,7 +554,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -606,7 +586,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -633,7 +612,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -666,7 +644,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -696,7 +673,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -729,7 +705,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -758,7 +733,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -783,7 +757,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -808,7 +781,6 @@ export default class LlmLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadLlmLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

@@ -115,7 +115,6 @@ export default class PromoCode extends BaseModel {
       Permission.BillingMember,
       Permission.BillingViewer,
       Permission.ReadProjectLabel,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -157,7 +156,6 @@ export default class PromoCode extends BaseModel {
       Permission.BillingMember,
       Permission.BillingViewer,
       Permission.ReadProjectLabel,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -186,7 +184,6 @@ export default class PromoCode extends BaseModel {
       Permission.BillingMember,
       Permission.BillingViewer,
       Permission.ReadProjectLabel,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -225,7 +222,6 @@ export default class PromoCode extends BaseModel {
       Permission.BillingMember,
       Permission.BillingViewer,
       Permission.ReadProjectLabel,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -354,7 +350,6 @@ export default class PromoCode extends BaseModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

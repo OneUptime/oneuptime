@@ -60,7 +60,6 @@ export enum OnCallDutyPolicyFeedEventType {
     Permission.OnCallMember,
     Permission.OnCallViewer,
     Permission.ReadOnCallDutyPolicyFeed,
-    Permission.ReadAllProjectResources,
   ],
   delete: [],
   update: [],
@@ -103,7 +102,6 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -147,7 +145,6 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -185,7 +182,6 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -229,7 +225,6 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -267,7 +262,6 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -312,7 +306,6 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -396,7 +389,6 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -433,7 +425,6 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -470,7 +461,6 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -507,7 +497,6 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -545,7 +534,6 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadScheduledMaintenanceFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -590,7 +578,6 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadScheduledMaintenanceFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -626,7 +613,6 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadScheduledMaintenanceFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

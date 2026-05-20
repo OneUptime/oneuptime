@@ -9,7 +9,12 @@ import DashboardHostListComponent from "Common/Types/Dashboard/DashboardComponen
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
+  ResourceListViewMode,
 } from "./DashboardResourceListBase";
+import {
+  HoneycombLegendItem,
+  HoneycombTile,
+} from "./DashboardResourceHoneycomb";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Host from "Common/Models/DatabaseModels/Host";
 import API from "Common/UI/Utils/API/API";
@@ -24,6 +29,9 @@ import AppLink from "../../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
+import DashboardModelQueryInterpolation, {
+  AttributeToColumnMap,
+} from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardHostListComponent;
@@ -36,6 +44,16 @@ const COLUMNS: Array<ResourceListColumn> = [
   { label: "CPU / Mem", widthPct: "15%" },
   { label: "Last Seen", widthPct: "15%" },
 ];
+
+const HONEYCOMB_LEGEND: Array<HoneycombLegendItem> = [
+  { label: "Connected", color: "#10b981" },
+  { label: "Disconnected", color: "#9ca3af" },
+];
+
+const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
+  "host.name": "name",
+  "host.id": "hostIdentifier",
+};
 
 function formatBytes(bytes: number): string {
   if (!bytes || bytes <= 0) {
@@ -87,6 +105,8 @@ const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
   const maxRows: number = args.maxRows || 25;
   const statusFilter: string | undefined = args.statusFilter;
   const osTypeFilter: string | undefined = args.osTypeFilter;
+  const viewMode: ResourceListViewMode =
+    args.viewMode === "honeycomb" ? "honeycomb" : "list";
 
   const fetchHosts: () => Promise<void> = useCallback(async () => {
     setIsLoading(true);
@@ -99,20 +119,25 @@ const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
     }
 
     try {
-      const query: Query<Host> = {
+      const baseQuery: Record<string, unknown> = {
         projectId: projectId,
-      } as Query<Host>;
+      };
 
       if (statusFilter === "connected") {
-        (query as Record<string, unknown>)["otelCollectorStatus"] = "connected";
+        baseQuery["otelCollectorStatus"] = "connected";
       } else if (statusFilter === "disconnected") {
-        (query as Record<string, unknown>)["otelCollectorStatus"] =
-          "disconnected";
+        baseQuery["otelCollectorStatus"] = "disconnected";
       }
 
       if (osTypeFilter && osTypeFilter.trim() !== "") {
-        (query as Record<string, unknown>)["osType"] = osTypeFilter;
+        baseQuery["osType"] = osTypeFilter;
       }
+
+      const query: Query<Host> = DashboardModelQueryInterpolation.applyToQuery(
+        baseQuery,
+        props.variables,
+        ATTRIBUTE_TO_COLUMN,
+      ) as Query<Host>;
 
       const listResult: ListResult<Host> = await ModelAPI.getList<Host>({
         modelType: Host,
@@ -142,11 +167,57 @@ const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
     }
 
     setIsLoading(false);
-  }, [maxRows, statusFilter, osTypeFilter]);
+  }, [maxRows, statusFilter, osTypeFilter, props.variables]);
 
   useEffect(() => {
     fetchHosts();
   }, [fetchHosts, props.refreshTick]);
+
+  const honeycombTiles: Array<HoneycombTile> = hosts.map(
+    (host: Host): HoneycombTile => {
+      const id: string = (host._id as string) || "";
+      const name: string = (host.name as string) || "Unnamed";
+      const status: string =
+        (host.otelCollectorStatus as string) || "disconnected";
+      const isConnected: boolean = status === "connected";
+      const osType: string = (host.osType as string) || "—";
+      const osVersion: string = (host.osVersion as string) || "";
+      const cpuCores: number | undefined = host.cpuCores as number | undefined;
+      const totalMemory: number | undefined = host.totalMemoryBytes as
+        | number
+        | undefined;
+      const lastSeenAt: Date | undefined = host.lastSeenAt as Date | undefined;
+
+      const route: Route | undefined = id
+        ? RouteUtil.populateRouteParams(RouteMap[PageMap.HOST_VIEW] as Route, {
+            modelId: new ObjectID(id),
+          })
+        : undefined;
+
+      const cpuMem: string =
+        cpuCores || totalMemory
+          ? `${cpuCores ? `${cpuCores}c` : "—"} / ${formatBytes(totalMemory || 0)}`
+          : "—";
+
+      return {
+        id: id || name,
+        status: isConnected ? "Connected" : "Disconnected",
+        color: isConnected ? "#10b981" : "#9ca3af",
+        route: route,
+        tooltip: {
+          title: name,
+          details: [
+            {
+              label: "OS",
+              value: `${osType}${osVersion ? ` ${osVersion}` : ""}`,
+            },
+            { label: "CPU / Mem", value: cpuMem },
+            { label: "Last Seen", value: formatRelative(lastSeenAt) },
+          ],
+        },
+      };
+    },
+  );
 
   const rows: Array<ReactElement> = hosts.map((host: Host) => {
     const id: string = (host._id as string) || "";
@@ -226,6 +297,9 @@ const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
       isEmpty={hosts.length === 0}
       emptyMessage="No hosts found"
       emptyIcon={IconProp.Server}
+      viewMode={viewMode}
+      honeycombTiles={honeycombTiles}
+      honeycombLegend={HONEYCOMB_LEGEND}
     >
       {rows}
     </DashboardResourceListBase>
@@ -244,10 +318,13 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
     return false;
   }
 
-  return JSONFunctions.deepEqual(
-    prev.component.arguments,
-    next.component.arguments,
-  );
+  if (
+    !JSONFunctions.deepEqual(prev.component.arguments, next.component.arguments)
+  ) {
+    return false;
+  }
+
+  return JSONFunctions.deepEqual(prev.variables, next.variables);
 }
 
 export default React.memo(DashboardHostListComponentElement, arePropsEqual);

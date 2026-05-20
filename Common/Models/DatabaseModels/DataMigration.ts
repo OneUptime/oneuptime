@@ -94,7 +94,6 @@ export default class DataMigration extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadProjectLabel,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

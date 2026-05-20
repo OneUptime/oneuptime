@@ -45,7 +45,6 @@ import {
     Permission.AlertMember,
     Permission.AlertViewer,
     Permission.ReadAlertEpisodeLabelRule,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -92,7 +91,6 @@ export default class AlertEpisodeLabelRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodeLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -132,7 +130,6 @@ export default class AlertEpisodeLabelRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodeLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -166,7 +163,6 @@ export default class AlertEpisodeLabelRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodeLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -204,7 +200,6 @@ export default class AlertEpisodeLabelRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodeLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -240,7 +235,6 @@ export default class AlertEpisodeLabelRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodeLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -279,7 +273,6 @@ export default class AlertEpisodeLabelRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodeLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -329,7 +322,6 @@ export default class AlertEpisodeLabelRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodeLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -379,7 +371,6 @@ export default class AlertEpisodeLabelRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodeLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -415,7 +406,6 @@ export default class AlertEpisodeLabelRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodeLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -454,7 +444,6 @@ export default class AlertEpisodeLabelRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodeLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -504,7 +493,6 @@ export default class AlertEpisodeLabelRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodeLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -545,7 +533,6 @@ export default class AlertEpisodeLabelRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodeLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

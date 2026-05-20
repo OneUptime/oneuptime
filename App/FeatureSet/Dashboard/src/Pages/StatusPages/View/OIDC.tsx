@@ -107,10 +107,10 @@ const OIDCPage: FunctionComponent<PageComponentProps> = (
             {
               field: { issuerURL: true },
               title: "Issuer URL",
-              fieldType: FormFieldSchemaType.URL,
+              fieldType: FormFieldSchemaType.Text,
               required: true,
               description:
-                "Expected issuer (the 'iss' claim in the ID token). Must match exactly what the IdP returns.",
+                "Expected issuer (the 'iss' claim in the ID token). Must match exactly what the IdP returns",
               placeholder: "https://accounts.example.com",
               stepId: "endpoints",
               disableSpellCheck: true,

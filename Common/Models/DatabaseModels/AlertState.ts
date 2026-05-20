@@ -48,7 +48,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.AlertMember,
     Permission.AlertViewer,
     Permission.ReadAlertState,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -103,7 +102,6 @@ export default class AlertState extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertState,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -144,7 +142,6 @@ export default class AlertState extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertState,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -180,7 +177,6 @@ export default class AlertState extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertState,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -221,7 +217,6 @@ export default class AlertState extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertState,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -261,7 +256,6 @@ export default class AlertState extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertState,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -303,7 +297,6 @@ export default class AlertState extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertState,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -331,7 +324,6 @@ export default class AlertState extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertState,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -369,7 +361,6 @@ export default class AlertState extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertState,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -402,7 +393,6 @@ export default class AlertState extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertState,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -445,7 +435,6 @@ export default class AlertState extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertState,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -483,7 +472,6 @@ export default class AlertState extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertState,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -521,7 +509,6 @@ export default class AlertState extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertState,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -560,7 +547,6 @@ export default class AlertState extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertState,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

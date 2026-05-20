@@ -38,7 +38,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadHostOwnerUser,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -93,7 +92,6 @@ export default class HostOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHostOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -136,7 +134,6 @@ export default class HostOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHostOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -173,7 +170,6 @@ export default class HostOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHostOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -217,7 +213,6 @@ export default class HostOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHostOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -254,7 +249,6 @@ export default class HostOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHostOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -297,7 +291,6 @@ export default class HostOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHostOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -334,7 +327,6 @@ export default class HostOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHostOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -378,7 +370,6 @@ export default class HostOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHostOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -406,7 +397,6 @@ export default class HostOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHostOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -444,7 +434,6 @@ export default class HostOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHostOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -472,7 +461,6 @@ export default class HostOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHostOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

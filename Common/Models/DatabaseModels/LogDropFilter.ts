@@ -54,7 +54,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.TelemetryMember,
     Permission.TelemetryViewer,
     Permission.ReadProjectLogDropFilter,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -83,7 +82,6 @@ export default class LogDropFilter extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectLogDropFilter,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -123,7 +121,6 @@ export default class LogDropFilter extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectLogDropFilter,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -157,7 +154,6 @@ export default class LogDropFilter extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectLogDropFilter,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -194,7 +190,6 @@ export default class LogDropFilter extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectLogDropFilter,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -231,7 +226,6 @@ export default class LogDropFilter extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectLogDropFilter,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -269,7 +263,6 @@ export default class LogDropFilter extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectLogDropFilter,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -308,7 +301,6 @@ export default class LogDropFilter extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectLogDropFilter,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -345,7 +337,6 @@ export default class LogDropFilter extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectLogDropFilter,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -384,7 +375,6 @@ export default class LogDropFilter extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectLogDropFilter,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -419,7 +409,6 @@ export default class LogDropFilter extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectLogDropFilter,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -455,7 +444,6 @@ export default class LogDropFilter extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectLogDropFilter,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -482,7 +470,6 @@ export default class LogDropFilter extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectLogDropFilter,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -518,7 +505,6 @@ export default class LogDropFilter extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectLogDropFilter,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

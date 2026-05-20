@@ -46,7 +46,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.IncidentMember,
     Permission.IncidentViewer,
     Permission.ReadIncidentStateTimeline,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -104,7 +103,6 @@ export default class IncidentStateTimeline extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -148,7 +146,6 @@ export default class IncidentStateTimeline extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -186,7 +183,6 @@ export default class IncidentStateTimeline extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -230,7 +226,6 @@ export default class IncidentStateTimeline extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -267,7 +262,6 @@ export default class IncidentStateTimeline extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -312,7 +306,6 @@ export default class IncidentStateTimeline extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -396,7 +389,6 @@ export default class IncidentStateTimeline extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -447,7 +439,6 @@ export default class IncidentStateTimeline extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -492,7 +483,6 @@ export default class IncidentStateTimeline extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -539,7 +529,6 @@ export default class IncidentStateTimeline extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -583,7 +572,6 @@ export default class IncidentStateTimeline extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -612,7 +600,6 @@ export default class IncidentStateTimeline extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -646,7 +633,6 @@ export default class IncidentStateTimeline extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -687,7 +673,6 @@ export default class IncidentStateTimeline extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -725,7 +710,6 @@ export default class IncidentStateTimeline extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -761,7 +745,6 @@ export default class IncidentStateTimeline extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

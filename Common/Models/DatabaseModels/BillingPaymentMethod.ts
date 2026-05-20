@@ -35,7 +35,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.BillingMember,
     Permission.BillingViewer,
     Permission.ReadBillingPaymentMethod,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -73,7 +72,6 @@ export default class BillingPaymentMethod extends BaseModel {
       Permission.BillingMember,
       Permission.BillingViewer,
       Permission.ReadBillingPaymentMethod,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -114,7 +112,6 @@ export default class BillingPaymentMethod extends BaseModel {
       Permission.BillingMember,
       Permission.BillingViewer,
       Permission.ReadBillingPaymentMethod,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -149,7 +146,6 @@ export default class BillingPaymentMethod extends BaseModel {
       Permission.BillingMember,
       Permission.BillingViewer,
       Permission.ReadBillingPaymentMethod,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -191,7 +187,6 @@ export default class BillingPaymentMethod extends BaseModel {
       Permission.BillingMember,
       Permission.BillingViewer,
       Permission.ReadBillingPaymentMethod,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -220,7 +215,6 @@ export default class BillingPaymentMethod extends BaseModel {
       Permission.BillingMember,
       Permission.BillingViewer,
       Permission.ReadBillingPaymentMethod,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -259,7 +253,6 @@ export default class BillingPaymentMethod extends BaseModel {
       Permission.BillingMember,
       Permission.BillingViewer,
       Permission.ReadBillingPaymentMethod,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -292,7 +285,6 @@ export default class BillingPaymentMethod extends BaseModel {
       Permission.BillingMember,
       Permission.BillingViewer,
       Permission.ReadBillingPaymentMethod,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -317,7 +309,6 @@ export default class BillingPaymentMethod extends BaseModel {
       Permission.BillingMember,
       Permission.BillingViewer,
       Permission.ReadBillingPaymentMethod,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -342,7 +333,6 @@ export default class BillingPaymentMethod extends BaseModel {
       Permission.BillingMember,
       Permission.BillingViewer,
       Permission.ReadBillingPaymentMethod,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -371,7 +361,6 @@ export default class BillingPaymentMethod extends BaseModel {
       Permission.BillingMember,
       Permission.BillingViewer,
       Permission.ReadBillingPaymentMethod,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -400,7 +389,6 @@ export default class BillingPaymentMethod extends BaseModel {
       Permission.BillingMember,
       Permission.BillingViewer,
       Permission.ReadBillingPaymentMethod,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

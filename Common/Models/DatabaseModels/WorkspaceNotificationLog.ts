@@ -43,7 +43,6 @@ import WorkspaceNotificationActionType from "../../Types/Workspace/WorkspaceNoti
     Permission.ProjectMember,
     Permission.Viewer,
     Permission.ReadWorkspaceNotificationLog,
-    Permission.ReadAllProjectResources,
   ],
   delete: [],
   update: [],
@@ -74,7 +73,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadWorkspaceNotificationLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -107,7 +105,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadWorkspaceNotificationLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -134,7 +131,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadWorkspaceNotificationLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -160,7 +156,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadWorkspaceNotificationLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -186,7 +181,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadWorkspaceNotificationLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -212,7 +206,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadWorkspaceNotificationLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -238,7 +231,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadWorkspaceNotificationLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -263,7 +255,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadWorkspaceNotificationLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -289,7 +280,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadWorkspaceNotificationLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -315,7 +305,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadWorkspaceNotificationLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -346,7 +335,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadWorkspaceNotificationLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -379,7 +367,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -406,7 +393,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadWorkspaceNotificationLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -439,7 +425,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadWorkspaceNotificationLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -467,7 +452,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -500,7 +484,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -527,7 +510,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadWorkspaceNotificationLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -560,7 +542,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadWorkspaceNotificationLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -587,7 +568,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -620,7 +600,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -647,7 +626,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -680,7 +658,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -707,7 +684,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -740,7 +716,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -768,7 +743,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -801,7 +775,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -828,7 +801,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -862,7 +834,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPushLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -890,7 +861,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadWorkspaceNotificationLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -923,7 +893,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadWorkspaceNotificationLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -951,7 +920,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadWorkspaceNotificationLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -986,7 +954,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadWorkspaceNotificationLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1014,7 +981,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadWorkspaceNotificationLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1048,7 +1014,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadWorkspaceNotificationLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1076,7 +1041,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadWorkspaceNotificationLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1109,7 +1073,6 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadWorkspaceNotificationLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

@@ -69,7 +69,7 @@ Add a `scope` enum to `TeamPermission`:
 
 Four new permissions covering the operational resource surface:
 
-- `ReadAllOperationalResources` (promotes the existing `ReadAllProjectResources`)
+- `ReadAllOperationalResources` (replaces the removed `ReadAllProjectResources`)
 - `EditAllOperationalResources`
 - `DeleteAllOperationalResources`
 - `CreateAllOperationalResources`
@@ -267,7 +267,7 @@ scope ENUM('All','Owned','Labels') NOT NULL DEFAULT 'Labels'
 Add:
 
 ```
-ReadAllOperationalResources       -- supersedes ReadAllProjectResources (keep as alias)
+ReadAllOperationalResources       -- replaces the removed ReadAllProjectResources
 EditAllOperationalResources
 DeleteAllOperationalResources
 CreateAllOperationalResources
@@ -303,7 +303,6 @@ For non-user callers (API keys, Probes), `userTeamIds` is absent and `Owned` eva
 3. **Annotate models** with `@OperationalResource()` and nested models with `@OwnedThrough(...)`.
 4. **Thread `userTeamIds` through `DatabaseCommonInteractionProps`** so `Owned` scope can be evaluated cheaply per request.
 5. **UI rollout**: introduce the role-bundle picker as the default for new team permissions. Existing rows render in "advanced mode."
-6. **`ReadAllProjectResources` strategy**: see §Open Questions.
 
 **No data migration runs.** Existing `TeamPermission` rows default to `scope = Labels` and behave exactly as today. Customers who want owner-based scoping opt in by creating new rows with `scope = Owned`; they populate `*OwnerUser` / `*OwnerTeam` via manual configuration or `OwnerRule`. No one-time backfill of owner tables is performed.
 
@@ -320,7 +319,7 @@ Recorded so future readers don't relitigate them.
 5. **Threading team membership** → `DatabaseCommonInteractionProps` gains a `userTeamIds: ObjectID[]` field populated at request authentication, consumed by the `Owned` scope check.
 6. **Default scope for a brand-new project's "Members" team** → `Owned`. With auto-owner-on-create assigning the creating user, resources the user created themselves are always visible under `Owned`. The remaining empty-list risk ("resources I didn't create and no one assigned to me/my team") is acceptable for member-style teams.
 7. **Default scope per role bundle in the UI** → `Owned` for every bundle (Viewer / Editor / Operator). Single uniform default, least-privilege by default, matches the canonical customer ask in this doc. The day-one empty-list UX (e.g., a new Viewer who hasn't been assigned ownership of anything) is addressed via UI empty-state copy, not by widening the default scope.
-8. **`ReadAllProjectResources` strategy** → Runtime equivalence. Keep both enum values; the permission check treats `ReadAllProjectResources` and `ReadAllOperationalResources` as equivalent. Mark `ReadAllProjectResources` `@deprecated`. No DB writes. Remove the old value in a future major version, consistent with the no-data-migration policy.
+8. **`ReadAllProjectResources` removed** → The deprecated `ReadAllProjectResources` enum value and its runtime alias have been removed. `ReadAllOperationalResources` is the sole wildcard for read access across operational resources.
 9. **Telemetry / analytics permissions** → Log, Span, and Metric inherit ownership via `@OwnedThrough("serviceId", Service)` and are `@OperationalResource()` (covered by `*AllOperationalResources`). The wildcard short-circuit and `Owned` scope check are mirrored in `AnalyticsDatabaseService` as a parallel path. At query time, the user's allowed service IDs are resolved **once per request** from `ServiceOwnerUser` / `ServiceOwnerTeam`, then injected as `WHERE serviceId IN (...)` on every ClickHouse query — not per-row owner joins, which don't scale to telemetry volume.
 
 ## Open Questions

@@ -49,7 +49,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.StatusPageMember,
     Permission.StatusPageViewer,
     Permission.ReadStatusPageOwnerTeam,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -99,7 +98,6 @@ export default class StatusPageOwnerTeam extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -142,7 +140,6 @@ export default class StatusPageOwnerTeam extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -180,7 +177,6 @@ export default class StatusPageOwnerTeam extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -224,7 +220,6 @@ export default class StatusPageOwnerTeam extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -262,7 +257,6 @@ export default class StatusPageOwnerTeam extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -305,7 +299,6 @@ export default class StatusPageOwnerTeam extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -343,7 +336,6 @@ export default class StatusPageOwnerTeam extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -387,7 +379,6 @@ export default class StatusPageOwnerTeam extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -416,7 +407,6 @@ export default class StatusPageOwnerTeam extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -454,7 +444,6 @@ export default class StatusPageOwnerTeam extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -483,7 +472,6 @@ export default class StatusPageOwnerTeam extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

@@ -42,7 +42,6 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadWorkspaceNotificationRule,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectAdmin,
@@ -97,7 +96,6 @@ class WorkspaceNotificationRule extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -140,7 +138,6 @@ class WorkspaceNotificationRule extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -177,7 +174,6 @@ class WorkspaceNotificationRule extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -222,7 +218,6 @@ class WorkspaceNotificationRule extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -267,7 +262,6 @@ class WorkspaceNotificationRule extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -311,7 +305,6 @@ class WorkspaceNotificationRule extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -356,7 +349,6 @@ class WorkspaceNotificationRule extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -401,7 +393,6 @@ class WorkspaceNotificationRule extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -452,7 +443,6 @@ class WorkspaceNotificationRule extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -494,7 +484,6 @@ class WorkspaceNotificationRule extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,
@@ -548,7 +537,6 @@ class WorkspaceNotificationRule extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadWorkspaceNotificationRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectAdmin,

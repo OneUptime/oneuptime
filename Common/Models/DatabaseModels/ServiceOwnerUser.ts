@@ -48,7 +48,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadServiceOwnerUser,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -97,7 +96,6 @@ export default class ServiceOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -141,7 +139,6 @@ export default class ServiceOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -179,7 +176,6 @@ export default class ServiceOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -224,7 +220,6 @@ export default class ServiceOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -262,7 +257,6 @@ export default class ServiceOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -306,7 +300,6 @@ export default class ServiceOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -344,7 +337,6 @@ export default class ServiceOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -389,7 +381,6 @@ export default class ServiceOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -418,7 +409,6 @@ export default class ServiceOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -457,7 +447,6 @@ export default class ServiceOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

@@ -28,7 +28,6 @@ export const DEFAULT_RETENTION_IN_DAYS: number = 15;
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ManageProjectBilling,
-    Permission.ReadAllProjectResources,
   ],
   delete: [],
   update: [],
@@ -52,7 +51,6 @@ export default class TelemetryUsageBilling extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ManageProjectBilling,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -84,7 +82,6 @@ export default class TelemetryUsageBilling extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ManageProjectBilling,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -110,7 +107,6 @@ export default class TelemetryUsageBilling extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ManageProjectBilling,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -135,7 +131,6 @@ export default class TelemetryUsageBilling extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ManageProjectBilling,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -164,7 +159,6 @@ export default class TelemetryUsageBilling extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ManageProjectBilling,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -189,7 +183,6 @@ export default class TelemetryUsageBilling extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ManageProjectBilling,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -214,7 +207,6 @@ export default class TelemetryUsageBilling extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ManageProjectBilling,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -260,7 +252,6 @@ export default class TelemetryUsageBilling extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ManageProjectBilling,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -292,7 +283,6 @@ export default class TelemetryUsageBilling extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ManageProjectBilling,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -337,7 +327,6 @@ export default class TelemetryUsageBilling extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ManageProjectBilling,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -370,7 +359,6 @@ export default class TelemetryUsageBilling extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ManageProjectBilling,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -394,7 +382,6 @@ export default class TelemetryUsageBilling extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ManageProjectBilling,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -428,7 +415,6 @@ export default class TelemetryUsageBilling extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ManageProjectBilling,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

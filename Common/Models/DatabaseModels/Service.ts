@@ -25,6 +25,7 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import TechStack from "../../Types/Service/TechStack";
 import MetricDownsamplingRetentionDays from "../../Types/Metrics/MetricDownsamplingRetentionDays";
+import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
 import {
   Column,
   Entity,
@@ -62,7 +63,6 @@ import {
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadService,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -135,7 +135,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -183,7 +182,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -226,7 +224,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -269,7 +266,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -311,7 +307,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -361,7 +356,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -410,7 +404,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -444,7 +437,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -487,7 +479,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -528,7 +519,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -589,7 +579,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -653,7 +642,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -701,7 +689,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -743,7 +730,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -786,7 +772,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -812,6 +797,47 @@ export default class Service extends BaseModel {
     undefined;
 
   @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateService,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadService,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditService,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Telemetry Data Retention Overrides",
+    description:
+      "Per-pillar retention overrides for this service (logs by severity, traces by status, metrics, profiles). Unset fields fall back to the service default, then the project's retention settings.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public telemetryRetentionConfig?: TelemetryRetentionConfig = undefined;
+
+  @ColumnAccessControl({
     create: [],
     read: [
       Permission.ProjectOwner,
@@ -822,7 +848,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

@@ -45,7 +45,6 @@ import {
     Permission.AlertMember,
     Permission.AlertViewer,
     Permission.ReadAlertEpisodePrivacyRule,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -92,7 +91,6 @@ export default class AlertEpisodePrivacyRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodePrivacyRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -132,7 +130,6 @@ export default class AlertEpisodePrivacyRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodePrivacyRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -166,7 +163,6 @@ export default class AlertEpisodePrivacyRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodePrivacyRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -204,7 +200,6 @@ export default class AlertEpisodePrivacyRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodePrivacyRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -240,7 +235,6 @@ export default class AlertEpisodePrivacyRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodePrivacyRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -279,7 +273,6 @@ export default class AlertEpisodePrivacyRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodePrivacyRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -329,7 +322,6 @@ export default class AlertEpisodePrivacyRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodePrivacyRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -379,7 +371,6 @@ export default class AlertEpisodePrivacyRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodePrivacyRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -416,7 +407,6 @@ export default class AlertEpisodePrivacyRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodePrivacyRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -453,7 +443,6 @@ export default class AlertEpisodePrivacyRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodePrivacyRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -494,7 +483,6 @@ export default class AlertEpisodePrivacyRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodePrivacyRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

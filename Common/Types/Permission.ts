@@ -1389,14 +1389,6 @@ enum Permission {
   EditIncidentSla = "EditIncidentSla",
   ReadIncidentSla = "ReadIncidentSla",
 
-  // Read All Project Resources Permission - Grants read access to all project resources
-  /**
-   * @deprecated Use {@link ReadAllOperationalResources} instead. Kept as a runtime alias
-   * for backward compatibility; the permission check treats this and
-   * `ReadAllOperationalResources` as equivalent. Will be removed in a future major version.
-   */
-  ReadAllProjectResources = "ReadAllProjectResources",
-
   /*
    * Wildcard permissions covering all models marked @OperationalResource().
    * These short-circuit table-level checks for that resource class. Scope on
@@ -11617,24 +11609,12 @@ export class PermissionHelper {
         group: PermissionGroup.Incident,
       },
 
-      // Read All Project Resources Permission (deprecated; alias of ReadAllOperationalResources)
-      {
-        permission: Permission.ReadAllProjectResources,
-        title: "Read All Project Resources",
-        description:
-          "Deprecated. Use Read All Operational Resources instead. Grants read access to all resources in this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.Project,
-      },
-
       // Operational Resource Wildcard Permissions
       {
         permission: Permission.ReadAllOperationalResources,
         title: "Read All Operational Resources",
         description:
-          "Wildcard read permission for all operational resources in this project (Monitor, Incident, Alert, StatusPage, etc.). Supersedes Read All Project Resources.",
+          "Wildcard read permission for all operational resources in this project (Monitor, Incident, Alert, StatusPage, etc.).",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

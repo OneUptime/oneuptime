@@ -131,7 +131,45 @@ export default class QueryUtil {
         query[key] instanceof NotNull &&
         tableColumnMetadata
       ) {
-        query[key] = QueryHelper.notNull();
+        if (tableColumnMetadata.type === TableColumnType.EntityArray) {
+          const manyToManyMeta: {
+            joinTableName: string;
+            ownerColumnName: string;
+            relationColumnName: string;
+          } | null = QueryUtil.getManyToManyRelationMetadata(modelType, key);
+
+          if (manyToManyMeta) {
+            const subqueryFilter: any = QueryHelper.anyEntitiesInManyToMany({
+              joinTableName: manyToManyMeta.joinTableName,
+              ownerColumnName: manyToManyMeta.ownerColumnName,
+            });
+
+            delete query[key];
+
+            const existingIdFilter: any = (query as any)._id;
+            if (existingIdFilter instanceof FindOperator) {
+              (query as any)._id = And(existingIdFilter, subqueryFilter);
+            } else if (
+              existingIdFilter &&
+              typeof existingIdFilter === Typeof.String
+            ) {
+              (query as any)._id = And(
+                QueryHelper.equalTo(existingIdFilter as string),
+                subqueryFilter,
+              );
+            } else {
+              (query as any)._id = subqueryFilter;
+            }
+          } else {
+            /*
+             * Metadata unavailable — drop the filter rather than emit
+             * invalid SQL against a relation that isn't a real column.
+             */
+            delete query[key];
+          }
+        } else {
+          query[key] = QueryHelper.notNull();
+        }
       } else if (
         query[key] &&
         query[key] instanceof EqualToOrNull &&
@@ -234,7 +272,41 @@ export default class QueryUtil {
         query[key] instanceof IsNull &&
         tableColumnMetadata
       ) {
-        query[key] = QueryHelper.isNull() as any;
+        if (tableColumnMetadata.type === TableColumnType.EntityArray) {
+          const manyToManyMeta: {
+            joinTableName: string;
+            ownerColumnName: string;
+            relationColumnName: string;
+          } | null = QueryUtil.getManyToManyRelationMetadata(modelType, key);
+
+          if (manyToManyMeta) {
+            const subqueryFilter: any = QueryHelper.noEntitiesInManyToMany({
+              joinTableName: manyToManyMeta.joinTableName,
+              ownerColumnName: manyToManyMeta.ownerColumnName,
+            });
+
+            delete query[key];
+
+            const existingIdFilter: any = (query as any)._id;
+            if (existingIdFilter instanceof FindOperator) {
+              (query as any)._id = And(existingIdFilter, subqueryFilter);
+            } else if (
+              existingIdFilter &&
+              typeof existingIdFilter === Typeof.String
+            ) {
+              (query as any)._id = And(
+                QueryHelper.equalTo(existingIdFilter as string),
+                subqueryFilter,
+              );
+            } else {
+              (query as any)._id = subqueryFilter;
+            }
+          } else {
+            delete query[key];
+          }
+        } else {
+          query[key] = QueryHelper.isNull() as any;
+        }
       } else if (
         query[key] &&
         query[key] instanceof InBetween &&

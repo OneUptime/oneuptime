@@ -1,6 +1,6 @@
 # Installare l'agente Kubernetes
 
-L'agente Kubernetes di OneUptime raccoglie metriche del cluster, eventi, log dei pod, **trace delle applicazioni (HTTP/gRPC tramite eBPF)**, **flame graph CPU continui (profiler eBPF)** e **metriche dei nodi a livello di sistema operativo** dal vostro cluster Kubernetes e li invia a OneUptime. È distribuito come chart Helm e si installa con un solo comando — l'auto-strumentazione eBPF e il profiling sono entrambi attivi per impostazione predefinita, quindi vedrete trace a livello di servizio, metriche RED e flame graph senza alcuna modifica al codice.
+L'agente Kubernetes di OneUptime raccoglie metriche del cluster, eventi, log dei pod, **trace delle applicazioni (HTTP/gRPC tramite eBPF)** e **metriche dei nodi a livello di sistema operativo** dal vostro cluster Kubernetes e li invia a OneUptime. È distribuito come chart Helm e si installa con un solo comando — l'auto-strumentazione eBPF è attiva per impostazione predefinita, quindi vedrete trace a livello di servizio e metriche RED senza alcuna modifica al codice. Sono disponibili anche i **flame graph CPU continui (profiler eBPF)** — attivateli con `--set profiling.enabled=true` quando desiderate più telemetria.
 
 ## Avvio rapido
 
@@ -161,22 +161,24 @@ kubectl get pods -n oneuptime-kubernetes-agent -l component=ebpf-instrument
 kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
 ```
 
-## Profiling CPU continuo (attivo per impostazione predefinita)
+## Profiling CPU continuo (disattivato per impostazione predefinita)
 
 Un DaemonSet separato esegue il [profiler eBPF OpenTelemetry](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) — pacchettizzato come immagine `otel/opentelemetry-collector-ebpf-profiler`. Campiona gli stack on-CPU a 19Hz su ogni runtime supportato (Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C/C++, Rust) e invia profili OTLP a OneUptime, dove appaiono sotto **Telemetry → Performance Profiles** e come flame graph collegati dai singoli span delle trace.
+
+Il profiling è **disattivato per impostazione predefinita** — è più oneroso dell'auto-strumentazione OBI (più CPU per nodo, maggiore footprint di memoria) e non tutti i cluster vogliono flame graph sempre attivi. Abilitatelo quando desiderate una telemetria più ricca: `--set profiling.enabled=true`.
 
 Quando l'auto-strumentazione eBPF è anch'essa attiva (`ebpf.enabled: true`, il valore predefinito), ogni campione CPU viene correlato con il contesto di trace di OBI tramite una mappa bpffs condivisa — così i flame graph riportano trace_id/span_id e l'interfaccia di OneUptime può mostrarvi un flame graph per ciascuno span.
 
 Requisiti:
 
 - **Kernel Linux 5.10+** (leggermente più recente del 5.8 richiesto da OBI).
-- Pod privilegiato con hostPID — stessi vincoli del DaemonSet di auto-strumentazione eBPF. Disabilitate su GKE Autopilot, EKS Fargate e ambienti vincolati: `--set profiling.enabled=false`.
+- Pod privilegiato con hostPID — stessi vincoli del DaemonSet di auto-strumentazione eBPF. Non può essere eseguito su GKE Autopilot, EKS Fargate o altri ambienti vincolati.
 
 Ottimizzazione:
 
 | Opzione | Predefinito | Descrizione |
 | --- | --- | --- |
-| `profiling.enabled` | `true` | Interruttore principale. |
+| `profiling.enabled` | `false` | Interruttore principale. Disattivato per impostazione predefinita; attivatelo per i flame graph CPU continui. |
 | `profiling.image.tag` | `0.152.0` | Tag dell'immagine `otel/opentelemetry-collector-ebpf-profiler`. Il profiler è pre-1.0; fissate una versione nota funzionante. |
 | `profiling.samplesPerSecond` | `19` | Frequenza di campionamento in Hz. Valore predefinito upstream; evita accidentalmente l'aliasing con frequenze di timer comuni. |
 | `profiling.offCpuThreshold` | `0` | (0–1] abilita il profiling off-CPU — diagnostica la contesa dei lock e l'I/O bloccante. Disattivato per impostazione predefinita perché aggiunge overhead dei tracepoint. |
@@ -208,7 +210,7 @@ Il chart può anche raccogliere:
 | `logs.mode` | (derivato da `preset`) | `daemonset`, `api` o `disabled`. Sovrascrive il preset. |
 | `logs.api.replicas` | `1` | Numero di repliche del Deployment log-tailer (solo in modalità API). |
 | `ebpf.enabled` | `true` | Cattura automaticamente le trace HTTP/gRPC da ogni pod tramite OpenTelemetry eBPF Instrumentation. Vedere la sezione sopra. |
-| `profiling.enabled` | `true` | Flame graph CPU continui tramite il profiler eBPF OpenTelemetry. Vedere la sezione sopra. |
+| `profiling.enabled` | `false` | Flame graph CPU continui tramite il profiler eBPF OpenTelemetry. Disattivato per impostazione predefinita; attivatelo per più telemetria. Vedere la sezione sopra. |
 | `hostMetrics.enabled` | `true` | Metriche del sistema operativo per nodo. |
 | `auditLogs.enabled` | `false` | Raccolta degli audit log Kubernetes (cluster self-managed). |
 | `csi.enabled` | `false` | Metriche Prometheus del driver CSI. |

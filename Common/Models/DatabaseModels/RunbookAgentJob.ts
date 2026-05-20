@@ -43,7 +43,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.RunbookMember,
     Permission.RunbookViewer,
     Permission.ReadRunbookExecution,
-    Permission.ReadAllProjectResources,
   ],
   delete: [],
   update: [],
@@ -60,7 +59,6 @@ export default class RunbookAgentJob extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -96,7 +94,6 @@ export default class RunbookAgentJob extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -126,7 +123,6 @@ export default class RunbookAgentJob extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -162,7 +158,6 @@ export default class RunbookAgentJob extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -192,7 +187,6 @@ export default class RunbookAgentJob extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -220,7 +214,6 @@ export default class RunbookAgentJob extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -249,7 +242,6 @@ export default class RunbookAgentJob extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -286,7 +278,6 @@ export default class RunbookAgentJob extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -315,7 +306,6 @@ export default class RunbookAgentJob extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -343,7 +333,6 @@ export default class RunbookAgentJob extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -371,7 +360,6 @@ export default class RunbookAgentJob extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -398,7 +386,6 @@ export default class RunbookAgentJob extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -424,7 +411,6 @@ export default class RunbookAgentJob extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -451,7 +437,6 @@ export default class RunbookAgentJob extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -478,7 +463,6 @@ export default class RunbookAgentJob extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -505,7 +489,6 @@ export default class RunbookAgentJob extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -533,7 +516,6 @@ export default class RunbookAgentJob extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -560,7 +542,6 @@ export default class RunbookAgentJob extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -588,7 +569,6 @@ export default class RunbookAgentJob extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -615,7 +595,6 @@ export default class RunbookAgentJob extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

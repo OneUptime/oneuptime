@@ -54,7 +54,6 @@ import {
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadProjectSSO,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -97,7 +96,6 @@ export default class ProjectSSO extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -143,7 +141,6 @@ export default class ProjectSSO extends BaseModel {
       Permission.ReadProjectSSO,
       Permission.ProjectUser,
       Permission.UnAuthorizedSsoUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -183,7 +180,6 @@ export default class ProjectSSO extends BaseModel {
       Permission.ReadProjectSSO,
       Permission.ProjectUser,
       Permission.UnAuthorizedSsoUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -225,7 +221,6 @@ export default class ProjectSSO extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -255,7 +250,6 @@ export default class ProjectSSO extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -286,7 +280,6 @@ export default class ProjectSSO extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -325,7 +318,6 @@ export default class ProjectSSO extends BaseModel {
       Permission.Public,
       Permission.ProjectUser,
       Permission.UnAuthorizedSsoUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -362,7 +354,6 @@ export default class ProjectSSO extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -406,7 +397,6 @@ export default class ProjectSSO extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadProjectSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -416,16 +406,15 @@ export default class ProjectSSO extends BaseModel {
   })
   @TableColumn({
     required: true,
-    type: TableColumnType.LongURL,
+    type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: true,
     example: "https://sso.example.com",
   })
   @Column({
     nullable: false,
-    type: ColumnType.LongURL,
-    transformer: URL.getDatabaseTransformer(),
+    type: ColumnType.VeryLongText,
   })
-  public issuerURL?: URL = undefined;
+  public issuerURL?: string = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -437,7 +426,6 @@ export default class ProjectSSO extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -474,7 +462,6 @@ export default class ProjectSSO extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -517,7 +504,6 @@ export default class ProjectSSO extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -547,7 +533,6 @@ export default class ProjectSSO extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -587,7 +572,6 @@ export default class ProjectSSO extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -622,7 +606,6 @@ export default class ProjectSSO extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -659,7 +642,6 @@ export default class ProjectSSO extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

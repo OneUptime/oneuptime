@@ -58,7 +58,6 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadProjectIncomingCallPolicy,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -109,7 +108,6 @@ export default class IncomingCallPolicy extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectIncomingCallPolicy,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -152,7 +150,6 @@ export default class IncomingCallPolicy extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectIncomingCallPolicy,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -189,7 +186,6 @@ export default class IncomingCallPolicy extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectIncomingCallPolicy,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -233,7 +229,6 @@ export default class IncomingCallPolicy extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectIncomingCallPolicy,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -276,7 +271,6 @@ export default class IncomingCallPolicy extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectIncomingCallPolicy,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -307,7 +301,6 @@ export default class IncomingCallPolicy extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectIncomingCallPolicy,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -337,7 +330,6 @@ export default class IncomingCallPolicy extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectIncomingCallPolicy,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -366,7 +358,6 @@ export default class IncomingCallPolicy extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectIncomingCallPolicy,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -394,7 +385,6 @@ export default class IncomingCallPolicy extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectIncomingCallPolicy,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -422,7 +412,6 @@ export default class IncomingCallPolicy extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectIncomingCallPolicy,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -456,7 +445,6 @@ export default class IncomingCallPolicy extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectIncomingCallPolicy,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -499,7 +487,6 @@ export default class IncomingCallPolicy extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectIncomingCallPolicy,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -542,7 +529,6 @@ export default class IncomingCallPolicy extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectIncomingCallPolicy,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -586,7 +572,6 @@ export default class IncomingCallPolicy extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectIncomingCallPolicy,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -630,7 +615,6 @@ export default class IncomingCallPolicy extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectIncomingCallPolicy,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -674,7 +658,6 @@ export default class IncomingCallPolicy extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectIncomingCallPolicy,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -718,7 +701,6 @@ export default class IncomingCallPolicy extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectIncomingCallPolicy,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -779,7 +761,6 @@ export default class IncomingCallPolicy extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectIncomingCallPolicy,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -830,7 +811,6 @@ export default class IncomingCallPolicy extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectIncomingCallPolicy,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -872,7 +852,6 @@ export default class IncomingCallPolicy extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectIncomingCallPolicy,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -916,7 +895,6 @@ export default class IncomingCallPolicy extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectIncomingCallPolicy,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

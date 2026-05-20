@@ -9,6 +9,7 @@ export default interface DashboardDockerImageListComponent
   arguments: {
     title?: string | undefined;
     maxRows?: number | undefined;
+    viewMode?: "list" | "honeycomb" | undefined;
     dockerHostIds?: Array<string> | undefined;
     nameSearch?: string | undefined;
   };

@@ -39,7 +39,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.WorkflowMember,
     Permission.WorkflowViewer,
     Permission.ReadWorkflowOwnerTeam,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -95,7 +94,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -138,7 +136,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -175,7 +172,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -219,7 +215,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -256,7 +251,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -299,7 +293,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -336,7 +329,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -380,7 +372,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -408,7 +399,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -446,7 +436,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -474,7 +463,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

@@ -67,7 +67,6 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
     Permission.AlertMember,
     Permission.AlertViewer,
     Permission.ReadAlert,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -128,7 +127,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -171,7 +169,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -209,7 +206,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -254,7 +250,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -298,7 +293,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -342,7 +336,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -425,7 +418,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -476,7 +468,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -517,7 +508,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -572,7 +562,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -627,7 +616,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -683,7 +671,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -733,7 +720,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -779,7 +765,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -829,7 +814,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -873,7 +857,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -915,7 +898,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -958,7 +940,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -993,7 +974,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1033,7 +1013,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1063,7 +1042,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1091,7 +1069,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1121,7 +1098,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1151,7 +1127,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1180,7 +1155,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1217,7 +1191,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1248,7 +1221,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1284,7 +1256,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1327,7 +1298,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1369,7 +1339,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1401,7 +1370,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1458,7 +1426,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1508,7 +1475,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1551,7 +1517,6 @@ export default class Alert extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlert,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

@@ -53,7 +53,6 @@ import {
     Permission.MonitorMember,
     Permission.MonitorViewer,
     Permission.ReadMonitorTemplate,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -110,7 +109,6 @@ export default class MonitorTemplate extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -153,7 +151,6 @@ export default class MonitorTemplate extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -190,7 +187,6 @@ export default class MonitorTemplate extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -234,7 +230,6 @@ export default class MonitorTemplate extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -271,7 +266,6 @@ export default class MonitorTemplate extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -309,7 +303,6 @@ export default class MonitorTemplate extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -352,7 +345,6 @@ export default class MonitorTemplate extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -395,7 +387,6 @@ export default class MonitorTemplate extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -431,7 +422,6 @@ export default class MonitorTemplate extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -474,7 +464,6 @@ export default class MonitorTemplate extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -517,7 +506,6 @@ export default class MonitorTemplate extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -573,7 +561,6 @@ export default class MonitorTemplate extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -615,7 +602,6 @@ export default class MonitorTemplate extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -657,7 +643,6 @@ export default class MonitorTemplate extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -701,7 +686,6 @@ export default class MonitorTemplate extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

@@ -45,7 +45,6 @@ import {
     Permission.MonitorMember,
     Permission.MonitorViewer,
     Permission.ReadMonitorOwnerRule,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -92,7 +91,6 @@ export default class MonitorOwnerRule extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -132,7 +130,6 @@ export default class MonitorOwnerRule extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -166,7 +163,6 @@ export default class MonitorOwnerRule extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -204,7 +200,6 @@ export default class MonitorOwnerRule extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -240,7 +235,6 @@ export default class MonitorOwnerRule extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -279,7 +273,6 @@ export default class MonitorOwnerRule extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -320,7 +313,6 @@ export default class MonitorOwnerRule extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -370,7 +362,6 @@ export default class MonitorOwnerRule extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -407,7 +398,6 @@ export default class MonitorOwnerRule extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -446,7 +436,6 @@ export default class MonitorOwnerRule extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -496,7 +485,6 @@ export default class MonitorOwnerRule extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -546,7 +534,6 @@ export default class MonitorOwnerRule extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -587,7 +574,6 @@ export default class MonitorOwnerRule extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

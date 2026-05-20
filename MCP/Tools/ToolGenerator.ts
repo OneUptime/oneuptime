@@ -187,7 +187,7 @@ export function generateToolsForAnalyticsModel(
     singularName,
     pluralName,
     modelType: ModelType.Analytics,
-    apiPath,
+    ...(apiPath && { apiPath }),
   };
 
   // Skip if model doesn't have required properties or MCP is disabled

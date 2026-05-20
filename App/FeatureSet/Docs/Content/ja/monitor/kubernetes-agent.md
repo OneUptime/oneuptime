@@ -1,6 +1,6 @@
 # Kubernetes エージェントのインストール
 
-OneUptime Kubernetes エージェントは、クラスターメトリクス、イベント、Pod ログ、**アプリケーショントレース(eBPF による HTTP/gRPC)**、**連続的な CPU フレームグラフ(eBPF プロファイラー)**、および **OS レベルのノードメトリクス**を Kubernetes クラスターから収集し、OneUptime へ送信します。Helm chart として配布されており、ワンコマンドでインストールできます。eBPF 自動計装とプロファイリングはデフォルトで有効化されているため、コード変更なしでサービスレベルのトレース、RED メトリクス、フレームグラフを確認できます。
+OneUptime Kubernetes エージェントは、クラスターメトリクス、イベント、Pod ログ、**アプリケーショントレース(eBPF による HTTP/gRPC)**、および **OS レベルのノードメトリクス**を Kubernetes クラスターから収集し、OneUptime へ送信します。Helm chart として配布されており、ワンコマンドでインストールできます。eBPF 自動計装はデフォルトで有効化されているため、コード変更なしでサービスレベルのトレースと RED メトリクスを確認できます。**連続的な CPU フレームグラフ(eBPF プロファイラー)**も利用可能です。より多くのテレメトリーが必要な場合は `--set profiling.enabled=true` でオプトインしてください。
 
 ## クイックスタート
 
@@ -161,22 +161,24 @@ kubectl get pods -n oneuptime-kubernetes-agent -l component=ebpf-instrument
 kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
 ```
 
-## 連続的な CPU プロファイリング(デフォルトで有効)
+## 連続的な CPU プロファイリング(デフォルトで無効)
 
 別の DaemonSet が [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler)(`otel/opentelemetry-collector-ebpf-profiler` イメージとしてパッケージ化されたもの)を実行します。サポートされるすべてのランタイム(Go、Java、.NET、Python、Ruby、Node.js、PHP、Perl、C/C++、Rust)で、オン CPU スタックを 19Hz でサンプリングし、OTLP プロファイルを OneUptime に送信します。これらは **Telemetry → Performance Profiles** に表示され、また個々のトレーススパンからリンクされたフレームグラフとしても確認できます。
+
+プロファイリングは**デフォルトで無効**です。OBI 自動計装よりも負荷が大きく(ノードあたりの CPU 使用量がより多く、メモリフットプリントもより大きくなります)、すべてのクラスターで常時フレームグラフを取得したいわけではないためです。より豊富なテレメトリーが必要な場合は有効化してください: `--set profiling.enabled=true`。
 
 eBPF 自動計装も有効化されている場合(`ebpf.enabled: true`、デフォルト)、各 CPU サンプルは共有 bpffs マップを介して OBI のトレースコンテキストと相関付けされます。これにより、フレームグラフは trace_id/span_id を保持し、OneUptime UI でスパンごとのフレームグラフを表示できます。
 
 要件:
 
 - **Linux カーネル 5.10+**(OBI が必要とする 5.8 より少し新しいバージョン)。
-- hostPID を持つ特権 pod。eBPF 自動計装 DaemonSet と同じ制約です。GKE Autopilot、EKS Fargate、およびロックダウンされた環境では無効化してください: `--set profiling.enabled=false`。
+- hostPID を持つ特権 pod。eBPF 自動計装 DaemonSet と同じ制約です。GKE Autopilot、EKS Fargate、その他のロックダウンされた環境では実行できません。
 
 チューニング:
 
 | オプション | デフォルト | 説明 |
 | --- | --- | --- |
-| `profiling.enabled` | `true` | マスタースイッチ。 |
+| `profiling.enabled` | `false` | マスタースイッチ。デフォルトで無効。連続的な CPU フレームグラフが必要な場合はオプトインしてください。 |
 | `profiling.image.tag` | `0.152.0` | `otel/opentelemetry-collector-ebpf-profiler` イメージタグ。プロファイラーは 1.0 リリース前です。動作確認済みのバージョンに固定してください。 |
 | `profiling.samplesPerSecond` | `19` | サンプリング頻度(Hz)。アップストリームのデフォルト値で、一般的なタイマー周波数との偶発的なエイリアシングを回避します。 |
 | `profiling.offCpuThreshold` | `0` | (0–1] でオフ CPU プロファイリングを有効化します。ロック競合やブロッキング I/O を診断できます。トレースポイントのオーバーヘッドを追加するため、デフォルトでは無効化されています。 |
@@ -208,7 +210,7 @@ chart は以下のデータも収集できます:
 | `logs.mode` | (`preset` から導出) | `daemonset`、`api`、または `disabled`。プリセットを上書きします。 |
 | `logs.api.replicas` | `1` | ログテイラー Deployment のレプリカ数(API モードのみ)。 |
 | `ebpf.enabled` | `true` | OpenTelemetry eBPF Instrumentation により、すべての pod から HTTP/gRPC トレースを自動キャプチャします。上記のセクションを参照してください。 |
-| `profiling.enabled` | `true` | OpenTelemetry eBPF Profiler による連続的な CPU フレームグラフ。上記のセクションを参照してください。 |
+| `profiling.enabled` | `false` | OpenTelemetry eBPF Profiler による連続的な CPU フレームグラフ。デフォルトで無効。より多くのテレメトリーが必要な場合はオプトインしてください。上記のセクションを参照してください。 |
 | `hostMetrics.enabled` | `true` | ノードごとの OS メトリクス。 |
 | `auditLogs.enabled` | `false` | Kubernetes 監査ログ収集(セルフマネージドクラスター)。 |
 | `csi.enabled` | `false` | CSI ドライバーの Prometheus メトリクス。 |

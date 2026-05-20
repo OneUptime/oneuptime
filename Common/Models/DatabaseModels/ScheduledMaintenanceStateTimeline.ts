@@ -43,7 +43,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ScheduledMaintenanceMember,
     Permission.ScheduledMaintenanceViewer,
     Permission.ReadScheduledMaintenanceStateTimeline,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -100,7 +99,6 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -144,7 +142,6 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -182,7 +179,6 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -227,7 +223,6 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -264,7 +259,6 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -309,7 +303,6 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -393,7 +386,6 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -444,7 +436,6 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -489,7 +480,6 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -536,7 +526,6 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -580,7 +569,6 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -608,7 +596,6 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -649,7 +636,6 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -685,7 +671,6 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceStateTimeline,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

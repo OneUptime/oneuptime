@@ -41,7 +41,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.Public,
     Permission.ProjectAdmin,
     Permission.ReadStatusPageOIDC,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -80,7 +79,6 @@ export default class StatusPageOIDC extends BaseModel {
       Permission.ProjectUser,
       Permission.Public,
       Permission.ReadStatusPageOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -117,7 +115,6 @@ export default class StatusPageOIDC extends BaseModel {
       Permission.ProjectUser,
       Permission.Public,
       Permission.ReadStatusPageOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -155,7 +152,6 @@ export default class StatusPageOIDC extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -199,7 +195,6 @@ export default class StatusPageOIDC extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -230,7 +225,6 @@ export default class StatusPageOIDC extends BaseModel {
       Permission.ProjectUser,
       Permission.Public,
       Permission.ReadStatusPageOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -266,7 +260,6 @@ export default class StatusPageOIDC extends BaseModel {
       Permission.ProjectUser,
       Permission.Public,
       Permission.ReadStatusPageOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -297,7 +290,6 @@ export default class StatusPageOIDC extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadStatusPageOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -330,7 +322,6 @@ export default class StatusPageOIDC extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadStatusPageOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -340,7 +331,7 @@ export default class StatusPageOIDC extends BaseModel {
   })
   @TableColumn({
     required: true,
-    type: TableColumnType.LongURL,
+    type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: true,
     description:
       "Expected OIDC issuer URL. Must match the 'iss' claim in the ID token returned by the identity provider.",
@@ -348,10 +339,9 @@ export default class StatusPageOIDC extends BaseModel {
   })
   @Column({
     nullable: false,
-    type: ColumnType.LongURL,
-    transformer: URL.getDatabaseTransformer(),
+    type: ColumnType.VeryLongText,
   })
-  public issuerURL?: URL = undefined;
+  public issuerURL?: string = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -363,7 +353,6 @@ export default class StatusPageOIDC extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadStatusPageOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -395,7 +384,6 @@ export default class StatusPageOIDC extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadStatusPageOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -427,7 +415,6 @@ export default class StatusPageOIDC extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadStatusPageOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -460,7 +447,6 @@ export default class StatusPageOIDC extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadStatusPageOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -493,7 +479,6 @@ export default class StatusPageOIDC extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadStatusPageOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -526,7 +511,6 @@ export default class StatusPageOIDC extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadStatusPageOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -562,7 +546,6 @@ export default class StatusPageOIDC extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadStatusPageOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -586,7 +569,6 @@ export default class StatusPageOIDC extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadStatusPageOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -619,7 +601,6 @@ export default class StatusPageOIDC extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadStatusPageOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -649,7 +630,6 @@ export default class StatusPageOIDC extends BaseModel {
       Permission.ProjectUser,
       Permission.Public,
       Permission.ReadStatusPageOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -679,7 +659,6 @@ export default class StatusPageOIDC extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadStatusPageOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

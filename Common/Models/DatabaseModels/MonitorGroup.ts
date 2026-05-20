@@ -58,7 +58,6 @@ import {
     Permission.MonitorMember,
     Permission.MonitorViewer,
     Permission.ReadMonitorGroup,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -115,7 +114,6 @@ export default class MonitorGroup extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorGroup,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -158,7 +156,6 @@ export default class MonitorGroup extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorGroup,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -196,7 +193,6 @@ export default class MonitorGroup extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorGroup,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -241,7 +237,6 @@ export default class MonitorGroup extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorGroup,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -278,7 +273,6 @@ export default class MonitorGroup extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorGroup,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -316,7 +310,6 @@ export default class MonitorGroup extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorGroup,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -360,7 +353,6 @@ export default class MonitorGroup extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorGroup,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -443,7 +435,6 @@ export default class MonitorGroup extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorGroup,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

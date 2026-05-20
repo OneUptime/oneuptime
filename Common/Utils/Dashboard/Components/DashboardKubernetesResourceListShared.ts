@@ -5,6 +5,7 @@ import {
   EntityFilterModelType,
 } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
+import { getViewModeArgument } from "./DashboardListSharedArgs";
 
 export const KubernetesDisplaySection: ComponentArgumentSection = {
   name: "Display Options",
@@ -46,6 +47,8 @@ export function getKubernetesCommonArguments<T extends DashboardBaseComponent>(
     placeholder: "25",
     section: KubernetesDisplaySection,
   });
+
+  args.push(getViewModeArgument<T>(KubernetesDisplaySection));
 
   args.push({
     name: "Clusters",

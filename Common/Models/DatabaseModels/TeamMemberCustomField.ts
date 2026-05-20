@@ -44,7 +44,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadTeamMemberCustomField,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -84,7 +83,6 @@ export default class TeamMemberCustomField extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadTeamMemberCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -124,7 +122,6 @@ export default class TeamMemberCustomField extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadTeamMemberCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -159,7 +156,6 @@ export default class TeamMemberCustomField extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadTeamMemberCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -198,7 +194,6 @@ export default class TeamMemberCustomField extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadTeamMemberCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -236,7 +231,6 @@ export default class TeamMemberCustomField extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadTeamMemberCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -269,7 +263,6 @@ export default class TeamMemberCustomField extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadTeamMemberCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -310,7 +303,6 @@ export default class TeamMemberCustomField extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadTeamMemberCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -339,7 +331,6 @@ export default class TeamMemberCustomField extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadTeamMemberCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -377,7 +368,6 @@ export default class TeamMemberCustomField extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadTeamMemberCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

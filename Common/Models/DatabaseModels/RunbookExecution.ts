@@ -43,7 +43,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.RunbookMember,
     Permission.RunbookViewer,
     Permission.ReadRunbookExecution,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -81,7 +80,6 @@ export default class RunbookExecution extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -117,7 +115,6 @@ export default class RunbookExecution extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -154,7 +151,6 @@ export default class RunbookExecution extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -197,7 +193,6 @@ export default class RunbookExecution extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -234,7 +229,6 @@ export default class RunbookExecution extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -263,7 +257,6 @@ export default class RunbookExecution extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -303,7 +296,6 @@ export default class RunbookExecution extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -343,7 +335,6 @@ export default class RunbookExecution extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -387,7 +378,6 @@ export default class RunbookExecution extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -423,7 +413,6 @@ export default class RunbookExecution extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -467,7 +456,6 @@ export default class RunbookExecution extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -503,7 +491,6 @@ export default class RunbookExecution extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -547,7 +534,6 @@ export default class RunbookExecution extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -583,7 +569,6 @@ export default class RunbookExecution extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -626,7 +611,6 @@ export default class RunbookExecution extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -653,7 +637,6 @@ export default class RunbookExecution extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -684,7 +667,6 @@ export default class RunbookExecution extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -715,7 +697,6 @@ export default class RunbookExecution extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

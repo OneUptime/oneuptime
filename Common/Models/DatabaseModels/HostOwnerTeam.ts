@@ -39,7 +39,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadHostOwnerTeam,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -94,7 +93,6 @@ export default class HostOwnerTeam extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHostOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -137,7 +135,6 @@ export default class HostOwnerTeam extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHostOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -174,7 +171,6 @@ export default class HostOwnerTeam extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHostOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -218,7 +214,6 @@ export default class HostOwnerTeam extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHostOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -255,7 +250,6 @@ export default class HostOwnerTeam extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHostOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -298,7 +292,6 @@ export default class HostOwnerTeam extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHostOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -335,7 +328,6 @@ export default class HostOwnerTeam extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHostOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -379,7 +371,6 @@ export default class HostOwnerTeam extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHostOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -407,7 +398,6 @@ export default class HostOwnerTeam extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHostOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -445,7 +435,6 @@ export default class HostOwnerTeam extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHostOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -473,7 +462,6 @@ export default class HostOwnerTeam extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHostOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

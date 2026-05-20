@@ -1,6 +1,6 @@
 # 安装 Kubernetes Agent
 
-OneUptime Kubernetes 代理从您的 Kubernetes 集群中收集集群指标、事件、Pod 日志、**应用追踪（通过 eBPF 采集 HTTP/gRPC）**、**持续的 CPU 火焰图（eBPF profiler）**以及**操作系统级节点指标**，并将这些数据发送到 OneUptime。它以 Helm chart 的形式分发，只需一条命令即可安装 —— eBPF 自动埋点和性能分析默认均已启用，因此您无需修改任何代码即可看到服务级别的追踪、RED 指标和火焰图。
+OneUptime Kubernetes 代理从您的 Kubernetes 集群中收集集群指标、事件、Pod 日志、**应用追踪（通过 eBPF 采集 HTTP/gRPC）**以及**操作系统级节点指标**，并将这些数据发送到 OneUptime。它以 Helm chart 的形式分发，只需一条命令即可安装 —— eBPF 自动埋点默认已启用，因此您无需修改任何代码即可看到服务级别的追踪和 RED 指标。**持续的 CPU 火焰图（eBPF profiler）**也可用 —— 当您需要更多遥测数据时，可通过 `--set profiling.enabled=true` 选择启用。
 
 ## 快速开始
 
@@ -161,22 +161,24 @@ kubectl get pods -n oneuptime-kubernetes-agent -l component=ebpf-instrument
 kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
 ```
 
-## 持续 CPU 性能分析（默认启用）
+## 持续 CPU 性能分析（默认禁用）
 
 另一个独立的 DaemonSet 运行 [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) —— 以 `otel/opentelemetry-collector-ebpf-profiler` 镜像形式打包。它以 19Hz 在所有支持的运行时（Go、Java、.NET、Python、Ruby、Node.js、PHP、Perl、C/C++、Rust）上采样 on-CPU 调用栈，并将 OTLP profile 发送到 OneUptime，您可以在 **Telemetry → Performance Profiles** 中以及从单个 trace span 链接的火焰图中看到这些数据。
+
+性能分析**默认禁用** —— 它比 OBI 自动埋点更耗资源（每个节点的 CPU 占用更多，内存占用更大），并非每个集群都希望始终开启火焰图。当您需要更丰富的遥测数据时再启用它：`--set profiling.enabled=true`。
 
 当 eBPF 自动埋点也启用时（`ebpf.enabled: true`，即默认值），每个 CPU 采样都会通过共享的 bpffs map 与 OBI 的追踪上下文相关联 —— 因此火焰图会携带 trace_id/span_id，OneUptime UI 可以为您展示每个 span 的火焰图。
 
 要求：
 
 - **Linux 内核 5.10+**（比 OBI 需要的 5.8 稍新）。
-- 带有 hostPID 的特权 Pod —— 与 eBPF 自动埋点 DaemonSet 的限制相同。在 GKE Autopilot、EKS Fargate 和受锁定的环境中请禁用：`--set profiling.enabled=false`。
+- 带有 hostPID 的特权 Pod —— 与 eBPF 自动埋点 DaemonSet 的限制相同。无法在 GKE Autopilot、EKS Fargate 或其他受锁定的环境中运行。
 
 调优：
 
 | 选项 | 默认 | 描述 |
 | --- | --- | --- |
-| `profiling.enabled` | `true` | 总开关。 |
+| `profiling.enabled` | `false` | 总开关。默认禁用；如需持续 CPU 火焰图请选择启用。 |
 | `profiling.image.tag` | `0.152.0` | `otel/opentelemetry-collector-ebpf-profiler` 镜像标签。性能分析器仍处于 1.0 之前；请固定到已知良好的版本。 |
 | `profiling.samplesPerSecond` | `19` | 采样频率（Hz）。上游默认值；避免与常见定时器频率意外混叠。 |
 | `profiling.offCpuThreshold` | `0` | (0–1] 启用 off-CPU 分析 —— 用于诊断锁竞争和阻塞 I/O。默认关闭，因为它会增加 tracepoint 开销。 |
@@ -208,7 +210,7 @@ chart 还可以采集：
 | `logs.mode` | （从 `preset` 派生） | `daemonset`、`api` 或 `disabled`。会覆盖预设。 |
 | `logs.api.replicas` | `1` | 日志收集器 Deployment 的副本数（仅在 API 模式下）。 |
 | `ebpf.enabled` | `true` | 通过 OpenTelemetry eBPF Instrumentation 自动捕获每个 Pod 的 HTTP/gRPC 追踪。请参阅上文章节。 |
-| `profiling.enabled` | `true` | 通过 OpenTelemetry eBPF Profiler 持续生成 CPU 火焰图。请参阅上文章节。 |
+| `profiling.enabled` | `false` | 通过 OpenTelemetry eBPF Profiler 持续生成 CPU 火焰图。默认禁用；如需更多遥测数据请选择启用。请参阅上文章节。 |
 | `hostMetrics.enabled` | `true` | 每个节点的操作系统指标。 |
 | `auditLogs.enabled` | `false` | Kubernetes 审计日志采集（自管集群）。 |
 | `csi.enabled` | `false` | CSI 驱动的 Prometheus 指标。 |

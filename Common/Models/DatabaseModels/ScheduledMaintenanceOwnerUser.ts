@@ -38,7 +38,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ScheduledMaintenanceMember,
     Permission.ScheduledMaintenanceViewer,
     Permission.ReadScheduledMaintenanceOwnerUser,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -94,7 +93,6 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -138,7 +136,6 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -176,7 +173,6 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -221,7 +217,6 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -259,7 +254,6 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -304,7 +298,6 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -343,7 +336,6 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -388,7 +380,6 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -417,7 +408,6 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -456,7 +446,6 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -485,7 +474,6 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
