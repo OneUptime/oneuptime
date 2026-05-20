@@ -84,9 +84,9 @@ const HostSettings: FunctionComponent<
         }}
       />
       <CardModelDetail<Host>
-        name="Per-Pillar Retention Overrides"
+        name="Retention by Telemetry Type"
         cardProps={{
-          title: "Per-Pillar Retention Overrides",
+          title: "Retention by Telemetry Type",
           description:
             "Override retention for specific telemetry types for this host. Any field left blank falls back to the host default, then the project's settings.",
         }}

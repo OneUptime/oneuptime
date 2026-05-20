@@ -84,9 +84,9 @@ const DockerHostSettings: FunctionComponent<
         }}
       />
       <CardModelDetail<DockerHost>
-        name="Per-Pillar Retention Overrides"
+        name="Retention by Telemetry Type"
         cardProps={{
-          title: "Per-Pillar Retention Overrides",
+          title: "Retention by Telemetry Type",
           description:
             "Override retention for specific telemetry types for this Docker host. Any field left blank falls back to the Docker host default, then the project's settings.",
         }}

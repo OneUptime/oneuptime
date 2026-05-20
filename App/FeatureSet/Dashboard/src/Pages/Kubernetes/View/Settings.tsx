@@ -84,9 +84,9 @@ const KubernetesClusterSettings: FunctionComponent<
         }}
       />
       <CardModelDetail<KubernetesCluster>
-        name="Per-Pillar Retention Overrides"
+        name="Retention by Telemetry Type"
         cardProps={{
-          title: "Per-Pillar Retention Overrides",
+          title: "Retention by Telemetry Type",
           description:
             "Override retention for specific telemetry types for this Kubernetes cluster. Any field left blank falls back to the cluster default, then the project's settings.",
         }}
