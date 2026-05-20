@@ -52,6 +52,7 @@ data:
           - key: k8s.node.name
             value: "${env:NODE_NAME}"
             action: insert
+          {{- include "kubernetes-agent.oneuptimeLabels" (dict "labels" .Values.oneuptime.labels "action" "insert") | nindent 10 }}
 
     exporters:
       # Direct to OneUptime — bypassing the in-cluster collector

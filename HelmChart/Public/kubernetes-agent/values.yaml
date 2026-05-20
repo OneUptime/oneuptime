@@ -26,6 +26,24 @@ oneuptime:
   url: ""
   # Project API key from OneUptime (Settings > API Keys)
   apiKey: ""
+  # Optional: Auto-tag every record this agent emits with project Labels.
+  #
+  # Each key/value pair becomes a resource attribute of the form
+  # `oneuptime.label.<key>=<value>`. The OneUptime ingest pipeline promotes
+  # any attribute prefixed with `oneuptime.label.` into a project Label
+  # named `<key>:<value>` and attaches it to the host, service, and
+  # telemetry records that arrived with it — see
+  # Common/Server/Utils/Telemetry/OneuptimeLabel.ts.
+  #
+  # Example:
+  #   --set oneuptime.labels.team=payments \
+  #   --set oneuptime.labels.env=production \
+  #   --set oneuptime.labels.region=us-east-1
+  #
+  # Labels are matched case-insensitively against existing labels, so a
+  # manually-created "Production" label is reused rather than duplicated.
+  # Labels added in the OneUptime UI are never removed by the agent.
+  labels: {}
 
 # Required: Unique name for this cluster (used as k8s.cluster.name attribute)
 clusterName: ""

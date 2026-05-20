@@ -49,6 +49,15 @@ spec:
                   key: api-key
             - name: CLUSTER_NAME
               value: {{ .Values.clusterName | quote }}
+            # OneUptime project labels — comma-separated key=value pairs.
+            # The tailer stamps each as an `oneuptime.label.<key>=<value>`
+            # resource attribute on outgoing OTLP log records; the
+            # OneUptime ingest pipeline promotes them into project Labels.
+            - name: ONEUPTIME_LABELS
+              value: {{- $pairs := list -}}
+                {{- range $key, $value := .Values.oneuptime.labels -}}
+                  {{- $pairs = append $pairs (printf "%s=%s" $key (toString $value)) -}}
+                {{- end }} {{ join "," $pairs | quote }}
             - name: NAMESPACE_INCLUDE
               value: {{ join "," .Values.namespaceFilters.include | quote }}
             - name: NAMESPACE_EXCLUDE

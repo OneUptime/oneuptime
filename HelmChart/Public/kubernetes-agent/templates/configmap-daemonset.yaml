@@ -266,7 +266,10 @@ data:
           - sources:
               - from: connection
 
-      # Stamp with cluster name and default service name
+      # Stamp with cluster name and default service name. Any keys under
+      # .Values.oneuptime.labels are also stamped here as
+      # `oneuptime.label.<key>=<value>` resource attributes — the OneUptime
+      # ingest pipeline promotes those into project Labels.
       resource:
         attributes:
           - key: k8s.cluster.name
@@ -275,6 +278,7 @@ data:
           - key: service.name
             value: "kubernetes-agent-{{ .Values.clusterName }}"
             action: upsert
+          {{- include "kubernetes-agent.oneuptimeLabels" (dict "labels" .Values.oneuptime.labels "action" "upsert") | nindent 10 }}
 
       # Set service.name from deployment/statefulset/daemonset name when available
       transform:

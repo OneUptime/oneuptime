@@ -76,6 +76,33 @@ currently enabled. Empty list -> empty string (OBI then exports no metrics).
 {{- end }}
 
 {{/*
+Render .Values.oneuptime.labels as OTel resource-processor attribute entries.
+
+The OneUptime ingest pipeline promotes any resource attribute prefixed with
+`oneuptime.label.` into a project Label of the form `<key>:<value>` and
+attaches it to the cluster/service/host that emitted the record — see
+Common/Server/Utils/Telemetry/OneuptimeLabel.ts.
+
+Pass the action ("insert" or "upsert") so the caller can match the surrounding
+processor's existing semantics:
+  - "insert" — only set if the attribute is absent (use in pipelines that
+    forward telemetry the in-cluster collector didn't originate, e.g. OBI
+    traces passing through the metrics Deployment).
+  - "upsert" — always set, overwriting any upstream value.
+
+Usage:
+  {{- include "kubernetes-agent.oneuptimeLabels" (dict "labels" .Values.oneuptime.labels "action" "insert") | nindent 10 }}
+*/}}
+{{- define "kubernetes-agent.oneuptimeLabels" -}}
+{{- $action := .action | default "insert" -}}
+{{- range $key, $value := .labels }}
+- key: oneuptime.label.{{ $key }}
+  value: {{ $value | quote }}
+  action: {{ $action }}
+{{- end }}
+{{- end }}
+
+{{/*
 Effective log collection mode.
 
 Resolution order:

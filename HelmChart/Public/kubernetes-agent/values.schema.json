@@ -28,6 +28,13 @@
         "apiKey": {
           "type": "string",
           "description": "Project API key from OneUptime (Settings > API Keys)"
+        },
+        "labels": {
+          "type": "object",
+          "description": "Project Labels auto-attached to every record. Each key/value becomes an `oneuptime.label.<key>=<value>` resource attribute, which the OneUptime ingest pipeline promotes to a project Label.",
+          "additionalProperties": {
+            "type": ["string", "number", "boolean"]
+          }
         }
       },
       "additionalProperties": false

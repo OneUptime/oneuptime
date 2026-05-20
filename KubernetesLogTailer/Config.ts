@@ -33,6 +33,34 @@ export const ONEUPTIME_URL: string = required("ONEUPTIME_URL").replace(
 export const ONEUPTIME_API_KEY: string = required("ONEUPTIME_API_KEY");
 export const CLUSTER_NAME: string = required("CLUSTER_NAME");
 
+/*
+ * Comma-separated key=value pairs from .Values.oneuptime.labels. Each pair
+ * becomes an `oneuptime.label.<key>=<value>` resource attribute on every
+ * outgoing OTLP log batch; the OneUptime ingest pipeline promotes those
+ * into project Labels.
+ */
+const parseLabels: (value: string) => Record<string, string> = (
+  value: string,
+): Record<string, string> => {
+  const result: Record<string, string> = {};
+  for (const pair of parseList(value)) {
+    const eq: number = pair.indexOf("=");
+    if (eq <= 0) {
+      continue;
+    }
+    const key: string = pair.substring(0, eq).trim();
+    const val: string = pair.substring(eq + 1).trim();
+    if (key && val) {
+      result[key] = val;
+    }
+  }
+  return result;
+};
+
+export const ONEUPTIME_LABELS: Record<string, string> = parseLabels(
+  optional("ONEUPTIME_LABELS", ""),
+);
+
 export const NAMESPACE_INCLUDE: Array<string> = parseList(
   optional("NAMESPACE_INCLUDE", ""),
 );

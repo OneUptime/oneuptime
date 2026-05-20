@@ -287,6 +287,10 @@ data:
       # metrics — which already carry the real per-pod service.name —
       # aren't overwritten and show up under their own service in the
       # dashboard.
+      #
+      # Any keys under .Values.oneuptime.labels are also stamped here as
+      # `oneuptime.label.<key>=<value>` resource attributes. The OneUptime
+      # ingest pipeline promotes those into project Labels.
       resource:
         attributes:
           - key: k8s.cluster.name
@@ -295,6 +299,7 @@ data:
           - key: service.name
             value: "kubernetes-agent-{{ .Values.clusterName }}"
             action: insert
+          {{- include "kubernetes-agent.oneuptimeLabels" (dict "labels" .Values.oneuptime.labels "action" "insert") | nindent 10 }}
 
       # The k8sobjects receiver emits LogRecords without a severity, so
       # Kubernetes events and resource snapshots arrive at OneUptime with
