@@ -340,6 +340,7 @@ import { IncreaseSmtpUsernameLength1779125489830 } from "./1779125489830-Increas
 import { AddTelemetryRetentionConfig1779199346010 } from "./1779199346010-AddTelemetryRetentionConfig";
 import { DropServiceDependencyTable1779277271302 } from "./1779277271302-DropServiceDependencyTable";
 import { AddTelemetryRetentionToHostDockerKubernetes1779282769946 } from "./1779282769946-AddTelemetryRetentionToHostDockerKubernetes";
+import { AttachKubernetesAndDockerToIncidentAndAlert1779302536475 } from "./1779302536475-AttachKubernetesAndDockerToIncidentAndAlert";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -683,4 +684,5 @@ export default [
   AddTelemetryRetentionConfig1779199346010,
   DropServiceDependencyTable1779277271302,
   AddTelemetryRetentionToHostDockerKubernetes1779282769946,
+  AttachKubernetesAndDockerToIncidentAndAlert1779302536475,
 ];

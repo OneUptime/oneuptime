@@ -285,6 +285,91 @@
       "type": "string",
       "description": "Collection interval for metrics (e.g., 30s, 1m)"
     },
+    "kubeletstats": {
+      "type": "object",
+      "description": "Extra metrics from the kubelet that aren't on by default in the OTel kubeletstats receiver. Both groups run inside the existing DaemonSet collector, no new pods.",
+      "properties": {
+        "utilizationMetrics": {
+          "type": "object",
+          "description": "Saturation metrics: CPU/memory as a % of pod request and limit. Six extra metric families per existing series; harmless when pods have no request/limit set.",
+          "properties": {
+            "enabled": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        },
+        "volumeMetrics": {
+          "type": "object",
+          "description": "Per-PVC disk usage (k8s.volume.available / capacity). One series per PVC per pod — bounded on most clusters, can be heavy on stateful workloads with thousands of PVCs.",
+          "properties": {
+            "enabled": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "cadvisor": {
+      "type": "object",
+      "description": "Scrape the kubelet's /metrics/cadvisor endpoint for CFS throttling and OOM kill counters that the kubeletstats receiver doesn't translate. Allowlist keeps only the listed metric names so collector memory stays bounded.",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "scrapeInterval": { "type": "string" },
+        "metricsAllowlist": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Exact __name__ allowlist. Each entry adds one series per container, so keep it tight."
+        }
+      },
+      "additionalProperties": false
+    },
+    "kubeStateMetrics": {
+      "type": "object",
+      "description": "Cluster-state metrics from kube-state-metrics. Off by default because the bundled mode adds a Deployment to the chart's footprint.",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "mode": {
+          "type": "string",
+          "enum": ["bundled", "external"],
+          "description": "'bundled' deploys a small KSM Deployment+Service. 'external' only adds a Prometheus scrape; you must set `endpoint`."
+        },
+        "endpoint": {
+          "type": "string",
+          "description": "URL to scrape when mode == 'external'. Example: http://kube-state-metrics.kube-system.svc.cluster.local:8080/metrics"
+        },
+        "scrapeInterval": { "type": "string" },
+        "metricsAllowlist": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Exact __name__ allowlist. KSM exports ~100 metric families by default; only keep the ones that power monitors."
+        },
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": { "type": "string" },
+            "tag": { "type": "string" },
+            "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] }
+          },
+          "additionalProperties": false
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "object",
+              "properties": { "cpu": { "type": "string" }, "memory": { "type": "string" } },
+              "additionalProperties": false
+            },
+            "limits": {
+              "type": "object",
+              "properties": { "cpu": { "type": "string" }, "memory": { "type": "string" } },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
     "ebpf": {
       "type": "object",
       "description": "OpenTelemetry eBPF Instrumentation (OBI) — auto-captures HTTP/gRPC traces and request metrics from every pod on the node, no SDK required. Enabled by default. Requires Linux kernel 5.8+ and the ability to run privileged pods.",

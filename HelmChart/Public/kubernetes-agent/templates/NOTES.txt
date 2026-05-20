@@ -5,8 +5,24 @@ OneUptime URL: {{ .Values.oneuptime.url }}
 
 The agent is now collecting:
   - Node, pod, and container resource metrics (kubeletstats)
+{{- if .Values.kubeletstats.utilizationMetrics.enabled }}
+  - Container & pod CPU/memory saturation (% of request/limit)
+{{- end }}
+{{- if .Values.kubeletstats.volumeMetrics.enabled }}
+  - Per-PVC disk usage (k8s.volume.available / capacity)
+{{- end }}
+{{- if .Values.cadvisor.enabled }}
+  - cAdvisor: CFS throttling and OOM kill counters (kubelet /metrics/cadvisor)
+{{- end }}
   - Cluster-level metrics: deployments, replicas, pod phases (k8s_cluster)
   - Kubernetes events (k8sobjects)
+{{- if .Values.kubeStateMetrics.enabled }}
+{{- if eq .Values.kubeStateMetrics.mode "bundled" }}
+  - Cluster-state metrics from bundled kube-state-metrics: pod phases, container waiting reasons, resource quotas
+{{- else }}
+  - Cluster-state metrics from external kube-state-metrics at {{ .Values.kubeStateMetrics.endpoint }}
+{{- end }}
+{{- end }}
 {{- if .Values.controlPlane.enabled }}
   - Control plane metrics: etcd, API server, scheduler, controller manager (prometheus)
 {{- end }}

@@ -40,6 +40,8 @@ import KubernetesClusterViewEvents from "../Pages/Kubernetes/View/Events";
 import KubernetesClusterViewInsights from "../Pages/Kubernetes/View/Insights";
 import KubernetesClusterViewControlPlane from "../Pages/Kubernetes/View/ControlPlane";
 import KubernetesClusterViewServiceMesh from "../Pages/Kubernetes/View/ServiceMesh";
+import KubernetesClusterViewIncidents from "../Pages/Kubernetes/View/Incidents";
+import KubernetesClusterViewAlerts from "../Pages/Kubernetes/View/Alerts";
 import KubernetesClusterViewOwners from "../Pages/Kubernetes/View/Owners";
 import KubernetesClusterViewDelete from "../Pages/Kubernetes/View/Delete";
 import KubernetesClusterViewSettings from "../Pages/Kubernetes/View/Settings";
@@ -569,6 +571,36 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_MESH] as Route
+              }
+            />
+          }
+        />
+
+        {/* Incidents */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_INCIDENTS,
+          )}
+          element={
+            <KubernetesClusterViewIncidents
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_INCIDENTS] as Route
+              }
+            />
+          }
+        />
+
+        {/* Alerts */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_ALERTS,
+          )}
+          element={
+            <KubernetesClusterViewAlerts
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_ALERTS] as Route
               }
             />
           }

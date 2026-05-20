@@ -161,6 +161,101 @@ resourceSpecs:
 # Collection intervals
 collectionInterval: 30s
 
+# Extra metrics from the kubelet that aren't enabled by default in the
+# OTel `kubeletstats` receiver. Both groups run inside the existing
+# DaemonSet collector — no new pods, no new scrapes — they just expand
+# what kubeletstats reports.
+kubeletstats:
+  # Saturation metrics — container & pod CPU/memory expressed as a
+  # percentage of request and limit. Enables the "Container CPU vs
+  # Limit", "Container Memory vs Limit", "Container CPU/Memory Request"
+  # saturation monitors.
+  #
+  # Enables 8 derived metric families (4 container-level, 4 pod-level)
+  # from data the receiver already collects — no extra scrape. Always 0
+  # when a pod has no request/limit set, so it's harmless on clusters
+  # that don't use them.
+  #
+  # Node-level request utilization isn't a separate metric in this
+  # collector version (v0.96.0); node saturation is derived downstream
+  # from `k8s.node.cpu.usage` / `k8s.node.memory.usage`.
+  utilizationMetrics:
+    enabled: true
+  # Per-PVC disk usage (`k8s.volume.available`, `k8s.volume.capacity`).
+  # Enables the "PVC Low Disk Space" monitor — running out of PVC space
+  # is otherwise a silent killer.
+  #
+  # Emits one series per PVC per pod, which is bounded for most clusters
+  # but can be substantial on stateful workloads (Kafka, databases) with
+  # thousands of PVCs — turn off there if cardinality is a concern.
+  volumeMetrics:
+    enabled: true
+
+# Scrape the kubelet's cAdvisor endpoint (`/metrics/cadvisor`) for the
+# container-level metrics that the kubeletstats receiver doesn't
+# translate: CFS throttling counters and OOM kill events. Runs as a
+# Prometheus scrape in the Deployment collector (RBAC for
+# `/metrics/cadvisor` is already granted at templates/rbac.yaml).
+#
+# Enables: OOM Kills, High CPU Throttling, CPU Throttle Ratio monitors.
+#
+# cAdvisor exposes hundreds of metrics by default — `metricsAllowlist`
+# drops everything except the named metrics at the receiver, so
+# collector memory and the OneUptime metric store stay bounded.
+cadvisor:
+  enabled: true
+  scrapeInterval: 30s
+  # Keep this list tight. Each metric is kept per-container, so adding
+  # one entry here multiplies cardinality by the cluster's container
+  # count. Override via `--set-string` / `--set-json` if you need more.
+  metricsAllowlist:
+    - container_cpu_cfs_throttled_seconds_total
+    - container_cpu_cfs_periods_total
+    - container_oom_events_total
+
+# Cluster-state metrics from kube-state-metrics (KSM). Powers the
+# monitors that need to know *why* a pod is unhealthy, not just that
+# it's unhealthy:
+#
+#   - CrashLoopBackOff (kube_pod_container_status_waiting_reason)
+#   - ImagePullBackOff  (kube_pod_container_status_waiting_reason)
+#   - Pods Stuck Terminating / Pending (kube_pod_status_phase)
+#   - Namespace ResourceQuota saturation (kube_resourcequota)
+#
+# **Off by default** because the `bundled` mode adds a Deployment to
+# the chart's footprint. If you already run KSM elsewhere in the
+# cluster, set `mode: external` and point `endpoint` at it instead.
+kubeStateMetrics:
+  enabled: false
+  # "bundled"  — chart deploys a small KSM Deployment + Service.
+  # "external" — chart only adds a Prometheus scrape job; you must
+  #              provide `endpoint` pointing at your existing KSM.
+  mode: bundled
+  # Only used when mode == "external".
+  # Example: http://kube-state-metrics.kube-system.svc.cluster.local:8080/metrics
+  endpoint: ""
+  scrapeInterval: 30s
+  # Allowlist that gates which KSM metrics are forwarded to OneUptime.
+  # KSM exports ~100 metric families by default; only keep the ones
+  # that power monitors. Each entry matches by exact `__name__`.
+  metricsAllowlist:
+    - kube_pod_status_phase
+    - kube_pod_container_status_waiting_reason
+    - kube_resourcequota
+  # Bundled-mode KSM Deployment configuration. Ignored when
+  # mode == "external".
+  image:
+    repository: registry.k8s.io/kube-state-metrics/kube-state-metrics
+    tag: "v2.13.0"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
 # Application traces & HTTP request metrics via OpenTelemetry eBPF
 # Instrumentation (OBI — the upstream OpenTelemetry project that took over
 # Grafana Beyla).

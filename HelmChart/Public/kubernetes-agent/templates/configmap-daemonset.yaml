@@ -23,10 +23,72 @@ data:
           - node
           - pod
           - container
+          {{- if .Values.kubeletstats.volumeMetrics.enabled }}
+          - volume
+          {{- end }}
         extra_metadata_labels:
           - container.id
         k8s_api_config:
           auth_type: serviceAccount
+        {{- if .Values.kubeletstats.utilizationMetrics.enabled }}
+        # Saturation metrics — CPU/memory as a percentage of pod
+        # limit/request. All disabled by default in the upstream
+        # kubeletstats receiver because they require pod limits/requests
+        # set; enabling them adds no extra scrape, just derived metric
+        # families from data the receiver already collects.
+        #
+        # v0.96.0 of the receiver doesn't expose node-level request
+        # utilization as a separate metric (added in later versions),
+        # so node saturation is computed downstream from the
+        # already-default-enabled `k8s.node.cpu.usage` /
+        # `k8s.node.memory.usage` series.
+        metrics:
+          k8s.container.cpu_limit_utilization:
+            enabled: true
+          k8s.container.cpu_request_utilization:
+            enabled: true
+          k8s.container.memory_limit_utilization:
+            enabled: true
+          k8s.container.memory_request_utilization:
+            enabled: true
+          k8s.pod.cpu_limit_utilization:
+            enabled: true
+          k8s.pod.cpu_request_utilization:
+            enabled: true
+          k8s.pod.memory_limit_utilization:
+            enabled: true
+          k8s.pod.memory_request_utilization:
+            enabled: true
+        {{- end }}
+
+      {{- if .Values.cadvisor.enabled }}
+      # Scrape this node's kubelet cAdvisor endpoint for container-level
+      # metrics that the kubeletstats receiver doesn't translate (CFS
+      # throttling, OOM kills). One scrape per node (DaemonSet pod →
+      # local kubelet on NODE_IP:10250), no apiserver load.
+      #
+      # `metric_relabel_configs` drops everything except the configured
+      # allowlist at the receiver — cAdvisor exposes hundreds of metrics
+      # by default, so without this the per-container cardinality would
+      # balloon the collector's memory and the OneUptime metric store.
+      prometheus/cadvisor:
+        config:
+          scrape_configs:
+            - job_name: cadvisor
+              scrape_interval: {{ .Values.cadvisor.scrapeInterval }}
+              scheme: https
+              metrics_path: /metrics/cadvisor
+              tls_config:
+                insecure_skip_verify: true
+              bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+              static_configs:
+                - targets:
+                    - "${env:NODE_IP}:10250"
+              metric_relabel_configs:
+                - source_labels: [__name__]
+                  regex: "^({{ join "|" .Values.cadvisor.metricsAllowlist }})$"
+                  action: keep
+      {{- end }}
 
       {{- if .Values.hostMetrics.enabled }}
       # OS-level metrics that kubeletstats doesn't surface: disk I/O
@@ -317,6 +379,9 @@ data:
         metrics:
           receivers:
             - kubeletstats
+            {{- if .Values.cadvisor.enabled }}
+            - prometheus/cadvisor
+            {{- end }}
             {{- if .Values.hostMetrics.enabled }}
             - hostmetrics
             {{- end }}

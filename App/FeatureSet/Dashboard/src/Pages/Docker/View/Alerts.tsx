@@ -8,7 +8,7 @@ import Alert from "Common/Models/DatabaseModels/Alert";
 import Query from "Common/Types/BaseDatabase/Query";
 import ProjectUtil from "Common/UI/Utils/Project";
 
-const KubernetesClusterAlerts: FunctionComponent<
+const DockerHostAlerts: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
@@ -18,7 +18,7 @@ const KubernetesClusterAlerts: FunctionComponent<
   };
 
   if (modelId) {
-    query.kubernetesClusters = new Includes([modelId]);
+    query.dockerHosts = new Includes([modelId]);
   }
 
   return (
@@ -28,4 +28,4 @@ const KubernetesClusterAlerts: FunctionComponent<
   );
 };
 
-export default KubernetesClusterAlerts;
+export default DockerHostAlerts;

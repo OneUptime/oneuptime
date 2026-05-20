@@ -144,6 +144,16 @@ interface GoldenMetricTileProps {
   sublabel?: string | undefined;
   percent?: number | null | undefined;
   thresholds?: { warn: number; danger: number } | undefined;
+  /*
+   * `higherIsBetter` flips the threshold comparison so that 100%
+   * availability reads green and 80% reads red, instead of the
+   * default "higher = worse" used for CPU / memory / filesystem
+   * saturation. When true, `thresholds.warn` is the floor below
+   * which we tint amber and `thresholds.danger` is the floor below
+   * which we tint red. Defaults to false to preserve existing tile
+   * behavior.
+   */
+  higherIsBetter?: boolean | undefined;
 }
 
 const tileColorClasses: Record<
@@ -180,6 +190,15 @@ const GoldenMetricTile: FunctionComponent<GoldenMetricTileProps> = (
       warn: 70,
       danger: 90,
     };
+    if (props.higherIsBetter) {
+      if (props.percent < t.danger) {
+        return "bg-red-500";
+      }
+      if (props.percent < t.warn) {
+        return "bg-amber-500";
+      }
+      return "bg-emerald-500";
+    }
     if (props.percent >= t.danger) {
       return "bg-red-500";
     }
@@ -1509,6 +1528,20 @@ const KubernetesClusterOverview: FunctionComponent<
     return (
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <GoldenMetricTile
+          title="Availability"
+          icon={IconProp.Heartbeat}
+          iconColor="emerald"
+          value={
+            availabilityPct === null
+              ? "—"
+              : `${availabilityPct.toFixed(availabilityPct >= 99.95 ? 1 : 2)}%`
+          }
+          sublabel="heartbeat presence"
+          percent={availabilityPct}
+          thresholds={{ warn: 99, danger: 95 }}
+          higherIsBetter={true}
+        />
+        <GoldenMetricTile
           title="CPU"
           icon={IconProp.ChartBar}
           iconColor="blue"
@@ -1546,19 +1579,6 @@ const KubernetesClusterOverview: FunctionComponent<
               : ValueFormatter.formatValue(netTotal, "By/s")
           }
           sublabel={netSublabel}
-        />
-        <GoldenMetricTile
-          title="Availability"
-          icon={IconProp.Heartbeat}
-          iconColor="emerald"
-          value={
-            availabilityPct === null
-              ? "—"
-              : `${availabilityPct.toFixed(availabilityPct >= 99.95 ? 1 : 2)}%`
-          }
-          sublabel="heartbeat presence"
-          percent={availabilityPct}
-          thresholds={{ warn: 99, danger: 95 }}
         />
       </div>
     );

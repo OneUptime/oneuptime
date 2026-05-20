@@ -1,19 +1,19 @@
 import Includes from "Common/Types/BaseDatabase/Includes";
-import AlertsTable from "../../../Components/Alert/AlertsTable";
+import IncidentsTable from "../../../Components/Incident/IncidentsTable";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import Alert from "Common/Models/DatabaseModels/Alert";
+import Incident from "Common/Models/DatabaseModels/Incident";
 import Query from "Common/Types/BaseDatabase/Query";
 import ProjectUtil from "Common/UI/Utils/Project";
 
-const KubernetesClusterAlerts: FunctionComponent<
+const KubernetesClusterIncidents: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const query: Query<Alert> = {
+  const query: Query<Incident> = {
     projectId: ProjectUtil.getCurrentProjectId()!,
   };
 
@@ -23,9 +23,9 @@ const KubernetesClusterAlerts: FunctionComponent<
 
   return (
     <Fragment>
-      <AlertsTable query={query} />
+      <IncidentsTable query={query} />
     </Fragment>
   );
 };
 
-export default KubernetesClusterAlerts;
+export default KubernetesClusterIncidents;
