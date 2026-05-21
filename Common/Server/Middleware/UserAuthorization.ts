@@ -17,7 +17,6 @@ import Response from "../Utils/Response";
 import ProjectMiddleware from "./ProjectAuthorization";
 import SpanUtil from "../Utils/Telemetry/SpanUtil";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
-import OneUptimeDate from "../../Types/Date";
 import Dictionary from "../../Types/Dictionary";
 import Exception from "../../Types/Exception/Exception";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
@@ -201,8 +200,12 @@ export default class UserMiddleware {
     if (tenantId) {
       oneuptimeRequest.tenantId = tenantId;
 
-      // update last active of project
-      await ProjectService.updateLastActive(tenantId);
+      /*
+       * Fire-and-forget: lastActive write is debounced inside the service
+       * (60s in-process cache) and we don't need the result before
+       * continuing.
+       */
+      void ProjectService.updateLastActive(tenantId);
     }
 
     if (ProjectMiddleware.hasApiKey(req)) {
@@ -253,31 +256,50 @@ export default class UserMiddleware {
         : {}),
     });
 
-    await UserService.updateOneBy({
-      query: {
-        _id: userId,
-      },
-      props: { isRoot: true },
-      data: { lastActive: OneUptimeDate.getCurrentDate() },
-    });
+    /*
+     * Fire-and-forget: lastActive write is debounced inside the service
+     * (60s in-process cache) and we don't need the result before continuing.
+     */
+    void UserService.updateLastActive(new ObjectID(userId));
 
-    const userGlobalAccessPermission: UserGlobalAccessPermission | null =
-      await AccessTokenService.getUserGlobalAccessPermission(
+    /*
+     * Resolve global permission, tenant permission, and team membership in
+     * parallel. These were previously sequential awaits — each added an
+     * extra round-trip latency to every authenticated request. The original
+     * code wrapped only the tenant-side calls in try/catch (to convert
+     * SsoAuthorizationException etc. into an HTTP error response); we
+     * preserve that semantic by routing the rejection through the same
+     * catch only when tenantId is present.
+     */
+    const userGlobalAccessPermissionPromise: Promise<UserGlobalAccessPermission | null> =
+      AccessTokenService.getUserGlobalAccessPermission(
         oneuptimeRequest.userAuthorization.userId,
       );
 
-    if (userGlobalAccessPermission) {
-      oneuptimeRequest.userGlobalAccessPermission = userGlobalAccessPermission;
-    }
+    let userGlobalAccessPermission: UserGlobalAccessPermission | null = null;
 
     if (tenantId) {
       try {
-        const userTenantAccessPermission: UserTenantAccessPermission | null =
-          await UserMiddleware.getUserTenantAccessPermissionWithTenantId({
+        const [globalPermission, userTenantAccessPermission, userTeamIds]: [
+          UserGlobalAccessPermission | null,
+          UserTenantAccessPermission | null,
+          Array<ObjectID>,
+        ] = await Promise.all([
+          userGlobalAccessPermissionPromise,
+          UserMiddleware.getUserTenantAccessPermissionWithTenantId({
             req,
             tenantId,
             userId: new ObjectID(userId),
-          });
+          }),
+          TeamMemberService.getTeamIdsForUser(new ObjectID(userId), tenantId),
+        ]);
+
+        userGlobalAccessPermission = globalPermission;
+
+        if (userGlobalAccessPermission) {
+          oneuptimeRequest.userGlobalAccessPermission =
+            userGlobalAccessPermission;
+        }
 
         if (userTenantAccessPermission) {
           oneuptimeRequest.userTenantAccessPermission = {};
@@ -291,13 +313,16 @@ export default class UserMiddleware {
          * an extra DB roundtrip on every permission check. Absent for non-user
          * callers (API keys, Probes); `Owned` then evaluates as `All`.
          */
-        oneuptimeRequest.userTeamIds =
-          await TeamMemberService.getTeamIdsForUser(
-            new ObjectID(userId),
-            tenantId,
-          );
+        oneuptimeRequest.userTeamIds = userTeamIds;
       } catch (error) {
         return Response.sendErrorResponse(req, res, error as Exception);
+      }
+    } else {
+      userGlobalAccessPermission = await userGlobalAccessPermissionPromise;
+
+      if (userGlobalAccessPermission) {
+        oneuptimeRequest.userGlobalAccessPermission =
+          userGlobalAccessPermission;
       }
     }
 
@@ -468,32 +493,36 @@ export default class UserMiddleware {
   }): Promise<UserTenantAccessPermission | null> {
     const { req, tenantId, userId } = data;
 
-    const project: Project | null = await ProjectService.findOneById({
-      id: tenantId,
-      select: {
-        requireSsoForLogin: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!project) {
-      throw new TenantNotFoundException("Invalid tenantId");
-    }
+    /*
+     * Resolve the SSO requirement and the tenant permission in parallel.
+     * `getRequireSsoForLogin` is cached in-process for 60s, so this is
+     * usually free; the tenant permission lookup is the expensive call.
+     */
+    const [requireSsoForLogin, tenantPermission]: [
+      boolean,
+      UserTenantAccessPermission | null,
+    ] = await Promise.all([
+      ProjectService.getRequireSsoForLogin(tenantId).catch((err: Error) => {
+        /*
+         * Preserve the original behavior of throwing a TenantNotFoundException
+         * for an unknown project. Any other error re-throws.
+         */
+        if (err.message === "Project not found") {
+          throw new TenantNotFoundException("Invalid tenantId");
+        }
+        throw err;
+      }),
+      AccessTokenService.getUserTenantAccessPermission(userId, tenantId),
+    ]);
 
     if (
-      project.requireSsoForLogin &&
+      requireSsoForLogin &&
       !UserMiddleware.doesSsoTokenForProjectExist(req, tenantId, userId)
     ) {
       throw new SsoAuthorizationException();
     }
 
-    // get project level permissions if projectid exists in request.
-    return await AccessTokenService.getUserTenantAccessPermission(
-      userId,
-      tenantId,
-    );
+    return tenantPermission;
   }
 
   @CaptureSpan()
