@@ -49,7 +49,8 @@ const WIDGET_CATALOG: ReadonlyArray<CatalogCategory> = [
         type: DashboardComponentType.Table,
         label: "Table",
         icon: IconProp.TableCells,
-        description: "Tabular result from a metrics or data query.",
+        description:
+          "Tabular metric values — set a Group By (e.g. host.name) for one row per entity, or none for time-bucketed rows. Add formulas for derived columns like availability %.",
       },
       {
         type: DashboardComponentType.Text,
