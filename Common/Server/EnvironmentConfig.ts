@@ -290,6 +290,17 @@ export const MaxClickhouseConnections: number = parseInt(
   10,
 );
 
+/*
+ * Ingest pool size. Falls back to MaxClickhouseConnections so single-knob
+ * setups still work; override only when the ingest pool needs to be sized
+ * independently from the query pool.
+ */
+export const MaxClickhouseIngestConnections: number = parseInt(
+  process.env["CLICKHOUSE_INGEST_MAX_OPEN_CONNECTIONS"] ||
+    String(MaxClickhouseConnections),
+  10,
+);
+
 export const GitSha: string = process.env["GIT_SHA"] || "unknown";
 
 export const AppVersion: string = process.env["APP_VERSION"] || "unknown";

@@ -10,6 +10,7 @@ import {
   ClickhouseTlsKey,
   ClickhouseUsername,
   MaxClickhouseConnections,
+  MaxClickhouseIngestConnections,
   ShouldClickhouseSslEnable,
 } from "../EnvironmentConfig";
 import Hostname from "../../Types/API/Hostname";
@@ -37,10 +38,10 @@ const options: ClickHouseClientConfigOptions = {
    */
   request_timeout: 58_000,
   /*
-   * @clickhouse/client defaults max_open_connections to 10, which becomes
-   * the throughput ceiling under heavy ingest: every BullMQ telemetry
-   * worker (TELEMETRY_CONCURRENCY=100 by default) contends for those 10
-   * HTTP sockets. Raise it to match expected worker concurrency.
+   * @clickhouse/client defaults max_open_connections to 10. Sized for the
+   * query pool (dashboard reads, DDL); ingest writes use a separate pool
+   * (see ingestDataSourceOptions) so a burst of inserts cannot starve
+   * user-facing queries of HTTP sockets.
    */
   max_open_connections: MaxClickhouseConnections,
 };
@@ -65,6 +66,11 @@ if (
 }
 
 export const dataSourceOptions: ClickHouseClientConfigOptions = options;
+
+export const ingestDataSourceOptions: ClickHouseClientConfigOptions = {
+  ...options,
+  max_open_connections: MaxClickhouseIngestConnections,
+};
 
 export const testDataSourceOptions: ClickHouseClientConfigOptions =
   dataSourceOptions;

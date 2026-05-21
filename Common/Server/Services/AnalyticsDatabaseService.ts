@@ -2,6 +2,7 @@ import { WorkflowHostname } from "../EnvironmentConfig";
 import ClickhouseDatabase, {
   ClickhouseAppInstance,
   ClickhouseClient,
+  ClickhouseIngestInstance,
 } from "../Infrastructure/ClickhouseDatabase";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
 import CountBy from "../Types/AnalyticsDatabase/CountBy";
@@ -67,13 +68,16 @@ export default class AnalyticsDatabaseService<
 > extends BaseService {
   public modelType!: { new (): TBaseModel };
   public database!: ClickhouseDatabase;
+  public ingestDatabase!: ClickhouseDatabase;
   public model!: TBaseModel;
   public databaseClient!: ClickhouseClient | null;
+  public ingestDatabaseClient!: ClickhouseClient | null;
   public statementGenerator!: StatementGenerator<TBaseModel>;
 
   public constructor(data: {
     modelType: { new (): TBaseModel };
     database?: ClickhouseDatabase | undefined;
+    ingestDatabase?: ClickhouseDatabase | undefined;
   }) {
     super();
     this.modelType = data.modelType;
@@ -84,7 +88,14 @@ export default class AnalyticsDatabaseService<
       this.database = ClickhouseAppInstance; // default database
     }
 
+    if (data.ingestDatabase) {
+      this.ingestDatabase = data.ingestDatabase;
+    } else {
+      this.ingestDatabase = ClickhouseIngestInstance;
+    }
+
     this.databaseClient = this.database.getDataSource();
+    this.ingestDatabaseClient = this.ingestDatabase.getDataSource();
 
     this.statementGenerator = new StatementGenerator<TBaseModel>({
       modelType: this.modelType,
@@ -98,7 +109,7 @@ export default class AnalyticsDatabaseService<
       return;
     }
 
-    const client: ClickhouseClient = this.getDatabaseClient();
+    const client: ClickhouseClient = this.getIngestClient();
 
     const tableName: string = this.model.tableName;
 
@@ -1040,6 +1051,8 @@ export default class AnalyticsDatabaseService<
   public useDefaultDatabase(): void {
     this.database = ClickhouseAppInstance;
     this.databaseClient = this.database.getDataSource();
+    this.ingestDatabase = ClickhouseIngestInstance;
+    this.ingestDatabaseClient = this.ingestDatabase.getDataSource();
   }
 
   @CaptureSpan()
@@ -1098,6 +1111,25 @@ export default class AnalyticsDatabaseService<
     }
 
     return this.databaseClient;
+  }
+
+  private getIngestClient(): ClickhouseClient {
+    if (!this.ingestDatabase) {
+      this.useDefaultDatabase();
+    }
+
+    if (!this.ingestDatabaseClient && this.ingestDatabase) {
+      this.ingestDatabaseClient = this.ingestDatabase.getDataSource();
+    }
+
+    if (!this.ingestDatabaseClient) {
+      throw new Exception(
+        ExceptionCode.DatabaseNotConnectedException,
+        "ClickHouse ingest client is not connected",
+      );
+    }
+
+    return this.ingestDatabaseClient;
   }
 
   protected async onUpdateSuccess(
