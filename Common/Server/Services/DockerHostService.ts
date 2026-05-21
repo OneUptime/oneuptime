@@ -132,6 +132,7 @@ export class Service extends DatabaseService<Model> {
     extra?: {
       osType?: string | undefined;
       osVersion?: string | undefined;
+      agentVersion?: string | undefined;
     },
   ): Promise<void> {
     const cacheKey: string = hostId.toString();
@@ -141,6 +142,7 @@ export class Service extends DatabaseService<Model> {
         JSON.stringify({
           osType: extra?.osType ?? null,
           osVersion: extra?.osVersion ?? null,
+          agentVersion: extra?.agentVersion ?? null,
         }),
       )
       .digest("hex");
@@ -172,6 +174,9 @@ export class Service extends DatabaseService<Model> {
     }
     if (extra?.osVersion) {
       data.osVersion = extra.osVersion;
+    }
+    if (extra?.agentVersion) {
+      data.agentVersion = extra.agentVersion;
     }
 
     await this.updateOneById({

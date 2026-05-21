@@ -384,7 +384,13 @@ export default abstract class OtelIngestBaseService {
 
       if (clusterIdStr) {
         const clusterId: ObjectID = new ObjectID(clusterIdStr);
-        await KubernetesClusterService.updateLastSeen(clusterId);
+        const agentVersion: string | null = this.getStringAttribute(
+          data.attributes,
+          "oneuptime.agent.version",
+        );
+        await KubernetesClusterService.updateLastSeen(clusterId, {
+          agentVersion: agentVersion || undefined,
+        });
         await this.promoteOneuptimeLabelsToCluster({
           projectId: data.projectId,
           kubernetesClusterId: clusterId,
@@ -618,9 +624,14 @@ export default abstract class OtelIngestBaseService {
 
       if (hostIdStr) {
         const dockerHostId: ObjectID = new ObjectID(hostIdStr);
+        const agentVersion: string | null = this.getStringAttribute(
+          data.attributes,
+          "oneuptime.agent.version",
+        );
         await DockerHostService.updateLastSeen(dockerHostId, {
           osType: osType || undefined,
           osVersion: osVersion || undefined,
+          agentVersion: agentVersion || undefined,
         });
         await this.promoteOneuptimeLabelsToDockerHost({
           projectId: data.projectId,
@@ -825,6 +836,10 @@ export default abstract class OtelIngestBaseService {
       }
 
       if (hostIdStr) {
+        const agentVersion: string | null = this.getStringAttribute(
+          data.attributes,
+          "oneuptime.agent.version",
+        );
         await HostService.updateLastSeen(new ObjectID(hostIdStr), {
           osType: osType || undefined,
           osVersion: osVersion || undefined,
@@ -838,6 +853,7 @@ export default abstract class OtelIngestBaseService {
           containerRuntime: containerRuntime || undefined,
           dockerHostId: data.dockerHostId || undefined,
           kubernetesClusterId: data.kubernetesClusterId || undefined,
+          agentVersion: agentVersion || undefined,
         });
         return new ObjectID(hostIdStr);
       }

@@ -135,6 +135,9 @@ processors:
       - key: host.name
         value: "${env:DOCKER_HOST_NAME}"
         action: upsert
+      - key: oneuptime.agent.version
+        value: "${env:APP_VERSION}"
+        action: upsert
   resourcedetection:
     detectors: [env, system]
     system:

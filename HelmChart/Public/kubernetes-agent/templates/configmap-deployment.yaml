@@ -323,6 +323,9 @@ data:
           - key: service.name
             value: "kubernetes-agent-{{ .Values.clusterName }}"
             action: insert
+          - key: oneuptime.agent.version
+            value: {{ .Chart.AppVersion | quote }}
+            action: insert
           {{- include "kubernetes-agent.oneuptimeLabels" (dict "labels" .Values.oneuptime.labels "action" "insert") | nindent 10 }}
 
       # The k8sobjects receiver emits LogRecords without a severity, so

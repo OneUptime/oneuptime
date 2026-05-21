@@ -2877,6 +2877,14 @@ const KubernetesClusterOverview: FunctionComponent<
             },
             {
               field: {
+                agentVersion: true,
+              },
+              title: "Agent Version",
+              fieldType: FieldType.Text,
+              placeholder: "Not reported",
+            },
+            {
+              field: {
                 labels: {
                   name: true,
                   color: true,

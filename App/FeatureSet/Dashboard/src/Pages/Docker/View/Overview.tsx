@@ -1680,6 +1680,17 @@ const DockerHostOverview: FunctionComponent<
             },
             {
               field: {
+                agentVersion: true,
+              },
+              title: "Agent Version",
+              fieldType: FieldType.Text,
+              placeholder: "Not reported",
+              showIf: (item: DockerHost): boolean => {
+                return Boolean(item.agentVersion);
+              },
+            },
+            {
+              field: {
                 labels: {
                   name: true,
                   color: true,

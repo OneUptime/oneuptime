@@ -340,6 +340,9 @@ data:
           - key: service.name
             value: "kubernetes-agent-{{ .Values.clusterName }}"
             action: upsert
+          - key: oneuptime.agent.version
+            value: {{ .Chart.AppVersion | quote }}
+            action: upsert
           {{- include "kubernetes-agent.oneuptimeLabels" (dict "labels" .Values.oneuptime.labels "action" "upsert") | nindent 10 }}
 
       # Set service.name from deployment/statefulset/daemonset name when available
