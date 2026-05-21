@@ -285,6 +285,11 @@ export const ShouldClickhouseSslEnable: boolean = Boolean(
   ClickhouseTlsCa || (ClickhouseTlsCert && ClickhouseTlsKey),
 );
 
+export const MaxClickhouseConnections: number = parseInt(
+  process.env["CLICKHOUSE_MAX_OPEN_CONNECTIONS"] || "100",
+  10,
+);
+
 export const GitSha: string = process.env["GIT_SHA"] || "unknown";
 
 export const AppVersion: string = process.env["APP_VERSION"] || "unknown";

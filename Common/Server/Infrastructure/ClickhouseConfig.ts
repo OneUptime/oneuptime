@@ -9,6 +9,7 @@ import {
   ClickhouseTlsCert,
   ClickhouseTlsKey,
   ClickhouseUsername,
+  MaxClickhouseConnections,
   ShouldClickhouseSslEnable,
 } from "../EnvironmentConfig";
 import Hostname from "../../Types/API/Hostname";
@@ -35,6 +36,13 @@ const options: ClickHouseClientConfigOptions = {
    * aggregation statements provides the hard server-side cap.
    */
   request_timeout: 58_000,
+  /*
+   * @clickhouse/client defaults max_open_connections to 10, which becomes
+   * the throughput ceiling under heavy ingest: every BullMQ telemetry
+   * worker (TELEMETRY_CONCURRENCY=100 by default) contends for those 10
+   * HTTP sockets. Raise it to match expected worker concurrency.
+   */
+  max_open_connections: MaxClickhouseConnections,
 };
 
 if (ShouldClickhouseSslEnable && ClickhouseTlsCa) {
