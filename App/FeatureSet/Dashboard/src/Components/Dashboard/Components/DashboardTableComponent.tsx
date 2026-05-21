@@ -8,6 +8,8 @@ import React, {
   useState,
 } from "react";
 import DashboardTableComponent, {
+  TableColumn,
+  TableColumnKind,
   TableReduce,
 } from "Common/Types/Dashboard/DashboardComponents/DashboardTableComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
@@ -19,6 +21,7 @@ import API from "Common/UI/Utils/API/API";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
+import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -32,9 +35,17 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 interface ValueColumn {
   key: string;
   label: string;
+  decimals: number | undefined;
+  suffix: string | undefined;
 }
 
 const TUPLE_SEPARATOR: string = "";
+
+interface ResolvedQueryData {
+  queryConfigs: Array<MetricQueryConfigData>;
+  formulaConfigs: Array<MetricFormulaConfigData>;
+  valueColumns: Array<ValueColumn>;
+}
 
 const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -45,32 +56,27 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const primaryQueryConfig: MetricQueryConfigData | undefined =
-    props.component.arguments.metricQueryConfig;
-  const additionalQueryConfigs: Array<MetricQueryConfigData> | undefined =
-    props.component.arguments.metricQueryConfigs;
-  const formulaConfigsArg: Array<MetricFormulaConfigData> | undefined =
-    props.component.arguments.metricFormulaConfigs;
+  const args: DashboardTableComponent["arguments"] =
+    props.component.arguments || {};
 
-  const queryConfigs: Array<MetricQueryConfigData> = useMemo(() => {
-    const configs: Array<MetricQueryConfigData> = [];
-    if (primaryQueryConfig) {
-      configs.push(primaryQueryConfig);
+  const widgetGroupByAttributeKeys: Array<string> = useMemo(() => {
+    if (args.groupByAttributeKeys && args.groupByAttributeKeys.length > 0) {
+      return args.groupByAttributeKeys;
     }
-    if (additionalQueryConfigs && additionalQueryConfigs.length > 0) {
-      configs.push(...additionalQueryConfigs);
-    }
+    // Legacy fallback: read groupBy from primary query's metricQueryData.
+    return args.metricQueryConfig?.metricQueryData?.groupByAttributeKeys || [];
+  }, [args.groupByAttributeKeys, args.metricQueryConfig]);
+
+  const resolved: ResolvedQueryData = useMemo(() => {
+    return resolveQueries(args, widgetGroupByAttributeKeys);
+  }, [args, widgetGroupByAttributeKeys]);
+
+  const queryConfigsInterpolated: Array<MetricQueryConfigData> = useMemo(() => {
     return DashboardVariableInterpolation.applyToQueryConfigs(
-      configs,
+      resolved.queryConfigs,
       props.variables,
     );
-  }, [primaryQueryConfig, additionalQueryConfigs, props.variables]);
-
-  const formulaConfigs: Array<MetricFormulaConfigData> = useMemo(() => {
-    return formulaConfigsArg && formulaConfigsArg.length > 0
-      ? formulaConfigsArg
-      : [];
-  }, [formulaConfigsArg]);
+  }, [resolved.queryConfigs, props.variables]);
 
   const startAndEndDate: ReturnType<
     typeof RangeStartAndEndDateTimeUtil.getStartAndEndDate
@@ -82,11 +88,11 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
 
   const metricViewData: MetricViewData = useMemo(() => {
     return {
-      queryConfigs: queryConfigs,
+      queryConfigs: queryConfigsInterpolated,
       startAndEndDate: startAndEndDate,
-      formulaConfigs: formulaConfigs,
+      formulaConfigs: resolved.formulaConfigs,
     };
-  }, [queryConfigs, startAndEndDate, formulaConfigs]);
+  }, [queryConfigsInterpolated, startAndEndDate, resolved.formulaConfigs]);
 
   const metricViewDataRef: React.MutableRefObject<MetricViewData> =
     useRef<MetricViewData>(metricViewData);
@@ -111,15 +117,15 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
       Object.keys(data.queryConfigs[0].metricQueryData.filterData).length === 0
     ) {
       setIsLoading(false);
-      setError("Please select a metric. Click here to add a metric.");
+      setError(
+        "Add a metric column with a Metric Name to start populating the table.",
+      );
       return;
     }
 
     if (!data.queryConfigs[0].metricQueryData.filterData?.aggegationType) {
       setIsLoading(false);
-      setError(
-        "Please select an aggregation. Click here to add an aggregation.",
-      );
+      setError("Pick an aggregation for your first metric column.");
       return;
     }
 
@@ -142,50 +148,21 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
     fetchAggregatedResults();
   }, [
     startAndEndDate,
-    queryConfigs,
-    formulaConfigs,
+    queryConfigsInterpolated,
+    resolved.formulaConfigs,
     props.refreshTick,
     fetchAggregatedResults,
   ]);
 
-  const attrKeys: Array<string> = useMemo(() => {
-    return queryConfigs[0]?.metricQueryData.groupByAttributeKeys || [];
-  }, [queryConfigs]);
-
+  const attrKeys: Array<string> = widgetGroupByAttributeKeys;
   const isGroupedMode: boolean = attrKeys.length > 0;
 
-  const reduce: TableReduce =
-    props.component.arguments.reduce || TableReduce.Last;
+  const reduce: TableReduce = args.reduce || TableReduce.Last;
+  const defaultDecimals: number =
+    typeof args.decimals === "number" ? args.decimals : 2;
+  const maxRows: number = args.maxRows || 25;
 
-  const decimals: number =
-    typeof props.component.arguments.decimals === "number"
-      ? props.component.arguments.decimals
-      : 2;
-
-  const maxRows: number = props.component.arguments.maxRows || 25;
-
-  const valueColumns: Array<ValueColumn> = useMemo(() => {
-    const columns: Array<ValueColumn> = [];
-    for (const config of queryConfigs) {
-      const variable: string = config.metricAliasData?.metricVariable || "";
-      const label: string =
-        config.metricAliasData?.legend ||
-        config.metricAliasData?.title ||
-        (variable ? variable.toUpperCase() : "") ||
-        config.metricQueryData.filterData.metricName?.toString() ||
-        "Value";
-      columns.push({ key: `query:${variable || label}`, label: label });
-    }
-    for (const config of formulaConfigs) {
-      const variable: string = config.metricAliasData?.metricVariable || "";
-      const label: string =
-        config.metricAliasData?.legend ||
-        config.metricAliasData?.title ||
-        (variable ? variable.toUpperCase() : "Formula");
-      columns.push({ key: `formula:${variable || label}`, label: label });
-    }
-    return columns;
-  }, [queryConfigs, formulaConfigs]);
+  const valueColumns: Array<ValueColumn> = resolved.valueColumns;
 
   const reducedByColumnAndTuple: Map<
     string,
@@ -356,9 +333,8 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const title: string | undefined = props.component.arguments.tableTitle;
-  const description: string | undefined =
-    props.component.arguments.tableDescription;
+  const title: string | undefined = args.tableTitle;
+  const description: string | undefined = args.tableDescription;
   const showHeader: boolean = Boolean(title || description);
 
   const rowCount: number = isGroupedMode
@@ -469,7 +445,11 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                             {value === undefined || Number.isNaN(value) ? (
                               <span className="text-gray-300">—</span>
                             ) : (
-                              formatValue(value, decimals)
+                              formatValue(
+                                value,
+                                column.decimals ?? defaultDecimals,
+                                column.suffix,
+                              )
                             )}
                           </td>
                         );
@@ -507,7 +487,11 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                             {value === undefined || Number.isNaN(value) ? (
                               <span className="text-gray-300">—</span>
                             ) : (
-                              formatValue(value, decimals)
+                              formatValue(
+                                value,
+                                column.decimals ?? defaultDecimals,
+                                column.suffix,
+                              )
                             )}
                           </td>
                         );
@@ -532,6 +516,178 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
     </div>
   );
 };
+
+/*
+ * Translate the widget's user-facing config (columns + groupBy) into the
+ * shape MetricUtil.fetchResults expects (queryConfigs + formulaConfigs).
+ *
+ * Legacy widgets that still use metricQueryConfig/metricQueryConfigs/
+ * metricFormulaConfigs are also accepted: each legacy query/formula
+ * becomes a column whose header is its metricVariable/legend.
+ *
+ * Output order is preserved so metricResults[i] always matches valueColumns[i].
+ */
+function resolveQueries(
+  args: DashboardTableComponent["arguments"],
+  widgetGroupByAttributeKeys: Array<string>,
+): ResolvedQueryData {
+  const queryConfigs: Array<MetricQueryConfigData> = [];
+  const formulaConfigs: Array<MetricFormulaConfigData> = [];
+  const valueColumns: Array<ValueColumn> = [];
+
+  const columns: Array<TableColumn> = args.columns || [];
+
+  if (columns.length > 0) {
+    for (const column of columns) {
+      if (column.kind === TableColumnKind.Metric) {
+        queryConfigs.push({
+          metricAliasData: {
+            metricVariable: column.variable,
+            title: column.header,
+            description: undefined,
+            legend: column.header,
+            legendUnit: column.suffix,
+          },
+          metricQueryData: {
+            filterData: {
+              metricName: column.metricName,
+              aggegationType: column.aggregation || MetricsAggregationType.Avg,
+            },
+            groupBy: undefined,
+            groupByAttributeKeys:
+              widgetGroupByAttributeKeys.length > 0
+                ? widgetGroupByAttributeKeys
+                : undefined,
+          },
+        });
+        valueColumns.push({
+          key: `col:${column.id}`,
+          label: column.header,
+          decimals: column.decimals,
+          suffix: column.suffix,
+        });
+      } else {
+        formulaConfigs.push({
+          metricAliasData: {
+            metricVariable: column.variable,
+            title: column.header,
+            description: undefined,
+            legend: column.header,
+            legendUnit: column.suffix,
+          },
+          metricFormulaData: {
+            metricFormula: column.formula || "",
+          },
+        });
+        valueColumns.push({
+          key: `col:${column.id}`,
+          label: column.header,
+          decimals: column.decimals,
+          suffix: column.suffix,
+        });
+      }
+    }
+    /*
+     * Reorder: queries first, then formulas — to match MetricUtil.fetchResults
+     * which returns Array<AggregatedResult> with queries first then formulas.
+     */
+    return reorderResolved(columns, queryConfigs, formulaConfigs, valueColumns);
+  }
+
+  // Legacy fallback: build from metricQueryConfig + metricQueryConfigs + metricFormulaConfigs.
+  if (args.metricQueryConfig) {
+    queryConfigs.push({
+      ...args.metricQueryConfig,
+      metricQueryData: {
+        ...args.metricQueryConfig.metricQueryData,
+        groupByAttributeKeys:
+          widgetGroupByAttributeKeys.length > 0
+            ? widgetGroupByAttributeKeys
+            : args.metricQueryConfig.metricQueryData?.groupByAttributeKeys,
+      },
+    });
+    valueColumns.push({
+      key: `legacy:primary`,
+      label:
+        args.metricQueryConfig.metricAliasData?.legend ||
+        args.metricQueryConfig.metricAliasData?.metricVariable?.toUpperCase() ||
+        args.metricQueryConfig.metricQueryData?.filterData?.metricName?.toString() ||
+        "Value",
+      decimals: undefined,
+      suffix: undefined,
+    });
+  }
+  if (args.metricQueryConfigs && args.metricQueryConfigs.length > 0) {
+    for (const config of args.metricQueryConfigs) {
+      queryConfigs.push({
+        ...config,
+        metricQueryData: {
+          ...config.metricQueryData,
+          groupByAttributeKeys:
+            widgetGroupByAttributeKeys.length > 0
+              ? widgetGroupByAttributeKeys
+              : config.metricQueryData?.groupByAttributeKeys,
+        },
+      });
+      valueColumns.push({
+        key: `legacy:q:${config.metricAliasData?.metricVariable || valueColumns.length}`,
+        label:
+          config.metricAliasData?.legend ||
+          config.metricAliasData?.metricVariable?.toUpperCase() ||
+          config.metricQueryData?.filterData?.metricName?.toString() ||
+          "Value",
+        decimals: undefined,
+        suffix: undefined,
+      });
+    }
+  }
+  if (args.metricFormulaConfigs && args.metricFormulaConfigs.length > 0) {
+    for (const config of args.metricFormulaConfigs) {
+      formulaConfigs.push(config);
+      valueColumns.push({
+        key: `legacy:f:${config.metricAliasData?.metricVariable || valueColumns.length}`,
+        label:
+          config.metricAliasData?.legend ||
+          config.metricAliasData?.metricVariable?.toUpperCase() ||
+          "Formula",
+        decimals: undefined,
+        suffix: undefined,
+      });
+    }
+  }
+
+  return { queryConfigs, formulaConfigs, valueColumns };
+}
+
+function reorderResolved(
+  columns: Array<TableColumn>,
+  queryConfigs: Array<MetricQueryConfigData>,
+  formulaConfigs: Array<MetricFormulaConfigData>,
+  valueColumns: Array<ValueColumn>,
+): ResolvedQueryData {
+  /*
+   * MetricUtil.fetchResults returns AggregatedResult[] indexed as
+   * [...queries, ...formulas]. The valueColumns above were pushed in
+   * column order (mixed). Reindex valueColumns into the same query→formula
+   * ordering so metricResults[i] aligns with valueColumns[i] at render.
+   */
+  const metricColumns: Array<ValueColumn> = [];
+  const formulaColumns: Array<ValueColumn> = [];
+  for (let i: number = 0; i < columns.length; i++) {
+    const column: TableColumn = columns[i]!;
+    const valueColumn: ValueColumn = valueColumns[i]!;
+    if (column.kind === TableColumnKind.Metric) {
+      metricColumns.push(valueColumn);
+    } else {
+      formulaColumns.push(valueColumn);
+    }
+  }
+  return {
+    queryConfigs,
+    formulaConfigs,
+    valueColumns: [...metricColumns, ...formulaColumns],
+  };
+}
 
 function buildTupleKey(row: AggregatedModel, attrKeys: Array<string>): string {
   const attributes: Record<string, unknown> = getAttributes(row);
@@ -614,13 +770,19 @@ function reduceRows(rows: Array<AggregatedModel>, reduce: TableReduce): number {
   }
 }
 
-function formatValue(value: number, decimals: number): string {
-  const factor: number = Math.pow(10, Math.max(0, decimals));
+function formatValue(
+  value: number,
+  decimals: number,
+  suffix: string | undefined,
+): string {
+  const safeDecimals: number = Math.max(0, decimals);
+  const factor: number = Math.pow(10, safeDecimals);
   const rounded: number = Math.round(value * factor) / factor;
-  return rounded.toLocaleString(undefined, {
-    minimumFractionDigits: Math.max(0, decimals),
-    maximumFractionDigits: Math.max(0, decimals),
+  const formatted: string = rounded.toLocaleString(undefined, {
+    minimumFractionDigits: safeDecimals,
+    maximumFractionDigits: safeDecimals,
   });
+  return suffix ? `${formatted}${suffix}` : formatted;
 }
 
 function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {

@@ -24,6 +24,12 @@ import MetricQueryConfig from "../../Metrics/MetricQueryConfig";
 import MetricFormulaConfig from "../../Metrics/MetricFormulaConfig";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
+import TableColumnsEditor from "./TableColumnsEditor";
+import { TableColumn } from "Common/Types/Dashboard/DashboardComponents/DashboardTableComponent";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
@@ -279,7 +285,9 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         // Skip MetricsQueryConfigs and MetricsFormulaConfigs - rendered as custom multi UI below
         if (
           arg.type === ComponentInputType.MetricsQueryConfigs ||
-          arg.type === ComponentInputType.MetricsFormulaConfigs
+          arg.type === ComponentInputType.MetricsFormulaConfigs ||
+          arg.type === ComponentInputType.TableColumns ||
+          arg.type === ComponentInputType.TableGroupBy
         ) {
           continue;
         }
@@ -852,11 +860,148 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
 
   const sectionGroups: Array<SectionGroup> = groupArgumentsBySections();
 
+  const hasTableColumnsArg: boolean = componentArguments.some(
+    (arg: ComponentArgument<DashboardBaseComponent>): boolean => {
+      return arg.type === ComponentInputType.TableColumns;
+    },
+  );
+
+  const hasTableGroupByArg: boolean = componentArguments.some(
+    (arg: ComponentArgument<DashboardBaseComponent>): boolean => {
+      return arg.type === ComponentInputType.TableGroupBy;
+    },
+  );
+
+  const tableColumnsArg: ComponentArgument<DashboardBaseComponent> | undefined =
+    componentArguments.find(
+      (arg: ComponentArgument<DashboardBaseComponent>): boolean => {
+        return arg.type === ComponentInputType.TableColumns;
+      },
+    );
+
+  const tableGroupByArg: ComponentArgument<DashboardBaseComponent> | undefined =
+    componentArguments.find(
+      (arg: ComponentArgument<DashboardBaseComponent>): boolean => {
+        return arg.type === ComponentInputType.TableGroupBy;
+      },
+    );
+
+  const renderTableDataSection: () => ReactElement | null =
+    (): ReactElement | null => {
+      if (!hasTableColumnsArg && !hasTableGroupByArg) {
+        return null;
+      }
+
+      const args: JSONObject = (component.arguments as JSONObject) || {};
+      const columns: Array<TableColumn> =
+        (args["columns"] as unknown as Array<TableColumn> | undefined) || [];
+      const groupByKeys: Array<string> =
+        (args["groupByAttributeKeys"] as Array<string> | undefined) || [];
+
+      const attributeOptions: Array<DropdownOption> = (
+        props.metrics.telemetryAttributes || []
+      ).map((attr: string): DropdownOption => {
+        return { value: attr, label: attr };
+      });
+
+      const selectedAttributeOptions: Array<DropdownOption> =
+        attributeOptions.filter((option: DropdownOption): boolean => {
+          return groupByKeys.includes(String(option.value));
+        });
+
+      const sectionName: string =
+        tableColumnsArg?.section?.name ||
+        tableGroupByArg?.section?.name ||
+        "Data";
+      const sectionDescription: string | undefined =
+        tableColumnsArg?.section?.description ||
+        tableGroupByArg?.section?.description;
+
+      return (
+        <div className="mt-3">
+          <CollapsibleSection
+            title={sectionName}
+            description={sectionDescription}
+            variant="bordered"
+            defaultCollapsed={false}
+          >
+            <div>
+              {hasTableGroupByArg && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700">
+                    {tableGroupByArg?.name || "Group By Attributes"}
+                  </label>
+                  {tableGroupByArg?.description && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      {tableGroupByArg.description}
+                    </p>
+                  )}
+                  <div className="mt-2">
+                    <Dropdown
+                      options={attributeOptions}
+                      isMultiSelect={true}
+                      value={selectedAttributeOptions}
+                      placeholder="Select attributes to group by"
+                      onChange={(
+                        value: DropdownValue | Array<DropdownValue> | null,
+                      ): void => {
+                        const keys: Array<string> = Array.isArray(value)
+                          ? value.map((v: DropdownValue): string => {
+                              return String(v);
+                            })
+                          : value
+                            ? [String(value)]
+                            : [];
+                        commitComponent({
+                          ...component,
+                          arguments: {
+                            ...((component.arguments as JSONObject) || {}),
+                            groupByAttributeKeys: keys as any,
+                          },
+                        });
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {hasTableColumnsArg && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    {tableColumnsArg?.name || "Columns"}
+                  </label>
+                  {tableColumnsArg?.description && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      {tableColumnsArg.description}
+                    </p>
+                  )}
+                  <TableColumnsEditor
+                    columns={columns}
+                    metricTypes={props.metrics.metricTypes}
+                    onChange={(next: Array<TableColumn>): void => {
+                      commitComponent({
+                        ...component,
+                        arguments: {
+                          ...((component.arguments as JSONObject) || {}),
+                          columns: next as any,
+                        },
+                      });
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </CollapsibleSection>
+        </div>
+      );
+    };
+
   return (
     <div className="mb-3 mt-1">
       {componentArguments && componentArguments.length === 0 && (
         <ErrorMessage message={"This component does not take any arguments."} />
       )}
+      {renderTableDataSection()}
       {sectionGroups.map((sectionGroup: SectionGroup, index: number) => {
         const isFirstSection: boolean = index === 0;
         const shouldCollapse: boolean =

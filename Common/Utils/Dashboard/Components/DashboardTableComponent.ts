@@ -1,7 +1,9 @@
 import DashboardTableComponent, {
+  TableColumnKind,
   TableReduce,
 } from "../../../Types/Dashboard/DashboardComponents/DashboardTableComponent";
 import { ObjectType } from "../../../Types/JSON";
+import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import ObjectID from "../../../Types/ObjectID";
 import DashboardBaseComponentUtil from "./DashboardBaseComponent";
 import {
@@ -11,10 +13,10 @@ import {
 } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 
-const DataSourceSection: ComponentArgumentSection = {
-  name: "Data Source",
+const DataSection: ComponentArgumentSection = {
+  name: "Data",
   description:
-    "Pick metrics and (optionally) a Group By to define the table's rows",
+    "Pick how rows are grouped, then add columns for metrics and formulas",
   order: 1,
 };
 
@@ -38,19 +40,18 @@ export default class DashboardTableComponentUtil extends DashboardBaseComponentU
       minHeightInDashboardUnits: 3,
       minWidthInDashboardUnits: 4,
       arguments: {
-        metricQueryConfig: {
-          metricAliasData: {
-            metricVariable: "a",
-            title: undefined,
-            description: undefined,
-            legend: undefined,
-            legendUnit: undefined,
+        groupByAttributeKeys: [],
+        columns: [
+          {
+            id: ObjectID.generate().toString(),
+            variable: "a",
+            header: "Value",
+            kind: TableColumnKind.Metric,
+            metricName: undefined,
+            aggregation: MetricsAggregationType.Avg,
+            decimals: 2,
           },
-          metricQueryData: {
-            filterData: {},
-            groupBy: undefined,
-          },
-        },
+        ],
         maxRows: 25,
         reduce: TableReduce.Last,
         decimals: 2,
@@ -66,34 +67,23 @@ export default class DashboardTableComponentUtil extends DashboardBaseComponentU
     > = [];
 
     componentArguments.push({
-      name: "Metric Query",
+      name: "Group By Attributes",
       description:
-        "Pick a metric. Optionally set Group By attributes (e.g. host.name) to get one row per entity — otherwise rows are time buckets.",
+        "Each unique combination of these attribute values becomes one row. Leave empty for a time-bucketed table.",
+      required: false,
+      type: ComponentInputType.TableGroupBy,
+      id: "groupByAttributeKeys",
+      section: DataSection,
+    });
+
+    componentArguments.push({
+      name: "Columns",
+      description:
+        "Each column is either a metric (Metric Name + Aggregation) or a formula (e.g. (a / b) * 100). Metric columns get a variable letter that formulas can reference.",
       required: true,
-      type: ComponentInputType.MetricsQueryConfig,
-      id: "metricQueryConfig",
-      section: DataSourceSection,
-    });
-
-    componentArguments.push({
-      name: "Additional Queries",
-      description: "Add more metrics — each becomes a value column",
-      required: false,
-      type: ComponentInputType.MetricsQueryConfigs,
-      id: "metricQueryConfigs",
-      isAdvanced: true,
-      section: DataSourceSection,
-    });
-
-    componentArguments.push({
-      name: "Formulas",
-      description:
-        "Combine query variables (e.g. (a / b) * 100 for availability %) — each formula adds a value column",
-      required: false,
-      type: ComponentInputType.MetricsFormulaConfigs,
-      id: "metricFormulaConfigs",
-      isAdvanced: true,
-      section: DataSourceSection,
+      type: ComponentInputType.TableColumns,
+      id: "columns",
+      section: DataSection,
     });
 
     componentArguments.push({
@@ -117,7 +107,7 @@ export default class DashboardTableComponentUtil extends DashboardBaseComponentU
     componentArguments.push({
       name: "Reduce across time",
       description:
-        "When Group By is set — how to collapse the time series into one value per row",
+        "When Group By is set, how to collapse the time series into one value per row",
       required: false,
       type: ComponentInputType.Dropdown,
       id: "reduce",
@@ -134,7 +124,8 @@ export default class DashboardTableComponentUtil extends DashboardBaseComponentU
 
     componentArguments.push({
       name: "Decimals",
-      description: "Number of decimal places for value columns",
+      description:
+        "Default decimals for value columns (overridable per column)",
       required: false,
       type: ComponentInputType.Number,
       id: "decimals",
