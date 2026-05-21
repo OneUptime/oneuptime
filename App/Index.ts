@@ -13,7 +13,10 @@ import RunbookRoutes from "./FeatureSet/Runbook/Index";
 import AppMetricsAPI from "./API/Metrics";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDatabase";
+import {
+  ClickhouseAppInstance,
+  ClickhouseIngestInstance,
+} from "Common/Server/Infrastructure/ClickhouseDatabase";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import Redis from "Common/Server/Infrastructure/Redis";
 import InfrastructureStatus from "Common/Server/Infrastructure/Status";
@@ -89,6 +92,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     // Connect to Clickhouse database
     await ClickhouseAppInstance.connect(
       ClickhouseAppInstance.getDatasourceOptions(),
+    );
+    await ClickhouseIngestInstance.connect(
+      ClickhouseIngestInstance.getDatasourceOptions(),
     );
 
     // Initialize the app with service name and status checks

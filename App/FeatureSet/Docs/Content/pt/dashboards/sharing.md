@@ -1,85 +1,85 @@
-# Compartilhamento e painéis públicos
+# Compartilhamento e Painéis Públicos
 
-A maioria dos painéis é privada ao seu projeto — apenas membros logados do projeto conseguem vê-los. Mas o OneUptime também permite publicar um painel em uma URL pública, opcionalmente protegê-lo com senha, restringi-lo por IP e hospedá-lo em um domínio personalizado. Esta página cobre os quatro.
+Por padrão, os painéis são privados ao seu projeto — apenas membros logados da equipe podem vê-los. Mas o OneUptime também permite compartilhar um painel publicamente, protegê-lo com uma senha, restringi-lo a determinados IPs e hospedá-lo no seu próprio domínio. Esta página cobre os quatro.
 
 ## Painéis privados (o padrão)
 
-Por padrão, um painel é acessível apenas a usuários logados que são membros do projeto. A URL é do tipo `https://oneuptime.com/dashboards/<id>/view`. O acesso direto requer autenticação e a permissão de leitura apropriada no painel.
+Um painel é acessível apenas a membros logados do seu projeto. A URL se parece com `https://oneuptime.com/dashboards/<id>/view` e exige um login.
 
-Dentro do projeto, propriedade e rótulos controlam quem vê o quê — veja [Configuração e permissões](/docs/dashboards/configuration).
+Dentro do projeto, donos e etiquetas controlam quem vê o quê — veja [Configuração e Permissões](/docs/dashboards/configuration).
 
 ## Painéis públicos
 
-Em **Dashboard → Settings**, acione **Public Dashboard**. O painel agora tem uma segunda URL que não requer login. Compartilhe com fornecedores, parceiros, clientes ou cole em um README público.
+Em **Painel → Configurações**, ligue **Painel Público**. O painel agora tem uma segunda URL que não exige login. Compartilhe com fornecedores, parceiros, clientes ou cole em um README público.
 
 Um painel público:
 
-- Renderiza apenas no modo **View**. Visitantes públicos não conseguem editar, mudar URLs de intervalo de tempo de lado, ou ver a paleta de widgets.
-- Inclui as variáveis que você definiu — visitantes podem escolher das listas suspensas como usuários internos.
-- Carrega o **branding** que você configura em Settings: título da página, descrição da página, arquivo de logo, favicon. São esses que aparecem na aba do navegador e nas pré-visualizações sociais.
+- Sempre abre no modo **Visualização**. Visitantes públicos não podem editar nem ver a paleta de widgets.
+- Inclui as variáveis que você adicionou. Os visitantes escolhem nos mesmos dropdowns que sua equipe usa.
+- Usa a **marca** que você definiu nas Configurações — título da página, descrição, logotipo, favicon.
 
-Trate ativar **Public Dashboard** como publicar uma página da web. Todo widget no painel agora é legível por qualquer um. Audite o que está no canvas antes de acionar a chave.
+Trate ativar um painel público como publicar uma página web. Todo widget nele se torna legível por qualquer pessoa. Veja o que está no canvas antes de ligar o interruptor.
 
 ## Senha mestra
 
-Para proteger um painel público com uma senha em vez de deixá-lo totalmente aberto:
+Para colocar uma senha em um painel público:
 
-1. Ative **Public Dashboard**.
-2. Ative **Master Password**.
+1. Ligue **Painel Público**.
+2. Ligue **Senha Mestra**.
 3. Defina a senha.
 
-Os visitantes batem em uma tela de senha antes do painel renderizar. A senha tem hash em repouso; apenas o hash é armazenado.
+Os visitantes veem um prompt de senha antes do painel aparecer. A senha é armazenada como um hash — nunca vemos a senha real.
 
 Use uma senha mestra quando:
 
-- Você quer compartilhar com um parceiro ou cliente, mas não quer que a URL seja válida se vazar.
-- O painel é "semi-público" — aberto o bastante para você não querer contas do OneUptime para cada visualizador, mas não aberto o bastante para colocar na internet aberta.
+- Você quer compartilhar com um parceiro ou cliente, mas não quer que a URL seja útil se vazar.
+- O painel é "semi-público" — aberto o suficiente para você não querer convidar cada visualizador como membro da equipe, mas não aberto o bastante para deixar na internet aberta.
 
-Para proteção de maior valor (contas por visualizador, trilha de auditoria de quem viu o quê), mantenha o painel privado e convide os visualizadores ao projeto como membros somente leitura.
+Para um controle mais forte (contas separadas por visualizador, um registro de auditoria de quem viu o quê), mantenha o painel privado e convide os visualizadores como membros da equipe somente leitura.
 
 ## Lista de IPs permitidos
 
-No plano **Scale**, você pode restringir um painel público a uma lista de IPs de origem ou faixas CIDR. Configure a lista em **Dashboard → Settings → IP Whitelist**.
+No plano **Scale**, você pode restringir um painel público a uma lista de endereços ou faixas de IP. Configure em **Painel → Configurações → Lista de IPs Permitidos**.
 
-Use uma lista de IPs permitidos quando:
+Use isso quando:
 
 - O painel só deve ser acessível do seu escritório ou VPN.
-- Um portal de fornecedor só deve ser acessível dos IPs de saída publicados deles.
-- Você quer defesa em profundidade em cima de uma senha mestra.
+- Um portal de fornecedor só deve ser acessível dos IPs conhecidos dele.
+- Você quer proteção extra além de uma senha mestra.
 
-Requisições de qualquer outro IP recebem um 403.
+Requisições de qualquer outro IP são rejeitadas.
 
 ## Domínios personalizados
 
-Pronto para usar, um painel público é servido em `oneuptime.com`. Para hospedá-lo em seu próprio subdomínio (por exemplo, `dashboard.acme.com`):
+Por padrão, um painel público é servido em `oneuptime.com`. Para hospedá-lo no seu próprio subdomínio como `dashboard.acme.com`:
 
-1. Adicione um registro CNAME no seu DNS apontando o subdomínio para o alvo publicado do OneUptime.
-2. Em **Dashboard → Settings → Custom Domains**, adicione o domínio.
-3. Verifique o registro DNS (o OneUptime checa por você).
-4. Depois de verificado, o painel fica acessível tanto na URL do OneUptime quanto no seu domínio personalizado.
+1. Adicione um registro CNAME no seu DNS apontando o subdomínio para o destino do OneUptime.
+2. Em **Painel → Configurações → Domínios Personalizados**, adicione o domínio.
+3. Verifique-o. O OneUptime checa o registro DNS para você.
+4. Uma vez verificado, o painel fica acessível tanto no seu domínio personalizado quanto na URL original.
 
 Domínios personalizados são úteis para:
 
-- Painéis voltados para o cliente com a sua marca.
-- Painéis de parceiro com marca compartilhada.
-- SEO em uma página de saúde pública.
+- Painéis voltados ao cliente com sua própria marca.
+- Painéis com marca compartilhada com parceiros.
+- Páginas de saúde públicas com sua própria URL.
 
-Você pode anexar múltiplos domínios personalizados a um painel se servir o mesmo conteúdo para múltiplos públicos.
+Você pode anexar mais de um domínio personalizado a um único painel se servir o mesmo conteúdo para várias audiências.
 
-## Branding para painéis públicos
+## Marca
 
-Em **Dashboard → Settings**, configure:
+Em **Painel → Configurações**, você pode configurar:
 
-- **Page title** — a tag `<title>` e o cabeçalho que os visitantes veem.
-- **Page description** — a meta description usada por mecanismos de busca e pré-visualizações sociais.
-- **Logo file** — faça upload de um PNG/SVG; mostrado no cabeçalho do painel.
-- **Favicon** — feito upload; mostrado na aba do navegador.
+- **Título da página** — o que aparece na aba do navegador e no topo da página.
+- **Descrição da página** — a descrição usada por mecanismos de busca e prévias sociais.
+- **Logotipo** — envie um PNG ou SVG para mostrar no cabeçalho.
+- **Favicon** — o pequeno ícone na aba do navegador.
 
-O branding se aplica apenas à renderização em modo público. Visualizadores internos sempre veem o branding do OneUptime.
+A marca só se aplica quando o painel é visualizado publicamente. Visualizadores internos sempre veem a marca do OneUptime.
 
 ## Incorporação
 
-Você pode incorporar um painel público em um `<iframe>` no seu próprio site:
+Você pode incorporar um painel público no seu próprio site com um iframe:
 
 ```html
 <iframe src="https://dashboard.acme.com/view"
@@ -87,16 +87,16 @@ Você pode incorporar um painel público em um `<iframe>` no seu próprio site:
         frameborder="0"></iframe>
 ```
 
-Se você incorpora um painel protegido por uma senha mestra, o visitante ainda vê a tela de senha dentro do iframe.
+Se o painel tem uma senha mestra, os visitantes verão o prompt de senha dentro do iframe.
 
-## URLs compartilháveis com estado de variável
+## URLs compartilháveis
 
-A URL do painel codifica as seleções de variável atuais e o intervalo de tempo como parâmetros de consulta. Ajuste as listas suspensas, copie a URL e cole no chat — o destinatário vê o painel com exatamente a mesma visão, incluindo o intervalo de tempo que você estava olhando.
+A URL do painel inclui as seleções de variáveis atuais e o intervalo de tempo como parâmetros de consulta. Ajuste os dropdowns, copie a URL, cole no chat — quem abrir o link vê o painel com a mesma visualização.
 
-Essa é a forma mais rápida de apontar um colega para "o painel no momento em que o incidente começou" — fixe o intervalo de tempo, copie, cole.
+Essa é a forma mais rápida de apontar um colega para "o painel no momento em que o incidente começou". Fixe o intervalo de tempo, copie, cole.
 
-## O que ler a seguir
+## O que ler em seguida
 
-- [Configuração e permissões](/docs/dashboards/configuration) — controle de acesso em modo privado.
-- [Variáveis e filtros](/docs/dashboards/variables) — variáveis com as quais visitantes públicos podem interagir.
-- [Criar um painel](/docs/dashboards/authoring) — o que vai no canvas em primeiro lugar.
+- [Configuração e Permissões](/docs/dashboards/configuration) — controle de acesso em modo privado.
+- [Variáveis e Filtros](/docs/dashboards/variables) — variáveis com as quais os visitantes podem interagir.
+- [Criando um Painel](/docs/dashboards/authoring) — o que vai no canvas.

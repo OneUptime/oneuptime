@@ -1,145 +1,147 @@
-# Workflow-componenten
+# Componenten
 
-Componenten zijn de actienodes die je achter een trigger plaatst. Elke component doet één ding — een HTTP-verzoek doen, een Slack-bericht sturen, vertakken op een voorwaarde, een JavaScript-snippet draaien — en stelt één of meer output-poorten beschikbaar waaraan de volgende node kan worden gekoppeld.
+Componenten zijn de bouwstenen die je achter de trigger toevoegt. Elke component doet één ding — een bericht versturen, een API aanroepen, een voorwaarde controleren — en koppelt aan wat erna komt.
 
-Deze pagina is een catalogus. Voor bedradingsregels en het canvas zelf, zie [Een workflow maken](/docs/workflows/authoring).
+Deze pagina is de catalogus. Voor hoe je componenten over het canvas sleept, neerzet en verbindt, zie [Een workflow maken](/docs/workflows/authoring).
 
 ## API
 
-Doe een uitgaand HTTP-verzoek naar een willekeurige URL.
+Doe een HTTP-verzoek naar elke URL.
 
-**Argumenten**:
+**Settings**:
 
-- **Method** — `GET`, `POST`, `PUT`, `PATCH`, `DELETE`.
-- **URL** — de request-URL. Geïnterpoleerd.
-- **Request Headers** — JSON-object met headers.
-- **Request Body** — JSON- of tekst-body voor `POST` / `PUT` / `PATCH`.
+- **Method** — `GET`, `POST`, `PUT`, `PATCH` of `DELETE`.
+- **URL** — het adres dat je wilt aanroepen.
+- **Headers** — eventuele headers om mee te sturen.
+- **Body** — de request body voor `POST` / `PUT` / `PATCH`.
 
-**Output-poorten**:
+**Outputs**:
 
-- `success` — gaat af wanneer de responsstatus 2xx is. Returnwaarden: `response-status`, `response-headers`, `response-body`.
-- `error` — gaat af bij een netwerkfout of niet-2xx-respons. Returnwaarde: `error`-bericht.
+- **Success** — gaat af wanneer de aanroep werkte (2xx-respons). Geeft de status, headers en body door.
+- **Error** — gaat af bij een netwerkfout of een respons die geen 2xx is. Geeft het foutbericht door.
 
-Gebruik dit voor: elke REST-API van derden, je eigen admin-endpoints, lichte integraties zonder een eigen component.
+Gebruik dit voor: elke externe API, je eigen admin-endpoints of elke integratie die geen eigen component heeft.
 
 ## Webhook (uitgaand)
 
-Een dunne wrapper rond de API-component voor het veelvoorkomende "fire and forget"-geval. Verstuurt een JSON-body naar een URL en stelt één `success`/`error`-paar beschikbaar.
+Een eenvoudigere versie van de API-component voor "fire and forget"-gevallen. Post een JSON-body naar een URL.
 
-Geef de voorkeur aan **API** als je de responsbody stroomafwaarts wilt lezen; geef de voorkeur aan **Webhook** als je alleen een ander systeem wilt notificeren.
+Gebruik **API** als je de respons moet lezen. Gebruik **Webhook** als je alleen maar een notificatie wilt versturen en verder gaan.
 
 ## Slack
 
-Post een bericht in een Slack-kanaal via de Slack-workspace-verbinding van je project.
+Post een bericht in een Slack-kanaal.
 
-**Argumenten**:
+**Settings**:
 
-- **Channel name** — het kanaal waarin gepost wordt. De bot moet al lid zijn van dat kanaal.
-- **Message text** — de body. Geïnterpoleerd; ondersteunt Slack mrkdwn.
+- **Channel** — de kanaalnaam. De bot moet al lid zijn van dat kanaal.
+- **Message** — de te versturen tekst. Ondersteunt Slack-opmaak.
 
-Stel de workspace-verbinding eerst in via **Project Settings → Workspace Connections → Slack**. Zie [Slack Workspace Connection](/docs/workspace-connections/slack).
+Koppel Slack eerst aan je project onder **Project Settings → Workspace Connections → Slack**. Zie [Slack Workspace Connection](/docs/workspace-connections/slack).
 
 ## Microsoft Teams
 
-Post een bericht in een Microsoft Teams-kanaal via de Teams-verbinding van je project.
+Post een bericht in een Microsoft Teams-kanaal.
 
-**Argumenten**:
+**Settings**:
 
-- **Team & channel** — de bestemming.
-- **Message text** — de body.
+- **Team and channel** — waar je wilt posten.
+- **Message** — de te versturen tekst.
 
-Zie [Microsoft Teams Workspace Connection](/docs/workspace-connections/microsoft-teams) voor het opzetten van de verbinding.
+Zie [Microsoft Teams Workspace Connection](/docs/workspace-connections/microsoft-teams) voor het opzetten.
 
 ## Discord
 
-Post een bericht in een Discord-kanaal via een inkomende webhook-URL die op de component is geconfigureerd.
+Post een bericht in een Discord-kanaal via een inkomende webhook-URL.
 
 ## Telegram
 
-Stuur een bericht naar een Telegram-chat via een bot-token en chat-ID die op de component zijn geconfigureerd.
+Verstuur een bericht naar een Telegram-chat met een bottoken en chat-ID.
 
-## E-mail
+## Email
 
-Verstuur een e-mail via de SMTP-configuratie van OneUptime.
+Verstuur een e-mail via OneUptime.
 
-**Argumenten**:
+**Settings**:
 
-- **To** — het ontvangende e-mailadres.
-- **Subject** — geïnterpoleerd.
-- **Body** — Markdown of HTML.
+- **To** — het e-mailadres van de ontvanger.
+- **Subject** — de onderwerpregel.
+- **Body** — het bericht in Markdown of HTML.
 
-De e-mail wordt verzonden vanaf het geconfigureerde afzenderadres van het project (zie [SMTP](/docs/emails/smtp)).
+De e-mail wordt verstuurd vanaf de geconfigureerde afzender van je project — zie [SMTP](/docs/emails/smtp).
 
 ## Custom Code
 
-Draai een snippet JavaScript met toegang tot de variabelen van de workflow en de returnwaarden van de bovenliggende node.
+Voer een klein stukje JavaScript uit wanneer je iets nodig hebt wat de andere blokken niet kunnen.
 
-**Argumenten**:
+**Settings**:
 
-- **Code** — de JavaScript-body. De waarde van de laatste expressie (of alles wat wordt teruggegeven door `(async () => { ... })()`) wordt de returnwaarde van de component.
-- **Arguments** — optionele benoemde waarden die als `args` worden meegegeven.
+- **Code** — je JavaScript. De laatste waarde (of wat je vanuit een async functie returnt) wordt de output van het blok.
+- **Arguments** — benoemde waarden die je kunt meegeven.
 
-**Output-poorten**: `success` (returnwaarde), `error` (gevangen exception).
+**Outputs**: success (jouw returnwaarde) en error (een exception).
 
-Gebruik dit voor: een payload transformeren tussen twee systemen, een kleine berekening doen die geen eigen component verdient, JS-specifieke logica aanroepen. Zwaardere scripting die in je eigen infrastructuur moet draaien hoort thuis in een Bash- of JavaScript-stap van een [Runbook](/docs/runbooks/index).
+Gebruik dit voor: data omvormen tussen twee systemen, een kleine berekening, alles wat geen eigen blok verdient. Voor zwaardere scripts kun je een [Runbook](/docs/runbooks/index) gebruiken.
 
 ## JSON
 
 Converteer tussen tekst en JSON.
 
-- **JSON → Text** — serialiseer een JSON-object naar een string (handig om door te geven aan een `body`-argument van een uitgaande component dat tekst verwacht).
-- **Text → JSON** — parseer een string naar een JSON-object. Handig wanneer een bovenliggende API zijn body als tekst teruggaf, maar je een veld moet lezen.
+- **JSON → Text** — zet een JSON-object om in een string. Handig wanneer het volgende blok tekst verwacht.
+- **Text → JSON** — parseer een string naar een JSON-object. Handig wanneer iets als tekst is binnengekomen en je een veld wilt lezen.
 
 ## Conditions
 
-Vertak op een vergelijking. Configureer:
+Vertak op basis van een vergelijking.
 
-- **Left value** — meestal een geïnterpoleerde verwijzing zoals `{{Incident.title}}`.
+**Settings**:
+
+- **Left value** — meestal een waarde uit een eerder blok.
 - **Operator** — `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `starts with`, `ends with`.
-- **Right value** — de waarde om mee te vergelijken.
+- **Right value** — waarmee je vergelijkt.
 
-**Output-poorten**: `yes` en `no`. Koppel de rest van de workflow aan de tak die bij je bedoeling past.
+**Outputs**: **Yes** en **No**. Verbind de volgende blokken met de tak die je wilt.
 
-## Schedule (vertraging)
+## Delay
 
-Pauzeer een workflow gedurende een geconfigureerde tijdsduur voordat hij doorgaat. Handig wanneer je een extern systeem even de tijd moet geven om tot rust te komen voordat je zijn status controleert.
+Pauzeer de workflow voor een bepaalde tijd voordat je verder gaat. Handig wanneer je een ander systeem even moet laten bijkomen.
 
 ## Log
 
-Schrijf een regel naar het workflow-runlog. Puur een debughulpmiddel; de regel wordt vastgelegd op de run en is zichtbaar onder **Logs**. Geen extern bijeffect.
+Schrijf een regel naar het run-log. Geen extern effect — het verschijnt alleen in de logs van de workflow zodat jij het kunt lezen. Handig voor debuggen.
 
 ## Execute Workflow
 
-Roep een andere workflow aan als substap. De aangeroepen workflow draait zelfstandig (fire-and-forget) — de controle keert terug naar de caller zodra de aanroep is verstuurd.
+Roep een andere workflow aan vanuit deze. De aangeroepen workflow draait op zichzelf — jouw workflow gaat verder zonder erop te wachten dat hij klaar is.
 
-Gebruik dit om gedeelde logica uit meerdere workflows te factoreren: bouw één keer een "post-to-incident-channel"-workflow en roep die aan vanuit elke andere workflow die het kanaal moet informeren.
+Gebruik dit om gemeenschappelijke logica te delen. Bouw één keer een "post to incident channel"-workflow en roep die aan vanuit elke andere workflow die het kanaal moet aanstoten.
 
-Een recursielimiet voorkomt dat workflows elkaar in een oneindige lus aanroepen. Zie [Configuratie en veiligheid](/docs/workflows/configuration).
+Er is een veiligheidsgrens zodat workflows elkaar niet in een lus kunnen blijven aanroepen. Zie [Configuratie en veiligheid](/docs/workflows/configuration).
 
-## Modelcomponenten (CRUD op OneUptime-entiteiten)
+## OneUptime-datacomponenten
 
-Voor elke OneUptime-entiteit die workflows ondersteunt (monitors, incidenten, alerts, statuspagina's, oproepdienstbeleid, enz.), stelt het palet automatisch de volgende componenten beschikbaar — doorzoekbaar op entiteitsnaam:
+Voor elk soort record in OneUptime (monitors, incidenten, alerts, statuspagina's, oncall-policies en nog veel meer) heeft het palet deze componenten — zoek op de naam van het type:
 
-- **Find One {Entity}** — haal een enkel record op via een query.
-- **Find {Entity}** — haal een lijst van records op via een query (gepagineerd).
-- **Create {Entity}** — voeg een nieuw record toe.
-- **Update {Entity}** — werk één record bij op basis van ID.
-- **Delete {Entity}** — verwijder één record op basis van ID.
-- **Count {Entity}** — tel de records die matchen met een query.
+- **Find One** — haal één record op via ID of filter.
+- **Find** — haal een lijst met records op.
+- **Create** — voeg een nieuw record toe.
+- **Update** — wijzig één record.
+- **Delete** — verwijder één record.
+- **Count** — tel records die aan een filter voldoen.
 
-Zo kan een workflow OneUptime-state lezen en schrijven zonder het platform te verlaten. Bijvoorbeeld: een webhook van je CI-tool roept **Create Incident** aan met het foutbericht van de build; of een geplande workflow voert elke vijf minuten **Find Incident** uit en stuurt een samenvatting per e-mail.
+Zo kan een workflow OneUptime-data lezen en wijzigen. Bijvoorbeeld: een webhook vanuit je CI-tool kan **Create Incident** gebruiken om een incident te openen met de faaldetails.
 
-## De juiste component kiezen
+## Welke component moet ik gebruiken?
 
 Een paar vuistregels:
 
-- Als er een speciale component bestaat voor wat je wilt doen (Slack, Email, een CRUD op een OneUptime-entiteit), gebruik die — die geeft je betere foutafhandeling en helderdere logs dan een eigen oplossing.
-- Als je een externe HTTP-API moet aanroepen zonder eigen component, gebruik **API**.
-- Als je data tussen twee componenten moet *vormgeven*, gebruik **Custom Code** of **JSON**.
-- Als je verschillende acties moet ondernemen op basis van een waarde, gebruik **Conditions**.
+- Als er een speciaal blok is voor wat je wilt (Slack, Email, een OneUptime-record), gebruik dat — je krijgt netter foutafhandeling en duidelijkere logs.
+- Voor elke andere externe API gebruik je **API**.
+- Voor het omvormen van data tussen blokken gebruik je **Custom Code** of **JSON**.
+- Om verschillende acties op basis van een waarde te nemen, gebruik je **Conditions**.
 
 ## Waar verder lezen
 
-- [Variabelen](/docs/workflows/variables) — hoe je data van de ene component naar de andere voedt.
-- [Uitvoeringen en logboeken](/docs/workflows/runs-and-logs) — hoe je inspecteert wat elke component tijdens een run heeft teruggegeven.
-- [Configuratie en veiligheid](/docs/workflows/configuration) — limieten, eigenaarschap en geheimen.
+- [Variabelen](/docs/workflows/variables) — data tussen blokken doorgeven.
+- [Uitvoeringen en logboeken](/docs/workflows/runs-and-logs) — controleren wat elk blok bij een run heeft gedaan.
+- [Configuratie en veiligheid](/docs/workflows/configuration) — limieten, eigenaren en geheimen.

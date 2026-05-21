@@ -1,99 +1,99 @@
-# Workflow-variabelen
+# Variabelen
 
-Een workflow is pas nuttig wanneer er data doorheen stroomt. Variabelen zijn hoe die data zich verplaatst — van de trigger naar de eerste component, van de output van de ene component naar de input van de volgende, en van geheimen op projectniveau naar overal waar ze worden aangeroepen.
+Workflows draaien om data verplaatsen — van de trigger naar het eerste blok, van het ene blok naar het volgende, en van gedeelde waarden naar elke plek waar je ze nodig hebt. Variabelen zijn hoe die data zich verplaatst.
 
-OneUptime heeft twee soorten variabelen en één interpolatiesyntax die voor beide werkt.
+Er zijn twee soorten, en ze delen dezelfde syntax.
 
 ## Globale variabelen
 
-Projectbrede waarden die één keer worden gedefinieerd onder **Workflows → Global Variables**. Denk aan API-sleutels, basis-URL's, kanaalnamen, alles wat je niet hardcoded in tien workflows wilt zetten.
+Projectbrede waarden die je één keer opslaat en overal hergebruikt. Denk aan API-sleutels, URL's, kanaalnamen — alles wat je niet wilt kopiëren naar tien verschillende workflows.
 
-Een globale variabele heeft:
+Vind ze onder **Workflows → Global Variables**. Elk heeft:
 
-- **Naam** — de identifier waarmee je ernaar verwijst. Gebruik `UPPER_SNAKE_CASE` om hem in templates duidelijk te onderscheiden.
-- **Waarde** — de stringwaarde. Meerregelige waarden worden ondersteund.
-- **Is Secret** — wanneer aan, is de waarde write-only in de UI na opslaan en wordt hij geredigeerd uit runlogs.
+- **Name** — hoe je ernaar verwijst. Gebruik `UPPER_SNAKE_CASE` zodat het opvalt in je blokken.
+- **Value** — de daadwerkelijke waarde. Waarden over meerdere regels werken ook.
+- **Is Secret** — wanneer dit aanstaat, wordt de waarde na opslaan verborgen in de UI en in run-logs.
 
-Verwijs vanuit elke plek in elke workflow naar een globale variabele met:
+Gebruik een globale variabele in elke workflow met:
 
 ```
 {{variable.NAME}}
 ```
 
-Als je bijvoorbeeld `PAGERDUTY_KEY` als geheime variabele hebt gedefinieerd, kan elke API-component die PagerDuty aanroept hem lezen als `{{variable.PAGERDUTY_KEY}}` zonder dat iemand de daadwerkelijke sleutel in de workflow-JSON ziet.
+Bijvoorbeeld: als je je PagerDuty-sleutel hebt opgeslagen als `PAGERDUTY_KEY`, kan elk blok hem gebruiken als `{{variable.PAGERDUTY_KEY}}` — de echte sleutel verschijnt nooit in de workflow of de logs.
 
-## Lokale variabelen
+## Lokale variabelen (data uit eerdere blokken)
 
-Lokale variabelen zijn de returnwaarden van nodes die al binnen deze uitvoering hebben gedraaid. Elke trigger en elke component publiceert er één — zie [Triggers](/docs/workflows/triggers) en [Componenten](/docs/workflows/components) voor de lijsten per node.
+Lokale variabelen zijn de output van blokken die al in deze uitvoering hebben gedraaid. Elke trigger en elk component produceert output die je kunt lezen.
 
-Verwijs naar een lokale variabele als:
+Verwijs naar de output van een eerder blok zo:
 
 ```
-{{NodeId.fieldName}}
+{{BlockName.fieldName}}
 ```
 
-De `NodeId` is de naam van de trigger of component op het canvas (je kunt hem hernoemen voor leesbaarheid — houd hem kort en `PascalCase`, zodat de verwijzingen schoon blijven). De `fieldName` is wat die node publiceert.
+`BlockName` is de naam van de trigger of component op het canvas (je kunt hem hernoemen naar iets kort en duidelijk). `fieldName` is wat dat blok produceert.
 
 Voorbeelden:
 
-- Nadat een **API**-component genaamd `LookupUser` met succes is teruggekeerd, kunnen stroomafwaartse nodes de statuscode lezen als `{{LookupUser.response-status}}` en de geparseerde body als `{{LookupUser.response-body}}`.
-- Na een **Incident → On Create**-trigger genaamd `Incident` kun je `{{Incident.title}}`, `{{Incident.description}}`, `{{Incident.incidentSeverityId}}` en elke andere kolom op het incident lezen.
-- Na een **Custom Code**-component genaamd `Transform` wordt de geretourneerde waarde blootgesteld als `{{Transform.value}}`.
+- Nadat een **API**-blok met de naam `LookupUser` heeft gedraaid, kun je de statuscode lezen als `{{LookupUser.response-status}}` en de body als `{{LookupUser.response-body}}`.
+- Nadat een **Incident → On Create**-trigger met de naam `Incident` heeft gedraaid, kun je `{{Incident.title}}`, `{{Incident.description}}` en elk ander veld op het incident lezen.
+- Nadat een **Custom Code**-blok met de naam `Transform` heeft gedraaid, staat de geretourneerde waarde op `{{Transform.value}}`.
 
-Lokale variabelen gelden voor één run. De volgende run begint met een schone lei.
+Lokale variabelen bestaan alleen tijdens de huidige run. Elke nieuwe run begint opnieuw.
 
-## Waar interpolatie werkt
+## Waar variabelen werken
 
-Vrijwel elk tekstachtig argument ondersteunt interpolatie:
+Bijna elk tekstveld accepteert variabelen:
 
-- URL-velden op de API-component
-- Berichttekst op Slack / Teams / Discord / Telegram / E-mail
-- Onderwerp en body op E-mail
-- Headers en body-velden (gebruik hem binnen JSON-waarden)
-- Linker- en rechteroperanden op Conditions
+- De URL op een API-blok.
+- De berichttekst op Slack, Teams, Discord, Telegram, Email.
+- Het onderwerp en de body van een e-mail.
+- Headers en body-velden (binnen string-waarden).
+- Beide kanten van een Conditions-blok.
 
-Pure JSON-argumenten accepteren interpolatie binnen stringwaarden; je kunt geen sleutel interpoleren. Als je een dynamische structuur moet opbouwen, gebruik **Custom Code** om de payload samen te stellen en pipe vervolgens de returnwaarde naar de volgende node.
+Pure JSON-velden accepteren variabelen binnen string-waarden, maar je kunt geen variabele als sleutel gebruiken. Als je dynamisch een structuur moet bouwen, gebruik dan een **Custom Code**-blok om hem op te bouwen en geef de output door aan het volgende blok.
 
-De **Custom Code**-component leest variabelen anders — globale variabelen worden blootgesteld op `args.variables`, en returnwaarden van bovenliggende nodes worden doorgegeven als benoemde argumenten die je op de component configureert.
+Het **Custom Code**-blok leest variabelen anders — globale variabelen komen binnen op `args.variables`, en jij bepaalt welke outputs van eerdere blokken je als argumenten meegeeft.
 
 ## Voorbeelden
 
-### Een payload opbouwen uit een trigger
+### Een payload opbouwen vanuit een webhook
 
-Een webhook ontvangt een resultaat van een CI-build. De body is JSON zoals `{ "service": "checkout", "status": "failed" }`. Om dat om te zetten in een OneUptime-incident:
+Er komt een webhook binnen met een body als `{ "service": "checkout", "status": "failed" }`. Om dat om te zetten in een OneUptime-incident:
 
-1. **Webhook**-trigger genaamd `CIWebhook`.
-2. **Conditions**-component: links `{{CIWebhook.Request Body.status}}`, operator `==`, rechts `failed`.
-3. Vanuit de `yes`-poort, een **Create Incident**-component met:
-   - Titel: `CI build failed: {{CIWebhook.Request Body.service}}`
-   - Beschrijving: `See {{CIWebhook.Request Body.url}} for the build logs.`
+1. **Webhook**-trigger met de naam `CIWebhook`.
+2. **Conditions**-blok: links `{{CIWebhook.Request Body.status}}`, operator `==`, rechts `failed`.
+3. Vanuit de **Yes**-tak een **Create Incident**-blok met:
+   - Title: `CI build failed: {{CIWebhook.Request Body.service}}`
+   - Description: `See {{CIWebhook.Request Body.url}} for the logs.`
 
-### Een geheim gebruiken in een uitgaande API-aanroep
+### Een geheim gebruiken in een API-aanroep
 
 Een workflow die PagerDuty aanroept:
 
-1. Definieer `PAGERDUTY_KEY` als geheime globale variabele.
-2. Stel op de **API**-component de `Authorization`-header in op `Token token={{variable.PAGERDUTY_KEY}}`.
+1. Sla `PAGERDUTY_KEY` op als secret globale variabele.
+2. Zet op het **API**-blok de `Authorization`-header op `Token token={{variable.PAGERDUTY_KEY}}`.
 
-De sleutel verschijnt nooit in de workflow-JSON of in runlogs.
+De sleutel blijft buiten de workflow en de logs.
 
-### Twee API-aanroepen aaneenrijgen
+### Twee API-aanroepen aan elkaar koppelen
 
-De eerste aanroep retourneert een ID die de tweede aanroep nodig heeft:
+De eerste aanroep geeft je een ID die de tweede nodig heeft:
 
-1. **API**-component `LookupOrder`: `GET /orders?email={{Manual.JSON.email}}`.
-2. **API**-component `CancelOrder`: `POST /orders/{{LookupOrder.response-body.id}}/cancel`.
+1. **API**-blok `LookupOrder`: `GET /orders?email={{Manual.JSON.email}}`.
+2. **API**-blok `CancelOrder`: `POST /orders/{{LookupOrder.response-body.id}}/cancel`.
 
-Als `LookupOrder` een niet-2xx-respons retourneert, gaat zijn `error`-poort af in plaats van `success` — koppel die tak aan een E-mail- of Slack-component, zodat fouten niet stilzwijgend voorbij gaan.
+Als `LookupOrder` faalt, gaat zijn **error**-output af in plaats van **success**. Verbind die met een Email- of Slack-blok zodat fouten niet onopgemerkt blijven.
 
-## Een paar valkuilen
+## Valkuilen
 
-- **Typefouten in nodenamen breken verwijzingen stilzwijgend.** Als je een node hernoemt nadat je `{{OldName.field}}` stroomafwaarts hebt gekoppeld, werk dan elke verwijzing bij. Kijk in het runlog — als je de letterlijke `{{OldName.field}}` ziet in het vastgelegde argument, dan is de lookup niet gelukt.
-- **Geheimen zijn hoofdlettergevoelig.** `{{variable.MyKey}}` en `{{variable.mykey}}` zijn verschillende variabelen.
-- **Ontbrekende velden zijn leeg.** Een verwijzing naar `{{Foo.nonexistent}}` produceert een lege string, geen fout. Handig, maar het kan bugs maskeren — gebruik een **Conditions**-node om aanwezigheid af te dwingen als het veld vereist is voor de volgende stap.
+- **Een blok hernoemen breekt verwijzingen.** Als je een blok hernoemt, werk dan elke plek bij waar het wordt gebruikt. In het run-log verschijnt een onopgeloste verwijzing als de letterlijke tekst `{{BlockName.field}}`.
+- **Variabelenamen zijn hoofdlettergevoelig.** `{{variable.MyKey}}` en `{{variable.mykey}}` zijn verschillend.
+- **Ontbrekende velden worden leeg.** Verwijzen naar een veld dat niet bestaat geeft je een lege string, geen fout. Handig — maar het kan bugs verbergen. Gebruik een **Conditions**-blok om belangrijke velden te controleren voordat je verder gaat.
 
 ## Waar verder lezen
 
-- [Componenten](/docs/workflows/components) — de volledige catalogus van returnwaarde-namen.
-- [Uitvoeringen en logboeken](/docs/workflows/runs-and-logs) — inspecteer de letterlijke waarde van elk geïnterpoleerd argument na een run.
+- [Componenten](/docs/workflows/components) — de volledige lijst met outputs die elk blok produceert.
+- [Uitvoeringen en logboeken](/docs/workflows/runs-and-logs) — zie de daadwerkelijke waarde van elke variabele na een run.
 - [Configuratie en veiligheid](/docs/workflows/configuration) — wat veilig is om in een globale variabele te zetten.

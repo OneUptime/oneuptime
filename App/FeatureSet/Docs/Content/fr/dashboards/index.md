@@ -1,100 +1,82 @@
 # Présentation des tableaux de bord
 
-Les tableaux de bord sont la manière dont vous transformez la télémétrie que OneUptime collecte déjà — métriques, journaux, traces, incidents, monitors, ressources Kubernetes et Docker — en une page unique qu'on peut consulter d'un coup d'œil pour comprendre la santé d'un système.
+Les tableaux de bord transforment les données que OneUptime collecte déjà — métriques, journaux, traces, incidents, monitors, ressources Kubernetes, hôtes — en une page unique sur laquelle on peut jeter un coup d'œil pour comprendre ce qui se passe.
 
-Déposez un graphique de la latence des requêtes à côté d'une liste d'incidents ouverts à côté d'une jauge d'utilisation CPU à côté d'une phrase de statut en français clair. Enregistrez. Partagez le lien.
+Placez un graphique de latence des requêtes à côté d'une liste d'incidents ouverts, à côté d'une jauge de CPU, à côté d'un paragraphe de contexte. Enregistrez. Partagez le lien.
 
-## En un coup d'œil
+## À quoi servent les tableaux de bord
 
-- **Fonctionnalité de premier niveau** dans le tableau de bord OneUptime, sous **Tableaux de bord**.
-- **Canevas basé sur une grille** — 12 unités de large par 60 unités de haut par défaut. Glissez des widgets dedans, redimensionnez-les, alignez sur la grille.
-- **Plus de 20 types de widgets** — graphiques, valeurs uniques, jauges, tableaux, blocs de texte, flux de journaux, listes de traces et listes de ressources en direct pour les incidents, alertes, monitors, Kubernetes (pods, nœuds, deployments, …), Docker et hôtes.
-- **Variables et filtres** — transforment un tableau de bord unique en vue templatée qui se réutilise pour chaque cluster, service, client ou environnement.
-- **Partage public** — basculez un interrupteur et le tableau de bord est accessible sur une URL publique, avec protection par mot de passe optionnelle et liste blanche d'IP.
-- **Domaines personnalisés** — hébergez un tableau de bord public sur `status.your-domain.com` au lieu de celui de OneUptime.
+- **Une page « tout va bien ? »** — pour l'astreinte, un stand-up d'équipe ou un écran TV mural.
+- **Repérer les liens entre événements** — un pic de CPU au même moment qu'une augmentation de latence et qu'un incident ouvert est bien plus visible sur une seule page que dans trois onglets différents.
+- **Investiguer** — quand vous déboguez, un tableau de bord construit à la volée vaut mieux qu'enchaîner dix requêtes une à une.
+- **Partager à l'extérieur** — une page de performance destinée aux clients, une page d'état pour un partenaire, un tableau de bord public pour un projet open source.
 
-## Pourquoi utiliser des tableaux de bord ?
+## Ce que vous pouvez mettre sur un tableau de bord
 
-Les tableaux de bord gagnent leur place quand l'une de ces conditions est vraie :
+- **Graphiques** pour les tendances dans le temps — latence, erreurs, débit.
+- **Tuiles à valeur unique et jauges** — taux d'erreur actuel, CPU, incidents ouverts.
+- **Tableaux** pour des décompositions — top 10 des hôtes les plus bruyants, nombre d'erreurs par service.
+- **Blocs de texte** pour les titres, le contexte et les liens vers des runbooks.
+- **Listes en direct** des incidents, alertes, monitors, journaux, traces, ressources Kubernetes, ressources Docker et hôtes.
 
-- **Vous avez besoin d'une page « tout va bien ? »** pour une rotation d'astreinte, un standup d'équipe ou un PDG qui passe devant l'écran mural.
-- **Vous devez corréler des signaux** — un pic CPU à la même minute qu'une augmentation de latence de trace et un incident ouvert est bien plus évident sur un tableau de bord que sur trois onglets.
-- **Vous enquêtez** — un tableau de bord libre que vous construisez pendant une session de débogage est plus rapide que d'exécuter dix requêtes à la main.
-- **Vous publiez en externe** — un tableau de bord de performance orienté client, une vue consolidée pour partenaires, un panneau de santé public pour un service open-source.
+Voir [Widgets](/docs/dashboards/widgets) pour la liste complète et ce que chacun affiche.
 
-## Concepts clés
+## Termes clés
 
 | Terme | Signification |
 | --- | --- |
-| **Tableau de bord** | Le canevas. Une vue nommée et réutilisable qui contient une liste de widgets, un contrôle de plage temporelle et un ensemble de variables. |
-| **Widget** | Un composant sur le canevas — un graphique, une valeur, un tableau, un bloc de texte, une liste. Chacun a un type et une configuration de style JSON. |
-| **Unité de tableau de bord** | Le carré de la grille. Les widgets sont dimensionnés en unités de tableau de bord (par exemple, « 4 de large × 6 de haut »). Les unités se convertissent en pixels en fonction de la fenêtre. |
-| **Variable** | Une valeur nommée que le visualiseur choisit dans une liste déroulante (ou tape) et que le tableau de bord injecte dans la requête de chaque widget. Cluster, service, client, environnement — tout ce sur quoi vous voudriez filtrer. |
-| **Plage temporelle** | La fenêtre de temps sur laquelle chaque widget interroge. Choisissez un préréglage (« dernières 24 heures ») ou une plage personnalisée. |
-| **Intervalle de rafraîchissement** | À quelle fréquence les widgets re-interrogent en mode **View**. Off, 5s, 10s, 30s, 1m, 5m, 15m. |
-| **Mode** | `Edit` (glisser, redimensionner, configurer) ou `View` (lecture seule). Les deux partagent le même canevas. |
+| **Tableau de bord** | La page entière — un nom, une grille de widgets, des contrôles de plage temporelle et une liste de variables. |
+| **Widget** | Une tuile sur la page — un graphique, un nombre, une liste, un paragraphe. |
+| **Variable** | Une liste déroulante en haut de la page qui filtre tous les widgets à la fois (cluster, service, client, environnement). |
+| **Plage temporelle** | La fenêtre de temps utilisée par chaque graphique et chaque nombre. Définissez-la une fois en haut de la page. |
+| **Actualisation** | À quelle fréquence les widgets relancent leur requête. Désactivée, toutes les quelques secondes, toutes les quelques minutes. |
+| **Mode** | Soit **Edit** (déplacer les widgets), soit **View** (lecture seule, tel que les visiteurs le voient). |
 
-## Le catalogue des widgets
+## Où trouver les tableaux de bord
 
-Une carte non exhaustive de ce que vous pouvez mettre sur un tableau de bord :
-
-| Catégorie | Widgets |
-| --- | --- |
-| **Série temporelle** | Chart |
-| **Nombre unique** | Value, Gauge |
-| **Tabulaire** | Table |
-| **Annotation** | Text |
-| **Journaux et traces** | LogStream, TraceList |
-| **Listes opérationnelles** | IncidentList, AlertList, MonitorList |
-| **Kubernetes** | KubernetesPodList, KubernetesNodeList, KubernetesNamespaceList, KubernetesDeploymentList, KubernetesStatefulSetList, KubernetesDaemonSetList, KubernetesJobList, KubernetesCronJobList |
-| **Docker** | DockerHostList, DockerContainerList, DockerImageList, DockerNetworkList, DockerVolumeList |
-| **Infrastructure** | HostList |
-
-Pour les arguments de chacun et quand vous y tourner, voir [Widgets](/docs/dashboards/widgets).
-
-## Où vivent les tableaux de bord dans le tableau de bord
+Ouvrez **Dashboards** dans la navigation de gauche.
 
 | Page | Ce que vous y faites |
 | --- | --- |
-| **Tableaux de bord** | Parcourir, créer, rechercher, étiqueter les tableaux de bord. |
-| **Un tableau de bord → View** | Le canevas — mode Edit pour les auteurs, mode View pour tout le monde. Basculez entre eux dans l'en-tête. |
-| **Un tableau de bord → Overview** | Description, propriété, étiquettes. |
-| **Un tableau de bord → Settings** | Partage public, mot de passe maître, liste blanche d'IP, domaines personnalisés, branding (titre de page, description, logo, favicon). |
-| **Un tableau de bord → Owners** | Utilisateurs et équipes avec propriété explicite. |
-| **Un tableau de bord → Delete** | Supprimer le tableau de bord (irréversible). |
+| **Dashboards** | Votre liste de tableaux de bord. Créez-en un nouveau, recherchez ou filtrez par étiquette. |
+| **Dashboard → View** | Le canevas. Basculez entre **Edit** et **View** dans l'en-tête. |
+| **Dashboard → Overview** | Description, propriétaires et étiquettes. |
+| **Dashboard → Settings** | Partage public, mot de passe, liste d'IP autorisées, domaine personnalisé, identité visuelle. |
+| **Dashboard → Owners** | Utilisateurs et équipes ayant un accès explicite. |
+| **Dashboard → Delete** | Supprimer le tableau de bord. |
 
-## Le cycle de vie d'un tableau de bord
+## Construire un tableau de bord
 
-1. **Créer** — Sous **Tableaux de bord → Create Dashboard**, donnez-lui un nom. Le canevas s'ouvre vide.
-2. **Déposer des widgets** — Depuis la palette de widgets, choisissez un type, configurez sa source (une requête de métrique, un filtre de liste, un corps texte libre). Positionnez et redimensionnez.
-3. **(Optionnel) Ajouter des variables** — Définissez une liste déroulante comme `cluster` ou `service` afin que le même tableau de bord se rende pour chaque valeur.
-4. **Régler la plage temporelle et l'intervalle de rafraîchissement** — Les valeurs par défaut conviennent ; ajustez-les plus tard.
-5. **(Optionnel) Partager publiquement** — Sous **Settings**, activez **Public Dashboard**. Ajoutez un mot de passe maître si vous voulez une porte, ou restreignez par IP.
-6. **(Optionnel) Domaine personnalisé** — Ajoutez un enregistrement `dashboard.your-domain.com` et vérifiez le DNS, puis servez le tableau de bord sur votre propre URL.
+1. **Créez** — choisissez un nom. Le canevas s'ouvre vide.
+2. **Ajoutez des widgets** — choisissez un type de widget, configurez ses données, faites-le glisser à l'endroit voulu.
+3. **(Optionnel) Ajoutez des variables** — par exemple, une liste déroulante `service` afin que le même tableau de bord fonctionne pour chaque service.
+4. **Définissez la plage temporelle** — les valeurs par défaut conviennent ; ajustez plus tard.
+5. **(Optionnel) Partagez publiquement** — basculez l'interrupteur dans Settings, ajoutez un mot de passe ou une liste d'IP autorisées si nécessaire.
+6. **(Optionnel) Domaine personnalisé** — hébergez le tableau de bord sur `status.your-domain.com`.
 
-## Un exemple détaillé
+## Un exemple rapide
 
-Objectif : une page d'astreinte pour le service checkout avec la latence, le taux d'erreur, les incidents ouverts et une queue récente de journaux.
+Objectif : une page d'astreinte pour le service checkout avec latence, taux d'erreur, incidents ouverts et un flux de journaux en direct.
 
-1. Créez un tableau de bord « Checkout oncall ».
-2. Ajoutez une variable `service` de type **Telemetry Attribute** liée à la clé d'attribut `service.name`. Valeur par défaut `checkout`.
-3. Ajoutez un widget **Chart** : latence P95 depuis votre métrique APM, filtré par `service.name = {{service}}`. La plage temporelle suit le tableau de bord.
-4. À côté, ajoutez un widget **Value** : pourcentage de taux d'erreur avec un seuil d'avertissement à 1 % et un seuil critique à 5 %.
-5. En dessous, ajoutez un widget **IncidentList** filtré par étiquettes incluant `checkout`.
-6. En dessous, un widget **LogStream** filtré par `service.name = {{service}}`.
-7. Enregistrez. Changez la liste déroulante de la variable à `payments` — l'ensemble du tableau de bord se rerend pour le service payments. Même template, filtre différent.
+1. Créez un tableau de bord intitulé « Checkout on-call ».
+2. Ajoutez une variable `service`. Mettez-la par défaut à `checkout`.
+3. Ajoutez un widget **Chart** avec la latence P95, filtré par la variable `service`.
+4. À côté, ajoutez un widget **Value** pour le taux d'erreur, avec un avertissement à 1 % et un seuil critique à 5 %.
+5. En dessous, ajoutez un widget **Incident List** pour les incidents étiquetés `checkout`.
+6. En dessous, un widget **Log Stream** affichant les journaux du même service.
+7. Enregistrez. Passez la liste déroulante à `payments` — le même tableau de bord affiche désormais le service payments.
 
 ## Comment les tableaux de bord s'intègrent au reste de OneUptime
 
-- **Les monitors et la télémétrie** alimentent les tableaux de bord avec des données brutes — chaque métrique que vous avez configurée, chaque ligne de journal que vous avez ingérée, chaque trace est interrogeable sur un widget.
-- **Les incidents et alertes** apparaissent dans les widgets **IncidentList** et **AlertList** — les tableaux de bord sont des vues en lecture seule sur eux ; créez/modifiez ces entités ailleurs.
-- **Les status pages** sont un outil de communication orienté client (« est-ce que le système est en marche en ce moment ? »). Les tableaux de bord sont un outil analytique (« comment le système se comporte-t-il en détail ? »). Les deux sont complémentaires, pas des substituts.
-- **Les workflows** sont le côté écriture de OneUptime — les tableaux de bord sont le côté lecture.
+- Les **monitors et la télémétrie** sont les sources de données. Chaque métrique, journal et trace que vous collectez peut être interrogé par un widget.
+- Les **incidents et alertes** apparaissent dans les widgets **Incident List** et **Alert List**. Les tableaux de bord sont en lecture seule pour ces données — créez-les et mettez-les à jour ailleurs.
+- Les **status pages** sont la communication tournée vers le client (« est-ce que le système fonctionne ? »). Les tableaux de bord servent à examiner en détail le comportement du système. Les deux sont complémentaires, ils ne se remplacent pas.
+- Les **workflows** sont la façon dont OneUptime agit. Les tableaux de bord sont la façon dont vous lisez ce qui se passe.
 
-## Où lire ensuite
+## Pour aller plus loin
 
-- [Créer un tableau de bord](/docs/dashboards/authoring) — utilisation du canevas, de la grille, mode édition vs vue.
-- [Widgets](/docs/dashboards/widgets) — le catalogue et la configuration par widget.
-- [Variables et filtres](/docs/dashboards/variables) — templater un tableau de bord pour qu'il fonctionne pour de nombreux services / clients / clusters.
-- [Partage et tableaux de bord publics](/docs/dashboards/sharing) — URL publiques, mot de passe maître, liste blanche d'IP, domaines personnalisés.
-- [Configuration et permissions](/docs/dashboards/configuration) — propriété, étiquettes, rétention, contrôle d'accès basé sur les rôles.
+- [Création d'un tableau de bord](/docs/dashboards/authoring) — utiliser le canevas, éditer les widgets.
+- [Widgets](/docs/dashboards/widgets) — la liste complète des widgets.
+- [Variables et filtres](/docs/dashboards/variables) — rendre un tableau de bord utile pour plusieurs services ou clients.
+- [Partage et tableaux de bord publics](/docs/dashboards/sharing) — URL publiques, mots de passe, liste d'IP autorisées, domaines personnalisés.
+- [Configuration et permissions](/docs/dashboards/configuration) — propriétaires, étiquettes, contrôle d'accès.

@@ -1,155 +1,153 @@
 # Widgets
 
-En widget er én flis på et dashbord. Hver widget har en type (diagram, verdi, liste, …), en posisjon, en størrelse og en konfigurasjon. Denne siden er katalogen — hva hver widget viser, hva den tar som input, når du skal gripe til den.
+En widget er én flis på et dashbord. Denne siden lister hver widget du kan legge til, hva den viser og når du skal gripe til den.
 
-For lerretsmekanikk, se [Opprette et dashbord](/docs/dashboards/authoring).
+For hvordan du drar widgets rundt på lerretet, se [Lage et dashbord](/docs/dashboards/authoring).
 
-## Tidsserie-widgets
+## Diagrammer og tall
 
-### Chart
+### Diagram
 
-Et linje- / søyle- / arealdiagram av én eller flere metrikkserier over dashbordets tidsperiode.
+Et linje-, søyle- eller arealdiagram av én eller flere metrikkserier over dashbordets tidsperiode.
 
-**Konfigurer**:
+**Innstillinger**:
 
-- En eller flere metrikkspørringer (`metricQueryConfig` for én serie, `metricQueryConfigs` for flere).
-- Valgfri **formula** som kombinerer flere spørringer (f.eks. `errors / total * 100`).
-- Valgfri **transformAsRate** for OpenTelemetry kumulative tellere (f.eks. `system.disk.io`) — widgeten beregner `(value - previousValue) / Δt` per intervall.
-- Visning: stablede vs. overlappede serier, Y-akse-enhet, forklaring på/av, diagramtype.
+- Én eller flere metrikkspørringer.
+- En valgfri formel som kombinerer to spørringer (for eksempel `errors / total * 100` for å få en feilrate).
+- Et "vis som rate"-alternativ for kumulative tellere som vokser uten å nullstille seg.
+- Visningsalternativer: stablet eller overlagt, Y-akse-enhet, plassering av forklaring, diagramtype.
 
-Grip til den når: trender betyr noe. Forespørselslatens, feilantall over tid, kødybde — alt der formen på kurven forteller deg noe.
+Bruk det når: trender betyr noe. Latens over tid, feilantall, kødybde, alt der formen på linjen forteller historien.
 
-### Value
+### Verdi
 
-Et enkelt stort tall med valgfrie terskler og en valgfri sparkline.
+Ett stort tall med valgfrie fargede terskler.
 
-**Konfigurer**:
+**Innstillinger**:
 
-- En metrikkspørring (enkeltverdi — vanligvis `last`, `avg` eller `max` over tidsperioden).
-- Valgfri **advarselsterskel** (gul over).
-- Valgfri **kritisk terskel** (rød over).
-- Visning: tallformat, enhetssuffiks.
+- En metrikkspørring som gir tilbake ett tall (siste verdi, gjennomsnitt eller maks over tidsperioden).
+- En valgfri **advarselsterskel** (gul over).
+- En valgfri **kritisk terskel** (rød over).
+- Tallformat og enhet.
 
-Grip til den når: et enkelt tall svarer på spørsmålet. Nåværende feilrate, P95-latens akkurat nå, antall åpne hendelser.
+Bruk det når: ett tall svarer på spørsmålet. Nåværende feilrate, P95-latens akkurat nå, antall åpne hendelser.
 
-### Gauge
+### Måler
 
-En sirkulær måler med en min, maks, advarselsbånd og kritisk bånd.
+En sirkulær måler med et minimum, maksimum, advarselsbånd og kritisk bånd.
 
-**Konfigurer**: metrikkspørringen og de fire grensene (min, maks, advarsel, kritisk).
+**Innstillinger**: en metrikkspørring og de fire grensene.
 
-Grip til den når: verdien ligger innenfor et kjent intervall. CPU-bruk (0–100 %), diskfyll, kø-kapasitet.
+Bruk det når: verdien passer innenfor et kjent område. CPU-prosent (0–100 %), diskbruk, kø-kapasitet.
 
-### Table
+### Tabell
 
-En tabellbasert visning av metrikkspørringsresultater, én rad per gruppe.
+En tabell med metrikkresultater, én rad per gruppe.
 
-**Konfigurer**: metrikkspørringen (typisk gruppert etter en etikett som `host.name` eller `service.name`), kolonnene som skal vises, og en radgrense.
+**Innstillinger**: en metrikkspørring (vanligvis gruppert etter en etikett som host eller tjeneste), kolonnene som skal vises og en rad-grense.
 
-Grip til den når: du vil ha oppdelingen i stedet for trenden. Topp 10 mest støyende hoster, feilantall per tjeneste, forespørselsrate per endepunkt.
+Bruk det når: du vil ha en nedbrytning i stedet for en trend. Topp 10 mest støyende hoster, feilantall per tjeneste, forespørsler per endepunkt.
 
-## Annoteringswidget
-
-### Text
+## Tekst
 
 En statisk blokk med Markdown.
 
-**Konfigurer**: Markdown-bodyen. Overskrifter, lister, lenker, emfase, kode-spans og innelukket kode-blokker rendres alle.
+**Innstillinger**: Markdown-kroppen. Overskrifter, lister, lenker, utheving og kodeblokker rendres alle.
 
-Grip til den når: du vil ha en seksjonsoverskrift, et avsnitt med kontekst ("dette dashbordet dekker checkout-tjenesten"), en liste over lenker til runbooks eller relaterte dashbord, eller et midlertidig banner under en hendelse.
+Bruk det når: du vil ha en seksjonsoverskrift, et avsnitt med kontekst, en liste med lenker til runbooks eller et midlertidig banner under en hendelse.
 
-## Logger & sporinger
+## Logger og sporinger
 
-### LogStream
+### Loggstrøm
 
 En live tail av loggelinjer som matcher et filter.
 
-**Konfigurer**: loggfiltre (tjeneste, alvorlighetsgrad, attributt-treff), kolonnene som skal vises.
+**Innstillinger**: loggfiltre (tjeneste, alvorlighetsgrad, attributter) og kolonnene som skal vises.
 
-Grip til den når: du vil se hva applikasjonen sier *akkurat nå* på et dashbord, uten å forlate siden for å åpne logg-utforskeren.
+Bruk det når: du vil se hva applikasjonen sier akkurat nå, uten å forlate dashbordet.
 
-### TraceList
+### Sporingsliste
 
-En liste over nylige sporinger som matcher et filter, med varighet, status og tjenestenavn.
+En liste over nylige sporinger som matcher et filter, med varighet, status og tjeneste.
 
-**Konfigurer**: sporingsfiltre (tjeneste, status, attributt-treff).
+**Innstillinger**: sporingsfiltre (tjeneste, status, attributter).
 
-Grip til den når: du vil ha en paginert visning av nylig aktivitet i stedet for et diagram. Vanlig sammenslutning: et latens-Chart øverst, en TraceList over trege sporinger nedenfor.
+Bruk det når: du vil ha en liste over nylig aktivitet i stedet for et diagram. Et vanlig mønster er et latensdiagram øverst med en liste over trege sporinger under.
 
-## Operasjonelle lister
+## Live lister
 
-### IncidentList
+### Hendelsesliste
 
 En live liste over hendelser som matcher et filter.
 
-**Konfigurer**: filtre etter tilstand, alvorlighetsgrad, etiketter, monitor eller tildelt team.
+**Innstillinger**: filtre etter tilstand, alvorlighetsgrad, etiketter, monitor eller team.
 
-Grip til den når: et dashbord skal svare på "hva er ødelagt akkurat nå?"
+Bruk det når: dashbordet svarer på "hva er ødelagt akkurat nå?"
 
-### AlertList
+### Varselliste
 
 En live liste over varsler som matcher et filter.
 
-**Konfigurer**: filtre etter tilstand, alvorlighetsgrad, etiketter.
+**Innstillinger**: filtre etter tilstand, alvorlighetsgrad, etiketter.
 
-Grip til den når: dashbord for varsel-drevne arbeidsflyter (f.eks. dev-team-dashbord som overvåker tjenestens varsler).
+Bruk det når: et teamdashbord sporer varsler på tjenestene sine.
 
-### MonitorList
+### Monitorliste
 
-En live liste over monitorer som matcher et filter, som viser hver monitors nåværende status.
+En live liste over monitorer og deres nåværende status.
 
-**Konfigurer**: filtre etter monitortype, etiketter eller nåværende tilstand.
+**Innstillinger**: filtre etter monitortype, etiketter eller nåværende tilstand.
 
-Grip til den når: du vil ha en flåtenivå "er alle nettsidene oppe?"-visning, eller en per-team-liste over overvåkede endepunkter.
+Bruk det når: du vil ha en flåtevisning — "er alle nettstedene oppe?"
 
-## Kubernetes-ressurslister
+## Kubernetes ressurslister
 
-For prosjekter med en [Kubernetes-agent](/docs/monitor/kubernetes-agent) installert er følgende live-ressurs-widgets tilgjengelige. Hver tar valgfrie filtre for `cluster`, `namespace` og etiketter.
+For prosjekter med en [Kubernetes Agent](/docs/monitor/kubernetes-agent) installert. Hver tar valgfrie filtre for klynge, namespace og etiketter.
 
-- **KubernetesPodList** — pods med fase, omstart og nodetildeling.
-- **KubernetesNodeList** — noder med tilstander, kapasitet og tildelinger.
-- **KubernetesNamespaceList** — navnerom og deres workload-tellinger.
-- **KubernetesDeploymentList** — deployments med ønskede vs. klare replikaer.
-- **KubernetesStatefulSetList** — stateful sets med klare replikaer.
-- **KubernetesDaemonSetList** — daemon sets med ønskede vs. klare.
-- **KubernetesJobList** — jobber med fullføringsstatus.
-- **KubernetesCronJobList** — cron-jobber med tidsplan og siste kjøring.
+- **Kubernetes Pod-liste** — pods med fasen sin, omstarter og node.
+- **Kubernetes Node-liste** — noder med tilstandene sine og kapasitet.
+- **Kubernetes Namespace-liste** — namespaces og arbeidsmengde-antall.
+- **Kubernetes Deployment-liste** — deployments med ønskede vs. klare replikaer.
+- **Kubernetes StatefulSet-liste** — stateful sets med klare replikaer.
+- **Kubernetes DaemonSet-liste** — daemon sets med ønsket vs. klar.
+- **Kubernetes Job-liste** — jobber og fullføringsstatus.
+- **Kubernetes CronJob-liste** — cron-jobber med tidsplan og siste kjøring.
 
-Grip til disse når: du vil ha et enkelt dashbord som blander Kubernetes-ressurstilstand med telemetri fra disse workloadene.
+Bruk disse når: du vil ha ett enkelt dashbord som blander Kubernetes-tilstand med telemetri fra disse arbeidsmengdene.
 
-## Docker-ressurslister
+## Docker ressurslister
 
-For prosjekter med en Docker-monitor installert:
+For prosjekter med Docker-overvåking satt opp.
 
-- **DockerHostList** — hoster som kjører Docker, med container-tellinger.
-- **DockerContainerList** — containere med tilstand, image, host, oppetid.
-- **DockerImageList** — images og størrelsene deres.
-- **DockerNetworkList** — Docker-nettverk og tilkoblede container-tellinger.
-- **DockerVolumeList** — Docker-volumer og deres bruk.
+- **Docker Host-liste** — hoster som kjører Docker, med antall containere.
+- **Docker Container-liste** — containere med tilstand, image, host, oppetid.
+- **Docker Image-liste** — images og størrelsene deres.
+- **Docker Network-liste** — Docker-nettverk og tilkoblede containere.
+- **Docker Volume-liste** — Docker-volumer og bruken deres.
 
 ## Infrastruktur
 
-### HostList
+### Host-liste
 
-Hoster overvåket av OneUptimes server-monitor — med nåværende status, CPU, minne og oppetid.
+Hoster overvåket av OneUptimes server-monitor, med status, CPU, minne og oppetid.
 
-**Konfigurer**: filtre etter etiketter eller nåværende helsetilstand.
+**Innstillinger**: filtre etter etiketter eller nåværende tilstand.
 
-## Velge riktig widget
+## Hvilken widget bør jeg bruke?
 
-Noen raske tommelfingerregler:
+Noen raske regler:
 
-- **Trend over tid?** Chart.
-- **Ett tall som betyr noe akkurat nå?** Value (eller Gauge hvis det har et naturlig intervall).
-- **Oppdeling på tvers av mange ting?** Table.
-- **Hva skjer i systemet akkurat nå?** LogStream, TraceList, IncidentList.
-- **Tilstand til en spesifikk ressursflåte?** Den matchende ressurslistewidgeten.
-- **En overskrift, et avsnitt eller en lenke?** Text.
+- **Trend over tid?** Diagram.
+- **Ett tall som betyr noe akkurat nå?** Verdi (eller Måler hvis den har en tydelig min/maks).
+- **Nedbrytning på tvers av mange ting?** Tabell.
+- **Hva som skjer i systemet akkurat nå?** Loggstrøm, Sporingsliste, Hendelsesliste.
+- **Tilstanden til en spesifikk gruppe ressurser?** Den tilsvarende listewidgeten.
+- **En overskrift, et avsnitt eller en lenke?** Tekst.
 
-De fleste dashbord bruker en blanding — et Chart øverst, en Value eller to ved siden, en Text-skilletegn, og så én eller to lister nedenfor.
+De fleste dashbord blander noen få — et diagram øverst, en verdi eller to ved siden av, en tekstdeler, og en liste eller to under.
 
-## Les videre
+## Hvor du leser videre
 
-- [Variabler & filtre](/docs/dashboards/variables) — gjøre widgets gjenbrukbare på tvers av tjenester / kunder / klynger.
-- [Opprette et dashbord](/docs/dashboards/authoring) — lerretet, rutenettet og redigeringsmodusen.
-- [Deling & offentlige dashbord](/docs/dashboards/sharing) — eksponere et dashbord utenfor teamet.
+- [Variabler & filtre](/docs/dashboards/variables) — å gjøre widgets gjenbrukbare for mange tjenester eller kunder.
+- [Lage et dashbord](/docs/dashboards/authoring) — lerret-mekanikken.
+- [Deling & offentlige dashbord](/docs/dashboards/sharing) — å dele utenfor teamet ditt.

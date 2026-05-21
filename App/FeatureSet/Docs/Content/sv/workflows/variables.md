@@ -1,99 +1,99 @@
 # Variabler
 
-Ett arbetsflöde är bara användbart när data flödar genom det. Variabler är hur den datan rör sig — från utlösaren in i den första komponenten, från en komponents utdata in i nästa komponents indata, och från projektnivåhemligheter in i var de än refereras.
+Arbetsflöden handlar om att flytta data — från utlösaren till det första blocket, från ett block till nästa, och från delade värden in dit du än behöver dem. Variabler är hur den datan rör sig.
 
-OneUptime har två sorters variabler och en interpolationssyntax som fungerar för båda.
+Det finns två sorter, och de delar samma syntax.
 
 ## Globala variabler
 
-Projektomfattande värden som definieras en gång under **Workflows → Global Variables**. Tänk API-nycklar, bas-URL:er, kanalnamn, vad som helst du inte vill hårdkoda in i tio arbetsflöden.
+Projektomfattande värden som du sparar en gång och återanvänder överallt. Tänk API-nycklar, URL:er, kanalnamn — allt du inte vill kopiera in i tio olika arbetsflöden.
 
-En global variabel har:
+Du hittar dem under **Workflows → Global Variables**. Var och en har:
 
-- **Name** — identifieraren du refererar till den med. Använd `UPPER_SNAKE_CASE` för att göra det uppenbart i mallar.
-- **Value** — strängvärdet. Flerradiga värden stöds.
-- **Is Secret** — när på är värdet skrivskyddat i användargränssnittet efter att det sparats och redigeras bort från körningsloggar.
+- **Name** — hur du refererar till den. Använd `UPPER_SNAKE_CASE` så att den sticker ut i dina block.
+- **Value** — själva värdet. Värden över flera rader fungerar också.
+- **Is Secret** — när det är på döljs värdet i gränssnittet efter att du sparat och döljs i körningsloggar.
 
-Referera till en global variabel från var som helst i vilket arbetsflöde som helst med:
+Använd en global variabel i vilket arbetsflöde som helst med:
 
 ```
 {{variable.NAME}}
 ```
 
-Till exempel, om du definierade `PAGERDUTY_KEY` som en hemlig variabel, kan varje API-komponent som anropar PagerDuty läsa den som `{{variable.PAGERDUTY_KEY}}` utan att någon ser den faktiska nyckeln i arbetsflödets JSON.
+Till exempel, om du sparade din PagerDuty-nyckel som `PAGERDUTY_KEY`, kan vilket block som helst använda den som `{{variable.PAGERDUTY_KEY}}` — den riktiga nyckeln syns aldrig i arbetsflödet eller dess loggar.
 
-## Lokala variabler
+## Lokala variabler (data från tidigare block)
 
-Lokala variabler är returvärdena från noder som redan körts i den här exekveringen. Varje utlösare och varje komponent publicerar en — se [Utlösare](/docs/workflows/triggers) och [Komponenter](/docs/workflows/components) för listorna per nod.
+Lokala variabler är utdata från block som redan körts i denna exekvering. Varje utlösare och varje komponent producerar något utdata du kan läsa.
 
-Referera till en lokal variabel som:
+Referera till ett tidigare blocks utdata så här:
 
 ```
-{{NodeId.fieldName}}
+{{BlockName.fieldName}}
 ```
 
-`NodeId` är utlösarens eller komponentens namn på arbetsytan (du kan byta namn på den för läsbarhet — håll den kort och i `PascalCase` så att referenserna förblir rena). `fieldName` är vad den noden än publicerar.
+`BlockName` är namnet på utlösaren eller komponenten på arbetsytan (du kan byta namn till något kort och tydligt). `fieldName` är det som det blocket producerar.
 
 Exempel:
 
-- Efter att en **API**-komponent som heter `LookupUser` returnerar framgångsrikt kan nedströmsnoder läsa dess statuskod som `{{LookupUser.response-status}}` och den parsade bodyn som `{{LookupUser.response-body}}`.
-- Efter en **Incident → On Create**-utlösare som heter `Incident` kan du läsa `{{Incident.title}}`, `{{Incident.description}}`, `{{Incident.incidentSeverityId}}` och vilken som helst annan kolumn på incidenten.
-- Efter en **Custom Code**-komponent som heter `Transform` exponeras det returnerade värdet som `{{Transform.value}}`.
+- Efter att ett **API**-block med namnet `LookupUser` körts kan du läsa statuskoden som `{{LookupUser.response-status}}` och bodyn som `{{LookupUser.response-body}}`.
+- Efter en **Incident → On Create**-utlösare med namnet `Incident` kan du läsa `{{Incident.title}}`, `{{Incident.description}}` och vilket annat fält som helst på incidenten.
+- Efter ett **Custom Code**-block med namnet `Transform` finns det returnerade värdet på `{{Transform.value}}`.
 
-Lokala variabler är begränsade till en enskild körning. Nästa körning börjar med ett tomt blad.
+Lokala variabler finns bara under den aktuella körningen. Varje ny körning börjar på nytt.
 
-## Var interpolation fungerar
+## Var variabler fungerar
 
-Nästan varje text-stilsargument stöder interpolation:
+Nästan varje textfält accepterar variabler:
 
-- URL-fält på API-komponenten
-- Meddelandetext på Slack / Teams / Discord / Telegram / E-post
-- Ämne och body på e-post
-- Header- och body-fält (använd det inuti JSON-värden)
-- Vänster och höger operand på Villkor
+- URL:en på ett API-block.
+- Meddelandetexten på Slack, Teams, Discord, Telegram, E-post.
+- Ämnet och bodyn i ett e-postmeddelande.
+- Headers- och body-fält (inuti strängvärden).
+- Båda sidorna av ett Conditions-block.
 
-Rena JSON-argument accepterar interpolation inuti strängvärden; du kan inte interpolera en nyckel. Om du behöver bygga en dynamisk struktur, använd **Custom Code** för att sätta ihop payloaden och pipa sedan dess returvärde in i nästa nod.
+Rena JSON-fält accepterar variabler inuti strängvärden, men du kan inte använda en variabel som en nyckel. Om du behöver bygga en struktur dynamiskt, använd ett **Custom Code**-block för att bygga den, och skicka sedan dess utdata till nästa block.
 
-**Custom Code**-komponenten läser variabler annorlunda — globala variabler exponeras på `args.variables`, och uppströms-returvärden skickas in som namngivna argument du konfigurerar på komponenten.
+**Custom Code**-blocket läser variabler på ett annat sätt — globala variabler kommer in på `args.variables`, och du bestämmer vilka tidigare utdata som ska skickas in som argument.
 
 ## Exempel
 
-### Bygg en payload från en utlösare
+### Bygga en payload från en webhook
 
-En webhook tar emot ett CI-byggresultat. Bodyn är JSON som `{ "service": "checkout", "status": "failed" }`. För att förvandla det till en OneUptime-incident:
+En webhook kommer in med en body som `{ "service": "checkout", "status": "failed" }`. För att förvandla det till en OneUptime-incident:
 
-1. **Webhook**-utlösare som heter `CIWebhook`.
-2. **Conditions**-komponent: vänster `{{CIWebhook.Request Body.status}}`, operator `==`, höger `failed`.
-3. Från `yes`-porten, en **Create Incident**-komponent med:
+1. **Webhook**-utlösare med namnet `CIWebhook`.
+2. **Conditions**-block: vänster `{{CIWebhook.Request Body.status}}`, operator `==`, höger `failed`.
+3. Från grenen **Yes**, ett **Create Incident**-block med:
    - Titel: `CI build failed: {{CIWebhook.Request Body.service}}`
-   - Beskrivning: `See {{CIWebhook.Request Body.url}} for the build logs.`
+   - Beskrivning: `See {{CIWebhook.Request Body.url}} for the logs.`
 
-### Använd en hemlighet i ett utgående API-anrop
+### Använda en hemlighet i ett API-anrop
 
 Ett arbetsflöde som anropar PagerDuty:
 
-1. Definiera `PAGERDUTY_KEY` som en hemlig global variabel.
-2. På **API**-komponenten, sätt `Authorization`-headern till `Token token={{variable.PAGERDUTY_KEY}}`.
+1. Spara `PAGERDUTY_KEY` som en hemlig global variabel.
+2. På **API**-blocket, ställ in `Authorization`-headern till `Token token={{variable.PAGERDUTY_KEY}}`.
 
-Nyckeln dyker aldrig upp i arbetsflödets JSON eller i körningsloggar.
+Nyckeln stannar utanför arbetsflödet och loggarna.
 
 ### Kedja två API-anrop
 
-Det första anropet returnerar ett ID som det andra anropet behöver:
+Det första anropet ger dig ett ID som det andra behöver:
 
-1. **API**-komponent `LookupOrder`: `GET /orders?email={{Manual.JSON.email}}`.
-2. **API**-komponent `CancelOrder`: `POST /orders/{{LookupOrder.response-body.id}}/cancel`.
+1. **API**-block `LookupOrder`: `GET /orders?email={{Manual.JSON.email}}`.
+2. **API**-block `CancelOrder`: `POST /orders/{{LookupOrder.response-body.id}}/cancel`.
 
-Om `LookupOrder` returnerar ett icke-2xx-svar, triggas dess `error`-port istället för `success` — koppla den grenen till en e-post- eller Slack-komponent så att misslyckanden inte är tysta.
+Om `LookupOrder` misslyckas utlöses dess **error**-utdata istället för **success**. Koppla det till ett E-post- eller Slack-block så att fel inte går obemärkta.
 
-## Några fallgropar
+## Saker att se upp för
 
-- **Stavfel i nodnamn bryter referenser tyst.** Om du byter namn på en nod efter att du kopplat `{{OldName.field}}` nedströms, uppdatera varje referens. Titta på körningsloggen — om du ser den bokstavliga `{{OldName.field}}` i det fångade argumentet löstes inte uppslagningen.
-- **Hemligheter är skiftlägeskänsliga.** `{{variable.MyKey}}` och `{{variable.mykey}}` är olika variabler.
-- **Saknade fält är tomma.** Att referera till `{{Foo.nonexistent}}` producerar en tom sträng, inte ett fel. Användbart, men det kan dölja buggar — använd en **Conditions**-nod för att hävda närvaro om fältet krävs för nästa steg.
+- **Att byta namn på ett block bryter referenser.** Om du byter namn på ett block, uppdatera varje plats där det används. I körningsloggen visas en olöst referens som den bokstavliga texten `{{BlockName.field}}`.
+- **Variabelnamn är versalkänsliga.** `{{variable.MyKey}}` och `{{variable.mykey}}` är olika.
+- **Saknade fält blir tomma.** Att referera till ett fält som inte finns ger dig en tom sträng, inte ett fel. Bekvämt — men det kan dölja buggar. Använd ett **Conditions**-block för att kontrollera viktiga fält innan du fortsätter.
 
-## Var läsa vidare
+## Läs vidare
 
-- [Komponenter](/docs/workflows/components) — den fullständiga katalogen av returvärdesnamn.
-- [Körningar & loggar](/docs/workflows/runs-and-logs) — granska det bokstavliga värdet av varje interpolerat argument efter en körning.
+- [Komponenter](/docs/workflows/components) — den fullständiga listan över utdata som varje block producerar.
+- [Körningar & loggar](/docs/workflows/runs-and-logs) — se det faktiska värdet av varje variabel efter en körning.
 - [Konfiguration & säkerhet](/docs/workflows/configuration) — vad som är säkert att lägga i en global variabel.

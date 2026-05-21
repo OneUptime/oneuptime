@@ -1,80 +1,80 @@
-# Configuração e permissões
+# Configuração e Permissões
 
-Esta página reúne as configurações e os controles de acesso que vale conhecer assim que você tem um painel que realmente quer manter.
+Esta página cobre as configurações e controles de acesso que vale conhecer assim que você tem um painel que pretende manter.
 
-## Propriedade
+## Donos
 
-Os **owners** de um painel são os usuários e equipes que recebem permissões explícitas sobre ele (separadas da função no nível do projeto).
+Os **donos** de um painel são usuários e equipes a quem você concedeu acesso explícito (além do papel deles em todo o projeto).
 
-Em **Dashboard → Owners**:
+Em **Painel → Donos**:
 
-- Adicione um **user owner** para conceder a uma pessoa específica acesso extra a este painel.
-- Adicione um **team owner** para conceder o mesmo a todo membro de uma equipe.
+- Adicione um **dono usuário** para dar a uma pessoa acesso extra a este painel.
+- Adicione um **dono equipe** para dar o mesmo acesso a cada membro de uma equipe.
 
-Use propriedade quando a função de leitura no nível do projeto é ampla demais — por exemplo, um painel com detalhe sensível por cliente que só deveria ser visível pela equipe de customer-success.
+Use donos quando o papel de leitura geral do projeto é amplo demais — por exemplo, um painel com detalhes específicos de um cliente que só deve ser visível à equipe de sucesso do cliente.
 
-## Rótulos
+## Etiquetas
 
-Rótulos são tags muitos-para-muitos para organizar painéis. Aplique-os em **Dashboard → Overview**.
+Etiquetas são tags para organizar painéis. Aplique-as em **Painel → Visão Geral**.
 
-Padrões comuns de rótulo:
+Padrões comuns:
 
 - **Por equipe**: `team:platform`, `team:checkout`, `team:growth`.
 - **Por ambiente**: `env:prod`, `env:staging`.
-- **Por propósito**: `purpose:oncall`, `purpose:exec`, `purpose:investigation`.
+- **Por finalidade**: `purpose:oncall`, `purpose:exec`, `purpose:investigation`.
 
-A lista **Dashboards** permite filtrar por rótulo, que é a forma mais rápida de achar um painel em um projeto que já acumulou dezenas.
+A lista de **Painéis** permite filtrar por etiqueta, que é a forma mais rápida de encontrar um painel em um projeto que acumulou muitos deles.
 
 ## Permissões
 
-Painéis são recursos de primeira classe no controle de acesso baseado em função do OneUptime. As permissões relevantes:
+Painéis funcionam com o controle de acesso baseado em papéis do seu projeto. As permissões relevantes:
 
-| Permissão | Permite |
+| Permissão | O que permite |
 | --- | --- |
-| `CreateDashboard` | Criar novos painéis no projeto. |
-| `ReadDashboard` | Visualizar painéis (em modo privado). |
-| `EditDashboard` | Modificar widgets, variáveis, configurações em um painel. |
-| `DeleteDashboard` | Excluir um painel. |
+| **Criar Painel** | Criar novos painéis. |
+| **Ler Painel** | Visualizar painéis (em modo privado). |
+| **Editar Painel** | Alterar widgets, variáveis e configurações. |
+| **Excluir Painel** | Excluir um painel. |
 
-Existem permissões equivalentes para as entidades de suporte: owners de painel (usuário / equipe) e domínios personalizados têm seus próprios pares create / read / edit / delete para que você possa conceder "gerenciar owners" sem conceder "editar o painel em si".
+Existem permissões correspondentes para donos de painel e domínios personalizados, então você pode conceder "gerenciar donos" sem conceder "editar o painel".
 
-Atribua essas permissões em funções de projeto em **Project Settings → Teams & Roles**.
+Atribua-as aos papéis do projeto em **Configurações do Projeto → Equipes e Papéis**.
 
-## Controle de acesso em modo público
+## Acesso para painéis públicos
 
-O acesso em modo público (veja [Compartilhamento e painéis públicos](/docs/dashboards/sharing)) é governado por três camadas, em ordem:
+Quando você torna um painel público (veja [Compartilhamento e Painéis Públicos](/docs/dashboards/sharing)), três configurações controlam quem pode vê-lo:
 
-1. Chave **Public Dashboard** — se desligada, a URL pública retorna 404.
-2. **Master Password** — se definida, os visitantes precisam digitá-la antes do painel renderizar.
-3. **IP Whitelist** (plano Scale) — se definida, requisições de IPs não listados recebem 403.
+1. Interruptor **Painel Público** — se desligado, a URL pública retorna 404.
+2. **Senha Mestra** — se definida, os visitantes digitam uma senha antes do painel aparecer.
+3. **Lista de IPs Permitidos** (plano Scale) — se definida, requisições de outros IPs são rejeitadas.
 
-Um painel pode ter qualquer combinação. A configuração mais defensiva é "Public ligado, senha definida, lista de IPs permitidos ativa" — útil para portais de parceiros onde você quer os três.
+Você pode combinar quaisquer dessas. A combinação mais bloqueada é "Público ligado, senha definida, lista de IPs ativa" — útil para portais de parceiros onde você quer todas as três camadas.
 
-## Retenção
+## Retenção de dados
 
-Painéis em si não expiram. Os dados que eles exibem seguem a retenção de telemetria do projeto — métricas, logs e traces ficam consultáveis enquanto seu plano os retém. Um widget apontado para "últimos 90 dias" em um plano com 30 dias de retenção vai renderizar o que ainda estiver no armazenamento.
+Os próprios painéis não expiram. Os dados que eles mostram seguem as configurações de retenção do seu projeto — métricas, logs e traces são consultáveis pelo tempo que seu plano os mantém. Um widget apontado para "os últimos 90 dias" em um plano que mantém 30 dias mostrará o que ainda estiver armazenado.
 
-## Clonando um painel
+## Duplicando um painel
 
-Para duplicar um painel existente, abra-o e use a ação **Duplicate** na lista de painéis. A cópia inclui todo widget, variável e configuração, exceto a configuração de modo público (que sempre começa desligada — você decide se reativa na cópia).
+Para copiar um painel existente, abra a lista de painéis e escolha **Duplicar**. A cópia inclui todos os widgets, variáveis e configurações, exceto o compartilhamento público — esse sempre começa desligado para que você decida se quer ligá-lo novamente.
 
-Esse é o padrão certo quando você quer bifurcar um template ("nosso painel de plantão") em uma versão específica de serviço.
+Essa é a abordagem certa quando você quer derivar um template (como "nosso painel de plantão") em uma cópia específica para um serviço.
 
 ## Excluindo um painel
 
-Em **Dashboard → Delete**. Isto é irreversível — a configuração do canvas e quaisquer associações de domínio personalizado são removidas. Os dados de telemetria não são afetados (eles vivem nos armazenamentos de métrica / log / trace, não no painel).
+Em **Painel → Excluir**. Isso não pode ser desfeito — o layout do painel e quaisquer domínios personalizados anexados a ele são removidos. Seus dados de telemetria não são afetados.
 
-Se um painel é publicado publicamente com um domínio personalizado, a URL pública para de resolver no momento em que você o exclui. Retire o domínio antes se precisar reapontá-lo.
+Se o painel é público em um domínio personalizado, a URL para de resolver assim que você o exclui. Mova o domínio para um painel diferente primeiro se quiser manter a URL funcionando.
 
-## Migração e backup
+## Backup
 
-Para instalações auto-hospedadas: a configuração completa do painel (widgets, variáveis, configurações) vive na tabela `Dashboard` no Postgres. Um backup regular do banco é suficiente — não existe um formato de exportação de painel separado.
+Se você auto-hospeda o OneUptime, um backup regular do banco de dados é suficiente — a configuração do painel é armazenada junto com o restante do seu projeto.
 
-Para o OneUptime Cloud: backups regulares são feitos por você. Se quiser uma cópia local da configuração de um painel, use a [API do OneUptime](/docs/api-reference/api-reference) para ler o registro `Dashboard`.
+No OneUptime Cloud, os backups são feitos para você. Se quiser sua própria cópia, você pode ler o painel via a [API do OneUptime](/docs/api-reference/api-reference).
 
-## O que ler a seguir
+## O que ler em seguida
 
-- [Compartilhamento e painéis públicos](/docs/dashboards/sharing) — o lado público do controle de acesso.
-- [Variáveis e filtros](/docs/dashboards/variables) — templating.
+- [Compartilhamento e Painéis Públicos](/docs/dashboards/sharing) — controles de modo público.
+- [Variáveis e Filtros](/docs/dashboards/variables) — templating.
 - [Widgets](/docs/dashboards/widgets) — o catálogo de widgets.
-- [Visão geral dos painéis](/docs/dashboards/index) — o mapa conceitual.
+- [Visão geral dos painéis](/docs/dashboards/index) — o panorama geral.

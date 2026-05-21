@@ -1,89 +1,89 @@
-# Workflow-konfiguration & sikkerhed
+# Konfiguration & sikkerhed
 
-Denne side samler de indstillinger og sikkerhedsgrænser, der er værd at kende, før du peger et workflow mod produktionstrafik.
+Denne side dækker de indstillinger og sikkerhedsgrænser, der er værd at kende, før du peger et workflow mod rigtig trafik.
 
-## Aktivér / deaktivér
+## Tænd eller sluk for et workflow
 
-Hvert workflow har et **isEnabled**-flag i **Settings**. Deaktiverede workflows udløses aldrig — model-events, webhooks og planlagte kørsler ignoreres. Nye workflows leveres deaktiverede.
+Hvert workflow har en **Enabled**-kontakt i **Settings**. Når den er slået fra, kører workflowet ikke — webhook-kald, planlagte tidspunkter og OneUptime-events bliver alle ignoreret. Nye workflows starter deaktiverede.
 
-Behandl dette som din "klar til produktion"-kontakt:
+Brug denne kontakt som din "klar til drift"-port:
 
 1. Byg workflowet.
-2. Klik **Run Manually** med en repræsentativ payload.
-3. Tjek **Logs** — bekræft, at hver node tog den port, du forventede.
-4. Slå **isEnabled** til.
+2. Klik **Run Manually** med en realistisk payload.
+3. Tjek **Logs** — sørg for, at hver blok gik, hvor du forventede.
+4. Slå **Enabled** til.
 
-At deaktivere et workflow påvirker ikke kørsler, der allerede er i gang; det stopper kun nye fra at blive oprettet.
+At slå et workflow fra stopper ikke kørsler, der allerede er i gang; det stopper bare nye fra at starte.
 
-## Ejerskab og labels
+## Ejere og labels
 
-- **Ejere** — brugere og teams listet som ejere får permission-baseret adgang og (valgfrit) notifikationer, når workflowet fejler. Konfigurér under **Settings → Owners**.
-- **Labels** — many-to-many-tags til at organisere workflows. Filtrér workflow-listen på label. Nyttigt, når et projekt har snesevis af workflows organiseret pr. team, pr. integration eller pr. miljø.
-- **Label-regler** — under **Workflows → Settings → Label Rules** kan du auto-anvende labels på nye workflows baseret på regex-match på navn eller beskrivelse.
-- **Ejer-regler** — under **Workflows → Settings → Owner Rules** kan du auto-tildele ejere til nye workflows.
+- **Owners** — brugere og teams, der er angivet som ejere, får adgang til workflowet og kan tilmelde sig notifikationer, når det fejler. Sæt dem under **Settings → Owners**.
+- **Labels** — tags til gruppering af workflows. Workflow-listen lader dig filtrere efter label, hvilket gør et travlt projekt meget lettere at navigere. Nyttigt, når du har workflows organiseret efter team, integration eller miljø.
+- **Label rules** — under **Workflows → Settings → Label Rules** kan du automatisk anvende labels på nye workflows baseret på navne- eller beskrivelsesmønstre.
+- **Owner rules** — under **Workflows → Settings → Owner Rules** kan du automatisk tildele ejere til nye workflows.
 
 ## Hemmeligheder
 
-Globale variabler kan markeres som **hemmelige**. Værdien er krypteret at rest, write-only i UI'et efter gem og redigeres bort fra kørselslogfiler (erstattet med `[REDACTED]`).
+Markér en global variabel som **secret**, hvis den indeholder noget følsomt. Værdien krypteres, skjules i UI'et efter du gemmer, og skjules i kørselslogfilerne (vist som `[REDACTED]`).
 
 Brug hemmelige variabler til:
 
-- API-nøgler til udgående integrationer.
-- Bearer-tokens.
-- Webhook-signeringsnøgler.
-- Enhver værdi, en angriber med læseadgang til et workflow ikke bør se.
+- API-nøgler til eksterne tjenester.
+- Autentificeringstokens.
+- Webhook-signaturnøgler.
+- Alt, du ikke ville have, at nogen med read-only-adgang skulle se.
 
-Indsæt ikke en hemmelighed direkte i en komponents argument — referencer som `Authorization: Bearer eyJh...` dukker op i workflow-JSON'en og i kørselslogfilerne i klartekst. Referér i stedet `{{variable.MY_SECRET}}`.
+Indsæt ikke en hemmelighed direkte i en blok — værdier som `Authorization: Bearer eyJh...` ender som synlige i workflowet og logfilerne. Brug `{{variable.MY_SECRET}}` i stedet.
 
-## Kørsels-timeout
+## Hvor lang tid en kørsel kan tage
 
-Hver kørsel har en maksimal varighed. Hvis en kørsel ikke er afsluttet inden for timeouten, markeres den `Timeout`, og enhver igangværende komponent annulleres. Standarden er generøs (minutter, ikke sekunder) — se workerens miljøkonfiguration for den nøjagtige værdi i din installation.
+Hver kørsel har en maksimal længde. Hvis en kørsel ikke er færdig i tide, markeres den **Timeout**, og blokken i gang annulleres. Standarden er rundhåndet — lang nok til normale HTTP-kald og kæder af blokke.
 
-De fleste komponenter har deres egne pr.-kald-timeouts inde i kørsels-timeouten — f.eks. opgiver API-komponenten en hængende udgående anmodning et godt stykke før, hele kørslen gør.
+Individuelle blokke har deres egne tidsgrænser inden i den — for eksempel giver en API-blok op på en hængende udgående anmodning et godt stykke før hele kørslen gør.
 
-## Rekursionsgrænse
+## Grænse for at kalde andre workflows
 
-Komponenten **Execute Workflow** lader ét workflow kalde et andet. For at forhindre løbske løkker, hvor A kalder B kalder A i det uendelige, sporer workeren kald-kæden og stopper en kæde, der overskrider en fast dybde (typisk et lille tal som 5). Den afsluttende kørsel markeres `Error` med en klar besked om rekursionsgrænsen.
+Komponenten **Execute Workflow** lader ét workflow kalde et andet. For at forhindre utilsigtede løkker, hvor workflow A kalder B, der kalder A igen, er der et loft på, hvor dybt kæden kan gå. En kørsel, der går forbi grænsen, ender med en klar fejl.
 
-Hvis du har et legitimt behov for en lang kæde (f.eks. en rekursiv folder-walk, der behandler ét niveau pr. kørsel), så refaktorér det til et enkelt workflow, der itererer internt via **Custom Code** — det mønster er ikke underlagt kæde-grænsen.
+Hvis du har et reelt behov for en lang kæde (såsom et job, der behandler ét element pr. kørsel), er det som regel enklere at loope inden i et enkelt workflow ved hjælp af **Custom Code**.
 
 ## Webhook-sikkerhed
 
-Webhook-triggere eksponerer en unik HTTPS-URL. Enhver, der lærer URL'en, kan ramme den. For at forsvare mod uheld eller fjendtlige kaldere:
+Webhook-triggere giver dig en unik URL. Enhver, der kender URL'en, kan ramme den. For at beskytte mod utilsigtede eller uønskede kaldere:
 
-- Behandl URL'en som en delt hemmelighed. Indsæt den ikke i offentlig chat eller commit den til et offentligt repo.
-- For højværdi-workflows: bed det kaldende system om at inkludere en delt hemmelighed som en header (f.eks. `X-Webhook-Token`) og validér den i en **Conditions**-node, før du gør noget destruktivt. Definér det forventede token som en hemmelig global variabel.
-- For meget højværdi-workflows: foretræk en model-event-trigger og et manuelt import-trin i stedet for en offentlig webhook.
+- Behandl URL'en som en adgangskode. Del den ikke offentligt, og commit den ikke til et offentligt repo.
+- Til følsomme workflows: bed det kaldende system om at sende et delt token som en header (såsom `X-Webhook-Token`), og tjek det med en **Conditions**-blok, før du gør noget vigtigt. Gem det forventede token som en hemmelig variabel.
+- Til meget følsomme workflows: foretræk en OneUptime event-trigger og et manuelt import-skridt frem for en offentlig webhook.
 
-## Udgående netværkstrafik
+## Udgående netværksadgang
 
-API- og andre HTTP-stil-komponenter sender anmodninger fra OneUptime Workflow Workerens netværk. Hvis du selv-hoster OneUptime, er workerens udgående netværk dit anliggende — sørg for, at den kan nå de tredjeparts-API'er, du kalder. Hvis du bruger OneUptime Cloud, er vores IP-egress-range publiceret under [IP-adresser](/docs/configuration/ip-addresses), så du kan lave allowlist på modtagersiden.
+API- og andre HTTP-blokke laver deres anmodninger fra OneUptime. Hvis du selv-hoster, så sørg for, at din installation kan nå de tjenester, du kalder. Hvis du bruger OneUptime Cloud, er vores udgående IP-områder angivet i [IP-adresser](/docs/configuration/ip-addresses), så du kan tillade dem på den anden side.
 
 ## Tilladelser
 
-Workflows er førsteklasses ressourcer underlagt projekt-niveau rollebaseret adgangskontrol:
+Workflows respekterer dit projekts rollebaserede adgangskontrol. De relevante tilladelser:
 
-- `CreateWorkflow`, `ReadWorkflow`, `EditWorkflow`, `DeleteWorkflow` — de fire CRUD-tilladelser på workflow-skabeloner.
-- `RunWorkflow` — kræves for at klikke **Run Manually** eller for at sende et workflow via API.
-- `ReadWorkflowLog` — kræves for at se siden **Runs & Logs**.
-- `ReadWorkflowVariable`, `CreateWorkflowVariable`, `EditWorkflowVariable`, `DeleteWorkflowVariable` — kontrol over listen af globale variabler.
+- **Create / Read / Edit / Delete Workflow** — de grundlæggende tilladelser på selve workflowet.
+- **Run Workflow** — krævet for at klikke **Run Manually** eller udløse et workflow via API.
+- **Read Workflow Log** — krævet for at se kørsler.
+- **Read / Create / Edit / Delete Workflow Variable** — kontrol over listen af globale variabler.
 
-De fleste ingeniører bør have create/edit/read på workflows, men ikke på variabler. Reservér variabel-redigeringsadgang til de personer, der administrerer projektets hemmeligheder.
+De fleste ingeniører bør have create/edit/read på workflows, men ikke på variabler. Gem variabel-redigeringsadgang til dem, der administrerer dit projekts hemmeligheder.
 
-## Kvoter
+## Plan-grænser
 
-OneUptime Cloud begrænser antallet af kørsler pr. måned pr. projekt på mindre planer. Loftet vises på **Project Settings → Billing**. Når du rammer det, afvises nye triggere (og registreres med en "quota exceeded"-årsag på det berørte workflow) indtil næste faktureringscyklus. Selv-hostede installationer er ikke underlagt en kvote.
+OneUptime Cloud begrænser antallet af kørsler pr. måned på mindre planer. Din aktuelle grænse vises under **Project Settings → Billing**. Når du når den, afvises nye triggere indtil næste faktureringscyklus. Selv-hostede installationer har ikke denne grænse.
 
-## Hvad workflows *ikke* er gode til
+## Når workflows ikke er det rette værktøj
 
-Et par mønstre, hvor du bør gribe til et andet værktøj:
+Et par tilfælde, hvor du bør gribe til noget andet:
 
-- **Langvarig beregning** — workflows er orienteret omkring limning mellem systemer, ikke om at knuse store datasæt. Kør tungt arbejde i din egen infrastruktur, og brug et workflow til at sætte det i gang.
-- **Stateful workflows der strækker sig over minutter/timer** — en enkelt kørsel er tænkt til at afslutte hurtigt. Hvis du har brug for "gør A, vent så to timer, gør så B", så modellér ventetiden som en ekstern scheduler, der poster tilbage til en webhook-trigger.
-- **Step-by-step incident-respons med menneskelige tjekpunkter** — det er, hvad [Runbooks](/docs/runbooks/index) er til. Brug et workflow, hvis der ikke er noget menneske i løkken; brug et runbook, hvis der er.
+- **Tung beregning eller store datasæt** — workflows er designet til let limarbejde, ikke talknusning. Kør tungt arbejde i din egen infrastruktur, og lad et workflow sætte det i gang.
+- **Langvarige processer, der spænder over timer** — en enkelt kørsel er ment til at afsluttes hurtigt. Hvis du har brug for at "gøre A, vente to timer, gøre B", så brug en ekstern scheduler, der sender en webhook tilbage til OneUptime, når det er tid.
+- **Trin-for-trin hændelsesrespons med mennesker i loopet** — det er, hvad [Runbooks](/docs/runbooks/index) er til. Workflows er til ubemandet automatisering.
 
 ## Læs videre
 
-- [Workflows – Oversigt](/docs/workflows/index) — det konceptuelle kort.
-- [Workflow-komponenter](/docs/workflows/components) — argumentdetaljer for hver handling.
-- [Runbooks](/docs/runbooks/index) — hvornår du skal bruge et runbook i stedet.
+- [Workflows – Oversigt](/docs/workflows/index) — det store billede.
+- [Komponenter](/docs/workflows/components) — blok-for-blok-reference.
+- [Runbooks](/docs/runbooks/index) — hvornår en runbook skal bruges i stedet.

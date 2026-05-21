@@ -1,145 +1,147 @@
 # Komponenten
 
-Komponenten sind die Aktionsknoten, die Sie nach einem Trigger platzieren. Jede erledigt eine Aufgabe — eine HTTP-Anfrage stellen, eine Slack-Nachricht senden, auf eine Bedingung verzweigen, ein JavaScript-Snippet ausführen — und stellt einen oder mehrere Ausgabeports bereit, mit denen sich der nächste Knoten verbinden kann.
+Komponenten sind die Bausteine, die Sie nach dem Auslöser hinzufügen. Jede erledigt eine Aufgabe – eine Nachricht senden, eine API aufrufen, eine Bedingung prüfen – und verbindet sich mit dem, was als Nächstes kommt.
 
-Diese Seite ist ein Katalog. Für Verkabelungsregeln und die Arbeitsfläche selbst, siehe [Einen Workflow erstellen](/docs/workflows/authoring).
+Diese Seite ist der Katalog. Wie Sie die Bausteine auf der Arbeitsfläche ziehen, ablegen und verbinden, lesen Sie unter [Workflow erstellen](/docs/workflows/authoring).
 
 ## API
 
-Stellen Sie eine ausgehende HTTP-Anfrage an eine beliebige URL.
+Stellt eine HTTP-Anfrage an eine beliebige URL.
 
-**Argumente**:
+**Einstellungen**:
 
-- **Methode** — `GET`, `POST`, `PUT`, `PATCH`, `DELETE`.
-- **URL** — die Anfrage-URL. Interpoliert.
-- **Request Headers** — JSON-Objekt mit Headern.
-- **Request Body** — JSON- oder Text-Body für `POST` / `PUT` / `PATCH`.
+- **Methode** – `GET`, `POST`, `PUT`, `PATCH` oder `DELETE`.
+- **URL** – die aufzurufende Adresse.
+- **Header** – alle zu sendenden Header.
+- **Body** – der Anfrage-Body für `POST` / `PUT` / `PATCH`.
 
-**Ausgabeports**:
+**Ausgänge**:
 
-- `success` — feuert, wenn der Antwortstatus 2xx ist. Rückgabewerte: `response-status`, `response-headers`, `response-body`.
-- `error` — feuert bei einem Netzwerkfehler oder einer Nicht-2xx-Antwort. Rückgabewert: `error`-Nachricht.
+- **Erfolg** – wird ausgelöst, wenn der Aufruf geklappt hat (2xx-Antwort). Liefert Status, Header und Body weiter.
+- **Fehler** – wird bei einem Netzwerkfehler oder einer Nicht-2xx-Antwort ausgelöst. Liefert die Fehlermeldung weiter.
 
-Verwenden Sie dies für: jedes Drittanbieter-REST-API, Ihre eigenen Admin-Endpoints, leichte Integrationen, für die keine dedizierte Komponente existiert.
+Verwenden Sie diese Komponente für: jede externe API, Ihre eigenen Admin-Endpunkte oder jede Integration, die keine eigene Komponente besitzt.
 
 ## Webhook (ausgehend)
 
-Ein dünner Wrapper um die API-Komponente für den häufigen „Fire-and-Forget"-Fall. Postet einen JSON-Body an eine URL und stellt ein einzelnes `success` / `error`-Paar bereit.
+Eine einfachere Variante der API-Komponente für „Fire and Forget"-Anwendungsfälle. Sendet einen JSON-Body per POST an eine URL.
 
-Bevorzugen Sie **API**, wenn Sie den Antwort-Body nachgelagert lesen müssen; bevorzugen Sie **Webhook**, wenn Sie einfach nur ein anderes System benachrichtigen möchten.
+Verwenden Sie **API**, wenn Sie die Antwort lesen müssen. Verwenden Sie **Webhook**, wenn Sie einfach nur eine Benachrichtigung senden und weiterziehen wollen.
 
 ## Slack
 
-Posten Sie eine Nachricht in einem Slack-Kanal über die Slack-Workspace-Verbindung Ihres Projekts.
+Veröffentlicht eine Nachricht in einem Slack-Kanal.
 
-**Argumente**:
+**Einstellungen**:
 
-- **Channel name** — der Kanal, in den gepostet werden soll. Der Bot muss bereits Mitglied dieses Kanals sein.
-- **Message text** — der Body. Interpoliert; unterstützt Slack mrkdwn.
+- **Kanal** – der Kanalname. Der Bot muss bereits Mitglied im Kanal sein.
+- **Nachricht** – der zu sendende Text. Unterstützt Slack-Formatierung.
 
-Richten Sie die Workspace-Verbindung zuerst unter **Project Settings → Workspace Connections → Slack** ein. Siehe [Slack-Workspace-Verbindung](/docs/workspace-connections/slack).
+Verbinden Sie Slack zuerst mit Ihrem Projekt unter **Projekteinstellungen → Workspace-Verbindungen → Slack**. Siehe [Slack-Workspace-Verbindung](/docs/workspace-connections/slack).
 
 ## Microsoft Teams
 
-Posten Sie eine Nachricht in einem Microsoft Teams-Kanal über die Teams-Verbindung Ihres Projekts.
+Veröffentlicht eine Nachricht in einem Microsoft-Teams-Kanal.
 
-**Argumente**:
+**Einstellungen**:
 
-- **Team & channel** — das Ziel.
-- **Message text** — der Body.
+- **Team und Kanal** – wo veröffentlicht werden soll.
+- **Nachricht** – der zu sendende Text.
 
-Siehe [Microsoft Teams-Workspace-Verbindung](/docs/workspace-connections/microsoft-teams) für die Einrichtung der Verbindung.
+Zur Einrichtung siehe [Microsoft-Teams-Workspace-Verbindung](/docs/workspace-connections/microsoft-teams).
 
 ## Discord
 
-Posten Sie eine Nachricht in einem Discord-Kanal über eine auf der Komponente konfigurierte eingehende Webhook-URL.
+Veröffentlicht eine Nachricht in einem Discord-Kanal über eine eingehende Webhook-URL.
 
 ## Telegram
 
-Senden Sie eine Nachricht an einen Telegram-Chat über ein Bot-Token und eine Chat-ID, die auf der Komponente konfiguriert sind.
+Sendet eine Nachricht in einen Telegram-Chat mithilfe eines Bot-Tokens und einer Chat-ID.
 
 ## E-Mail
 
-Senden Sie eine E-Mail über die SMTP-Konfiguration von OneUptime.
+Sendet eine E-Mail über OneUptime.
 
-**Argumente**:
+**Einstellungen**:
 
-- **To** — Empfänger-E-Mail-Adresse.
-- **Subject** — interpoliert.
-- **Body** — Markdown oder HTML.
+- **An** – die E-Mail-Adresse des Empfängers.
+- **Betreff** – die Betreffzeile.
+- **Body** – die Nachricht in Markdown oder HTML.
 
-Die E-Mail wird von der konfigurierten Absenderadresse des Projekts gesendet (siehe [SMTP](/docs/emails/smtp)).
+Die E-Mail wird vom in Ihrem Projekt konfigurierten Absender verschickt – siehe [SMTP](/docs/emails/smtp).
 
-## Custom Code
+## Benutzerdefinierter Code
 
-Führen Sie ein JavaScript-Snippet mit Zugriff auf die Variablen des Workflows und die Rückgabewerte des vorgelagerten Knotens aus.
+Führt ein kleines Stück JavaScript aus, wenn Sie etwas brauchen, das die anderen Bausteine nicht abdecken.
 
-**Argumente**:
+**Einstellungen**:
 
-- **Code** — der JavaScript-Body. Der Wert des letzten Ausdrucks (oder alles, was von `(async () => { ... })()` zurückgegeben wird) wird zum Rückgabewert der Komponente.
-- **Arguments** — optionale benannte Werte, die als `args` übergeben werden.
+- **Code** – Ihr JavaScript. Der letzte Wert (oder das, was Sie aus einer asynchronen Funktion zurückgeben) wird zur Ausgabe des Bausteins.
+- **Argumente** – benannte Werte, die Sie übergeben können.
 
-**Ausgabeports**: `success` (Rückgabewert), `error` (abgefangene Exception).
+**Ausgänge**: Erfolg (Ihr Rückgabewert) und Fehler (jede Ausnahme).
 
-Verwenden Sie dies für: Transformieren eines Payloads zwischen zwei Systemen, eine kleine Berechnung, die keine eigene Komponente verdient, Aufruf von JS-spezifischer Logik. Umfangreichere Skripte, die innerhalb Ihrer eigenen Infrastruktur laufen müssen, gehören in einen Bash- oder JavaScript-Schritt eines [Runbooks](/docs/runbooks/index).
+Verwenden Sie diese Komponente für: Daten zwischen zwei Systemen umformen, eine kleine Berechnung durchführen, alles, was keinen eigenen Baustein verdient. Für umfangreichere Skripte nutzen Sie stattdessen ein [Runbook](/docs/runbooks/index).
 
 ## JSON
 
-Konvertieren zwischen Text und JSON.
+Konvertiert zwischen Text und JSON.
 
-- **JSON → Text** — serialisieren Sie ein JSON-Objekt in einen String (praktisch, um es in ein `body`-Argument einer ausgehenden Komponente zu leiten, die Text erwartet).
-- **Text → JSON** — parsen Sie einen String in ein JSON-Objekt. Nützlich, wenn ein vorgelagertes API seinen Body als Text zurückgegeben hat, Sie aber ein Feld lesen müssen.
+- **JSON → Text** – wandelt ein JSON-Objekt in eine Zeichenkette um. Praktisch, wenn der nächste Baustein Text erwartet.
+- **Text → JSON** – parst eine Zeichenkette in ein JSON-Objekt. Praktisch, wenn etwas als Text ankommt und Sie ein Feld auslesen müssen.
 
-## Conditions
+## Bedingungen
 
-Verzweigen Sie auf einen Vergleich. Konfigurieren Sie:
+Verzweigt anhand eines Vergleichs.
 
-- **Left value** — typischerweise eine interpolierte Referenz wie `{{Incident.title}}`.
-- **Operator** — `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `starts with`, `ends with`.
-- **Right value** — der Wert, mit dem verglichen werden soll.
+**Einstellungen**:
 
-**Ausgabeports**: `yes` und `no`. Verkabeln Sie den Rest des Workflows von dem Zweig, der Ihrer Absicht entspricht.
+- **Linker Wert** – meist ein Wert aus einem früheren Baustein.
+- **Operator** – `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `starts with`, `ends with`.
+- **Rechter Wert** – womit verglichen werden soll.
 
-## Schedule (Verzögerung)
+**Ausgänge**: **Ja** und **Nein**. Verbinden Sie die nächsten Bausteine mit dem gewünschten Zweig.
 
-Pausieren Sie einen Workflow für eine konfigurierte Dauer, bevor er fortgesetzt wird. Nützlich, wenn Sie einem externen System einen Moment geben müssen, um sich zu stabilisieren, bevor Sie seinen Zustand überprüfen.
+## Verzögerung
+
+Pausiert den Workflow für eine bestimmte Zeit, bevor er fortgesetzt wird. Nützlich, wenn Sie einem anderen System einen Moment Zeit geben müssen, um nachzuziehen.
 
 ## Log
 
-Schreiben Sie eine Zeile in das Workflow-Ausführungsprotokoll. Reine Debugging-Hilfe; die Zeile wird auf der Ausführung erfasst und unter **Logs** sichtbar. Kein externer Seiteneffekt.
+Schreibt eine Zeile in das Ausführungslog. Hat keine Außenwirkung – die Zeile erscheint nur im Log des Workflows, damit Sie sie nachlesen können. Hilfreich beim Debuggen.
 
-## Execute Workflow
+## Workflow ausführen
 
-Rufen Sie einen anderen Workflow als Unterschritt auf. Der aufgerufene Workflow läuft unabhängig (Fire-and-Forget) — die Kontrolle kehrt zum Aufrufer zurück, sobald der Aufruf abgesandt ist.
+Ruft aus diesem Workflow heraus einen anderen Workflow auf. Der aufgerufene Workflow läuft eigenständig – Ihr Workflow fährt fort, ohne auf dessen Ende zu warten.
 
-Verwenden Sie dies, um gemeinsame Logik aus mehreren Workflows herauszufaktorisieren: Bauen Sie einmal einen „Post-to-incident-channel"-Workflow und rufen Sie ihn aus jedem anderen Workflow auf, der den Kanal benachrichtigen muss.
+So lassen sich gemeinsame Abläufe wiederverwenden. Bauen Sie zum Beispiel einen Workflow „In Vorfall-Kanal posten" einmal und rufen Sie ihn aus jedem anderen Workflow auf, der den Kanal benachrichtigen soll.
 
-Ein Rekursionslimit verhindert, dass Workflows sich gegenseitig in einer Endlosschleife aufrufen. Siehe [Konfiguration & Sicherheit](/docs/workflows/configuration).
+Es gibt ein Sicherheitslimit, damit Workflows einander nicht in einer Endlosschleife aufrufen können. Siehe [Konfiguration & Sicherheit](/docs/workflows/configuration).
 
-## Modell-Komponenten (CRUD auf OneUptime-Entitäten)
+## OneUptime-Datenkomponenten
 
-Für jede OneUptime-Entität, die Workflows unterstützt (Monitore, Vorfälle, Warnmeldungen, Statusseiten, Bereitschaftspläne usw.), stellt die Palette automatisch die folgenden Komponenten bereit — durchsuchbar nach dem Entitätsnamen:
+Für jede Art von Datensatz in OneUptime (Monitore, Vorfälle, Benachrichtigungen, Statusseiten, Rufbereitschafts-Richtlinien und viele weitere) bietet die Palette diese Komponenten – einfach nach dem Typnamen suchen:
 
-- **Find One {Entity}** — einen einzelnen Datensatz per Query abrufen.
-- **Find {Entity}** — eine Liste von Datensätzen per Query abrufen (paginiert).
-- **Create {Entity}** — einen neuen Datensatz einfügen.
-- **Update {Entity}** — einen Datensatz nach ID aktualisieren.
-- **Delete {Entity}** — einen Datensatz nach ID löschen.
-- **Count {Entity}** — Datensätze zählen, die einer Query entsprechen.
+- **Einen finden** – einen Datensatz per ID oder Filter holen.
+- **Finden** – eine Liste von Datensätzen holen.
+- **Erstellen** – einen neuen Datensatz anlegen.
+- **Aktualisieren** – einen Datensatz ändern.
+- **Löschen** – einen Datensatz entfernen.
+- **Zählen** – Datensätze zählen, die einem Filter entsprechen.
 
-So kann ein Workflow den OneUptime-Status lesen und schreiben, ohne die Plattform zu verlassen. Zum Beispiel: Ein Webhook von Ihrem CI-Tool ruft **Create Incident** mit der Fehlermeldung des Builds auf; oder ein geplanter Workflow führt alle fünf Minuten **Find Incident** aus und mailt eine Zusammenfassung.
+So kann ein Workflow OneUptime-Daten lesen und ändern. Beispiel: Ein Webhook aus Ihrem CI-Tool kann **Vorfall erstellen** nutzen, um einen Vorfall mit den Fehlerdetails zu öffnen.
 
-## Die richtige Komponente wählen
+## Welche Komponente soll ich verwenden?
 
 Ein paar Faustregeln:
 
-- Wenn eine dedizierte Komponente für das existiert, was Sie tun möchten (Slack, E-Mail, ein CRUD auf einer OneUptime-Entität), verwenden Sie sie — sie bietet besseres Error-Handling und klarere Protokolle als selbstgebaute Lösungen.
-- Wenn Sie ein externes HTTP-API aufrufen müssen, für das es keine dedizierte Komponente gibt, verwenden Sie **API**.
-- Wenn Sie Daten zwischen zwei Komponenten *formen* müssen, verwenden Sie **Custom Code** oder **JSON**.
-- Wenn Sie verschiedene Aktionen basierend auf einem Wert ausführen müssen, verwenden Sie **Conditions**.
+- Wenn es für Ihr Vorhaben einen speziellen Baustein gibt (Slack, E-Mail, einen OneUptime-Datensatz), verwenden Sie ihn – die Fehlerbehandlung wird sauberer und die Logs werden klarer.
+- Für jede andere externe API verwenden Sie **API**.
+- Um Daten zwischen Bausteinen umzuformen, nutzen Sie **Benutzerdefinierter Code** oder **JSON**.
+- Um abhängig von einem Wert unterschiedlich zu reagieren, nutzen Sie **Bedingungen**.
 
-## Wo weiterlesen
+## Weiterführende Themen
 
-- [Variablen](/docs/workflows/variables) — wie Sie Daten von einer Komponente in die nächste einspeisen.
-- [Ausführungen & Protokolle](/docs/workflows/runs-and-logs) — wie Sie prüfen, was jede Komponente während einer Ausführung zurückgegeben hat.
-- [Konfiguration & Sicherheit](/docs/workflows/configuration) — Limits, Ownership und Geheimnisse.
+- [Variablen](/docs/workflows/variables) – Daten zwischen Bausteinen übergeben.
+- [Ausführungen & Logs](/docs/workflows/runs-and-logs) – nachvollziehen, was jeder Baustein bei einer Ausführung getan hat.
+- [Konfiguration & Sicherheit](/docs/workflows/configuration) – Limits, Eigentümer und Geheimnisse.

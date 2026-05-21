@@ -1,80 +1,80 @@
-# Dashboard-configuratie en machtigingen
+# Configuratie en machtigingen
 
-Deze pagina verzamelt de instellingen en toegangscontrole-knoppen die je moet kennen zodra je een dashboard hebt dat je daadwerkelijk wilt behouden.
+Deze pagina behandelt de instellingen en toegangscontroles die de moeite waard zijn om te kennen zodra je een dashboard hebt dat je wilt behouden.
 
-## Eigenaarschap
+## Eigenaren
 
-De **eigenaren** van een dashboard zijn de gebruikers en teams die expliciete machtigingen erop krijgen (gescheiden van de projectbrede rol).
+De **eigenaren** van een dashboard zijn gebruikers en teams aan wie je expliciete toegang hebt gegeven (bovenop hun projectbrede rol).
 
 Onder **Dashboard → Owners**:
 
-- Voeg een **gebruiker-eigenaar** toe om een specifieke persoon extra toegang tot dit dashboard te geven.
-- Voeg een **team-eigenaar** toe om hetzelfde te doen voor elk lid van een team.
+- Voeg een **gebruiker als eigenaar** toe om één persoon extra toegang tot dit dashboard te geven.
+- Voeg een **team als eigenaar** toe om hetzelfde aan elk lid van een team te geven.
 
-Gebruik eigenaarschap wanneer de projectbrede leesrol te breed is — bijvoorbeeld een dashboard met gevoelige klant-specifieke details dat alleen voor het customer-success-team zichtbaar zou moeten zijn.
+Gebruik eigenaren wanneer de projectbrede leesrol te breed is — bijvoorbeeld een dashboard met klantdetails dat alleen zichtbaar zou moeten zijn voor het customer-success-team.
 
 ## Labels
 
-Labels zijn many-to-many-tags voor het organiseren van dashboards. Pas ze toe onder **Dashboard → Overview**.
+Labels zijn tags om dashboards te organiseren. Pas ze toe onder **Dashboard → Overview**.
 
-Veelvoorkomende label-patronen:
+Veelvoorkomende patronen:
 
 - **Per team**: `team:platform`, `team:checkout`, `team:growth`.
 - **Per omgeving**: `env:prod`, `env:staging`.
 - **Per doel**: `purpose:oncall`, `purpose:exec`, `purpose:investigation`.
 
-De **Dashboards**-lijst laat je filteren op label, wat de snelste manier is om een dashboard te vinden in een project dat tientallen heeft verzameld.
+De **Dashboards**-lijst laat je filteren op label, wat de snelste manier is om een dashboard te vinden in een project waar er al veel van zijn opgehoopt.
 
 ## Machtigingen
 
-Dashboards zijn first-class resources in OneUptime's rolgebaseerde toegangscontrole. De relevante machtigingen:
+Dashboards werken met de role-based access control van je project. De relevante machtigingen:
 
-| Machtiging | Staat toe |
+| Machtiging | Wat het toestaat |
 | --- | --- |
-| `CreateDashboard` | Nieuwe dashboards in het project aanmaken. |
-| `ReadDashboard` | Dashboards bekijken (in privé-modus). |
-| `EditDashboard` | Widgets, variabelen en instellingen op een dashboard wijzigen. |
-| `DeleteDashboard` | Een dashboard verwijderen. |
+| **Create Dashboard** | Nieuwe dashboards aanmaken. |
+| **Read Dashboard** | Dashboards bekijken (in privé-modus). |
+| **Edit Dashboard** | Widgets, variabelen en instellingen wijzigen. |
+| **Delete Dashboard** | Een dashboard verwijderen. |
 
-Er zijn bijbehorende machtigingen voor de ondersteunende entiteiten: dashboard-eigenaren (gebruiker / team) en custom domains hebben hun eigen create- / read- / edit- / delete-paren, zodat je "manage owners" kunt verlenen zonder "het dashboard zelf bewerken" toe te kennen.
+Er zijn bijbehorende machtigingen voor dashboard-eigenaren en custom domains, zodat je "eigenaren beheren" kunt toekennen zonder "het dashboard bewerken" toe te kennen.
 
-Wijs deze toe aan projectrollen onder **Project Settings → Teams & Roles**.
+Wijs deze toe op projectrollen onder **Project Settings → Teams & Roles**.
 
-## Toegangscontrole in publieke modus
+## Toegang voor publieke dashboards
 
-Toegang in publieke modus (zie [Delen en publieke dashboards](/docs/dashboards/sharing)) wordt geregeld door drie lagen, in volgorde:
+Wanneer je een dashboard publiek maakt (zie [Delen en publieke dashboards](/docs/dashboards/sharing)), bepalen drie instellingen wie het kan zien:
 
-1. **Public Dashboard**-toggle — als uit, geeft de publieke URL een 404.
-2. **Master Password** — als ingesteld, moeten bezoekers het invoeren voordat het dashboard rendert.
-3. **IP Whitelist** (Scale-abonnement) — als ingesteld, krijgen verzoeken van niet-gelijste IP's een 403.
+1. **Public Dashboard**-schakelaar — als deze uit is, geeft de publieke URL een 404 terug.
+2. **Master Password** — indien ingesteld voeren bezoekers een wachtwoord in voordat het dashboard verschijnt.
+3. **IP Whitelist** (Scale-plan) — indien ingesteld worden verzoeken vanaf andere IP's afgewezen.
 
-Een dashboard kan een willekeurige combinatie hebben. De meest defensieve configuratie is "Public aan, wachtwoord ingesteld, IP-allowlist actief" — handig voor partnerportalen waar je alle drie wilt.
+Je kunt al deze combineren. De meest dichtgetimmerde combinatie is "Public aan, wachtwoord ingesteld, IP-allowlist actief" — handig voor partner-portalen waar je alle drie de lagen wilt.
 
-## Retentie
+## Dataretentie
 
-Dashboards zelf verlopen niet. De data die ze tonen volgt de telemetry-retentie van het project — metrics, logs en traces zijn queryable zolang je abonnement ze bewaart. Een widget die naar "de afgelopen 90 dagen" wijst op een abonnement met 30 dagen retentie rendert wat er nog in de store zit.
+Dashboards zelf verlopen niet. De data die ze tonen volgt de retentie-instellingen van je project — metrics, logs en traces zijn queryable zolang je plan ze bewaart. Een widget die op "de afgelopen 90 dagen" wijst op een plan dat 30 dagen bewaart, toont wat er nog is opgeslagen.
 
-## Een dashboard klonen
+## Een dashboard dupliceren
 
-Om een bestaand dashboard te dupliceren, open je het en gebruik je de **Duplicate**-actie vanuit de dashboards-lijst. De kopie bevat elke widget, variabele en instelling behalve de configuratie van de publieke modus (die altijd uit begint — jij beslist of je hem op de kopie opnieuw aanzet).
+Om een bestaand dashboard te kopiëren open je de dashboards-lijst en kies je **Duplicate**. De kopie bevat elke widget, variabele en instelling behalve publiek delen — dat staat altijd uit zodat je kunt besluiten of je het weer wilt aanzetten.
 
-Dit is het juiste patroon wanneer je een template ("ons oncall-dashboard") wilt forken naar een service-specifieke versie.
+Dit is de juiste zet wanneer je een template (zoals "ons oncall-dashboard") wilt afsplitsen naar een servicespecifieke kopie.
 
 ## Een dashboard verwijderen
 
-Onder **Dashboard → Delete**. Dit is onomkeerbaar — de canvas-configuratie en eventuele bindings van custom domains worden verwijderd. Telemetry-data wordt niet beïnvloed (die leeft in de metric- / log- / trace-stores, niet op het dashboard).
+Onder **Dashboard → Delete**. Dit kan niet ongedaan worden gemaakt — de layout van het dashboard en eventuele eraan gekoppelde custom domains worden verwijderd. Je telemetry-data wordt niet beïnvloed.
 
-Als een dashboard publiek is gepubliceerd met een custom domain, stopt de publieke URL met resolven zodra je hem verwijdert. Haal het domein er eerst af als je het wilt herrouteren.
+Als het dashboard publiek staat op een custom domain, stopt de URL met werken zodra je hem verwijdert. Verplaats het domein eerst naar een ander dashboard als je de URL wilt blijven gebruiken.
 
-## Migratie en back-up
+## Backup
 
-Voor self-hosted-installaties: de volledige configuratie van het dashboard (widgets, variabelen, instellingen) leeft in de `Dashboard`-tabel in Postgres. Een reguliere database-back-up volstaat — er is geen apart dashboard-exportformaat.
+Als je OneUptime zelf host, is een reguliere database-backup voldoende — de configuratie van het dashboard wordt naast de rest van je project opgeslagen.
 
-Voor OneUptime Cloud: reguliere back-ups worden voor je geregeld. Als je een lokale kopie van de configuratie van een dashboard wilt, gebruik je de [OneUptime API](/docs/api-reference/api-reference) om het `Dashboard`-record te lezen.
+Op OneUptime Cloud worden backups voor je geregeld. Wil je je eigen kopie, dan kun je het dashboard uitlezen via de [OneUptime API](/docs/api-reference/api-reference).
 
 ## Waar verder lezen
 
-- [Delen en publieke dashboards](/docs/dashboards/sharing) — de publieke kant van toegangscontrole.
+- [Delen en publieke dashboards](/docs/dashboards/sharing) — controls voor publieke modus.
 - [Variabelen en filters](/docs/dashboards/variables) — templating.
 - [Widgets](/docs/dashboards/widgets) — de widget-catalogus.
-- [Dashboards – Overzicht](/docs/dashboards/index) — de conceptuele kaart.
+- [Dashboards – Overzicht](/docs/dashboards/index) — het grote plaatje.

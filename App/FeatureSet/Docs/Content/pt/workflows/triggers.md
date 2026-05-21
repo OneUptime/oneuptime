@@ -1,106 +1,81 @@
 # Gatilhos
 
-Um gatilho é o nó inicial de um workflow. Ele não tem porta de entrada — a execução começa aqui. O OneUptime suporta quatro famílias de gatilhos; cada workflow usa exatamente um.
+Um gatilho é o primeiro bloco em um workflow — ele decide quando o workflow roda. Todo workflow tem exatamente um gatilho. Você escolhe entre quatro tipos.
 
 ## Manual
 
-Execute um workflow sob demanda clicando em **Run Manually** na página do workflow. Você pode colar um payload JSON opcional que o workflow consegue ler como `{{Manual.JSON}}`.
+Execute o workflow sob demanda clicando em **Executar Manualmente** na página do workflow. Você pode colar um payload JSON que o resto do workflow consegue ler.
 
-Use isso quando quiser um botão que dispara um pedaço de automação — um workflow de "rotacionar a chave de plantão" ou "reconstruir o índice de busca" em um clique, sem precisar de agendamento recorrente ou de um evento para disparar.
+Bom para: automações de um clique para as quais você quer um botão, como "rotacionar esta chave" ou "enviar um alerta de teste."
 
-**Argumentos**: nenhum.
+**Saída**: o JSON que você colou ou um objeto vazio caso não tenha colado nada.
 
-**Valores de retorno**:
+## Agendado
 
-| Nome | Tipo | Descrição |
-| --- | --- | --- |
-| `JSON` | JSON | O payload JSON fornecido no momento da execução, ou um objeto vazio. |
+Execute o workflow em um agendamento recorrente usando uma expressão cron.
 
-## Schedule
+Bom para: limpezas noturnas, sincronizações horárias, relatórios semanais.
 
-Execute um workflow em uma agenda cron. Configure a cadência com uma expressão cron padrão.
+**Configuração**: uma expressão cron. Alguns exemplos comuns:
 
-Use para tarefas recorrentes: limpeza noturna, sincronização horária, exportação semanal.
+- `0 * * * *` — toda hora, no minuto zero.
+- `*/5 * * * *` — a cada 5 minutos.
+- `0 9 * * 1` — toda segunda às 9:00.
 
-**Argumentos**:
-
-| Nome | Tipo | Descrição |
-| --- | --- | --- |
-| `Schedule at` | CronTab | Expressão cron padrão de 5 campos. Por exemplo, `0 * * * *` roda no início de cada hora, `*/5 * * * *` a cada cinco minutos. |
-
-**Valores de retorno**:
-
-| Nome | Tipo | Descrição |
-| --- | --- | --- |
-| `executedAt` | Date | O horário de execução agendado. |
-
-Workflows agendados rodam no Workflow Worker na região do projeto. Se o worker estiver brevemente indisponível, a execução é despachada quando ele se recuperar — você não precisa se defender contra ticks perdidos em interrupções curtas.
+Se o sistema ficar brevemente indisponível, a execução é retomada assim que ele se recupera — você não precisa se preocupar com disparos perdidos em pequenas interrupções.
 
 ## Webhook
 
-Exponha uma URL HTTPS única para a qual um sistema externo faz `POST`. Os cabeçalhos, parâmetros de consulta e corpo da requisição ficam expostos como valores de retorno para os componentes a jusante consumirem.
+O OneUptime cria uma URL única. Qualquer requisição a essa URL inicia o workflow. Os cabeçalhos, parâmetros de consulta e o corpo da requisição são repassados.
 
-Use para receber dados *para dentro* do OneUptime a partir de um sistema de terceiros: callbacks de CI/CD, alertas de outra ferramenta de monitoramento, cadastros de clientes no seu CRM.
+Bom para: receber dados de outra ferramenta no OneUptime — callbacks de CI/CD, alertas de outros monitoramentos, cadastros no seu CRM.
 
-**Argumentos**: nenhum. A URL é alocada automaticamente quando o workflow é salvo e mostrada no nó do gatilho. Trate como um segredo — qualquer pessoa com a URL pode disparar o workflow.
+**Saída**:
 
-**Valores de retorno**:
+- **Cabeçalhos da Requisição** — todos os cabeçalhos da requisição recebida.
+- **Parâmetros de Consulta** — a query string já analisada.
+- **Corpo da Requisição** — o corpo analisado (ou o texto bruto se não for JSON).
 
-| Nome | Tipo | Descrição |
-| --- | --- | --- |
-| `Request Headers` | JSON | Todos os cabeçalhos da requisição HTTP recebida. |
-| `Request Query Params` | JSON | Query string parseada. |
-| `Request Body` | JSON | Corpo da requisição parseado. Se o corpo não for um JSON válido, ele chega como string sob a chave `raw`. |
+A URL aceita tanto `GET` quanto `POST`. O chamador recebe uma confirmação rápida — o próprio workflow roda em segundo plano.
 
-O webhook aceita `GET` e `POST`. A resposta para quem chamou é um `200 OK` com um JSON de reconhecimento assim que a execução é enfileirada — o workflow em si roda de forma assíncrona, então não espere ler o resultado dos componentes a jusante na resposta HTTP.
+Trate a URL como uma senha. Quem tiver acesso a ela pode iniciar seu workflow.
 
-## Gatilhos de evento de modelo
+## Gatilhos de eventos do OneUptime
 
-Quase toda entidade do OneUptime — monitores, incidentes, alertas, eventos de manutenção programada, páginas de status, políticas de plantão, equipes, serviços de telemetria e muitos outros — expõe três gatilhos:
+Quase tudo no OneUptime — monitores, incidentes, alertas, manutenções programadas, páginas de status, políticas de plantão, equipes — pode disparar um workflow. Cada um oferece três eventos:
 
-- **On Create** — dispara quando um novo registro desse tipo é criado.
-- **On Update** — dispara quando um registro existente é alterado. O gatilho expõe tanto os valores antigos quanto os novos.
-- **On Delete** — dispara quando um registro é excluído.
+- **Na Criação** — dispara quando um novo é adicionado.
+- **Na Atualização** — dispara quando um é alterado.
+- **Na Exclusão** — dispara quando um é excluído.
 
-É assim que você constrói automação do tipo "quando X acontece no OneUptime, faça Y" sem polling.
+É assim que você constrói "quando X acontecer no OneUptime, faça Y" sem precisar ficar verificando coisas em loop.
 
-O próprio modelo é exposto como valor de retorno com os mesmos nomes de campo que você vê no recurso. Por exemplo, o gatilho **Incident → On Create** retorna o objeto `Incident` completo para que os nós a jusante consigam ler `{{Incident.title}}`, `{{Incident.description}}`, `{{Incident.incidentSeverityId}}` etc.
+O registro completo é repassado ao próximo bloco. Por exemplo, o gatilho **Incidente → Na Criação** repassa o novo incidente, então o próximo bloco pode ler o título, a descrição, a severidade e qualquer outro campo.
 
-**Argumentos**: tipicamente nenhum para create/delete. Gatilhos de update podem permitir restringir os campos aos quais você quer reagir, para não disparar em alterações cosméticas.
+### Eventos mais usados pelos times
 
-**Valores de retorno** (variam conforme o modelo):
+- **Incidente** — reagir quando um incidente é aberto, atualizado (confirmado, resolvido) ou excluído.
+- **Alerta** — os mesmos três para alertas.
+- **Monitor** — reagir quando um monitor é adicionado, editado ou removido.
+- **Manutenção Programada** — anunciar uma janela de manutenção automaticamente quando ela é agendada.
+- **Inscrito em Página de Status** — dar boas-vindas a quem se inscreve em uma página de status.
+- **Política de Plantão** — sincronizar mudanças de escala com outro sistema de escalas.
 
-| Nome | Tipo | Descrição |
-| --- | --- | --- |
-| Campos do modelo | (varia) | Toda coluna da entidade — nome, status, timestamps, chaves estrangeiras. |
-| `previous` (apenas Update) | JSON | O registro como estava antes da alteração. |
+Busque pelo nome na paleta de gatilhos para encontrar o que você quer.
 
-### Gatilhos de modelo comuns
+## Qual gatilho devo usar?
 
-Uma lista não exaustiva dos eventos de modelo que os times mais usam:
-
-- **Incident** — `On Create`, `On Update` (use para reagir a mudanças de estado como Acknowledged ou Resolved), `On Delete`.
-- **Alert** — os mesmos três eventos no modelo de alerta.
-- **Monitor** — reaja quando um monitor é adicionado, editado ou removido; combine com condições para agir apenas em monitores de produção.
-- **Scheduled Maintenance** — automatize anúncios a jusante quando uma janela de manutenção é criada ou o estado dela muda.
-- **Status Page Subscriber** — dispare um fluxo de boas-vindas quando alguém se inscreve.
-- **On-Call Duty Policy** — sincronize mudanças de escala com uma escala externa.
-
-Se o modelo é exposto na API do OneUptime, é quase certo que ele pode disparar um workflow — pesquise a paleta de gatilhos pelo nome da entidade.
-
-## Escolhendo o gatilho certo
-
-| Se você quer… | Use |
+| Se você quer… | Escolha |
 | --- | --- |
-| Construir um botão em um workflow para alguém clicar | **Manual** |
-| Rodar uma tarefa a cada N minutos/horas/dias | **Schedule** |
-| Fazer um sistema externo enviar dados para o OneUptime | **Webhook** |
-| Reagir a algo que acontece *dentro* do OneUptime | **Evento de modelo** |
+| Clicar em um botão para executar o workflow | **Manual** |
+| Executar em um agendamento recorrente | **Agendado** |
+| Ter outro sistema enviando dados | **Webhook** |
+| Reagir a algo dentro do OneUptime | **Evento do OneUptime** |
 
-Workflows só podem ter um gatilho. Se você precisa que dois sinais de início diferentes compartilhem a maior parte da mesma lógica, fatore os passos compartilhados em um workflow e o chame a partir de dois workflows "wrapper" finos usando o componente **Execute Workflow** (consulte [Componentes](/docs/workflows/components)).
+Um workflow só pode ter um gatilho. Se você precisar de duas formas de iniciar a mesma automação, coloque a lógica compartilhada em um workflow e chame-a a partir de dois workflows "envoltórios" finos usando o componente **Executar Workflow**.
 
-## O que ler a seguir
+## O que ler em seguida
 
-- [Componentes](/docs/workflows/components) — as ações que você conecta depois do gatilho.
-- [Variáveis](/docs/workflows/variables) — como ler os valores de retorno do gatilho a partir dos nós a jusante.
-- [Execuções e registros](/docs/workflows/runs-and-logs) — como confirmar que seu gatilho está disparando.
+- [Componentes](/docs/workflows/components) — as ações que você adiciona depois do gatilho.
+- [Variáveis](/docs/workflows/variables) — lendo a saída do gatilho a partir dos blocos seguintes.
+- [Execuções e Registros](/docs/workflows/runs-and-logs) — confirmando que seu gatilho disparou.

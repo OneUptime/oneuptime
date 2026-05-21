@@ -313,7 +313,14 @@ export default class RunbookAgent extends BaseModel {
   public key?: string = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.CreateRunbookAgent,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -369,7 +376,14 @@ export default class RunbookAgent extends BaseModel {
   public lastAlive?: Date = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.CreateRunbookAgent,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

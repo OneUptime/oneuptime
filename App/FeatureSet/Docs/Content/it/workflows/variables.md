@@ -1,99 +1,99 @@
 # Variabili
 
-Un workflow è utile solo quando i dati lo attraversano. Le variabili sono il modo in cui questi dati si muovono — dal trigger al primo componente, dall'output di un componente all'input del successivo, e dai segreti a livello di progetto ovunque vengano referenziati.
+I workflow servono a spostare dati — dal trigger al primo blocco, da un blocco al successivo e dai valori condivisi ovunque servano. Le variabili sono il modo in cui questi dati si spostano.
 
-OneUptime ha due tipi di variabili e una sola sintassi di interpolazione che funziona per entrambe.
+Esistono due tipi e condividono la stessa sintassi.
 
 ## Variabili globali
 
-Valori a livello di progetto definiti una sola volta in **Workflows → Variabili globali**. Pensa a chiavi API, URL di base, nomi di canali, qualsiasi cosa tu non voglia cablare manualmente in dieci workflow.
+Valori a livello di progetto che salvi una sola volta e riutilizzi ovunque. Pensa a chiavi API, URL, nomi di canali — qualsiasi cosa che non vuoi copiare in dieci workflow diversi.
 
-Una variabile globale ha:
+Le trovi sotto **Workflows → Global Variables**. Ognuna ha:
 
-- **Nome** — l'identificatore con cui la referenzi. Usa `UPPER_SNAKE_CASE` per renderla evidente nei template.
-- **Valore** — il valore stringa. Sono supportati valori multi-riga.
-- **Is Secret** — quando è attivo, il valore è in sola scrittura nell'interfaccia dopo il salvataggio ed è oscurato nei log delle esecuzioni.
+- **Name** — come la richiamerai. Usa `UPPER_SNAKE_CASE` per farla risaltare nei tuoi blocchi.
+- **Value** — il valore vero e proprio. Funzionano anche i valori su piu righe.
+- **Is Secret** — se attivo, il valore viene nascosto nell'interfaccia dopo il salvataggio e nei log delle esecuzioni.
 
-Referenzia una variabile globale da qualsiasi punto di qualsiasi workflow con:
+Usa una variabile globale in qualsiasi workflow con:
 
 ```
 {{variable.NAME}}
 ```
 
-Per esempio, se hai definito `PAGERDUTY_KEY` come variabile segreta, ogni componente API che chiama PagerDuty può leggerla come `{{variable.PAGERDUTY_KEY}}` senza che nessuno veda la chiave vera nel JSON del workflow.
+Per esempio, se hai salvato la tua chiave PagerDuty come `PAGERDUTY_KEY`, qualsiasi blocco puo usarla come `{{variable.PAGERDUTY_KEY}}` — la chiave reale non appare mai nel workflow ne nei suoi log.
 
-## Variabili locali
+## Variabili locali (dati dai blocchi precedenti)
 
-Le variabili locali sono i valori di ritorno dei nodi che hanno già eseguito in questa esecuzione. Ogni trigger e ogni componente ne pubblica uno — vedi [Trigger](/docs/workflows/triggers) e [Componenti](/docs/workflows/components) per gli elenchi nodo per nodo.
+Le variabili locali sono l'output dei blocchi gia eseguiti in questa esecuzione. Ogni trigger e ogni componente produce un output che puoi leggere.
 
-Referenzia una variabile locale come:
+Fai riferimento all'output di un blocco precedente in questo modo:
 
 ```
-{{NodeId.fieldName}}
+{{BlockName.fieldName}}
 ```
 
-Il `NodeId` è il nome del trigger o del componente sul canvas (puoi rinominarlo per leggibilità — tienilo corto e in `PascalCase` per mantenere puliti i riferimenti). Il `fieldName` è qualunque cosa quel nodo pubblichi.
+`BlockName` e il nome del trigger o del componente sul canvas (puoi rinominarlo in qualcosa di breve e chiaro). `fieldName` e cio che quel blocco produce.
 
 Esempi:
 
-- Dopo che un componente **API** chiamato `LookupUser` è ritornato con successo, i nodi a valle possono leggere il suo status code come `{{LookupUser.response-status}}` e il body parsato come `{{LookupUser.response-body}}`.
-- Dopo un trigger **Incident → On Create** chiamato `Incident`, puoi leggere `{{Incident.title}}`, `{{Incident.description}}`, `{{Incident.incidentSeverityId}}` e qualsiasi altra colonna sull'incidente.
-- Dopo un componente **Custom Code** chiamato `Transform`, il valore ritornato è esposto come `{{Transform.value}}`.
+- Dopo l'esecuzione di un blocco **API** chiamato `LookupUser`, puoi leggere il codice di stato come `{{LookupUser.response-status}}` e il body come `{{LookupUser.response-body}}`.
+- Dopo un trigger **Incident → On Create** chiamato `Incident`, puoi leggere `{{Incident.title}}`, `{{Incident.description}}` e qualsiasi altro campo dell'incidente.
+- Dopo un blocco **Custom Code** chiamato `Transform`, il valore restituito si trova in `{{Transform.value}}`.
 
-Le variabili locali hanno scope di una singola esecuzione. L'esecuzione successiva parte con una lavagna pulita.
+Le variabili locali esistono solo durante l'esecuzione corrente. Ogni nuova esecuzione inizia da zero.
 
-## Dove funziona l'interpolazione
+## Dove funzionano le variabili
 
-Quasi ogni argomento in stile testo supporta l'interpolazione:
+Quasi tutti i campi di testo accettano variabili:
 
-- I campi URL sul componente API
-- Il testo del messaggio su Slack / Teams / Discord / Telegram / Email
-- L'oggetto e il body di Email
-- I campi degli header e del body (usala dentro i valori JSON)
-- Gli operandi sinistro e destro su Conditions
+- L'URL di un blocco API.
+- Il testo del messaggio in Slack, Teams, Discord, Telegram, Email.
+- L'oggetto e il body di un'email.
+- I campi header e body (all'interno di valori stringa).
+- Entrambi i lati di un blocco Conditions.
 
-Gli argomenti puro-JSON accettano interpolazione dentro i valori stringa; non puoi interpolare una chiave. Se devi costruire una struttura dinamica, usa **Custom Code** per assemblare il payload e poi pipe il suo valore di ritorno nel nodo successivo.
+I campi puri JSON accettano variabili all'interno di valori stringa, ma non puoi usare una variabile come chiave. Se devi costruire una struttura dinamicamente, usa un blocco **Custom Code** per crearla e passa il suo output al blocco successivo.
 
-Il componente **Custom Code** legge le variabili in modo diverso — le variabili globali sono esposte su `args.variables`, e i valori di ritorno a monte vengono passati come argomenti con nome che configuri sul componente.
+Il blocco **Custom Code** legge le variabili in modo diverso — le variabili globali arrivano in `args.variables`, e tu decidi quali output precedenti passare come argomenti.
 
 ## Esempi
 
-### Costruire un payload da un trigger
+### Costruire un payload da un webhook
 
-Un webhook riceve il risultato di una build CI. Il body è JSON come `{ "service": "checkout", "status": "failed" }`. Per trasformarlo in un incidente OneUptime:
+Arriva un webhook con un body come `{ "service": "checkout", "status": "failed" }`. Per trasformarlo in un incidente OneUptime:
 
 1. Trigger **Webhook** chiamato `CIWebhook`.
-2. Componente **Conditions**: left `{{CIWebhook.Request Body.status}}`, operator `==`, right `failed`.
-3. Dalla porta `yes`, un componente **Create Incident** con:
-   - Title: `Build CI fallita: {{CIWebhook.Request Body.service}}`
-   - Description: `Vedi {{CIWebhook.Request Body.url}} per i log della build.`
+2. Blocco **Conditions**: left `{{CIWebhook.Request Body.status}}`, operatore `==`, right `failed`.
+3. Dal ramo **Yes**, un blocco **Create Incident** con:
+   - Titolo: `CI build failed: {{CIWebhook.Request Body.service}}`
+   - Descrizione: `See {{CIWebhook.Request Body.url}} for the logs.`
 
-### Usare un segreto in una chiamata API in uscita
+### Usare un segreto in una chiamata API
 
 Un workflow che chiama PagerDuty:
 
-1. Definisci `PAGERDUTY_KEY` come variabile globale segreta.
-2. Sul componente **API**, imposta l'header `Authorization` a `Token token={{variable.PAGERDUTY_KEY}}`.
+1. Salva `PAGERDUTY_KEY` come variabile globale segreta.
+2. Sul blocco **API**, imposta l'header `Authorization` su `Token token={{variable.PAGERDUTY_KEY}}`.
 
-La chiave non compare mai nel JSON del workflow né nei log delle esecuzioni.
+La chiave resta fuori dal workflow e dai log.
 
 ### Concatenare due chiamate API
 
-La prima chiamata restituisce un ID di cui ha bisogno la seconda chiamata:
+La prima chiamata ti fornisce un ID di cui ha bisogno la seconda:
 
-1. Componente **API** `LookupOrder`: `GET /orders?email={{Manual.JSON.email}}`.
-2. Componente **API** `CancelOrder`: `POST /orders/{{LookupOrder.response-body.id}}/cancel`.
+1. Blocco **API** `LookupOrder`: `GET /orders?email={{Manual.JSON.email}}`.
+2. Blocco **API** `CancelOrder`: `POST /orders/{{LookupOrder.response-body.id}}/cancel`.
 
-Se `LookupOrder` restituisce una risposta non-2xx, scatta la sua porta `error` invece di `success` — collega quel ramo a un componente Email o Slack così i fallimenti non sono silenziosi.
+Se `LookupOrder` fallisce, scatta il suo output **error** invece di **success**. Collegalo a un blocco Email o Slack cosi i fallimenti non passano inosservati.
 
-## Qualche insidia
+## Attenzione
 
-- **I refusi nei nomi dei nodi rompono i riferimenti in silenzio.** Se rinomini un nodo dopo aver cablato `{{OldName.field}}` a valle, aggiorna ogni riferimento. Guarda il log dell'esecuzione — se vedi il letterale `{{OldName.field}}` nell'argomento catturato, il lookup non si è risolto.
-- **I segreti sono case-sensitive.** `{{variable.MyKey}}` e `{{variable.mykey}}` sono variabili diverse.
-- **I campi mancanti sono vuoti.** Referenziare `{{Foo.nonexistent}}` produce una stringa vuota, non un errore. Utile, ma può mascherare bug — usa un nodo **Conditions** per asserire la presenza se il campo è richiesto dal passo successivo.
+- **Rinominare un blocco rompe i riferimenti.** Se rinomini un blocco, aggiorna ogni luogo in cui viene utilizzato. Nel log dell'esecuzione, un riferimento non risolto appare come testo letterale `{{BlockName.field}}`.
+- **I nomi delle variabili sono case-sensitive.** `{{variable.MyKey}}` e `{{variable.mykey}}` sono diverse.
+- **I campi mancanti diventano vuoti.** Fare riferimento a un campo che non esiste restituisce una stringa vuota, non un errore. Comodo — ma puo nascondere bug. Usa un blocco **Conditions** per verificare i campi importanti prima di continuare.
 
-## Cosa leggere dopo
+## Letture successive
 
-- [Componenti](/docs/workflows/components) — il catalogo completo dei nomi dei valori di ritorno.
-- [Esecuzioni e log](/docs/workflows/runs-and-logs) — ispeziona il valore letterale di ogni argomento interpolato dopo un'esecuzione.
-- [Configurazione e sicurezza](/docs/workflows/configuration) — cosa è sicuro mettere in una variabile globale.
+- [Componenti](/docs/workflows/components) — l'elenco completo degli output prodotti da ciascun blocco.
+- [Esecuzioni e log](/docs/workflows/runs-and-logs) — vedi il valore effettivo di ogni variabile dopo un'esecuzione.
+- [Configurazione e sicurezza](/docs/workflows/configuration) — cosa e sicuro mettere in una variabile globale.

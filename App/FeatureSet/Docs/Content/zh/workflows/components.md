@@ -1,145 +1,147 @@
-# 工作流组件
+# 组件
 
-组件是你放在触发器之后的动作节点。每一个只做一件事——发起 HTTP 请求、发 Slack 消息、按条件分支、运行 JavaScript 片段——并暴露一个或多个输出端口供下一节点连接。
+组件是你在触发器之后添加的构建模块。每一个只做一件事——发送消息、调用 API、检查条件——并连接到接下来的模块。
 
-本页是清单。关于连线规则和画布本身，见 [创建工作流](/docs/workflows/authoring)。
+本页是组件目录。关于如何在画布上拖动、放置和连接它们,见 [创作工作流](/docs/workflows/authoring)。
 
 ## API
 
-向任意 URL 发起出站 HTTP 请求。
+对任意 URL 发起 HTTP 请求。
 
-**参数**：
+**设置**:
 
-- **Method** — `GET`、`POST`、`PUT`、`PATCH`、`DELETE`。
-- **URL** — 请求 URL。支持插值。
-- **Request Headers** — 头的 JSON 对象。
-- **Request Body** — `POST` / `PUT` / `PATCH` 的 JSON 或文本请求体。
+- **Method**——`GET`、`POST`、`PUT`、`PATCH` 或 `DELETE`。
+- **URL**——要调用的地址。
+- **Headers**——要发送的任意头部。
+- **Body**——用于 `POST` / `PUT` / `PATCH` 的请求体。
 
-**输出端口**：
+**输出**:
 
-- `success` — 响应状态为 2xx 时触发。返回值：`response-status`、`response-headers`、`response-body`。
-- `error` — 网络失败或非 2xx 响应时触发。返回值：`error` 消息。
+- **成功**——调用成功(2xx 响应)时触发。一并传出状态、头部和响应体。
+- **错误**——发生网络错误或非 2xx 响应时触发。一并传出错误信息。
 
-适用场景：任意第三方 REST API、你自己的管理端点、没有专用组件的轻量集成。
+适合用于:任意外部 API、你自己的管理端点,或任何没有专用组件的集成。
 
-## Webhook（出站）
+## Webhook(出站)
 
-是 API 组件围绕"发出不管"这一常见场景的简化封装。向一个 URL 发 JSON 请求体，并暴露一对 `success` / `error`。
+API 组件的简化版,适合"发完即走"的场景。向某个 URL 发送一段 JSON 正文。
 
-如果你需要在下游读取响应体，优先用 **API**；如果你只想通知另一个系统，用 **Webhook**。
+如果你需要读取响应,使用 **API**。如果你只想发个通知就接着干别的,使用 **Webhook**。
 
 ## Slack
 
-使用项目的 Slack 工作区连接向 Slack 频道发消息。
+向 Slack 频道发送一条消息。
 
-**参数**：
+**设置**:
 
-- **Channel name** — 要发送到的频道。机器人必须已经是该频道的成员。
-- **Message text** — 正文。支持插值；支持 Slack mrkdwn。
+- **频道**——频道名称。机器人必须已经在那个频道里。
+- **消息**——要发送的文本。支持 Slack 格式。
 
-先在 **项目设置 → 工作区连接 → Slack** 中配置工作区连接。见 [Slack 工作区连接](/docs/workspace-connections/slack)。
+请先在 **项目设置 → 工作区连接 → Slack** 下把 Slack 连接到你的项目。见 [Slack 工作区连接](/docs/workspace-connections/slack)。
 
 ## Microsoft Teams
 
-使用项目的 Teams 连接向 Microsoft Teams 频道发消息。
+向 Microsoft Teams 频道发送一条消息。
 
-**参数**：
+**设置**:
 
-- **Team & channel** — 目的地。
-- **Message text** — 正文。
+- **团队和频道**——发布的位置。
+- **消息**——要发送的文本。
 
-连接配置见 [Microsoft Teams 工作区连接](/docs/workspace-connections/microsoft-teams)。
+设置方式见 [Microsoft Teams 工作区连接](/docs/workspace-connections/microsoft-teams)。
 
 ## Discord
 
-通过在组件上配置的入站 webhook URL 向 Discord 频道发消息。
+通过入站 webhook URL 向 Discord 频道发送一条消息。
 
 ## Telegram
 
-通过在组件上配置的机器人 token 和 chat ID 向 Telegram 聊天发送消息。
+使用机器人令牌和聊天 ID 向 Telegram 聊天发送消息。
 
-## Email
+## 邮件
 
-通过 OneUptime 的 SMTP 配置发送邮件。
+通过 OneUptime 发送邮件。
 
-**参数**：
+**设置**:
 
-- **To** — 收件人邮箱地址。
-- **Subject** — 支持插值。
-- **Body** — Markdown 或 HTML。
+- **收件人**——收件人的邮箱地址。
+- **主题**——邮件主题。
+- **正文**——Markdown 或 HTML 格式的内容。
 
-邮件从项目配置的发件地址发出（见 [SMTP](/docs/emails/smtp)）。
+邮件会从你项目配置的发件人发出——见 [SMTP](/docs/emails/smtp)。
 
-## Custom Code
+## 自定义代码
 
-运行一段可以访问工作流变量与上游节点返回值的 JavaScript 片段。
+当其他模块办不到时,运行一小段 JavaScript。
 
-**参数**：
+**设置**:
 
-- **Code** — JavaScript 主体。最后一个表达式的值（或 `(async () => { ... })()` 返回的值）成为组件的返回值。
-- **Arguments** — 可选的命名参数，作为 `args` 传入。
+- **Code**——你的 JavaScript 代码。最后的值(或异步函数中返回的值)会成为模块的输出。
+- **Arguments**——你可以传入的命名值。
 
-**输出端口**：`success`（返回值）、`error`（捕获的异常）。
+**输出**:成功(你的返回值)和错误(任何异常)。
 
-适用场景：在两个系统之间转换负载、做一个不值得单开组件的小计算、调用仅 JS 的逻辑。需要在你自己的基础设施中运行的更重型脚本，应该作为 [Runbook](/docs/runbooks/index) 的 Bash 或 JavaScript 步骤。
+适合用于:在两个系统之间整形数据、做小计算,或任何不值得为它单独做一个模块的事情。需要更重的脚本时,改用 [Runbook](/docs/runbooks/index)。
 
 ## JSON
 
 在文本和 JSON 之间转换。
 
-- **JSON → Text** — 把 JSON 对象序列化为字符串（适合作为期望文本的出站组件 `body` 参数的输入）。
-- **Text → JSON** — 把字符串解析为 JSON 对象。当上游 API 以文本形式返回响应体但你需要读取某个字段时很有用。
+- **JSON → Text**——把 JSON 对象转成字符串。当下一个模块需要文本时有用。
+- **Text → JSON**——把字符串解析为 JSON 对象。当某个内容以文本形式传来、而你需要读取它的字段时有用。
 
-## Conditions
+## 条件
 
-基于比较做分支。配置：
+基于比较进行分支。
 
-- **Left value** — 通常是 `{{Incident.title}}` 这样的插值引用。
-- **Operator** — `==`、`!=`、`>`、`>=`、`<`、`<=`、`contains`、`starts with`、`ends with`。
-- **Right value** — 要比较的值。
+**设置**:
 
-**输出端口**：`yes` 和 `no`。把工作流的后续连到符合你意图的那条分支。
+- **左侧值**——通常来自前面模块的某个值。
+- **运算符**——`==`、`!=`、`>`、`>=`、`<`、`<=`、`contains`、`starts with`、`ends with`。
+- **右侧值**——要比较的对象。
 
-## Schedule（延迟）
+**输出**:**是** 和 **否**。把后续模块连接到你想要的分支。
 
-让工作流在继续之前暂停一段配置好的时长。当你需要给外部系统一点时间稳定下来再检查其状态时很有用。
+## 延迟
 
-## Log
+让工作流暂停一段时间后再继续。当你需要给另一个系统一点时间追上时很有用。
 
-向工作流运行日志写一行。纯调试辅助；该行会被捕获在运行上，可在 **日志** 下查看。无外部副作用。
+## 日志
 
-## Execute Workflow
+向运行日志写一行。没有外部副作用——它只会出现在工作流的日志里,供你查看。便于调试。
 
-把另一个工作流作为子步骤调用。被调用的工作流独立运行（发出不管）——调用一旦派发，控制权就立即返回给调用方。
+## 执行工作流
 
-用它把共享逻辑从多个工作流中抽出：构建一个 "post-to-incident-channel" 工作流一次，从所有需要通知该频道的其它工作流调用它。
+从当前工作流中调用另一个工作流。被调用的工作流独立运行——你的工作流不会等它完成。
 
-递归限制可防止工作流之间陷入无限循环调用。见 [工作流配置与安全](/docs/workflows/configuration)。
+用它来共享通用逻辑。构建一次"发布到事件频道"的工作流,然后在所有需要通知该频道的其他工作流中调用它。
 
-## 模型组件（对 OneUptime 实体的增删改查）
+为了防止工作流循环互调,有一个安全限制。见 [配置与安全](/docs/workflows/configuration)。
 
-对每个支持工作流的 OneUptime 实体（监控、事件、告警、状态页、值班策略等），面板都会自动暴露下列组件——可按实体名搜索：
+## OneUptime 数据组件
 
-- **Find One {Entity}** — 按查询取一条记录。
-- **Find {Entity}** — 按查询取一组记录（分页）。
-- **Create {Entity}** — 插入新记录。
-- **Update {Entity}** — 按 ID 更新一条记录。
-- **Delete {Entity}** — 按 ID 删除一条记录。
-- **Count {Entity}** — 统计匹配查询的记录数。
+对 OneUptime 中的每种记录类型(监控、事件、告警、状态页、值班策略,以及更多),面板里都有这些组件——按类型名称搜索:
 
-这是工作流不离开平台就能读写 OneUptime 状态的方式。例如：来自你 CI 工具的 webhook 用构建失败信息调用 **Create Incident**；或者一个调度工作流每五分钟跑一次 **Find Incident** 并以邮件发送摘要。
+- **Find One**——按 ID 或筛选条件获取一条记录。
+- **Find**——获取记录列表。
+- **Create**——添加一条新记录。
+- **Update**——更新一条记录。
+- **Delete**——删除一条记录。
+- **Count**——统计符合筛选条件的记录数。
 
-## 选对组件
+这就是工作流读取和修改 OneUptime 数据的方式。例如:来自 CI 工具的 webhook 可以用 **Create Incident** 创建一个带有失败详情的事件。
 
-一些经验法则：
+## 我该用哪个组件?
 
-- 如果你想做的事已经有专用组件（Slack、Email、对 OneUptime 实体的 CRUD），就用它——它给你更友好的错误处理和更清晰的日志，胜过自己拼一个。
-- 如果你要调一个没有专用组件的外部 HTTP API，用 **API**。
-- 如果你需要在两个组件之间*塑形*数据，用 **Custom Code** 或 **JSON**。
-- 如果你需要根据某个值做出不同的动作，用 **Conditions**。
+几条简单规则:
+
+- 如果有专门的模块可用(Slack、邮件、某个 OneUptime 记录),就用它——你会得到更好的错误处理和更清晰的日志。
+- 对任何其他外部 API,使用 **API**。
+- 要在模块间整形数据,使用 **自定义代码** 或 **JSON**。
+- 要根据某个值采取不同动作,使用 **条件**。
 
 ## 接下来读什么
 
-- [工作流变量](/docs/workflows/variables) — 如何把数据从一个组件喂给下一个。
-- [工作流运行与日志](/docs/workflows/runs-and-logs) — 如何查看每个组件在某次运行中的返回值。
-- [工作流配置与安全](/docs/workflows/configuration) — 限制、所有权和密钥。
+- [变量](/docs/workflows/variables)——在模块间传递数据。
+- [运行与日志](/docs/workflows/runs-and-logs)——查看某次运行中每个模块做了什么。
+- [配置与安全](/docs/workflows/configuration)——限制、所有者和密钥。

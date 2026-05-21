@@ -1,96 +1,92 @@
-# Dashboard-variabler & filtre
+# Variabler & filtre
 
-En variabel forvandler et enkelt dashboard til en skabelon. Definér en `service`-variabel, og det samme diagram rendres igen for `checkout`, `payments` og `search` — vælg fra en dropdown i toppen i stedet for at bygge tre næsten ens dashboards.
+En variabel forvandler et enkelt dashboard til en skabelon. Tilføj en `service`-variabel til dit dashboard, og de samme diagrammer rendres igen for `checkout`, `payments` eller `search` — besøgende vælger fra en dropdown i toppen i stedet for, at du bygger tre næsten ens dashboards.
 
-Denne side dækker de fire variabel-typer, hvordan deres værdier injiceres i widget-forespørgsler, samt det globale tidsinterval og de opdateringsstyringer, der ligger ved siden af dem.
+## Variabeltyper
 
-## Variabel-typer
+Tilføj variabler under **Dashboard → Settings → Variables**. Hver variabel har et navn (brugt som `{{name}}` i dine widgets), en valgfri label og en type.
 
-Tilføj variabler under **Dashboard → Settings → Variables**. Hver har et navn (refereret som `{{name}}` i widget-forespørgsler), en valgfri etiket og en type.
+### Custom List
 
-### Brugerdefineret liste
+En statisk dropdown. Du skriver selv mulighederne.
 
-En statisk drop-down. Du leverer en kommasepareret liste af værdier; den, der ser, vælger en.
+Brug den, når: valgene er små og faste. `environment` med værdierne `prod, staging, dev`. `region` med værdierne `us-east-1, eu-west-1, ap-south-1`.
 
-Brug den, når: mængden af valg er lille, fast og kun meningsfuld for dit team. `environment` med værdierne `prod, staging, dev`. `region` med værdierne `us-east-1, eu-west-1, ap-south-1`.
+### Query
 
-### Forespørgsel
+Mulighederne kommer fra en forespørgsel mod dine data.
 
-Mulighederne for drop-downen beregnes af en ClickHouse-forespørgsel ved rendering-tid.
+Brug den, når: valgene ændrer sig over tid, og du vil have dropdownen til at følge med. "Hvert kunde-ID set i de seneste 24 timer." Forespørgslen kører mod dit projekts data, og resultaterne bliver dropdownen.
 
-Brug den, når: valgene er dynamiske og lever i din telemetri. "Hvert kunde-ID, der har logget på inden for de seneste 24 timer" via `SELECT DISTINCT customer_id FROM ...`. Forespørgslen kører mod dit projekts data; behandl resultatet som upålideligt input, selvom det er dine egne data.
+### Text Input
 
-### Tekstindtastning
+Et fritekst-felt. Det den besøgende skriver, bruges.
 
-Et frit tekstfelt. Hvad end den, der ser, taster, injiceres.
+Brug den, når: du vil have dashboardet til at fungere som et søgeværktøj. Filtrér efter IP-adresse, request-ID eller enhver anden fritekstværdi.
 
-Brug den, når: du vil have, at dashboardet skal opføre sig som et søgeværktøj. Et "filtrér efter IP" eller "filtrér efter request-ID"-dashboard.
+### Telemetry Attribute
 
-### Telemetri-attribut
+Mulighederne er de forskellige værdier af en attribut i din telemetri over dashboardets tidsinterval.
 
-Mulighederne er de unikke værdier af en OpenTelemetry-attributnøgle på tværs af dit projekts telemetri, over dashboardets tidsinterval.
+Konfigurér **attribute key** (for eksempel `service.name`, `host.name`, `k8s.cluster.name`). Dropdownen fyldes med hver forskellig værdi set i dine logs, metrikker og traces.
 
-Konfigurér **attributnøglen** (f.eks. `k8s.cluster.name`, `service.name`, `host.name`). Widgeten henter unikke værdier fra logs / metrikker / traces og tilbyder dem som en drop-down.
-
-Brug den, når: valgene præcis er de entiteter, du allerede har tagget din telemetri med. Klyngenavn, servicenavn, region, kunde-ID, deployment-miljø — alt, du allerede sender som en OpenTelemetry-ressource- eller span-attribut.
-
-Dette er den mest almindelige variabel-type for service-orienterede dashboards, fordi den auto-opdaterer: når du udsender en ny service tagget `service.name = inventory`, dukker den værdi op i dropdownen, uden at nogen redigerer dashboardet.
+Brug den, når: valgene matcher de tags, du allerede sender med din telemetri. Dette er den mest almindelige type, fordi den opdaterer sig automatisk — når du udruller en ny service tagget `service.name = inventory`, dukker det navn op i dropdownen, uden at du redigerer dashboardet.
 
 ## Multi-select
 
-Hver variabel kan konfigureres som **multi-select**. Når den er slået til, vælger den, der ser, en eller flere værdier; dashboardet filtrerer til `value IN (...)` i stedet for `value = ...`.
+Hver variabel kan tillade flere valg. Når slået til, kan den besøgende vælge en eller flere værdier; dashboardet filtrerer til en hvilken som helst af dem.
 
-Brug multi-select, når: du vil kigge på "checkout + payments sammen" uden at forlade dashboardet. Undgå det, når diagrammets matematik ikke går op på tværs af valgte værdier — f.eks. at gennemsnitsberegne gennemsnit.
+Brug multi-select, når: du vil sammenligne "checkout og payments sammen" uden at forlade dashboardet. Undgå det, når matematikken ikke virker på tværs af valgte værdier (for eksempel at tage gennemsnit af gennemsnit).
 
 ## Standardværdier
 
-Hver variabel tager en valgfri standard. Dashboardet rendres med standarden, indtil den, der ser, ændrer dropdownen. For offentlige dashboards er standarden, hvad besøgende lander på.
+Hver variabel kan have en standard. Dashboardet rendres med standarden, indtil den besøgende ændrer den. For offentlige dashboards er standarden det, besøgende ser først.
 
-## Hvordan interpolation virker
+## Sådan bruger du en variabel i en widget
 
-Hvor som helst en widget-forespørgsel tager et streng-filter — en metrik-forespørgsels `WHERE`-klausul, en liste-widgets filter, et log-streams attribut-match — kan du referere `{{variable_name}}`.
+Hvor end en widget tager et filter — en metriks `WHERE`, en listes filter, en log-streams attribut-match — kan du bruge `{{variable_name}}`.
 
-For eksempel kunne et Charts metrik-forespørgsel være:
+For eksempel et diagram filtreret efter service:
 
 ```
-SELECT avg(latency_ms) FROM spans WHERE service.name = '{{service}}'
+service.name = '{{service}}'
 ```
 
-Når `service` er sat til `checkout`, kører forespørgslen med `service.name = 'checkout'`. Når den, der ser, skifter til `payments`, kører forespørgslen igen med `service.name = 'payments'`.
+Når dropdownen er sat til `checkout`, filtrerer diagrammet til checkout-servicen. Når den besøgende skifter til `payments`, rendres diagrammet igen for payments.
 
-For **Telemetri-attribut**-variabler specifikt kender OneUptime attributnøglen og injicerer filteret i hver widget, der nævner samme attribut — du skal ikke håndredigere hver widgets forespørgsel, når variablen ændres. Det er magien, der får service-skabelongjorte dashboards til at virke ud af boksen.
+For **Telemetry Attribute**-variabler ved OneUptime, hvilken attribut variablen er knyttet til, og anvender filteret på hver widget, der bruger samme attribut — du behøver ikke at redigere hver widget i hånden.
 
 ## Tidsinterval
 
-Dashboardets header har en global **tidsinterval**-vælger. Hver metrik-widget forespørger mod dette vindue. Valg:
+Dashboardets header har et globalt tidsinterval. Hver metrik-widget forespørger mod dette vindue. Muligheder:
 
-- **Presets** — seneste 1 time, 24 timer, 7 dage, 30 dage, 90 dage (afhængigt af din bevaring).
-- **Brugerdefineret interval** — vælg start- og slut-tidsstempler.
+- **Forudindstillinger** — sidste time, 24 timer, 7 dage, 30 dage, 90 dage (afhængigt af din datalagring).
+- **Brugerdefineret** — vælg en start- og sluttid.
 
-Tidsintervallet er en del af dashboardets URL — at dele URL'en deler vinduet. Det er praktisk under en hændelse: fasthold tidsintervallet til "10:00–10:30 UTC i dag", og del linket i hændelseskanalen.
+Tidsintervallet er en del af dashboardets URL — at dele URL'en deler vinduet. Nyttigt under en hændelse: fastgør tidsintervallet til "10:00–10:30 UTC i dag", og indsæt linket i hændelseskanalen.
 
-## Opdateringsinterval
+## Refresh-interval
 
-Ved siden af tidsintervallet vælger du, hvor ofte widgets gen-forespørger:
+Ved siden af tidsintervallet vælger du, hvor ofte widgets re-forespørger:
 
-- **Off** — widgets forespørger én gang ved load.
-- **5s / 10s / 30s / 1m / 5m / 15m** — auto-opdatering.
+- **Off** — widgets forespørger én gang, når siden indlæses.
+- **5s / 10s / 30s / 1m / 5m / 15m** — auto-refresh.
 
-Auto-opdatering er praktisk for en vægmonteret skærm og en visning af en igangværende hændelse. Til ad hoc-undersøgelser: lad det være slukket, så visningen forbliver stabil, mens du scroller.
+Auto-refresh er godt til en vægmonteret skærm eller en live-hændelsesvisning. Lad det være slukket, når du undersøger, så visningen holder sig stille, mens du kigger.
 
-## Sæt det sammen
+## Sat sammen
 
-Et service-skabelongjort dashboard har typisk:
+Et service-skabelonbaseret dashboard har typisk:
 
-1. En `service`-variabel af typen **Telemetri-attribut** bundet til `service.name`. Standard: din mest overvågede service. Multi-select: fra (så diagrammer altid viser én service ad gangen).
-2. En `environment`-variabel af typen **Brugerdefineret liste**. Standard: `prod`.
-3. En `cluster`-variabel af typen **Telemetri-attribut** bundet til `k8s.cluster.name`. Multi-select: til (så du kan rulle op på tværs af klynger).
-4. Dashboardets widgets refererer disse variabler i deres filtre.
+1. En `service`-variabel af typen **Telemetry Attribute** for `service.name`. Standard: din mest overvågede service. Multi-select fra (så diagrammer altid viser én ad gangen).
+2. En `environment`-variabel af typen **Custom List**. Standard: `prod`.
+3. En `cluster`-variabel af typen **Telemetry Attribute** for `k8s.cluster.name`. Multi-select til (så du kan sammenligne på tværs af clusters).
+4. Widgets, der refererer til disse variabler i deres filtre.
 
-Resultatet: ét dashboard, hele flådens dækning, et par drop-downs i toppen.
+Resultatet: ét dashboard, hver service dækket, tre dropdowns i toppen.
 
 ## Læs videre
 
-- [Dashboard-widgets](/docs/dashboards/widgets) — hvordan hver widget forbruger et filter.
-- [Deling & offentlige dashboards](/docs/dashboards/sharing) — variabler i URL'er, inklusive deres værdier for delte links.
-- [Opret et dashboard](/docs/dashboards/authoring) — lærreds-mekanikken.
+- [Widgets](/docs/dashboards/widgets) — hvordan hver widget bruger et filter.
+- [Deling & offentlige dashboards](/docs/dashboards/sharing) — variabler og delte links.
+- [Opret et dashboard](/docs/dashboards/authoring) — lærredsmekanikken.

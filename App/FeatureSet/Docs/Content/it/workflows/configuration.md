@@ -1,89 +1,89 @@
 # Configurazione e sicurezza
 
-Questa pagina raccoglie le impostazioni e i limiti di sicurezza che vale la pena conoscere prima di puntare un workflow sul traffico di produzione.
+Questa pagina raccoglie le impostazioni e i limiti di sicurezza che vale la pena conoscere prima di puntare un workflow sul traffico reale.
 
-## Abilita / disabilita
+## Attivare o disattivare un workflow
 
-Ogni workflow ha un flag **isEnabled** in **Settings**. I workflow disabilitati non scattano mai — eventi di modello, webhook ed esecuzioni schedulate vengono ignorati. I nuovi workflow vengono spediti disabilitati.
+Ogni workflow ha un interruttore **Enabled** in **Settings**. Quando e disattivato, il workflow non viene eseguito — le chiamate webhook, gli orari pianificati e gli eventi OneUptime vengono tutti ignorati. I nuovi workflow partono disabilitati.
 
-Tratta questo come il tuo interruttore "pronto per la prod":
+Usa questo interruttore come tuo punto di "pronto per partire":
 
 1. Costruisci il workflow.
-2. Clicca **Esegui manualmente** con un payload rappresentativo.
-3. Controlla i **Log** — conferma che ogni nodo abbia preso la porta che ti aspettavi.
-4. Attiva **isEnabled**.
+2. Clicca su **Run Manually** con un payload realistico.
+3. Controlla i **Logs** — verifica che ogni blocco abbia seguito il percorso atteso.
+4. Sposta **Enabled** su attivo.
 
-Disabilitare un workflow non influisce sulle esecuzioni già in volo; ferma solo la creazione di nuove.
+Disattivare un workflow non interrompe le esecuzioni gia in corso; impedisce solo l'avvio di nuove esecuzioni.
 
-## Ownership e label
+## Proprietari ed etichette
 
-- **Owners** — gli utenti e i team elencati come owner ricevono accesso basato sui permessi e (opzionalmente) notifiche quando il workflow fallisce. Configura in **Settings → Owners**.
-- **Labels** — tag many-to-many per organizzare i workflow. Filtra l'elenco dei workflow per label. Utile quando un progetto ha decine di workflow organizzati per team, per integrazione o per ambiente.
-- **Label rules** — in **Workflows → Settings → Label Rules**, applica automaticamente label ai nuovi workflow in base a match regex su nome o descrizione.
-- **Owner rules** — in **Workflows → Settings → Owner Rules**, assegna automaticamente owner ai nuovi workflow.
+- **Proprietari** — utenti e team elencati come proprietari ottengono l'accesso al workflow e possono scegliere di ricevere notifiche quando fallisce. Impostali sotto **Settings → Owners**.
+- **Etichette** — tag per raggruppare i workflow. L'elenco dei workflow ti permette di filtrare per etichetta, il che rende molto piu navigabile un progetto affollato. Utile quando hai workflow organizzati per team, integrazione o ambiente.
+- **Regole sulle etichette** — sotto **Workflows → Settings → Label Rules**, applica automaticamente etichette ai nuovi workflow in base a schemi di nome o descrizione.
+- **Regole sui proprietari** — sotto **Workflows → Settings → Owner Rules**, assegna automaticamente i proprietari ai nuovi workflow.
 
 ## Segreti
 
-Le variabili globali possono essere marcate come **secret**. Il valore è cifrato a riposo, in sola scrittura nell'interfaccia dopo il salvataggio e oscurato dai log delle esecuzioni (sostituito con `[REDACTED]`).
+Contrassegna una variabile globale come **secret** se contiene qualcosa di sensibile. Il valore viene cifrato, nascosto nell'interfaccia dopo il salvataggio e nei log delle esecuzioni (mostrato come `[REDACTED]`).
 
-Usa le variabili segrete per:
+Usa variabili segrete per:
 
-- Chiavi API per integrazioni in uscita.
-- Bearer token.
-- Chiavi di firma dei webhook.
-- Qualsiasi valore che un attaccante con accesso in lettura a un workflow non dovrebbe vedere.
+- Chiavi API per servizi esterni.
+- Token di autenticazione.
+- Chiavi di firma webhook.
+- Qualsiasi cosa che non vorresti far vedere a chi ha accesso in sola lettura.
 
-Non incollare un segreto direttamente nell'argomento di un componente — riferimenti come `Authorization: Bearer eyJh...` compaiono nel JSON del workflow e nei log delle esecuzioni in chiaro. Referenzia invece `{{variable.MY_SECRET}}`.
+Non incollare un segreto direttamente in un blocco — valori come `Authorization: Bearer eyJh...` finirebbero visibili nel workflow e nei log. Usa invece `{{variable.MY_SECRET}}`.
 
-## Timeout per esecuzione
+## Quanto puo durare un'esecuzione
 
-Ogni esecuzione ha una durata massima. Se un'esecuzione non termina entro il timeout, viene marcata come `Timeout` e ogni componente in volo viene cancellato. Il default è generoso (minuti, non secondi) — consulta la configurazione di ambiente del worker per il valore esatto nella tua installazione.
+Ogni esecuzione ha una durata massima. Se non si conclude in tempo, viene contrassegnata come **Timeout** e il blocco in corso viene annullato. Il valore predefinito e generoso — sufficiente per le normali chiamate HTTP e catene di blocchi.
 
-La maggior parte dei componenti ha i propri timeout per chiamata dentro il timeout di esecuzione — es. il componente API si arrende su una richiesta in uscita bloccata ben prima che lo faccia l'intera esecuzione.
+Anche i singoli blocchi hanno i propri limiti di tempo al loro interno — per esempio, un blocco API si arrende su una richiesta in uscita bloccata ben prima che lo faccia l'intera esecuzione.
 
-## Limite di ricorsione
+## Limite sulle chiamate ad altri workflow
 
-Il componente **Execute Workflow** consente a un workflow di chiamarne un altro. Per prevenire loop incontrollati dove A chiama B che chiama A all'infinito, il worker traccia la catena di chiamate e ferma una catena che supera una profondità fissa (tipicamente un numero piccolo come 5). L'esecuzione che termina viene marcata come `Error` con un messaggio chiaro sul limite di ricorsione.
+Il componente **Execute Workflow** permette a un workflow di chiamarne un altro. Per evitare cicli accidentali in cui il workflow A chiama B, che chiama di nuovo A, c'e un limite alla profondita della catena. Un'esecuzione che supera il limite termina con un errore chiaro.
 
-Se hai un'esigenza legittima per una catena lunga (es. una visita ricorsiva di cartelle che processa un livello per esecuzione), rifattorizzala in un singolo workflow che itera internamente tramite **Custom Code** — quel pattern non è soggetto al limite di catena.
+Se hai una vera necessita di una catena lunga (come un job che elabora un elemento per esecuzione), di solito e piu semplice fare un ciclo all'interno di un singolo workflow usando **Custom Code**.
 
 ## Sicurezza dei webhook
 
-I trigger webhook espongono un URL HTTPS univoco. Chiunque scopra l'URL può colpirlo. Per difenderti da chiamanti accidentali o ostili:
+I trigger webhook ti forniscono un URL univoco. Chiunque lo conosca puo invocarlo. Per proteggerti da chiamanti accidentali o indesiderati:
 
-- Tratta l'URL come un segreto condiviso. Non incollarlo in chat pubbliche né committarlo in un repo pubblico.
-- Per i workflow ad alto valore, chiedi al sistema chiamante di includere un segreto condiviso come header (es. `X-Webhook-Token`) e validalo in un nodo **Conditions** prima di fare qualsiasi cosa distruttiva. Definisci il token atteso come variabile globale segreta.
-- Per i workflow a valore molto alto, preferisci un trigger su evento di modello e un passo di import manuale invece di un webhook pubblico.
+- Tratta l'URL come una password. Non condividerlo pubblicamente e non commitarlo in un repository pubblico.
+- Per workflow sensibili, chiedi al sistema chiamante di inviare un token condiviso come header (per esempio `X-Webhook-Token`) e verificalo con un blocco **Conditions** prima di fare qualcosa di importante. Salva il token atteso come variabile segreta.
+- Per workflow molto sensibili, preferisci un trigger su evento di OneUptime con un passaggio di import manuale invece di un webhook pubblico.
 
-## Egress di rete in uscita
+## Accesso di rete in uscita
 
-I componenti API e altri stile HTTP inviano richieste dalla rete del Workflow Worker di OneUptime. Se ospiti OneUptime in self-hosting, la rete in uscita del worker è affar tuo — assicurati che possa raggiungere le API di terze parti che chiami. Se usi OneUptime Cloud, il nostro range di IP egress è pubblicato in [IP Addresses](/docs/configuration/ip-addresses) così puoi inserirlo in allowlist sul lato ricevente.
+I blocchi API e gli altri blocchi HTTP effettuano le proprie richieste da OneUptime. Se utilizzi un'installazione self-hosted, assicurati che la tua installazione possa raggiungere i servizi che chiami. Se utilizzi OneUptime Cloud, gli intervalli IP in uscita sono elencati in [Indirizzi IP](/docs/configuration/ip-addresses) in modo che tu possa autorizzarli dall'altro lato.
 
 ## Permessi
 
-I workflow sono risorse di prima classe soggette al controllo accessi basato sui ruoli a livello di progetto:
+I workflow rispettano il controllo accessi basato sui ruoli del tuo progetto. I permessi rilevanti:
 
-- `CreateWorkflow`, `ReadWorkflow`, `EditWorkflow`, `DeleteWorkflow` — i quattro permessi CRUD sui modelli di workflow.
-- `RunWorkflow` — necessario per cliccare **Esegui manualmente** o per dispatchare un workflow via API.
-- `ReadWorkflowLog` — necessario per vedere la pagina **Esecuzioni e log**.
-- `ReadWorkflowVariable`, `CreateWorkflowVariable`, `EditWorkflowVariable`, `DeleteWorkflowVariable` — controllo sull'elenco delle variabili globali.
+- **Create / Read / Edit / Delete Workflow** — i permessi di base sul workflow stesso.
+- **Run Workflow** — necessario per cliccare **Run Manually** o per attivare un workflow tramite API.
+- **Read Workflow Log** — necessario per visualizzare le esecuzioni.
+- **Read / Create / Edit / Delete Workflow Variable** — controllo sull'elenco delle variabili globali.
 
 La maggior parte degli ingegneri dovrebbe avere create/edit/read sui workflow ma non sulle variabili. Riserva l'accesso in modifica alle variabili alle persone che gestiscono i segreti del tuo progetto.
 
-## Quote
+## Limiti di piano
 
-OneUptime Cloud limita il numero di esecuzioni al mese per progetto sui piani più piccoli. Il limite è mostrato in **Project Settings → Billing**. Quando lo raggiungi, i nuovi trigger vengono rifiutati (e registrati con una ragione "quota exceeded" sul workflow interessato) fino al ciclo di fatturazione successivo. Le installazioni in self-hosting non sono soggette a quota.
+OneUptime Cloud limita il numero di esecuzioni mensili sui piani piu piccoli. Il tuo limite attuale e mostrato sotto **Project Settings → Billing**. Quando lo raggiungi, i nuovi trigger vengono rifiutati fino al ciclo di fatturazione successivo. Le installazioni self-hosted non hanno questo limite.
 
-## Per cosa i workflow *non* sono indicati
+## Quando i workflow non sono lo strumento giusto
 
-Alcuni pattern per cui dovresti rivolgerti a un altro strumento:
+Alcuni casi in cui dovresti scegliere qualcos'altro:
 
-- **Computazione a lunga durata** — i workflow sono orientati al collante tra sistemi, non a macinare grossi dataset. Esegui il lavoro pesante nella tua infrastruttura e usa un workflow per farlo partire.
-- **Workflow stateful che durano minuti/ore** — una singola esecuzione è pensata per terminare velocemente. Se devi "fai la cosa A, poi attendi due ore, poi fai la cosa B", modella l'attesa come uno scheduler esterno che ripiomba su un trigger webhook.
-- **Risposta agli incidenti passo-passo con checkpoint umani** — è per questo che esistono i [Runbook](/docs/runbooks/index). Usa un workflow se non c'è un essere umano nel loop; usa un runbook se c'è.
+- **Calcoli pesanti o dataset grandi** — i workflow sono pensati per lavori di collegamento leggeri, non per elaborazioni intensive. Esegui il lavoro pesante nella tua infrastruttura e lascia che un workflow lo avvii.
+- **Processi di lunga durata che si estendono per ore** — una singola esecuzione e pensata per concludersi rapidamente. Se devi "fare A, attendere due ore, fare B," usa uno scheduler esterno che invii un webhook a OneUptime quando e il momento.
+- **Risposta agli incidenti passo passo con persone coinvolte** — per quello esistono i [Runbook](/docs/runbooks/index). I workflow sono per automazione non presidiata.
 
-## Cosa leggere dopo
+## Letture successive
 
-- [Panoramica dei workflow](/docs/workflows/index) — la mappa concettuale.
-- [Componenti](/docs/workflows/components) — i dettagli degli argomenti per ogni azione.
-- [Runbook](/docs/runbooks/index) — quando usare un runbook al posto del workflow.
+- [Panoramica dei workflow](/docs/workflows/index) — il quadro generale.
+- [Componenti](/docs/workflows/components) — riferimento blocco per blocco.
+- [Runbook](/docs/runbooks/index) — quando usare un runbook al posto di un workflow.

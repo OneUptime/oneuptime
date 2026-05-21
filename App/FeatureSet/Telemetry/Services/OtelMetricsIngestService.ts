@@ -220,12 +220,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
       /*
        * Mirror the phantom-host gate from `autoDiscoverHost`: require
-       * explicit host.name and reject k8s telemetry. Application SDKs
-       * inside pods set host.name to the pod's container hostname (the
-       * pod name) and os.type=linux, which used to slip into the Host
-       * table from this batch-enrichment pass even after autoDiscoverHost
-       * rejected the same batch. k8s pods/nodes belong in
-       * KubernetesResource (kind=Pod / kind=Node), not Host.
+       * explicit host.name and reject k8s/Docker telemetry. Application
+       * SDKs inside pods set host.name to the pod's container hostname
+       * (the pod name) and os.type=linux, which used to slip into the
+       * Host table from this batch-enrichment pass even after
+       * autoDiscoverHost rejected the same batch. k8s pods/nodes belong
+       * in KubernetesResource (kind=Pod / kind=Node), and Docker hosts
+       * belong in the DockerHost table — neither should land here.
        */
       const hostName: string | null = OtelIngestBaseService.getStringAttribute(
         ras,
@@ -242,6 +243,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       const k8sClusterName: string | null =
         OtelIngestBaseService.getStringAttribute(ras, "k8s.cluster.name");
       if (k8sPodName || k8sNodeName || k8sClusterName) {
+        continue;
+      }
+
+      if (OtelIngestBaseService.isDockerRuntime(ras)) {
         continue;
       }
 

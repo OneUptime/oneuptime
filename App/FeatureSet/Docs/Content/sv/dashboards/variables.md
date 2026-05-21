@@ -1,96 +1,92 @@
 # Variabler & filter
 
-En variabel förvandlar en enskild instrumentpanel till en mall. Definiera en `service`-variabel och samma diagram renderas om för `checkout`, `payments` och `search` — välj från en rullgardinsmeny högst upp istället för att bygga tre nästan identiska instrumentpaneler.
-
-Den här sidan täcker de fyra variabeltyperna, hur deras värden injiceras i widget-frågor, och de globala kontrollerna för tidsintervall och uppdatering som sitter bredvid dem.
+En variabel förvandlar en enskild instrumentpanel till en mall. Lägg till en `service`-variabel i din instrumentpanel och samma diagram renderas om för `checkout`, `payments` eller `search` — tittare väljer från en rullgardinsmeny högst upp istället för att du bygger tre nästan identiska instrumentpaneler.
 
 ## Variabeltyper
 
-Lägg till variabler under **Dashboard → Settings → Variables**. Var och en har ett namn (refereras som `{{name}}` i widget-frågor), en valfri etikett och en typ.
+Lägg till variabler under **Dashboard → Settings → Variables**. Varje variabel har ett namn (används som `{{name}}` i dina widgetar), en valfri etikett och en typ.
 
 ### Custom List
 
-En statisk rullgardinsmeny. Du anger en kommaseparerad lista med värden; tittaren väljer en.
+En statisk rullgardinsmeny. Du skriver alternativen själv.
 
-Använd den när: uppsättningen val är liten, fast och bara meningsfull för ditt team. `environment` med värdena `prod, staging, dev`. `region` med värdena `us-east-1, eu-west-1, ap-south-1`.
+Använd den när: valen är få och fasta. `environment` med värdena `prod, staging, dev`. `region` med värdena `us-east-1, eu-west-1, ap-south-1`.
 
 ### Query
 
-Alternativen för rullgardinsmenyn beräknas av en ClickHouse-fråga vid renderingstillfället.
+Alternativen kommer från en fråga mot din data.
 
-Använd den när: valen är dynamiska och bor i din telemetri. "Varje kund-ID som har loggat in under de senaste 24 timmarna" via `SELECT DISTINCT customer_id FROM ...`. Frågan körs mot ditt projekts data; behandla resultatet som obetrodd indata även om det är din egen data.
+Använd den när: valen ändras över tid och du vill att rullgardinsmenyn ska hänga med. "Varje kund-ID som setts de senaste 24 timmarna." Frågan körs mot ditt projekts data och resultaten blir rullgardinsmenyn.
 
 ### Text Input
 
-Ett fritext-fält. Vad än tittaren skriver injiceras.
+Ett fritt textfält. Vad tittaren än skriver används.
 
-Använd den när: du vill att instrumentpanelen ska bete sig som ett sökverktyg. En "filtrera efter IP"- eller "filtrera efter request-ID"-instrumentpanel.
+Använd den när: du vill att instrumentpanelen ska fungera som ett sökverktyg. Filtrera efter IP-adress, request-ID eller något annat fritt värde.
 
 ### Telemetry Attribute
 
-Alternativen är de distinkta värdena för en OpenTelemetry-attributnyckel över ditt projekts telemetri, över instrumentpanelens tidsintervall.
+Alternativen är de unika värdena av ett attribut i din telemetri över instrumentpanelens tidsintervall.
 
-Konfigurera **attributnyckeln** (t.ex. `k8s.cluster.name`, `service.name`, `host.name`). Widgeten hämtar distinkta värden från loggar / mätvärden / traces och erbjuder dem som en rullgardinsmeny.
+Konfigurera **attributnyckeln** (till exempel `service.name`, `host.name`, `k8s.cluster.name`). Rullgardinsmenyn fylls med varje unikt värde som setts i dina loggar, mätvärden och traces.
 
-Använd den när: valen är exakt de entiteter du redan har taggat din telemetri med. Klusternamn, tjänstnamn, region, kund-ID, deployment-miljö — vad som helst du redan skickar som en OpenTelemetry-resurs eller span-attribut.
+Använd den när: valen matchar taggarna du redan skickar med din telemetri. Detta är den vanligaste typen eftersom den uppdateras automatiskt — när du skeppar en ny tjänst taggad `service.name = inventory` dyker det namnet upp i rullgardinsmenyn utan att du redigerar instrumentpanelen.
 
-Det här är den vanligaste variabeltypen för tjänstorienterade instrumentpaneler eftersom den auto-uppdateras: när du shippar en ny tjänst taggad `service.name = inventory` dyker det värdet upp i rullgardinsmenyn utan att någon redigerar instrumentpanelen.
+## Multi-select
 
-## Flerval
+Varje variabel kan tillåta flera val. När det är på kan tittaren välja ett eller flera värden; instrumentpanelen filtrerar till något av dem.
 
-Varje variabel kan konfigureras som **multi-select**. När på, plockar tittaren ett eller flera värden; instrumentpanelen filtrerar till `value IN (...)` istället för `value = ...`.
-
-Använd flerval när: du vill titta på "checkout + payments tillsammans" utan att lämna instrumentpanelen. Undvik det när diagram-matematiken inte går ihop över valda värden — t.ex. att medelvärdesberäkna medelvärden.
+Använd multi-select när: du vill jämföra "checkout och payments tillsammans" utan att lämna instrumentpanelen. Undvik det när matematiken inte fungerar över valda värden (till exempel medelvärde av medelvärden).
 
 ## Standardvärden
 
-Varje variabel tar ett valfritt standardvärde. Instrumentpanelen renderas med standardvärdet tills tittaren ändrar rullgardinsmenyn. För offentliga instrumentpaneler är standardvärdet det besökare landar på.
+Varje variabel kan ha ett standardvärde. Instrumentpanelen renderas med standardvärdet tills tittaren ändrar det. För offentliga instrumentpaneler är standardvärdet vad besökare ser först.
 
-## Hur interpolation fungerar
+## Hur du använder en variabel i en widget
 
-Var som helst där en widget-fråga tar ett strängfilter — en metric-frågas `WHERE`-sats, en listwidgets filter, en loggströms attributmatchning — kan du referera till `{{variable_name}}`.
+Var som helst en widget tar ett filter — ett mätvärdes `WHERE`, en listas filter, en loggströms attributmatchning — kan du använda `{{variable_name}}`.
 
-Till exempel kan en Charts metric-fråga vara:
+Till exempel ett diagram filtrerat efter tjänst:
 
 ```
-SELECT avg(latency_ms) FROM spans WHERE service.name = '{{service}}'
+service.name = '{{service}}'
 ```
 
-När `service` är satt till `checkout` körs frågan med `service.name = 'checkout'`. När tittaren växlar till `payments` körs frågan om med `service.name = 'payments'`.
+När rullgardinsmenyn är inställd på `checkout` filtrerar diagrammet till checkout-tjänsten. När tittaren byter till `payments` renderas diagrammet om för payments.
 
-För **Telemetry Attribute**-variabler specifikt vet OneUptime attributnyckeln och injicerar filtret i varje widget som nämner samma attribut — du behöver inte handredigera varje widgets fråga när variabeln ändras. Det är magin som får tjänstmallade instrumentpaneler att fungera direkt.
+För **Telemetry Attribute**-variabler vet OneUptime vilket attribut variabeln mappar till och tillämpar filtret på varje widget som använder samma attribut — du behöver inte redigera varje widget för hand.
 
 ## Tidsintervall
 
-Instrumentpanelens sidhuvud har en global **tidsintervalls-väljare**. Varje metric-widget frågar mot detta fönster. Val:
+Instrumentpanelens sidhuvud har ett globalt tidsintervall. Varje mätvärdeswidget frågar mot detta fönster. Alternativ:
 
-- **Förinställningar** — Senaste 1 timme, 24 timmar, 7 dagar, 30 dagar, 90 dagar (beroende på din retention).
-- **Anpassat intervall** — välj start- och slut-tidsstämplar.
+- **Förinställningar** — senaste timmen, 24 timmar, 7 dagar, 30 dagar, 90 dagar (beroende på din datakvarhållning).
+- **Anpassat** — välj en start- och sluttid.
 
-Tidsintervallet är en del av instrumentpanelens URL — att dela URL:en delar fönstret. Det är bekvämt under en incident: pinna tidsintervallet till "10:00–10:30 UTC idag" och dela länken i incidentkanalen.
+Tidsintervallet är en del av instrumentpanelens URL — att dela URL:en delar fönstret. Användbart under en incident: fäst tidsintervallet till "10:00–10:30 UTC idag" och klistra in länken i incidentkanalen.
 
 ## Uppdateringsintervall
 
-Bredvid tidsintervallet, välj hur ofta widgetar ska omfrågas:
+Bredvid tidsintervallet, välj hur ofta widgetar frågar om data:
 
-- **Av** — widgetar frågar en gång vid laddning.
-- **5s / 10s / 30s / 1m / 5m / 15m** — autouppdatering.
+- **Av** — widgetar frågar en gång när sidan laddas.
+- **5s / 10s / 30s / 1m / 5m / 15m** — automatisk uppdatering.
 
-Autouppdatering är bekvämt för en väggmonterad skärm och en aktuell-incident-vy. För ad hoc-undersökningar, lämna det av så att vyn förblir stabil medan du scrollar.
+Automatisk uppdatering är bra för en vägghängd skärm eller en live-incidentvy. Lämna den av när du felsöker så att vyn ligger stilla medan du tittar.
 
 ## Sätta ihop det
 
-En tjänstmallad instrumentpanel har typiskt:
+En tjänstemallad instrumentpanel har vanligtvis:
 
-1. En `service`-variabel av typen **Telemetry Attribute** bunden till `service.name`. Standard: din mest bevakade tjänst. Multi-select: av (så att diagram alltid visar en tjänst i taget).
+1. En `service`-variabel av typen **Telemetry Attribute** för `service.name`. Standard: din mest bevakade tjänst. Multi-select av (så att diagrammen alltid visar en åt gången).
 2. En `environment`-variabel av typen **Custom List**. Standard: `prod`.
-3. En `cluster`-variabel av typen **Telemetry Attribute** bunden till `k8s.cluster.name`. Multi-select: på (så att du kan rulla upp över kluster).
-4. Instrumentpanelens widgetar refererar till dessa variabler i sina filter.
+3. En `cluster`-variabel av typen **Telemetry Attribute** för `k8s.cluster.name`. Multi-select på (så att du kan jämföra över kluster).
+4. Widgetar som refererar till dessa variabler i sina filter.
 
-Resultatet: en instrumentpanel, hela flottans täckning, några rullgardinsmenyer högst upp.
+Resultatet: en instrumentpanel, varje tjänst täckt, tre rullgardinsmenyer högst upp.
 
-## Var läsa vidare
+## Läs vidare
 
-- [Widgetar](/docs/dashboards/widgets) — hur varje widget konsumerar ett filter.
-- [Delning & offentliga instrumentpaneler](/docs/dashboards/sharing) — variabler i URL:er, inklusive deras värden för delade länkar.
+- [Widgetar](/docs/dashboards/widgets) — hur varje widget använder ett filter.
+- [Delning & offentliga instrumentpaneler](/docs/dashboards/sharing) — variabler och delade länkar.
 - [Skapa en instrumentpanel](/docs/dashboards/authoring) — arbetsytans mekanik.

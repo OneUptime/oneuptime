@@ -1,73 +1,76 @@
-# Execuções e registros
+# Execuções e Registros
 
-Toda vez que o gatilho de um workflow dispara, o OneUptime cria uma **execução** — um registro de uma execução com tempo, status e saída por nó. As execuções são como você confirma que um workflow funcionou, como depura um que não funcionou e como escreve um postmortem quando uma automação se comportou mal.
+Toda vez que um workflow roda, o OneUptime salva um registro do que aconteceu — quando rodou, se funcionou e o que cada bloco fez. Esse registro é chamado de **execução**. Execuções são como você confirma que um workflow funcionou, depura um que não funcionou e revisa a atividade passada.
 
 ## Onde encontrá-las
 
-| Página | Escopo |
+| Página | O que você vê |
 | --- | --- |
-| **Workflows → Execuções e registros** | Escopo do projeto. Cada execução de cada workflow. Filtre por workflow, status e intervalo de tempo. |
-| **Aba Logs de um workflow** | Apenas as execuções deste workflow. |
-| **Página de detalhe de uma execução** | Uma execução, expandida com a saída por nó e quaisquer mensagens de erro. |
+| **Workflows → Execuções e Registros** | Todas as execuções de todos os workflows do projeto. Filtre por workflow, status e tempo. |
+| **Workflow → Aba Logs** | Apenas as execuções deste workflow. |
+| **Uma execução individual** | Uma execução, com a saída de cada bloco. |
 
 ## Status de execução
 
 | Status | Significado |
 | --- | --- |
-| **Scheduled** | O gatilho disparou e a execução está enfileirada, mas o worker ainda não a pegou. Geralmente uma fração de segundo. |
-| **Running** | O worker está percorrendo o grafo no momento. Componentes de longa duração (chamadas HTTP lentas, atrasos intencionais) mantêm uma execução nesse estado. |
-| **Success** | Todo nó que rodou terminou sem erro. (Um workflow que tomou um ramo `error` deliberadamente ainda é `Success` no geral — o workflow em si não falhou.) |
-| **Error** | Um nó falhou e não havia uma porta `error` conectada para tratá-lo. A execução parou nesse nó. |
-| **Timeout** | A execução excedeu o timeout por execução. Veja [Configuração e segurança](/docs/workflows/configuration). |
+| **Agendada** | O gatilho disparou e a execução está prestes a começar. Geralmente leva uma fração de segundo. |
+| **Em Execução** | O workflow está em andamento. Blocos demorados mantêm a execução nesse estado. |
+| **Sucesso** | Todo bloco que rodou terminou sem erro. (Pegar um ramo de **erro** de propósito ainda conta como sucesso — o próprio workflow não falhou.) |
+| **Erro** | Um bloco falhou e não havia caminho de **erro** conectado para tratá-lo. A execução parou aí. |
+| **Timeout** | A execução durou mais que o permitido. Veja [Configuração e Segurança](/docs/workflows/configuration). |
 
 ## Lendo uma execução
 
-Clique em uma execução na lista para abrir sua página de detalhe. Você vê:
+Clique em qualquer execução para abrir os detalhes. Você verá:
 
-- **Cabeçalho** — o gatilho que disparou, o timestamp de início e fim, a duração total, o status.
-- **Lista de nós** — todo nó que executou em ordem, cada um com seus argumentos capturados, seu valor de retorno e a porta de saída escolhida.
-- **Erros** — se um nó falhou, a mensagem de erro e (quando disponível) o stack trace.
+- **Cabeçalho** — o gatilho, hora de início e fim, duração total e status.
+- **Lista de blocos** — todo bloco que rodou, em ordem. Cada um mostra os valores que recebeu, sua saída e qual caminho seguiu.
+- **Erros** — se um bloco falhou, a mensagem de erro e (quando disponível) mais detalhes.
 
-Os argumentos capturados mostram os valores *pós-interpolação* — ou seja, as strings exatas que o nó viu depois que as variáveis foram resolvidas. Esta é a visão de depuração mais útil que existe: se uma mensagem do Slack tem o texto literal `{{Incident.title}}` dentro dela, você sabe que a referência da variável não resolveu.
+Os valores mostrados são exatamente o que o bloco viu — depois que todas as variáveis foram preenchidas. Esta é a visão de depuração mais útil: se uma mensagem do Slack mostra o texto literal `{{Incident.title}}` em vez do título real, você sabe que a variável não foi resolvida.
 
-## Padrões comuns de depuração
+## Depuração comum
 
-### "Meu workflow não disparou."
+### "Meu workflow não rodou."
 
-1. Confirme que o workflow está **habilitado** em **Settings**. Workflows novos nascem desabilitados.
-2. Para um gatilho de evento de modelo: confirme que o evento realmente aconteceu. Abra a entidade (o incidente, alerta, monitor) e olhe o histórico dela.
-3. Para um gatilho de webhook: confirme que o sistema externo está batendo na URL certa. Muitas ferramentas registram a entrega de webhooks de saída — cheque lá.
-4. Para um gatilho de agendamento: confirme que a expressão cron avalia para o horário que você espera. Use um parser de cron na dúvida.
+1. Confirme se o workflow está **ativado** nas Configurações. Workflows novos começam desativados.
+2. Para um gatilho de evento do OneUptime: confirme se o evento de fato aconteceu. Abra o registro e verifique seu histórico.
+3. Para um gatilho de webhook: confirme se o outro sistema está enviando para a URL correta. A maioria das ferramentas registra quando envia um webhook — verifique lá.
+4. Para um gatilho agendado: confirme se a expressão cron corresponde ao horário esperado.
 
-Se o gatilho disparou, mas nenhuma execução aparece, cheque a cota de execuções do projeto em **Project Settings → Billing**.
+Se o gatilho disparou mas nenhuma execução aparece, verifique sua cota de execuções em **Configurações do Projeto → Cobrança**.
 
-### "Roda, mas um nó a jusante nunca executa."
+### "Um bloco posterior nunca rodou."
 
-Um nó que não roda geralmente é um problema de fiação. Abra o canvas e cheque:
+Um bloco que não roda geralmente é um problema de conexão. Abra o canvas e verifique:
 
-- A porta de saída do nó a montante está de fato conectada à porta de entrada deste nó?
-- O nó a montante tomou uma porta diferente (por exemplo, `error` em vez de `success`, ou `no` em vez de `yes`)? Olhe o detalhe da execução para ver qual porta ele escolheu.
+- A saída do bloco anterior está conectada à entrada deste bloco?
+- O bloco anterior tomou uma saída diferente do que você esperava (por exemplo, **erro** em vez de **sucesso**, ou **Não** em vez de **Sim**)? O detalhe da execução mostra qual caminho foi seguido.
 
-### "Uma variável vem vazia."
+### "Uma variável veio vazia."
 
-Abra o detalhe da execução e olhe os argumentos capturados do nó que falhou. Se você vir o texto literal `{{NodeId.field}}`, a referência não resolveu — provavelmente um erro de digitação em `NodeId` ou `field`. Se você vir uma string vazia, o nó a montante rodou mas não produziu esse campo.
+Abra a execução e veja os valores do bloco que falhou.
 
-### "Funciona manual, mas não pelo gatilho."
+- Se você ver o texto literal `{{BlockName.field}}`, a referência não foi resolvida — provavelmente um erro de digitação no nome do bloco ou do campo.
+- Se você ver uma string vazia, o bloco anterior rodou mas não produziu esse campo.
 
-Use **Run Manually** com um payload JSON que espelhe o que o gatilho real publica. Depois compare os argumentos capturados na execução manual e na execução de produção lado a lado — a diferença geralmente está em um único nome de campo ou tipo.
+### "Funciona quando executo manualmente, mas não a partir do gatilho."
 
-## Reexecutar um workflow
+Use **Executar Manualmente** com um payload JSON parecido com o que o gatilho real envia. Em seguida, compare os valores da execução manual com a execução real lado a lado. A diferença geralmente é um único nome de campo ou tipo.
 
-Não existe um botão "tentar novamente esta execução" — por design, o OneUptime nunca re-executa uma execução antiga, porque os efeitos colaterais de saída (mensagens do Slack, chamadas de API) podem não ser idempotentes. Se você quer refazer o trabalho, ajuste o workflow e deixe o próximo gatilho real dispará-lo.
+## Reexecutando um workflow
 
-Para workflows manuais, basta clicar em **Run Manually** com o mesmo payload.
+Não existe um botão "tentar novamente esta execução". Não reexecutamos execuções antigas automaticamente porque os efeitos colaterais (mensagens no Slack, chamadas de API, tickets) podem não ser seguros de repetir. Para refazer o trabalho, corrija o workflow e deixe o próximo gatilho real dispará-lo.
 
-## Retenção de logs
+Para workflows manuais, basta clicar em **Executar Manualmente** com o mesmo payload.
 
-As execuções ficam guardadas indefinidamente no projeto. Se você precisa limpar workflows ruidosos de alto volume (por exemplo, um workflow de debug que dispara a cada minuto), desabilite ou exclua — não existe toggle de retenção por workflow.
+## Por quanto tempo as execuções são mantidas?
 
-## O que ler a seguir
+As execuções são mantidas indefinidamente para o projeto. Se um workflow roda com muita frequência e polui seu histórico (como um workflow de depuração que dispara a cada minuto), desative-o ou exclua-o para parar de gerar ruído.
 
-- [Configuração e segurança](/docs/workflows/configuration) — timeouts, limites de recursão, redação de segredos.
-- [Variáveis](/docs/workflows/variables) — a sintaxe que argumentos interpolados usam.
-- [Componentes](/docs/workflows/components) — os campos de valor de retorno que cada componente publica.
+## O que ler em seguida
+
+- [Configuração e Segurança](/docs/workflows/configuration) — timeouts, limites de recursão, segredos ocultos.
+- [Variáveis](/docs/workflows/variables) — a sintaxe de variáveis usada nos seus blocos.
+- [Componentes](/docs/workflows/components) — o que cada bloco produz.

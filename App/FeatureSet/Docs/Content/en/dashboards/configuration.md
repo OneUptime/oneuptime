@@ -1,80 +1,80 @@
 # Configuration & Permissions
 
-This page collects the settings and access-control knobs worth knowing once you have a dashboard you actually want to keep around.
+This page covers the settings and access controls worth knowing about once you have a dashboard you want to keep around.
 
-## Ownership
+## Owners
 
-A dashboard's **owners** are the users and teams that are granted explicit permissions on it (separate from the project-wide role).
+A dashboard's **owners** are users and teams you've given explicit access to (on top of their project-wide role).
 
 Under **Dashboard → Owners**:
 
-- Add a **user owner** to grant a specific person extra access to this dashboard.
-- Add a **team owner** to grant the same to every member of a team.
+- Add a **user owner** to give one person extra access to this dashboard.
+- Add a **team owner** to give the same to every member of a team.
 
-Use ownership when the project-wide read role is too broad — e.g., a dashboard with sensitive customer-level detail that should only be visible to the customer-success team.
+Use owners when the project-wide read role is too broad — for example, a dashboard with customer-level details that should only be visible to the customer-success team.
 
 ## Labels
 
-Labels are many-to-many tags for organizing dashboards. Apply them under **Dashboard → Overview**.
+Labels are tags for organizing dashboards. Apply them under **Dashboard → Overview**.
 
-Common label patterns:
+Common patterns:
 
 - **By team**: `team:platform`, `team:checkout`, `team:growth`.
 - **By environment**: `env:prod`, `env:staging`.
 - **By purpose**: `purpose:oncall`, `purpose:exec`, `purpose:investigation`.
 
-The **Dashboards** list lets you filter by label, which is the fastest way to find a dashboard in a project that's accumulated dozens.
+The **Dashboards** list lets you filter by label, which is the fastest way to find a dashboard in a project that has accumulated a lot of them.
 
 ## Permissions
 
-Dashboards are first-class resources in OneUptime's role-based access control. The relevant permissions:
+Dashboards work with your project's role-based access control. The relevant permissions:
 
-| Permission | Allows |
+| Permission | What it allows |
 | --- | --- |
-| `CreateDashboard` | Create new dashboards in the project. |
-| `ReadDashboard` | View dashboards (in private mode). |
-| `EditDashboard` | Modify widgets, variables, settings on a dashboard. |
-| `DeleteDashboard` | Delete a dashboard. |
+| **Create Dashboard** | Create new dashboards. |
+| **Read Dashboard** | View dashboards (in private mode). |
+| **Edit Dashboard** | Change widgets, variables, and settings. |
+| **Delete Dashboard** | Delete a dashboard. |
 
-There are matching permissions for the supporting entities: dashboard owners (user / team) and custom domains have their own create / read / edit / delete pairs so you can grant "manage owners" without granting "edit the dashboard itself."
+There are matching permissions for dashboard owners and custom domains, so you can grant "manage owners" without granting "edit the dashboard."
 
 Assign these on project roles under **Project Settings → Teams & Roles**.
 
-## Public-mode access control
+## Access for public dashboards
 
-Public-mode access (see [Sharing & Public Dashboards](/docs/dashboards/sharing)) is governed by three layers, in order:
+When you make a dashboard public (see [Sharing & Public Dashboards](/docs/dashboards/sharing)), three settings control who can see it:
 
-1. **Public Dashboard** toggle — if off, the public URL returns a 404.
-2. **Master Password** — if set, visitors must enter it before the dashboard renders.
-3. **IP Whitelist** (Scale plan) — if set, requests from non-listed IPs receive a 403.
+1. **Public Dashboard** switch — if off, the public URL returns a 404.
+2. **Master Password** — if set, visitors enter a password before the dashboard appears.
+3. **IP Whitelist** (Scale plan) — if set, requests from other IPs are rejected.
 
-A dashboard can have any combination. The most defensive configuration is "Public on, password set, IP allowlist active" — useful for partner portals where you want all three.
+You can combine any of these. The most locked-down combination is "Public on, password set, IP allowlist active" — useful for partner portals where you want all three layers.
 
-## Retention
+## Data retention
 
-Dashboards themselves don't expire. The data they display follows the project's telemetry retention — metrics, logs, and traces are queryable for as long as your plan retains them. A widget pointed at "the past 90 days" on a plan with 30 days of retention will render whatever's still in the store.
+Dashboards themselves don't expire. The data they show follows your project's retention settings — metrics, logs, and traces are queryable for as long as your plan keeps them. A widget pointed at "the past 90 days" on a plan that keeps 30 days will show whatever's still stored.
 
-## Cloning a dashboard
+## Duplicating a dashboard
 
-To duplicate an existing dashboard, open it and use the **Duplicate** action from the dashboards list. The copy includes every widget, variable, and setting except the public-mode configuration (which always starts off — you decide whether to re-enable on the copy).
+To copy an existing dashboard, open the dashboards list and pick **Duplicate**. The copy includes every widget, variable, and setting except public sharing — that always starts off so you can decide whether to turn it back on.
 
-This is the right pattern when you want to fork a template ("our oncall dashboard") into a service-specific version.
+This is the right move when you want to fork a template (like "our on-call dashboard") into a service-specific copy.
 
 ## Deleting a dashboard
 
-Under **Dashboard → Delete**. This is irreversible — the canvas configuration and any custom domain bindings are removed. Telemetry data is unaffected (it lives in the metric / log / trace stores, not on the dashboard).
+Under **Dashboard → Delete**. This can't be undone — the dashboard's layout and any custom domains attached to it are removed. Your telemetry data is unaffected.
 
-If a dashboard is published publicly with a custom domain, the public URL stops resolving the moment you delete it. Pull the domain off first if you need to repoint it.
+If the dashboard is public on a custom domain, the URL stops resolving as soon as you delete it. Move the domain to a different dashboard first if you want to keep the URL working.
 
-## Migration and backup
+## Backup
 
-For self-hosted installations: the dashboard's full configuration (widgets, variables, settings) lives in the `Dashboard` table in Postgres. A regular database backup is sufficient — there's no separate dashboard export format.
+If you self-host OneUptime, a regular database backup is enough — the dashboard's configuration is stored alongside the rest of your project.
 
-For OneUptime Cloud: regular backups are handled for you. If you want a local copy of a dashboard's configuration, use the [OneUptime API](/docs/api-reference/api-reference) to read the `Dashboard` record.
+On OneUptime Cloud, backups are handled for you. If you want your own copy, you can read the dashboard via the [OneUptime API](/docs/api-reference/api-reference).
 
 ## Where to read next
 
-- [Sharing & Public Dashboards](/docs/dashboards/sharing) — the public side of access control.
+- [Sharing & Public Dashboards](/docs/dashboards/sharing) — public-mode controls.
 - [Variables & Filters](/docs/dashboards/variables) — templating.
 - [Widgets](/docs/dashboards/widgets) — the widget catalog.
-- [Dashboards Overview](/docs/dashboards/index) — the conceptual map.
+- [Dashboards Overview](/docs/dashboards/index) — the big picture.

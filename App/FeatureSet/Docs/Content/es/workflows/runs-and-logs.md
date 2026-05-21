@@ -1,73 +1,76 @@
-# Ejecuciones y registros
+# Ejecuciones y Registros
 
-Cada vez que se dispara el disparador de un flujo de trabajo, OneUptime crea una **ejecución** — un registro de una corrida con tiempos, estado y salida por nodo. Las ejecuciones son la forma en que confirmas que un flujo de trabajo funcionó, cómo depuras uno que no lo hizo y cómo escribes un post-mortem cuando una automatización se porta mal.
+Cada vez que se ejecuta un workflow, OneUptime guarda un registro de lo que ocurrió: cuándo se ejecutó, si funcionó y qué hizo cada bloque. Ese registro se llama **ejecución**. Las ejecuciones son la forma de confirmar que un workflow funcionó, depurar uno que no lo hizo y revisar la actividad pasada.
 
 ## Dónde encontrarlas
 
-| Página | Alcance |
+| Página | Lo que ves |
 | --- | --- |
-| **Workflows → Runs & Logs** | A nivel de proyecto. Cada ejecución de cada flujo de trabajo. Filtra por flujo de trabajo, estado y rango de tiempo. |
-| **Pestaña Logs de un flujo de trabajo** | Solo las ejecuciones de este flujo de trabajo. |
-| **Página de detalle de una ejecución** | Una ejecución, expandida con la salida por nodo y cualquier mensaje de error. |
+| **Workflows → Ejecuciones y Registros** | Cada ejecución de todos los workflows del proyecto. Filtra por workflow, estado y tiempo. |
+| **Workflow → Pestaña Registros** | Solo las ejecuciones de este workflow concreto. |
+| **Una ejecución individual** | Una ejecución, con la salida de cada bloque. |
 
 ## Estados de ejecución
 
-| Estado | Significado |
+| Estado | Qué significa |
 | --- | --- |
-| **Scheduled** | El disparador se activó y la ejecución está en cola, pero el worker aún no la ha recogido. Suele ser una fracción de segundo. |
-| **Running** | El worker está recorriendo actualmente el grafo. Los componentes de larga duración (llamadas HTTP lentas, retrasos intencionados) mantienen una ejecución en este estado. |
-| **Success** | Cada nodo que se ejecutó terminó sin error. (Un flujo de trabajo que tomó una rama `error` deliberadamente sigue siendo `Success` en conjunto — el flujo de trabajo en sí no falló.) |
-| **Error** | Un nodo falló y no había puerto `error` cableado para manejarlo. La ejecución se detuvo en ese nodo. |
-| **Timeout** | La ejecución superó el timeout por ejecución. Consulta [Configuración y seguridad](/docs/workflows/configuration). |
+| **Programada** | El disparador se activó y la ejecución está a punto de comenzar. Normalmente solo dura una fracción de segundo. |
+| **En curso** | El workflow está en progreso. Los bloques de larga duración mantienen una ejecución en este estado. |
+| **Éxito** | Todos los bloques que se ejecutaron terminaron sin error. (Tomar una rama de **error** a propósito sigue contando como éxito; el workflow en sí no falló.) |
+| **Error** | Un bloque falló y no había un camino de **error** conectado para manejarlo. La ejecución se detuvo allí. |
+| **Tiempo agotado** | La ejecución duró más de lo permitido. Consulta [Configuración y Seguridad](/docs/workflows/configuration). |
 
 ## Leer una ejecución
 
-Haz clic en una ejecución de la lista para abrir su página de detalle. Verás:
+Haz clic en cualquier ejecución para abrir los detalles. Verás:
 
-- **Encabezado** — el disparador que se activó, las marcas de tiempo de inicio y fin, la duración total, el estado.
-- **Lista de nodos** — cada nodo que se ejecutó en orden, cada uno con sus argumentos capturados, su valor de retorno y el puerto de salida elegido.
-- **Errores** — si un nodo falló, el mensaje de error y (cuando esté disponible) la traza de pila.
+- **Encabezado** — el disparador, hora de inicio y fin, duración total y estado.
+- **Lista de bloques** — todos los bloques que se ejecutaron, en orden. Cada uno muestra los valores que recibió, su salida y qué camino tomó.
+- **Errores** — si un bloque falló, el mensaje de error y (cuando esté disponible) más detalles.
 
-Los argumentos capturados muestran valores *post-interpolación* — es decir, las cadenas exactas que vio el nodo después de resolver las variables. Esta es la vista de depuración más útil: si un mensaje de Slack contiene el texto literal `{{Incident.title}}`, sabes que la referencia de variable no se resolvió.
+Los valores mostrados son exactamente lo que vio el bloque, después de que todas las variables fueran sustituidas. Esta es la vista de depuración más útil: si un mensaje de Slack muestra el texto literal `{{Incident.title}}` en lugar del título real, sabes que la variable no se resolvió.
 
-## Patrones comunes de depuración
+## Depuración común
 
-### "Mi flujo de trabajo no se activó."
+### "Mi workflow no se ejecutó."
 
-1. Confirma que el flujo de trabajo está **habilitado** en **Settings**. Los flujos nuevos se envían deshabilitados.
-2. Para un disparador de evento de modelo: confirma que el evento realmente ocurrió. Abre la entidad (el incidente, alerta, monitor) y mira su historial.
-3. Para un disparador webhook: confirma que el sistema externo está llamando a la URL correcta. Muchas herramientas registran la entrega de webhooks salientes — compruébalo allí.
-4. Para un disparador programado: confirma que la expresión cron evalúa a la hora que esperas. Usa un parser de cron si tienes dudas.
+1. Asegúrate de que el workflow esté **activado** en Configuración. Los workflows nuevos comienzan desactivados.
+2. Para un disparador de evento de OneUptime: confirma que el evento realmente ocurrió. Abre el registro y revisa su historial.
+3. Para un disparador de webhook: confirma que el otro sistema está enviando a la URL correcta. La mayoría de las herramientas registran cuándo envían un webhook; comprueba allí.
+4. Para un disparador de programación: confirma que la expresión cron coincide con la hora que esperas.
 
-Si el disparador se activó pero no aparece ninguna ejecución, comprueba la cuota de ejecuciones del proyecto en **Project Settings → Billing**.
+Si el disparador se activó pero no aparece ninguna ejecución, comprueba tu cuota de ejecuciones en **Configuración del Proyecto → Facturación**.
 
-### "Se ejecuta pero un nodo aguas abajo nunca se ejecuta."
+### "Un bloque posterior nunca se ejecutó."
 
-Un nodo que no se ejecuta suele ser un problema de cableado. Abre el lienzo y comprueba:
+Un bloque que no se ejecuta suele ser un problema de conexión. Abre el lienzo y comprueba:
 
-- ¿Está el puerto de salida del nodo aguas arriba realmente conectado al puerto de entrada de este nodo?
-- ¿El nodo aguas arriba tomó un puerto distinto (por ejemplo, `error` en lugar de `success`, o `no` en lugar de `yes`)? Mira el detalle de la ejecución para ver qué puerto eligió.
+- ¿Está conectada la salida del bloque anterior a la entrada de este bloque?
+- ¿Tomó el bloque anterior una salida diferente a la que esperabas (por ejemplo, **error** en lugar de **éxito**, o **No** en lugar de **Sí**)? El detalle de la ejecución muestra qué camino se tomó.
 
-### "Una variable llega vacía."
+### "Una variable llegó vacía."
 
-Abre el detalle de la ejecución y mira los argumentos capturados del nodo que falla. Si ves el texto literal `{{NodeId.field}}`, la referencia no se resolvió — probablemente una errata en `NodeId` o `field`. Si ves una cadena vacía, el nodo aguas arriba se ejecutó pero no produjo ese campo.
+Abre la ejecución y mira los valores del bloque que falla.
 
-### "Funciona manualmente pero no desde el disparador."
+- Si ves el texto literal `{{BlockName.field}}`, la referencia no se resolvió, probablemente un error tipográfico en el nombre del bloque o del campo.
+- Si ves una cadena vacía, el bloque anterior se ejecutó pero no produjo ese campo.
 
-Usa **Run Manually** con un payload JSON que refleje lo que publica el disparador real. Luego compara los argumentos capturados de la ejecución manual y de la ejecución de producción lado a lado — la diferencia suele estar en el nombre o el tipo de un único campo.
+### "Funciona cuando lo ejecuto manualmente pero no desde el disparador."
 
-## Reejecutar un flujo de trabajo
+Usa **Ejecutar Manualmente** con una carga útil JSON que se parezca a lo que envía el disparador real. Luego compara los valores de la ejecución manual con la ejecución real, lado a lado. La diferencia suele ser un solo nombre de campo o un tipo.
 
-No hay un botón "reintentar esta ejecución" — por diseño, OneUptime nunca vuelve a ejecutar una ejecución antigua, porque los efectos colaterales salientes (mensajes de Slack, llamadas API) pueden no ser idempotentes. Si quieres rehacer el trabajo, arregla el flujo de trabajo y deja que el próximo disparador real lo dispare.
+## Re-ejecutar un workflow
 
-Para los flujos manuales, basta con hacer clic en **Run Manually** con el mismo payload.
+No hay un botón de "reintentar esta ejecución". No volvemos a ejecutar ejecuciones antiguas automáticamente porque los efectos secundarios (mensajes de Slack, llamadas a API, tickets) podrían no ser seguros de repetir. Para rehacer el trabajo, corrige el workflow y deja que el próximo disparador real lo active.
 
-## Retención de logs
+Para workflows manuales, simplemente haz clic en **Ejecutar Manualmente** con la misma carga útil.
 
-Las ejecuciones se conservan indefinidamente en el proyecto. Si necesitas limpiar flujos de trabajo ruidosos de alto volumen (por ejemplo, un flujo de depuración que se dispara cada minuto), deshabilítalos o elimínalos — no hay un interruptor de retención por flujo.
+## ¿Cuánto tiempo se conservan las ejecuciones?
 
-## Qué leer a continuación
+Las ejecuciones se guardan indefinidamente para el proyecto. Si un workflow se ejecuta muy a menudo y satura tu historial (como un workflow de depuración que se dispara cada minuto), desactívalo o elimínalo para dejar de añadir ruido.
 
-- [Configuración y seguridad](/docs/workflows/configuration) — timeouts, límites de recursión, redacción de secretos.
-- [Variables](/docs/workflows/variables) — la sintaxis que usan los argumentos interpolados.
-- [Componentes](/docs/workflows/components) — los campos de valor de retorno que publica cada componente.
+## Dónde seguir leyendo
+
+- [Configuración y Seguridad](/docs/workflows/configuration) — tiempos de espera, límites de recursión, secretos ocultos.
+- [Variables](/docs/workflows/variables) — la sintaxis de variables usada en tus bloques.
+- [Componentes](/docs/workflows/components) — qué produce cada bloque.

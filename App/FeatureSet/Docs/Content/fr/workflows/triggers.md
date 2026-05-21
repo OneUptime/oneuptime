@@ -1,106 +1,81 @@
 # Déclencheurs
 
-Un déclencheur est le nœud de départ d'un workflow. Il n'a pas de port d'entrée — l'exécution commence ici. OneUptime prend en charge quatre familles de déclencheurs ; chaque workflow utilise exactement un.
+Un déclencheur est le premier bloc d'un workflow — il décide quand le workflow s'exécute. Chaque workflow possède exactement un déclencheur. Vous choisissez parmi quatre types.
 
-## Manuel
+## Manual
 
-Exécutez un workflow à la demande en cliquant sur **Run Manually** sur la page du workflow. Vous pouvez coller une charge utile JSON optionnelle que le workflow peut lire comme `{{Manual.JSON}}`.
+Exécutez le workflow à la demande en cliquant sur **Run Manually** depuis la page du workflow. Vous pouvez coller une charge utile JSON que le reste du workflow pourra lire.
 
-Utilisez-le lorsque vous voulez un bouton qui déclenche un morceau d'automatisation — un workflow « rotation de la clé d'astreinte » ou « reconstruire l'index de recherche » en un clic qui n'a pas besoin de planification récurrente ni d'événement pour se déclencher.
+Idéal pour : les automatisations en un clic pour lesquelles vous voulez un bouton, comme « faire tourner cette clé » ou « envoyer une alerte de test ».
 
-**Arguments** : aucun.
+**Sortie** : le JSON que vous avez collé, ou un objet vide si vous n'en avez pas fourni.
 
-**Valeurs de retour** :
+## Schedule
 
-| Nom | Type | Description |
-| --- | --- | --- |
-| `JSON` | JSON | La charge utile JSON fournie au moment de l'exécution, ou un objet vide. |
+Exécutez le workflow selon une planification récurrente à l'aide d'une expression cron.
 
-## Planifié
+Idéal pour : le nettoyage nocturne, la synchronisation horaire, les rapports hebdomadaires.
 
-Exécute un workflow selon un planning cron. Configurez la cadence avec une expression cron standard.
+**Paramètre** : une expression cron. Quelques expressions courantes :
 
-Utilisez-le pour les tâches récurrentes : nettoyage nocturne, synchronisation horaire, export hebdomadaire.
+- `0 * * * *` — toutes les heures, à l'heure pile.
+- `*/5 * * * *` — toutes les 5 minutes.
+- `0 9 * * 1` — chaque lundi à 9 h 00.
 
-**Arguments** :
-
-| Nom | Type | Description |
-| --- | --- | --- |
-| `Schedule at` | CronTab | Expression cron standard à 5 champs. Par exemple, `0 * * * *` s'exécute en début de chaque heure, `*/5 * * * *` toutes les cinq minutes. |
-
-**Valeurs de retour** :
-
-| Nom | Type | Description |
-| --- | --- | --- |
-| `executedAt` | Date | L'heure d'exécution planifiée. |
-
-Les workflows planifiés s'exécutent sur le Workflow Worker dans la région du projet. Si le worker est brièvement indisponible, l'exécution est dispatchée quand il récupère — vous n'avez pas besoin de vous prémunir contre les tics manqués lors de courtes pannes.
+Si le système est brièvement indisponible, l'exécution est lancée dès qu'il se rétablit — vous n'avez pas à vous soucier des occurrences manquées pour de courtes interruptions.
 
 ## Webhook
 
-Exposez une URL HTTPS unique vers laquelle un système externe fait un `POST`. Les en-têtes de la requête, les paramètres de requête et le corps sont exposés comme valeurs de retour que les composants en aval peuvent lire.
+OneUptime crée une URL unique. Tout appel à cette URL démarre le workflow. Les en-têtes, les paramètres de requête et le corps de la requête sont transmis.
 
-Utilisez-le pour recevoir des données *dans* OneUptime depuis un système tiers : callbacks CI/CD, alertes d'un autre outil de monitoring, inscriptions de clients dans votre CRM.
+Idéal pour : recevoir des données dans OneUptime depuis un autre outil — rappels CI/CD, alertes provenant d'un autre outil de monitoring, inscriptions dans votre CRM.
 
-**Arguments** : aucun. L'URL est attribuée automatiquement lors de l'enregistrement du workflow et affichée sur le nœud du déclencheur. Traitez-la comme un secret — quiconque possède l'URL peut déclencher le workflow.
+**Sortie** :
 
-**Valeurs de retour** :
+- **Request Headers** — tous les en-têtes de la requête entrante.
+- **Request Query Params** — la chaîne de requête analysée.
+- **Request Body** — le corps analysé (ou le texte brut s'il n'est pas du JSON).
 
-| Nom | Type | Description |
-| --- | --- | --- |
-| `Request Headers` | JSON | Tous les en-têtes de la requête HTTP entrante. |
-| `Request Query Params` | JSON | Chaîne de requête analysée. |
-| `Request Body` | JSON | Corps de requête analysé. Si le corps n'est pas du JSON valide, il arrive sous forme de chaîne de caractères sous la clé `raw`. |
+L'URL accepte à la fois `GET` et `POST`. L'appelant reçoit un accusé de réception rapide — le workflow lui-même s'exécute en arrière-plan.
 
-Le webhook accepte `GET` et `POST`. La réponse à l'appelant est un `200 OK` avec un accusé de réception JSON dès que l'exécution est mise en file d'attente — le workflow lui-même s'exécute de manière asynchrone, donc ne vous attendez pas à lire le résultat des composants en aval dans la réponse HTTP.
+Traitez l'URL comme un mot de passe. Toute personne qui la possède peut démarrer votre workflow.
 
-## Déclencheurs d'événements de modèle
+## Déclencheurs d'événements OneUptime
 
-Presque chaque entité OneUptime — monitors, incidents, alertes, événements de maintenance planifiée, status pages, politiques d'astreinte, équipes, services de télémétrie et bien d'autres — expose trois déclencheurs :
+Presque tout dans OneUptime — monitors, incidents, alertes, maintenances planifiées, status pages, politiques d'astreinte, équipes — peut déclencher un workflow. Chacun offre trois événements :
 
-- **On Create** — se déclenche lorsqu'un nouvel enregistrement de ce type est créé.
-- **On Update** — se déclenche lorsqu'un enregistrement existant est modifié. Le déclencheur expose à la fois les anciennes et les nouvelles valeurs.
-- **On Delete** — se déclenche lorsqu'un enregistrement est supprimé.
+- **On Create** — se déclenche lorsqu'un nouvel élément est ajouté.
+- **On Update** — se déclenche lorsqu'un élément est modifié.
+- **On Delete** — se déclenche lorsqu'un élément est supprimé.
 
-C'est ainsi que vous construisez une automatisation « quand X se produit dans OneUptime, faites Y » sans polling.
+C'est ainsi que vous construisez « quand X se produit dans OneUptime, faire Y » sans avoir à vérifier les choses en boucle.
 
-Le modèle lui-même est exposé comme valeur de retour avec les mêmes noms de champs que vous voyez sur la ressource. Par exemple, le déclencheur **Incident → On Create** retourne l'objet `Incident` complet afin que les nœuds en aval puissent lire `{{Incident.title}}`, `{{Incident.description}}`, `{{Incident.incidentSeverityId}}`, etc.
+L'enregistrement complet est transmis au bloc suivant. Par exemple, le déclencheur **Incident → On Create** transmet le nouvel incident, ce qui permet au bloc suivant de lire son titre, sa description, sa gravité et tout autre champ.
 
-**Arguments** : typiquement aucun pour create/delete. Les déclencheurs update peuvent vous laisser restreindre les champs auxquels vous voulez réagir, afin de ne pas vous déclencher sur des changements cosmétiques.
+### Événements les plus utilisés
 
-**Valeurs de retour** (varie selon le modèle) :
+- **Incident** — réagir lorsqu'un incident est ouvert, mis à jour (acquitté, résolu) ou supprimé.
+- **Alert** — les trois mêmes événements pour les alertes.
+- **Monitor** — réagir lorsqu'un monitor est ajouté, modifié ou supprimé.
+- **Scheduled Maintenance** — annoncer automatiquement une fenêtre de maintenance dès qu'elle est planifiée.
+- **Status Page Subscriber** — accueillir une personne qui s'abonne à une status page.
+- **On-Call Duty Policy** — synchroniser les changements de planning avec un autre système de roulement.
 
-| Nom | Type | Description |
-| --- | --- | --- |
-| Champs du modèle | (varie) | Chaque colonne sur l'entité — nom, statut, horodatages, clés étrangères. |
-| `previous` (Update uniquement) | JSON | L'enregistrement tel qu'il était avant le changement. |
+Cherchez dans la palette des déclencheurs par nom pour trouver celui que vous voulez.
 
-### Déclencheurs de modèle courants
+## Quel déclencheur choisir ?
 
-Une liste non exhaustive des événements de modèle vers lesquels les équipes se tournent le plus :
-
-- **Incident** — `On Create`, `On Update` (à utiliser pour réagir aux changements d'état comme Acknowledged ou Resolved), `On Delete`.
-- **Alert** — mêmes trois événements sur le modèle alert.
-- **Monitor** — réagit lorsqu'un monitor est ajouté, modifié ou supprimé ; combinez avec des conditions pour n'agir que sur les monitors de production.
-- **Scheduled Maintenance** — automatise les annonces en aval lorsqu'une fenêtre de maintenance est créée ou que son état change.
-- **Status Page Subscriber** — déclenche un flux de bienvenue lorsque quelqu'un s'abonne.
-- **On-Call Duty Policy** — synchronise les changements de planning vers un roster externe.
-
-Si le modèle est exposé dans l'API OneUptime, il peut presque certainement déclencher un workflow — cherchez dans la palette des déclencheurs par nom d'entité.
-
-## Choisir le bon déclencheur
-
-| Si vous voulez… | Utilisez |
+| Si vous voulez… | Choisissez |
 | --- | --- |
-| Construire un bouton sur un workflow sur lequel quelqu'un clique | **Manuel** |
-| Exécuter une tâche toutes les N minutes/heures/jours | **Planifié** |
-| Faire pousser des données dans OneUptime depuis un système externe | **Webhook** |
-| Réagir à quelque chose qui se produit *à l'intérieur* de OneUptime | **Événement de modèle** |
+| Cliquer sur un bouton pour exécuter le workflow | **Manual** |
+| Exécuter selon une planification récurrente | **Schedule** |
+| Laisser un autre système pousser des données | **Webhook** |
+| Réagir à quelque chose dans OneUptime | **Événement OneUptime** |
 
-Les workflows ne peuvent avoir qu'un seul déclencheur. Si vous avez besoin de deux signaux de démarrage différents pour partager la majorité de la même logique, factorisez les étapes partagées dans un seul workflow et appelez-le depuis deux workflows « wrapper » minces en utilisant le composant **Execute Workflow** (voir [Composants](/docs/workflows/components)).
+Un workflow ne peut avoir qu'un seul déclencheur. Si vous avez besoin de deux manières de démarrer la même automatisation, regroupez la logique partagée dans un workflow et appelez-le depuis deux workflows « enveloppes » légers à l'aide du composant **Execute Workflow**.
 
-## Où lire ensuite
+## Pour aller plus loin
 
-- [Composants](/docs/workflows/components) — les actions que vous câblez après le déclencheur.
-- [Variables](/docs/workflows/variables) — comment lire les valeurs de retour du déclencheur depuis les nœuds en aval.
-- [Exécutions et journaux](/docs/workflows/runs-and-logs) — comment confirmer que votre déclencheur se déclenche.
+- [Composants](/docs/workflows/components) — les actions que vous ajoutez après le déclencheur.
+- [Variables](/docs/workflows/variables) — lire la sortie du déclencheur depuis les blocs suivants.
+- [Exécutions et journaux](/docs/workflows/runs-and-logs) — confirmer que votre déclencheur s'est bien lancé.

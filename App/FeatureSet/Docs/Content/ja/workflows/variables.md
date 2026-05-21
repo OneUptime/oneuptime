@@ -1,99 +1,99 @@
-# ワークフロー 変数
+# 変数
 
-ワークフローはデータが流れて初めて意味を持ちます。変数はそのデータが移動する手段です — トリガーから最初のコンポーネントへ、あるコンポーネントの出力から次のコンポーネントの入力へ、そしてプロジェクトレベルのシークレットから参照される任意の場所へ。
+ワークフローはデータを動かすことが本質です — トリガーから最初のブロックへ、あるブロックから次のブロックへ、そして共有の値を必要な場所のどこへでも。変数はそのデータを動かす手段です。
 
-OneUptime には 2 種類の変数と、両方に対して動く 1 つの補間構文があります。
+変数には 2 種類あり、同じ構文を共有します。
 
 ## グローバル変数
 
-**Workflows → Global Variables** で一度定義するプロジェクト全体の値です。API キー、ベース URL、チャンネル名、10 個のワークフローにハードコードしたくないものなら何でも。
+一度保存して、どこからでも再利用できるプロジェクト全体の値です。API キー、URL、チャンネル名など、10 個のワークフローにコピペしたくないものに使います。
 
-グローバル変数には次があります:
+**Workflows → Global Variables** にあります。各変数は次の情報を持ちます:
 
-- **Name** — 参照に使う識別子。テンプレートで分かりやすいよう `UPPER_SNAKE_CASE` を使ってください。
-- **Value** — 文字列の値。複数行の値もサポートされます。
-- **Is Secret** — オンにすると、保存後に値は UI 上で書き込み専用となり、実行ログから秘匿されます。
+- **Name** — 参照に使う名前。ブロック内で目立つように `UPPER_SNAKE_CASE` を使うとよいでしょう。
+- **Value** — 実際の値。複数行の値も可能です。
+- **Is Secret** — オンにすると、保存後は UI に表示されず、実行ログにも表示されなくなります。
 
-任意のワークフローのどこからでも、次のようにグローバル変数を参照します:
+どのワークフローでもグローバル変数を次のように使えます:
 
 ```
 {{variable.NAME}}
 ```
 
-たとえば、`PAGERDUTY_KEY` をシークレット変数として定義していれば、PagerDuty を呼ぶ各 API コンポーネントは `{{variable.PAGERDUTY_KEY}}` として読めて、誰もワークフロー JSON で実際のキーを目にすることはありません。
+たとえば、PagerDuty のキーを `PAGERDUTY_KEY` として保存していれば、どのブロックでも `{{variable.PAGERDUTY_KEY}}` として使えます — 実際のキーがワークフローやログに表示されることはありません。
 
-## ローカル変数
+## ローカル変数 (前のブロックからのデータ)
 
-ローカル変数は、この実行中にすでに動いたノードの戻り値です。すべてのトリガーとすべてのコンポーネントが 1 つを公開します — ノードごとのリストは[トリガー](/docs/workflows/triggers) と[コンポーネント](/docs/workflows/components) を参照してください。
+ローカル変数は、この実行中にすでに実行されたブロックの出力です。すべてのトリガーとコンポーネントは、読み取り可能な何らかの出力を生成します。
 
-ローカル変数は次のように参照します:
+前のブロックの出力を次のように参照します:
 
 ```
-{{NodeId.fieldName}}
+{{BlockName.fieldName}}
 ```
 
-`NodeId` はキャンバス上のトリガーまたはコンポーネントの名前です (読みやすさのためにリネーム可能 — 短く、`PascalCase` にして参照をきれいに保ってください)。`fieldName` はそのノードが公開する任意のものです。
+`BlockName` はキャンバス上のトリガーやコンポーネントの名前です (短くわかりやすい名前にリネームできます)。`fieldName` はそのブロックが生成するものです。
 
 例:
 
-- `LookupUser` という名前の **API** コンポーネントが正常に返ったあと、下流のノードはステータスコードを `{{LookupUser.response-status}}` として、パースされたボディを `{{LookupUser.response-body}}` として読めます。
-- `Incident` という名前の **Incident → On Create** トリガーの後では、`{{Incident.title}}`、`{{Incident.description}}`、`{{Incident.incidentSeverityId}}`、その他インシデントの任意のカラムを読めます。
-- `Transform` という名前の **Custom Code** コンポーネントの後では、返された値は `{{Transform.value}}` として公開されます。
+- `LookupUser` という名前の **API** ブロックの実行後、ステータスコードを `{{LookupUser.response-status}}`、ボディを `{{LookupUser.response-body}}` として読み取れます。
+- `Incident` という名前の **Incident → On Create** トリガーの後、`{{Incident.title}}`、`{{Incident.description}}` などインシデントの任意のフィールドを読み取れます。
+- `Transform` という名前の **Custom Code** ブロックの後、return された値は `{{Transform.value}}` にあります。
 
-ローカル変数は単一の実行にスコープされます。次の実行は真っ新な状態から始まります。
+ローカル変数は現在の実行中のみ存在します。新しい実行ごとにリセットされます。
 
-## 補間が効く場所
+## 変数が使える場所
 
-ほぼすべてのテキスト形式の引数が補間をサポートします:
+ほぼすべてのテキストフィールドが変数を受け付けます:
 
-- API コンポーネントの URL フィールド
-- Slack / Teams / Discord / Telegram / Email のメッセージテキスト
-- Email の件名と本文
-- ヘッダーとボディフィールド (JSON 値の中で使う)
-- Conditions の左右オペランド
+- API ブロックの URL。
+- Slack、Teams、Discord、Telegram、Email のメッセージテキスト。
+- メールの件名と本文。
+- ヘッダーやボディフィールド (文字列値の内部)。
+- Conditions ブロックの両側。
 
-純粋な JSON 引数は文字列値の中で補間を受け付けます。キーは補間できません。動的な構造を構築する必要があれば、**Custom Code** でペイロードを組み立て、その戻り値を次のノードにパイプしてください。
+純粋な JSON フィールドでは、文字列値の内部で変数が使えますが、変数をキーとして使うことはできません。動的に構造を組み立てる必要がある場合は、**Custom Code** ブロックで組み立ててから、出力を次のブロックに渡してください。
 
-**Custom Code** コンポーネントは変数を異なる方法で読みます — グローバル変数は `args.variables` 上に公開され、上流の戻り値はコンポーネントで設定した名前付き引数として渡されます。
+**Custom Code** ブロックの変数の読み方は少し異なります — グローバル変数は `args.variables` に入ってきて、前のブロックの出力のうちどれを引数として渡すかは自分で決めます。
 
 ## 例
 
-### トリガーからペイロードを構築する
+### Webhook からペイロードを組み立てる
 
-Webhook が CI ビルドの結果を受け取ります。ボディは `{ "service": "checkout", "status": "failed" }` のような JSON です。これを OneUptime インシデントに変えるには:
+`{ "service": "checkout", "status": "failed" }` のようなボディで Webhook が届きます。これを OneUptime のインシデントに変えるには:
 
 1. `CIWebhook` という名前の **Webhook** トリガー。
-2. **Conditions** コンポーネント: left `{{CIWebhook.Request Body.status}}`、operator `==`、right `failed`。
-3. `yes` ポートから **Create Incident** コンポーネント:
+2. **Conditions** ブロック: 左 `{{CIWebhook.Request Body.status}}`、演算子 `==`、右 `failed`。
+3. **Yes** ブランチから、**Create Incident** ブロックを次のように設定:
    - Title: `CI build failed: {{CIWebhook.Request Body.service}}`
-   - Description: `See {{CIWebhook.Request Body.url}} for the build logs.`
+   - Description: `See {{CIWebhook.Request Body.url}} for the logs.`
 
-### アウトバウンド API コールでシークレットを使う
+### API 呼び出しでシークレットを使う
 
-PagerDuty を呼ぶワークフロー:
+PagerDuty を呼び出すワークフロー:
 
-1. `PAGERDUTY_KEY` をシークレットグローバル変数として定義。
-2. **API** コンポーネントで `Authorization` ヘッダーを `Token token={{variable.PAGERDUTY_KEY}}` に設定。
+1. `PAGERDUTY_KEY` をシークレットのグローバル変数として保存します。
+2. **API** ブロックで `Authorization` ヘッダーを `Token token={{variable.PAGERDUTY_KEY}}` に設定します。
 
-キーがワークフロー JSON や実行ログに現れることはありません。
+キーはワークフローやログに表示されません。
 
-### 2 つの API コールをチェーンする
+### 2 つの API 呼び出しをつなぐ
 
-最初のコールが返す ID を 2 つ目のコールが必要とします:
+最初の呼び出しが、次の呼び出しが必要とする ID を返します:
 
-1. **API** コンポーネント `LookupOrder`: `GET /orders?email={{Manual.JSON.email}}`。
-2. **API** コンポーネント `CancelOrder`: `POST /orders/{{LookupOrder.response-body.id}}/cancel`。
+1. **API** ブロック `LookupOrder`: `GET /orders?email={{Manual.JSON.email}}`。
+2. **API** ブロック `CancelOrder`: `POST /orders/{{LookupOrder.response-body.id}}/cancel`。
 
-`LookupOrder` が非 2xx レスポンスを返した場合、`success` ではなく `error` ポートが発火します — そのブランチを Email または Slack コンポーネントに配線して、失敗が無音にならないようにしてください。
+`LookupOrder` が失敗した場合、**success** ではなく **error** 出力が発火します。これを Email や Slack ブロックに接続しておけば、失敗が見過ごされません。
 
-## 落とし穴いくつか
+## 注意点
 
-- **ノード名のタイポは参照を黙って壊します。** 下流で `{{OldName.field}}` を配線したあとにノードをリネームしたら、すべての参照を更新してください。実行ログを見て、キャプチャされた引数にリテラルの `{{OldName.field}}` が見えたら、解決できていません。
-- **シークレットは大文字小文字を区別します。** `{{variable.MyKey}}` と `{{variable.mykey}}` は別の変数です。
-- **欠落フィールドは空になります。** `{{Foo.nonexistent}}` を参照すると空文字列が生成され、エラーにはなりません。便利ですが、バグを覆い隠すこともあります — フィールドが次のステップで必須なら、**Conditions** ノードで存在を表明してください。
+- **ブロックをリネームすると参照が壊れます。** ブロックをリネームしたら、それを使っているすべての場所を更新してください。実行ログでは、解決できなかった参照はリテラルの `{{BlockName.field}}` テキストとして表示されます。
+- **変数名は大文字小文字を区別します。** `{{variable.MyKey}}` と `{{variable.mykey}}` は別物です。
+- **存在しないフィールドは空文字列になります。** 存在しないフィールドを参照すると、エラーではなく空文字列が返されます。便利ですが、バグを隠す可能性があります。重要なフィールドは **Conditions** ブロックで確認してから続行しましょう。
 
-## 次に読むもの
+## 次に読むべきページ
 
-- [コンポーネント](/docs/workflows/components) — 戻り値名の完全なカタログ。
-- [実行とログ](/docs/workflows/runs-and-logs) — 実行後にすべての補間された引数のリテラル値を検査する方法。
-- [設定と安全性](/docs/workflows/configuration) — グローバル変数に入れて安全なもの。
+- [コンポーネント](/docs/workflows/components) — 各ブロックが生成する出力の全リスト。
+- [実行とログ](/docs/workflows/runs-and-logs) — 実行後にすべての変数の実際の値を確認。
+- [構成と安全性](/docs/workflows/configuration) — グローバル変数に保存して安全なもの。

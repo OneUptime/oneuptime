@@ -1,155 +1,153 @@
 # Widgets
 
-Ein Widget ist eine Kachel auf einem Dashboard. Jedes Widget hat einen Typ (Diagramm, Wert, Liste, …), eine Position, eine Größe und eine Konfiguration. Diese Seite ist der Katalog — was jedes Widget anzeigt, was es als Eingabe nimmt, wann Sie dazu greifen.
+Ein Widget ist eine Kachel auf einem Dashboard. Diese Seite listet jedes Widget auf, das Sie hinzufügen können, was es anzeigt und wann es sich anbietet.
 
-Für die Mechanik der Arbeitsfläche, siehe [Ein Dashboard erstellen](/docs/dashboards/authoring).
+Wie Sie Widgets auf der Arbeitsfläche verschieben, lesen Sie unter [Dashboard erstellen](/docs/dashboards/authoring).
 
-## Zeitreihen-Widgets
+## Diagramme und Zahlen
 
-### Chart
+### Diagramm
 
-Ein Linien-/Balken-/Flächendiagramm einer oder mehrerer Metrikserien über den Zeitbereich des Dashboards.
+Ein Linien-, Balken- oder Flächendiagramm einer oder mehrerer Metrik-Serien über den Zeitbereich des Dashboards.
 
-**Konfigurieren**:
+**Einstellungen**:
 
-- Eine oder mehrere Metrik-Abfragen (`metricQueryConfig` für eine einzelne Serie, `metricQueryConfigs` für mehrere).
-- Optionale **formula**, die mehrere Abfragen kombiniert (z. B. `errors / total * 100`).
-- Optionales **transformAsRate** für OpenTelemetry-Kumulativ-Counter (z. B. `system.disk.io`) — das Widget berechnet `(value - previousValue) / Δt` pro Bucket.
-- Anzeige: gestapelte vs. überlagerte Serien, Y-Achseneinheit, Legende ein/aus, Diagrammtyp.
+- Eine oder mehrere Metrik-Abfragen.
+- Eine optionale Formel, die zwei Abfragen kombiniert (zum Beispiel `errors / total * 100`, um eine Fehlerquote zu erhalten).
+- Eine Option „als Rate anzeigen" für kumulative Zähler, die ohne Rücksetzen wachsen.
+- Anzeigeoptionen: gestapelt oder übereinander, Einheit der Y-Achse, Legendenposition, Diagrammtyp.
 
-Greifen Sie dazu, wenn: Trends zählen. Anfragelatenz, Fehleranzahl über die Zeit, Queue-Tiefe — alles, wo die Form der Kurve Ihnen etwas sagt.
+Verwenden Sie es, wenn: Trends wichtig sind. Latenz im Zeitverlauf, Fehleranzahl, Warteschlangenlänge – immer dann, wenn die Form der Linie die Geschichte erzählt.
 
-### Value
+### Wert
 
-Eine einzelne große Zahl mit optionalen Schwellenwerten und einer optionalen Sparkline.
+Eine einzelne große Zahl mit optionalen farbigen Schwellenwerten.
 
-**Konfigurieren**:
+**Einstellungen**:
 
-- Eine Metrik-Abfrage (Einzelwert — üblicherweise `last`, `avg` oder `max` über den Zeitbereich).
-- Optionaler **Warnschwellenwert** (gelb oberhalb).
-- Optionaler **kritischer Schwellenwert** (rot oberhalb).
-- Anzeige: Zahlenformat, Einheiten-Suffix.
+- Eine Metrik-Abfrage, die eine einzelne Zahl liefert (letzter Wert, Durchschnitt oder Maximum über den Zeitbereich).
+- Ein optionaler **Warn**-Schwellenwert (gelb oberhalb).
+- Ein optionaler **Kritisch**-Schwellenwert (rot oberhalb).
+- Zahlenformat und Einheit.
 
-Greifen Sie dazu, wenn: eine einzelne Zahl die Frage beantwortet. Aktuelle Fehlerrate, P95-Latenz jetzt, Anzahl offener Vorfälle.
+Verwenden Sie es, wenn: eine einzelne Zahl die Frage beantwortet. Aktuelle Fehlerquote, P95-Latenz gerade jetzt, Anzahl der offenen Vorfälle.
 
-### Gauge
+### Anzeige
 
-Ein kreisförmiges Gauge mit Min, Max, Warn-Band und kritischem Band.
+Eine kreisförmige Anzeige mit Minimum, Maximum, Warnbereich und kritischem Bereich.
 
-**Konfigurieren**: die Metrik-Abfrage und die vier Grenzen (Min, Max, Warn, kritisch).
+**Einstellungen**: eine Metrik-Abfrage und die vier Grenzen.
 
-Greifen Sie dazu, wenn: der Wert in einem bekannten Bereich liegt. CPU-Auslastung (0–100 %), Festplattenbelegung, Queue-Kapazität.
+Verwenden Sie sie, wenn: der Wert in einem bekannten Bereich liegt. CPU-Auslastung (0–100 %), Festplattennutzung, Warteschlangenkapazität.
 
-### Table
+### Tabelle
 
-Eine tabellarische Anzeige von Metrik-Abfrageergebnissen, eine Zeile pro Gruppe.
+Eine Tabelle mit Metrik-Ergebnissen, eine Zeile pro Gruppe.
 
-**Konfigurieren**: die Metrik-Abfrage (typischerweise gruppiert nach einem Label wie `host.name` oder `service.name`), die anzuzeigenden Spalten und ein Zeilenlimit.
+**Einstellungen**: eine Metrik-Abfrage (typischerweise gruppiert nach einem Label wie Host oder Service), die anzuzeigenden Spalten und eine Zeilenbegrenzung.
 
-Greifen Sie dazu, wenn: Sie die Aufschlüsselung statt des Trends möchten. Top 10 lauteste Hosts, Fehleranzahl pro Service, Anfragerate pro Endpoint.
+Verwenden Sie sie, wenn: Sie eine Aufschlüsselung statt eines Trends möchten. Top-10-lauteste Hosts, Fehleranzahl pro Service, Anfragen pro Endpunkt.
 
-## Annotations-Widget
+## Text
 
-### Text
+Ein statischer Markdown-Block.
 
-Ein statischer Block aus Markdown.
+**Einstellungen**: der Markdown-Inhalt. Überschriften, Listen, Links, Hervorhebungen und Code-Blöcke werden alle gerendert.
 
-**Konfigurieren**: den Markdown-Body. Überschriften, Listen, Links, Hervorhebungen, Code-Spans, eingefasste Codeblöcke werden alle gerendert.
+Verwenden Sie ihn, wenn: Sie eine Abschnittsüberschrift, einen Kontextabsatz, eine Linkliste zu Runbooks oder ein temporäres Banner während eines Vorfalls wünschen.
 
-Greifen Sie dazu, wenn: Sie eine Abschnittsüberschrift, einen Kontext-Absatz („dieses Dashboard deckt den Checkout-Service ab"), eine Liste mit Links zu Runbooks oder verwandten Dashboards oder ein temporäres Banner während eines Vorfalls wollen.
+## Logs und Traces
 
-## Logs & Traces
-
-### LogStream
+### Log-Stream
 
 Ein Live-Tail von Logzeilen, die einem Filter entsprechen.
 
-**Konfigurieren**: Log-Filter (Service, Severity, Attribut-Übereinstimmungen), die anzuzeigenden Spalten.
+**Einstellungen**: Log-Filter (Service, Schweregrad, Attribute) und die anzuzeigenden Spalten.
 
-Greifen Sie dazu, wenn: Sie sehen wollen, was die Anwendung *gerade jetzt* auf einem Dashboard sagt, ohne die Seite zu verlassen, um den Logs-Explorer zu öffnen.
+Verwenden Sie es, wenn: Sie sehen möchten, was die Anwendung gerade jetzt sagt, ohne das Dashboard zu verlassen.
 
-### TraceList
+### Trace-Liste
 
-Eine Liste der letzten Traces, die einem Filter entsprechen, mit Dauer, Status und Service-Name.
+Eine Liste der zuletzt aufgetretenen Traces, die einem Filter entsprechen, mit Dauer, Status und Service.
 
-**Konfigurieren**: Trace-Filter (Service, Status, Attribut-Übereinstimmungen).
+**Einstellungen**: Trace-Filter (Service, Status, Attribute).
 
-Greifen Sie dazu, wenn: Sie eine paginierte Ansicht der jüngsten Aktivität statt eines Diagramms möchten. Häufige Paarung: ein Latenz-Chart oben, eine TraceList langsamer Traces darunter.
+Verwenden Sie sie, wenn: Sie eine Liste der letzten Aktivität statt eines Diagramms möchten. Ein typisches Muster ist ein Latenzdiagramm oben mit einer Liste langsamer Traces darunter.
 
-## Betriebslisten
+## Live-Listen
 
-### IncidentList
+### Vorfall-Liste
 
-Eine Live-Liste von Vorfällen, die einem Filter entsprechen.
+Eine Live-Liste der Vorfälle, die einem Filter entsprechen.
 
-**Konfigurieren**: Filter nach Zustand, Severity, Labels, Monitor oder zugewiesenem Team.
+**Einstellungen**: Filter nach Status, Schweregrad, Labels, Monitor oder Team.
 
-Greifen Sie dazu, wenn: ein Dashboard die Frage „Was ist gerade kaputt?" beantworten soll.
+Verwenden Sie sie, wenn: das Dashboard die Frage „Was ist gerade kaputt?" beantworten soll.
 
-### AlertList
+### Benachrichtigungs-Liste
 
-Eine Live-Liste von Warnmeldungen, die einem Filter entsprechen.
+Eine Live-Liste der Benachrichtigungen, die einem Filter entsprechen.
 
-**Konfigurieren**: Filter nach Zustand, Severity, Labels.
+**Einstellungen**: Filter nach Status, Schweregrad, Labels.
 
-Greifen Sie dazu, wenn: Dashboards für alarmgesteuerte Workflows (z. B. Dev-Team-Dashboards, die die Alarme ihres Services beobachten).
+Verwenden Sie sie, wenn: ein Team-Dashboard die Benachrichtigungen zu seinen Services nachverfolgt.
 
-### MonitorList
+### Monitor-Liste
 
-Eine Live-Liste von Monitoren, die einem Filter entsprechen, die den aktuellen Status jedes Monitors zeigt.
+Eine Live-Liste der Monitore und ihres aktuellen Status.
 
-**Konfigurieren**: Filter nach Monitor-Typ, Labels oder aktuellem Zustand.
+**Einstellungen**: Filter nach Monitor-Typ, Labels oder aktuellem Status.
 
-Greifen Sie dazu, wenn: Sie eine Flotten-Ansicht „Sind alle Websites oben?" oder eine Liste pro Team mit überwachten Endpoints möchten.
+Verwenden Sie sie, wenn: Sie eine Flottenübersicht wollen – „Sind alle Sites online?"
 
 ## Kubernetes-Ressourcenlisten
 
-Für Projekte mit einem installierten [Kubernetes-Agent](/docs/monitor/kubernetes-agent) sind die folgenden Live-Ressourcen-Widgets verfügbar. Jedes nimmt optionale Filter für `cluster`, `namespace` und Labels entgegen.
+Für Projekte mit installiertem [Kubernetes Agent](/docs/monitor/kubernetes-agent). Jede Liste nimmt optionale Filter für Cluster, Namespace und Labels.
 
-- **KubernetesPodList** — Pods mit Phase, Neustarts und Node-Zuweisung.
-- **KubernetesNodeList** — Nodes mit Bedingungen, Kapazität und Allokationen.
-- **KubernetesNamespaceList** — Namespaces und ihre Workload-Anzahl.
-- **KubernetesDeploymentList** — Deployments mit gewünschten vs. bereiten Replicas.
-- **KubernetesStatefulSetList** — StatefulSets mit bereiten Replicas.
-- **KubernetesDaemonSetList** — DaemonSets mit gewünscht vs. bereit.
-- **KubernetesJobList** — Jobs mit Abschlussstatus.
-- **KubernetesCronJobList** — CronJobs mit Zeitplan und letztem Lauf.
+- **Kubernetes-Pod-Liste** – Pods mit Phase, Restarts und Node.
+- **Kubernetes-Node-Liste** – Nodes mit ihren Bedingungen und ihrer Kapazität.
+- **Kubernetes-Namespace-Liste** – Namespaces und Workload-Anzahl.
+- **Kubernetes-Deployment-Liste** – Deployments mit gewünschter vs. bereiter Replica-Anzahl.
+- **Kubernetes-StatefulSet-Liste** – StatefulSets mit Anzahl bereiter Replikate.
+- **Kubernetes-DaemonSet-Liste** – DaemonSets mit gewünschter vs. bereiter Anzahl.
+- **Kubernetes-Job-Liste** – Jobs und ihr Abschlussstatus.
+- **Kubernetes-CronJob-Liste** – CronJobs mit Zeitplan und letzter Ausführung.
 
-Greifen Sie dazu, wenn: Sie ein einzelnes Dashboard möchten, das den Zustand von Kubernetes-Ressourcen mit der Telemetrie dieser Workloads mischt.
+Verwenden Sie diese Widgets, wenn: Sie ein einziges Dashboard wünschen, das den Zustand von Kubernetes mit Telemetrie dieser Workloads vereint.
 
 ## Docker-Ressourcenlisten
 
-Für Projekte mit installiertem Docker-Monitor:
+Für Projekte mit eingerichtetem Docker-Monitoring.
 
-- **DockerHostList** — Hosts, die Docker ausführen, mit Container-Anzahlen.
-- **DockerContainerList** — Container mit Zustand, Image, Host, Uptime.
-- **DockerImageList** — Images und ihre Größen.
-- **DockerNetworkList** — Docker-Netzwerke und Anzahl der verbundenen Container.
-- **DockerVolumeList** — Docker-Volumes und ihre Nutzung.
+- **Docker-Host-Liste** – Hosts, die Docker ausführen, mit Container-Anzahl.
+- **Docker-Container-Liste** – Container mit Status, Image, Host, Laufzeit.
+- **Docker-Image-Liste** – Images und ihre Größen.
+- **Docker-Netzwerk-Liste** – Docker-Netzwerke und verbundene Container.
+- **Docker-Volume-Liste** – Docker-Volumes und ihre Nutzung.
 
 ## Infrastruktur
 
-### HostList
+### Host-Liste
 
-Hosts, die vom Server-Monitor von OneUptime überwacht werden — mit aktuellem Status, CPU, Speicher und Uptime.
+Hosts, die vom OneUptime-Server-Monitor überwacht werden, mit Status, CPU, Speicher und Laufzeit.
 
-**Konfigurieren**: Filter nach Labels oder aktuellem Gesundheitszustand.
+**Einstellungen**: Filter nach Labels oder aktuellem Status.
 
-## Das richtige Widget wählen
+## Welches Widget soll ich verwenden?
 
 Ein paar Faustregeln:
 
-- **Trend über die Zeit?** Chart.
-- **Eine Zahl, die jetzt zählt?** Value (oder Gauge, wenn sie einen natürlichen Bereich hat).
-- **Aufschlüsselung über viele Dinge?** Table.
-- **Was passiert gerade im System?** LogStream, TraceList, IncidentList.
-- **Zustand einer bestimmten Ressourcenflotte?** Das passende Ressourcenlisten-Widget.
+- **Trend über die Zeit?** Diagramm.
+- **Eine Zahl, die gerade zählt?** Wert (oder Anzeige, falls es ein klares Min/Max gibt).
+- **Aufschlüsselung über viele Dinge?** Tabelle.
+- **Was passiert gerade im System?** Log-Stream, Trace-Liste, Vorfall-Liste.
+- **Status einer bestimmten Ressourcengruppe?** Das passende Listen-Widget.
 - **Eine Überschrift, ein Absatz oder ein Link?** Text.
 
-Die meisten Dashboards verwenden eine Mischung — ein Chart oben, ein oder zwei Values daneben, ein Text-Trenner, dann ein oder zwei Listen darunter.
+Die meisten Dashboards mischen ein paar – ein Diagramm oben, daneben ein oder zwei Werte, ein Text-Trenner und ein oder zwei Listen darunter.
 
-## Wo weiterlesen
+## Weiterführende Themen
 
-- [Variablen & Filter](/docs/dashboards/variables) — Widgets über Services / Kunden / Cluster hinweg wiederverwendbar machen.
-- [Ein Dashboard erstellen](/docs/dashboards/authoring) — die Arbeitsfläche, das Raster und der Edit-Modus.
-- [Teilen & öffentliche Dashboards](/docs/dashboards/sharing) — ein Dashboard außerhalb des Teams freigeben.
+- [Variablen & Filter](/docs/dashboards/variables) – Widgets für viele Services oder Kunden wiederverwendbar machen.
+- [Dashboard erstellen](/docs/dashboards/authoring) – die Mechanik der Arbeitsfläche.
+- [Freigabe & öffentliche Dashboards](/docs/dashboards/sharing) – außerhalb Ihres Teams teilen.

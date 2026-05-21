@@ -1,75 +1,68 @@
-# Opprette en arbeidsflyt
+# Lage en arbeidsflyt
 
-Opprett en arbeidsflyt under **Arbeidsflyter → Opprett arbeidsflyt**, gi den et navn og en valgfri beskrivelse, og åpne så **Builder**-fanen for å begynne å slippe noder på lerretet.
+For å opprette en arbeidsflyt, åpne **Arbeidsflyter → Opprett arbeidsflyt**, gi den et navn, og klikk inn på **Bygger**-fanen. Du vil se et tomt lerret hvor du skal bygge automatiseringen.
 
 ## Lerretet
 
-Builder er en zoombar, pannerbar graf. Du legger til noder fra en komponentpalett, kobler dem med kanter og konfigurerer hver nodes argumenter i et sidepanel. En lagringsindikator i toppen forteller deg om siste redigering er persistert.
+Byggeren er et dra-og-slipp-lerret. Du legger til blokker fra paletten på siden, kobler dem sammen med linjer, og klikker på hver blokk for å konfigurere hva den gjør. Endringer lagres automatisk — du ser en indikator øverst når de er lagret.
 
-En arbeidsflyt starter alltid med nøyaktig én **trigger**-node. Triggere har ingen inngangsport — det er der utførelsen begynner. Alt nedstrøms er en **komponent**.
+Hver arbeidsflyt starter med én **trigger** i begynnelsen. Alt annet er en **komponent** som gjør noe.
 
-## Anatomien til en node
+## Hva som finnes på en blokk
 
-Hver node har:
-
-| Felt | Formål |
+| Felt | Hva det gjør |
 | --- | --- |
-| **Tittel** | Etiketten som vises på lerretet. Defaulter til komponentnavnet; overskriv det for å gjøre komplekse arbeidsflyter lettere å lese. |
-| **Argumenter** | Konfigurasjonen komponenten trenger for å gjøre jobben sin — en URL, en Slack-kanal, en JavaScript-snutt osv. Nødvendige argumenter er merket med en stjerne. |
-| **Inngangsporter** | Kontakter på venstre side av noden der innkommende kanter lander. Komponenter har én inngangsport som heter `in`; triggere har ingen. |
-| **Utgangsporter** | Kontakter på høyre side der utgående kanter starter. Komponenter definerer porter som `success`, `error`, `yes`, `no`. |
-| **Returverdier** | Data noden produserer — payload til utgangsportene. Nedstrømsnoder refererer til disse som `{{NodeId.fieldName}}`. |
+| **Tittel** | Navnet som vises på lerretet. Gi det nytt navn for å gjøre komplekse arbeidsflyter lettere å lese. |
+| **Innstillinger** | Hva blokken trenger for å gjøre jobben sin — en URL, en Slack-kanal, en meldingstekst, osv. Obligatoriske felter er markert med en stjerne. |
+| **Inngang** | Prikken til venstre der linjer kommer inn fra tidligere blokker. |
+| **Utganger** | Prikkene til høyre der linjer går ut til de neste blokkene. Mange blokker har separate utganger for **suksess** og **feil** slik at du kan håndtere begge tilfeller. |
 
-## Koble noder
+## Koble blokker sammen
 
-Dra fra en utgangsport til en nedstrømsnodes inngangsport for å opprette en kant. En kant fra `success` kjører den grenen bare når oppstrømsnoden lyktes; en kant fra `error` kjører bare når den feilet. Hvis du ikke kobler en port, ender den grenen ganske enkelt.
+Dra fra utgangsprikken på en blokk til inngangsprikken på den neste blokken. Linjen du tegner bestemmer hva som kjører neste.
 
-Du kan forgrene utover: én utgangsport kan mate flere nedstrømsnoder, og de kjører alle parallelt fra det punktet.
+- Hvis du kobler fra **suksess**, kjører den neste blokken bare når den tidligere fungerte.
+- Hvis du kobler fra **feil**, kjører den neste blokken bare når den tidligere feilet.
+- Hvis du ikke kobler til en utgang, stopper den banen bare.
 
-## Konfigurere argumenter
+Du kan koble én utgang til flere blokker. De kjører alle samtidig fra det punktet.
 
-Klikk på en node for å åpne sidepanelet. Hvert argument har en typebasert editor:
+## Konfigurere en blokk
 
-- **Tekst / URL / E-post / Tall / Passord** — en enkeltlinjes input.
-- **JSON** — en JSON-editor med syntaksuthevelse og valideringsindikator.
-- **JavaScript** — en kodeeditor for snutter brukt av **Custom Code**-komponenten.
-- **Markdown / HTML** — rikt formatert body for e-post- og meldingskomponenter.
-- **CronTab** — et tidsplanuttrykk (brukt av Schedule-triggeren).
-- **Boolean** — en bryter.
-- **Select / Query** — nedtrekksmenyer for felt som tar et fast sett med verdier eller en modell-stil spørring.
+Klikk på en blokk for å åpne innstillingene dens på siden. Hver innstilling har riktig type input — tekstfelt, nedtrekkslister, kodeeditorer, brytere og så videre.
 
-Ethvert tekstfelt aksepterer variabelinterpolering — se [Variabler](/docs/workflows/variables) for reglene.
+De fleste tekstfelter aksepterer variabler — det er slik data flyter fra én blokk til den neste. Se [Variabler](/docs/workflows/variables) for syntaksen.
 
-## En minimal første arbeidsflyt
+## Din første arbeidsflyt
 
-Den raskeste måten å bli kjent med lerretet:
+Den raskeste måten å bli kjent med lerretet på:
 
-1. Slipp en **Manual**-trigger.
-2. Slipp en **Log**-komponent (under **Utils**). Koble triggerens utgangsport til Log-komponentens inngangsport.
-3. I Log-komponentens argument, skriv `Hello from {{Manual.JSON.name}}`.
-4. Lagre og aktiver arbeidsflyten.
+1. Dra en **Manuell** trigger inn på lerretet.
+2. Dra en **Log**-komponent (under **Utils**) ved siden av. Koble triggeren til Log-komponenten.
+3. I meldingsfeltet til Log-blokken, skriv `Hello from {{Manual.JSON.name}}`.
+4. Lagre og slå på arbeidsflyten.
 5. Klikk **Kjør manuelt**, lim inn `{ "name": "Ada" }` som input, og send inn.
-6. Åpne **Logger**-fanen. Siste kjøring viser Log-nodens fangede output: `Hello from Ada`.
+6. Åpne **Logger**-fanen. Den siste kjøringen viser `Hello from Ada`.
 
-Den rundturen — dra, koble, konfigurere, kjøre, inspisere — er rytmen i å skrive enhver arbeidsflyt.
+Den syklusen — dra, koble, konfigurere, kjøre, sjekke loggen — er hvordan du bygger hver arbeidsflyt.
 
-## Lagre, aktivere og teste i produksjon
+## Lagre og slå på
 
-Arbeidsflyter lagres som en JSON-graf i `Workflow.graph`-kolonnen. Builder lagrer mens du redigerer; lagringsindikatoren i toppen viser når siste endring har truffet serveren. Det finnes ikke noe eget "publiser"-trinn.
+Lerretet lagrer mens du arbeider. Det er ingen separat "publiser"-steg.
 
-Men: en arbeidsflyt trigger triggeren sin bare når **isEnabled** er på. Nye arbeidsflyter leveres deaktivert. Behandle det flagget som din "klar for prod"-bryter — bygg, klikk **Kjør manuelt** for å tørrkjøre med en eksempel-payload, se på **Logger**, og slå deretter Enable på.
+Men en arbeidsflyt kjører faktisk bare når **Aktivert** er på i Innstillinger. Nye arbeidsflyter starter som deaktivert. Bruk denne bryteren som sikkerhetsnett — bygg den, test med **Kjør manuelt**, sjekk loggene, og slå den så på.
 
-Hvis du må sette en arbeidsflyt på pause uten å slette den (f.eks. under en urelatert hendelse), slå av **isEnabled** i **Innstillinger**. Eksisterende pågående kjøringer fortsetter; ingen nye starter.
+For å sette en arbeidsflyt på pause uten å slette den, slå **Aktivert** av. Kjøringer som allerede er i gang fullføres; ingen nye starter.
 
-## Omarrangere og omorganisere
+## Rydde opp
 
-- Dra en node for å flytte den. Posisjonen lagres i grafen slik at den neste personen som åpner lerretet ser samme oppsett.
-- Høyreklikk på en kant for å slette den; høyreklikk en node for slette- og dupliser-alternativer.
-- For brede arbeidsflyter, legg dem ut fra venstre til høyre slik at utførelsesretningen matcher leseretningen din.
+- Dra blokker for å flytte dem. Layouten lagres slik at neste person ser samme oppsett.
+- Høyreklikk en linje for å slette den. Høyreklikk en blokk for å slette eller duplisere den.
+- For brede arbeidsflyter, legg dem ut fra venstre til høyre slik at de leses i retningen de kjører.
 
-## Les videre
+## Hvor du leser videre
 
-- [Triggere](/docs/workflows/triggers) — de fire trigger-familiene og hva hver eksponerer som returverdier.
-- [Komponenter](/docs/workflows/components) — den fullstendige katalogen og argumentene deres.
-- [Variabler](/docs/workflows/variables) — hvordan referere data mellom noder og fra globale variabler.
-- [Kjøringer & logger](/docs/workflows/runs-and-logs) — hvordan feilsøke en arbeidsflyt som oppfører seg feil.
+- [Triggere](/docs/workflows/triggers) — de fire måtene en arbeidsflyt kan starte på.
+- [Komponenter](/docs/workflows/components) — hver blokk du kan legge til.
+- [Variabler](/docs/workflows/variables) — å flytte data mellom blokker.
+- [Kjøringer & logger](/docs/workflows/runs-and-logs) — å sjekke hva som skjedde.

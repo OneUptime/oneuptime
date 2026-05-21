@@ -83,7 +83,7 @@ export class MonitorTypeHelper {
       },
       {
         label: "Infrastructure",
-        monitorTypes: [MonitorType.Server, MonitorType.SNMP],
+        monitorTypes: [MonitorType.SNMP],
       },
       {
         label: "Kubernetes",

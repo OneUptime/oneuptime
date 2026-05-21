@@ -1,75 +1,69 @@
-# Criar um painel
+# Criando um Painel
 
-Crie um painel em **Dashboards → Create Dashboard**, dê um nome a ele e abra-o. O canvas abre no modo **Edit**, pronto para receber widgets.
+Para criar um painel, abra **Dashboards → Criar Painel**, dê um nome a ele e abra-o. O canvas abre no modo **Edição**, pronto para você começar a adicionar widgets.
 
 ## O canvas
 
-Um painel é uma grade. O canvas padrão é **12 unidades de painel de largura** por **60 unidades de altura** — você pode aumentar a altura adicionando linhas além do fundo. Cada unidade é um quadrado que se ajusta à janela de visualização: em um desktop ele é mais largo do que em um celular, mas cada widget mantém suas proporções.
+Um painel é uma grade. Os widgets se encaixam — você decide onde cada um fica e o tamanho. Você pode aumentar a página para baixo conforme adiciona mais linhas. Todo widget mantém suas proporções em telas maiores ou menores.
 
-Os widgets ocupam um retângulo de unidades. Você decide tanto a posição (canto superior esquerdo, medido em unidades a partir do canto superior esquerdo do canvas) quanto o tamanho (largura e altura em unidades). Dimensões mínimas garantem que um widget minúsculo continue legível.
+## Edição e Visualização
 
-## Edit vs. View
+O alternador no cabeçalho troca entre dois modos:
 
-A chave no cabeçalho da página alterna entre os dois modos:
+- **Edição** — a paleta de widgets está aberta, você pode arrastar widgets pela página, redimensioná-los e clicar em qualquer widget para alterar suas configurações.
+- **Visualização** — o painel é somente leitura, exatamente como visitantes e outros membros da equipe veem. Use este modo para conferir o resultado antes de compartilhar.
 
-- **Edit** — a paleta de widgets está aberta, os widgets podem ser arrastados e redimensionados, todo widget tem uma engrenagem de configurações. Use este modo durante a construção.
-- **View** — o painel renderiza somente leitura, exatamente como alguém com acesso somente de visualização (ou um visitante público) o vê. Use este modo para conferir o resultado antes de compartilhar.
-
-O mesmo painel é mostrado nos dois modos — não existe um passo separado de "publicar". Salvar uma edição entra em vigor imediatamente para todo visualizador.
+É o mesmo painel nos dois modos. Não há um passo separado de "publicar" — toda edição fica no ar no momento em que é salva.
 
 ## Adicionando um widget
 
-1. Abra a paleta de widgets (o botão **+** no modo Edit).
+1. Clique no botão **+** para abrir a paleta de widgets.
 2. Escolha o tipo de widget. Veja [Widgets](/docs/dashboards/widgets) para o catálogo.
-3. O widget aterrissa no canvas na próxima posição livre com um tamanho padrão.
-4. Clique na engrenagem do widget para abrir seu painel de configurações.
-5. Configure a fonte de dados (consulta de métrica, filtro de lista, corpo de texto etc.) e quaisquer opções de exibição (limites, unidades, eixos, colunas).
-6. Arraste o widget para posicioná-lo. Arraste um canto para redimensionar.
+3. O widget aparece no canvas.
+4. Clique no ícone de engrenagem no widget para abrir suas configurações.
+5. Escolha a fonte de dados (uma métrica, um filtro de lista, um parágrafo de texto etc.) e quaisquer opções de exibição.
+6. Arraste o widget para movê-lo. Arraste um canto para redimensionar.
 
-Repita. A grade encaixa os widgets em fronteiras de unidade inteira.
+## De onde vêm os dados
 
-## Configurando fontes de dados
+A maioria dos widgets lê de um destes três lugares:
 
-A maioria dos widgets lê de uma destas três origens:
+- **Métricas** — escolha uma métrica e uma agregação (média, máximo, contagem, percentil). Adicione filtros. Escolha como agrupar o resultado. É o mesmo construtor de consultas que você vê em outros lugares do OneUptime.
+- **Listas ao vivo** — incidentes, alertas, monitores, pods do Kubernetes, contêineres Docker, hosts. Cada widget de lista recebe um filtro e mostra os itens correspondentes, atualizados ao vivo.
+- **Conteúdo estático** — o widget **Texto** recebe um bloco de Markdown. Use-o para títulos, contexto, links para runbooks ou notas temporárias durante um incidente.
 
-- **Métricas** — uma consulta de métrica respaldada por ClickHouse. O widget monta um `metricQueryConfig` (uma única série) ou `metricQueryConfigs` (múltiplas séries empilhadas ou sobrepostas). O `transformAsRate` opcional converte um contador cumulativo do OpenTelemetry em uma taxa de variação. O `formula` opcional permite combinar duas consultas (por exemplo, contagem de erros / contagem total).
-- **Listas de recursos em tempo real** — incidentes, alertas, monitores, recursos de Kubernetes, recursos de Docker, hosts. Cada widget de lista recebe um filtro (por exemplo, rótulos, status, namespace) e exibe as linhas correspondentes ao vivo.
-- **Conteúdo estático** — o widget **Text** recebe um corpo em Markdown. Use para cabeçalhos, divisores, links de runbook e anotações do tipo "o que é este painel?".
+## Limiares e formatação
 
-Para widgets de métrica, a configuração espelha o construtor de consultas inline que você vê em outros lugares do OneUptime — escolha uma métrica, escolha uma agregação, adicione filtros `WHERE`, escolha um agrupamento temporal. A consulta roda contra os dados de telemetria do seu projeto.
+Widgets de valor único (**Valor**, **Indicador**) permitem definir:
 
-## Limites e formatação
+- Um **limiar de aviso** — a cor fica amarela quando o valor o ultrapassa.
+- Um **limiar crítico** — a cor fica vermelha quando o valor o ultrapassa.
 
-Widgets que exibem um único número (**Value**, **Gauge**) aceitam limites opcionais:
-
-- **Warning threshold** — renderiza o valor em amarelo quando ele cruza esse limite.
-- **Critical threshold** — renderiza o valor em vermelho quando ele cruza esse limite.
-
-Gráficos permitem definir a unidade do eixo Y, a posição da legenda e se as séries devem ser empilhadas. Tabelas permitem escolher quais colunas exibir e o limite de linhas.
+Gráficos permitem definir a unidade do eixo Y, escolher onde a legenda aparece e escolher se as séries se empilham ou se sobrepõem. Tabelas permitem escolher quais colunas mostrar e quantas linhas.
 
 ## Intervalo de tempo e atualização
 
-O cabeçalho do painel carrega dois controles globais que afetam todo widget de métrica:
+No topo do painel, dois controles afetam todos os widgets de métricas:
 
-- **Time range** — escolha um preset (Última 1 hora, 24 horas, 7 dias, 30 dias) ou um intervalo personalizado. Todo widget de métrica consulta contra essa janela.
-- **Refresh interval** — Off, 5s, 10s, 30s, 1m, 5m, 15m. Re-roda a consulta de cada widget na cadência escolhida. Widgets de lista que suportam websockets nativamente atualizam por push independentemente do intervalo escolhido.
+- **Intervalo de tempo** — uma predefinição (última hora, 24 horas, 7 dias, 30 dias) ou um intervalo personalizado. Todo gráfico e número usa essa janela.
+- **Atualização** — com que frequência os widgets reconsultam. Desligado, 5s, 10s, 30s, 1m, 5m, 15m. Listas ao vivo atualizam por conta própria, independentemente dessa configuração.
 
-Para widgets que ignoram o intervalo de tempo global (por exemplo, um bloco de texto), o controle é um no-op.
+Widgets que não usam o intervalo de tempo (como um widget de Texto) ignoram ambos os controles.
 
-## Salvamento
+## Salvando
 
-O canvas salva automaticamente conforme você edita. Um pequeno indicador no cabeçalho avisa quando a alteração mais recente foi persistida. Não existe "publicar" — toda edição fica ao vivo no momento em que é salva. Se você está fazendo uma mudança arriscada, duplique o painel antes.
+O canvas salva por conta própria enquanto você trabalha. Um pequeno indicador no cabeçalho avisa quando a última alteração foi salva. Se você está fazendo uma mudança grande, duplique o painel primeiro para ter uma cópia segura.
 
-## Padrões que funcionam bem
+## Dicas para painéis que envelhecem bem
 
-- **Um tema por painel.** Resista à tentação de colocar "tudo o que monitoramos" em uma página. Três painéis rotulados `oncall-checkout`, `oncall-payments`, `oncall-search` envelhecem melhor do que um mega-painel.
-- **Ancore o topo da página com o widget mais importante.** As pessoas leem de cima para baixo — garanta que a primeira coisa que elas veem é a resposta para "este sistema está saudável?".
-- **Use widgets Text para rotular seções.** Um pequeno cabeçalho a cada poucas linhas ("Latência" / "Erros" / "Capacidade") torna o painel legível de longe.
-- **Use variáveis em vez de duplicar.** Se você se pegar montando o mesmo painel duas vezes para dois serviços, você quer uma variável `service`. Veja [Variáveis e filtros](/docs/dashboards/variables).
+- **Um tema por painel.** Evite colocar "tudo o que monitoramos" em uma só página. Alguns painéis focados valem mais que uma única página gigante.
+- **Coloque o widget mais importante no topo.** As pessoas leem de cima para baixo — faça com que a primeira coisa que veem responda "este sistema está saudável?"
+- **Marque seções com widgets de Texto.** Um título curto a cada poucas linhas ("Latência", "Erros", "Capacidade") torna a página legível de longe.
+- **Use variáveis em vez de duplicar.** Se você está prestes a montar o mesmo painel para um segundo serviço, monte um painel com uma variável `service`. Veja [Variáveis e Filtros](/docs/dashboards/variables).
 
-## O que ler a seguir
+## O que ler em seguida
 
-- [Widgets](/docs/dashboards/widgets) — o catálogo e a configuração por widget.
-- [Variáveis e filtros](/docs/dashboards/variables) — templating com variáveis, filtros de atributo e intervalo de tempo.
-- [Compartilhamento e painéis públicos](/docs/dashboards/sharing) — tornar um painel acessível fora da equipe.
-- [Configuração e permissões](/docs/dashboards/configuration) — propriedade e controle de acesso.
+- [Widgets](/docs/dashboards/widgets) — o catálogo.
+- [Variáveis e Filtros](/docs/dashboards/variables) — variáveis, filtros e o intervalo de tempo.
+- [Compartilhamento e Painéis Públicos](/docs/dashboards/sharing) — compartilhando fora da sua equipe.
+- [Configuração e Permissões](/docs/dashboards/configuration) — donos e controle de acesso.

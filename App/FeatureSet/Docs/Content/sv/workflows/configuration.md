@@ -1,89 +1,89 @@
 # Konfiguration & säkerhet
 
-Den här sidan samlar de inställningar och säkerhetsgränser som är värda att känna till innan du riktar ett arbetsflöde mot produktionstrafik.
+Den här sidan täcker de inställningar och säkerhetsgränser som är värda att känna till innan du riktar ett arbetsflöde mot riktig trafik.
 
-## Aktivera / inaktivera
+## Slå på eller av ett arbetsflöde
 
-Varje arbetsflöde har en **isEnabled**-flagga i **Settings**. Inaktiverade arbetsflöden triggas aldrig — modellhändelser, webhooks och schemalagda körningar ignoreras. Nya arbetsflöden levereras inaktiverade.
+Varje arbetsflöde har en **Enabled**-växel i **Settings**. När den är av körs inte arbetsflödet — webhook-anrop, schemalagda tider och OneUptime-händelser ignoreras alla. Nya arbetsflöden börjar inaktiverade.
 
-Behandla detta som din "redo för produktion"-omkopplare:
+Använd den här växeln som din "redo att köra"-grind:
 
 1. Bygg arbetsflödet.
-2. Klicka på **Run Manually** med en representativ payload.
-3. Kontrollera **Logs** — bekräfta att varje nod tog den port du förväntade dig.
-4. Slå på **isEnabled**.
+2. Klicka på **Run Manually** med en realistisk payload.
+3. Kontrollera **Logs** — försäkra dig om att varje block gick dit du förväntade dig.
+4. Slå på **Enabled**.
 
-Att inaktivera ett arbetsflöde påverkar inte körningar som redan är på gång; det förhindrar bara att nya skapas.
+Att stänga av ett arbetsflöde stoppar inte körningar som redan pågår; det stoppar bara nya från att starta.
 
-## Ägarskap och etiketter
+## Ägare och etiketter
 
-- **Ägare** — användare och team listade som ägare får behörighetsbaserad åtkomst och (valfritt) notifieringar när arbetsflödet misslyckas. Konfigurera under **Settings → Owners**.
-- **Etiketter** — många-till-många-taggar för att organisera arbetsflöden. Filtrera arbetsflödeslistan efter etikett. Användbart när ett projekt har dussintals arbetsflöden organiserade efter team, integration eller miljö.
-- **Etikettregler** — under **Workflows → Settings → Label Rules**, applicera etiketter automatiskt på nya arbetsflöden baserat på regex-matchningar på namn eller beskrivning.
-- **Ägarregler** — under **Workflows → Settings → Owner Rules**, tilldela ägare automatiskt till nya arbetsflöden.
+- **Owners** — användare och team som listas som ägare får åtkomst till arbetsflödet och kan välja att få notiser när det misslyckas. Ställ in dem under **Settings → Owners**.
+- **Labels** — taggar för att gruppera arbetsflöden. Arbetsflödeslistan låter dig filtrera på etikett, vilket gör ett upptaget projekt mycket enklare att navigera. Användbart när du har arbetsflöden organiserade efter team, integration eller miljö.
+- **Label rules** — under **Workflows → Settings → Label Rules** kan du automatiskt tillämpa etiketter på nya arbetsflöden baserat på namn- eller beskrivningsmönster.
+- **Owner rules** — under **Workflows → Settings → Owner Rules** kan du automatiskt tilldela ägare till nya arbetsflöden.
 
 ## Hemligheter
 
-Globala variabler kan markeras som **hemliga**. Värdet är krypterat i vila, skrivskyddat i användargränssnittet efter att det sparats och redigeras bort från körningsloggar (ersätts med `[REDACTED]`).
+Markera en global variabel som en **secret** om den innehåller något känsligt. Värdet krypteras, döljs i gränssnittet efter att du sparat och döljs i körningsloggar (visas som `[REDACTED]`).
 
 Använd hemliga variabler för:
 
-- API-nycklar för utgående integrationer.
-- Bearer-tokens.
-- Webhook-signeringsnycklar.
-- Vilket som helst värde som en angripare med läsbehörighet till ett arbetsflöde inte ska se.
+- API-nycklar för externa tjänster.
+- Autentiseringstokens.
+- Signeringsnycklar för webhooks.
+- Allt du inte skulle vilja att någon med läsåtkomst skulle se.
 
-Klistra inte in en hemlighet direkt i en komponents argument — referenser som `Authorization: Bearer eyJh...` dyker upp i arbetsflödets JSON och i körningsloggarna i klartext. Referera till `{{variable.MY_SECRET}}` istället.
+Klistra inte in en hemlighet direkt i ett block — värden som `Authorization: Bearer eyJh...` blir synliga i arbetsflödet och loggarna. Använd `{{variable.MY_SECRET}}` istället.
 
-## Körningstimeout
+## Hur länge en körning kan ta
 
-Varje körning har en maximal varaktighet. Om en körning inte har avslutats inom timeouten markeras den som `Timeout` och eventuella pågående komponenter avbryts. Standardvärdet är generöst (minuter, inte sekunder) — se workerns miljökonfiguration för det exakta värdet i din installation.
+Varje körning har en maximal längd. Om en körning inte har avslutats i tid markeras den som **Timeout** och pågående block avbryts. Standardvärdet är generöst — tillräckligt långt för normala HTTP-anrop och kedjor av block.
 
-De flesta komponenter har sina egna per-anrops-timeouts inuti körningstimeouten — t.ex. ger API-komponenten upp på en hängande utgående förfrågan långt innan hela körningen gör det.
+Enskilda block har sina egna tidsgränser inuti det — till exempel ger ett API-block upp på en hängande utgående förfrågan långt innan hela körningen gör det.
 
-## Rekursionsgräns
+## Gräns för att anropa andra arbetsflöden
 
-Komponenten **Execute Workflow** låter ett arbetsflöde anropa ett annat. För att förhindra fenande loopar där A anropar B anropar A i oändlighet, spårar workern anropskedjan och stoppar en kedja som överskrider ett fast djup (vanligtvis ett litet tal som 5). Den avslutande körningen markeras som `Error` med ett tydligt meddelande om rekursionsgränsen.
+Komponenten **Execute Workflow** låter ett arbetsflöde anropa ett annat. För att förhindra oavsiktliga loopar där arbetsflöde A anropar B som anropar A igen, finns det ett tak på hur djupt kedjan kan gå. En körning som går förbi gränsen avslutas med ett tydligt felmeddelande.
 
-Om du har ett legitimt behov av en lång kedja (t.ex. en rekursiv mappgenomgång som bearbetar en nivå per körning), refaktorisera till ett enskilt arbetsflöde som itererar internt via **Custom Code** — det mönstret är inte föremål för kedjegränsen.
+Om du har ett verkligt behov av en lång kedja (som ett jobb som bearbetar en post per körning) är det vanligtvis enklare att loopa inuti ett enda arbetsflöde med **Custom Code**.
 
 ## Webhook-säkerhet
 
-Webhook-utlösare exponerar en unik HTTPS-URL. Vem som helst som lär sig URL:en kan träffa den. För att försvara dig mot oavsiktliga eller fientliga anropare:
+Webhook-utlösare ger dig en unik URL. Vem som helst som känner till URL:en kan anropa den. För att skydda mot oavsiktliga eller oönskade anropare:
 
-- Behandla URL:en som en delad hemlighet. Klistra inte in den i offentlig chatt eller committa den till en offentlig repo.
-- För högvärdesarbetsflöden, be det anropande systemet inkludera en delad hemlighet som en header (t.ex. `X-Webhook-Token`) och validera den i en **Conditions**-nod innan du gör något destruktivt. Definiera den förväntade token som en hemlig global variabel.
-- För mycket högvärdesarbetsflöden, föredra en modellhändelse-utlösare och ett manuellt importsteg istället för en offentlig webhook.
+- Behandla URL:en som ett lösenord. Dela inte den offentligt eller committa den till ett offentligt repo.
+- För känsliga arbetsflöden, be det anropande systemet att skicka en delad token som en header (som `X-Webhook-Token`) och kontrollera den med ett **Conditions**-block innan du gör något viktigt. Spara den förväntade tokenen som en hemlig variabel.
+- För mycket känsliga arbetsflöden, föredra en OneUptime-händelseutlösare och ett manuellt importsteg istället för en offentlig webhook.
 
-## Utgående nätverks-egress
+## Utgående nätverksåtkomst
 
-API och andra HTTP-stilskomponenter skickar förfrågningar från OneUptime Workflow Workerns nätverk. Om du self-hostar OneUptime är workerns utgående nätverk din ensak — se till att den kan nå de tredjeparts-API:er du anropar. Om du använder OneUptime Cloud publiceras vårt IP-egress-omfång i [IP Addresses](/docs/configuration/ip-addresses) så att du kan tillåtslista på den mottagande sidan.
+API- och andra HTTP-block gör sina förfrågningar från OneUptime. Om du kör självhostat, se till att din installation kan nå tjänsterna du anropar. Om du använder OneUptime Cloud listas våra utgående IP-intervall i [IP-adresser](/docs/configuration/ip-addresses) så att du kan tillåta dem på den andra sidan.
 
 ## Behörigheter
 
-Arbetsflöden är förstklassiga resurser som omfattas av projektnivå rollbaserad åtkomstkontroll:
+Arbetsflöden respekterar ditt projekts rollbaserade åtkomstkontroll. De relevanta behörigheterna:
 
-- `CreateWorkflow`, `ReadWorkflow`, `EditWorkflow`, `DeleteWorkflow` — de fyra CRUD-behörigheterna på arbetsflödesmallar.
-- `RunWorkflow` — behövs för att klicka på **Run Manually** eller för att skicka iväg ett arbetsflöde via API.
-- `ReadWorkflowLog` — behövs för att se sidan **Runs & Logs**.
-- `ReadWorkflowVariable`, `CreateWorkflowVariable`, `EditWorkflowVariable`, `DeleteWorkflowVariable` — kontroll över listan med globala variabler.
+- **Create / Read / Edit / Delete Workflow** — de grundläggande behörigheterna på själva arbetsflödet.
+- **Run Workflow** — behövs för att klicka på **Run Manually** eller utlösa ett arbetsflöde via API.
+- **Read Workflow Log** — behövs för att se körningar.
+- **Read / Create / Edit / Delete Workflow Variable** — kontroll över listan med globala variabler.
 
-De flesta ingenjörer bör ha create/edit/read på arbetsflöden men inte på variabler. Reservera redigeringsåtkomst till variabler för de personer som hanterar ditt projekts hemligheter.
+De flesta utvecklare bör ha skapa/redigera/läsa på arbetsflöden men inte på variabler. Spara redigeringsåtkomst för variabler åt de personer som hanterar projektets hemligheter.
 
-## Kvoter
+## Plangränser
 
-OneUptime Cloud sätter ett tak på antalet körningar per månad per projekt på mindre planer. Taket visas på **Project Settings → Billing**. När du når det avvisas nya utlösare (och registreras med en "quota exceeded"-anledning på det berörda arbetsflödet) tills nästa faktureringscykel. Self-hostade installationer är inte föremål för en kvot.
+OneUptime Cloud begränsar antalet körningar per månad på mindre planer. Din aktuella gräns visas under **Project Settings → Billing**. När du når den avvisas nya utlösare till nästa faktureringscykel. Självhostade installationer har inte denna gräns.
 
-## Vad arbetsflöden *inte* är bra på
+## När arbetsflöden inte är rätt verktyg
 
-Några mönster där du bör gripa efter ett annat verktyg:
+Några fall där du bör välja något annat:
 
-- **Långkörande beräkningar** — arbetsflöden är inriktade på lim mellan system, inte att mala stora datamängder. Kör tungt arbete i din egen infrastruktur och använd ett arbetsflöde för att sparka igång det.
-- **Tillståndsbärande arbetsflöden som sträcker sig över minuter/timmar** — en enskild körning är menad att avslutas snabbt. Om du behöver "gör sak A, vänta sedan två timmar, gör sak B," modellera väntan som en extern schemaläggare som postar tillbaka till en webhook-utlösare.
-- **Steg-för-steg-incidentrespons med mänskliga kontrollpunkter** — det är vad [Runbooks](/docs/runbooks/index) är till för. Använd ett arbetsflöde om det inte finns någon människa i loopen; använd en runbook om det gör det.
+- **Tung beräkning eller stora datamängder** — arbetsflöden är designade för lätt limarbete, inte sifferknäckning. Kör tungt arbete i din egen infrastruktur och låt ett arbetsflöde sparka igång det.
+- **Långkörande processer som sträcker sig över timmar** — en enskild körning är menad att avslutas snabbt. Om du behöver "gör A, vänta två timmar, gör B", använd en extern schemaläggare som skickar en webhook tillbaka till OneUptime när det är dags.
+- **Steg-för-steg-incidenthantering med människor i loopen** — det är vad [Runbooks](/docs/runbooks/index) är till för. Arbetsflöden är för obevakad automation.
 
-## Var läsa vidare
+## Läs vidare
 
-- [Översikt över arbetsflöden](/docs/workflows/index) — den begreppsmässiga kartan.
-- [Komponenter](/docs/workflows/components) — argumentdetaljer för varje åtgärd.
+- [Översikt över arbetsflöden](/docs/workflows/index) — det stora hela.
+- [Komponenter](/docs/workflows/components) — block-för-block-referens.
 - [Runbooks](/docs/runbooks/index) — när du ska använda en runbook istället.

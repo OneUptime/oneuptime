@@ -31,6 +31,26 @@ const KubernetesClusterSettings: FunctionComponent<
         formFields={[
           {
             field: {
+              name: true,
+            },
+            title: "Name",
+            description: "Friendly name for this Kubernetes cluster.",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: "production-us-east",
+          },
+          {
+            field: {
+              description: true,
+            },
+            title: "Description",
+            description: "Friendly description for this Kubernetes cluster.",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder: "Production cluster running in US East region on EKS",
+          },
+          {
+            field: {
               retainTelemetryDataForDays: true,
             },
             title: "Retain Telemetry Data For (Days)",

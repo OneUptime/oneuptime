@@ -1,87 +1,79 @@
 # Översikt över arbetsflöden
 
-Arbetsflöden är OneUptimes visuella automatiseringsbyggare. Dra en utlösare till en arbetsyta, koppla den till en kedja av åtgärder — HTTP-anrop, Slack-meddelanden, JavaScript-snuttar, villkorliga förgreningar, databasuppslagningar — och du har automation som körs så snart en händelse i OneUptime (eller i omvärlden) inträffar.
+Arbetsflöden låter dig automatisera uppgifter i OneUptime utan att skriva kod. Dra och släpp några block på en arbetsyta, koppla ihop dem, och du har en automation som körs så snart något händer — en incident öppnas, ett schema utlöses eller ett annat verktyg skickar data till OneUptime.
 
-Om runbooks är checklistor för människor under en incident, så är arbetsflöden bakgrundsjobb för ditt projekt — de körs obevakat, de reagerar på saker, och de limmar samman OneUptime med resten av din stack.
+Tänk på arbetsflöden som hjälpredor i bakgrunden för ditt projekt: de reagerar på händelser, pratar med andra verktyg och håller saker synkroniserade i tysthet medan du fokuserar på ditt arbete.
 
-## I korthet
+## Vad du kan göra med arbetsflöden
 
-- **Toppnivåfunktion** i OneUptime-dashboarden under **Workflows**.
-- **Tre triggertyper**: Manuell, Schemalagd (cron), Webhook — plus en **modellhändelse-utlösare** som triggas när någon OneUptime-entitet (incident, larm, monitor, statussida, etc.) skapas, uppdateras eller tas bort.
-- **Visuell arbetsyta**: dra noder från en komponentpalett, koppla utgångsportar till ingångsportar.
-- **Blandad automation**: HTTP-förfrågningar, Slack / Discord / Microsoft Teams / Telegram-meddelanden, anpassad JavaScript, JSON-parsning, villkor, e-post, anrop till underordnade arbetsflöden och CRUD-operationer på OneUptime-modeller.
-- **Globala variabler**: projektomfattande hemligheter och konfiguration som du refererar till från vilket arbetsflöde som helst utan att kopiera och klistra in.
-- **Körningar & loggar**: varje körning registreras med status, tidsåtgång och utdata per steg.
+- **Koppla OneUptime till dina andra verktyg** — skicka incidenter till Slack, skapa Jira-ärenden, posta till en webhook i din stack.
+- **Reagera på vad som händer i OneUptime** — när en kritisk incident skapas, meddela jourteamet och öppna ett ärende automatiskt.
+- **Kör jobb enligt ett schema** — var femte minut, varje natt, varje måndag morgon.
+- **Ta emot data utifrån** — låt andra system skicka in data till OneUptime via en unik URL.
+- **Återanvänd vanlig automation** — bygg den en gång, anropa den från vilket annat arbetsflöde som helst.
 
-## Varför använda arbetsflöden?
+## Hur ett arbetsflöde fungerar
 
-De flesta team griper efter arbetsflöden när de vill:
+Varje arbetsflöde har tre delar:
 
-- **Koppla in OneUptime mot ett annat system** — posta en incident till PagerDuty, spegla ett larm till Jira, pinga en webhook i din stack.
-- **Reagera på OneUptime-händelser** — när en `Sev 1`-incident öppnas, paga jourchefen *och* skapa ett Linear-ärende *och* lås en feature flag.
-- **Schemalägga återkommande jobb** — var femte minut, fråga ett internt API och skriv resultatet till ett externt system.
-- **Ta emot data från utanför OneUptime** — en webhook från ett CI-system sparkar igång en kedja av OneUptime-uppdateringar.
-- **Återanvända små stycken limlogik** — ett arbetsflöde anropar ett annat, så vanliga mönster bor på ett enda ställe.
+1. **En utlösare** — vad som startar arbetsflödet. Det kan vara en manuell knapp, ett schema, en inkommande webhook eller en händelse i OneUptime (som en ny incident).
+2. **En eller flera komponenter** — vad arbetsflödet gör. Skicka ett meddelande, gör ett HTTP-anrop, kör en snabb kontroll, förgrena dig baserat på ett villkor.
+3. **Kopplingar mellan dem** — du drar linjer från ett block till nästa för att bestämma ordningen.
+
+Du bygger allt detta visuellt på en arbetsyta. Ingen kodning krävs för de flesta arbetsflöden, men du kan släppa in en snutt JavaScript när du behöver det.
 
 ## Nyckelbegrepp
 
 | Term | Betydelse |
 | --- | --- |
-| **Arbetsflöde** | Arbetsytan. En namngiven, återanvändbar graf av utlösare och komponenter med en `isEnabled`-flagga. |
-| **Utlösare** | Noden som startar en arbetsflödeskörning. Manuell, Schemalagd, Webhook eller en modellhändelse. Varje arbetsflöde har exakt en utlösare. |
-| **Komponent** | En nod som utför arbete — ett HTTP-anrop, ett Slack-meddelande, en JavaScript-snutt, ett villkor, etc. |
-| **Port** | En in- eller utgångskontakt på en nod. Komponenter har utgångsportar som `success` och `error`; du kopplar en port till nästa nods ingångsport. |
-| **Körning / logg** | En körning av ett arbetsflöde. Innehåller tidsstämpel, status (Running, Success, Failed, Timeout) och den fångade utdatan från varje nod som kördes. |
-| **Global variabel** | Ett namngivet värde (ofta en hemlighet eller API-nyckel) som definieras en gång på projektnivå och refereras från vilket arbetsflöde som helst som `{{variable.NAME}}`. |
-| **Lokal variabel** | Ett värde som är begränsat till en enskild arbetsflödeskörning — vanligtvis returvärdet från en tidigare nod, refererat som `{{ComponentId.portName}}`. |
+| **Arbetsflöde** | Hela automationen — ett namn, en arbetsyta och en växel för att slå på eller av den. |
+| **Utlösare** | Det första blocket. Det bestämmer när arbetsflödet körs. Varje arbetsflöde har exakt en utlösare. |
+| **Komponent** | Ett åtgärdsblock — skickar ett meddelande, gör en förfrågan, kontrollerar ett villkor. |
+| **Körning** | En exekvering av arbetsflödet. Sparas med tidsstämplar och utdata från varje block. |
+| **Global variabel** | Ett värde (som en API-nyckel) som du sparar en gång och återanvänder i vilket arbetsflöde som helst. |
 
-## Var arbetsflöden bor i dashboarden
+## Var du hittar arbetsflöden i OneUptime
 
-| Sida | Vad du gör där |
-| --- | --- |
-| **Workflows** | Bläddra, skapa och sök arbetsflödesmallar. |
-| **Ett arbetsflödes Builder-flik** | Drag-och-släpp-arbetsytan. Lägg till noder, koppla portar, konfigurera argument. |
-| **Ett arbetsflödes Logs-flik** | Varje körning av detta arbetsflöde med filter för status och tidsintervall. Klicka på en körning för att se utdata per nod. |
-| **Ett arbetsflödes Settings-flik** | Byt namn, aktivera/inaktivera, ändra beskrivning, hantera etiketter, ta bort. |
-| **Workflows → Global Variables** | Definiera projektomfattande värden som refereras från vilket arbetsflöde som helst. Markera ett värde som hemligt för att dölja det från användargränssnittet efter att det sparats. |
-| **Workflows → Runs & Logs** | Projektomfattande körningshistorik över alla arbetsflöden. |
+Öppna **Workflows** i den vänstra navigeringen. Därifrån:
 
-## Ett arbetsflödes livscykel
+- **Workflows** — din lista över arbetsflöden. Skapa ett nytt eller öppna ett befintligt.
+- **Builder-flik** — arbetsytan där du designar arbetsflödet.
+- **Logs-flik** — varje körning av detta arbetsflöde, med detaljer.
+- **Settings-flik** — namn, beskrivning, ägare, etiketter, aktivera/inaktivera.
+- **Global Variables** — värden som delas mellan alla dina arbetsflöden.
+- **Runs & Logs** — exekveringshistorik över varje arbetsflöde i ditt projekt.
 
-1. **Skapa** — Skapa ett arbetsflöde, släpp en utlösare på arbetsytan, dra in de komponenter du behöver, koppla dem och konfigurera var och en.
-2. **Aktivera** — Arbetsflöden levereras inaktiverade. Slå på växeln i Settings när du är säker på att kopplingen är rätt.
-3. **Trigga** — Manuell: klicka på **Run Manually** med en valfri JSON-payload. Schemalagd: cron triggas. Webhook: ett externt system gör en `POST` till arbetsflödets URL. Modellhändelse: någon (eller ett annat arbetsflöde) skapar/uppdaterar/tar bort en monitor, incident, ett larm, etc.
-4. **Körs** — Workflow Worker går igenom grafen i tur och ordning. Varje komponent läser sina argument (bokstavliga värden eller interpolerade variabler), gör sitt jobb, skriver sitt returvärde och väljer en utgångsport. Nästa nod triggas.
-5. **Granska** — Körningen dyker upp i **Logs**. Status, total tidsåtgång, utdata per komponent och eventuella fel sparas under projektets livstid.
+## Bygga ditt första arbetsflöde
 
-## Ett genomarbetat exempel
+1. **Skapa** — ge ditt arbetsflöde ett namn och en kort beskrivning.
+2. **Välj en utlösare** — manuell, schemalagd, webhook eller en händelse från OneUptime.
+3. **Lägg till komponenter** — dra åtgärder till arbetsytan och koppla ihop dem.
+4. **Testa** — klicka på **Run Manually** och se vad som händer i loggarna.
+5. **Slå på det** — slå på **Enabled**-växeln i Settings när du är redo.
 
-Mål: när en incident skapas med `Sev 1` i titeln, posta i en Slack-kanal och öppna ett ärende i ditt interna admin-verktyg.
+## Ett snabbt exempel
 
-**1. Skapa ett arbetsflöde** med namnet "Sev 1 fan-out."
+Säg att du vill posta i Slack varje gång en kritisk incident skapas:
 
-**2. Släpp en utlösare.** Välj **Incident → On Create**-utlösaren från paletten. Utlösaren exponerar den nya incidenten som ett returvärde.
+1. Skapa ett arbetsflöde som heter "Kritiska incidenter till Slack."
+2. Välj utlösaren **Incident → On Create**.
+3. Lägg till ett **Conditions**-block. Ställ in det så att det kontrollerar om incidentens titel innehåller "Sev 1."
+4. Från grenen **Yes**, lägg till ett **Slack**-block. Välj kanalen och skriv meddelandet.
+5. Slå på arbetsflödet.
 
-**3. Släpp en Conditional-komponent.** Koppla utlösarens utgångsport till dess ingång. Sätt villkoret: `{{Incident.title}}` *contains* `Sev 1`.
-
-**4. Från Conditionals `yes`-port, släpp en Slack-komponent.** Kanal: `#incident-room`. Meddelandetext: `Sev 1 declared: {{Incident.title}} — {{Incident.dashboardUrl}}`.
-
-**5. Från samma `yes`-port (parallellt), släpp en API-komponent.** `POST` till `https://admin.internal/incidents`. Body: ett litet JSON-objekt byggt från incidenten.
-
-**6. Aktivera arbetsflödet.** Öppna en incident med titeln "Sev 1 — checkout 500s" i en annan flik. Inom några sekunder anländer Slack-meddelandet, och en ny körning dyker upp under **Logs** med varje nods utdata fångad.
+Nästa gång någon öppnar en incident med "Sev 1" i titeln, lyser Slack upp.
 
 ## Hur arbetsflöden passar in med resten av OneUptime
 
-- **Monitorer** upptäcker problem; **incidenter/larm** registrerar dem; **arbetsflöden** reagerar på dem — postar meddelanden, öppnar ärenden, sparkar igång automation.
-- **Runbooks** är svarsprocedurer för människor (med valfria skriptsteg). Arbetsflöden är obevakad bakgrundsautomation. De kompletterar varandra — ett runbook-steg kan göra en `POST` till ett arbetsflödes webhook-utlösare.
-- **Workspace-anslutningar** (Slack, Microsoft Teams) är de typiska destinationerna för arbetsflödesnotifieringar.
-- **Instrumentpaneler** är skrivskyddade vyer; arbetsflöden är skrivsidan — de uppdaterar OneUptime-tillstånd, anropar externa API:er och flyttar runt data.
+- **Monitorer** upptäcker problemet. **Incidenter** registrerar det. **Arbetsflöden** reagerar på det.
+- **Runbooks** är steg-för-steg-guider för människor. Arbetsflöden är obevakad automation. Använd en runbook när en människa behöver fatta beslut; använd ett arbetsflöde när stegen är automatiska.
+- **Workspace connections** (Slack, Teams) är dit arbetsflöden skickar sina meddelanden.
 
-## Var läsa vidare
+## Läs vidare
 
-- [Skapa ett arbetsflöde](/docs/workflows/authoring) — bygga ett arbetsflöde på arbetsytan, konfigurera noder, koppla portar.
-- [Utlösare](/docs/workflows/triggers) — Manuell, Schemalagd, Webhook och modellhändelse-utlösare i detalj.
-- [Komponenter](/docs/workflows/components) — katalogen över åtgärder och hur du konfigurerar var och en.
-- [Variabler](/docs/workflows/variables) — globala variabler, lokala variabler och hur interpolering fungerar.
-- [Körningar & loggar](/docs/workflows/runs-and-logs) — läs körningshistorik, felsök misslyckanden.
-- [Konfiguration & säkerhet](/docs/workflows/configuration) — aktivera/inaktivera, ägarskap, etiketter, hemligheter, rekursionsgränser.
+- [Skapa ett arbetsflöde](/docs/workflows/authoring) — bygga på arbetsytan.
+- [Utlösare](/docs/workflows/triggers) — de olika sätten ett arbetsflöde kan starta på.
+- [Komponenter](/docs/workflows/components) — byggstenarna du kan lägga till.
+- [Variabler](/docs/workflows/variables) — använda värden mellan block och arbetsflöden.
+- [Körningar & loggar](/docs/workflows/runs-and-logs) — kontrollera vad som hände.
+- [Konfiguration & säkerhet](/docs/workflows/configuration) — inställningar värda att känna till.

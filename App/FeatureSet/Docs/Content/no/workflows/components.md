@@ -1,145 +1,147 @@
 # Komponenter
 
-Komponenter er handlingsnodene du plasserer etter en trigger. Hver gjør én jobb — gjør en HTTP-forespørsel, sender en Slack-melding, forgrener på en betingelse, kjører en JavaScript-snutt — og eksponerer én eller flere utgangsporter som neste node kan koble til.
+Komponenter er byggeblokkene du legger til etter triggeren. Hver enkelt gjør én ting — sender en melding, kaller et API, sjekker en betingelse — og kobler til det som kommer etter.
 
-Denne siden er en katalog. For koblingsregler og selve lerretet, se [Opprette en arbeidsflyt](/docs/workflows/authoring).
+Denne siden er katalogen. For hvordan du drar, slipper og kobler dem på lerretet, se [Lage en arbeidsflyt](/docs/workflows/authoring).
 
 ## API
 
-Gjør en utgående HTTP-forespørsel til en hvilken som helst URL.
+Gjør en HTTP-forespørsel til en hvilken som helst URL.
 
-**Argumenter**:
+**Innstillinger**:
 
-- **Method** — `GET`, `POST`, `PUT`, `PATCH`, `DELETE`.
-- **URL** — forespørsels-URL. Interpoleres.
-- **Request Headers** — JSON-objekt med headere.
-- **Request Body** — JSON eller tekst-body for `POST` / `PUT` / `PATCH`.
+- **Metode** — `GET`, `POST`, `PUT`, `PATCH` eller `DELETE`.
+- **URL** — adressen som skal kalles.
+- **Headere** — eventuelle headere som skal sendes.
+- **Body** — forespørselskroppen for `POST` / `PUT` / `PATCH`.
 
-**Utgangsporter**:
+**Utganger**:
 
-- `success` — trigges når responsstatus er 2xx. Returverdier: `response-status`, `response-headers`, `response-body`.
-- `error` — trigges ved nettverksfeil eller ikke-2xx-respons. Returverdi: `error`-melding.
+- **Suksess** — utløses når kallet fungerte (2xx-respons). Sender videre status, headere og body.
+- **Feil** — utløses ved nettverksfeil eller ikke-2xx-respons. Sender videre feilmeldingen.
 
-Bruk denne til: enhver tredjeparts REST API, dine egne admin-endepunkter, lette integrasjoner som ikke har en dedikert komponent.
+Bruk dette til: ethvert eksternt API, dine egne admin-endepunkter eller enhver integrasjon som ikke har sin egen komponent.
 
 ## Webhook (utgående)
 
-En tynn innpakning rundt API-komponenten for det vanlige "fyr av og glem"-tilfellet. Poster en JSON-body til en URL og eksponerer et enkelt `success` / `error`-par.
+En enklere versjon av API-komponenten for "send-og-glem"-tilfeller. Poster en JSON-kropp til en URL.
 
-Foretrekk **API** hvis du må lese responsens body nedstrøms; foretrekk **Webhook** hvis du bare vil varsle et annet system.
+Bruk **API** hvis du trenger å lese responsen. Bruk **Webhook** hvis du bare vil sende en varsling og gå videre.
 
 ## Slack
 
-Post en melding til en Slack-kanal via prosjektets Slack-workspace-tilkobling.
+Post en melding til en Slack-kanal.
 
-**Argumenter**:
+**Innstillinger**:
 
-- **Channel name** — kanalen som meldingen skal postes til. Boten må allerede være medlem av den kanalen.
-- **Message text** — selve meldingen. Interpoleres; støtter Slack mrkdwn.
+- **Kanal** — kanalnavnet. Boten må allerede være i den kanalen.
+- **Melding** — teksten som skal sendes. Støtter Slack-formatering.
 
-Sett opp workspace-tilkoblingen i **Project Settings → Workspace Connections → Slack** først. Se [Slack workspace-tilkobling](/docs/workspace-connections/slack).
+Koble Slack til prosjektet ditt først under **Prosjektinnstillinger → Arbeidsområdekoblinger → Slack**. Se [Slack arbeidsområdetilkobling](/docs/workspace-connections/slack).
 
 ## Microsoft Teams
 
-Post en melding til en Microsoft Teams-kanal via prosjektets Teams-tilkobling.
+Post en melding til en Microsoft Teams-kanal.
 
-**Argumenter**:
+**Innstillinger**:
 
-- **Team & channel** — destinasjonen.
-- **Message text** — meldingen.
+- **Team og kanal** — hvor det skal postes.
+- **Melding** — teksten som skal sendes.
 
-Se [Microsoft Teams workspace-tilkobling](/docs/workspace-connections/microsoft-teams) for oppsett av tilkoblingen.
+Se [Microsoft Teams arbeidsområdetilkobling](/docs/workspace-connections/microsoft-teams) for oppsett.
 
 ## Discord
 
-Post en melding til en Discord-kanal via en innkommende webhook-URL konfigurert på komponenten.
+Post en melding til en Discord-kanal via en innkommende webhook-URL.
 
 ## Telegram
 
-Send en melding til en Telegram-chat via en bot-token og chat-ID konfigurert på komponenten.
+Send en melding til en Telegram-chat ved å bruke en bot-token og chat-ID.
 
-## Email
+## E-post
 
-Send en e-post gjennom OneUptimes SMTP-konfigurasjon.
+Send en e-post via OneUptime.
 
-**Argumenter**:
+**Innstillinger**:
 
-- **To** — mottakerens e-postadresse.
-- **Subject** — interpoleres.
-- **Body** — Markdown eller HTML.
+- **Til** — mottakerens e-postadresse.
+- **Emne** — emnelinjen.
+- **Body** — meldingen i Markdown eller HTML.
 
-E-posten sendes fra prosjektets konfigurerte avsenderadresse (se [SMTP](/docs/emails/smtp)).
+E-posten sendes ut fra prosjektets konfigurerte avsender — se [SMTP](/docs/emails/smtp).
 
-## Custom Code
+## Egendefinert kode
 
-Kjør en JavaScript-snutt med tilgang til arbeidsflytens variabler og oppstrømsnodens returverdier.
+Kjør en liten bit JavaScript når du trenger noe de andre blokkene ikke kan.
 
-**Argumenter**:
+**Innstillinger**:
 
-- **Code** — JavaScript-koden. Verdien av det siste uttrykket (eller det som returneres fra `(async () => { ... })()`) blir komponentens returverdi.
-- **Arguments** — valgfrie navngitte verdier sendt inn som `args`.
+- **Kode** — JavaScript-en din. Den siste verdien (eller det du returnerer fra en async-funksjon) blir blokkens utdata.
+- **Argumenter** — navngitte verdier du kan sende inn.
 
-**Utgangsporter**: `success` (returverdi), `error` (fanget unntak).
+**Utganger**: suksess (returverdien din) og feil (eventuelle unntak).
 
-Bruk denne til: transformere en payload mellom to systemer, gjøre en liten beregning som ikke fortjener sin egen komponent, kalle JS-spesifikk logikk. Tyngre skripting som må kjøre inne i din egen infrastruktur hører hjemme i et [Runbook](/docs/runbooks/index) Bash- eller JavaScript-trinn.
+Bruk dette til: omforming av data mellom to systemer, en liten beregning, hva som helst som ikke fortjener sin egen blokk. For tyngre scripting, bruk en [Runbook](/docs/runbooks/index) i stedet.
 
 ## JSON
 
 Konverter mellom tekst og JSON.
 
-- **JSON → Text** — serialiser et JSON-objekt til en streng (nyttig for å mate inn i et `body`-argument på en utgående komponent som forventer tekst).
-- **Text → JSON** — parser en streng til et JSON-objekt. Nyttig når en oppstrøms-API returnerte body som tekst, men du må lese et felt.
+- **JSON → Tekst** — gjør et JSON-objekt om til en streng. Nyttig når neste blokk forventer tekst.
+- **Tekst → JSON** — tolk en streng om til et JSON-objekt. Nyttig når noe kom inn som tekst og du må lese et felt.
 
-## Conditions
+## Betingelser
 
-Forgren på en sammenligning. Konfigurer:
+Forgren basert på en sammenligning.
 
-- **Left value** — typisk en interpolert referanse som `{{Incident.title}}`.
+**Innstillinger**:
+
+- **Venstre verdi** — vanligvis en verdi fra en tidligere blokk.
 - **Operator** — `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `starts with`, `ends with`.
-- **Right value** — verdien å sammenligne mot.
+- **Høyre verdi** — det du skal sammenligne med.
 
-**Utgangsporter**: `yes` og `no`. Koble resten av arbeidsflyten på den grenen som matcher intensjonen din.
+**Utganger**: **Ja** og **Nei**. Koble de neste blokkene til den grenen du vil.
 
-## Schedule (forsinkelse)
+## Forsinkelse
 
-Pause en arbeidsflyt i en konfigurert varighet før den fortsetter. Nyttig når du må gi et eksternt system et øyeblikk på å sette seg før du sjekker tilstanden.
+Stopp arbeidsflyten i en angitt tid før den fortsetter. Nyttig når du må gi et annet system et øyeblikk til å ta igjen.
 
 ## Log
 
-Skriv en linje til arbeidsflyt-kjøringsloggen. Rent feilsøkingshjelpemiddel; linjen fanges på kjøringen og er synlig under **Logger**. Ingen ekstern sideeffekt.
+Skriv en linje til kjøringsloggen. Ingen ekstern effekt — den dukker bare opp i arbeidsflytens logger så du kan lese den. Hendig for feilsøking.
 
-## Execute Workflow
+## Kjør arbeidsflyt
 
-Kall en annen arbeidsflyt som et undertrinn. Den kalte arbeidsflyten kjører uavhengig (fyr av og glem) — kontrollen returneres til kalleren så snart kallet er sendt.
+Kall en annen arbeidsflyt fra denne. Den kalte arbeidsflyten kjører på egen hånd — arbeidsflyten din fortsetter uten å vente på at den skal bli ferdig.
 
-Bruk denne for å faktorere delt logikk ut av flere arbeidsflyter: bygg en "post-til-incident-kanal"-arbeidsflyt én gang og kall den fra alle andre arbeidsflyter som må varsle kanalen.
+Bruk dette for å dele felles logikk. Bygg en "post til hendelseskanal"-arbeidsflyt én gang, og kall den så fra enhver annen arbeidsflyt som må varsle kanalen.
 
-En rekursjonsgrense forhindrer at arbeidsflyter kaller hverandre i en uendelig løkke. Se [Konfigurasjon & sikkerhet](/docs/workflows/configuration).
+Det er en sikkerhetsgrense slik at arbeidsflyter ikke kan fortsette å kalle hverandre i en løkke. Se [Konfigurasjon & sikkerhet](/docs/workflows/configuration).
 
-## Modellkomponenter (CRUD på OneUptime-entiteter)
+## OneUptime datakomponenter
 
-For hver OneUptime-entitet som støtter arbeidsflyter (monitorer, hendelser, varsler, statussider, on-call-retningslinjer osv.) eksponerer paletten automatisk følgende komponenter — søkbare etter entitetens navn:
+For hver type oppføring i OneUptime (monitorer, hendelser, varsler, statussider, vaktordningspolicyer og mange flere) har paletten disse komponentene — søk etter typens navn:
 
-- **Find One {Entity}** — hent en enkelt post via spørring.
-- **Find {Entity}** — hent en liste over poster via spørring (paginert).
-- **Create {Entity}** — sett inn en ny post.
-- **Update {Entity}** — oppdater én post via ID.
-- **Delete {Entity}** — slett én post via ID.
-- **Count {Entity}** — tell poster som matcher en spørring.
+- **Finn én** — hent én oppføring etter ID eller filter.
+- **Finn** — hent en liste over oppføringer.
+- **Opprett** — legg til en ny oppføring.
+- **Oppdater** — endre én oppføring.
+- **Slett** — fjern én oppføring.
+- **Tell** — tell oppføringer som matcher et filter.
 
-Slik kan en arbeidsflyt lese og skrive OneUptime-tilstand uten å forlate plattformen. For eksempel: en webhook fra CI-verktøyet ditt kaller **Create Incident** med build-ens feilmelding; eller en planlagt arbeidsflyt kjører **Find Incident** hvert femte minutt og e-poster et sammendrag.
+Slik kan en arbeidsflyt lese og endre OneUptime-data. For eksempel: en webhook fra CI-verktøyet ditt kan bruke **Opprett hendelse** for å åpne en hendelse med feildetaljene.
 
-## Velge riktig komponent
+## Hvilken komponent bør jeg bruke?
 
-Noen raske tommelfingerregler:
+Noen raske regler:
 
-- Hvis en dedikert komponent finnes for det du vil gjøre (Slack, Email, en CRUD på en OneUptime-entitet), bruk den — den gir deg penere feilhåndtering og tydeligere logger enn å rulle din egen.
-- Hvis du må kalle en ekstern HTTP API som ikke har en dedikert komponent, bruk **API**.
-- Hvis du må *forme* data mellom to komponenter, bruk **Custom Code** eller **JSON**.
-- Hvis du må ta ulike handlinger basert på en verdi, bruk **Conditions**.
+- Hvis det finnes en dedikert blokk for det du vil (Slack, E-post, en OneUptime-oppføring), bruk den — du får hyggeligere feilhåndtering og klarere logger.
+- For ethvert annet eksternt API, bruk **API**.
+- For å omforme data mellom blokker, bruk **Egendefinert kode** eller **JSON**.
+- For å ta forskjellige handlinger basert på en verdi, bruk **Betingelser**.
 
-## Les videre
+## Hvor du leser videre
 
-- [Variabler](/docs/workflows/variables) — hvordan mate data fra én komponent til neste.
-- [Kjøringer & logger](/docs/workflows/runs-and-logs) — hvordan inspisere hva hver komponent returnerte under en kjøring.
-- [Konfigurasjon & sikkerhet](/docs/workflows/configuration) — grenser, eierskap og hemmeligheter.
+- [Variabler](/docs/workflows/variables) — å sende data mellom blokker.
+- [Kjøringer & logger](/docs/workflows/runs-and-logs) — å sjekke hva hver blokk gjorde på en kjøring.
+- [Konfigurasjon & sikkerhet](/docs/workflows/configuration) — grenser, eiere og hemmeligheter.

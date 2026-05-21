@@ -1,89 +1,89 @@
 # Konfigurasjon & sikkerhet
 
-Denne siden samler innstillingene og sikkerhetsgrensene det er verdt å kjenne til før du peker en arbeidsflyt mot produksjonstrafikk.
+Denne siden dekker innstillingene og sikkerhetsgrensene det er verdt å kjenne til før du peker en arbeidsflyt mot ekte trafikk.
 
-## Aktiver / deaktiver
+## Slå en arbeidsflyt på eller av
 
-Hver arbeidsflyt har et **isEnabled**-flagg i **Innstillinger**. Deaktiverte arbeidsflyter trigger aldri — modellhendelser, webhooks og planlagte kjøringer ignoreres. Nye arbeidsflyter leveres deaktivert.
+Hver arbeidsflyt har en **Aktivert**-bryter i **Innstillinger**. Når den er av, kjører ikke arbeidsflyten — webhook-kall, planlagte tidspunkter og OneUptime-hendelser ignoreres alle. Nye arbeidsflyter starter deaktivert.
 
-Behandle dette som din "klar for prod"-bryter:
+Bruk denne bryteren som din "klar til å kjøre"-grind:
 
 1. Bygg arbeidsflyten.
-2. Klikk **Kjør manuelt** med en representativ payload.
-3. Sjekk **Logger** — bekreft at hver node tok porten du forventet.
-4. Slå på **isEnabled**.
+2. Klikk **Kjør manuelt** med en realistisk nyttelast.
+3. Sjekk **Logger** — sørg for at hver blokk gikk dit du forventet.
+4. Vri **Aktivert** på.
 
-Å deaktivere en arbeidsflyt påvirker ikke kjøringer som allerede er i gang; det stopper bare at nye blir opprettet.
+Å slå av en arbeidsflyt stopper ikke kjøringer som allerede er i gang; det stopper bare nye fra å starte.
 
-## Eierskap og etiketter
+## Eiere og etiketter
 
-- **Eiere** — brukere og team listet som eiere får rettighetsbasert tilgang og (valgfritt) varslinger når arbeidsflyten feiler. Konfigurer under **Innstillinger → Eiere**.
-- **Etiketter** — mange-til-mange-tags for å organisere arbeidsflyter. Filtrer arbeidsflyt-listen etter etikett. Nyttig når et prosjekt har dusinvis av arbeidsflyter organisert etter team, integrasjon eller miljø.
-- **Etikettregler** — under **Arbeidsflyter → Innstillinger → Etikettregler**, auto-tildel etiketter til nye arbeidsflyter basert på regex-treff i navn eller beskrivelse.
-- **Eier-regler** — under **Arbeidsflyter → Innstillinger → Eier-regler**, auto-tildel eiere til nye arbeidsflyter.
+- **Eiere** — brukere og team listet som eiere får tilgang til arbeidsflyten og kan velge å motta varsler når den feiler. Sett dem under **Innstillinger → Eiere**.
+- **Etiketter** — tagger for å gruppere arbeidsflyter. Arbeidsflytlisten lar deg filtrere etter etikett, noe som gjør et travelt prosjekt mye lettere å navigere. Nyttig når du har arbeidsflyter organisert etter team, integrasjon eller miljø.
+- **Etikettregler** — under **Arbeidsflyter → Innstillinger → Etikettregler**, bruk etiketter automatisk på nye arbeidsflyter basert på navn- eller beskrivelsesmønstre.
+- **Eierregler** — under **Arbeidsflyter → Innstillinger → Eierregler**, tildel eiere automatisk til nye arbeidsflyter.
 
 ## Hemmeligheter
 
-Globale variabler kan merkes som **hemmelige**. Verdien krypteres i hvile, er skrive-bare i UI-et etter lagring, og redigeres ut av kjøringslogger (erstattes med `[REDACTED]`).
+Marker en global variabel som **hemmelig** hvis den inneholder noe sensitivt. Verdien krypteres, skjules i grensesnittet etter at du lagrer, og skjules i kjøringsloggene (vises som `[REDACTED]`).
 
-Bruk hemmelige variabler til:
+Bruk hemmelige variabler for:
 
-- API-nøkler for utgående integrasjoner.
-- Bearer-tokens.
+- API-nøkler for eksterne tjenester.
+- Autentiseringstokens.
 - Webhook-signeringsnøkler.
-- Enhver verdi en angriper med lesetilgang til en arbeidsflyt ikke burde se.
+- Alt du ikke vil at noen med kun-lese-tilgang skal se.
 
-Ikke lim inn en hemmelighet direkte i en komponents argument — referanser som `Authorization: Bearer eyJh...` dukker opp i arbeidsflyt-JSON-en og i kjøringsloggene i klartekst. Referer `{{variable.MY_SECRET}}` i stedet.
+Ikke lim en hemmelighet direkte inn i en blokk — verdier som `Authorization: Bearer eyJh...` ender opp synlige i arbeidsflyten og loggene. Bruk `{{variable.MY_SECRET}}` i stedet.
 
-## Kjørings-tidsavbrudd
+## Hvor lenge en kjøring kan ta
 
-Hver kjøring har en maksimal varighet. Hvis en kjøring ikke er ferdig innen tidsavbruddet, merkes den `Timeout` og enhver komponent som er i gang avbrytes. Standarden er romslig (minutter, ikke sekunder) — se workerens miljøkonfigurasjon for nøyaktig verdi i din installasjon.
+Hver kjøring har en maksimal lengde. Hvis en kjøring ikke er ferdig i tide, merkes den som **Tidsavbrudd** og blokken som er i gang avbrytes. Standarden er rommelig — lang nok for normale HTTP-kall og kjeder av blokker.
 
-De fleste komponenter har sine egne per-kall-tidsavbrudd inne i kjørings-tidsavbruddet — f.eks. vil API-komponenten gi opp en hengt utgående forespørsel godt før hele kjøringen gjør det.
+Individuelle blokker har sine egne tidsgrenser innenfor det — for eksempel gir en API-blokk opp en hengende utgående forespørsel god tid før hele kjøringen gjør det.
 
-## Rekursjonsgrense
+## Grense for å kalle andre arbeidsflyter
 
-**Execute Workflow**-komponenten lar én arbeidsflyt kalle en annen. For å forhindre løpske løkker der A kaller B kaller A i det uendelige, sporer workeren kallkjeden og stopper en kjede som overskrider en fast dybde (typisk et lite tall som 5). Den avsluttende kjøringen merkes `Error` med en tydelig melding om rekursjonsgrensen.
+Komponenten **Kjør arbeidsflyt** lar én arbeidsflyt kalle en annen. For å forhindre utilsiktede løkker der arbeidsflyt A kaller B som kaller A igjen, er det en grense for hvor dyp kjeden kan gå. En kjøring som går forbi grensen ender med en tydelig feil.
 
-Hvis du har et legitimt behov for en lang kjede (f.eks. en rekursiv mappevandring som behandler ett nivå per kjøring), refaktorer den til én enkelt arbeidsflyt som itererer internt via **Custom Code** — det mønsteret er ikke underlagt kjedegrensen.
+Hvis du har et reelt behov for en lang kjede (som en jobb som behandler ett element per kjøring), er det vanligvis enklere å løkke inne i en enkelt arbeidsflyt ved å bruke **Egendefinert kode**.
 
 ## Webhook-sikkerhet
 
-Webhook-triggere eksponerer en unik HTTPS-URL. Alle som lærer URL-en kan treffe den. For å forsvare seg mot utilsiktede eller fiendtlige kallere:
+Webhook-triggere gir deg en unik URL. Alle som kjenner URL-en kan treffe den. For å beskytte mot utilsiktede eller uønskede kallere:
 
-- Behandle URL-en som en delt hemmelighet. Ikke lim den inn i offentlig chat eller commit den til et offentlig repo.
-- For arbeidsflyter av høy verdi, be det kallende systemet inkludere en delt hemmelighet som en header (f.eks. `X-Webhook-Token`) og valider den i en **Conditions**-node før du gjør noe destruktivt. Definer det forventede tokenet som en hemmelig global variabel.
-- For arbeidsflyter av svært høy verdi, foretrekk en modellhendelse-trigger og et manuelt import-trinn fremfor en offentlig webhook.
+- Behandle URL-en som et passord. Ikke del den offentlig eller commit den til et offentlig repo.
+- For sensitive arbeidsflyter, be det kallende systemet sende en delt token som en header (som `X-Webhook-Token`) og sjekk den med en **Betingelser**-blokk før du gjør noe viktig. Lagre det forventede tokenet som en hemmelig variabel.
+- For svært sensitive arbeidsflyter, foretrekk en OneUptime-hendelsestrigger og et manuelt importsteg i stedet for en offentlig webhook.
 
-## Utgående nettverks-egress
+## Utgående nettverkstilgang
 
-API- og andre HTTP-stil-komponenter sender forespørsler fra OneUptimes arbeidsflyt-workers nettverk. Hvis du self-hoster OneUptime, er workerens utgående nettverk ditt ansvar — sørg for at den kan nå tredjeparts-API-ene du kaller. Hvis du bruker OneUptime Cloud, er IP-egress-intervallet vårt publisert i [IP-adresser](/docs/configuration/ip-addresses) slik at du kan tillate det på mottakersiden.
+API og andre HTTP-blokker gjør forespørslene sine fra OneUptime. Hvis du kjører selvvertet, sørg for at installasjonen din kan nå tjenestene du kaller. Hvis du bruker OneUptime Cloud, er våre utgående IP-områder listet i [IP-adresser](/docs/configuration/ip-addresses) slik at du kan tillate dem på den andre siden.
 
 ## Tillatelser
 
-Arbeidsflyter er førsteklasses ressurser underlagt prosjektnivå-rollebasert tilgangskontroll:
+Arbeidsflyter respekterer prosjektets rollebaserte tilgangskontroll. De relevante tillatelsene:
 
-- `CreateWorkflow`, `ReadWorkflow`, `EditWorkflow`, `DeleteWorkflow` — de fire CRUD-tillatelsene på arbeidsflyt-maler.
-- `RunWorkflow` — nødvendig for å klikke **Kjør manuelt** eller dispatche en arbeidsflyt via API.
-- `ReadWorkflowLog` — nødvendig for å se siden **Kjøringer & logger**.
-- `ReadWorkflowVariable`, `CreateWorkflowVariable`, `EditWorkflowVariable`, `DeleteWorkflowVariable` — kontroll over listen over globale variabler.
+- **Opprett / les / rediger / slett arbeidsflyt** — de grunnleggende tillatelsene på selve arbeidsflyten.
+- **Kjør arbeidsflyt** — nødvendig for å klikke **Kjør manuelt** eller utløse en arbeidsflyt via API.
+- **Les arbeidsflytlogg** — nødvendig for å vise kjøringer.
+- **Les / opprett / rediger / slett arbeidsflyt-variabel** — kontroll over listen over globale variabler.
 
-De fleste ingeniører bør ha create/edit/read på arbeidsflyter, men ikke på variabler. Reserver variabel-redigeringstilgang for personene som administrerer prosjektets hemmeligheter.
+De fleste utviklere bør ha opprett/rediger/les på arbeidsflyter, men ikke på variabler. Reserver variabel-redigeringstilgang for personene som forvalter prosjektets hemmeligheter.
 
-## Kvoter
+## Plan-grenser
 
-OneUptime Cloud begrenser antall kjøringer per måned per prosjekt på mindre planer. Grensen vises på **Project Settings → Billing**. Når du treffer den, avvises nye triggere (og registreres med en "quota exceeded"-årsak på den berørte arbeidsflyten) til neste faktureringssyklus. Self-hosted-installasjoner er ikke underlagt en kvote.
+OneUptime Cloud begrenser antall kjøringer per måned på mindre planer. Din nåværende grense vises under **Prosjektinnstillinger → Fakturering**. Når du når den, avvises nye triggere til neste faktureringsperiode. Selvvertede installasjoner har ikke denne grensen.
 
-## Hva arbeidsflyter *ikke* er gode på
+## Når arbeidsflyter ikke er riktig verktøy
 
-Noen mønstre der du bør gripe til et annet verktøy:
+Noen tilfeller der du bør gripe til noe annet:
 
-- **Langvarig beregning** — arbeidsflyter er orientert rundt lim mellom systemer, ikke knusing av store datasett. Kjør tungt arbeid i din egen infrastruktur og bruk en arbeidsflyt til å sette det i gang.
-- **Stateful arbeidsflyter som spenner over minutter/timer** — en enkelt kjøring er ment å bli ferdig raskt. Hvis du trenger "gjør A, vent to timer, gjør B," modeller ventetiden som en ekstern planlegger som poster tilbake til en webhook-trigger.
-- **Trinn-for-trinn hendelsesrespons med menneskelige sjekkpunkter** — det er hva [Runbooks](/docs/runbooks/index) er til. Bruk en arbeidsflyt hvis det ikke er noe menneske i sløyfen; bruk et runbook hvis det er det.
+- **Tung beregning eller store datasett** — arbeidsflyter er designet for lett lim-arbeid, ikke tallknusing. Kjør tungt arbeid på din egen infrastruktur og la en arbeidsflyt sparke det i gang.
+- **Langvarige prosesser som strekker seg over timer** — én kjøring er ment å bli ferdig raskt. Hvis du må "gjøre A, vente to timer, gjøre B," bruk en ekstern planlegger som sender en webhook tilbake til OneUptime når det er på tide.
+- **Trinn-for-trinn hendelsesrespons med mennesker i løkken** — det er det [Runbooks](/docs/runbooks/index) er for. Arbeidsflyter er for automatisering uten oppsyn.
 
-## Les videre
+## Hvor du leser videre
 
-- [Oversikt over arbeidsflyter](/docs/workflows/index) — det konseptuelle kartet.
-- [Komponenter](/docs/workflows/components) — argument-detaljer for hver handling.
-- [Runbooks](/docs/runbooks/index) — når du skal bruke et runbook i stedet.
+- [Oversikt over arbeidsflyter](/docs/workflows/index) — det store bildet.
+- [Komponenter](/docs/workflows/components) — referanse blokk for blokk.
+- [Runbooks](/docs/runbooks/index) — når du skal bruke en runbook i stedet.

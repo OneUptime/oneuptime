@@ -1,96 +1,92 @@
-# Variables y filtros del panel
+# Variables y Filtros
 
-Una variable convierte un único panel en una plantilla. Define una variable `service` y el mismo gráfico se vuelve a renderizar para `checkout`, `payments` y `search` — eliges de un desplegable en la parte superior en lugar de construir tres paneles casi idénticos.
-
-Esta página cubre los cuatro tipos de variables, cómo se inyectan sus valores en las consultas de los widgets y los controles globales de rango de tiempo y refresco que se sitúan junto a ellas.
+Una variable convierte un solo panel en una plantilla. Añade una variable `service` a tu panel y los mismos gráficos se vuelven a renderizar para `checkout`, `payments` o `search`: los espectadores eligen de un menú desplegable en la parte superior en lugar de que construyas tres paneles casi idénticos.
 
 ## Tipos de variables
 
-Añade variables en **Dashboard → Settings → Variables**. Cada una tiene un nombre (referenciado como `{{name}}` en las consultas de los widgets), una etiqueta opcional y un tipo.
+Añade variables en **Panel → Configuración → Variables**. Cada variable tiene un nombre (usado como `{{name}}` en tus widgets), una etiqueta opcional y un tipo.
 
-### Custom List
+### Lista personalizada
 
-Un desplegable estático. Tú proporcionas una lista de valores separada por comas; el espectador elige uno.
+Un menú desplegable estático. Escribes las opciones tú mismo.
 
-Úsala cuando: el conjunto de opciones es pequeño, fijo y solo significativo para tu equipo. `environment` con valores `prod, staging, dev`. `region` con valores `us-east-1, eu-west-1, ap-south-1`.
+Úsalo cuando: las opciones son pocas y fijas. `environment` con valores `prod, staging, dev`. `region` con valores `us-east-1, eu-west-1, ap-south-1`.
 
-### Query
+### Consulta
 
-Las opciones del desplegable se calculan mediante una consulta de ClickHouse en tiempo de renderizado.
+Las opciones provienen de una consulta sobre tus datos.
 
-Úsala cuando: las opciones son dinámicas y viven en tu telemetría. "Cada customer ID que ha iniciado sesión en las últimas 24 horas" vía `SELECT DISTINCT customer_id FROM ...`. La consulta se ejecuta contra los datos de tu proyecto; trata el resultado como entrada no confiable aunque sean tus propios datos.
+Úsalo cuando: las opciones cambian con el tiempo y quieres que el menú desplegable se mantenga al día. "Cada ID de cliente visto en las últimas 24 horas". La consulta se ejecuta sobre los datos de tu proyecto y los resultados se convierten en el menú desplegable.
 
-### Text Input
+### Entrada de texto
 
-Un campo de texto libre. Lo que el espectador teclea se inyecta.
+Un campo de texto libre. Se usa lo que el espectador escriba.
 
-Úsala cuando: quieres que el panel actúe como una herramienta de búsqueda. Un panel del estilo "filtrar por IP" o "filtrar por request ID".
+Úsalo cuando: quieres que el panel actúe como una herramienta de búsqueda. Filtrar por dirección IP, ID de solicitud o cualquier otro valor de formato libre.
 
-### Telemetry Attribute
+### Atributo de telemetría
 
-Las opciones son los distintos valores de una clave de atributo OpenTelemetry presentes en la telemetría de tu proyecto, sobre el rango de tiempo del panel.
+Las opciones son los valores distintos de un atributo en tu telemetría durante el rango de tiempo del panel.
 
-Configura la **attribute key** (por ejemplo, `k8s.cluster.name`, `service.name`, `host.name`). El widget obtiene los valores distintos de logs / métricas / trazas y los ofrece como desplegable.
+Configura la **clave de atributo** (por ejemplo, `service.name`, `host.name`, `k8s.cluster.name`). El menú desplegable se rellena con cada valor distinto visto en tus logs, métricas y trazas.
 
-Úsala cuando: las opciones son exactamente las entidades con las que ya has etiquetado tu telemetría. Nombre de cluster, nombre de servicio, región, customer ID, entorno de deployment — cualquier cosa que ya envíes como atributo de recurso o de span de OpenTelemetry.
+Úsalo cuando: las opciones coinciden con las etiquetas que ya envías con tu telemetría. Este es el tipo más común porque se actualiza automáticamente: cuando despliegas un nuevo servicio etiquetado como `service.name = inventory`, ese nombre aparece en el menú desplegable sin que tengas que editar el panel.
 
-Es el tipo de variable más común para paneles orientados a servicios porque se auto-actualiza: cuando despliegas un nuevo servicio etiquetado `service.name = inventory`, ese valor aparece en el desplegable sin que nadie tenga que editar el panel.
+## Selección múltiple
 
-## Multi-selección
+Cada variable puede permitir múltiples selecciones. Cuando está activada, el espectador puede elegir uno o más valores; el panel filtra a cualquiera de ellos.
 
-Cada variable puede configurarse como **multi-select**. Cuando está activa, el espectador elige uno o más valores; el panel filtra a `value IN (...)` en lugar de `value = ...`.
+Usa selección múltiple cuando: quieres comparar "checkout y payments juntos" sin salir del panel. Evítala cuando las matemáticas no funcionan entre los valores seleccionados (por ejemplo, promediar promedios).
 
-Usa multi-select cuando: quieres mirar "checkout + payments juntos" sin salir del panel. Evítalo cuando las matemáticas del gráfico no sumen entre los valores seleccionados — por ejemplo, promediar promedios.
+## Valores predeterminados
 
-## Valores por defecto
+Cada variable puede tener un valor predeterminado. El panel se renderiza con el valor predeterminado hasta que el espectador lo cambie. Para paneles públicos, el valor predeterminado es lo que los visitantes ven primero.
 
-Cada variable acepta un valor por defecto opcional. El panel se renderiza con el valor por defecto hasta que el espectador cambia el desplegable. Para los paneles públicos, el valor por defecto es donde aterrizan los visitantes.
+## Cómo usar una variable en un widget
 
-## Cómo funciona la interpolación
+En cualquier lugar donde un widget acepte un filtro —un `WHERE` de una métrica, el filtro de una lista, una coincidencia de atributo en un flujo de logs— puedes usar `{{variable_name}}`.
 
-En cualquier lugar donde la consulta de un widget acepte un filtro de cadena — la cláusula `WHERE` de una consulta de métrica, el filtro de un widget de lista, una coincidencia de atributo de un stream de logs — puedes referenciar `{{variable_name}}`.
-
-Por ejemplo, la consulta de métrica de un Chart podría ser:
+Por ejemplo, un gráfico filtrado por servicio:
 
 ```
-SELECT avg(latency_ms) FROM spans WHERE service.name = '{{service}}'
+service.name = '{{service}}'
 ```
 
-Cuando `service` está establecido a `checkout`, la consulta se ejecuta con `service.name = 'checkout'`. Cuando el espectador cambia a `payments`, la consulta se vuelve a ejecutar con `service.name = 'payments'`.
+Cuando el menú desplegable está en `checkout`, el gráfico filtra al servicio de checkout. Cuando el espectador cambia a `payments`, el gráfico se vuelve a renderizar para payments.
 
-Específicamente para las variables **Telemetry Attribute**, OneUptime conoce la clave del atributo e inyecta el filtro en cada widget que mencione el mismo atributo — no tienes que editar a mano la consulta de cada widget cuando cambia la variable. Esta es la magia que hace que los paneles templados por servicio funcionen de inmediato.
+Para variables de **Atributo de telemetría**, OneUptime sabe a qué atributo se asigna la variable y aplica el filtro a cada widget que use el mismo atributo: no tienes que editar cada widget a mano.
 
 ## Rango de tiempo
 
-El encabezado del panel tiene un selector global de **rango de tiempo**. Cada widget de métrica consulta contra esta ventana. Opciones:
+El encabezado del panel tiene un rango de tiempo global. Cada widget de métrica consulta sobre esta ventana. Opciones:
 
-- **Presets** — Última hora, 24 horas, 7 días, 30 días, 90 días (dependiendo de tu retención).
-- **Rango personalizado** — elige las marcas de tiempo de inicio y fin.
+- **Preajustes** — última hora, 24 horas, 7 días, 30 días, 90 días (dependiendo de tu retención de datos).
+- **Personalizado** — elige una hora de inicio y de fin.
 
-El rango de tiempo es parte de la URL del panel — compartir la URL comparte la ventana. Esto es cómodo durante un incidente: fija el rango de tiempo a "10:00–10:30 UTC hoy" y comparte el enlace en el canal del incidente.
+El rango de tiempo es parte de la URL del panel: al compartir la URL se comparte la ventana. Útil durante un incidente: fija el rango de tiempo en "10:00–10:30 UTC de hoy" y pega el enlace en el canal del incidente.
 
-## Intervalo de refresco
+## Intervalo de actualización
 
-Junto al rango de tiempo, elige con qué frecuencia se vuelven a consultar los widgets:
+Junto al rango de tiempo, elige con qué frecuencia los widgets vuelven a consultar:
 
-- **Off** — los widgets consultan una vez al cargar.
-- **5s / 10s / 30s / 1m / 5m / 15m** — auto-refresco.
+- **Apagado** — los widgets consultan una vez cuando se carga la página.
+- **5s / 10s / 30s / 1m / 5m / 15m** — actualización automática.
 
-El auto-refresco es cómodo para una pantalla montada en pared y una vista de incidente actual. Para una investigación ad-hoc, déjalo desactivado para que la vista permanezca estable mientras te desplazas.
+La actualización automática es buena para una pantalla en la pared o una vista de incidente en vivo. Déjala apagada cuando estés investigando para que la vista no se mueva mientras miras.
 
 ## Juntándolo todo
 
-Un panel templado por servicio típicamente tiene:
+Un panel templado por servicio normalmente tiene:
 
-1. Una variable `service` de tipo **Telemetry Attribute** ligada a `service.name`. Valor por defecto: tu servicio más vigilado. Multi-select: off (para que los gráficos siempre muestren un servicio a la vez).
-2. Una variable `environment` de tipo **Custom List**. Valor por defecto: `prod`.
-3. Una variable `cluster` de tipo **Telemetry Attribute** ligada a `k8s.cluster.name`. Multi-select: on (para que puedas hacer roll-up entre clusters).
-4. Los widgets del panel referencian estas variables en sus filtros.
+1. Una variable `service` de tipo **Atributo de telemetría** para `service.name`. Predeterminado: tu servicio más vigilado. Selección múltiple desactivada (para que los gráficos siempre muestren uno a la vez).
+2. Una variable `environment` de tipo **Lista personalizada**. Predeterminado: `prod`.
+3. Una variable `cluster` de tipo **Atributo de telemetría** para `k8s.cluster.name`. Selección múltiple activada (para que puedas comparar entre clusters).
+4. Widgets que referencian estas variables en sus filtros.
 
-El resultado: un panel, la cobertura de toda la flota, unos pocos desplegables en la parte superior.
+El resultado: un panel, cada servicio cubierto, tres menús desplegables en la parte superior.
 
-## Qué leer a continuación
+## Dónde seguir leyendo
 
-- [Widgets del panel](/docs/dashboards/widgets) — cómo cada widget consume un filtro.
-- [Compartir y paneles públicos](/docs/dashboards/sharing) — variables en URLs, incluyendo sus valores para enlaces compartidos.
-- [Crear un panel](/docs/dashboards/authoring) — la mecánica del lienzo.
+- [Widgets](/docs/dashboards/widgets) — cómo usa un filtro cada widget.
+- [Compartir y Paneles Públicos](/docs/dashboards/sharing) — variables y enlaces compartidos.
+- [Crear un Panel](/docs/dashboards/authoring) — la mecánica del lienzo.

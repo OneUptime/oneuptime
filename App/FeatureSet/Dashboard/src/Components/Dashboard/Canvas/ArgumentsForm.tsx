@@ -24,6 +24,16 @@ import MetricQueryConfig from "../../Metrics/MetricQueryConfig";
 import MetricFormulaConfig from "../../Metrics/MetricFormulaConfig";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
+import TableColumnsEditor from "./TableColumnsEditor";
+import {
+  TableColumn,
+  TableGroupByAttribute,
+} from "Common/Types/Dashboard/DashboardComponents/DashboardTableComponent";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import Input, { InputType } from "Common/UI/Components/Input/Input";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
@@ -279,7 +289,9 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         // Skip MetricsQueryConfigs and MetricsFormulaConfigs - rendered as custom multi UI below
         if (
           arg.type === ComponentInputType.MetricsQueryConfigs ||
-          arg.type === ComponentInputType.MetricsFormulaConfigs
+          arg.type === ComponentInputType.MetricsFormulaConfigs ||
+          arg.type === ComponentInputType.TableColumns ||
+          arg.type === ComponentInputType.TableGroupBy
         ) {
           continue;
         }
@@ -493,11 +505,34 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           ...(component?.arguments || {}),
         }}
         onChange={(values: FormValues<JSONObject>) => {
+          /*
+           * Only write back the field IDs that THIS section's BasicForm
+           * actually renders. Without this filter, BasicForm re-emits its
+           * full initialValues snapshot on every change, which clobbers
+           * args managed by custom editors outside the form (the
+           * Columns repeater and the Group By editor write `columns` and
+           * `groupByAttributes` directly via commitComponent — those would
+           * revert to the snapshot BasicForm captured at mount).
+           */
+          const sectionFieldKeys: Set<string> = new Set(
+            sectionGroup.args.map(
+              (arg: ComponentArgument<DashboardBaseComponent>): string => {
+                return String(arg.id);
+              },
+            ),
+          );
+          const filtered: JSONObject = {};
+          const all: JSONObject = (values as JSONObject) || {};
+          for (const key of Object.keys(all)) {
+            if (sectionFieldKeys.has(key)) {
+              filtered[key] = all[key];
+            }
+          }
           commitComponent({
             ...component,
             arguments: {
               ...((component.arguments as JSONObject) || {}),
-              ...((values as JSONObject) || {}),
+              ...filtered,
             },
           });
         }}
@@ -852,11 +887,234 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
 
   const sectionGroups: Array<SectionGroup> = groupArgumentsBySections();
 
+  const hasTableColumnsArg: boolean = componentArguments.some(
+    (arg: ComponentArgument<DashboardBaseComponent>): boolean => {
+      return arg.type === ComponentInputType.TableColumns;
+    },
+  );
+
+  const hasTableGroupByArg: boolean = componentArguments.some(
+    (arg: ComponentArgument<DashboardBaseComponent>): boolean => {
+      return arg.type === ComponentInputType.TableGroupBy;
+    },
+  );
+
+  const tableColumnsArg: ComponentArgument<DashboardBaseComponent> | undefined =
+    componentArguments.find(
+      (arg: ComponentArgument<DashboardBaseComponent>): boolean => {
+        return arg.type === ComponentInputType.TableColumns;
+      },
+    );
+
+  const tableGroupByArg: ComponentArgument<DashboardBaseComponent> | undefined =
+    componentArguments.find(
+      (arg: ComponentArgument<DashboardBaseComponent>): boolean => {
+        return arg.type === ComponentInputType.TableGroupBy;
+      },
+    );
+
+  const renderTableDataSection: () => ReactElement | null =
+    (): ReactElement | null => {
+      if (!hasTableColumnsArg && !hasTableGroupByArg) {
+        return null;
+      }
+
+      const args: JSONObject = (component.arguments as JSONObject) || {};
+      const columns: Array<TableColumn> =
+        (args["columns"] as unknown as Array<TableColumn> | undefined) || [];
+
+      /*
+       * Read the new groupByAttributes shape; fall back to legacy
+       * groupByAttributeKeys for widgets saved before per-attribute
+       * headers existed. Both are converted into the same in-memory
+       * shape and written back as groupByAttributes on any edit.
+       */
+      const storedGroupByAttributes: Array<TableGroupByAttribute> | undefined =
+        args["groupByAttributes"] as Array<TableGroupByAttribute> | undefined;
+      const legacyGroupByKeys: Array<string> =
+        (args["groupByAttributeKeys"] as Array<string> | undefined) || [];
+      const groupByAttributes: Array<TableGroupByAttribute> =
+        storedGroupByAttributes && storedGroupByAttributes.length > 0
+          ? storedGroupByAttributes
+          : legacyGroupByKeys.map((key: string): TableGroupByAttribute => {
+              return { key };
+            });
+
+      const attributeOptions: Array<DropdownOption> = (
+        props.metrics.telemetryAttributes || []
+      ).map((attr: string): DropdownOption => {
+        return { value: attr, label: attr };
+      });
+
+      const selectedAttributeOptions: Array<DropdownOption> =
+        attributeOptions.filter((option: DropdownOption): boolean => {
+          return groupByAttributes.some((g: TableGroupByAttribute): boolean => {
+            return g.key === String(option.value);
+          });
+        });
+
+      const writeGroupByAttributes: (
+        next: Array<TableGroupByAttribute>,
+      ) => void = (next: Array<TableGroupByAttribute>): void => {
+        const existingArgs: JSONObject =
+          (component.arguments as JSONObject) || {};
+        const cleaned: JSONObject = { ...existingArgs };
+        // Drop the legacy key so the new shape is the only source of truth.
+        delete cleaned["groupByAttributeKeys"];
+        commitComponent({
+          ...component,
+          arguments: {
+            ...cleaned,
+            groupByAttributes: next as any,
+          },
+        });
+      };
+
+      const sectionName: string =
+        tableColumnsArg?.section?.name ||
+        tableGroupByArg?.section?.name ||
+        "Data";
+      const sectionDescription: string | undefined =
+        tableColumnsArg?.section?.description ||
+        tableGroupByArg?.section?.description;
+
+      return (
+        <div className="mt-3">
+          <CollapsibleSection
+            title={sectionName}
+            description={sectionDescription}
+            variant="bordered"
+            defaultCollapsed={false}
+          >
+            <div>
+              {hasTableGroupByArg && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700">
+                    {tableGroupByArg?.name || "Group By Attributes"}
+                  </label>
+                  {tableGroupByArg?.description && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      {tableGroupByArg.description}
+                    </p>
+                  )}
+                  <div className="mt-2">
+                    <Dropdown
+                      options={attributeOptions}
+                      isMultiSelect={true}
+                      value={selectedAttributeOptions}
+                      placeholder="Select attributes to group by"
+                      onChange={(
+                        value: DropdownValue | Array<DropdownValue> | null,
+                      ): void => {
+                        const keys: Array<string> = Array.isArray(value)
+                          ? value.map((v: DropdownValue): string => {
+                              return String(v);
+                            })
+                          : value
+                            ? [String(value)]
+                            : [];
+                        /*
+                         * Preserve existing custom headers for keys
+                         * that survived the selection change; new keys
+                         * start with the attribute key as the header.
+                         */
+                        const next: Array<TableGroupByAttribute> = keys.map(
+                          (key: string): TableGroupByAttribute => {
+                            const existing: TableGroupByAttribute | undefined =
+                              groupByAttributes.find(
+                                (g: TableGroupByAttribute): boolean => {
+                                  return g.key === key;
+                                },
+                              );
+                            return existing || { key };
+                          },
+                        );
+                        writeGroupByAttributes(next);
+                      }}
+                    />
+                  </div>
+
+                  {groupByAttributes.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-xs font-medium text-gray-600">
+                        Column headers
+                      </p>
+                      {groupByAttributes.map(
+                        (
+                          attr: TableGroupByAttribute,
+                          index: number,
+                        ): ReactElement => {
+                          return (
+                            <div
+                              key={attr.key}
+                              className="flex items-center gap-2"
+                            >
+                              <span className="text-xs text-gray-500 font-mono whitespace-nowrap min-w-[10rem]">
+                                {attr.key}
+                              </span>
+                              <div className="flex-1">
+                                <Input
+                                  type={InputType.TEXT}
+                                  value={attr.header || ""}
+                                  placeholder={attr.key}
+                                  onChange={(value: string): void => {
+                                    const next: Array<TableGroupByAttribute> = [
+                                      ...groupByAttributes,
+                                    ];
+                                    next[index] = {
+                                      ...attr,
+                                      header: value || undefined,
+                                    };
+                                    writeGroupByAttributes(next);
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        },
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {hasTableColumnsArg && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    {tableColumnsArg?.name || "Columns"}
+                  </label>
+                  {tableColumnsArg?.description && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      {tableColumnsArg.description}
+                    </p>
+                  )}
+                  <TableColumnsEditor
+                    columns={columns}
+                    metricTypes={props.metrics.metricTypes}
+                    onChange={(next: Array<TableColumn>): void => {
+                      commitComponent({
+                        ...component,
+                        arguments: {
+                          ...((component.arguments as JSONObject) || {}),
+                          columns: next as any,
+                        },
+                      });
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </CollapsibleSection>
+        </div>
+      );
+    };
+
   return (
     <div className="mb-3 mt-1">
       {componentArguments && componentArguments.length === 0 && (
         <ErrorMessage message={"This component does not take any arguments."} />
       )}
+      {renderTableDataSection()}
       {sectionGroups.map((sectionGroup: SectionGroup, index: number) => {
         const isFirstSection: boolean = index === 0;
         const shouldCollapse: boolean =

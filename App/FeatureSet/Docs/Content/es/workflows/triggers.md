@@ -1,106 +1,81 @@
 # Disparadores
 
-Un disparador es el nodo inicial de un flujo de trabajo. No tiene puerto de entrada — la ejecución comienza aquí. OneUptime soporta cuatro familias de disparadores; cada flujo de trabajo usa exactamente uno.
+Un disparador es el primer bloque de un workflow: decide cuándo se ejecuta. Cada workflow tiene exactamente un disparador. Puedes elegir entre cuatro tipos.
 
 ## Manual
 
-Ejecuta un flujo de trabajo bajo demanda haciendo clic en **Run Manually** en la página del flujo. Puedes pegar un payload JSON opcional que el flujo puede leer como `{{Manual.JSON}}`.
+Ejecuta el workflow a petición haciendo clic en **Ejecutar Manualmente** en la página del workflow. Puedes pegar una carga útil JSON que el resto del workflow puede leer.
 
-Úsalo cuando quieras un botón que dispare una pieza de automatización — un flujo de trabajo de "rotar la clave de guardia" o "reconstruir el índice de búsqueda" de un solo clic que no necesita una programación recurrente ni un evento que lo dispare.
+Útil para: automatizaciones de un clic para las que quieres un botón, como "rotar esta clave" o "enviar una alerta de prueba".
 
-**Argumentos**: ninguno.
+**Salida**: el JSON que pegaste, o un objeto vacío si no pegaste nada.
 
-**Valores de retorno**:
+## Programación
 
-| Nombre | Tipo | Descripción |
-| --- | --- | --- |
-| `JSON` | JSON | El payload JSON proporcionado en tiempo de ejecución, o un objeto vacío. |
+Ejecuta el workflow en una programación recurrente mediante una expresión cron.
 
-## Programado (Schedule)
+Útil para: limpiezas nocturnas, sincronización horaria, informes semanales.
 
-Ejecuta un flujo de trabajo según una programación cron. Configura la cadencia con una expresión cron estándar.
+**Ajuste**: una expresión cron. Algunas comunes:
 
-Úsalo para tareas recurrentes: limpieza nocturna, sincronización horaria, exportación semanal.
+- `0 * * * *` — cada hora, en punto.
+- `*/5 * * * *` — cada 5 minutos.
+- `0 9 * * 1` — cada lunes a las 9:00 AM.
 
-**Argumentos**:
-
-| Nombre | Tipo | Descripción |
-| --- | --- | --- |
-| `Schedule at` | CronTab | Expresión cron estándar de 5 campos. Por ejemplo, `0 * * * *` se ejecuta al inicio de cada hora, `*/5 * * * *` cada cinco minutos. |
-
-**Valores de retorno**:
-
-| Nombre | Tipo | Descripción |
-| --- | --- | --- |
-| `executedAt` | Date | La hora programada de ejecución. |
-
-Los flujos de trabajo programados se ejecutan en el Workflow Worker de la región del proyecto. Si el worker no está disponible brevemente, la ejecución se despacha cuando se recupera — no necesitas protegerte contra tics perdidos por interrupciones cortas.
+Si el sistema no está disponible brevemente, la ejecución se retoma en cuanto se recupera; no necesitas preocuparte por ciclos perdidos durante cortes breves.
 
 ## Webhook
 
-Expone una URL HTTPS única a la que un sistema externo hace `POST`. Los headers, los parámetros de consulta y el cuerpo de la petición se exponen como valores de retorno para que los lean los componentes aguas abajo.
+OneUptime crea una URL única. Cualquier cosa que llegue a esa URL inicia el workflow. Las cabeceras, los parámetros de consulta y el cuerpo de la solicitud se pasan al workflow.
 
-Úsalo para recibir datos *hacia* OneUptime desde un sistema de terceros: callbacks de CI/CD, alertas de otra herramienta de monitorización, registros de clientes en tu CRM.
+Útil para: recibir datos en OneUptime desde otra herramienta — callbacks de CI/CD, alertas de otros sistemas de monitorización, registros en tu CRM.
 
-**Argumentos**: ninguno. La URL se asigna automáticamente al guardar el flujo de trabajo y se muestra en el nodo disparador. Trátala como un secreto — cualquiera con la URL puede disparar el flujo de trabajo.
+**Salida**:
 
-**Valores de retorno**:
+- **Request Headers** — todas las cabeceras de la solicitud entrante.
+- **Request Query Params** — la cadena de consulta analizada.
+- **Request Body** — el cuerpo analizado (o el texto sin procesar si no es JSON).
 
-| Nombre | Tipo | Descripción |
-| --- | --- | --- |
-| `Request Headers` | JSON | Todos los headers de la petición HTTP entrante. |
-| `Request Query Params` | JSON | Cadena de consulta parseada. |
-| `Request Body` | JSON | Cuerpo de la petición parseado. Si el cuerpo no es JSON válido, llega como una cadena bajo la clave `raw`. |
+La URL acepta tanto `GET` como `POST`. El emisor recibe una confirmación rápida; el workflow en sí se ejecuta en segundo plano.
 
-El webhook acepta `GET` y `POST`. La respuesta al llamador es un `200 OK` con un acuse de recibo en JSON tan pronto como la ejecución se encola — el flujo de trabajo en sí se ejecuta de forma asíncrona, así que no esperes leer el resultado de los componentes aguas abajo en la respuesta HTTP.
+Trata la URL como una contraseña. Cualquiera que la tenga puede iniciar tu workflow.
 
-## Disparadores de evento de modelo
+## Disparadores de eventos de OneUptime
 
-Casi toda entidad de OneUptime — monitores, incidentes, alertas, eventos de mantenimiento programado, páginas de estado, políticas de guardia, equipos, servicios de telemetría y muchos más — expone tres disparadores:
+Casi cualquier cosa en OneUptime —monitores, incidentes, alertas, mantenimiento programado, páginas de estado, políticas de guardia, equipos— puede disparar un workflow. Cada uno ofrece tres eventos:
 
-- **On Create** — se dispara cuando se crea un nuevo registro de este tipo.
-- **On Update** — se dispara cuando se modifica un registro existente. El disparador expone tanto los valores antiguos como los nuevos.
-- **On Delete** — se dispara cuando se elimina un registro.
+- **Al Crear** — se activa cuando se añade uno nuevo.
+- **Al Actualizar** — se activa cuando se modifica uno.
+- **Al Eliminar** — se activa cuando se elimina uno.
 
-Así es como construyes automatización del estilo "cuando X ocurra en OneUptime, haz Y" sin hacer polling.
+Así es como construyes "cuando X sucede en OneUptime, haz Y" sin necesidad de comprobar cosas en un bucle.
 
-El propio modelo se expone como valor de retorno con los mismos nombres de campo que ves en el recurso. Por ejemplo, el disparador **Incident → On Create** devuelve el objeto `Incident` completo para que los nodos aguas abajo puedan leer `{{Incident.title}}`, `{{Incident.description}}`, `{{Incident.incidentSeverityId}}`, etc.
+El registro completo se pasa al siguiente bloque. Por ejemplo, el disparador **Incidente → Al Crear** pasa el nuevo incidente, para que el siguiente bloque pueda leer su título, descripción, gravedad y cualquier otro campo.
 
-**Argumentos**: típicamente ninguno para create/delete. Los disparadores de update pueden permitirte restringir los campos a los que reaccionar, para que no te dispares ante cambios cosméticos.
+### Eventos que los equipos usan más
 
-**Valores de retorno** (varían según el modelo):
+- **Incidente** — reacciona cuando se abre, actualiza (reconoce, resuelve) o elimina un incidente.
+- **Alerta** — los mismos tres para alertas.
+- **Monitor** — reacciona cuando se añade, edita o elimina un monitor.
+- **Mantenimiento Programado** — anuncia automáticamente una ventana de mantenimiento cuando se programa.
+- **Suscriptor de Página de Estado** — da la bienvenida a alguien que se suscribe a una página de estado.
+- **Política de Guardia** — sincroniza los cambios de horario a otro sistema de rotación.
 
-| Nombre | Tipo | Descripción |
-| --- | --- | --- |
-| Campos del modelo | (varían) | Cada columna de la entidad — nombre, estado, marcas de tiempo, claves foráneas. |
-| `previous` (solo Update) | JSON | El registro tal como estaba antes del cambio. |
+Busca por nombre en la paleta de disparadores para encontrar el que quieres.
 
-### Disparadores de modelo comunes
+## ¿Qué disparador debo usar?
 
-Una lista no exhaustiva de los eventos de modelo a los que más recurren los equipos:
-
-- **Incident** — `On Create`, `On Update` (úsalo para reaccionar a cambios de estado como Acknowledged o Resolved), `On Delete`.
-- **Alert** — los mismos tres eventos sobre el modelo de alerta.
-- **Monitor** — reacciona cuando se añade, edita o elimina un monitor; combina con condiciones para actuar solo sobre monitores de producción.
-- **Scheduled Maintenance** — automatiza anuncios aguas abajo cuando se crea una ventana de mantenimiento o cambia su estado.
-- **Status Page Subscriber** — dispara un flujo de bienvenida cuando alguien se suscribe.
-- **On-Call Duty Policy** — sincroniza los cambios de calendario con una agenda externa.
-
-Si el modelo está expuesto en la API de OneUptime, es casi seguro que puede disparar un flujo de trabajo — busca en la paleta de disparadores por el nombre de la entidad.
-
-## Elegir el disparador adecuado
-
-| Si quieres… | Usa |
+| Si quieres… | Elige |
 | --- | --- |
-| Construir un botón en un flujo de trabajo que alguien pulsa | **Manual** |
-| Ejecutar una tarea cada N minutos/horas/días | **Schedule** |
-| Que un sistema externo envíe datos a OneUptime | **Webhook** |
-| Reaccionar a algo que ocurre *dentro* de OneUptime | **Model event** |
+| Hacer clic en un botón para ejecutar el workflow | **Manual** |
+| Ejecutar en una programación recurrente | **Programación** |
+| Que otro sistema envíe datos | **Webhook** |
+| Reaccionar a algo dentro de OneUptime | **Evento de OneUptime** |
 
-Los flujos de trabajo solo pueden tener un disparador. Si necesitas dos señales de inicio distintas para compartir la mayor parte de la misma lógica, extrae los pasos compartidos a un solo flujo de trabajo y llámalo desde dos flujos "envoltorio" delgados usando el componente **Execute Workflow** (consulta [Componentes](/docs/workflows/components)).
+Un workflow solo puede tener un disparador. Si necesitas dos formas de iniciar la misma automatización, construye la lógica compartida en un workflow y llámalo desde dos workflows "envoltorio" delgados usando el componente **Ejecutar Workflow**.
 
-## Qué leer a continuación
+## Dónde seguir leyendo
 
-- [Componentes](/docs/workflows/components) — las acciones que cablearás después del disparador.
-- [Variables](/docs/workflows/variables) — cómo leer los valores de retorno del disparador desde los nodos aguas abajo.
-- [Ejecuciones y registros](/docs/workflows/runs-and-logs) — cómo confirmar que tu disparador se está activando.
+- [Componentes](/docs/workflows/components) — las acciones que añades después del disparador.
+- [Variables](/docs/workflows/variables) — leer la salida del disparador desde bloques posteriores.
+- [Ejecuciones y Registros](/docs/workflows/runs-and-logs) — confirmar que tu disparador se activó.

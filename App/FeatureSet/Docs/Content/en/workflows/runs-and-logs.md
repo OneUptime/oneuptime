@@ -1,73 +1,76 @@
 # Runs & Logs
 
-Every time a workflow's trigger fires, OneUptime creates a **run** — a record of one execution with timing, status, and per-node output. Runs are how you confirm a workflow worked, how you debug one that didn't, and how you write a postmortem when an automation misbehaves.
+Every time a workflow runs, OneUptime saves a record of what happened — when it ran, whether it worked, and what each block did. That record is called a **run**. Runs are how you confirm a workflow worked, debug one that didn't, and look back at past activity.
 
 ## Where to find them
 
-| Page | Scope |
+| Page | What you see |
 | --- | --- |
-| **Workflows → Runs & Logs** | Project-wide. Every run of every workflow. Filter by workflow, status, and time range. |
-| **A workflow's Logs tab** | Just the runs of this workflow. |
-| **A run's detail page** | One execution, expanded with per-node output and any error messages. |
+| **Workflows → Runs & Logs** | Every run from every workflow in the project. Filter by workflow, status, and time. |
+| **Workflow → Logs tab** | Just the runs of this one workflow. |
+| **A single run** | One execution, with the output of every block. |
 
 ## Run statuses
 
-| Status | Meaning |
+| Status | What it means |
 | --- | --- |
-| **Scheduled** | The trigger fired and the run is queued, but the worker has not picked it up yet. Usually a fraction of a second. |
-| **Running** | The worker is currently walking the graph. Long-running components (slow HTTP calls, intentional delays) keep a run in this state. |
-| **Success** | Every node that ran finished without error. (A workflow that took an `error` branch deliberately is still `Success` overall — the workflow itself didn't fail.) |
-| **Error** | A node failed and there was no `error` port wired to handle it. The run stopped at that node. |
-| **Timeout** | The run exceeded the per-run timeout. See [Configuration & Safety](/docs/workflows/configuration). |
+| **Scheduled** | The trigger fired and the run is about to start. Usually only takes a fraction of a second. |
+| **Running** | The workflow is in progress. Long-running blocks keep a run in this state. |
+| **Success** | Every block that ran finished without error. (Taking an **error** branch on purpose still counts as success — the workflow itself didn't fail.) |
+| **Error** | A block failed and there was no **error** path connected to handle it. The run stopped there. |
+| **Timeout** | The run ran longer than allowed. See [Configuration & Safety](/docs/workflows/configuration). |
 
 ## Reading a run
 
-Click a run from the list to open its detail page. You see:
+Click any run to open the details. You'll see:
 
-- **Header** — the trigger that fired, the start and end timestamp, total duration, status.
-- **Node list** — every node that executed in order, each with its captured arguments, its return value, and its chosen output port.
-- **Errors** — if a node failed, the error message and (when available) the stack trace.
+- **Header** — the trigger, start and end time, total duration, and status.
+- **Block list** — every block that ran, in order. Each one shows the values it was given, its output, and which path it took.
+- **Errors** — if a block failed, the error message and (when available) more details.
 
-The captured arguments show *post-interpolation* values — i.e., the exact strings the node saw after variables were resolved. This is the single most useful debugging view: if a Slack message has the literal text `{{Incident.title}}` in it, you know the variable reference didn't resolve.
+The values shown are exactly what the block saw — after all variables were filled in. This is the single most useful debugging view: if a Slack message shows the literal text `{{Incident.title}}` instead of the actual title, you know the variable didn't resolve.
 
-## Common debugging patterns
+## Common debugging
 
-### "My workflow didn't fire."
+### "My workflow didn't run."
 
-1. Confirm the workflow is **enabled** in **Settings**. New workflows ship disabled.
-2. For a model-event trigger: confirm the event actually happened. Open the entity (the incident, alert, monitor) and look at its history.
-3. For a webhook trigger: confirm the external system is hitting the right URL. Many tools log outbound webhook delivery — check there.
-4. For a schedule trigger: confirm the cron expression evaluates to the time you expect. Use a cron parser if in doubt.
+1. Make sure the workflow is **enabled** in Settings. New workflows start disabled.
+2. For a OneUptime event trigger: confirm the event actually happened. Open the record and check its history.
+3. For a webhook trigger: confirm the other system is sending to the right URL. Most tools log when they send a webhook — check there.
+4. For a schedule trigger: confirm the cron expression matches the time you expect.
 
-If the trigger fired but no run shows up, check the project's run quota under **Project Settings → Billing**.
+If the trigger fired but no run shows up, check your run quota under **Project Settings → Billing**.
 
-### "It runs but a downstream node never executes."
+### "A later block never ran."
 
-A node that doesn't run is usually a wiring issue. Open the canvas and check:
+A block that doesn't run is usually a wiring problem. Open the canvas and check:
 
-- Is the upstream node's output port actually connected to this node's input port?
-- Did the upstream node take a different port (e.g., `error` instead of `success`, or `no` instead of `yes`)? Look at the run detail to see which port it chose.
+- Is the earlier block's output connected to this block's input?
+- Did the earlier block take a different output than you expected (for example, **error** instead of **success**, or **No** instead of **Yes**)? The run detail shows which path was taken.
 
-### "A variable comes through empty."
+### "A variable came through empty."
 
-Open the run detail and look at the failing node's captured arguments. If you see the literal `{{NodeId.field}}` text, the reference didn't resolve — likely a typo in `NodeId` or `field`. If you see an empty string, the upstream node ran but didn't produce that field.
+Open the run and look at the failing block's values.
 
-### "It works manually but not from the trigger."
+- If you see the literal `{{BlockName.field}}` text, the reference didn't resolve — probably a typo in the block name or field name.
+- If you see an empty string, the earlier block ran but didn't produce that field.
 
-Use **Run Manually** with a JSON payload that mirrors what the real trigger publishes. Then compare the captured arguments in the manual run vs. the production run side by side — the difference is usually in a single field name or type.
+### "It works when I run it manually but not from the trigger."
+
+Use **Run Manually** with a JSON payload that looks like what the real trigger sends. Then compare the values in the manual run to the real run side by side. The difference is usually a single field name or type.
 
 ## Re-running a workflow
 
-There's no "retry this run" button — by design, OneUptime never re-executes an old run, because the outbound side effects (Slack messages, API calls) might not be idempotent. If you want to redo the work, fix the workflow and let the next real trigger fire it.
+There's no "retry this run" button. We don't re-run old executions automatically because the side effects (Slack messages, API calls, tickets) might not be safe to repeat. To redo the work, fix the workflow and let the next real trigger fire it.
 
 For manual workflows, just click **Run Manually** with the same payload.
 
-## Log retention
+## How long are runs kept?
 
-Runs are kept indefinitely on the project. If you need to clean up high-volume noisy workflows (e.g., a debug workflow that fires every minute), disable or delete them — there is no per-workflow retention toggle.
+Runs are kept indefinitely for the project. If a workflow runs very often and clutters your history (like a debug workflow that fires every minute), disable or delete it to stop adding to the noise.
 
 ## Where to read next
 
-- [Configuration & Safety](/docs/workflows/configuration) — timeouts, recursion limits, secret redaction.
-- [Variables](/docs/workflows/variables) — the syntax that interpolated arguments use.
-- [Components](/docs/workflows/components) — the return-value fields each component publishes.
+- [Configuration & Safety](/docs/workflows/configuration) — timeouts, recursion limits, hidden secrets.
+- [Variables](/docs/workflows/variables) — the variable syntax used in your blocks.
+- [Components](/docs/workflows/components) — what each block produces.
