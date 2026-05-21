@@ -701,11 +701,16 @@ export default abstract class OtelIngestBaseService {
    *      Kubernetes telemetry and belongs in the KubernetesCluster
    *      record; routing happens in `resolveTelemetryResource` via the
    *      kubernetesClusterId path.
-   *   3. One of:
+   *   3. The same batch did not already resolve to a DockerHost or
+   *      KubernetesCluster row. Docker hosts and K8s clusters/nodes have
+   *      their own dedicated tables; we don't want a duplicate Host row
+   *      pointing back at them via dockerHostId / kubernetesClusterId.
+   *   4. One of:
    *        - os.type resource attribute (set by the resourcedetection
    *          system detector via native OS calls — app SDKs typically
    *          don't include it)
-   *        - container.runtime resource attribute (Docker host)
+   *        - container.runtime resource attribute (non-Docker container
+   *          host — Docker is already excluded by gate (3))
    *        - hasInfraSignal=true (caller saw system.* / process.*
    *          metrics that only a host agent emits)
    *
@@ -727,6 +732,14 @@ export default abstract class OtelIngestBaseService {
     processCount?: number | undefined;
   }): Promise<ObjectID | null> {
     try {
+      /*
+       * Docker hosts and Kubernetes clusters/nodes live in their own tables.
+       * If this batch already resolved to one, do not also create a Host row.
+       */
+      if (data.dockerHostId || data.kubernetesClusterId) {
+        return null;
+      }
+
       const hostName: string | null = this.getStringAttribute(
         data.attributes,
         "host.name",
