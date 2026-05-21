@@ -77,6 +77,9 @@ export class Service extends DatabaseService<Model> {
     const userOnSchedule: ObjectID | null =
       await OnCallDutyPolicyScheduleService.getCurrentUserIdInSchedule(
         createdModel.onCallDutyPolicyScheduleId,
+        {
+          onCallDutyPolicyId: createdModel.onCallDutyPolicy?.id || undefined,
+        },
       );
 
     if (!userOnSchedule) {
@@ -277,6 +280,9 @@ export class Service extends DatabaseService<Model> {
       const userOnSchedule: ObjectID | null =
         await OnCallDutyPolicyScheduleService.getCurrentUserIdInSchedule(
           deletedItem.onCallDutyPolicyScheduleId!,
+          {
+            onCallDutyPolicyId: deletedItem.onCallDutyPolicy?.id || undefined,
+          },
         );
 
       if (!userOnSchedule) {

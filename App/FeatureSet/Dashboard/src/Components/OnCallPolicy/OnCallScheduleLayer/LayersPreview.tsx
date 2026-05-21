@@ -12,6 +12,7 @@ import UserOverrideUtil, {
 import StartAndEndTime from "Common/Types/Time/StartAndEndTime";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
+import IsNull from "Common/Types/BaseDatabase/IsNull";
 import LessThanOrEqual from "Common/Types/BaseDatabase/LessThanOrEqual";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Calendar from "Common/UI/Components/Calendar/Calendar";
@@ -133,6 +134,12 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
   /*
    * Fetch user overrides that touch this calendar window and apply to any
    * user already present in this schedule. Refetches when the range changes.
+   *
+   * The schedule preview has no policy context (a schedule can be referenced
+   * by many policies via escalation rules), so only global overrides are
+   * shown here. Policy-scoped overrides are intentionally excluded — surfacing
+   * them in a policy-less view would misrepresent how they actually apply
+   * during alert dispatch.
    */
   useEffect(() => {
     const projectId: string =
@@ -154,6 +161,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
               projectId: ProjectUtil.getCurrentProjectId()!,
               startsAt: new LessThanOrEqual<Date>(endTime),
               endsAt: new GreaterThanOrEqual<Date>(startTime),
+              onCallDutyPolicyId: new IsNull(),
             },
             limit: LIMIT_PER_PROJECT,
             skip: 0,
