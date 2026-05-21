@@ -85,6 +85,7 @@
     "IP Monitor": "IP-övervakning",
     "Port Monitor": "Portövervakning",
     "DNS Monitor": "DNS-övervakning",
+    "DNSSEC Monitor": "DNSSEC-övervakning",
     "SSL Certificate Monitor": "Övervakning av SSL-certifikat",
     "Domain Monitor": "Domänövervakning",
     "Custom Code Monitor": "Anpassad kodövervakning",

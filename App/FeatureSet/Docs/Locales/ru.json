@@ -85,6 +85,7 @@
     "IP Monitor": "Мониторинг IP",
     "Port Monitor": "Мониторинг портов",
     "DNS Monitor": "Мониторинг DNS",
+    "DNSSEC Monitor": "Мониторинг DNSSEC",
     "SSL Certificate Monitor": "Мониторинг SSL-сертификатов",
     "Domain Monitor": "Мониторинг домена",
     "Custom Code Monitor": "Мониторинг собственного кода",

@@ -85,6 +85,7 @@
     "IP Monitor": "IP-overvåking",
     "Port Monitor": "Port-overvåking",
     "DNS Monitor": "DNS-overvåking",
+    "DNSSEC Monitor": "DNSSEC-overvåking",
     "SSL Certificate Monitor": "SSL-sertifikat-overvåking",
     "Domain Monitor": "Domene-overvåking",
     "Custom Code Monitor": "Egendefinert kode-overvåking",

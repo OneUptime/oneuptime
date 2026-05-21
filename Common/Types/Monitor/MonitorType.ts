@@ -284,7 +284,7 @@ export class MonitorTypeHelper {
         title: "DNSSEC",
         description:
           "This monitor type performs full DNSSEC validation — DNSKEY, DS at the parent zone, RRSIG validity windows, AD-flag/SERVFAIL behavior across public resolvers, and primary/secondary nameserver consistency.",
-        icon: IconProp.ShieldCheck,
+        icon: IconProp.Key,
       },
       {
         monitorType: MonitorType.Domain,

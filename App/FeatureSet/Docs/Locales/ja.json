@@ -85,6 +85,7 @@
     "IP Monitor": "IP モニター",
     "Port Monitor": "ポート モニター",
     "DNS Monitor": "DNS モニター",
+    "DNSSEC Monitor": "DNSSEC モニター",
     "SSL Certificate Monitor": "SSL 証明書モニター",
     "Domain Monitor": "ドメイン モニター",
     "Custom Code Monitor": "カスタム コード モニター",

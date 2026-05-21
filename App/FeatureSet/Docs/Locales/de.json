@@ -85,6 +85,7 @@
     "IP Monitor": "IP-Überwachung",
     "Port Monitor": "Port-Überwachung",
     "DNS Monitor": "DNS-Überwachung",
+    "DNSSEC Monitor": "DNSSEC-Überwachung",
     "SSL Certificate Monitor": "SSL-Zertifikat-Überwachung",
     "Domain Monitor": "Domain-Überwachung",
     "Custom Code Monitor": "Benutzerdefinierte Code-Überwachung",

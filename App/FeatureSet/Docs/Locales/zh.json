@@ -85,6 +85,7 @@
     "IP Monitor": "IP 监控",
     "Port Monitor": "端口监控",
     "DNS Monitor": "DNS 监控",
+    "DNSSEC Monitor": "DNSSEC 监控",
     "SSL Certificate Monitor": "SSL 证书监控",
     "Domain Monitor": "域名监控",
     "Custom Code Monitor": "自定义代码监控",
