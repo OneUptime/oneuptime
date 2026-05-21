@@ -61,6 +61,16 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
   );
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  /*
+   * Viewer-local UI state — not persisted in the widget config.
+   * sortConfig.columnKey is null when no value column sort is active
+   * (then rows fall back to the default attribute-tuple sort).
+   */
+  const [sortConfig, setSortConfig] = useState<{
+    columnKey: string | null;
+    direction: "asc" | "desc";
+  }>({ columnKey: null, direction: "desc" });
+  const [searchText, setSearchText] = useState<string>("");
 
   const args: DashboardTableComponent["arguments"] =
     props.component.arguments || {};
@@ -248,7 +258,7 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
     return byColumn;
   }, [isGroupedMode, metricResults, valueColumns, attrKeys, reduce]);
 
-  const rowTuples: Array<{
+  const allRowTuples: Array<{
     tupleKey: string;
     values: Array<string>;
   }> = useMemo(() => {
@@ -274,26 +284,113 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
     for (const [tupleKey, values] of seen) {
       tuples.push({ tupleKey, values });
     }
-    tuples.sort(
-      (
-        a: { tupleKey: string; values: Array<string> },
-        b: { tupleKey: string; values: Array<string> },
-      ) => {
-        for (let i: number = 0; i < a.values.length; i++) {
-          const av: string = a.values[i] || "";
-          const bv: string = b.values[i] || "";
-          if (av < bv) {
-            return -1;
+    return tuples;
+  }, [isGroupedMode, metricResults, attrKeys]);
+
+  /*
+   * Filter (by search text against any attribute value) + sort (either by
+   * a value column the user clicked on, or alphabetically by attribute
+   * tuple as the default) + slice to maxRows. Kept separate from
+   * allRowTuples so that toggling sort/search doesn't re-derive the
+   * underlying set from metricResults.
+   */
+  const rowTuples: Array<{
+    tupleKey: string;
+    values: Array<string>;
+  }> = useMemo(() => {
+    if (!isGroupedMode) {
+      return [];
+    }
+    const needle: string = searchText.trim().toLowerCase();
+    const filtered: Array<{ tupleKey: string; values: Array<string> }> = needle
+      ? allRowTuples.filter(
+          (t: { tupleKey: string; values: Array<string> }): boolean => {
+            return t.values.some((v: string): boolean => {
+              return v.toLowerCase().includes(needle);
+            });
+          },
+        )
+      : [...allRowTuples];
+
+    if (sortConfig.columnKey) {
+      const colKey: string = sortConfig.columnKey;
+      const dir: 1 | -1 = sortConfig.direction === "asc" ? 1 : -1;
+      filtered.sort(
+        (
+          a: { tupleKey: string; values: Array<string> },
+          b: { tupleKey: string; values: Array<string> },
+        ): number => {
+          const av: number | undefined = reducedByColumnAndTuple
+            .get(colKey)
+            ?.get(a.tupleKey);
+          const bv: number | undefined = reducedByColumnAndTuple
+            .get(colKey)
+            ?.get(b.tupleKey);
+          const aMissing: boolean = av === undefined || Number.isNaN(av);
+          const bMissing: boolean = bv === undefined || Number.isNaN(bv);
+          // Missing values always sink to the bottom.
+          if (aMissing && bMissing) {
+            return 0;
           }
-          if (av > bv) {
+          if (aMissing) {
             return 1;
           }
+          if (bMissing) {
+            return -1;
+          }
+          return ((av as number) - (bv as number)) * dir;
+        },
+      );
+    } else {
+      filtered.sort(
+        (
+          a: { tupleKey: string; values: Array<string> },
+          b: { tupleKey: string; values: Array<string> },
+        ): number => {
+          for (let i: number = 0; i < a.values.length; i++) {
+            const av: string = a.values[i] || "";
+            const bv: string = b.values[i] || "";
+            if (av < bv) {
+              return -1;
+            }
+            if (av > bv) {
+              return 1;
+            }
+          }
+          return 0;
+        },
+      );
+    }
+    return filtered.slice(0, maxRows);
+  }, [
+    isGroupedMode,
+    allRowTuples,
+    searchText,
+    sortConfig,
+    reducedByColumnAndTuple,
+    maxRows,
+  ]);
+
+  const toggleValueColumnSort: (columnKey: string) => void = (
+    columnKey: string,
+  ): void => {
+    setSortConfig(
+      (prev: {
+        columnKey: string | null;
+        direction: "asc" | "desc";
+      }): { columnKey: string | null; direction: "asc" | "desc" } => {
+        if (prev.columnKey !== columnKey) {
+          // First click on a new column → descending (largest first).
+          return { columnKey, direction: "desc" };
         }
-        return 0;
+        if (prev.direction === "desc") {
+          return { columnKey, direction: "asc" };
+        }
+        // Third click clears the sort and falls back to alphabetical.
+        return { columnKey: null, direction: "desc" };
       },
     );
-    return tuples.slice(0, maxRows);
-  }, [isGroupedMode, metricResults, attrKeys, maxRows]);
+  };
 
   const timestampRows: Array<{
     timestampIso: string;
@@ -419,9 +516,29 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
           )}
         </div>
       )}
-      <div className="flex items-center justify-between mb-2 px-2">
+      <div className="flex items-center justify-between gap-2 mb-2 px-2">
+        {isGroupedMode ? (
+          <input
+            type="text"
+            value={searchText}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
+              setSearchText(e.target.value);
+            }}
+            placeholder="Search rows…"
+            className="text-xs h-7 px-2 rounded border border-gray-200 bg-white text-gray-700 placeholder-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-200 focus:border-indigo-300 w-48"
+          />
+        ) : (
+          <span />
+        )}
         <span className="text-xs text-gray-300 tabular-nums">
           {rowCount} {rowCount === 1 ? "row" : "rows"}
+          {isGroupedMode &&
+            searchText.trim() !== "" &&
+            allRowTuples.length !== rowCount && (
+              <span className="ml-1 text-gray-300">
+                of {allRowTuples.length}
+              </span>
+            )}
         </span>
       </div>
       <div className="flex-1 overflow-auto rounded-md border border-gray-100 mx-1 mb-1">
@@ -450,12 +567,33 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                     </th>,
                   ]}
               {visibleValueColumns.map((column: ValueColumn) => {
+                const isActive: boolean = sortConfig.columnKey === column.key;
+                const indicator: string = !isActive
+                  ? "↕"
+                  : sortConfig.direction === "asc"
+                    ? "↑"
+                    : "↓";
                 return (
                   <th
                     key={column.key}
-                    className="px-3 py-2 font-medium tracking-wider text-right"
+                    className="px-3 py-2 font-medium tracking-wider text-right cursor-pointer select-none hover:bg-gray-100/60"
+                    onClick={(): void => {
+                      toggleValueColumnSort(column.key);
+                    }}
+                    title="Click to sort"
                   >
-                    {column.label}
+                    <span className="inline-flex items-center gap-1 justify-end">
+                      <span>{column.label}</span>
+                      <span
+                        className={
+                          isActive
+                            ? "text-indigo-500"
+                            : "text-gray-300 opacity-60"
+                        }
+                      >
+                        {indicator}
+                      </span>
+                    </span>
                   </th>
                 );
               })}
