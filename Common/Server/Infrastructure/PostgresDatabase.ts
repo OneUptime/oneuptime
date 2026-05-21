@@ -82,7 +82,7 @@ export default class Database {
 
   @CaptureSpan()
   public static async checkConnnectionStatus(): Promise<boolean> {
-
+    // SELECT 1 round-trips a connection without scanning any user table.
     try {
       const result: any = await this.dataSource?.query(`SELECT 1`);
 
