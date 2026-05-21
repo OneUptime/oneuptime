@@ -580,7 +580,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
         <div
           className="absolute z-10 pointer-events-none"
           style={{
-            top: showHandles ? "32px" : "6px",
+            top: "32px",
             right: "6px",
           }}
         >
@@ -596,11 +596,13 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      {/* Component content */}
+      {/* Component content — keep padding constant in edit mode so the move
+          handle and resize handles overlay without resizing the child (which
+          would force charts/tables to re-measure and flicker on hover). */}
       <div
         className="w-full h-full"
         style={{
-          padding: showHandles ? "28px 12px 12px 12px" : "12px",
+          padding: props.isEditMode ? "28px 12px 12px 12px" : "12px",
         }}
       >
         {component.componentType === DashboardComponentType.Text && (
