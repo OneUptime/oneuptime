@@ -67,12 +67,14 @@ export class MonitorTypeHelper {
           MonitorType.Ping,
           MonitorType.IP,
           MonitorType.Port,
-          MonitorType.DNS,
-          MonitorType.DNSSEC,
           MonitorType.SSLCertificate,
           MonitorType.Domain,
           MonitorType.ExternalStatusPage,
         ],
+      },
+      {
+        label: "DNS Monitoring",
+        monitorTypes: [MonitorType.DNS, MonitorType.DNSSEC],
       },
       {
         label: "Synthetic Monitoring",
