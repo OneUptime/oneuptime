@@ -27,7 +27,6 @@ import { Green, Red } from "Common/Types/BrandColors";
 import ProjectUtil from "Common/UI/Utils/Project";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
-import IsNull from "Common/Types/BaseDatabase/IsNull";
 
 interface ResourceSummary {
   cores: number | undefined;
@@ -64,9 +63,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     try {
       const count: number = await ModelAPI.count({
         modelType: Host,
-        query: {
-          dockerHostId: new IsNull(),
-        },
+        query: {},
       });
       setHostCount(count);
     } catch (err) {
@@ -106,9 +103,6 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         modelType={Host}
         id="hosts-table"
         userPreferencesKey="hosts-table"
-        query={{
-          dockerHostId: new IsNull(),
-        }}
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
