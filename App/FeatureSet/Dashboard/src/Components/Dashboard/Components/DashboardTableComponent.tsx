@@ -10,6 +10,7 @@ import React, {
 import DashboardTableComponent, {
   TableColumn,
   TableColumnKind,
+  TableGroupByAttribute,
   TableReduce,
 } from "Common/Types/Dashboard/DashboardComponents/DashboardTableComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
@@ -36,7 +37,12 @@ interface ValueColumn {
   key: string;
   label: string;
   decimals: number | undefined;
-  suffix: string | undefined;
+  unit: string | undefined;
+  /*
+   * When false, the column is fetched but not rendered (lets formulas
+   * reference the underlying metric variable without showing a column).
+   */
+  visible: boolean;
 }
 
 const TUPLE_SEPARATOR: string = "";
@@ -59,17 +65,48 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
   const args: DashboardTableComponent["arguments"] =
     props.component.arguments || {};
 
-  const widgetGroupByAttributeKeys: Array<string> = useMemo(() => {
-    if (args.groupByAttributeKeys && args.groupByAttributeKeys.length > 0) {
-      return args.groupByAttributeKeys;
+  const widgetGroupByAttributes: Array<TableGroupByAttribute> = useMemo(() => {
+    if (args.groupByAttributes && args.groupByAttributes.length > 0) {
+      return args.groupByAttributes;
     }
-    // Legacy fallback: read groupBy from primary query's metricQueryData.
-    return args.metricQueryConfig?.metricQueryData?.groupByAttributeKeys || [];
-  }, [args.groupByAttributeKeys, args.metricQueryConfig]);
+    if (args.groupByAttributeKeys && args.groupByAttributeKeys.length > 0) {
+      return args.groupByAttributeKeys.map(
+        (key: string): TableGroupByAttribute => {
+          return { key };
+        },
+      );
+    }
+    // Legacy widget fallback: read groupBy from primary query's metricQueryData.
+    const legacy: Array<string> =
+      args.metricQueryConfig?.metricQueryData?.groupByAttributeKeys || [];
+    return legacy.map((key: string): TableGroupByAttribute => {
+      return { key };
+    });
+  }, [
+    args.groupByAttributes,
+    args.groupByAttributeKeys,
+    args.metricQueryConfig,
+  ]);
+
+  const widgetGroupByAttributeKeys: Array<string> = useMemo(() => {
+    return widgetGroupByAttributes.map((a: TableGroupByAttribute): string => {
+      return a.key;
+    });
+  }, [widgetGroupByAttributes]);
+
+  const unitsByMetricName: Map<string, string> = useMemo(() => {
+    const map: Map<string, string> = new Map();
+    for (const m of props.metricTypes || []) {
+      if (m.name && m.unit) {
+        map.set(m.name, m.unit);
+      }
+    }
+    return map;
+  }, [props.metricTypes]);
 
   const resolved: ResolvedQueryData = useMemo(() => {
-    return resolveQueries(args, widgetGroupByAttributeKeys);
-  }, [args, widgetGroupByAttributeKeys]);
+    return resolveQueries(args, widgetGroupByAttributeKeys, unitsByMetricName);
+  }, [args, widgetGroupByAttributeKeys, unitsByMetricName]);
 
   const queryConfigsInterpolated: Array<MetricQueryConfigData> = useMemo(() => {
     return DashboardVariableInterpolation.applyToQueryConfigs(
@@ -163,6 +200,11 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
   const maxRows: number = args.maxRows || 25;
 
   const valueColumns: Array<ValueColumn> = resolved.valueColumns;
+  const visibleValueColumns: Array<ValueColumn> = useMemo(() => {
+    return valueColumns.filter((c: ValueColumn): boolean => {
+      return c.visible;
+    });
+  }, [valueColumns]);
 
   const reducedByColumnAndTuple: Map<
     string,
@@ -342,8 +384,8 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
     : timestampRows.length;
 
   const totalColumnCount: number = isGroupedMode
-    ? attrKeys.length + valueColumns.length
-    : 1 + valueColumns.length;
+    ? attrKeys.length + visibleValueColumns.length
+    : 1 + visibleValueColumns.length;
 
   return (
     <div
@@ -375,16 +417,18 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
           <thead className="text-xs text-gray-400 uppercase bg-gray-50/80 sticky top-0 border-b border-gray-100">
             <tr>
               {isGroupedMode
-                ? attrKeys.map((key: string) => {
-                    return (
-                      <th
-                        key={`attr:${key}`}
-                        className="px-3 py-2 font-medium tracking-wider"
-                      >
-                        {key}
-                      </th>
-                    );
-                  })
+                ? widgetGroupByAttributes.map(
+                    (attr: TableGroupByAttribute): ReactElement => {
+                      return (
+                        <th
+                          key={`attr:${attr.key}`}
+                          className="px-3 py-2 font-medium tracking-wider"
+                        >
+                          {attr.header || attr.key}
+                        </th>
+                      );
+                    },
+                  )
                 : [
                     <th
                       key="timestamp"
@@ -393,7 +437,7 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                       Timestamp
                     </th>,
                   ]}
-              {valueColumns.map((column: ValueColumn) => {
+              {visibleValueColumns.map((column: ValueColumn) => {
                 return (
                   <th
                     key={column.key}
@@ -431,29 +475,31 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                           );
                         },
                       )}
-                      {valueColumns.map((column: ValueColumn): ReactElement => {
-                        const map: Map<string, number> | undefined =
-                          reducedByColumnAndTuple.get(column.key);
-                        const value: number | undefined = map?.get(
-                          row.tupleKey,
-                        );
-                        return (
-                          <td
-                            key={column.key}
-                            className="px-3 py-2 text-gray-900 text-right tabular-nums text-xs font-semibold"
-                          >
-                            {value === undefined || Number.isNaN(value) ? (
-                              <span className="text-gray-300">—</span>
-                            ) : (
-                              formatValue(
-                                value,
-                                column.decimals ?? defaultDecimals,
-                                column.suffix,
-                              )
-                            )}
-                          </td>
-                        );
-                      })}
+                      {visibleValueColumns.map(
+                        (column: ValueColumn): ReactElement => {
+                          const map: Map<string, number> | undefined =
+                            reducedByColumnAndTuple.get(column.key);
+                          const value: number | undefined = map?.get(
+                            row.tupleKey,
+                          );
+                          return (
+                            <td
+                              key={column.key}
+                              className="px-3 py-2 text-gray-900 text-right tabular-nums text-xs font-semibold"
+                            >
+                              {value === undefined || Number.isNaN(value) ? (
+                                <span className="text-gray-300">—</span>
+                              ) : (
+                                formatValue(
+                                  value,
+                                  column.decimals ?? defaultDecimals,
+                                  column.unit,
+                                )
+                              )}
+                            </td>
+                          );
+                        },
+                      )}
                     </tr>
                   );
                 },
@@ -476,26 +522,28 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                       <td className="px-3 py-2 text-gray-500 text-xs whitespace-nowrap">
                         {row.timestampLabel}
                       </td>
-                      {valueColumns.map((column: ValueColumn): ReactElement => {
-                        const value: number | undefined =
-                          row.valuesByColumnKey.get(column.key);
-                        return (
-                          <td
-                            key={column.key}
-                            className="px-3 py-2 text-gray-900 text-right tabular-nums text-xs font-semibold"
-                          >
-                            {value === undefined || Number.isNaN(value) ? (
-                              <span className="text-gray-300">—</span>
-                            ) : (
-                              formatValue(
-                                value,
-                                column.decimals ?? defaultDecimals,
-                                column.suffix,
-                              )
-                            )}
-                          </td>
-                        );
-                      })}
+                      {visibleValueColumns.map(
+                        (column: ValueColumn): ReactElement => {
+                          const value: number | undefined =
+                            row.valuesByColumnKey.get(column.key);
+                          return (
+                            <td
+                              key={column.key}
+                              className="px-3 py-2 text-gray-900 text-right tabular-nums text-xs font-semibold"
+                            >
+                              {value === undefined || Number.isNaN(value) ? (
+                                <span className="text-gray-300">—</span>
+                              ) : (
+                                formatValue(
+                                  value,
+                                  column.decimals ?? defaultDecimals,
+                                  column.unit,
+                                )
+                              )}
+                            </td>
+                          );
+                        },
+                      )}
                     </tr>
                   );
                 },
@@ -530,6 +578,7 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
 function resolveQueries(
   args: DashboardTableComponent["arguments"],
   widgetGroupByAttributeKeys: Array<string>,
+  unitsByMetricName: Map<string, string>,
 ): ResolvedQueryData {
   const queryConfigs: Array<MetricQueryConfigData> = [];
   const formulaConfigs: Array<MetricFormulaConfigData> = [];
@@ -539,6 +588,13 @@ function resolveQueries(
 
   if (columns.length > 0) {
     for (const column of columns) {
+      const visible: boolean = column.showAsColumn !== false;
+      const resolvedUnit: string | undefined =
+        column.unit && column.unit.length > 0
+          ? column.unit
+          : column.kind === TableColumnKind.Metric && column.metricName
+            ? unitsByMetricName.get(column.metricName)
+            : undefined;
       if (column.kind === TableColumnKind.Metric) {
         queryConfigs.push({
           metricAliasData: {
@@ -546,7 +602,7 @@ function resolveQueries(
             title: column.header,
             description: undefined,
             legend: column.header,
-            legendUnit: column.suffix,
+            legendUnit: resolvedUnit,
           },
           metricQueryData: {
             filterData: {
@@ -564,7 +620,8 @@ function resolveQueries(
           key: `col:${column.id}`,
           label: column.header,
           decimals: column.decimals,
-          suffix: column.suffix,
+          unit: resolvedUnit,
+          visible,
         });
       } else {
         formulaConfigs.push({
@@ -573,7 +630,7 @@ function resolveQueries(
             title: column.header,
             description: undefined,
             legend: column.header,
-            legendUnit: column.suffix,
+            legendUnit: resolvedUnit,
           },
           metricFormulaData: {
             metricFormula: column.formula || "",
@@ -583,7 +640,8 @@ function resolveQueries(
           key: `col:${column.id}`,
           label: column.header,
           decimals: column.decimals,
-          suffix: column.suffix,
+          unit: resolvedUnit,
+          visible,
         });
       }
     }
@@ -596,6 +654,8 @@ function resolveQueries(
 
   // Legacy fallback: build from metricQueryConfig + metricQueryConfigs + metricFormulaConfigs.
   if (args.metricQueryConfig) {
+    const legacyMetricName: string | undefined =
+      args.metricQueryConfig.metricQueryData?.filterData?.metricName?.toString();
     queryConfigs.push({
       ...args.metricQueryConfig,
       metricQueryData: {
@@ -611,14 +671,19 @@ function resolveQueries(
       label:
         args.metricQueryConfig.metricAliasData?.legend ||
         args.metricQueryConfig.metricAliasData?.metricVariable?.toUpperCase() ||
-        args.metricQueryConfig.metricQueryData?.filterData?.metricName?.toString() ||
+        legacyMetricName ||
         "Value",
       decimals: undefined,
-      suffix: undefined,
+      unit: legacyMetricName
+        ? unitsByMetricName.get(legacyMetricName)
+        : undefined,
+      visible: true,
     });
   }
   if (args.metricQueryConfigs && args.metricQueryConfigs.length > 0) {
     for (const config of args.metricQueryConfigs) {
+      const legacyMetricName: string | undefined =
+        config.metricQueryData?.filterData?.metricName?.toString();
       queryConfigs.push({
         ...config,
         metricQueryData: {
@@ -634,10 +699,13 @@ function resolveQueries(
         label:
           config.metricAliasData?.legend ||
           config.metricAliasData?.metricVariable?.toUpperCase() ||
-          config.metricQueryData?.filterData?.metricName?.toString() ||
+          legacyMetricName ||
           "Value",
         decimals: undefined,
-        suffix: undefined,
+        unit: legacyMetricName
+          ? unitsByMetricName.get(legacyMetricName)
+          : undefined,
+        visible: true,
       });
     }
   }
@@ -651,7 +719,8 @@ function resolveQueries(
           config.metricAliasData?.metricVariable?.toUpperCase() ||
           "Formula",
         decimals: undefined,
-        suffix: undefined,
+        unit: undefined,
+        visible: true,
       });
     }
   }
@@ -773,7 +842,7 @@ function reduceRows(rows: Array<AggregatedModel>, reduce: TableReduce): number {
 function formatValue(
   value: number,
   decimals: number,
-  suffix: string | undefined,
+  unit: string | undefined,
 ): string {
   const safeDecimals: number = Math.max(0, decimals);
   const factor: number = Math.pow(10, safeDecimals);
@@ -782,7 +851,15 @@ function formatValue(
     minimumFractionDigits: safeDecimals,
     maximumFractionDigits: safeDecimals,
   });
-  return suffix ? `${formatted}${suffix}` : formatted;
+  if (!unit) {
+    return formatted;
+  }
+  /*
+   * Render "% / ° / ‰" with no space; everything else with a single
+   * space (so "12.3 MB" looks right but "12.3%" does too).
+   */
+  const noSpace: boolean = unit === "%" || unit === "°" || unit === "‰";
+  return noSpace ? `${formatted}${unit}` : `${formatted} ${unit}`;
 }
 
 function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {

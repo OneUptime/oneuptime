@@ -40,13 +40,14 @@ export default class DashboardTableComponentUtil extends DashboardBaseComponentU
       minHeightInDashboardUnits: 3,
       minWidthInDashboardUnits: 4,
       arguments: {
-        groupByAttributeKeys: [],
+        groupByAttributes: [],
         columns: [
           {
             id: ObjectID.generate().toString(),
             variable: "a",
             header: "Value",
             kind: TableColumnKind.Metric,
+            showAsColumn: true,
             metricName: undefined,
             aggregation: MetricsAggregationType.Avg,
             decimals: 2,
@@ -69,17 +70,17 @@ export default class DashboardTableComponentUtil extends DashboardBaseComponentU
     componentArguments.push({
       name: "Group By Attributes",
       description:
-        "Each unique combination of these attribute values becomes one row. Leave empty for a time-bucketed table.",
+        "Each unique combination of these attribute values becomes one row. Customize the column header for each picked attribute below. Leave empty for a time-bucketed table.",
       required: false,
       type: ComponentInputType.TableGroupBy,
-      id: "groupByAttributeKeys",
+      id: "groupByAttributes",
       section: DataSection,
     });
 
     componentArguments.push({
-      name: "Columns",
+      name: "Metrics & Columns",
       description:
-        "Each column is either a metric (Metric Name + Aggregation) or a formula (e.g. (a / b) * 100). Metric columns get a variable letter that formulas can reference.",
+        "Define metrics (data sources) and formulas. Each is auto-assigned a variable letter (a, b, c…) — formulas reference these. Toggle 'Show as column' off for metrics that should only feed formulas without appearing in the table.",
       required: true,
       type: ComponentInputType.TableColumns,
       id: "columns",

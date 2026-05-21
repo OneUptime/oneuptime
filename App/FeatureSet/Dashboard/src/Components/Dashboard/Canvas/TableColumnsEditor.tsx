@@ -81,6 +81,7 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
             variable,
             header: `Column ${columns.length + 1}`,
             kind: TableColumnKind.Metric,
+            showAsColumn: true,
             metricName: undefined,
             aggregation: MetricsAggregationType.Avg,
             decimals: 2,
@@ -90,6 +91,7 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
             variable,
             header: `Formula ${columns.length + 1}`,
             kind: TableColumnKind.Formula,
+            showAsColumn: true,
             formula: "",
             decimals: 2,
           };
@@ -97,11 +99,11 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
   };
 
   const referenceVariables: string = columns
-    .filter((c: TableColumn): boolean => {
-      return c.variable !== "" && c.variable !== undefined;
-    })
     .map((c: TableColumn): string => {
       return c.variable;
+    })
+    .filter((v: string): boolean => {
+      return Boolean(v);
     })
     .join(", ");
 
@@ -109,13 +111,14 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
     <div className="mt-2 space-y-3">
       {columns.length === 0 && (
         <div className="text-xs text-gray-400 italic px-3 py-4 border border-dashed border-gray-200 rounded-lg text-center">
-          No columns yet. Add a metric or formula column to get started.
+          No metrics or formulas yet. Add one below to get started.
         </div>
       )}
 
       {columns.map((column: TableColumn, index: number): ReactElement => {
         const isMetric: boolean = column.kind === TableColumnKind.Metric;
         const isFormula: boolean = column.kind === TableColumnKind.Formula;
+        const showAsColumn: boolean = column.showAsColumn !== false;
 
         const selectedMetricName: DropdownOption | undefined = column.metricName
           ? metricNameOptions.find((o: DropdownOption): boolean => {
@@ -130,45 +133,65 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
               })
             : undefined;
 
+        const cardClasses: string = showAsColumn
+          ? "p-3 border border-gray-200 rounded-lg bg-gray-50"
+          : "p-3 border border-dashed border-gray-300 rounded-lg bg-gray-50/60";
+
         return (
-          <div
-            key={column.id}
-            className="p-3 border border-gray-200 rounded-lg bg-gray-50"
-          >
+          <div key={column.id} className={cardClasses}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center justify-center h-5 px-1.5 rounded bg-indigo-100 text-indigo-700 text-xs font-semibold">
                   {column.variable}
                 </span>
                 <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                  {isMetric ? "Metric column" : "Formula column"}
+                  {isMetric ? "Metric" : "Formula"}
                 </span>
+                {!showAsColumn && (
+                  <span className="text-xs text-gray-400 italic">
+                    (hidden — used by formulas only)
+                  </span>
+                )}
               </div>
               <Button
                 title="Remove"
                 buttonSize={ButtonSize.Small}
                 buttonStyle={ButtonStyleType.DANGER_OUTLINE}
                 icon={IconProp.Trash}
-                onClick={() => {
+                onClick={(): void => {
                   removeColumn(index);
                 }}
               />
             </div>
 
+            <label className="flex items-center gap-2 mb-3 text-xs text-gray-700 select-none cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showAsColumn}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
+                  updateColumn(index, { showAsColumn: e.target.checked });
+                }}
+                className="h-3.5 w-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              Show as column in the table
+            </label>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Header
-                </label>
-                <Input
-                  type={InputType.TEXT}
-                  value={column.header}
-                  placeholder="Column header"
-                  onChange={(value: string): void => {
-                    updateColumn(index, { header: value });
-                  }}
-                />
-              </div>
+              {showAsColumn && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Column header
+                  </label>
+                  <Input
+                    type={InputType.TEXT}
+                    value={column.header}
+                    placeholder="Column header"
+                    onChange={(value: string): void => {
+                      updateColumn(index, { header: value });
+                    }}
+                  />
+                </div>
+              )}
 
               {isMetric && (
                 <div>
@@ -228,45 +251,56 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
                   <p className="mt-1 text-xs text-gray-400">
                     {referenceVariables
                       ? `Available variables: ${referenceVariables}`
-                      : "Add a metric column first to reference its variable."}
+                      : "Add a metric first so its variable can be referenced here."}
                   </p>
                 </div>
               )}
 
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Decimals
-                </label>
-                <Input
-                  type={InputType.NUMBER}
-                  value={
-                    typeof column.decimals === "number"
-                      ? String(column.decimals)
-                      : ""
-                  }
-                  placeholder="2"
-                  onChange={(value: string): void => {
-                    const parsed: number = parseInt(value, 10);
-                    updateColumn(index, {
-                      decimals: Number.isFinite(parsed) ? parsed : undefined,
-                    });
-                  }}
-                />
-              </div>
+              {showAsColumn && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Decimals
+                  </label>
+                  <Input
+                    type={InputType.NUMBER}
+                    value={
+                      typeof column.decimals === "number"
+                        ? String(column.decimals)
+                        : ""
+                    }
+                    placeholder="2"
+                    onChange={(value: string): void => {
+                      const parsed: number = parseInt(value, 10);
+                      updateColumn(index, {
+                        decimals: Number.isFinite(parsed) ? parsed : undefined,
+                      });
+                    }}
+                  />
+                </div>
+              )}
 
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Suffix
-                </label>
-                <Input
-                  type={InputType.TEXT}
-                  value={column.suffix || ""}
-                  placeholder="e.g. %, ms, GB"
-                  onChange={(value: string): void => {
-                    updateColumn(index, { suffix: value || undefined });
-                  }}
-                />
-              </div>
+              {showAsColumn && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Unit
+                  </label>
+                  <Input
+                    type={InputType.TEXT}
+                    value={column.unit || ""}
+                    placeholder={
+                      isMetric ? "Auto (uses metric unit)" : "e.g. %, ms, GB"
+                    }
+                    onChange={(value: string): void => {
+                      updateColumn(index, { unit: value || undefined });
+                    }}
+                  />
+                  {isMetric && (
+                    <p className="mt-1 text-xs text-gray-400">
+                      Leave blank to inherit the metric&apos;s native unit.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         );
@@ -274,7 +308,7 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
 
       <div className="flex gap-2 pt-1">
         <Button
-          title="Add Metric Column"
+          title="Add Metric"
           buttonSize={ButtonSize.Small}
           buttonStyle={ButtonStyleType.OUTLINE}
           icon={IconProp.Add}
@@ -283,7 +317,7 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
           }}
         />
         <Button
-          title="Add Formula Column"
+          title="Add Formula"
           buttonSize={ButtonSize.Small}
           buttonStyle={ButtonStyleType.OUTLINE}
           icon={IconProp.Add}

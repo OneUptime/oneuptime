@@ -25,11 +25,15 @@ import MetricFormulaConfig from "../../Metrics/MetricFormulaConfig";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import TableColumnsEditor from "./TableColumnsEditor";
-import { TableColumn } from "Common/Types/Dashboard/DashboardComponents/DashboardTableComponent";
+import {
+  TableColumn,
+  TableGroupByAttribute,
+} from "Common/Types/Dashboard/DashboardComponents/DashboardTableComponent";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
+import Input, { InputType } from "Common/UI/Components/Input/Input";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
@@ -895,8 +899,23 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       const args: JSONObject = (component.arguments as JSONObject) || {};
       const columns: Array<TableColumn> =
         (args["columns"] as unknown as Array<TableColumn> | undefined) || [];
-      const groupByKeys: Array<string> =
+
+      /*
+       * Read the new groupByAttributes shape; fall back to legacy
+       * groupByAttributeKeys for widgets saved before per-attribute
+       * headers existed. Both are converted into the same in-memory
+       * shape and written back as groupByAttributes on any edit.
+       */
+      const storedGroupByAttributes: Array<TableGroupByAttribute> | undefined =
+        args["groupByAttributes"] as Array<TableGroupByAttribute> | undefined;
+      const legacyGroupByKeys: Array<string> =
         (args["groupByAttributeKeys"] as Array<string> | undefined) || [];
+      const groupByAttributes: Array<TableGroupByAttribute> =
+        storedGroupByAttributes && storedGroupByAttributes.length > 0
+          ? storedGroupByAttributes
+          : legacyGroupByKeys.map((key: string): TableGroupByAttribute => {
+              return { key };
+            });
 
       const attributeOptions: Array<DropdownOption> = (
         props.metrics.telemetryAttributes || []
@@ -906,8 +925,27 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
 
       const selectedAttributeOptions: Array<DropdownOption> =
         attributeOptions.filter((option: DropdownOption): boolean => {
-          return groupByKeys.includes(String(option.value));
+          return groupByAttributes.some((g: TableGroupByAttribute): boolean => {
+            return g.key === String(option.value);
+          });
         });
+
+      const writeGroupByAttributes: (
+        next: Array<TableGroupByAttribute>,
+      ) => void = (next: Array<TableGroupByAttribute>): void => {
+        const existingArgs: JSONObject =
+          (component.arguments as JSONObject) || {};
+        const cleaned: JSONObject = { ...existingArgs };
+        // Drop the legacy key so the new shape is the only source of truth.
+        delete cleaned["groupByAttributeKeys"];
+        commitComponent({
+          ...component,
+          arguments: {
+            ...cleaned,
+            groupByAttributes: next as any,
+          },
+        });
+      };
 
       const sectionName: string =
         tableColumnsArg?.section?.name ||
@@ -952,16 +990,68 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                           : value
                             ? [String(value)]
                             : [];
-                        commitComponent({
-                          ...component,
-                          arguments: {
-                            ...((component.arguments as JSONObject) || {}),
-                            groupByAttributeKeys: keys as any,
+                        /*
+                         * Preserve existing custom headers for keys
+                         * that survived the selection change; new keys
+                         * start with the attribute key as the header.
+                         */
+                        const next: Array<TableGroupByAttribute> = keys.map(
+                          (key: string): TableGroupByAttribute => {
+                            const existing: TableGroupByAttribute | undefined =
+                              groupByAttributes.find(
+                                (g: TableGroupByAttribute): boolean => {
+                                  return g.key === key;
+                                },
+                              );
+                            return existing || { key };
                           },
-                        });
+                        );
+                        writeGroupByAttributes(next);
                       }}
                     />
                   </div>
+
+                  {groupByAttributes.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-xs font-medium text-gray-600">
+                        Column headers
+                      </p>
+                      {groupByAttributes.map(
+                        (
+                          attr: TableGroupByAttribute,
+                          index: number,
+                        ): ReactElement => {
+                          return (
+                            <div
+                              key={attr.key}
+                              className="flex items-center gap-2"
+                            >
+                              <span className="text-xs text-gray-500 font-mono whitespace-nowrap min-w-[10rem]">
+                                {attr.key}
+                              </span>
+                              <div className="flex-1">
+                                <Input
+                                  type={InputType.TEXT}
+                                  value={attr.header || ""}
+                                  placeholder={attr.key}
+                                  onChange={(value: string): void => {
+                                    const next: Array<TableGroupByAttribute> = [
+                                      ...groupByAttributes,
+                                    ];
+                                    next[index] = {
+                                      ...attr,
+                                      header: value || undefined,
+                                    };
+                                    writeGroupByAttributes(next);
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        },
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
