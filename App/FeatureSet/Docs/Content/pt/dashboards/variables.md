@@ -1,96 +1,92 @@
-# Variáveis e filtros
+# Variáveis e Filtros
 
-Uma variável transforma um único painel em um template. Defina uma variável `service` e o mesmo gráfico se renderiza para `checkout`, `payments` e `search` — escolha em uma lista suspensa no topo em vez de montar três painéis quase idênticos.
-
-Esta página cobre os quatro tipos de variável, como seus valores são injetados nas consultas dos widgets e os controles globais de intervalo de tempo e atualização que ficam ao lado deles.
+Uma variável transforma um único painel em um template. Adicione uma variável `service` ao seu painel e os mesmos gráficos são renderizados novamente para `checkout`, `payments` ou `search` — os visualizadores escolhem em um dropdown no topo em vez de você construir três painéis quase idênticos.
 
 ## Tipos de variável
 
-Adicione variáveis em **Dashboard → Settings → Variables**. Cada uma tem um nome (referenciado como `{{name}}` nas consultas dos widgets), um rótulo opcional e um tipo.
+Adicione variáveis em **Painel → Configurações → Variáveis**. Cada variável tem um nome (usado como `{{name}}` nos seus widgets), um rótulo opcional e um tipo.
 
-### Custom List
+### Lista Customizada
 
-Uma lista suspensa estática. Você fornece uma lista de valores separados por vírgula; o visualizador escolhe um.
+Um dropdown estático. Você digita as opções por conta própria.
 
-Use quando: o conjunto de opções é pequeno, fixo e relevante apenas para sua equipe. `environment` com valores `prod, staging, dev`. `region` com valores `us-east-1, eu-west-1, ap-south-1`.
+Use quando: as opções são poucas e fixas. `environment` com valores `prod, staging, dev`. `region` com valores `us-east-1, eu-west-1, ap-south-1`.
 
-### Query
+### Consulta
 
-As opções da lista suspensa são calculadas por uma consulta ClickHouse no momento da renderização.
+As opções vêm de uma consulta aos seus dados.
 
-Use quando: as opções são dinâmicas e vivem na sua telemetria. "Todo ID de cliente que entrou nas últimas 24 horas" via `SELECT DISTINCT customer_id FROM ...`. A consulta roda contra os dados do seu projeto; trate o resultado como entrada não confiável mesmo sendo seus próprios dados.
+Use quando: as opções mudam ao longo do tempo e você quer que o dropdown acompanhe. "Todo ID de cliente visto nas últimas 24 horas." A consulta roda sobre os dados do seu projeto e os resultados se tornam o dropdown.
 
-### Text Input
+### Campo de Texto
 
-Um campo de texto livre. O que quer que o visualizador digite é injetado.
+Um campo de texto livre. O que o visualizador digitar é usado.
 
-Use quando: você quer que o painel se comporte como uma ferramenta de busca. Um painel "filtrar por IP" ou "filtrar por ID de requisição".
+Use quando: você quer que o painel funcione como uma ferramenta de busca. Filtrar por endereço IP, ID de requisição ou qualquer outro valor de forma livre.
 
-### Telemetry Attribute
+### Atributo de Telemetria
 
-As opções são os valores distintos de uma chave de atributo do OpenTelemetry em toda a telemetria do seu projeto, no intervalo de tempo do painel.
+As opções são os valores distintos de um atributo na sua telemetria dentro do intervalo de tempo do painel.
 
-Configure a **chave de atributo** (por exemplo, `k8s.cluster.name`, `service.name`, `host.name`). O widget busca valores distintos em logs / métricas / traces e os oferece em uma lista suspensa.
+Configure a **chave do atributo** (por exemplo, `service.name`, `host.name`, `k8s.cluster.name`). O dropdown se preenche com todos os valores distintos vistos nos seus logs, métricas e traces.
 
-Use quando: as opções são exatamente as entidades com que você já etiquetou sua telemetria. Nome do cluster, nome do serviço, região, ID do cliente, ambiente de deployment — qualquer coisa que você já envie como recurso ou atributo de span do OpenTelemetry.
+Use quando: as opções correspondem às tags que você já envia com sua telemetria. Este é o tipo mais comum porque ele se atualiza automaticamente — quando você lança um novo serviço com a tag `service.name = inventory`, esse nome aparece no dropdown sem você editar o painel.
 
-Esse é o tipo de variável mais comum para painéis orientados a serviço porque ele se atualiza automaticamente: quando você lança um novo serviço etiquetado `service.name = inventory`, esse valor aparece na lista suspensa sem ninguém editar o painel.
+## Seleção múltipla
 
-## Multi-select
+Cada variável pode permitir múltiplas seleções. Quando ligado, o visualizador pode escolher um ou mais valores; o painel filtra para qualquer um deles.
 
-Cada variável pode ser configurada como **multi-select**. Quando ligado, o visualizador escolhe um ou mais valores; o painel filtra para `value IN (...)` em vez de `value = ...`.
-
-Use multi-select quando: você quer olhar "checkout + payments juntos" sem sair do painel. Evite quando a matemática do gráfico não faz sentido entre valores selecionados — por exemplo, fazer médias de médias.
+Use seleção múltipla quando: você quer comparar "checkout e payments juntos" sem sair do painel. Evite quando a matemática não funciona entre os valores selecionados (por exemplo, fazer média de médias).
 
 ## Valores padrão
 
-Toda variável aceita um valor padrão opcional. O painel renderiza com o padrão até que o visualizador altere a lista suspensa. Para painéis públicos, o padrão é o que os visitantes encontram ao chegar.
+Toda variável pode ter um valor padrão. O painel é renderizado com o padrão até que o visualizador o altere. Para painéis públicos, o padrão é o que os visitantes veem primeiro.
 
-## Como funciona a interpolação
+## Como usar uma variável em um widget
 
-Em qualquer lugar onde uma consulta de widget recebe um filtro string — uma cláusula `WHERE` de uma consulta de métrica, o filtro de um widget de lista, a correspondência de atributo de um fluxo de log — você pode referenciar `{{variable_name}}`.
+Em qualquer lugar em que um widget aceite um filtro — um `WHERE` de métrica, o filtro de uma lista, a correspondência de atributo de um fluxo de logs — você pode usar `{{variable_name}}`.
 
-Por exemplo, a consulta de métrica de um Chart pode ser:
+Por exemplo, um gráfico filtrado por serviço:
 
 ```
-SELECT avg(latency_ms) FROM spans WHERE service.name = '{{service}}'
+service.name = '{{service}}'
 ```
 
-Quando `service` está definido como `checkout`, a consulta roda com `service.name = 'checkout'`. Quando o visualizador troca para `payments`, a consulta re-roda com `service.name = 'payments'`.
+Quando o dropdown está em `checkout`, o gráfico filtra para o serviço de checkout. Quando o visualizador muda para `payments`, o gráfico é renderizado novamente para payments.
 
-Para variáveis **Telemetry Attribute** especificamente, o OneUptime conhece a chave de atributo e injeta o filtro em todo widget que menciona o mesmo atributo — você não precisa editar manualmente a consulta de cada widget quando a variável muda. Essa é a mágica que faz painéis templados por serviço funcionarem prontos para uso.
+Para variáveis do tipo **Atributo de Telemetria**, o OneUptime sabe a qual atributo a variável corresponde e aplica o filtro a todo widget que usa o mesmo atributo — você não precisa editar cada widget manualmente.
 
 ## Intervalo de tempo
 
-O cabeçalho do painel tem um seletor global de **intervalo de tempo**. Todo widget de métrica consulta contra essa janela. Escolhas:
+O cabeçalho do painel tem um intervalo de tempo global. Todo widget de métrica consulta dentro dessa janela. Opções:
 
-- **Presets** — Última 1 hora, 24 horas, 7 dias, 30 dias, 90 dias (dependendo da sua retenção).
-- **Intervalo personalizado** — escolha timestamps de início e fim.
+- **Predefinições** — última hora, 24 horas, 7 dias, 30 dias, 90 dias (dependendo da retenção dos seus dados).
+- **Personalizado** — escolha uma hora de início e fim.
 
-O intervalo de tempo faz parte da URL do painel — compartilhar a URL compartilha a janela. Isso é conveniente durante um incidente: fixe o intervalo de tempo em "10:00–10:30 UTC hoje" e compartilhe o link no canal do incidente.
+O intervalo de tempo faz parte da URL do painel — compartilhar a URL compartilha a janela. Útil durante um incidente: fixe o intervalo em "10:00–10:30 UTC de hoje" e cole o link no canal do incidente.
 
 ## Intervalo de atualização
 
 Ao lado do intervalo de tempo, escolha com que frequência os widgets reconsultam:
 
-- **Off** — os widgets consultam uma vez no carregamento.
-- **5s / 10s / 30s / 1m / 5m / 15m** — auto-refresh.
+- **Desligado** — os widgets consultam uma vez quando a página carrega.
+- **5s / 10s / 30s / 1m / 5m / 15m** — atualização automática.
 
-O auto-refresh é conveniente para uma tela montada na parede e para uma visão de incidente em andamento. Para investigação ad hoc, deixe desligado para que a visão fique estável enquanto você rola.
+A atualização automática é boa para uma tela na parede ou uma visualização de incidente ao vivo. Deixe desligada quando estiver investigando para que a tela fique parada enquanto você analisa.
 
 ## Juntando tudo
 
-Um painel templado por serviço tipicamente tem:
+Um painel templado por serviço geralmente tem:
 
-1. Uma variável `service` do tipo **Telemetry Attribute** vinculada a `service.name`. Padrão: o serviço que você mais observa. Multi-select: desligado (para que os gráficos sempre mostrem um serviço por vez).
-2. Uma variável `environment` do tipo **Custom List**. Padrão: `prod`.
-3. Uma variável `cluster` do tipo **Telemetry Attribute** vinculada a `k8s.cluster.name`. Multi-select: ligado (para que você possa fazer rollup entre clusters).
-4. Os widgets do painel referenciam essas variáveis em seus filtros.
+1. Uma variável `service` do tipo **Atributo de Telemetria** para `service.name`. Padrão: seu serviço mais observado. Seleção múltipla desligada (para que os gráficos sempre mostrem um por vez).
+2. Uma variável `environment` do tipo **Lista Customizada**. Padrão: `prod`.
+3. Uma variável `cluster` do tipo **Atributo de Telemetria** para `k8s.cluster.name`. Seleção múltipla ligada (para que você possa comparar entre clusters).
+4. Widgets que referenciam essas variáveis nos seus filtros.
 
-O resultado: um painel, cobertura da frota inteira, algumas listas suspensas no topo.
+O resultado: um único painel, todos os serviços cobertos, três dropdowns no topo.
 
-## O que ler a seguir
+## O que ler em seguida
 
-- [Widgets](/docs/dashboards/widgets) — como cada widget consome um filtro.
-- [Compartilhamento e painéis públicos](/docs/dashboards/sharing) — variáveis em URLs, incluindo seus valores para links compartilhados.
-- [Criar um painel](/docs/dashboards/authoring) — a mecânica do canvas.
+- [Widgets](/docs/dashboards/widgets) — como cada widget usa um filtro.
+- [Compartilhamento e Painéis Públicos](/docs/dashboards/sharing) — variáveis e links compartilhados.
+- [Criando um Painel](/docs/dashboards/authoring) — a mecânica do canvas.

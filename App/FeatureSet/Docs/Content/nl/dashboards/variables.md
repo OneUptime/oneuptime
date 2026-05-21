@@ -1,96 +1,92 @@
-# Dashboard-variabelen en filters
+# Variabelen en filters
 
-Een variabele verandert één dashboard in een template. Definieer een `service`-variabele en dezelfde chart rerendert voor `checkout`, `payments` en `search` — kies uit een dropdown bovenaan in plaats van drie bijna identieke dashboards te bouwen.
+Een variabele verandert één dashboard in een template. Voeg een `service`-variabele toe aan je dashboard en dezelfde charts rerenderen voor `checkout`, `payments` of `search` — kijkers kiezen uit een dropdown bovenaan in plaats van dat jij drie bijna identieke dashboards bouwt.
 
-Deze pagina behandelt de vier variabele-typen, hoe hun waarden in widget-queries worden geïnjecteerd, en de globale tijdsbereik- en refresh-controls die ernaast zitten.
+## Variabele-types
 
-## Variabele-typen
-
-Voeg variabelen toe onder **Dashboard → Settings → Variables**. Elk heeft een naam (waarnaar verwezen wordt als `{{name}}` in widget-queries), een optioneel label en een type.
+Voeg variabelen toe onder **Dashboard → Settings → Variables**. Elke variabele heeft een naam (gebruikt als `{{name}}` in je widgets), een optioneel label en een type.
 
 ### Custom List
 
-Een statische dropdown. Jij levert een door komma's gescheiden lijst van waarden; de kijker kiest er één.
+Een statische dropdown. Je typt de opties zelf.
 
-Gebruik het wanneer: de set keuzes klein is, vast en alleen voor jouw team betekenisvol. `environment` met waarden `prod, staging, dev`. `region` met waarden `us-east-1, eu-west-1, ap-south-1`.
+Gebruik dit wanneer: de keuzes klein en vast zijn. `environment` met waarden `prod, staging, dev`. `region` met waarden `us-east-1, eu-west-1, ap-south-1`.
 
 ### Query
 
-De opties voor de dropdown worden tijdens het renderen berekend door een ClickHouse-query.
+De opties komen uit een query tegen je data.
 
-Gebruik het wanneer: de keuzes dynamisch zijn en in je telemetry leven. "Elke klant-ID die in de afgelopen 24 uur is ingelogd" via `SELECT DISTINCT customer_id FROM ...`. De query draait tegen de data van je project; behandel het resultaat als niet-vertrouwde input ook al is het je eigen data.
+Gebruik dit wanneer: de keuzes in de tijd veranderen en je wilt dat de dropdown bijblijft. "Elke klant-ID die in de afgelopen 24 uur is gezien." De query draait tegen de data van je project en de resultaten worden de dropdown.
 
 ### Text Input
 
-Een vrij tekstveld. Wat de kijker ook typt, wordt geïnjecteerd.
+Een vrij tekstveld. Wat de kijker typt wordt gebruikt.
 
-Gebruik het wanneer: je wilt dat het dashboard zich gedraagt als een zoektool. Een "filter op IP"- of "filter op request-ID"-dashboard.
+Gebruik dit wanneer: je wilt dat het dashboard als zoekgereedschap fungeert. Filteren op IP-adres, request-ID of elke andere vrije waarde.
 
 ### Telemetry Attribute
 
-De opties zijn de distinctieve waarden van een OpenTelemetry-attribuutsleutel over de telemetry van je project, over het tijdsbereik van het dashboard.
+De opties zijn de unieke waarden van een attribuut in je telemetry over het tijdsbereik van het dashboard.
 
-Configureer de **attribuutsleutel** (bijvoorbeeld `k8s.cluster.name`, `service.name`, `host.name`). De widget haalt distinctieve waarden op uit logs / metrics / traces en biedt ze aan als dropdown.
+Configureer de **attribute key** (bijvoorbeeld `service.name`, `host.name`, `k8s.cluster.name`). De dropdown vult zich met elke unieke waarde die in je logs, metrics en traces is gezien.
 
-Gebruik het wanneer: de keuzes precies de entiteiten zijn waarmee je je telemetry al hebt getagd. Clusternaam, servicenaam, regio, klant-ID, deploy-omgeving — alles wat je al verstuurt als OpenTelemetry-resource of span-attribuut.
-
-Dit is het meest voorkomende variabele-type voor service-gerichte dashboards omdat het zichzelf bijwerkt: wanneer je een nieuwe service verstuurt getagd `service.name = inventory`, verschijnt die waarde in de dropdown zonder dat iemand het dashboard bewerkt.
+Gebruik dit wanneer: de keuzes overeenkomen met de tags die je al met je telemetry meestuurt. Dit is het meest voorkomende type omdat het automatisch bijwerkt — wanneer je een nieuwe service uitbrengt met tag `service.name = inventory`, verschijnt die naam in de dropdown zonder dat je het dashboard hoeft te bewerken.
 
 ## Multi-select
 
-Elke variabele kan **multi-select** worden geconfigureerd. Wanneer aan, kiest de kijker één of meer waarden; het dashboard filtert op `value IN (...)` in plaats van `value = ...`.
+Elke variabele kan meerdere selecties toestaan. Wanneer aan, kan de kijker één of meer waarden kiezen; het dashboard filtert dan op elk daarvan.
 
-Gebruik multi-select wanneer: je "checkout + payments samen" wilt bekijken zonder het dashboard te verlaten. Vermijd het wanneer de chart-wiskunde niet optelt over de geselecteerde waarden — bijvoorbeeld: gemiddelden middelen.
+Gebruik multi-select wanneer: je "checkout en payments samen" wilt vergelijken zonder het dashboard te verlaten. Vermijd het wanneer de berekening niet klopt over geselecteerde waarden heen (bijvoorbeeld gemiddelden middelen).
 
 ## Standaardwaarden
 
-Elke variabele neemt een optionele standaard. Het dashboard rendert met de standaard totdat de kijker de dropdown verandert. Voor publieke dashboards is de standaard wat bezoekers te zien krijgen.
+Elke variabele kan een standaardwaarde hebben. Het dashboard rendert met de standaard totdat de kijker hem verandert. Voor publieke dashboards is de standaard wat bezoekers als eerste zien.
 
-## Hoe interpolatie werkt
+## Hoe je een variabele in een widget gebruikt
 
-Overal waar een widget-query een stringfilter neemt — een `WHERE`-clausule van een metric-query, het filter van een lijst-widget, een attribuutmatch van een log-stream — kun je verwijzen naar `{{variable_name}}`.
+Overal waar een widget een filter accepteert — een metric's `WHERE`, een lijstfilter, een attribuut-match van een log-stream — kun je `{{variable_name}}` gebruiken.
 
-Bijvoorbeeld: de metric-query van een Chart zou kunnen zijn:
+Bijvoorbeeld een chart gefilterd op service:
 
 ```
-SELECT avg(latency_ms) FROM spans WHERE service.name = '{{service}}'
+service.name = '{{service}}'
 ```
 
-Wanneer `service` op `checkout` staat, draait de query met `service.name = 'checkout'`. Wanneer de kijker overschakelt naar `payments`, draait de query opnieuw met `service.name = 'payments'`.
+Wanneer de dropdown op `checkout` staat, filtert de chart op de checkout-service. Wanneer de kijker naar `payments` overschakelt, rerendert de chart voor payments.
 
-Voor **Telemetry Attribute**-variabelen specifiek kent OneUptime de attribuutsleutel en injecteert hij het filter in elke widget die hetzelfde attribuut noemt — je hoeft niet handmatig de query van elke widget aan te passen wanneer de variabele verandert. Dit is de magie die service-getemplate-de dashboards out of the box laat werken.
+Voor **Telemetry Attribute**-variabelen weet OneUptime welk attribuut de variabele matcht en past het filter toe op elke widget die hetzelfde attribuut gebruikt — je hoeft niet elke widget met de hand te bewerken.
 
 ## Tijdsbereik
 
-De dashboard-header heeft een globale **tijdsbereik**-kiezer. Elke metric-widget queryt tegen dit venster. Keuzes:
+De header van het dashboard heeft een globaal tijdsbereik. Elke metric-widget querydraait tegen dit venster. Opties:
 
-- **Presets** — Afgelopen 1 uur, 24 uur, 7 dagen, 30 dagen, 90 dagen (afhankelijk van je retentie).
-- **Aangepast bereik** — kies start- en eind-timestamps.
+- **Presets** — afgelopen uur, 24 uur, 7 dagen, 30 dagen, 90 dagen (afhankelijk van je dataretentie).
+- **Aangepast** — kies een start- en eindtijd.
 
-Het tijdsbereik maakt deel uit van de URL van het dashboard — de URL delen deelt het venster. Dit is handig tijdens een incident: pin het tijdsbereik op "10:00–10:30 UTC vandaag" en deel de link in het incident-kanaal.
+Het tijdsbereik is onderdeel van de URL van het dashboard — de URL delen deelt het venster. Handig tijdens een incident: pin het tijdsbereik op "10:00–10:30 UTC vandaag" en plak de link in het incident-kanaal.
 
 ## Refresh-interval
 
 Naast het tijdsbereik kies je hoe vaak widgets opnieuw queryen:
 
-- **Off** — widgets queryen één keer bij het laden.
-- **5s / 10s / 30s / 1m / 5m / 15m** — auto-refresh.
+- **Uit** — widgets queryen één keer wanneer de pagina laadt.
+- **5s / 10s / 30s / 1m / 5m / 15m** — automatisch ververseren.
 
-Auto-refresh is handig voor een aan de muur gemonteerd scherm en een actueel-incident-view. Voor ad-hoc onderzoek laat je het uit, zodat de weergave stabiel blijft terwijl je scrollt.
+Auto-refresh is goed voor een muurscherm of een live incident-view. Laat het uit wanneer je aan het onderzoeken bent, zodat de view stil blijft terwijl je kijkt.
 
-## Alles bij elkaar
+## Alles samenbrengen
 
-Een service-getemplate-de dashboard heeft typisch:
+Een service-getemplated dashboard heeft meestal:
 
-1. Een `service`-variabele van het type **Telemetry Attribute** gekoppeld aan `service.name`. Standaard: je meest bekeken service. Multi-select: uit (zodat charts altijd één service tegelijk laten zien).
-2. Een `environment`-variabele van het type **Custom List**. Standaard: `prod`.
-3. Een `cluster`-variabele van het type **Telemetry Attribute** gekoppeld aan `k8s.cluster.name`. Multi-select: aan (zodat je over clusters heen kunt rollupen).
-4. De widgets van het dashboard verwijzen in hun filters naar deze variabelen.
+1. Een `service`-variabele van type **Telemetry Attribute** voor `service.name`. Standaard: je meest bekeken service. Multi-select uit (zodat charts altijd één tegelijk tonen).
+2. Een `environment`-variabele van type **Custom List**. Standaard: `prod`.
+3. Een `cluster`-variabele van type **Telemetry Attribute** voor `k8s.cluster.name`. Multi-select aan (zodat je over clusters heen kunt vergelijken).
+4. Widgets die naar deze variabelen verwijzen in hun filters.
 
-Het resultaat: één dashboard, dekking voor de hele vloot, een paar dropdowns bovenaan.
+Het resultaat: één dashboard, elke service gedekt, drie dropdowns bovenaan.
 
 ## Waar verder lezen
 
-- [Widgets](/docs/dashboards/widgets) — hoe elke widget een filter consumeert.
-- [Delen en publieke dashboards](/docs/dashboards/sharing) — variabelen in URL's, inclusief hun waarden voor gedeelde links.
+- [Widgets](/docs/dashboards/widgets) — hoe elke widget een filter gebruikt.
+- [Delen en publieke dashboards](/docs/dashboards/sharing) — variabelen en gedeelde links.
 - [Een dashboard maken](/docs/dashboards/authoring) — de canvas-mechanica.

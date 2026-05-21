@@ -1,155 +1,153 @@
 # Widgetar
 
-En widget är en ruta på en instrumentpanel. Varje widget har en typ (diagram, värde, lista, …), en position, en storlek och en konfiguration. Den här sidan är katalogen — vad varje widget visar, vad den tar som indata, när du ska gripa efter den.
+En widget är en ruta på en instrumentpanel. Den här sidan listar varje widget du kan lägga till, vad den visar och när du ska gripa efter den.
 
-För arbetsytans mekanik, se [Skapa en instrumentpanel](/docs/dashboards/authoring).
+För hur du drar runt widgetar på arbetsytan, se [Skapa en instrumentpanel](/docs/dashboards/authoring).
 
-## Tidsserie-widgetar
+## Diagram och siffror
 
 ### Chart
 
-Ett linje- / stapel- / area-diagram över en eller flera metric-serier under instrumentpanelens tidsintervall.
+Ett linje-, stapel- eller areadiagram över en eller flera mätvärdesserier över instrumentpanelens tidsintervall.
 
-**Konfigurera**:
+**Inställningar**:
 
-- En eller flera metric-frågor (`metricQueryConfig` för en enskild serie, `metricQueryConfigs` för flera).
-- Valfri **formula** som kombinerar flera frågor (t.ex. `errors / total * 100`).
-- Valfri **transformAsRate** för kumulativa OpenTelemetry-räknare (t.ex. `system.disk.io`) — widgeten beräknar `(value - previousValue) / Δt` per bucket.
-- Visning: staplade vs. överlagrade serier, Y-axelns enhet, legend på/av, diagramtyp.
+- En eller flera mätvärdesfrågor.
+- En valfri formel som kombinerar två frågor (till exempel `errors / total * 100` för att få en felfrekvens).
+- Ett "visa som hastighet"-alternativ för kumulativa räknare som växer utan att nollställas.
+- Visningsalternativ: staplat eller överlagrat, Y-axelns enhet, teckenförklaringens position, diagramtyp.
 
-Grip efter den när: trender spelar roll. Request-latens, felantal över tid, ködjup, allt där kurvans form berättar något för dig.
+Använd den när: trender spelar roll. Latens över tid, antal fel, ködjup, allt där linjens form berättar historien.
 
 ### Value
 
-Ett enskilt stort nummer med valfria trösklar och en valfri sparkline.
+En enda stor siffra med valfria färgade tröskelvärden.
 
-**Konfigurera**:
+**Inställningar**:
 
-- En metric-fråga (enskilt värde — vanligtvis `last`, `avg` eller `max` över tidsintervallet).
-- Valfri **varningströskel** (gul ovanför).
-- Valfri **kritisk tröskel** (röd ovanför).
-- Visning: nummerformat, enhetssuffix.
+- En mätvärdesfråga som ger tillbaka ett tal (senaste värdet, medel eller max över tidsintervallet).
+- Ett valfritt **varningströskelvärde** (gul över).
+- Ett valfritt **kritiskt tröskelvärde** (röd över).
+- Talformat och enhet.
 
-Grip efter den när: ett enskilt nummer svarar på frågan. Aktuell felfrekvens, P95-latens just nu, antal öppna incidenter.
+Använd den när: en siffra besvarar frågan. Aktuell felfrekvens, P95-latens just nu, antal öppna incidenter.
 
 ### Gauge
 
-En cirkulär mätare med ett min, max, varningsband och kritiskt band.
+En cirkulär mätare med ett minimum, maximum, varningsband och kritiskt band.
 
-**Konfigurera**: metric-frågan och de fyra gränserna (min, max, varning, kritisk).
+**Inställningar**: en mätvärdesfråga och de fyra gränserna.
 
-Grip efter den när: värdet ligger inom ett känt intervall. CPU-utnyttjande (0–100%), diskfyllnad, kökapacitet.
+Använd den när: värdet ryms inom ett känt intervall. CPU-procent (0–100 %), diskanvändning, kökapacitet.
 
 ### Table
 
-En tabellvisning av metric-frågeresultat, en rad per grupp.
+En tabell över mätvärdesresultat, en rad per grupp.
 
-**Konfigurera**: metric-frågan (vanligtvis grupperad efter en etikett som `host.name` eller `service.name`), kolumnerna att visa och en radgräns.
+**Inställningar**: en mätvärdesfråga (vanligtvis grupperad efter en etikett som värd eller tjänst), kolumnerna som ska visas och en radgräns.
 
-Grip efter den när: du vill ha uppdelningen snarare än trenden. Topp 10 mest brusiga värdar, felantal per tjänst, request-takt per endpoint.
+Använd den när: du vill ha en uppdelning istället för en trend. Topp 10 mest pratiga värdar, antal fel per tjänst, förfrågningar per endpoint.
 
-## Annotations-widget
-
-### Text
+## Text
 
 Ett statiskt block med Markdown.
 
-**Konfigurera**: Markdown-kroppen. Rubriker, listor, länkar, betoning, kodspans och staket-kodblock renderas alla.
+**Inställningar**: Markdown-bodyn. Rubriker, listor, länkar, betoning och kodblock renderas alla.
 
-Grip efter den när: du vill ha en sektionsrubrik, ett kontextstycke ("denna instrumentpanel täcker checkout-tjänsten"), en lista med länkar till runbooks eller relaterade instrumentpaneler, eller en tillfällig banner under en incident.
+Använd den när: du vill ha en sektionsrubrik, ett stycke sammanhang, en lista med länkar till runbooks eller en tillfällig banner under en incident.
 
-## Loggar & traces
+## Loggar och traces
 
-### LogStream
+### Log Stream
 
-En live-svans av loggrader som matchar ett filter.
+Ett liveflöde av loggrader som matchar ett filter.
 
-**Konfigurera**: loggfilter (tjänst, allvarlighetsgrad, attributmatchningar), kolumnerna att visa.
+**Inställningar**: loggfilter (tjänst, allvarlighetsgrad, attribut) och kolumnerna som ska visas.
 
-Grip efter den när: du vill se vad applikationen säger *just nu* på en instrumentpanel, utan att lämna sidan för att öppna loggutforskaren.
+Använd den när: du vill se vad applikationen säger just nu, utan att lämna instrumentpanelen.
 
-### TraceList
+### Trace List
 
-En lista över nyligen utförda traces som matchar ett filter, med varaktighet, status och tjänstnamn.
+En lista över senaste traces som matchar ett filter, med tidsåtgång, status och tjänst.
 
-**Konfigurera**: trace-filter (tjänst, status, attributmatchningar).
+**Inställningar**: trace-filter (tjänst, status, attribut).
 
-Grip efter den när: du vill ha en paginerad vy över nyligen utförd aktivitet snarare än ett diagram. Vanlig parning: ett latensdiagram (Chart) på toppen, en TraceList med långsamma traces nedanför.
+Använd den när: du vill ha en lista över senaste aktivitet snarare än ett diagram. Ett vanligt mönster är ett latensdiagram högst upp med en lista över långsamma traces nedanför.
 
-## Driftslistor
+## Liveslistor
 
-### IncidentList
+### Incident List
 
-En live-lista över incidenter som matchar ett filter.
+En liveslista över incidenter som matchar ett filter.
 
-**Konfigurera**: filter efter tillstånd, allvarlighetsgrad, etiketter, monitor eller tilldelat team.
+**Inställningar**: filter efter tillstånd, allvarlighetsgrad, etiketter, monitor eller team.
 
-Grip efter den när: en instrumentpanel är menad att svara på "vad är trasigt just nu?"
+Använd den när: instrumentpanelen besvarar "vad är trasigt just nu?"
 
-### AlertList
+### Alert List
 
-En live-lista över larm som matchar ett filter.
+En liveslista över larm som matchar ett filter.
 
-**Konfigurera**: filter efter tillstånd, allvarlighetsgrad, etiketter.
+**Inställningar**: filter efter tillstånd, allvarlighetsgrad, etiketter.
 
-Grip efter den när: instrumentpaneler för larmdrivna arbetsflöden (t.ex. utvecklingsteamsinstrumentpaneler som vakar över sin tjänsts larm).
+Använd den när: en teaminstrumentpanel följer larm på sina tjänster.
 
-### MonitorList
+### Monitor List
 
-En live-lista över monitorer som matchar ett filter, som visar varje monitors aktuella status.
+En liveslista över monitorer och deras aktuella status.
 
-**Konfigurera**: filter efter monitortyp, etiketter eller aktuellt tillstånd.
+**Inställningar**: filter efter monitortyp, etiketter eller aktuellt tillstånd.
 
-Grip efter den när: du vill ha en flottnivå "är alla webbplatser uppe?"-vy, eller en per-team-lista över övervakade endpoints.
+Använd den när: du vill ha en flottöversikt — "är alla sidor uppe?"
 
-## Kubernetes-resurslistor
+## Listor över Kubernetes-resurser
 
-För projekt med en [Kubernetes Agent](/docs/monitor/kubernetes-agent) installerad är följande live-resurs-widgetar tillgängliga. Var och en tar valfria filter för `cluster`, `namespace` och etiketter.
+För projekt med en [Kubernetes-agent](/docs/monitor/kubernetes-agent) installerad. Var och en tar valfria filter för kluster, namespace och etiketter.
 
-- **KubernetesPodList** — poddar med fas, omstarter och nodtilldelning.
-- **KubernetesNodeList** — noder med villkor, kapacitet och tilldelningar.
-- **KubernetesNamespaceList** — namespaces och deras workload-antal.
-- **KubernetesDeploymentList** — deployments med önskade vs. klara repliker.
-- **KubernetesStatefulSetList** — stateful sets med klara repliker.
-- **KubernetesDaemonSetList** — daemon sets med önskade vs. klara.
-- **KubernetesJobList** — jobs med slutförandestatus.
-- **KubernetesCronJobList** — cron jobs med schema och senaste körning.
+- **Kubernetes Pod List** — poddar med sin fas, omstarter och nod.
+- **Kubernetes Node List** — noder med sina förhållanden och kapacitet.
+- **Kubernetes Namespace List** — namespaces och arbetsbelastningsantal.
+- **Kubernetes Deployment List** — deployments med önskade vs. klara repliker.
+- **Kubernetes StatefulSet List** — stateful sets med klara repliker.
+- **Kubernetes DaemonSet List** — daemon sets med önskade vs. klara.
+- **Kubernetes Job List** — jobb och deras genomförandestatus.
+- **Kubernetes CronJob List** — cron-jobb med schema och senaste körning.
 
-Grip efter dessa när: du vill ha en enskild instrumentpanel som blandar Kubernetes-resurstillstånd med telemetri från dessa workloads.
+Använd dessa när: du vill ha en enda instrumentpanel som blandar Kubernetes-tillstånd med telemetri från de arbetsbelastningarna.
 
-## Docker-resurslistor
+## Listor över Docker-resurser
 
-För projekt med en Docker-monitor installerad:
+För projekt med Docker-övervakning konfigurerad.
 
-- **DockerHostList** — värdar som kör Docker, med container-antal.
-- **DockerContainerList** — containers med tillstånd, image, värd, upptid.
-- **DockerImageList** — images och deras storlekar.
-- **DockerNetworkList** — Docker-nätverk och antal anslutna containers.
-- **DockerVolumeList** — Docker-volymer och deras användning.
+- **Docker Host List** — värdar som kör Docker, med containerantal.
+- **Docker Container List** — containers med tillstånd, image, värd, drifttid.
+- **Docker Image List** — images och deras storlekar.
+- **Docker Network List** — Docker-nätverk och anslutna containers.
+- **Docker Volume List** — Docker-volymer och deras användning.
 
 ## Infrastruktur
 
-### HostList
+### Host List
 
-Värdar övervakade av OneUptimes server-monitor — med aktuell status, CPU, minne och upptid.
+Värdar som övervakas av OneUptimes servermonitor, med status, CPU, minne och drifttid.
 
-**Konfigurera**: filter efter etiketter eller aktuellt hälsotillstånd.
+**Inställningar**: filter efter etiketter eller aktuellt tillstånd.
 
-## Välja rätt widget
+## Vilken widget ska jag använda?
 
-Några snabba tumregler:
+Några snabba regler:
 
 - **Trend över tid?** Chart.
-- **Ett nummer som spelar roll just nu?** Value (eller Gauge om det har ett naturligt intervall).
+- **En siffra som spelar roll just nu?** Value (eller Gauge om den har ett tydligt min/max).
 - **Uppdelning över många saker?** Table.
-- **Vad händer i systemet just nu?** LogStream, TraceList, IncidentList.
-- **Tillståndet för en specifik resursflotta?** Den matchande resurslistwidgeten.
+- **Vad händer i systemet just nu?** Log Stream, Trace List, Incident List.
+- **Tillståndet för en specifik grupp av resurser?** Den matchande listwidgeten.
 - **En rubrik, ett stycke eller en länk?** Text.
 
-De flesta instrumentpaneler använder en mix — ett Chart på toppen, ett Value eller två bredvid det, en Text-avdelare, sedan en eller två listor nedanför.
+De flesta instrumentpaneler blandar några — ett diagram högst upp, ett värde eller två bredvid, en text-avgränsare och en lista eller två nedanför.
 
-## Var läsa vidare
+## Läs vidare
 
-- [Variabler & filter](/docs/dashboards/variables) — gör widgetar återanvändbara över tjänster / kunder / kluster.
-- [Skapa en instrumentpanel](/docs/dashboards/authoring) — arbetsytan, rutnätet och edit-läget.
-- [Delning & offentliga instrumentpaneler](/docs/dashboards/sharing) — exponera en instrumentpanel utanför teamet.
+- [Variabler & filter](/docs/dashboards/variables) — göra widgetar återanvändbara för många tjänster eller kunder.
+- [Skapa en instrumentpanel](/docs/dashboards/authoring) — arbetsytans mekanik.
+- [Delning & offentliga instrumentpaneler](/docs/dashboards/sharing) — dela utanför ditt team.

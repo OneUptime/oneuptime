@@ -1,155 +1,153 @@
 # Widgets
 
-A widget is one tile on a dashboard. Each widget has a type (chart, value, list, …), a position, a size, and a configuration. This page is the catalog — what each widget shows, what it takes as input, when to reach for it.
+A widget is one tile on a dashboard. This page lists every widget you can add, what it shows, and when to reach for it.
 
-For canvas mechanics, see [Authoring a Dashboard](/docs/dashboards/authoring).
+For how to drag widgets around the canvas, see [Authoring a Dashboard](/docs/dashboards/authoring).
 
-## Time-series widgets
+## Charts and numbers
 
 ### Chart
 
-A line / bar / area chart of one or more metric series over the dashboard's time range.
+A line, bar, or area chart of one or more metric series over the dashboard's time range.
 
-**Configure**:
+**Settings**:
 
-- One or more metric queries (`metricQueryConfig` for a single series, `metricQueryConfigs` for multiple).
-- Optional **formula** combining multiple queries (e.g., `errors / total * 100`).
-- Optional **transformAsRate** for OpenTelemetry cumulative counters (e.g., `system.disk.io`) — the widget computes `(value - previousValue) / Δt` per bucket.
-- Display: stacked vs. overlaid series, Y-axis unit, legend on/off, chart type.
+- One or more metric queries.
+- An optional formula that combines two queries (for example, `errors / total * 100` to get an error rate).
+- A "show as rate" option for cumulative counters that grow without resetting.
+- Display options: stacked or overlaid, Y-axis unit, legend position, chart type.
 
-Reach for it when: trends matter. Request latency, error count over time, queue depth, anything where the shape of the curve tells you something.
+Use it when: trends matter. Latency over time, error count, queue depth, anything where the shape of the line tells the story.
 
 ### Value
 
-A single big number with optional thresholds and an optional sparkline.
+A single big number with optional colored thresholds.
 
-**Configure**:
+**Settings**:
 
-- A metric query (single value — usually `last`, `avg`, or `max` over the time range).
-- Optional **warning threshold** (yellow above).
-- Optional **critical threshold** (red above).
-- Display: number format, unit suffix.
+- A metric query that gives back one number (last value, average, or max over the time range).
+- An optional **warning** threshold (yellow above).
+- An optional **critical** threshold (red above).
+- Number format and unit.
 
-Reach for it when: a single number answers the question. Current error rate, P95 latency right now, open incident count.
+Use it when: one number answers the question. Current error rate, P95 latency right now, count of open incidents.
 
 ### Gauge
 
-A circular gauge with a min, max, warning band, and critical band.
+A circular gauge with a minimum, maximum, warning band, and critical band.
 
-**Configure**: the metric query and the four bounds (min, max, warning, critical).
+**Settings**: a metric query and the four boundaries.
 
-Reach for it when: the value sits inside a known range. CPU utilization (0–100%), disk fill, queue capacity.
+Use it when: the value fits inside a known range. CPU percentage (0–100%), disk usage, queue capacity.
 
 ### Table
 
-A tabular display of metric query results, one row per group.
+A table of metric results, one row per group.
 
-**Configure**: the metric query (typically grouped by a label such as `host.name` or `service.name`), the columns to show, and a row limit.
+**Settings**: a metric query (typically grouped by a label like host or service), the columns to show, and a row limit.
 
-Reach for it when: you want the breakdown rather than the trend. Top 10 noisiest hosts, error count per service, request rate per endpoint.
+Use it when: you want a breakdown instead of a trend. Top 10 noisiest hosts, error count per service, requests per endpoint.
 
-## Annotation widget
-
-### Text
+## Text
 
 A static block of Markdown.
 
-**Configure**: the Markdown body. Headings, lists, links, emphasis, code spans, fenced code blocks all render.
+**Settings**: the Markdown body. Headings, lists, links, emphasis, and code blocks all render.
 
-Reach for it when: you want a section header, a paragraph of context ("this dashboard covers the checkout service"), a list of links to runbooks or related dashboards, or a temporary banner during an incident.
+Use it when: you want a section heading, a paragraph of context, a list of links to runbooks, or a temporary banner during an incident.
 
-## Logs & traces
+## Logs and traces
 
-### LogStream
+### Log Stream
 
 A live tail of log lines matching a filter.
 
-**Configure**: log filters (service, severity, attribute matches), the columns to show.
+**Settings**: log filters (service, severity, attributes) and the columns to show.
 
-Reach for it when: you want to see what the application is saying *right now* on a dashboard, without leaving the page to open the logs explorer.
+Use it when: you want to see what the application is saying right now, without leaving the dashboard.
 
-### TraceList
+### Trace List
 
-A list of recent traces matching a filter, with duration, status, and the service name.
+A list of recent traces matching a filter, with duration, status, and service.
 
-**Configure**: trace filters (service, status, attribute matches).
+**Settings**: trace filters (service, status, attributes).
 
-Reach for it when: you want a paginated view of recent activity rather than a chart. Common pairing: a latency Chart at the top, a TraceList of slow traces below.
+Use it when: you want a list of recent activity rather than a chart. A common pattern is a latency chart at the top with a list of slow traces below.
 
-## Operational lists
+## Live lists
 
-### IncidentList
+### Incident List
 
 A live list of incidents matching a filter.
 
-**Configure**: filters by state, severity, labels, monitor, or assigned team.
+**Settings**: filters by state, severity, labels, monitor, or team.
 
-Reach for it when: a dashboard is meant to answer "what's currently broken?"
+Use it when: the dashboard answers "what's broken right now?"
 
-### AlertList
+### Alert List
 
 A live list of alerts matching a filter.
 
-**Configure**: filters by state, severity, labels.
+**Settings**: filters by state, severity, labels.
 
-Reach for it when: dashboards for alert-driven workflows (e.g., dev-team dashboards that watch their service's alerts).
+Use it when: a team dashboard tracks alerts on its services.
 
-### MonitorList
+### Monitor List
 
-A live list of monitors matching a filter, showing each monitor's current status.
+A live list of monitors and their current status.
 
-**Configure**: filters by monitor type, labels, or current state.
+**Settings**: filters by monitor type, labels, or current state.
 
-Reach for it when: you want a fleet-level "are all the websites up?" view, or a per-team list of monitored endpoints.
+Use it when: you want a fleet view — "are all the sites up?"
 
 ## Kubernetes resource lists
 
-For projects with a [Kubernetes Agent](/docs/monitor/kubernetes-agent) installed, the following live-resource widgets are available. Each one takes optional filters for `cluster`, `namespace`, and labels.
+For projects with a [Kubernetes Agent](/docs/monitor/kubernetes-agent) installed. Each one takes optional filters for cluster, namespace, and labels.
 
-- **KubernetesPodList** — pods with phase, restarts, and node assignment.
-- **KubernetesNodeList** — nodes with conditions, capacity, and allocations.
-- **KubernetesNamespaceList** — namespaces and their workload counts.
-- **KubernetesDeploymentList** — deployments with desired vs. ready replicas.
-- **KubernetesStatefulSetList** — stateful sets with ready replicas.
-- **KubernetesDaemonSetList** — daemon sets with desired vs. ready.
-- **KubernetesJobList** — jobs with completion status.
-- **KubernetesCronJobList** — cron jobs with schedule and last run.
+- **Kubernetes Pod List** — pods with their phase, restarts, and node.
+- **Kubernetes Node List** — nodes with their conditions and capacity.
+- **Kubernetes Namespace List** — namespaces and workload counts.
+- **Kubernetes Deployment List** — deployments with desired vs. ready replicas.
+- **Kubernetes StatefulSet List** — stateful sets with ready replicas.
+- **Kubernetes DaemonSet List** — daemon sets with desired vs. ready.
+- **Kubernetes Job List** — jobs and their completion status.
+- **Kubernetes CronJob List** — cron jobs with schedule and last run.
 
-Reach for these when: you want a single dashboard that mixes Kubernetes resource state with telemetry from those workloads.
+Use these when: you want a single dashboard mixing Kubernetes state with telemetry from those workloads.
 
 ## Docker resource lists
 
-For projects with a Docker monitor installed:
+For projects with Docker monitoring set up.
 
-- **DockerHostList** — hosts running Docker, with container counts.
-- **DockerContainerList** — containers with state, image, host, uptime.
-- **DockerImageList** — images and their sizes.
-- **DockerNetworkList** — Docker networks and connected container counts.
-- **DockerVolumeList** — Docker volumes and their usage.
+- **Docker Host List** — hosts running Docker, with container counts.
+- **Docker Container List** — containers with state, image, host, uptime.
+- **Docker Image List** — images and their sizes.
+- **Docker Network List** — Docker networks and connected containers.
+- **Docker Volume List** — Docker volumes and their usage.
 
 ## Infrastructure
 
-### HostList
+### Host List
 
-Hosts monitored by OneUptime's server monitor — with current status, CPU, memory, and uptime.
+Hosts monitored by OneUptime's server monitor, with status, CPU, memory, and uptime.
 
-**Configure**: filters by labels or current health state.
+**Settings**: filters by labels or current state.
 
-## Picking the right widget
+## Which widget should I use?
 
-Some quick rules of thumb:
+A few quick rules:
 
 - **Trend over time?** Chart.
-- **One number that matters right now?** Value (or Gauge if it has a natural range).
+- **One number that matters right now?** Value (or Gauge if it has a clear min/max).
 - **Breakdown across many things?** Table.
-- **What's happening in the system right now?** LogStream, TraceList, IncidentList.
-- **State of a specific resource fleet?** The matching resource-list widget.
+- **What's happening in the system right now?** Log Stream, Trace List, Incident List.
+- **The state of a specific group of resources?** The matching list widget.
 - **A heading, a paragraph, or a link?** Text.
 
-Most dashboards use a mix — a Chart at the top, a Value or two beside it, a Text divider, then one or two lists below.
+Most dashboards mix a few — a chart at the top, a value or two beside it, a text divider, and a list or two below.
 
 ## Where to read next
 
-- [Variables & Filters](/docs/dashboards/variables) — making widgets reusable across services / customers / clusters.
-- [Authoring a Dashboard](/docs/dashboards/authoring) — the canvas, grid, and edit mode.
-- [Sharing & Public Dashboards](/docs/dashboards/sharing) — exposing a dashboard outside the team.
+- [Variables & Filters](/docs/dashboards/variables) — making widgets reusable for many services or customers.
+- [Authoring a Dashboard](/docs/dashboards/authoring) — the canvas mechanics.
+- [Sharing & Public Dashboards](/docs/dashboards/sharing) — sharing outside your team.

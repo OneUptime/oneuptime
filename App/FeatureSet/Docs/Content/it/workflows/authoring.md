@@ -1,75 +1,68 @@
-# Creare un workflow
+# Creazione di un workflow
 
-Crea un workflow in **Workflows → Create Workflow**, dagli un nome e una descrizione opzionale, poi apri la scheda **Builder** per iniziare a posizionare i nodi sul canvas.
+Per creare un workflow, apri **Workflows → Create Workflow**, assegna un nome e clicca sulla scheda **Builder**. Vedrai un canvas vuoto su cui costruirai l'automazione.
 
 ## Il canvas
 
-Il Builder è un grafo zoomabile e spostabile. Aggiungi nodi da una palette di componenti, li colleghi con archi e configuri gli argomenti di ciascun nodo in un pannello laterale. Un indicatore di salvataggio nell'header ti dice se l'ultima modifica è stata persistita.
+Il Builder e un canvas drag-and-drop. Aggiungi i blocchi dalla palette laterale, li colleghi tra loro con delle linee e clicchi su ciascun blocco per configurare cosa fa. Le modifiche vengono salvate automaticamente — vedrai un indicatore in alto una volta che sono state salvate.
 
-Un workflow inizia sempre con esattamente un nodo **trigger**. I trigger non hanno porta di input — è da lì che parte l'esecuzione. Tutto ciò che è a valle è un **componente**.
+Ogni workflow inizia con un **trigger** all'inizio. Tutto il resto e un **componente** che esegue qualcosa.
 
-## Anatomia di un nodo
+## Cosa contiene un blocco
 
-Ogni nodo ha:
-
-| Campo | Scopo |
+| Campo | Cosa fa |
 | --- | --- |
-| **Titolo** | L'etichetta mostrata sul canvas. Predefinito al nome del componente; sovrascrivilo per rendere più leggibili i workflow complessi. |
-| **Argomenti** | La configurazione necessaria al componente per svolgere il suo lavoro — un URL, un canale Slack, uno snippet JavaScript, ecc. Gli argomenti obbligatori sono marcati con un asterisco. |
-| **Porte di input** | Attacchi sul lato sinistro del nodo dove arrivano gli archi in entrata. I componenti hanno una porta di input chiamata `in`; i trigger non ne hanno. |
-| **Porte di output** | Attacchi sul lato destro dove partono gli archi in uscita. I componenti definiscono porte come `success`, `error`, `yes`, `no`. |
-| **Valori di ritorno** | Dati prodotti dal nodo — i payload delle sue porte di output. I nodi a valle li referenziano come `{{NodeId.fieldName}}`. |
+| **Titolo** | Il nome mostrato sul canvas. Rinominalo per rendere piu leggibili i workflow complessi. |
+| **Impostazioni** | Cio di cui il blocco ha bisogno per svolgere il proprio compito — un URL, un canale Slack, il corpo di un messaggio, ecc. I campi obbligatori sono contrassegnati con un asterisco. |
+| **Input** | Il pallino a sinistra dove arrivano le linee dai blocchi precedenti. |
+| **Output** | I pallini a destra da cui partono le linee verso i blocchi successivi. Molti blocchi hanno output **success** ed **error** separati, cosi puoi gestire entrambi i casi. |
 
-## Collegare i nodi
+## Collegare i blocchi
 
-Trascina da una porta di output alla porta di input di un nodo a valle per creare un arco. Un arco da `success` esegue quel ramo solo se il nodo a monte ha avuto successo; un arco da `error` viene eseguito solo se ha fallito. Se non colleghi una porta, quel ramo semplicemente termina.
+Trascina dal pallino di output di un blocco al pallino di input del blocco successivo. La linea che disegni decide cosa viene eseguito dopo.
 
-Puoi diramare: una stessa porta di output può alimentare più nodi a valle, e da quel punto vengono eseguiti tutti in parallelo.
+- Se ti colleghi dall'output **success**, il blocco successivo viene eseguito solo se il precedente ha funzionato.
+- Se ti colleghi dall'output **error**, il blocco successivo viene eseguito solo se il precedente ha fallito.
+- Se non colleghi un output, quel percorso si interrompe semplicemente.
 
-## Configurare gli argomenti
+Puoi collegare un singolo output a piu blocchi. Da quel punto vengono eseguiti tutti contemporaneamente.
 
-Clicca un nodo per aprire il suo pannello laterale. Ogni argomento ha un editor tipizzato:
+## Configurare un blocco
 
-- **Testo / URL / Email / Numero / Password** — un input su una sola riga.
-- **JSON** — un editor JSON con syntax highlighting e indicatore di validità.
-- **JavaScript** — un editor di codice per gli snippet usati dal componente **Custom Code**.
-- **Markdown / HTML** — body in formato rich text per i componenti email e messaggio.
-- **CronTab** — un'espressione di pianificazione (usata dal trigger Schedule).
-- **Booleano** — un toggle.
-- **Select / Query** — drop-down per campi che accettano un insieme fissato di valori o una query in stile modello.
+Clicca su un blocco per aprire le sue impostazioni nel pannello laterale. Ogni impostazione ha il tipo di input appropriato — campi di testo, menu a tendina, editor di codice, interruttori e cosi via.
 
-Qualsiasi campo di testo accetta interpolazione di variabili — vedi [Variabili](/docs/workflows/variables) per le regole.
+La maggior parte dei campi di testo accetta variabili — e cosi che i dati passano da un blocco all'altro. Vedi [Variabili](/docs/workflows/variables) per la sintassi.
 
-## Un primo workflow minimale
+## Il tuo primo workflow
 
-Il modo più rapido per prendere confidenza con il canvas:
+Il modo piu rapido per prendere confidenza con il canvas:
 
-1. Posiziona un trigger **Manual**.
-2. Posiziona un componente **Log** (sotto **Utils**). Collega la porta di output del trigger alla porta di input del componente Log.
-3. Nell'argomento del componente Log, digita `Ciao da {{Manual.JSON.name}}`.
-4. Salva e abilita il workflow.
-5. Clicca **Esegui manualmente**, incolla `{ "name": "Ada" }` come input e invia.
-6. Apri la scheda **Logs**. L'ultima esecuzione mostra l'output catturato del nodo Log: `Ciao da Ada`.
+1. Trascina un trigger **Manual** sul canvas.
+2. Trascina un componente **Log** (sotto **Utils**) accanto. Collega il trigger al componente Log.
+3. Nel campo messaggio del blocco Log, scrivi `Hello from {{Manual.JSON.name}}`.
+4. Salva e attiva il workflow.
+5. Clicca su **Run Manually**, incolla `{ "name": "Ada" }` come input e invia.
+6. Apri la scheda **Logs**. L'ultima esecuzione mostra `Hello from Ada`.
 
-Quel ciclo — trascina, collega, configura, esegui, ispeziona — è il ritmo della creazione di ogni workflow.
+Quel ciclo — trascina, collega, configura, esegui, controlla il log — e il modo in cui costruirai ogni workflow.
 
-## Salvare, abilitare e testare in produzione
+## Salva e attiva
 
-I workflow sono memorizzati come un grafo JSON nella colonna `Workflow.graph`. Il Builder salva mentre modifichi; l'indicatore di salvataggio nell'header mostra quando l'ultima modifica è arrivata sul server. Non c'è un passo separato di "pubblicazione".
+Il canvas salva mentre lavori. Non c'e un passaggio separato di "pubblicazione."
 
-Però: un workflow scatena il suo trigger solo quando **isEnabled** è attivo. I nuovi workflow vengono spediti disabilitati. Tratta questo flag come il tuo interruttore "pronto per la prod" — costruisci, clicca **Esegui manualmente** per fare un dry-run con un payload di esempio, guarda i **Log** e solo allora attiva Enable.
+Tuttavia, un workflow viene effettivamente eseguito solo quando **Enabled** e attivo in Settings. I nuovi workflow partono disabilitati. Usa quell'interruttore come rete di sicurezza — costruisci, testa con **Run Manually**, controlla i log, poi attivalo.
 
-Se devi mettere in pausa un workflow senza eliminarlo (es. durante un incidente non correlato), disattiva **isEnabled** in **Settings**. Le esecuzioni già in volo continuano; non ne vengono avviate di nuove.
+Per mettere in pausa un workflow senza eliminarlo, disattiva **Enabled**. Le esecuzioni gia in corso vengono completate; non ne vengono avviate di nuove.
 
-## Riorganizzare e riordinare
+## Mettere in ordine
 
-- Trascina un nodo per riposizionarlo. La posizione è memorizzata nel grafo, così la prossima persona che apre il canvas vede lo stesso layout.
-- Clic destro su un arco per cancellarlo; clic destro su un nodo per le opzioni di cancellazione e duplicazione.
-- Per workflow ampi, disponili da sinistra a destra in modo che la direzione di esecuzione corrisponda alla direzione di lettura.
+- Trascina i blocchi per spostarli. La disposizione viene salvata, cosi la persona successiva vedra la stessa configurazione.
+- Clicca con il tasto destro su una linea per eliminarla. Clicca con il tasto destro su un blocco per eliminarlo o duplicarlo.
+- Per workflow estesi, disponili da sinistra a destra in modo che si leggano nella stessa direzione in cui vengono eseguiti.
 
-## Cosa leggere dopo
+## Letture successive
 
-- [Trigger](/docs/workflows/triggers) — le quattro famiglie di trigger e cosa ognuna espone come valori di ritorno.
-- [Componenti](/docs/workflows/components) — il catalogo completo e i loro argomenti.
-- [Variabili](/docs/workflows/variables) — come referenziare i dati tra i nodi e dalle variabili globali.
-- [Esecuzioni e log](/docs/workflows/runs-and-logs) — come fare debug di un workflow che non si comporta bene.
+- [Trigger](/docs/workflows/triggers) — i quattro modi in cui un workflow puo iniziare.
+- [Componenti](/docs/workflows/components) — ogni blocco che puoi aggiungere.
+- [Variabili](/docs/workflows/variables) — spostare i dati tra i blocchi.
+- [Esecuzioni e log](/docs/workflows/runs-and-logs) — verificare cosa e successo.

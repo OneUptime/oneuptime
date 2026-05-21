@@ -1,75 +1,69 @@
 # Authoring a Dashboard
 
-Create a dashboard under **Dashboards → Create Dashboard**, give it a name, and open it. The canvas opens in **Edit** mode, ready for widgets.
+To create a dashboard, open **Dashboards → Create Dashboard**, give it a name, and open it. The canvas opens in **Edit** mode, ready for you to start adding widgets.
 
 ## The canvas
 
-A dashboard is a grid. The default canvas is **12 dashboard units wide** by **60 units tall** — you can grow the height by adding rows past the bottom. Each unit is a square that scales with the viewport: on a desktop it's wider than on a phone, but every widget keeps its proportions.
+A dashboard is a grid. Widgets snap into place — you decide where each one sits and how big it is. You can grow the page down as you add more rows. Every widget keeps its proportions on bigger or smaller screens.
 
-Widgets occupy a rectangle of units. You decide both the position (top-left corner, measured in units from the top-left of the canvas) and the size (width and height in units). Minimum dimensions enforce that a tiny widget is still readable.
+## Edit and View
 
-## Edit vs. View
+The toggle in the header switches between two modes:
 
-The toggle in the page header switches between the two modes:
+- **Edit** — the widget palette is open, you can drag widgets around, resize them, and click any widget to change its settings.
+- **View** — the dashboard is read-only, exactly the way visitors and other team members see it. Use this to check the result before sharing.
 
-- **Edit** — the widget palette is open, widgets are draggable and resizable, every widget has a settings cog. Use this while building.
-- **View** — the dashboard renders read-only, exactly as someone with view-only access (or a public visitor) sees it. Use this to check the result before sharing.
-
-The same dashboard is shown in both modes — there's no separate "publish" step. Saving an edit takes effect immediately for every viewer.
+It's the same dashboard in both modes. There's no separate "publish" step — every edit is live the moment it saves.
 
 ## Adding a widget
 
-1. Open the widget palette (the **+** button in Edit mode).
+1. Click the **+** button to open the widget palette.
 2. Pick the widget type. See [Widgets](/docs/dashboards/widgets) for the catalog.
-3. The widget lands on the canvas at the next free position with a default size.
-4. Click the widget's cog to open its settings panel.
-5. Configure the data source (metric query, list filter, text body, etc.) and any display options (thresholds, units, axes, columns).
-6. Drag the widget to position it. Drag a corner to resize.
+3. The widget appears on the canvas.
+4. Click the gear icon on the widget to open its settings.
+5. Choose the data source (a metric, a list filter, a paragraph of text, etc.) and any display options.
+6. Drag the widget to move it. Drag a corner to resize.
 
-Repeat. The grid snaps widgets to whole-unit boundaries.
-
-## Configuring data sources
+## Where data comes from
 
 Most widgets read from one of three places:
 
-- **Metrics** — a ClickHouse-backed metric query. The widget builds a `metricQueryConfig` (a single series) or `metricQueryConfigs` (multiple series stacked or overlaid). Optional `transformAsRate` converts an OpenTelemetry cumulative counter into a rate of change. Optional `formula` lets you combine two queries (e.g., error count / total count).
-- **Live resource lists** — incidents, alerts, monitors, Kubernetes resources, Docker resources, hosts. Each list widget takes a filter (e.g., labels, status, namespace) and displays the matching rows live.
-- **Static content** — the **Text** widget takes a Markdown body. Use it for headers, dividers, runbook links, and "what is this dashboard?" annotations.
-
-For metric widgets, the configuration mirrors the inline query builder you see elsewhere in OneUptime — pick a metric, pick an aggregation, add `WHERE` filters, choose a time grouping. The query runs against your project's telemetry data.
+- **Metrics** — pick a metric and an aggregation (average, max, count, percentile). Add filters. Choose how to group the result. This is the same query builder you see elsewhere in OneUptime.
+- **Live lists** — incidents, alerts, monitors, Kubernetes pods, Docker containers, hosts. Each list widget takes a filter and shows the matching items, updated live.
+- **Static content** — the **Text** widget takes a block of Markdown. Use it for headings, context, links to runbooks, or temporary notes during an incident.
 
 ## Thresholds and formatting
 
-Widgets that display a single number (**Value**, **Gauge**) take optional thresholds:
+Single-value widgets (**Value**, **Gauge**) let you set:
 
-- **Warning threshold** — render the value in yellow when it crosses this.
-- **Critical threshold** — render the value in red when it crosses this.
+- A **warning threshold** — color turns yellow when the value crosses it.
+- A **critical threshold** — color turns red when the value crosses it.
 
-Charts let you set the Y-axis unit, the legend position, and whether to stack series. Tables let you pick which columns to show and the row limit.
+Charts let you set the Y-axis unit, choose where the legend goes, and pick whether series stack on top of each other or overlay. Tables let you pick the columns to show and how many rows.
 
 ## Time range and refresh
 
-The dashboard header carries two global controls that affect every metric widget:
+At the top of the dashboard, two controls affect every metric widget:
 
-- **Time range** — pick a preset (Past 1 hour, 24 hours, 7 days, 30 days) or a custom range. Every metric widget queries against this window.
-- **Refresh interval** — Off, 5s, 10s, 30s, 1m, 5m, 15m. Re-runs every widget's query on the chosen cadence. List widgets that natively support websockets update on push regardless of the chosen interval.
+- **Time range** — a preset (past hour, 24 hours, 7 days, 30 days) or a custom range. Every chart and number uses this window.
+- **Refresh** — how often widgets re-query. Off, 5s, 10s, 30s, 1m, 5m, 15m. Live lists update on their own regardless of this setting.
 
-For widgets that ignore the global time range (e.g., a text block), the control is a no-op.
+Widgets that don't use the time range (like a Text widget) ignore both controls.
 
 ## Saving
 
-The canvas autosaves as you edit. A small indicator in the header tells you when the latest change is persisted. There is no "publish" — every edit is live the moment it saves. If you're making a risky change, duplicate the dashboard first.
+The canvas saves on its own as you work. A small indicator in the header tells you when the latest change is saved. If you're making a big change, duplicate the dashboard first so you have a safe copy.
 
-## Patterns that work well
+## Tips for dashboards that age well
 
-- **One topic per dashboard.** Resist the temptation to put "everything we monitor" on one page. Three dashboards labeled `oncall-checkout`, `oncall-payments`, `oncall-search` age better than one mega-dashboard.
-- **Anchor the top of the page with the most important widget.** People scan from the top — make sure the first thing they see is the answer to "is this system healthy?"
-- **Use Text widgets to label sections.** A short heading every few rows ("Latency" / "Errors" / "Capacity") makes the dashboard scannable from across the room.
-- **Use variables instead of duplicating.** If you find yourself building the same dashboard twice for two services, you want a `service` variable. See [Variables & Filters](/docs/dashboards/variables).
+- **One topic per dashboard.** Resist putting "everything we monitor" on one page. A few focused dashboards beat one giant page.
+- **Put the most important widget at the top.** People scan from the top down — make the first thing they see the answer to "is this system healthy?"
+- **Label sections with Text widgets.** A short heading every few rows ("Latency," "Errors," "Capacity") makes the page scannable from across the room.
+- **Use variables instead of duplicating.** If you're about to build the same dashboard for a second service, build one dashboard with a `service` variable instead. See [Variables & Filters](/docs/dashboards/variables).
 
 ## Where to read next
 
-- [Widgets](/docs/dashboards/widgets) — the catalog and per-widget configuration.
-- [Variables & Filters](/docs/dashboards/variables) — templating with variables, attribute filters, and time range.
-- [Sharing & Public Dashboards](/docs/dashboards/sharing) — making a dashboard reachable outside the team.
-- [Configuration & Permissions](/docs/dashboards/configuration) — ownership and access control.
+- [Widgets](/docs/dashboards/widgets) — the catalog.
+- [Variables & Filters](/docs/dashboards/variables) — variables, filters, and the time range.
+- [Sharing & Public Dashboards](/docs/dashboards/sharing) — sharing outside your team.
+- [Configuration & Permissions](/docs/dashboards/configuration) — owners and access control.

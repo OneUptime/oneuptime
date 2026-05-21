@@ -1,73 +1,76 @@
-# Workflow-uitvoeringen en logboeken
+# Uitvoeringen en logboeken
 
-Elke keer dat de trigger van een workflow afgaat, maakt OneUptime een **run** aan — een record van één uitvoering met timing, status en output per node. Runs zijn hoe je bevestigt dat een workflow werkte, hoe je een falende workflow debugt, en hoe je een postmortem schrijft wanneer een automatisering zich misdraagt.
+Elke keer dat een workflow draait, slaat OneUptime een record op van wat er is gebeurd — wanneer hij draaide, of het werkte en wat elk blok deed. Dat record heet een **run**. Runs zijn hoe je bevestigt dat een workflow werkte, een falende workflow debugt en terugkijkt op vroegere activiteit.
 
 ## Waar je ze vindt
 
-| Pagina | Reikwijdte |
+| Pagina | Wat je ziet |
 | --- | --- |
-| **Workflows → Runs & Logs** | Projectbreed. Elke run van elke workflow. Filter op workflow, status en tijdsbereik. |
-| **Het Logs-tabblad van een workflow** | Alleen de runs van deze workflow. |
-| **De detailpagina van een run** | Eén uitvoering, uitgeklapt met output per node en eventuele foutmeldingen. |
+| **Workflows → Runs & Logs** | Elke run van elke workflow in het project. Filter op workflow, status en tijd. |
+| **Workflow → Logs-tabblad** | Alleen de runs van deze ene workflow. |
+| **Eén run** | Eén uitvoering, met de output van elk blok. |
 
 ## Run-statussen
 
-| Status | Betekenis |
+| Status | Wat het betekent |
 | --- | --- |
-| **Scheduled** | De trigger ging af en de run staat in de wachtrij, maar de worker heeft hem nog niet opgepakt. Meestal een fractie van een seconde. |
-| **Running** | De worker loopt op dit moment de graph af. Langlopende componenten (trage HTTP-aanroepen, opzettelijke vertragingen) houden een run in deze status. |
-| **Success** | Elke node die heeft gedraaid is foutloos afgerond. (Een workflow die opzettelijk een `error`-tak heeft genomen is alsnog `Success` in totaal — de workflow zelf is niet gefaald.) |
-| **Error** | Een node faalde en er was geen `error`-poort aangesloten om dat af te vangen. De run stopte bij die node. |
-| **Timeout** | De run overschreed de per-run-timeout. Zie [Configuratie en veiligheid](/docs/workflows/configuration). |
+| **Scheduled** | De trigger is afgegaan en de run staat op het punt te starten. Duurt meestal maar een fractie van een seconde. |
+| **Running** | De workflow is bezig. Langdurige blokken houden een run in deze staat. |
+| **Success** | Elk blok dat draaide is zonder fouten afgerond. (Bewust de **error**-tak nemen telt nog steeds als success — de workflow zelf is niet gefaald.) |
+| **Error** | Een blok is gefaald en er was geen **error**-pad verbonden om dat af te handelen. De run is daar gestopt. |
+| **Timeout** | De run duurde langer dan toegestaan. Zie [Configuratie en veiligheid](/docs/workflows/configuration). |
 
 ## Een run lezen
 
-Klik op een run uit de lijst om de detailpagina te openen. Je ziet:
+Klik op een run om de details te openen. Je ziet:
 
-- **Header** — de trigger die afging, de begin- en eindtimestamp, totale duur, status.
-- **Nodelijst** — elke node die in volgorde is uitgevoerd, elk met zijn vastgelegde argumenten, returnwaarde en gekozen output-poort.
-- **Fouten** — als een node faalde, het foutbericht en (indien beschikbaar) de stack trace.
+- **Header** — de trigger, start- en eindtijd, totale duur en status.
+- **Bloklijst** — elk blok dat is gedraaid, in volgorde. Elk laat zien welke waarden het kreeg, zijn output en welk pad het nam.
+- **Errors** — als een blok is gefaald, het foutbericht en (indien beschikbaar) meer details.
 
-De vastgelegde argumenten tonen de *post-interpolatie*-waarden — d.w.z. de exacte strings die de node zag nadat variabelen waren opgelost. Dit is de bruikbaarste debug-weergave: als een Slack-bericht de letterlijke tekst `{{Incident.title}}` bevat, weet je dat de variabele-referentie niet is opgelost.
+De waarden die je ziet zijn precies wat het blok zag — nadat alle variabelen zijn ingevuld. Dit is de allernuttigste debug-view: als een Slack-bericht de letterlijke tekst `{{Incident.title}}` toont in plaats van de echte titel, dan weet je dat de variabele niet is opgelost.
 
-## Veelvoorkomende debug-patronen
+## Veelvoorkomende debugging
 
-### "Mijn workflow ging niet af."
+### "Mijn workflow draaide niet."
 
-1. Bevestig dat de workflow **ingeschakeld** is in **Settings**. Nieuwe workflows worden uitgeschakeld geleverd.
-2. Voor een model-event-trigger: bevestig dat het event daadwerkelijk plaatsvond. Open de entiteit (het incident, alert, monitor) en bekijk de geschiedenis.
-3. Voor een webhook-trigger: bevestig dat het externe systeem de juiste URL aanroept. Veel tools loggen uitgaande webhook-levering — kijk daar.
-4. Voor een schedule-trigger: bevestig dat de cron-expressie evalueert naar het tijdstip dat je verwacht. Gebruik een cron-parser bij twijfel.
+1. Zorg dat de workflow **ingeschakeld** is in Settings. Nieuwe workflows starten uitgeschakeld.
+2. Voor een OneUptime event-trigger: controleer dat het event ook echt is gebeurd. Open het record en check de geschiedenis.
+3. Voor een webhook-trigger: controleer dat het andere systeem naar de juiste URL stuurt. De meeste tools loggen wanneer ze een webhook versturen — kijk daar.
+4. Voor een schedule-trigger: controleer dat de cron-expressie overeenkomt met de tijd die je verwacht.
 
-Als de trigger afging maar er geen run verschijnt, controleer dan het runquotum van het project onder **Project Settings → Billing**.
+Als de trigger is afgegaan maar er geen run verschijnt, controleer dan je run-quotum onder **Project Settings → Billing**.
 
-### "Hij draait, maar een stroomafwaartse node wordt nooit uitgevoerd."
+### "Een later blok heeft nooit gedraaid."
 
-Een node die niet draait is meestal een bedradingsprobleem. Open het canvas en controleer:
+Een blok dat niet draait is meestal een bedradingsprobleem. Open het canvas en controleer:
 
-- Is de output-poort van de bovenliggende node daadwerkelijk verbonden met de input-poort van deze node?
-- Heeft de bovenliggende node een andere poort genomen (bijvoorbeeld `error` in plaats van `success`, of `no` in plaats van `yes`)? Kijk in het rundetail om te zien welke poort hij koos.
+- Is de output van het eerdere blok verbonden met de input van dit blok?
+- Heeft het eerdere blok een andere output genomen dan je verwachtte (bijvoorbeeld **error** in plaats van **success**, of **No** in plaats van **Yes**)? Het run-detail laat zien welk pad is genomen.
 
-### "Een variabele komt leeg aan."
+### "Een variabele kwam leeg door."
 
-Open het rundetail en bekijk de vastgelegde argumenten van de falende node. Als je de letterlijke tekst `{{NodeId.field}}` ziet, dan is de verwijzing niet opgelost — waarschijnlijk een typefout in `NodeId` of `field`. Als je een lege string ziet, dan draaide de bovenliggende node wel maar produceerde dat veld niet.
+Open de run en kijk naar de waarden op het falende blok.
 
-### "Hij werkt handmatig, maar niet vanuit de trigger."
+- Als je de letterlijke tekst `{{BlockName.field}}` ziet, is de verwijzing niet opgelost — waarschijnlijk een typefout in de bloknaam of veldnaam.
+- Als je een lege string ziet, heeft het eerdere blok wel gedraaid maar produceerde dat veld niet.
 
-Gebruik **Run Manually** met een JSON-payload die nabootst wat de echte trigger publiceert. Vergelijk vervolgens de vastgelegde argumenten in de handmatige run en de productie-run naast elkaar — het verschil zit meestal in één enkele veldnaam of type.
+### "Het werkt handmatig, maar niet vanuit de trigger."
+
+Gebruik **Run Manually** met een JSON-payload die lijkt op wat de echte trigger verstuurt. Vergelijk vervolgens de waarden in de handmatige run met de echte run naast elkaar. Het verschil zit meestal in één veldnaam of type.
 
 ## Een workflow opnieuw uitvoeren
 
-Er is geen "retry this run"-knop — by design voert OneUptime nooit een oude run opnieuw uit, omdat de uitgaande bijeffecten (Slack-berichten, API-aanroepen) niet noodzakelijk idempotent zijn. Als je het werk opnieuw wilt doen, repareer dan de workflow en laat de volgende echte trigger hem afvuren.
+Er is geen "retry this run"-knop. We voeren oude runs niet automatisch opnieuw uit omdat de neveneffecten (Slack-berichten, API-aanroepen, tickets) niet altijd veilig te herhalen zijn. Om het werk over te doen, fix je de workflow en laat je de volgende echte trigger hem afgaan.
 
 Voor handmatige workflows klik je gewoon op **Run Manually** met dezelfde payload.
 
-## Log-retentie
+## Hoe lang worden runs bewaard?
 
-Runs worden voor onbepaalde tijd op het project bewaard. Als je high-volume-ruisende workflows wilt opschonen (bijvoorbeeld een debug-workflow die elke minuut afgaat), schakel ze uit of verwijder ze — er is geen retentie-toggle per workflow.
+Runs worden voor onbepaalde tijd bewaard voor het project. Als een workflow heel vaak draait en je geschiedenis vervuilt (zoals een debug-workflow die elke minuut afgaat), schakel hem dan uit of verwijder hem om de ruis te stoppen.
 
 ## Waar verder lezen
 
-- [Configuratie en veiligheid](/docs/workflows/configuration) — timeouts, recursielimieten, geheimredactie.
-- [Variabelen](/docs/workflows/variables) — de syntax die geïnterpoleerde argumenten gebruiken.
-- [Componenten](/docs/workflows/components) — de returnwaarde-velden die elke component publiceert.
+- [Configuratie en veiligheid](/docs/workflows/configuration) — timeouts, recursielimieten, verborgen geheimen.
+- [Variabelen](/docs/workflows/variables) — de variabelesyntax die je in je blokken gebruikt.
+- [Componenten](/docs/workflows/components) — wat elk blok produceert.

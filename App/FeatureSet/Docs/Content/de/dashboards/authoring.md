@@ -1,75 +1,69 @@
-# Ein Dashboard erstellen
+# Dashboard erstellen
 
-Erstellen Sie ein Dashboard unter **Dashboards → Dashboard erstellen**, geben Sie ihm einen Namen und öffnen Sie es. Die Arbeitsfläche öffnet sich im **Edit**-Modus, bereit für Widgets.
+Um ein Dashboard zu erstellen, öffnen Sie **Dashboards → Dashboard erstellen**, geben Sie ihm einen Namen und öffnen Sie es. Die Arbeitsfläche öffnet sich im Modus **Bearbeiten**, bereit zum Hinzufügen von Widgets.
 
 ## Die Arbeitsfläche
 
-Ein Dashboard ist ein Raster. Die Standard-Arbeitsfläche ist **12 Dashboard-Einheiten breit** und **60 Einheiten hoch** — Sie können die Höhe durch Hinzufügen von Zeilen unterhalb der unteren Kante vergrößern. Jede Einheit ist ein Quadrat, das sich mit dem Viewport skaliert: auf einem Desktop ist sie breiter als auf einem Handy, aber jedes Widget behält seine Proportionen.
+Ein Dashboard ist ein Raster. Widgets rasten ein – Sie entscheiden, wo jedes sitzt und wie groß es ist. Während Sie weitere Reihen hinzufügen, wächst die Seite nach unten. Jedes Widget behält seine Proportionen auf größeren oder kleineren Bildschirmen.
 
-Widgets belegen ein Rechteck aus Einheiten. Sie entscheiden sowohl über die Position (obere linke Ecke, gemessen in Einheiten von der oberen linken Ecke der Arbeitsfläche) als auch über die Größe (Breite und Höhe in Einheiten). Mindestabmessungen sorgen dafür, dass ein winziges Widget trotzdem lesbar ist.
+## Bearbeiten und Ansicht
 
-## Edit vs. View
+Der Umschalter im Kopfbereich wechselt zwischen zwei Modi:
 
-Der Umschalter in der Kopfzeile wechselt zwischen den beiden Modi:
+- **Bearbeiten** – die Widget-Palette ist geöffnet, Sie können Widgets verschieben, ihre Größe ändern und jedes Widget anklicken, um seine Einstellungen zu bearbeiten.
+- **Ansicht** – das Dashboard ist schreibgeschützt, genau so, wie es Besucher und andere Teammitglieder sehen. Nutzen Sie diesen Modus, um das Ergebnis vor dem Teilen zu prüfen.
 
-- **Edit** — die Widget-Palette ist offen, Widgets sind verschiebbar und in der Größe änderbar, jedes Widget hat ein Einstellungsrädchen. Verwenden Sie diesen Modus während des Aufbaus.
-- **View** — das Dashboard wird schreibgeschützt gerendert, genau so, wie es jemand mit Nur-Lese-Zugriff (oder ein öffentlicher Besucher) sieht. Verwenden Sie diesen Modus, um das Ergebnis vor dem Teilen zu überprüfen.
-
-Dasselbe Dashboard wird in beiden Modi angezeigt — es gibt keinen separaten „Veröffentlichen"-Schritt. Das Speichern einer Bearbeitung wird sofort für jeden Betrachter wirksam.
+Es handelt sich um dasselbe Dashboard in beiden Modi. Es gibt keinen separaten Schritt zum „Veröffentlichen" – jede Änderung ist live, sobald sie gespeichert ist.
 
 ## Ein Widget hinzufügen
 
-1. Öffnen Sie die Widget-Palette (die Schaltfläche **+** im Edit-Modus).
-2. Wählen Sie den Widget-Typ. Siehe [Widgets](/docs/dashboards/widgets) für den Katalog.
-3. Das Widget landet auf der Arbeitsfläche an der nächsten freien Position mit einer Standardgröße.
-4. Klicken Sie auf das Rädchen des Widgets, um sein Einstellungs-Panel zu öffnen.
-5. Konfigurieren Sie die Datenquelle (Metrik-Abfrage, Listenfilter, Textkörper usw.) und alle Anzeigeoptionen (Schwellenwerte, Einheiten, Achsen, Spalten).
-6. Ziehen Sie das Widget, um es zu positionieren. Ziehen Sie eine Ecke, um die Größe zu ändern.
+1. Klicken Sie auf die Schaltfläche **+**, um die Widget-Palette zu öffnen.
+2. Wählen Sie den Widget-Typ. Den Katalog finden Sie unter [Widgets](/docs/dashboards/widgets).
+3. Das Widget erscheint auf der Arbeitsfläche.
+4. Klicken Sie auf das Zahnradsymbol des Widgets, um seine Einstellungen zu öffnen.
+5. Wählen Sie die Datenquelle (eine Metrik, einen Listenfilter, einen Textabschnitt usw.) sowie etwaige Anzeigeoptionen.
+6. Verschieben Sie das Widget durch Ziehen. Ziehen Sie an einer Ecke, um die Größe anzupassen.
 
-Wiederholen Sie. Das Raster lässt Widgets an ganzzahligen Einheitengrenzen einrasten.
-
-## Datenquellen konfigurieren
+## Woher die Daten kommen
 
 Die meisten Widgets lesen aus einer von drei Quellen:
 
-- **Metriken** — eine ClickHouse-gestützte Metrik-Abfrage. Das Widget baut eine `metricQueryConfig` (eine einzelne Serie) oder `metricQueryConfigs` (mehrere Serien gestapelt oder überlagert) auf. Optionales `transformAsRate` wandelt einen OpenTelemetry-Kumulativ-Counter in eine Änderungsrate um. Optionales `formula` lässt Sie zwei Abfragen kombinieren (z. B. Fehleranzahl / Gesamtanzahl).
-- **Live-Ressourcenlisten** — Vorfälle, Warnmeldungen, Monitore, Kubernetes-Ressourcen, Docker-Ressourcen, Hosts. Jedes Listen-Widget nimmt einen Filter entgegen (z. B. Labels, Status, Namespace) und zeigt die passenden Zeilen live an.
-- **Statischer Inhalt** — das **Text**-Widget nimmt einen Markdown-Body. Verwenden Sie es für Überschriften, Trennlinien, Runbook-Links und „Was ist dieses Dashboard?"-Anmerkungen.
-
-Für Metrik-Widgets spiegelt die Konfiguration den Inline-Query-Builder wider, den Sie anderswo in OneUptime sehen — wählen Sie eine Metrik, wählen Sie eine Aggregation, fügen Sie `WHERE`-Filter hinzu, wählen Sie eine Zeitgruppierung. Die Abfrage läuft gegen die Telemetriedaten Ihres Projekts.
+- **Metriken** – wählen Sie eine Metrik und eine Aggregation (Durchschnitt, Maximum, Anzahl, Perzentil). Fügen Sie Filter hinzu. Wählen Sie, wie das Ergebnis gruppiert werden soll. Dies ist derselbe Abfrage-Builder, den Sie auch an anderen Stellen in OneUptime sehen.
+- **Live-Listen** – Vorfälle, Benachrichtigungen, Monitore, Kubernetes-Pods, Docker-Container, Hosts. Jedes Listen-Widget nimmt einen Filter und zeigt die passenden Einträge live aktualisiert an.
+- **Statische Inhalte** – das **Text**-Widget nimmt einen Markdown-Block. Nutzen Sie es für Überschriften, Kontext, Links zu Runbooks oder temporäre Notizen während eines Vorfalls.
 
 ## Schwellenwerte und Formatierung
 
-Widgets, die eine einzelne Zahl anzeigen (**Value**, **Gauge**), nehmen optionale Schwellenwerte:
+Einzelwert-Widgets (**Wert**, **Anzeige**) erlauben Folgendes:
 
-- **Warnschwellenwert** — den Wert in Gelb rendern, wenn er diesen überschreitet.
-- **Kritischer Schwellenwert** — den Wert in Rot rendern, wenn er diesen überschreitet.
+- Einen **Warn-Schwellenwert** – die Farbe wechselt auf Gelb, wenn der Wert ihn überschreitet.
+- Einen **Kritisch-Schwellenwert** – die Farbe wechselt auf Rot, wenn der Wert ihn überschreitet.
 
-Diagramme lassen Sie die Y-Achseneinheit, die Legendenposition und ob Serien gestapelt werden sollen, festlegen. Tabellen lassen Sie auswählen, welche Spalten angezeigt werden, sowie das Zeilenlimit.
+Bei Diagrammen können Sie die Einheit der Y-Achse festlegen, die Legendenposition wählen und entscheiden, ob Serien gestapelt oder übereinandergelegt werden. Bei Tabellen können Sie die anzuzeigenden Spalten und die Zeilenanzahl wählen.
 
 ## Zeitbereich und Aktualisierung
 
-Die Kopfzeile des Dashboards trägt zwei globale Steuerelemente, die sich auf jedes Metrik-Widget auswirken:
+Oben am Dashboard wirken sich zwei Steuerungen auf jedes Metrik-Widget aus:
 
-- **Zeitbereich** — wählen Sie eine Voreinstellung (letzte 1 Stunde, 24 Stunden, 7 Tage, 30 Tage) oder einen benutzerdefinierten Bereich. Jedes Metrik-Widget fragt gegen dieses Fenster ab.
-- **Aktualisierungsintervall** — Aus, 5s, 10s, 30s, 1m, 5m, 15m. Führt die Abfrage jedes Widgets in der gewählten Kadenz erneut aus. Listen-Widgets, die nativ Websockets unterstützen, aktualisieren sich per Push unabhängig vom gewählten Intervall.
+- **Zeitbereich** – eine Voreinstellung (letzte Stunde, 24 Stunden, 7 Tage, 30 Tage) oder ein eigener Bereich. Jedes Diagramm und jede Zahl verwendet dieses Fenster.
+- **Aktualisierung** – wie häufig die Widgets neu abfragen. Aus, 5 s, 10 s, 30 s, 1 min, 5 min, 15 min. Live-Listen aktualisieren sich unabhängig von dieser Einstellung selbst.
 
-Für Widgets, die den globalen Zeitbereich ignorieren (z. B. einen Textblock), ist die Steuerung wirkungslos.
+Widgets, die den Zeitbereich nicht nutzen (zum Beispiel ein Text-Widget), ignorieren beide Steuerungen.
 
 ## Speichern
 
-Die Arbeitsfläche speichert automatisch, während Sie bearbeiten. Ein kleiner Indikator in der Kopfzeile sagt Ihnen, wann die letzte Änderung persistiert ist. Es gibt keinen „Veröffentlichen"-Schritt — jede Bearbeitung ist in dem Moment live, in dem sie gespeichert wird. Wenn Sie eine riskante Änderung vornehmen, duplizieren Sie zuerst das Dashboard.
+Die Arbeitsfläche speichert sich beim Arbeiten von selbst. Eine kleine Anzeige im Kopfbereich teilt mit, wann die letzte Änderung gespeichert wurde. Wenn Sie eine größere Änderung planen, duplizieren Sie das Dashboard zuerst, damit Sie eine sichere Kopie haben.
 
-## Muster, die gut funktionieren
+## Tipps für Dashboards, die langfristig gut altern
 
-- **Ein Thema pro Dashboard.** Widerstehen Sie der Versuchung, „alles, was wir überwachen" auf eine Seite zu setzen. Drei Dashboards mit den Labels `oncall-checkout`, `oncall-payments`, `oncall-search` altern besser als ein Mega-Dashboard.
-- **Verankern Sie den oberen Teil der Seite mit dem wichtigsten Widget.** Menschen scannen von oben — stellen Sie sicher, dass das Erste, was sie sehen, die Antwort auf „ist dieses System gesund?" ist.
-- **Verwenden Sie Text-Widgets, um Abschnitte zu beschriften.** Eine kurze Überschrift alle paar Zeilen („Latenz" / „Fehler" / „Kapazität") macht das Dashboard von der anderen Seite des Raums scannbar.
-- **Verwenden Sie Variablen anstatt zu duplizieren.** Wenn Sie merken, dass Sie dasselbe Dashboard zweimal für zwei Services bauen, möchten Sie eine `service`-Variable. Siehe [Variablen & Filter](/docs/dashboards/variables).
+- **Ein Thema pro Dashboard.** Widerstehen Sie der Versuchung, „alles, was wir überwachen" auf eine Seite zu packen. Ein paar fokussierte Dashboards schlagen eine einzige riesige Seite.
+- **Das wichtigste Widget an den Anfang.** Menschen scannen von oben nach unten – sorgen Sie dafür, dass das Erste, was sie sehen, die Frage „Ist dieses System gesund?" beantwortet.
+- **Beschriften Sie Abschnitte mit Text-Widgets.** Eine kurze Überschrift alle paar Zeilen („Latenz", „Fehler", „Kapazität") macht die Seite auch von der anderen Seite des Raums lesbar.
+- **Verwenden Sie Variablen statt zu duplizieren.** Wenn Sie kurz davor sind, dasselbe Dashboard für einen zweiten Service zu bauen, bauen Sie stattdessen ein Dashboard mit einer Variable `service`. Siehe [Variablen & Filter](/docs/dashboards/variables).
 
-## Wo weiterlesen
+## Weiterführende Themen
 
-- [Widgets](/docs/dashboards/widgets) — der Katalog und die Konfiguration pro Widget.
-- [Variablen & Filter](/docs/dashboards/variables) — Templating mit Variablen, Attribut-Filtern und Zeitbereich.
-- [Teilen & öffentliche Dashboards](/docs/dashboards/sharing) — ein Dashboard außerhalb des Teams erreichbar machen.
-- [Konfiguration & Berechtigungen](/docs/dashboards/configuration) — Ownership und Zugriffskontrolle.
+- [Widgets](/docs/dashboards/widgets) – der Katalog.
+- [Variablen & Filter](/docs/dashboards/variables) – Variablen, Filter und der Zeitbereich.
+- [Freigabe & öffentliche Dashboards](/docs/dashboards/sharing) – außerhalb Ihres Teams teilen.
+- [Konfiguration & Berechtigungen](/docs/dashboards/configuration) – Eigentümer und Zugriffskontrolle.

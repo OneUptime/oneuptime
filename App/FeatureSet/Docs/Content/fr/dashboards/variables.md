@@ -1,96 +1,92 @@
 # Variables et filtres
 
-Une variable transforme un tableau de bord unique en template. Définissez une variable `service` et le même graphique se rerend pour `checkout`, `payments` et `search` — choisissez dans une liste déroulante en haut au lieu de construire trois tableaux de bord presque identiques.
-
-Cette page couvre les quatre types de variables, comment leurs valeurs sont injectées dans les requêtes de widgets, et les contrôles globaux de plage temporelle et de rafraîchissement qui se trouvent à côté d'eux.
+Une variable transforme un tableau de bord unique en modèle. Ajoutez une variable `service` à votre tableau de bord et les mêmes graphiques se réaffichent pour `checkout`, `payments` ou `search` — les visiteurs choisissent depuis une liste déroulante en haut au lieu que vous construisiez trois tableaux de bord presque identiques.
 
 ## Types de variables
 
-Ajoutez des variables sous **Tableau de bord → Settings → Variables**. Chacune a un nom (référencée comme `{{name}}` dans les requêtes de widgets), une étiquette optionnelle et un type.
+Ajoutez des variables sous **Dashboard → Settings → Variables**. Chaque variable a un nom (utilisé sous la forme `{{name}}` dans vos widgets), une étiquette optionnelle et un type.
 
-### Liste personnalisée
+### Custom List
 
-Une liste déroulante statique. Vous fournissez une liste de valeurs séparées par des virgules ; le visualiseur en choisit une.
+Une liste déroulante statique. Vous saisissez les options vous-même.
 
-À utiliser quand : l'ensemble de choix est petit, fixe et significatif uniquement pour votre équipe. `environment` avec les valeurs `prod, staging, dev`. `region` avec les valeurs `us-east-1, eu-west-1, ap-south-1`.
+À utiliser quand : les choix sont peu nombreux et fixes. `environment` avec les valeurs `prod, staging, dev`. `region` avec les valeurs `us-east-1, eu-west-1, ap-south-1`.
 
-### Requête
+### Query
 
-Les options de la liste déroulante sont calculées par une requête ClickHouse au moment du rendu.
+Les options proviennent d'une requête sur vos données.
 
-À utiliser quand : les choix sont dynamiques et vivent dans votre télémétrie. « Chaque ID client qui s'est connecté dans les dernières 24 heures » via `SELECT DISTINCT customer_id FROM ...`. La requête s'exécute contre les données de votre projet ; traitez le résultat comme une entrée non fiable même si ce sont vos propres données.
+À utiliser quand : les choix évoluent dans le temps et vous voulez que la liste déroulante reste à jour. « Tous les identifiants de clients vus dans les dernières 24 heures. » La requête s'exécute sur les données de votre projet et les résultats deviennent la liste déroulante.
 
-### Saisie de texte
+### Text Input
 
-Un champ de texte libre. Ce que le visualiseur tape est injecté.
+Un champ de texte libre. Ce que tape le visiteur est utilisé tel quel.
 
-À utiliser quand : vous voulez que le tableau de bord agisse comme un outil de recherche. Un tableau de bord « filtrer par IP » ou « filtrer par ID de requête ».
+À utiliser quand : vous voulez que le tableau de bord se comporte comme un outil de recherche. Filtrer par adresse IP, identifiant de requête ou toute autre valeur libre.
 
-### Attribut de télémétrie
+### Telemetry Attribute
 
-Les options sont les valeurs distinctes d'une clé d'attribut OpenTelemetry à travers la télémétrie de votre projet, sur la plage temporelle du tableau de bord.
+Les options sont les valeurs distinctes d'un attribut dans votre télémétrie sur la plage temporelle du tableau de bord.
 
-Configurez la **clé d'attribut** (par exemple, `k8s.cluster.name`, `service.name`, `host.name`). Le widget récupère les valeurs distinctes depuis les journaux / métriques / traces et les offre en liste déroulante.
+Configurez la **clé d'attribut** (par exemple, `service.name`, `host.name`, `k8s.cluster.name`). La liste déroulante se remplit avec chaque valeur distincte observée dans vos journaux, métriques et traces.
 
-À utiliser quand : les choix sont exactement les entités avec lesquelles vous avez déjà étiqueté votre télémétrie. Nom de cluster, nom de service, région, ID client, environnement de déploiement — tout ce que vous envoyez déjà comme attribut de ressource ou de span OpenTelemetry.
+À utiliser quand : les choix correspondent aux étiquettes que vous envoyez déjà avec votre télémétrie. C'est le type le plus courant car il se met à jour automatiquement — lorsque vous déployez un nouveau service étiqueté `service.name = inventory`, ce nom apparaît dans la liste déroulante sans que vous ayez à modifier le tableau de bord.
 
-C'est le type de variable le plus courant pour les tableaux de bord orientés services parce qu'il se met à jour automatiquement : lorsque vous déployez un nouveau service étiqueté `service.name = inventory`, cette valeur apparaît dans la liste déroulante sans que personne ne modifie le tableau de bord.
+## Multi-sélection
 
-## Sélection multiple
+Chaque variable peut autoriser plusieurs sélections. Lorsque cette option est activée, le visiteur peut choisir une ou plusieurs valeurs ; le tableau de bord filtre sur n'importe laquelle d'entre elles.
 
-Chaque variable peut être configurée en **sélection multiple**. Quand activée, le visualiseur choisit une ou plusieurs valeurs ; le tableau de bord filtre vers `value IN (...)` au lieu de `value = ...`.
-
-Utilisez la sélection multiple quand : vous voulez regarder « checkout + payments ensemble » sans quitter le tableau de bord. Évitez-la quand les mathématiques du graphique ne s'additionnent pas à travers les valeurs sélectionnées — par exemple, la moyenne des moyennes.
+Utilisez la multi-sélection quand : vous voulez comparer « checkout et payments ensemble » sans quitter le tableau de bord. Évitez-la quand les calculs ne fonctionnent pas entre les valeurs sélectionnées (par exemple, faire une moyenne de moyennes).
 
 ## Valeurs par défaut
 
-Chaque variable prend une valeur par défaut optionnelle. Le tableau de bord se rend avec la valeur par défaut jusqu'à ce que le visualiseur change la liste déroulante. Pour les tableaux de bord publics, la valeur par défaut est ce sur quoi les visiteurs atterrissent.
+Chaque variable peut avoir une valeur par défaut. Le tableau de bord s'affiche avec cette valeur tant que le visiteur ne la modifie pas. Pour les tableaux de bord publics, la valeur par défaut est ce que voient les visiteurs en premier.
 
-## Comment fonctionne l'interpolation
+## Comment utiliser une variable dans un widget
 
-Partout où une requête de widget prend un filtre de chaîne — la clause `WHERE` d'une requête de métrique, le filtre d'un widget de liste, la correspondance d'attribut d'un flux de journaux — vous pouvez référencer `{{variable_name}}`.
+Partout où un widget accepte un filtre — un `WHERE` de métrique, le filtre d'une liste, la correspondance d'attribut d'un log stream — vous pouvez utiliser `{{variable_name}}`.
 
-Par exemple, la requête de métrique d'un Chart pourrait être :
+Par exemple, un graphique filtré par service :
 
 ```
-SELECT avg(latency_ms) FROM spans WHERE service.name = '{{service}}'
+service.name = '{{service}}'
 ```
 
-Quand `service` est défini à `checkout`, la requête s'exécute avec `service.name = 'checkout'`. Quand le visualiseur bascule vers `payments`, la requête se ré-exécute avec `service.name = 'payments'`.
+Lorsque la liste déroulante est réglée sur `checkout`, le graphique est filtré sur le service checkout. Quand le visiteur passe à `payments`, le graphique se réaffiche pour payments.
 
-Pour les variables **Attribut de télémétrie** spécifiquement, OneUptime connaît la clé d'attribut et injecte le filtre dans chaque widget qui mentionne le même attribut — vous n'avez pas à modifier à la main la requête de chaque widget quand la variable change. C'est la magie qui fait que les tableaux de bord templatés par service fonctionnent dès l'installation.
+Pour les variables **Telemetry Attribute**, OneUptime sait quel attribut la variable cible et applique le filtre à chaque widget qui utilise le même attribut — vous n'avez pas à modifier chaque widget à la main.
 
 ## Plage temporelle
 
-L'en-tête du tableau de bord a un sélecteur global de **plage temporelle**. Chaque widget de métrique interroge contre cette fenêtre. Choix :
+L'en-tête du tableau de bord comporte une plage temporelle globale. Chaque widget de métrique interroge sur cette fenêtre. Options :
 
-- **Préréglages** — Dernière heure, 24 heures, 7 jours, 30 jours, 90 jours (selon votre rétention).
-- **Plage personnalisée** — choisissez les horodatages de début et de fin.
+- **Préréglages** — dernière heure, 24 heures, 7 jours, 30 jours, 90 jours (selon votre rétention de données).
+- **Personnalisé** — choisissez un début et une fin.
 
-La plage temporelle fait partie de l'URL du tableau de bord — partager l'URL partage la fenêtre. C'est pratique pendant un incident : épinglez la plage temporelle à « 10:00–10:30 UTC aujourd'hui » et partagez le lien dans le canal de l'incident.
+La plage temporelle fait partie de l'URL du tableau de bord — partager l'URL partage la fenêtre. Pratique pendant un incident : fixez la plage temporelle à « 10 h 00–10 h 30 UTC aujourd'hui » et collez le lien dans le canal d'incident.
 
-## Intervalle de rafraîchissement
+## Intervalle d'actualisation
 
-À côté de la plage temporelle, choisissez à quelle fréquence les widgets re-interrogent :
+À côté de la plage temporelle, choisissez la fréquence à laquelle les widgets relancent leur requête :
 
-- **Off** — les widgets interrogent une fois au chargement.
-- **5s / 10s / 30s / 1m / 5m / 15m** — rafraîchissement automatique.
+- **Off** — les widgets interrogent une fois au chargement de la page.
+- **5s / 10s / 30s / 1m / 5m / 15m** — actualisation automatique.
 
-Le rafraîchissement automatique est pratique pour un écran mural et une vue d'incident actuel. Pour une enquête ad hoc, laissez-le désactivé afin que la vue reste stable pendant que vous faites défiler.
+L'actualisation automatique est utile pour un écran mural ou une vue d'incident en direct. Laissez-la désactivée pendant que vous investiguez pour que la vue reste stable pendant que vous l'examinez.
 
-## Tout mettre ensemble
+## Tout assembler
 
-Un tableau de bord templaté par service a typiquement :
+Un tableau de bord modélisé par service possède généralement :
 
-1. Une variable `service` de type **Attribut de télémétrie** liée à `service.name`. Par défaut : votre service le plus surveillé. Sélection multiple : désactivée (pour que les graphiques montrent toujours un service à la fois).
-2. Une variable `environment` de type **Liste personnalisée**. Par défaut : `prod`.
-3. Une variable `cluster` de type **Attribut de télémétrie** liée à `k8s.cluster.name`. Sélection multiple : activée (pour que vous puissiez consolider à travers les clusters).
-4. Les widgets du tableau de bord référencent ces variables dans leurs filtres.
+1. Une variable `service` de type **Telemetry Attribute** pour `service.name`. Valeur par défaut : votre service le plus surveillé. Multi-sélection désactivée (afin que les graphiques affichent toujours un service à la fois).
+2. Une variable `environment` de type **Custom List**. Valeur par défaut : `prod`.
+3. Une variable `cluster` de type **Telemetry Attribute** pour `k8s.cluster.name`. Multi-sélection activée (afin de pouvoir comparer plusieurs clusters).
+4. Des widgets qui font référence à ces variables dans leurs filtres.
 
-Le résultat : un tableau de bord, la couverture de toute la flotte, quelques listes déroulantes en haut.
+Le résultat : un seul tableau de bord, tous les services couverts, trois listes déroulantes en haut.
 
-## Où lire ensuite
+## Pour aller plus loin
 
-- [Widgets](/docs/dashboards/widgets) — comment chaque widget consomme un filtre.
-- [Partage et tableaux de bord publics](/docs/dashboards/sharing) — variables dans les URL, y compris leurs valeurs pour les liens partagés.
-- [Créer un tableau de bord](/docs/dashboards/authoring) — la mécanique du canevas.
+- [Widgets](/docs/dashboards/widgets) — comment chaque widget utilise un filtre.
+- [Partage et tableaux de bord publics](/docs/dashboards/sharing) — variables et liens partagés.
+- [Création d'un tableau de bord](/docs/dashboards/authoring) — la mécanique du canevas.

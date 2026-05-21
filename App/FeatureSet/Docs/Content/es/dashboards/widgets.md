@@ -1,155 +1,153 @@
-# Widgets del panel
+# Widgets
 
-Un widget es una baldosa en un panel. Cada widget tiene un tipo (gráfico, valor, lista, …), una posición, un tamaño y una configuración. Esta página es el catálogo — qué muestra cada widget, qué toma como entrada, cuándo recurrir a él.
+Un widget es una casilla en un panel. Esta página lista cada widget que puedes añadir, qué muestra y cuándo recurrir a él.
 
-Para la mecánica del lienzo, consulta [Crear un panel](/docs/dashboards/authoring).
+Para saber cómo arrastrar widgets por el lienzo, consulta [Crear un Panel](/docs/dashboards/authoring).
 
-## Widgets de series temporales
+## Gráficos y números
 
-### Chart
+### Gráfico
 
-Un gráfico de líneas / barras / áreas de una o más series de métricas sobre el rango de tiempo del panel.
+Un gráfico de líneas, barras o áreas de una o más series de métricas durante el rango de tiempo del panel.
 
-**Configurar**:
+**Configuración**:
 
-- Una o más consultas de métrica (`metricQueryConfig` para una sola serie, `metricQueryConfigs` para varias).
-- **formula** opcional que combina varias consultas (por ejemplo, `errors / total * 100`).
-- **transformAsRate** opcional para contadores acumulativos de OpenTelemetry (por ejemplo, `system.disk.io`) — el widget calcula `(value - previousValue) / Δt` por bucket.
-- Visualización: series apiladas vs. superpuestas, unidad del eje Y, leyenda on/off, tipo de gráfico.
+- Una o más consultas de métricas.
+- Una fórmula opcional que combina dos consultas (por ejemplo, `errors / total * 100` para obtener una tasa de errores).
+- Una opción "mostrar como tasa" para contadores acumulativos que crecen sin reiniciarse.
+- Opciones de visualización: apilado o superpuesto, unidad del eje Y, posición de la leyenda, tipo de gráfico.
 
-Recurre a él cuando: las tendencias importan. Latencia de peticiones, conteo de errores a lo largo del tiempo, profundidad de cola, cualquier cosa donde la forma de la curva te dice algo.
+Úsalo cuando: las tendencias importan. Latencia a lo largo del tiempo, conteo de errores, profundidad de cola, cualquier cosa donde la forma de la línea cuenta la historia.
 
-### Value
+### Valor
 
-Un único número grande con umbrales opcionales y un sparkline opcional.
+Un solo número grande con umbrales coloreados opcionales.
 
-**Configurar**:
+**Configuración**:
 
-- Una consulta de métrica (valor único — generalmente `last`, `avg` o `max` sobre el rango de tiempo).
-- **Umbral de advertencia** opcional (amarillo por encima).
-- **Umbral crítico** opcional (rojo por encima).
-- Visualización: formato del número, sufijo de unidad.
+- Una consulta de métrica que devuelve un número (último valor, promedio o máximo durante el rango de tiempo).
+- Un umbral de **advertencia** opcional (amarillo cuando se supera).
+- Un umbral **crítico** opcional (rojo cuando se supera).
+- Formato y unidad de número.
 
-Recurre a él cuando: un solo número responde a la pregunta. Tasa de error actual, latencia P95 ahora mismo, conteo de incidentes abiertos.
+Úsalo cuando: un solo número responde la pregunta. Tasa de errores actual, latencia P95 ahora mismo, conteo de incidentes abiertos.
 
-### Gauge
+### Indicador
 
-Un indicador circular con un mínimo, máximo, banda de advertencia y banda crítica.
+Un indicador circular con un mínimo, un máximo, una banda de advertencia y una banda crítica.
 
-**Configurar**: la consulta de métrica y los cuatro límites (mínimo, máximo, advertencia, crítico).
+**Configuración**: una consulta de métrica y los cuatro límites.
 
-Recurre a él cuando: el valor se sitúa dentro de un rango conocido. Utilización de CPU (0–100%), llenado de disco, capacidad de cola.
+Úsalo cuando: el valor encaja dentro de un rango conocido. Porcentaje de CPU (0–100%), uso de disco, capacidad de cola.
 
-### Table
+### Tabla
 
-Una visualización tabular de los resultados de una consulta de métrica, una fila por grupo.
+Una tabla de resultados de métrica, una fila por grupo.
 
-**Configurar**: la consulta de métrica (típicamente agrupada por una etiqueta como `host.name` o `service.name`), las columnas a mostrar y un límite de filas.
+**Configuración**: una consulta de métrica (normalmente agrupada por una etiqueta como host o servicio), las columnas a mostrar y un límite de filas.
 
-Recurre a él cuando: quieres el desglose en lugar de la tendencia. Top 10 hosts más ruidosos, conteo de errores por servicio, tasa de peticiones por endpoint.
+Úsalo cuando: quieres un desglose en lugar de una tendencia. Top 10 de hosts más ruidosos, conteo de errores por servicio, solicitudes por endpoint.
 
-## Widget de anotación
-
-### Text
+## Texto
 
 Un bloque estático de Markdown.
 
-**Configurar**: el cuerpo Markdown. Encabezados, listas, enlaces, énfasis, code spans y bloques de código se renderizan.
+**Configuración**: el cuerpo en Markdown. Encabezados, listas, enlaces, énfasis y bloques de código se renderizan.
 
-Recurre a él cuando: quieres un encabezado de sección, un párrafo de contexto ("este panel cubre el servicio checkout"), una lista de enlaces a runbooks o paneles relacionados, o un banner temporal durante un incidente.
+Úsalo cuando: quieres un encabezado de sección, un párrafo de contexto, una lista de enlaces a runbooks o una banderola temporal durante un incidente.
 
 ## Logs y trazas
 
-### LogStream
+### Flujo de Logs
 
-Un tail en vivo de líneas de log que coinciden con un filtro.
+Un seguimiento en vivo de líneas de logs que coinciden con un filtro.
 
-**Configurar**: filtros de log (servicio, severidad, coincidencias de atributo), las columnas a mostrar.
+**Configuración**: filtros de logs (servicio, severidad, atributos) y las columnas a mostrar.
 
-Recurre a él cuando: quieres ver lo que la aplicación está diciendo *ahora mismo* en un panel, sin salir de la página para abrir el explorador de logs.
+Úsalo cuando: quieres ver qué está diciendo la aplicación ahora mismo, sin salir del panel.
 
-### TraceList
+### Lista de Trazas
 
-Una lista de trazas recientes que coinciden con un filtro, con duración, estado y nombre del servicio.
+Una lista de trazas recientes que coinciden con un filtro, con duración, estado y servicio.
 
-**Configurar**: filtros de trazas (servicio, estado, coincidencias de atributo).
+**Configuración**: filtros de trazas (servicio, estado, atributos).
 
-Recurre a él cuando: quieres una vista paginada de la actividad reciente en lugar de un gráfico. Emparejamiento común: un Chart de latencia arriba, un TraceList de trazas lentas debajo.
+Úsalo cuando: quieres una lista de actividad reciente en lugar de un gráfico. Un patrón común es un gráfico de latencia en la parte superior con una lista de trazas lentas debajo.
 
-## Listas operacionales
+## Listas en vivo
 
-### IncidentList
+### Lista de Incidentes
 
 Una lista en vivo de incidentes que coinciden con un filtro.
 
-**Configurar**: filtros por estado, severidad, etiquetas, monitor o equipo asignado.
+**Configuración**: filtros por estado, severidad, etiquetas, monitor o equipo.
 
-Recurre a él cuando: un panel está destinado a responder "¿qué está roto ahora mismo?".
+Úsalo cuando: el panel responde "¿qué está roto ahora mismo?".
 
-### AlertList
+### Lista de Alertas
 
 Una lista en vivo de alertas que coinciden con un filtro.
 
-**Configurar**: filtros por estado, severidad, etiquetas.
+**Configuración**: filtros por estado, severidad, etiquetas.
 
-Recurre a él cuando: paneles para flujos de trabajo dirigidos por alertas (por ejemplo, paneles de equipos de desarrollo que vigilan las alertas de su servicio).
+Úsalo cuando: un panel de equipo sigue las alertas de sus servicios.
 
-### MonitorList
+### Lista de Monitores
 
-Una lista en vivo de monitores que coinciden con un filtro, mostrando el estado actual de cada monitor.
+Una lista en vivo de monitores y su estado actual.
 
-**Configurar**: filtros por tipo de monitor, etiquetas o estado actual.
+**Configuración**: filtros por tipo de monitor, etiquetas o estado actual.
 
-Recurre a él cuando: quieres una vista a nivel de flota del estilo "¿están todos los sitios web activos?", o una lista por equipo de endpoints monitorizados.
+Úsalo cuando: quieres una vista de flota: "¿están todos los sitios activos?".
 
 ## Listas de recursos de Kubernetes
 
-Para los proyectos con un [Agente de Kubernetes](/docs/monitor/kubernetes-agent) instalado, los siguientes widgets de recursos en vivo están disponibles. Cada uno acepta filtros opcionales para `cluster`, `namespace` y etiquetas.
+Para proyectos con un [Kubernetes Agent](/docs/monitor/kubernetes-agent) instalado. Cada uno toma filtros opcionales para cluster, namespace y etiquetas.
 
-- **KubernetesPodList** — pods con fase, reinicios y asignación de nodo.
-- **KubernetesNodeList** — nodos con condiciones, capacidad y asignaciones.
-- **KubernetesNamespaceList** — namespaces y sus recuentos de cargas de trabajo.
-- **KubernetesDeploymentList** — deployments con réplicas deseadas vs. listas.
-- **KubernetesStatefulSetList** — stateful sets con réplicas listas.
-- **KubernetesDaemonSetList** — daemon sets con deseadas vs. listas.
-- **KubernetesJobList** — jobs con estado de completado.
-- **KubernetesCronJobList** — cron jobs con programación y última ejecución.
+- **Lista de Pods de Kubernetes** — pods con su fase, reinicios y nodo.
+- **Lista de Nodos de Kubernetes** — nodos con sus condiciones y capacidad.
+- **Lista de Namespaces de Kubernetes** — namespaces y conteos de cargas de trabajo.
+- **Lista de Deployments de Kubernetes** — deployments con réplicas deseadas vs. listas.
+- **Lista de StatefulSets de Kubernetes** — stateful sets con réplicas listas.
+- **Lista de DaemonSets de Kubernetes** — daemon sets con deseadas vs. listas.
+- **Lista de Jobs de Kubernetes** — jobs y su estado de finalización.
+- **Lista de CronJobs de Kubernetes** — cron jobs con programación y última ejecución.
 
-Recurre a estos cuando: quieres un solo panel que mezcle el estado de los recursos de Kubernetes con la telemetría de esas cargas de trabajo.
+Úsalos cuando: quieres un solo panel que mezcle el estado de Kubernetes con la telemetría de esas cargas de trabajo.
 
 ## Listas de recursos de Docker
 
-Para los proyectos con un monitor de Docker instalado:
+Para proyectos con monitorización de Docker configurada.
 
-- **DockerHostList** — hosts ejecutando Docker, con recuentos de contenedores.
-- **DockerContainerList** — contenedores con estado, imagen, host, uptime.
-- **DockerImageList** — imágenes y sus tamaños.
-- **DockerNetworkList** — redes Docker y recuentos de contenedores conectados.
-- **DockerVolumeList** — volúmenes Docker y su uso.
+- **Lista de Hosts de Docker** — hosts ejecutando Docker, con conteos de contenedores.
+- **Lista de Contenedores de Docker** — contenedores con estado, imagen, host, tiempo activo.
+- **Lista de Imágenes de Docker** — imágenes y sus tamaños.
+- **Lista de Redes de Docker** — redes de Docker y contenedores conectados.
+- **Lista de Volúmenes de Docker** — volúmenes de Docker y su uso.
 
 ## Infraestructura
 
-### HostList
+### Lista de Hosts
 
-Hosts monitorizados por el monitor de servidor de OneUptime — con estado actual, CPU, memoria y uptime.
+Hosts monitorizados por el monitor de servidor de OneUptime, con estado, CPU, memoria y tiempo activo.
 
-**Configurar**: filtros por etiquetas o estado de salud actual.
+**Configuración**: filtros por etiquetas o estado actual.
 
-## Elegir el widget adecuado
+## ¿Qué widget debo usar?
 
 Algunas reglas rápidas:
 
-- **¿Tendencia a lo largo del tiempo?** Chart.
-- **¿Un número que importa ahora mismo?** Value (o Gauge si tiene un rango natural).
-- **¿Desglose entre muchas cosas?** Table.
-- **¿Qué está pasando en el sistema ahora mismo?** LogStream, TraceList, IncidentList.
-- **¿Estado de una flota específica de recursos?** El widget de lista de recursos correspondiente.
-- **¿Un encabezado, un párrafo o un enlace?** Text.
+- **¿Tendencia a lo largo del tiempo?** Gráfico.
+- **¿Un número que importa ahora mismo?** Valor (o Indicador si tiene un mínimo/máximo claro).
+- **¿Desglose entre muchas cosas?** Tabla.
+- **¿Qué está pasando en el sistema ahora mismo?** Flujo de Logs, Lista de Trazas, Lista de Incidentes.
+- **¿El estado de un grupo específico de recursos?** El widget de lista correspondiente.
+- **¿Un encabezado, un párrafo o un enlace?** Texto.
 
-La mayoría de los paneles usan una mezcla — un Chart arriba, uno o dos Value al lado, un divisor Text, y luego una o dos listas debajo.
+La mayoría de los paneles mezclan varios: un gráfico en la parte superior, uno o dos valores al lado, un divisor de texto y una o dos listas debajo.
 
-## Qué leer a continuación
+## Dónde seguir leyendo
 
-- [Variables y filtros del panel](/docs/dashboards/variables) — hacer widgets reutilizables entre servicios / clientes / clusters.
-- [Crear un panel](/docs/dashboards/authoring) — el lienzo, la cuadrícula y el modo edit.
-- [Compartir y paneles públicos](/docs/dashboards/sharing) — exponer un panel fuera del equipo.
+- [Variables y Filtros](/docs/dashboards/variables) — hacer que los widgets sean reutilizables para muchos servicios o clientes.
+- [Crear un Panel](/docs/dashboards/authoring) — la mecánica del lienzo.
+- [Compartir y Paneles Públicos](/docs/dashboards/sharing) — compartir fuera de tu equipo.

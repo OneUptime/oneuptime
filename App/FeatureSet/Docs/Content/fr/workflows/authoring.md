@@ -1,75 +1,68 @@
-# Créer un workflow
+# Création d'un workflow
 
-Créez un workflow sous **Workflows → Create Workflow**, donnez-lui un nom et une description optionnelle, puis ouvrez l'onglet **Builder** pour commencer à déposer des nœuds sur le canevas.
+Pour créer un workflow, ouvrez **Workflows → Create Workflow**, donnez-lui un nom et cliquez sur l'onglet **Builder**. Vous verrez un canevas vide où vous construirez votre automatisation.
 
 ## Le canevas
 
-Le Builder est un graphe zoomable et déplaçable. Vous ajoutez des nœuds depuis une palette de composants, vous les connectez avec des arêtes et vous configurez les arguments de chaque nœud dans un panneau latéral. Un indicateur d'enregistrement dans l'en-tête vous dit si votre dernière modification a été persistée.
+Le Builder est un canevas en glisser-déposer. Vous y ajoutez des blocs depuis la palette située sur le côté, vous les reliez entre eux par des lignes et vous cliquez sur chaque bloc pour configurer son comportement. Les modifications sont enregistrées automatiquement — un indicateur en haut vous signale lorsque tout est sauvegardé.
 
-Un workflow commence toujours par exactement un nœud de **déclencheur**. Les déclencheurs n'ont pas de port d'entrée — c'est là que l'exécution commence. Tout en aval est un **composant**.
+Chaque workflow commence par un **déclencheur** au début. Tout le reste est un **composant** qui effectue une action.
 
-## Anatomie d'un nœud
-
-Chaque nœud possède :
+## Ce que contient un bloc
 
 | Champ | Rôle |
 | --- | --- |
-| **Titre** | L'étiquette affichée sur le canevas. Prend par défaut le nom du composant ; remplacez-le pour rendre les workflows complexes plus lisibles. |
-| **Arguments** | La configuration dont le composant a besoin pour faire son travail — une URL, un canal Slack, un extrait JavaScript, etc. Les arguments requis sont marqués d'un astérisque. |
-| **Ports d'entrée** | Prises à gauche du nœud où arrivent les arêtes entrantes. Les composants ont un port d'entrée appelé `in` ; les déclencheurs n'en ont aucun. |
-| **Ports de sortie** | Prises à droite d'où partent les arêtes sortantes. Les composants définissent des ports comme `success`, `error`, `yes`, `no`. |
-| **Valeurs de retour** | Données produites par le nœud — les charges utiles de ses ports de sortie. Les nœuds en aval y font référence par `{{NodeId.fieldName}}`. |
+| **Title** | Le nom affiché sur le canevas. Renommez-le pour faciliter la lecture des workflows complexes. |
+| **Settings** | Ce dont le bloc a besoin pour faire son travail — une URL, un canal Slack, un corps de message, etc. Les champs obligatoires sont marqués d'un astérisque. |
+| **Input** | Le point sur la gauche par lequel arrivent les lignes provenant des blocs précédents. |
+| **Outputs** | Les points sur la droite par lesquels partent les lignes vers les blocs suivants. De nombreux blocs ont des sorties distinctes **success** et **error** pour gérer les deux cas. |
 
-## Connecter des nœuds
+## Relier les blocs
 
-Glissez depuis un port de sortie vers le port d'entrée d'un nœud en aval pour créer une arête. Une arête depuis `success` n'exécute cette branche que si le nœud en amont a réussi ; une arête depuis `error` ne s'exécute que s'il a échoué. Si vous ne connectez pas un port, cette branche se termine simplement.
+Glissez depuis un point de sortie d'un bloc vers le point d'entrée du bloc suivant. La ligne que vous tracez détermine ce qui s'exécutera ensuite.
 
-Vous pouvez créer un éventail : un port de sortie peut alimenter plusieurs nœuds en aval, et ils s'exécutent tous en parallèle à partir de ce point.
+- Si vous reliez depuis **success**, le bloc suivant ne s'exécute que si le précédent a réussi.
+- Si vous reliez depuis **error**, le bloc suivant ne s'exécute que si le précédent a échoué.
+- Si vous ne reliez pas une sortie, ce chemin s'arrête simplement.
 
-## Configurer les arguments
+Vous pouvez relier une sortie à plusieurs blocs. Ils s'exécutent alors tous en même temps à partir de ce point.
 
-Cliquez sur un nœud pour ouvrir son panneau latéral. Chaque argument a un éditeur typé :
+## Configurer un bloc
 
-- **Text / URL / Email / Number / Password** — une entrée sur une seule ligne.
-- **JSON** — un éditeur JSON avec coloration syntaxique et un indicateur de validation.
-- **JavaScript** — un éditeur de code pour les extraits utilisés par le composant **Custom Code**.
-- **Markdown / HTML** — corps de texte enrichi pour les composants d'e-mail et de message.
-- **CronTab** — une expression de planification (utilisée par le déclencheur Schedule).
-- **Boolean** — un interrupteur.
-- **Select / Query** — listes déroulantes pour les champs qui prennent un ensemble fixe de valeurs ou une requête de type modèle.
+Cliquez sur un bloc pour ouvrir ses paramètres sur le côté. Chaque paramètre dispose du type d'entrée approprié — champs de texte, listes déroulantes, éditeurs de code, interrupteurs, etc.
 
-Tout champ texte accepte l'interpolation de variables — voir [Variables](/docs/workflows/variables) pour les règles.
+La plupart des champs de texte acceptent des variables — c'est ainsi que les données circulent d'un bloc à un autre. Voir [Variables](/docs/workflows/variables) pour la syntaxe.
 
-## Un premier workflow minimal
+## Votre premier workflow
 
-Le moyen le plus rapide de tester le canevas :
+La manière la plus rapide de prendre en main le canevas :
 
-1. Déposez un déclencheur **Manual**.
-2. Déposez un composant **Log** (sous **Utils**). Connectez le port de sortie du déclencheur au port d'entrée du composant Log.
-3. Dans l'argument du composant Log, tapez `Hello from {{Manual.JSON.name}}`.
+1. Glissez un déclencheur **Manual** sur le canevas.
+2. Glissez un composant **Log** (sous **Utils**) à côté. Reliez le déclencheur au composant Log.
+3. Dans le champ message du bloc Log, saisissez `Hello from {{Manual.JSON.name}}`.
 4. Enregistrez et activez le workflow.
 5. Cliquez sur **Run Manually**, collez `{ "name": "Ada" }` comme entrée et validez.
-6. Ouvrez l'onglet **Logs**. La dernière exécution montre la sortie capturée du nœud Log : `Hello from Ada`.
+6. Ouvrez l'onglet **Logs**. La dernière exécution affiche `Hello from Ada`.
 
-Cet aller-retour — glisser, câbler, configurer, exécuter, inspecter — est le rythme de création de chaque workflow.
+Ce cycle — glisser, relier, configurer, exécuter, vérifier le journal — est la façon dont vous construirez chaque workflow.
 
-## Enregistrer, activer et tester en production
+## Enregistrer et activer
 
-Les workflows sont stockés sous forme de graphe JSON dans la colonne `Workflow.graph`. Le Builder enregistre au fil de votre édition ; l'indicateur d'enregistrement dans l'en-tête indique quand la dernière modification a atteint le serveur. Il n'y a pas d'étape « publier » distincte.
+Le canevas s'enregistre au fil de votre travail. Il n'y a pas d'étape « publier » distincte.
 
-Mais : un workflow ne déclenche son déclencheur que si **isEnabled** est activé. Les nouveaux workflows sont livrés désactivés. Traitez ce drapeau comme votre interrupteur « prêt pour la prod » — construisez, cliquez sur **Run Manually** pour faire un essai à blanc avec une charge utile d'exemple, regardez les **Logs**, et seulement ensuite activez Enable.
+Mais un workflow ne s'exécute réellement que si **Enabled** est activé dans Settings. Les nouveaux workflows démarrent désactivés. Utilisez cet interrupteur comme filet de sécurité — construisez, testez avec **Run Manually**, vérifiez les journaux, puis activez-le.
 
-Si vous devez mettre un workflow en pause sans le supprimer (par exemple, pendant un incident non lié), basculez **isEnabled** sur off dans **Settings**. Les exécutions en cours continuent ; aucune nouvelle ne démarre.
+Pour mettre un workflow en pause sans le supprimer, désactivez **Enabled**. Les exécutions déjà en cours se terminent ; aucune nouvelle ne démarre.
 
-## Réordonner et réorganiser
+## Mettre de l'ordre
 
-- Glissez un nœud pour le repositionner. La position est stockée dans le graphe pour que la prochaine personne qui ouvre le canevas voie la même disposition.
-- Clic droit sur une arête pour la supprimer ; clic droit sur un nœud pour les options de suppression et de duplication.
-- Pour les workflows larges, disposez-les de gauche à droite afin que la direction d'exécution corresponde à votre direction de lecture.
+- Glissez les blocs pour les déplacer. La disposition est enregistrée, ainsi la personne suivante voit la même organisation.
+- Cliquez avec le bouton droit sur une ligne pour la supprimer. Cliquez avec le bouton droit sur un bloc pour le supprimer ou le dupliquer.
+- Pour les workflows larges, disposez-les de gauche à droite afin qu'ils se lisent dans le sens de leur exécution.
 
-## Où lire ensuite
+## Pour aller plus loin
 
-- [Déclencheurs](/docs/workflows/triggers) — les quatre familles de déclencheurs et ce que chacune expose comme valeurs de retour.
-- [Composants](/docs/workflows/components) — le catalogue complet et leurs arguments.
-- [Variables](/docs/workflows/variables) — comment référencer les données entre nœuds et depuis les variables globales.
-- [Exécutions et journaux](/docs/workflows/runs-and-logs) — comment déboguer un workflow qui se comporte mal.
+- [Déclencheurs](/docs/workflows/triggers) — les quatre manières de démarrer un workflow.
+- [Composants](/docs/workflows/components) — tous les blocs que vous pouvez ajouter.
+- [Variables](/docs/workflows/variables) — faire circuler les données entre les blocs.
+- [Exécutions et journaux](/docs/workflows/runs-and-logs) — vérifier ce qui s'est passé.

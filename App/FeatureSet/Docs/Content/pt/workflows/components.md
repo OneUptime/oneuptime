@@ -1,145 +1,147 @@
 # Componentes
 
-Componentes são os nós de ação que você coloca depois de um gatilho. Cada um faz uma única coisa — uma requisição HTTP, uma mensagem no Slack, uma ramificação por condição, um trecho de JavaScript — e expõe uma ou mais portas de saída para o próximo nó se conectar.
+Componentes são os blocos de construção que você adiciona depois do gatilho. Cada um faz uma coisa — enviar uma mensagem, chamar uma API, verificar uma condição — e se conecta ao que vier em seguida.
 
-Esta página é um catálogo. Para regras de conexão e o canvas em si, consulte [Criar um workflow](/docs/workflows/authoring).
+Esta página é o catálogo. Para saber como arrastar, soltar e conectá-los no canvas, veja [Criando um Workflow](/docs/workflows/authoring).
 
 ## API
 
-Faz uma requisição HTTP de saída para qualquer URL.
+Faça uma requisição HTTP para qualquer URL.
 
-**Argumentos**:
+**Configurações**:
 
-- **Method** — `GET`, `POST`, `PUT`, `PATCH`, `DELETE`.
-- **URL** — a URL da requisição. Interpolada.
-- **Request Headers** — objeto JSON com cabeçalhos.
-- **Request Body** — corpo JSON ou texto para `POST` / `PUT` / `PATCH`.
+- **Método** — `GET`, `POST`, `PUT`, `PATCH` ou `DELETE`.
+- **URL** — o endereço a ser chamado.
+- **Cabeçalhos** — quaisquer cabeçalhos a enviar.
+- **Corpo** — o corpo da requisição para `POST` / `PUT` / `PATCH`.
 
-**Portas de saída**:
+**Saídas**:
 
-- `success` — dispara quando o status da resposta é 2xx. Valores de retorno: `response-status`, `response-headers`, `response-body`.
-- `error` — dispara em falha de rede ou resposta não-2xx. Valor de retorno: a mensagem de `error`.
+- **Sucesso** — dispara quando a chamada funcionou (resposta 2xx). Repassa o status, cabeçalhos e corpo.
+- **Erro** — dispara em falha de rede ou resposta não 2xx. Repassa a mensagem de erro.
 
-Use para: qualquer API REST de terceiros, seus próprios endpoints administrativos, integrações leves que não têm um componente dedicado.
+Use para: qualquer API externa, seus próprios endpoints administrativos ou qualquer integração que não tenha um componente próprio.
 
 ## Webhook (saída)
 
-Um wrapper enxuto em torno do componente API para o caso comum de "disparar e esquecer". Faz um `POST` de um corpo JSON em uma URL e expõe um único par `success` / `error`.
+Uma versão mais simples do componente API para casos do tipo "dispare e esqueça". Faz um POST com um corpo JSON em uma URL.
 
-Prefira **API** se precisar ler o corpo da resposta a jusante; prefira **Webhook** se quiser apenas notificar outro sistema.
+Use **API** se você precisa ler a resposta. Use **Webhook** se você só quer enviar uma notificação e seguir em frente.
 
 ## Slack
 
-Posta uma mensagem em um canal do Slack usando a conexão de workspace do Slack do seu projeto.
+Posta uma mensagem em um canal do Slack.
 
-**Argumentos**:
+**Configurações**:
 
-- **Channel name** — o canal onde postar. O bot já deve ser membro desse canal.
-- **Message text** — o corpo. Interpolado; suporta o mrkdwn do Slack.
+- **Canal** — o nome do canal. O bot precisa já estar nesse canal.
+- **Mensagem** — o texto a enviar. Aceita formatação do Slack.
 
-Configure a conexão de workspace em **Project Settings → Workspace Connections → Slack** primeiro. Veja [Slack Workspace Connection](/docs/workspace-connections/slack).
+Primeiro conecte o Slack ao seu projeto em **Configurações do Projeto → Conexões de Workspace → Slack**. Veja [Conexão de Workspace do Slack](/docs/workspace-connections/slack).
 
 ## Microsoft Teams
 
-Posta uma mensagem em um canal do Microsoft Teams usando a conexão do Teams do seu projeto.
+Posta uma mensagem em um canal do Microsoft Teams.
 
-**Argumentos**:
+**Configurações**:
 
-- **Team & channel** — o destino.
-- **Message text** — o corpo.
+- **Equipe e canal** — onde postar.
+- **Mensagem** — o texto a enviar.
 
-Veja [Microsoft Teams Workspace Connection](/docs/workspace-connections/microsoft-teams) para configuração da conexão.
+Veja [Conexão de Workspace do Microsoft Teams](/docs/workspace-connections/microsoft-teams) para a configuração.
 
 ## Discord
 
-Posta uma mensagem em um canal do Discord via uma URL de webhook de entrada configurada no componente.
+Posta uma mensagem em um canal do Discord através de uma URL de webhook de entrada.
 
 ## Telegram
 
-Envia uma mensagem para um chat do Telegram via um token de bot e ID de chat configurados no componente.
+Envia uma mensagem para um chat do Telegram usando um token de bot e um ID de chat.
 
-## Email
+## E-mail
 
-Envia um e-mail pela configuração de SMTP do OneUptime.
+Envia um e-mail através do OneUptime.
 
-**Argumentos**:
+**Configurações**:
 
-- **To** — endereço de e-mail do destinatário.
-- **Subject** — interpolado.
-- **Body** — Markdown ou HTML.
+- **Para** — o endereço de e-mail do destinatário.
+- **Assunto** — a linha de assunto.
+- **Corpo** — a mensagem em Markdown ou HTML.
 
-O e-mail é enviado a partir do endereço de remetente configurado no projeto (veja [SMTP](/docs/emails/smtp)).
+O e-mail é enviado a partir do remetente configurado no seu projeto — veja [SMTP](/docs/emails/smtp).
 
-## Custom Code
+## Código Customizado
 
-Roda um trecho de JavaScript com acesso às variáveis do workflow e aos valores de retorno do nó a montante.
+Execute um pequeno trecho de JavaScript quando precisar de algo que os outros blocos não fazem.
 
-**Argumentos**:
+**Configurações**:
 
-- **Code** — o corpo do JavaScript. O valor da última expressão (ou qualquer coisa retornada de `(async () => { ... })()`) se torna o valor de retorno do componente.
-- **Arguments** — valores nomeados opcionais passados como `args`.
+- **Código** — seu JavaScript. O último valor (ou o que você retornar de uma função assíncrona) se torna a saída do bloco.
+- **Argumentos** — valores nomeados que você pode passar.
 
-**Portas de saída**: `success` (valor de retorno), `error` (exceção capturada).
+**Saídas**: sucesso (seu valor de retorno) e erro (qualquer exceção).
 
-Use para: transformar um payload entre dois sistemas, fazer um pequeno cálculo que não merece um componente próprio, chamar lógica exclusiva de JS. Scripts mais pesados que precisam rodar dentro da sua própria infraestrutura pertencem a um passo Bash ou JavaScript de [Runbook](/docs/runbooks/index).
+Use para: ajustar a forma dos dados entre dois sistemas, fazer um pequeno cálculo, qualquer coisa que não merece um bloco próprio. Para scripts mais pesados, use um [Runbook](/docs/runbooks/index).
 
 ## JSON
 
 Converte entre texto e JSON.
 
-- **JSON → Text** — serializa um objeto JSON para uma string (útil para alimentar o argumento `body` de um componente de saída que espera texto).
-- **Text → JSON** — parseia uma string em um objeto JSON. Útil quando uma API a montante retornou seu corpo como texto, mas você precisa ler um campo.
+- **JSON → Texto** — transforma um objeto JSON em uma string. Útil quando o próximo bloco espera texto.
+- **Texto → JSON** — analisa uma string em um objeto JSON. Útil quando algo chegou como texto e você precisa ler um campo.
 
-## Conditions
+## Condições
 
-Ramifica em uma comparação. Configure:
+Ramifica com base em uma comparação.
 
-- **Left value** — tipicamente uma referência interpolada como `{{Incident.title}}`.
-- **Operator** — `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `starts with`, `ends with`.
-- **Right value** — o valor com o qual comparar.
+**Configurações**:
 
-**Portas de saída**: `yes` e `no`. Conecte o resto do workflow ao ramo que casar com sua intenção.
+- **Valor à esquerda** — geralmente um valor de um bloco anterior.
+- **Operador** — `==`, `!=`, `>`, `>=`, `<`, `<=`, `contém`, `começa com`, `termina com`.
+- **Valor à direita** — com o que comparar.
 
-## Schedule (atraso)
+**Saídas**: **Sim** e **Não**. Conecte os próximos blocos ao ramo que você quiser.
 
-Pausa um workflow por uma duração configurada antes de continuar. Útil quando você precisa dar a um sistema externo um momento para estabilizar antes de checar o estado dele.
+## Atraso
+
+Pausa o workflow por um tempo definido antes de continuar. Útil quando você precisa dar um momento para outro sistema acompanhar.
 
 ## Log
 
-Escreve uma linha no log de execução do workflow. Pura ajuda de depuração; a linha é capturada na execução e fica visível em **Logs**. Sem efeito colateral externo.
+Escreve uma linha no log da execução. Sem efeito externo — só aparece nos logs do workflow para você ler. Bom para depuração.
 
-## Execute Workflow
+## Executar Workflow
 
-Chama outro workflow como sub-passo. O workflow chamado roda de forma independente (fire-and-forget) — o controle volta para quem chamou assim que a chamada é despachada.
+Chama outro workflow a partir deste. O workflow chamado roda por conta própria — o seu workflow continua sem esperar que ele termine.
 
-Use para fatorar lógica compartilhada entre múltiplos workflows: construa um workflow "post-to-incident-channel" uma vez e o chame em todos os outros workflows que precisam notificar o canal.
+Use para compartilhar lógica comum. Construa um workflow "postar no canal de incidentes" uma vez e chame-o de qualquer outro workflow que precise notificar o canal.
 
-Um limite de recursão impede que workflows chamem uns aos outros em loop infinito. Veja [Configuração e segurança](/docs/workflows/configuration).
+Existe um limite de segurança para que workflows não fiquem se chamando em loop. Veja [Configuração e Segurança](/docs/workflows/configuration).
 
-## Componentes de modelo (CRUD em entidades do OneUptime)
+## Componentes de dados do OneUptime
 
-Para toda entidade do OneUptime que suporta workflows (monitores, incidentes, alertas, páginas de status, políticas de plantão etc.), a paleta expõe automaticamente os seguintes componentes — pesquisáveis pelo nome da entidade:
+Para cada tipo de registro no OneUptime (monitores, incidentes, alertas, páginas de status, políticas de plantão e muitos outros), a paleta tem estes componentes — busque pelo nome do tipo:
 
-- **Find One {Entity}** — busca um único registro por consulta.
-- **Find {Entity}** — busca uma lista de registros por consulta (paginada).
-- **Create {Entity}** — insere um novo registro.
-- **Update {Entity}** — atualiza um registro por ID.
-- **Delete {Entity}** — exclui um registro por ID.
-- **Count {Entity}** — conta registros que casam com uma consulta.
+- **Buscar Um** — obtém um registro por ID ou filtro.
+- **Buscar** — obtém uma lista de registros.
+- **Criar** — adiciona um novo registro.
+- **Atualizar** — altera um registro.
+- **Excluir** — remove um registro.
+- **Contar** — conta registros que correspondem a um filtro.
 
-É assim que um workflow consegue ler e escrever o estado do OneUptime sem sair da plataforma. Por exemplo: um webhook da sua ferramenta de CI chama **Create Incident** com a mensagem de falha do build; ou um workflow agendado roda **Find Incident** a cada cinco minutos e envia por e-mail um resumo.
+É assim que um workflow pode ler e alterar dados do OneUptime. Por exemplo: um webhook da sua ferramenta de CI pode usar **Criar Incidente** para abrir um incidente com os detalhes da falha.
 
-## Escolhendo o componente certo
+## Qual componente devo usar?
 
-Algumas regras práticas:
+Algumas regras rápidas:
 
-- Se existe um componente dedicado para o que você quer fazer (Slack, Email, um CRUD em uma entidade do OneUptime), use-o — ele dá um tratamento de erro mais agradável e logs mais claros do que rolar o seu próprio.
-- Se você precisa chamar uma API HTTP externa que não tem um componente dedicado, use **API**.
-- Se você precisa *formatar* dados entre dois componentes, use **Custom Code** ou **JSON**.
-- Se você precisa tomar ações diferentes com base em um valor, use **Conditions**.
+- Se houver um bloco dedicado para o que você quer (Slack, E-mail, um registro do OneUptime), use-o — você ganha um tratamento de erros mais elegante e logs mais claros.
+- Para qualquer outra API externa, use **API**.
+- Para ajustar a forma dos dados entre blocos, use **Código Customizado** ou **JSON**.
+- Para tomar ações diferentes com base em um valor, use **Condições**.
 
-## O que ler a seguir
+## O que ler em seguida
 
-- [Variáveis](/docs/workflows/variables) — como alimentar dados de um componente para o próximo.
-- [Execuções e registros](/docs/workflows/runs-and-logs) — como inspecionar o que cada componente retornou durante uma execução.
-- [Configuração e segurança](/docs/workflows/configuration) — limites, propriedade e segredos.
+- [Variáveis](/docs/workflows/variables) — passando dados entre blocos.
+- [Execuções e Registros](/docs/workflows/runs-and-logs) — verificando o que cada bloco fez em uma execução.
+- [Configuração e Segurança](/docs/workflows/configuration) — limites, donos e segredos.

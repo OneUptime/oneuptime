@@ -1,75 +1,69 @@
 # Een dashboard maken
 
-Maak een dashboard aan onder **Dashboards → Create Dashboard**, geef het een naam en open het. Het canvas opent in **Edit**-modus, klaar voor widgets.
+Om een dashboard te maken, open je **Dashboards → Create Dashboard**, geef je het een naam en open je het. Het canvas opent in **Edit**-modus, klaar voor je om widgets toe te voegen.
 
 ## Het canvas
 
-Een dashboard is een grid. Het standaard canvas is **12 dashboard-eenheden breed** en **60 eenheden hoog** — je kunt de hoogte vergroten door rijen onder de onderkant toe te voegen. Elke eenheid is een vierkant dat meeschaalt met de viewport: op een desktop is het breder dan op een telefoon, maar elke widget houdt zijn verhoudingen.
+Een dashboard is een grid. Widgets klikken op hun plek — jij bepaalt waar elke staat en hoe groot hij is. Je kunt de pagina naar beneden laten groeien naarmate je rijen toevoegt. Elke widget behoudt zijn verhoudingen op grotere of kleinere schermen.
 
-Widgets nemen een rechthoek van eenheden in beslag. Jij bepaalt zowel de positie (linkerbovenhoek, gemeten in eenheden vanaf de linkerbovenhoek van het canvas) als de afmetingen (breedte en hoogte in eenheden). Minimumafmetingen zorgen ervoor dat een minuscule widget nog steeds leesbaar is.
+## Edit en View
 
-## Edit vs. View
+De schakelaar in de header wisselt tussen twee modi:
 
-De toggle in de paginakop schakelt tussen de twee modi:
+- **Edit** — het widget-palet staat open, je kunt widgets verslepen, vergroten of verkleinen en op elke widget klikken om zijn instellingen te wijzigen.
+- **View** — het dashboard is alleen-lezen, precies zoals bezoekers en andere teamleden het zien. Gebruik dit om het resultaat te bekijken voordat je deelt.
 
-- **Edit** — het widget-palet is open, widgets zijn sleepbaar en herschaalbaar, elke widget heeft een instellingen-tandwiel. Gebruik dit tijdens het bouwen.
-- **View** — het dashboard rendert alleen-lezen, precies zoals iemand met view-only-toegang (of een publieke bezoeker) het ziet. Gebruik dit om het resultaat te controleren voordat je gaat delen.
-
-Hetzelfde dashboard wordt in beide modi getoond — er is geen aparte "publish"-stap. Een bewerking opslaan heeft direct effect voor elke kijker.
+Het is in beide modi hetzelfde dashboard. Er is geen aparte "publish"-stap — elke bewerking is live zodra hij is opgeslagen.
 
 ## Een widget toevoegen
 
-1. Open het widget-palet (de **+**-knop in Edit-modus).
+1. Klik op de **+**-knop om het widget-palet te openen.
 2. Kies het widget-type. Zie [Widgets](/docs/dashboards/widgets) voor de catalogus.
-3. De widget landt op de eerstvolgende vrije positie op het canvas met een standaardgrootte.
-4. Klik op het tandwiel van de widget om zijn instellingenpaneel te openen.
-5. Configureer de databron (metric-query, lijstfilter, tekst-body, enz.) en eventuele weergaveopties (drempels, eenheden, assen, kolommen).
-6. Sleep de widget om hem te positioneren. Sleep een hoek om hem te herschalen.
+3. De widget verschijnt op het canvas.
+4. Klik op het tandwielicoon op de widget om zijn instellingen te openen.
+5. Kies de databron (een metric, een lijstfilter, een alinea tekst, enz.) en eventuele weergaveopties.
+6. Sleep de widget om hem te verplaatsen. Sleep een hoek om hem te vergroten of verkleinen.
 
-Herhaal. Het grid snapt widgets naar hele-eenheid-grenzen.
+## Waar de data vandaan komt
 
-## Databronnen configureren
+De meeste widgets lezen uit één van drie bronnen:
 
-De meeste widgets lezen uit één van drie plekken:
-
-- **Metrics** — een ClickHouse-gebaseerde metric-query. De widget bouwt een `metricQueryConfig` (één enkele reeks) of `metricQueryConfigs` (meerdere reeksen gestapeld of overlappend). Optioneel `transformAsRate` zet een cumulatieve OpenTelemetry-counter om in een veranderingsratio. Optioneel `formula` laat je twee queries combineren (bijvoorbeeld error count / total count).
-- **Live resource-lijsten** — incidenten, alerts, monitors, Kubernetes-resources, Docker-resources, hosts. Elke lijst-widget neemt een filter (bijvoorbeeld labels, status, namespace) en toont de matchende rijen live.
-- **Statische content** — de **Text**-widget neemt een Markdown-body. Gebruik die voor kopteksten, scheidingsstrepen, runbook-links en "wat is dit dashboard?"-annotaties.
-
-Voor metric-widgets weerspiegelt de configuratie de inline querybuilder die je elders in OneUptime ziet — kies een metric, kies een aggregatie, voeg `WHERE`-filters toe, kies een tijdgroepering. De query draait tegen de telemetry-data van je project.
+- **Metrics** — kies een metric en een aggregatie (gemiddelde, max, count, percentiel). Voeg filters toe. Kies hoe je het resultaat groepeert. Dit is dezelfde query-builder die je elders in OneUptime ziet.
+- **Live lijsten** — incidenten, alerts, monitors, Kubernetes-pods, Docker-containers, hosts. Elke lijst-widget neemt een filter en toont de overeenkomende items, live bijgewerkt.
+- **Statische content** — de **Text**-widget neemt een blok Markdown. Gebruik hem voor koppen, context, links naar runbooks of tijdelijke notities tijdens een incident.
 
 ## Drempels en opmaak
 
-Widgets die één enkel getal weergeven (**Value**, **Gauge**) nemen optionele drempels:
+Single-value-widgets (**Value**, **Gauge**) laten je instellen:
 
-- **Waarschuwingsdrempel** — render de waarde in geel wanneer hij deze overschrijdt.
-- **Kritieke drempel** — render de waarde in rood wanneer hij deze overschrijdt.
+- Een **warning threshold** — de kleur wordt geel wanneer de waarde deze passeert.
+- Een **critical threshold** — de kleur wordt rood wanneer de waarde deze passeert.
 
-Charts laten je de eenheid van de Y-as, de positie van de legenda en het al dan niet stapelen van reeksen instellen. Tabellen laten je kiezen welke kolommen je toont en de rijlimiet.
+Bij charts kun je de Y-as-eenheid instellen, kiezen waar de legenda komt en bepalen of series op elkaar gestapeld of overlapt worden weergegeven. Bij tabellen kun je de kolommen kiezen die je wilt tonen en hoeveel rijen.
 
 ## Tijdsbereik en refresh
 
-De dashboard-header draagt twee globale controls die elke metric-widget beïnvloeden:
+Bovenaan het dashboard beïnvloeden twee controls elke metric-widget:
 
-- **Tijdsbereik** — kies een preset (Afgelopen 1 uur, 24 uur, 7 dagen, 30 dagen) of een aangepast bereik. Elke metric-widget queryt tegen dit venster.
-- **Refresh-interval** — Uit, 5s, 10s, 30s, 1m, 5m, 15m. Voert de query van elke widget opnieuw uit op het gekozen ritme. Lijst-widgets die natively websockets ondersteunen werken bij ongeacht het gekozen interval.
+- **Tijdsbereik** — een preset (afgelopen uur, 24 uur, 7 dagen, 30 dagen) of een aangepast bereik. Elke chart en elk getal gebruikt dit venster.
+- **Refresh** — hoe vaak widgets opnieuw queryen. Uit, 5s, 10s, 30s, 1m, 5m, 15m. Live lijsten updaten zelf, ongeacht deze instelling.
 
-Voor widgets die het globale tijdsbereik negeren (bijvoorbeeld een tekstblok) heeft de control geen effect.
+Widgets die het tijdsbereik niet gebruiken (zoals een Text-widget) negeren beide controls.
 
 ## Opslaan
 
-Het canvas slaat automatisch op terwijl je werkt. Een kleine indicator in de header laat je zien wanneer de laatste wijziging is opgeslagen. Er is geen "publish" — elke bewerking is live zodra hij is opgeslagen. Als je een risicovolle wijziging maakt, dupliceer dan eerst het dashboard.
+Het canvas slaat zelf op terwijl je werkt. Een kleine indicator in de header vertelt je wanneer de laatste wijziging is opgeslagen. Als je een grote wijziging doorvoert, dupliceer dan eerst het dashboard zodat je een veilige kopie hebt.
 
-## Patronen die goed werken
+## Tips voor dashboards die goed verouderen
 
-- **Eén onderwerp per dashboard.** Weersta de neiging om "alles wat we monitoren" op één pagina te zetten. Drie dashboards gelabeld `oncall-checkout`, `oncall-payments`, `oncall-search` verouderen beter dan één mega-dashboard.
-- **Anker de bovenkant van de pagina met de belangrijkste widget.** Mensen scannen vanaf de bovenkant — zorg dat het eerste wat ze zien het antwoord is op "is dit systeem gezond?"
-- **Gebruik Text-widgets om secties te labelen.** Een korte koptekst om de paar rijen heen ("Latency" / "Errors" / "Capacity") maakt het dashboard van een afstand scanbaar.
-- **Gebruik variabelen in plaats van dupliceren.** Als je merkt dat je hetzelfde dashboard twee keer bouwt voor twee services, dan wil je een `service`-variabele. Zie [Variabelen en filters](/docs/dashboards/variables).
+- **Eén onderwerp per dashboard.** Probeer niet "alles wat we monitoren" op één pagina te zetten. Een paar gerichte dashboards verslaan één enorme pagina.
+- **Plaats de belangrijkste widget bovenaan.** Mensen scannen van boven naar beneden — maak het eerste wat ze zien het antwoord op "is dit systeem gezond?"
+- **Label secties met Text-widgets.** Een korte kop om de paar rijen ("Latency", "Errors", "Capacity") maakt de pagina van afstand leesbaar.
+- **Gebruik variabelen in plaats van te dupliceren.** Als je op het punt staat hetzelfde dashboard te bouwen voor een tweede service, bouw dan één dashboard met een `service`-variabele. Zie [Variabelen en filters](/docs/dashboards/variables).
 
 ## Waar verder lezen
 
-- [Widgets](/docs/dashboards/widgets) — de catalogus en configuratie per widget.
-- [Variabelen en filters](/docs/dashboards/variables) — templaten met variabelen, attribuutfilters en tijdsbereik.
-- [Delen en publieke dashboards](/docs/dashboards/sharing) — een dashboard bereikbaar maken buiten het team.
-- [Configuratie en machtigingen](/docs/dashboards/configuration) — eigenaarschap en toegangscontrole.
+- [Widgets](/docs/dashboards/widgets) — de catalogus.
+- [Variabelen en filters](/docs/dashboards/variables) — variabelen, filters en het tijdsbereik.
+- [Delen en publieke dashboards](/docs/dashboards/sharing) — delen buiten je team.
+- [Configuratie en machtigingen](/docs/dashboards/configuration) — eigenaren en toegangscontrole.

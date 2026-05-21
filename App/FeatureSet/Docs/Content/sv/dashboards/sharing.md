@@ -1,12 +1,12 @@
 # Delning & offentliga instrumentpaneler
 
-De flesta instrumentpaneler är privata för ditt projekt — bara inloggade medlemmar i projektet kan se dem. Men OneUptime låter dig också publicera en instrumentpanel på en offentlig URL, valfritt skydda den med ett lösenord, begränsa den efter IP och hosta den på en anpassad domän. Den här sidan täcker alla fyra.
+Som standard är instrumentpaneler privata för ditt projekt — endast inloggade teammedlemmar kan se dem. Men OneUptime låter dig också dela en instrumentpanel offentligt, skydda den med ett lösenord, begränsa den till vissa IP:er och hosta den på din egen domän. Den här sidan täcker alla fyra.
 
 ## Privata instrumentpaneler (standard)
 
-Som standard är en instrumentpanel nåbar endast för inloggade användare som är projektmedlemmar. URL:en ser ut som `https://oneuptime.com/dashboards/<id>/view`. Direktåtkomst kräver autentisering och rätt läsbehörighet på instrumentpanelen.
+En instrumentpanel är endast nåbar för inloggade medlemmar i ditt projekt. URL:en ser ut som `https://oneuptime.com/dashboards/<id>/view` och kräver inloggning.
 
-Inom projektet styr ägarskap och etiketter vem som ser vad — se [Konfiguration & behörigheter](/docs/dashboards/configuration).
+Inom projektet styr ägare och etiketter vem som ser vad — se [Konfiguration & behörigheter](/docs/dashboards/configuration).
 
 ## Offentliga instrumentpaneler
 
@@ -14,72 +14,72 @@ Under **Dashboard → Settings**, slå på **Public Dashboard**. Instrumentpanel
 
 En offentlig instrumentpanel:
 
-- Renderas endast i **View**-läge. Offentliga besökare kan inte redigera, ändra tidsintervalls-URL:er åsido, eller se widget-paletten.
-- Inkluderar de variabler du har definierat — besökare kan välja från rullgardinsmenyer precis som interna användare.
-- Bär med sig den **varumärkning** du konfigurerar under Settings: sidtitel, sidbeskrivning, logotypfil, favicon. Det här är vad som dyker upp i webbläsarens flik och i sociala förhandsvisningar.
+- Öppnas alltid i **View**-läge. Offentliga besökare kan inte redigera eller se widget-paletten.
+- Inkluderar variablerna du har lagt till. Besökare väljer från samma rullgardinsmenyer som ditt team använder.
+- Använder **varumärket** du ställer in i Settings — sidtitel, beskrivning, logotyp, favicon.
 
-Behandla aktivering av **Public Dashboard** som att publicera en webbsida. Varje widget på instrumentpanelen är nu världs-läsbar. Granska vad som finns på arbetsytan innan du slår på växeln.
+Behandla aktivering av en offentlig instrumentpanel som att publicera en webbsida. Varje widget på den blir världsläsbar. Titta på vad som finns på arbetsytan innan du slår på växeln.
 
-## Masterlösenord
+## Huvudlösenord
 
-För att grinda en offentlig instrumentpanel med ett lösenord istället för att göra den helt öppen:
+För att sätta ett lösenord på en offentlig instrumentpanel:
 
-1. Aktivera **Public Dashboard**.
-2. Aktivera **Master Password**.
-3. Sätt lösenordet.
+1. Slå på **Public Dashboard**.
+2. Slå på **Master Password**.
+3. Ställ in lösenordet.
 
-Besökare möts av en lösenordsprompt innan instrumentpanelen renderas. Lösenordet hashas i vila; bara hashen lagras.
+Besökare ser en lösenordsprompt innan instrumentpanelen visas. Lösenordet sparas som en hash — vi ser aldrig det faktiska lösenordet.
 
-Använd ett masterlösenord när:
+Använd ett huvudlösenord när:
 
-- Du vill dela med en partner eller kund men inte vill att URL:en ska vara giltig om den läcker.
-- Instrumentpanelen är "semi-offentlig" — öppen nog att du inte vill ha OneUptime-konton för varje tittare, men inte öppen nog att läggas på det öppna internet.
+- Du vill dela med en partner eller kund men inte vill att URL:en ska vara användbar om den läcker.
+- Instrumentpanelen är "halvoffentlig" — öppen nog att du inte vill bjuda in varje tittare som en teammedlem, men inte öppen nog att läggas ut på det öppna internet.
 
-För högvärdesgrindning (per-tittare-konton, granskningsspår över vem som såg vad), håll instrumentpanelen privat och bjud in tittare till projektet som endast-läs-medlemmar.
+För starkare grindkontroll (separata konton per tittare, en granskningslogg över vem som tittade på vad), behåll instrumentpanelen privat och bjud in tittare som teammedlemmar med endast läsbehörighet.
 
 ## IP-tillåtslista
 
-På **Scale**-planen kan du begränsa en offentlig instrumentpanel till en lista över käll-IP:er eller CIDR-omfång. Konfigurera listan under **Dashboard → Settings → IP Whitelist**.
+På **Scale**-planen kan du begränsa en offentlig instrumentpanel till en lista över IP-adresser eller intervall. Konfigurera det under **Dashboard → Settings → IP Whitelist**.
 
-Använd en IP-tillåtslista när:
+Använd det när:
 
-- Instrumentpanelen ska bara vara nåbar från ditt kontor eller VPN.
-- En leverantörsportal ska bara vara nåbar från deras publicerade utgående IP:er.
-- Du vill ha försvar i djupled ovanpå ett masterlösenord.
+- Instrumentpanelen endast ska vara nåbar från ditt kontor eller VPN.
+- En leverantörsportal endast ska vara nåbar från deras kända IP:er.
+- Du vill ha extra skydd ovanpå ett huvudlösenord.
 
-Förfrågningar från någon annan IP får en 403.
+Förfrågningar från andra IP:er avvisas.
 
 ## Anpassade domäner
 
-Standard är att en offentlig instrumentpanel serveras på `oneuptime.com`. För att hosta den på din egen subdomän (t.ex. `dashboard.acme.com`):
+Som standard serveras en offentlig instrumentpanel på `oneuptime.com`. För att hosta den på din egen subdomän som `dashboard.acme.com`:
 
-1. Lägg till en CNAME-post på din DNS som pekar subdomänen till OneUptimes publicerade mål.
+1. Lägg till en CNAME-post på din DNS som pekar subdomänen till OneUptimes mål.
 2. Under **Dashboard → Settings → Custom Domains**, lägg till domänen.
-3. Verifiera DNS-posten (OneUptime kontrollerar den åt dig).
-4. När den är verifierad är instrumentpanelen nåbar på både OneUptime-URL:en och din anpassade domän.
+3. Verifiera den. OneUptime kontrollerar DNS-posten åt dig.
+4. När den är verifierad är instrumentpanelen nåbar på både din anpassade domän och den ursprungliga URL:en.
 
 Anpassade domäner är användbara för:
 
-- Kundvända instrumentpaneler på ditt varumärke.
+- Kundvända instrumentpaneler med ditt eget varumärke.
 - Sambrandade partnerinstrumentpaneler.
-- SEO på en offentlig hälsosida.
+- Offentliga hälsosidor med sin egen URL.
 
-Du kan koppla flera anpassade domäner till en instrumentpanel om du serverar samma innehåll till flera målgrupper.
+Du kan koppla mer än en anpassad domän till en enskild instrumentpanel om du serverar samma innehåll till flera målgrupper.
 
-## Varumärkning för offentliga instrumentpaneler
+## Varumärke
 
-Under **Dashboard → Settings**, konfigurera:
+Under **Dashboard → Settings** kan du konfigurera:
 
-- **Sidtitel** — `<title>`-taggen och rubriken som besökare ser.
-- **Sidbeskrivning** — metabeskrivningen som används av sökmotorer och sociala förhandsvisningar.
-- **Logotypfil** — ladda upp en PNG/SVG; visas i instrumentpanelens sidhuvud.
-- **Favicon** — uppladdad; visas i webbläsarens flik.
+- **Sidtitel** — vad som visas i webbläsarfliken och högst upp på sidan.
+- **Sidbeskrivning** — beskrivningen som används av sökmotorer och förhandsvisningar i sociala medier.
+- **Logotyp** — ladda upp en PNG eller SVG som visas i sidhuvudet.
+- **Favicon** — den lilla ikonen i webbläsarfliken.
 
-Varumärkning gäller endast offentlig-lägesrendering. Interna tittare ser alltid OneUptimes varumärkning.
+Varumärket gäller endast när instrumentpanelen visas offentligt. Interna tittare ser alltid OneUptimes varumärke.
 
 ## Inbäddning
 
-Du kan bädda in en offentlig instrumentpanel i en `<iframe>` på din egen webbplats:
+Du kan bädda in en offentlig instrumentpanel på din egen sajt med en iframe:
 
 ```html
 <iframe src="https://dashboard.acme.com/view"
@@ -87,16 +87,16 @@ Du kan bädda in en offentlig instrumentpanel i en `<iframe>` på din egen webbp
         frameborder="0"></iframe>
 ```
 
-Om du bäddar in en instrumentpanel som skyddas av ett masterlösenord ser besökaren fortfarande lösenordsprompten inuti iframen.
+Om instrumentpanelen har ett huvudlösenord ser besökare lösenordsprompten inuti iframen.
 
-## Delbara URL:er med variabeltillstånd
+## Delbara URL:er
 
-Instrumentpanelens URL kodar de aktuella variabelvalen och tidsintervallet som query-parametrar. Justera rullgardinsmenyerna, kopiera URL:en och klistra in den i chatten — mottagaren ser instrumentpanelen med exakt samma vy, inklusive tidsintervallet du tittade på.
+Instrumentpanelens URL inkluderar de aktuella variabelvalen och tidsintervallet som query-parametrar. Justera rullgardinsmenyerna, kopiera URL:en, klistra in den i en chatt — personen som öppnar länken ser instrumentpanelen med exakt samma vy.
 
-Det här är det snabbaste sättet att peka en kollega mot "instrumentpanelen vid den tid då incidenten började" — pinna tidsintervallet, kopiera, klistra in.
+Detta är det snabbaste sättet att peka en lagkamrat på "instrumentpanelen vid den tidpunkt incidenten började." Fäst tidsintervallet, kopiera, klistra in.
 
-## Var läsa vidare
+## Läs vidare
 
 - [Konfiguration & behörigheter](/docs/dashboards/configuration) — åtkomstkontroll i privat läge.
-- [Variabler & filter](/docs/dashboards/variables) — variabler som offentliga besökare kan interagera med.
-- [Skapa en instrumentpanel](/docs/dashboards/authoring) — vad som hamnar på arbetsytan från början.
+- [Variabler & filter](/docs/dashboards/variables) — variabler som besökare kan interagera med.
+- [Skapa en instrumentpanel](/docs/dashboards/authoring) — vad som hamnar på arbetsytan.

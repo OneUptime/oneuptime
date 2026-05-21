@@ -1,106 +1,81 @@
 # Trigger
 
-Un trigger è il nodo di partenza di un workflow. Non ha porta di input — l'esecuzione comincia qui. OneUptime supporta quattro famiglie di trigger; ogni workflow ne usa esattamente uno.
+Un trigger e il primo blocco di un workflow — decide quando il workflow viene eseguito. Ogni workflow ha esattamente un trigger. Puoi sceglierne tra quattro tipologie.
 
 ## Manuale
 
-Esegui un workflow su richiesta cliccando **Esegui manualmente** sulla pagina del workflow. Puoi incollare un payload JSON opzionale che il workflow può leggere come `{{Manual.JSON}}`.
+Esegui il workflow su richiesta cliccando **Run Manually** nella pagina del workflow. Puoi incollare un payload JSON che il resto del workflow potra leggere.
 
-Usalo quando vuoi un pulsante che faccia partire un'automazione — un workflow "ruota la chiave on-call" o "ricostruisci l'indice di ricerca" da un clic, che non ha bisogno di una schedulazione ricorrente o di un evento per essere innescato.
+Adatto per: automazioni "one-click" per cui vuoi un pulsante, come "ruota questa chiave" o "invia un test di allarme."
 
-**Argomenti**: nessuno.
-
-**Valori di ritorno**:
-
-| Nome | Tipo | Descrizione |
-| --- | --- | --- |
-| `JSON` | JSON | Il payload JSON fornito al momento dell'esecuzione, oppure un oggetto vuoto. |
+**Output**: il JSON che hai incollato, o un oggetto vuoto se non l'hai fornito.
 
 ## Schedule
 
-Esegui un workflow su una schedulazione cron. Configura la cadenza con un'espressione cron standard.
+Esegui il workflow su una pianificazione ricorrente utilizzando un'espressione cron.
 
-Usalo per job ricorrenti: pulizia notturna, sincronizzazione oraria, esportazione settimanale.
+Adatto per: pulizia notturna, sincronizzazione oraria, report settimanali.
 
-**Argomenti**:
+**Impostazione**: un'espressione cron. Alcune comuni:
 
-| Nome | Tipo | Descrizione |
-| --- | --- | --- |
-| `Schedule at` | CronTab | Espressione cron standard a 5 campi. Per esempio, `0 * * * *` viene eseguito all'inizio di ogni ora, `*/5 * * * *` ogni cinque minuti. |
+- `0 * * * *` — ogni ora, allo scoccare dell'ora.
+- `*/5 * * * *` — ogni 5 minuti.
+- `0 9 * * 1` — ogni lunedi alle 9:00.
 
-**Valori di ritorno**:
-
-| Nome | Tipo | Descrizione |
-| --- | --- | --- |
-| `executedAt` | Date | L'orario schedulato dell'esecuzione. |
-
-I workflow schedulati girano sul Workflow Worker nella regione del progetto. Se il worker è temporaneamente non disponibile, l'esecuzione viene dispatchata quando si riprende — non serve proteggersi da tick persi per brevi interruzioni.
+Se il sistema e brevemente non disponibile, l'esecuzione viene avviata non appena si riprende — non devi preoccuparti di scatti persi per brevi interruzioni.
 
 ## Webhook
 
-Espone un URL HTTPS univoco a cui un sistema esterno fa `POST`. Gli header, i parametri di query e il body della richiesta sono esposti come valori di ritorno che i componenti a valle possono leggere.
+OneUptime crea un URL univoco. Qualunque cosa raggiunga quell'URL avvia il workflow. Gli header, i parametri della query e il body della richiesta vengono passati al workflow.
 
-Usalo per ricevere dati *dentro* OneUptime da un sistema di terze parti: callback CI/CD, allarmi da un altro tool di monitoring, signup di clienti dal tuo CRM.
+Adatto per: ricevere dati in OneUptime da un altro strumento — callback CI/CD, allarmi da altri sistemi di monitoraggio, registrazioni nel tuo CRM.
 
-**Argomenti**: nessuno. L'URL viene allocato automaticamente al salvataggio del workflow e mostrato sul nodo trigger. Trattalo come un segreto — chiunque conosca l'URL può innescare il workflow.
+**Output**:
 
-**Valori di ritorno**:
+- **Request Headers** — tutti gli header della richiesta in arrivo.
+- **Request Query Params** — la query string analizzata.
+- **Request Body** — il corpo analizzato (o il testo grezzo se non e JSON).
 
-| Nome | Tipo | Descrizione |
-| --- | --- | --- |
-| `Request Headers` | JSON | Tutti gli header dalla richiesta HTTP in arrivo. |
-| `Request Query Params` | JSON | La query string parsata. |
-| `Request Body` | JSON | Il body della richiesta parsato. Se il body non è JSON valido, arriva come stringa sotto la chiave `raw`. |
+L'URL accetta sia `GET` che `POST`. Il chiamante riceve un riscontro rapido — il workflow vero e proprio viene eseguito in background.
 
-Il webhook accetta `GET` e `POST`. La risposta al chiamante è un `200 OK` con un acknowledgment JSON non appena l'esecuzione viene messa in coda — il workflow stesso gira in modo asincrono, quindi non aspettarti di poter leggere il risultato dei componenti a valle nella risposta HTTP.
+Tratta l'URL come una password. Chiunque lo possieda puo avviare il tuo workflow.
 
-## Trigger su evento di modello
+## Trigger sugli eventi di OneUptime
 
-Quasi ogni entità OneUptime — monitor, incidenti, allarmi, eventi di manutenzione programmata, status page, policy on-call, team, servizi di telemetria e molti altri — espone tre trigger:
+Quasi tutti gli elementi di OneUptime — monitor, incidenti, allarmi, manutenzioni programmate, status page, policy on-call, team — possono attivare un workflow. Ognuno offre tre eventi:
 
-- **On Create** — scatta quando viene creato un nuovo record di questo tipo.
-- **On Update** — scatta quando un record esistente viene modificato. Il trigger espone sia i valori vecchi sia quelli nuovi.
-- **On Delete** — scatta quando un record viene cancellato.
+- **On Create** — scatta quando ne viene aggiunto uno nuovo.
+- **On Update** — scatta quando ne viene modificato uno.
+- **On Delete** — scatta quando ne viene eliminato uno.
 
-È così che costruisci automazioni "quando succede X in OneUptime, fai Y" senza polling.
+Ecco come costruire "quando X accade in OneUptime, fai Y" senza dover controllare le cose in un ciclo.
 
-Il modello stesso viene esposto come valore di ritorno con gli stessi nomi di campo che vedi sulla risorsa. Ad esempio, il trigger **Incident → On Create** ritorna l'intero oggetto `Incident` cosicché i nodi a valle possano leggere `{{Incident.title}}`, `{{Incident.description}}`, `{{Incident.incidentSeverityId}}`, ecc.
+Il record completo viene passato al blocco successivo. Per esempio, il trigger **Incident → On Create** passa il nuovo incidente, cosi il blocco successivo puo leggerne titolo, descrizione, severita e qualsiasi altro campo.
 
-**Argomenti**: tipicamente nessuno per create/delete. I trigger di update possono permetterti di restringere i campi a cui vuoi reagire, in modo da non scattare su modifiche cosmetiche.
+### Eventi piu utilizzati dai team
 
-**Valori di ritorno** (variano per modello):
+- **Incident** — reagisci quando un incidente viene aperto, aggiornato (preso in carico, risolto) o eliminato.
+- **Alert** — gli stessi tre eventi per gli allarmi.
+- **Monitor** — reagisci quando un monitor viene aggiunto, modificato o rimosso.
+- **Scheduled Maintenance** — annuncia automaticamente una finestra di manutenzione quando viene pianificata.
+- **Status Page Subscriber** — dai il benvenuto a chi si iscrive a una status page.
+- **On-Call Duty Policy** — sincronizza le modifiche alla pianificazione con un altro sistema di turni.
 
-| Nome | Tipo | Descrizione |
-| --- | --- | --- |
-| Campi del modello | (varia) | Ogni colonna sull'entità — nome, stato, timestamp, foreign key. |
-| `previous` (solo Update) | JSON | Il record com'era prima della modifica. |
+Cerca nel pannello dei trigger per nome per trovare quello che ti serve.
 
-### Trigger di modello comuni
+## Quale trigger usare?
 
-Una lista non esaustiva degli eventi di modello che i team usano più spesso:
-
-- **Incident** — `On Create`, `On Update` (usalo per reagire a cambi di stato come Acknowledged o Resolved), `On Delete`.
-- **Alert** — gli stessi tre eventi sul modello allarme.
-- **Monitor** — reagisci quando un monitor viene aggiunto, modificato o rimosso; combinalo con condizioni per agire solo sui monitor di produzione.
-- **Scheduled Maintenance** — automatizza annunci a valle quando una finestra di manutenzione viene creata o cambia stato.
-- **Status Page Subscriber** — fai partire un flusso di benvenuto quando qualcuno si iscrive.
-- **On-Call Duty Policy** — sincronizza i cambi di schedulazione con una rotazione esterna.
-
-Se il modello è esposto nell'API OneUptime, quasi sicuramente può innescare un workflow — cerca nella palette dei trigger per nome dell'entità.
-
-## Scegliere il trigger giusto
-
-| Se vuoi… | Usa |
+| Se vuoi… | Scegli |
 | --- | --- |
-| Costruire un pulsante su un workflow che qualcuno clicca | **Manual** |
-| Eseguire un job ogni N minuti/ore/giorni | **Schedule** |
-| Far inviare dati a OneUptime da un sistema esterno | **Webhook** |
-| Reagire a qualcosa che succede *dentro* OneUptime | **Evento di modello** |
+| Cliccare un pulsante per eseguire il workflow | **Manual** |
+| Eseguire su una pianificazione ricorrente | **Schedule** |
+| Far inviare dati a un altro sistema | **Webhook** |
+| Reagire a qualcosa all'interno di OneUptime | **OneUptime event** |
 
-I workflow possono avere un solo trigger. Se hai bisogno che due segnali di partenza diversi condividano la maggior parte della stessa logica, fattorizza i passi condivisi in un solo workflow e chiamalo da due workflow "wrapper" sottili tramite il componente **Execute Workflow** (vedi [Componenti](/docs/workflows/components)).
+Un workflow puo avere un solo trigger. Se hai bisogno di due modi per avviare la stessa automazione, costruisci la logica condivisa in un workflow e richiamala da due workflow "wrapper" sottili usando il componente **Execute Workflow**.
 
-## Cosa leggere dopo
+## Letture successive
 
-- [Componenti](/docs/workflows/components) — le azioni da collegare dopo il trigger.
-- [Variabili](/docs/workflows/variables) — come leggere i valori di ritorno del trigger dai nodi a valle.
-- [Esecuzioni e log](/docs/workflows/runs-and-logs) — come confermare che il tuo trigger sta scattando.
+- [Componenti](/docs/workflows/components) — le azioni che aggiungi dopo il trigger.
+- [Variabili](/docs/workflows/variables) — leggere l'output del trigger dai blocchi successivi.
+- [Esecuzioni e log](/docs/workflows/runs-and-logs) — confermare che il trigger sia scattato.

@@ -1,99 +1,99 @@
 # Variabler
 
-En arbeidsflyt er bare nyttig når data flyter gjennom den. Variabler er hvordan disse dataene beveger seg — fra triggeren inn i første komponent, fra én komponents output inn i neste komponents input, og fra prosjektnivå-hemmeligheter til hvor enn de blir referert.
+Arbeidsflyter handler om å flytte data — fra triggeren til den første blokken, fra én blokk til den neste, og fra delte verdier inn dit du trenger dem. Variabler er hvordan disse dataene beveger seg.
 
-OneUptime har to typer variabler og én interpoleringssyntaks som fungerer for begge.
+Det finnes to typer, og de deler samme syntaks.
 
 ## Globale variabler
 
-Prosjekt-omfattende verdier definert én gang under **Arbeidsflyter → Globale variabler**. Tenk API-nøkler, base-URL-er, kanalnavn — alt du ikke vil hardkode i ti arbeidsflyter.
+Prosjektomfattende verdier du lagrer én gang og gjenbruker overalt. Tenk API-nøkler, URL-er, kanalnavn — alt du ikke vil kopiere inn i ti forskjellige arbeidsflyter.
 
-En global variabel har:
+Du finner dem under **Arbeidsflyter → Globale variabler**. Hver har:
 
-- **Name** — identifikatoren du refererer til den med. Bruk `UPPER_SNAKE_CASE` for å gjøre den synlig i maler.
-- **Value** — strengverdien. Flerlinjeverdier støttes.
-- **Is Secret** — når på er verdien skrive-bare i UI-et etter lagring og redigeres ut av kjøringslogger.
+- **Navn** — hvordan du refererer til den. Bruk `UPPER_SNAKE_CASE` slik at den skiller seg ut i blokkene dine.
+- **Verdi** — selve verdien. Verdier med flere linjer fungerer også.
+- **Er hemmelig** — når på, er verdien skjult i grensesnittet etter at du lagrer, og er skjult fra kjøringsloggene.
 
-Referer en global variabel fra hvor som helst i en hvilken som helst arbeidsflyt med:
+Bruk en global variabel i en hvilken som helst arbeidsflyt med:
 
 ```
 {{variable.NAME}}
 ```
 
-For eksempel, hvis du definerte `PAGERDUTY_KEY` som en hemmelig variabel, kan hver API-komponent som kaller PagerDuty lese den som `{{variable.PAGERDUTY_KEY}}` uten at noen ser den faktiske nøkkelen i arbeidsflytens JSON.
+For eksempel, hvis du lagret PagerDuty-nøkkelen din som `PAGERDUTY_KEY`, kan en hvilken som helst blokk bruke den som `{{variable.PAGERDUTY_KEY}}` — selve nøkkelen vises aldri i arbeidsflyten eller loggene dens.
 
-## Lokale variabler
+## Lokale variabler (data fra tidligere blokker)
 
-Lokale variabler er returverdiene til noder som allerede har kjørt i denne utførelsen. Hver trigger og hver komponent publiserer én — se [Triggere](/docs/workflows/triggers) og [Komponenter](/docs/workflows/components) for listene per node.
+Lokale variabler er utdata fra blokker som allerede har kjørt i denne eksekveringen. Hver trigger og hver komponent produserer noe utdata du kan lese.
 
-Referer en lokal variabel som:
+Refererer til utdata fra en tidligere blokk slik:
 
 ```
-{{NodeId.fieldName}}
+{{BlockName.fieldName}}
 ```
 
-`NodeId` er triggerens eller komponentens navn på lerretet (du kan gi det nytt navn for lesbarhet — hold det kort og `PascalCase` så referansene forblir rene). `fieldName` er det noden publiserer.
+`BlockName` er navnet på triggeren eller komponenten på lerretet (du kan gi den et nytt, kort og tydelig navn). `fieldName` er hva enn den blokken produserer.
 
 Eksempler:
 
-- Etter en **API**-komponent kalt `LookupUser` returnerer vellykket, kan nedstrømsnoder lese statuskoden som `{{LookupUser.response-status}}` og den parsede body-en som `{{LookupUser.response-body}}`.
-- Etter en **Incident → On Create**-trigger kalt `Incident` kan du lese `{{Incident.title}}`, `{{Incident.description}}`, `{{Incident.incidentSeverityId}}` og en hvilken som helst annen kolonne på hendelsen.
-- Etter en **Custom Code**-komponent kalt `Transform` eksponeres den returnerte verdien som `{{Transform.value}}`.
+- Etter at en **API**-blokk kalt `LookupUser` kjører, kan du lese statuskoden som `{{LookupUser.response-status}}` og kroppen som `{{LookupUser.response-body}}`.
+- Etter en **Hendelse → Ved opprettelse**-trigger kalt `Incident`, kan du lese `{{Incident.title}}`, `{{Incident.description}}` og ethvert annet felt på hendelsen.
+- Etter en **Egendefinert kode**-blokk kalt `Transform`, finnes den returnerte verdien på `{{Transform.value}}`.
 
-Lokale variabler er begrenset til en enkelt kjøring. Neste kjøring starter med blanke ark.
+Lokale variabler eksisterer bare under den nåværende kjøringen. Hver nye kjøring starter på nytt.
 
-## Hvor interpolering fungerer
+## Hvor variabler fungerer
 
-Nesten alle tekst-aktige argumenter støtter interpolering:
+Nesten hvert tekstfelt aksepterer variabler:
 
-- URL-felt på API-komponenten
-- Meldingstekst på Slack / Teams / Discord / Telegram / Email
-- Emne og body på Email
-- Header- og body-felt (bruk det inne i JSON-verdier)
-- Venstre og høyre operander på Conditions
+- URL-en på en API-blokk.
+- Meldingsteksten på Slack, Teams, Discord, Telegram, E-post.
+- Emnet og kroppen til en e-post.
+- Header- og body-felter (inne i strengverdier).
+- Begge sider av en Betingelser-blokk.
 
-Rene JSON-argumenter aksepterer interpolering inne i strengverdier; du kan ikke interpolere en nøkkel. Hvis du må bygge en dynamisk struktur, bruk **Custom Code** for å sette sammen payloaden og deretter mate returverdien dens inn i neste node.
+Rene JSON-felter aksepterer variabler inne i strengverdier, men du kan ikke bruke en variabel som en nøkkel. Hvis du må bygge en struktur dynamisk, bruk en **Egendefinert kode**-blokk til å bygge den, og send så utdata til neste blokk.
 
-**Custom Code**-komponenten leser variabler annerledes — globale variabler eksponeres på `args.variables`, og oppstrøms returverdier sendes inn som navngitte argumenter du konfigurerer på komponenten.
+**Egendefinert kode**-blokken leser variabler på en annen måte — globale variabler kommer inn på `args.variables`, og du bestemmer hvilke tidligere utdata du skal sende inn som argumenter.
 
 ## Eksempler
 
-### Bygge en payload fra en trigger
+### Bygge en nyttelast fra en webhook
 
-En webhook mottar et CI-build-resultat. Body er JSON som `{ "service": "checkout", "status": "failed" }`. For å gjøre det om til en OneUptime-hendelse:
+En webhook kommer inn med en kropp som `{ "service": "checkout", "status": "failed" }`. For å gjøre det om til en OneUptime-hendelse:
 
-1. **Webhook**-trigger som heter `CIWebhook`.
-2. **Conditions**-komponent: venstre `{{CIWebhook.Request Body.status}}`, operator `==`, høyre `failed`.
-3. Fra `yes`-porten, en **Create Incident**-komponent med:
+1. **Webhook**-trigger kalt `CIWebhook`.
+2. **Betingelser**-blokk: venstre `{{CIWebhook.Request Body.status}}`, operator `==`, høyre `failed`.
+3. Fra **Ja**-grenen, en **Opprett hendelse**-blokk med:
    - Tittel: `CI build failed: {{CIWebhook.Request Body.service}}`
-   - Beskrivelse: `See {{CIWebhook.Request Body.url}} for the build logs.`
+   - Beskrivelse: `See {{CIWebhook.Request Body.url}} for the logs.`
 
-### Bruke en hemmelighet i et utgående API-kall
+### Bruke en hemmelighet i et API-kall
 
 En arbeidsflyt som kaller PagerDuty:
 
-1. Definer `PAGERDUTY_KEY` som en hemmelig global variabel.
-2. På **API**-komponenten, sett `Authorization`-headeren til `Token token={{variable.PAGERDUTY_KEY}}`.
+1. Lagre `PAGERDUTY_KEY` som en hemmelig global variabel.
+2. På **API**-blokken, sett `Authorization`-headeren til `Token token={{variable.PAGERDUTY_KEY}}`.
 
-Nøkkelen dukker aldri opp i arbeidsflytens JSON eller i kjøringslogger.
+Nøkkelen holdes ute av arbeidsflyten og loggene.
 
-### Lenke sammen to API-kall
+### Kjede to API-kall
 
-Det første kallet returnerer en ID som det andre kallet trenger:
+Det første kallet gir deg en ID det andre trenger:
 
-1. **API**-komponent `LookupOrder`: `GET /orders?email={{Manual.JSON.email}}`.
-2. **API**-komponent `CancelOrder`: `POST /orders/{{LookupOrder.response-body.id}}/cancel`.
+1. **API**-blokk `LookupOrder`: `GET /orders?email={{Manual.JSON.email}}`.
+2. **API**-blokk `CancelOrder`: `POST /orders/{{LookupOrder.response-body.id}}/cancel`.
 
-Hvis `LookupOrder` returnerer en ikke-2xx-respons, trigges `error`-porten i stedet for `success` — koble den grenen til en Email- eller Slack-komponent slik at feil ikke blir tause.
+Hvis `LookupOrder` feiler, utløses dens **feil**-utgang i stedet for **suksess**. Koble den til en E-post- eller Slack-blokk slik at feil ikke går ubemerket hen.
 
-## Noen fallgruver
+## Fallgruver
 
-- **Skrivefeil i nodenavn bryter referanser stille.** Hvis du gir en node nytt navn etter å ha koblet `{{OldName.field}}` nedstrøms, må du oppdatere hver referanse. Se på kjøringsloggen — hvis du ser den bokstavelige `{{OldName.field}}` i det fangede argumentet, ble ikke oppslaget løst.
-- **Hemmeligheter er case-sensitive.** `{{variable.MyKey}}` og `{{variable.mykey}}` er forskjellige variabler.
-- **Manglende felt er tomme.** Å referere `{{Foo.nonexistent}}` produserer en tom streng, ikke en feil. Nyttig, men det kan skjule bugs — bruk en **Conditions**-node for å hevde tilstedeværelse hvis feltet er nødvendig for neste trinn.
+- **Å gi en blokk nytt navn bryter referansene.** Hvis du gir en blokk nytt navn, oppdater alle stedene den brukes. I kjøringsloggen vises en uløst referanse som den bokstavelige teksten `{{BlockName.field}}`.
+- **Variabelnavn skiller mellom store og små bokstaver.** `{{variable.MyKey}}` og `{{variable.mykey}}` er forskjellige.
+- **Manglende felter blir tomme.** Å referere til et felt som ikke finnes gir deg en tom streng, ikke en feil. Praktisk — men det kan skjule feil. Bruk en **Betingelser**-blokk for å sjekke viktige felter før du fortsetter.
 
-## Les videre
+## Hvor du leser videre
 
-- [Komponenter](/docs/workflows/components) — den fullstendige katalogen over returverdi-navn.
-- [Kjøringer & logger](/docs/workflows/runs-and-logs) — inspiser den bokstavelige verdien av hvert interpolerte argument etter en kjøring.
-- [Konfigurasjon & sikkerhet](/docs/workflows/configuration) — hva som er trygt å legge i en global variabel.
+- [Komponenter](/docs/workflows/components) — den fullstendige listen over utdata hver blokk produserer.
+- [Kjøringer & logger](/docs/workflows/runs-and-logs) — se den faktiske verdien av hver variabel etter en kjøring.
+- [Konfigurasjon & sikkerhet](/docs/workflows/configuration) — hva som er trygt å sette i en global variabel.

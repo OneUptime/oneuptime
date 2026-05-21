@@ -1,155 +1,153 @@
 # Widget
 
-Un widget è un tassello su una dashboard. Ogni widget ha un tipo (grafico, valore, lista, …), una posizione, una dimensione e una configurazione. Questa pagina è il catalogo — cosa mostra ciascun widget, cosa accetta in input, quando rivolgersi ad esso.
+Un widget e un tassello su una dashboard. Questa pagina elenca ogni widget che puoi aggiungere, cosa mostra e quando ricorrervi.
 
-Per la meccanica del canvas, vedi [Creare una dashboard](/docs/dashboards/authoring).
+Per sapere come trascinare i widget sul canvas, vedi [Creazione di una dashboard](/docs/dashboards/authoring).
 
-## Widget di serie temporali
+## Grafici e numeri
 
 ### Chart
 
-Un grafico a linee / barre / aree di una o più serie metriche sull'intervallo temporale della dashboard.
+Un grafico a linee, a barre o ad area di una o piu serie metriche sull'intervallo temporale della dashboard.
 
-**Configura**:
+**Impostazioni**:
 
-- Una o più query metriche (`metricQueryConfig` per una singola serie, `metricQueryConfigs` per più serie).
-- Una **formula** opzionale che combini più query (es. `errors / total * 100`).
-- Un **transformAsRate** opzionale per contatori cumulativi OpenTelemetry (es. `system.disk.io`) — il widget calcola `(value - previousValue) / Δt` per bucket.
-- Visualizzazione: serie impilate vs. sovrapposte, unità dell'asse Y, legenda on/off, tipo di grafico.
+- Una o piu query di metrica.
+- Una formula opzionale che combina due query (per esempio, `errors / total * 100` per ottenere un tasso di errore).
+- Un'opzione "show as rate" per i contatori cumulativi che crescono senza essere azzerati.
+- Opzioni di visualizzazione: impilato o sovrapposto, unita dell'asse Y, posizione della legenda, tipo di grafico.
 
-Rivolgiti ad esso quando: i trend contano. Latenza delle richieste, conteggio errori nel tempo, profondità della coda, qualsiasi cosa dove la forma della curva ti dice qualcosa.
+Usalo quando: i trend contano. Latenza nel tempo, conteggio errori, profondita della coda, qualsiasi cosa in cui la forma della linea racconti la storia.
 
 ### Value
 
-Un singolo numero grande con soglie opzionali e una sparkline opzionale.
+Un singolo grande numero con soglie colorate opzionali.
 
-**Configura**:
+**Impostazioni**:
 
-- Una query metrica (valore singolo — di solito `last`, `avg` o `max` sull'intervallo temporale).
-- Una **soglia di warning** opzionale (giallo se sopra).
-- Una **soglia critica** opzionale (rosso se sopra).
-- Visualizzazione: formato numerico, suffisso unità.
+- Una query di metrica che restituisce un singolo numero (ultimo valore, media o massimo sull'intervallo temporale).
+- Una soglia **warning** opzionale (giallo sopra).
+- Una soglia **critical** opzionale (rosso sopra).
+- Formato del numero e unita.
 
-Rivolgiti ad esso quando: un singolo numero risponde alla domanda. Tasso di errore corrente, latenza P95 in questo istante, conteggio incidenti aperti.
+Usalo quando: un solo numero risponde alla domanda. Tasso di errore corrente, latenza P95 in questo momento, conteggio degli incidenti aperti.
 
 ### Gauge
 
-Un indicatore circolare con min, max, banda di warning e banda critica.
+Un indicatore circolare con minimo, massimo, banda warning e banda critical.
 
-**Configura**: la query metrica e i quattro limiti (min, max, warning, critical).
+**Impostazioni**: una query di metrica e i quattro confini.
 
-Rivolgiti ad esso quando: il valore si trova dentro un intervallo noto. Utilizzo CPU (0–100%), riempimento del disco, capacità della coda.
+Usalo quando: il valore rientra in un intervallo noto. Percentuale CPU (0–100%), utilizzo del disco, capacita della coda.
 
 ### Table
 
-Una visualizzazione tabellare dei risultati di una query metrica, una riga per gruppo.
+Una tabella di risultati di metriche, una riga per gruppo.
 
-**Configura**: la query metrica (tipicamente raggruppata per una label come `host.name` o `service.name`), le colonne da mostrare e un limite di righe.
+**Impostazioni**: una query di metrica (tipicamente raggruppata per un'etichetta come host o servizio), le colonne da mostrare e un limite di righe.
 
-Rivolgiti ad esso quando: vuoi la suddivisione invece del trend. Top 10 host più rumorosi, conteggio errori per servizio, tasso di richieste per endpoint.
+Usalo quando: vuoi una scomposizione invece di un trend. Top 10 degli host piu rumorosi, conteggio errori per servizio, richieste per endpoint.
 
-## Widget di annotazione
-
-### Text
+## Text
 
 Un blocco statico di Markdown.
 
-**Configura**: il body Markdown. Intestazioni, elenchi, link, enfasi, code span, code block recintati vengono tutti renderizzati.
+**Impostazioni**: il corpo Markdown. Vengono renderizzati intestazioni, elenchi, link, enfasi e blocchi di codice.
 
-Rivolgiti ad esso quando: vuoi un'intestazione di sezione, un paragrafo di contesto ("questa dashboard copre il servizio checkout"), un elenco di link a runbook o dashboard correlate, oppure un banner temporaneo durante un incidente.
+Usalo quando: vuoi un'intestazione di sezione, un paragrafo di contesto, un elenco di link ai runbook o un banner temporaneo durante un incidente.
 
 ## Log e trace
 
-### LogStream
+### Log Stream
 
-Un tail live di righe di log che corrispondono a un filtro.
+Una coda live delle righe di log che corrispondono a un filtro.
 
-**Configura**: filtri di log (servizio, severità, match su attributo), le colonne da mostrare.
+**Impostazioni**: filtri sui log (servizio, severita, attributi) e le colonne da mostrare.
 
-Rivolgiti ad esso quando: vuoi vedere cosa sta dicendo l'applicazione *in questo momento* su una dashboard, senza lasciare la pagina per aprire l'esploratore di log.
+Usalo quando: vuoi vedere cosa sta dicendo l'applicazione in questo momento, senza uscire dalla dashboard.
 
-### TraceList
+### Trace List
 
-Un elenco di trace recenti che corrispondono a un filtro, con durata, stato e nome del servizio.
+Un elenco di trace recenti che corrispondono a un filtro, con durata, stato e servizio.
 
-**Configura**: filtri di trace (servizio, stato, match su attributo).
+**Impostazioni**: filtri sui trace (servizio, stato, attributi).
 
-Rivolgiti ad esso quando: vuoi una vista paginata dell'attività recente invece di un grafico. Accoppiamento comune: un Chart di latenza in cima, un TraceList di trace lenti sotto.
+Usalo quando: vuoi un elenco di attivita recenti invece di un grafico. Un pattern comune e un grafico di latenza in alto con un elenco di trace lenti sotto.
 
-## Elenchi operativi
+## Elenchi live
 
-### IncidentList
+### Incident List
 
 Un elenco live di incidenti che corrispondono a un filtro.
 
-**Configura**: filtri per stato, severità, label, monitor o team assegnato.
+**Impostazioni**: filtri per stato, severita, etichette, monitor o team.
 
-Rivolgiti ad esso quando: una dashboard è pensata per rispondere a "cosa è rotto in questo momento?"
+Usalo quando: la dashboard risponde alla domanda "cosa e rotto in questo momento?"
 
-### AlertList
+### Alert List
 
 Un elenco live di allarmi che corrispondono a un filtro.
 
-**Configura**: filtri per stato, severità, label.
+**Impostazioni**: filtri per stato, severita, etichette.
 
-Rivolgiti ad esso quando: dashboard per workflow basati su allarmi (es. dashboard dei team di sviluppo che osservano gli allarmi del loro servizio).
+Usalo quando: una dashboard di team traccia gli allarmi sui propri servizi.
 
-### MonitorList
+### Monitor List
 
-Un elenco live di monitor che corrispondono a un filtro, mostrando lo stato corrente di ciascuno.
+Un elenco live di monitor con il loro stato corrente.
 
-**Configura**: filtri per tipo di monitor, label o stato corrente.
+**Impostazioni**: filtri per tipo di monitor, etichette o stato corrente.
 
-Rivolgiti ad esso quando: vuoi una vista a livello di flotta "tutti i siti web sono su?", o un elenco per-team di endpoint monitorati.
+Usalo quando: vuoi una vista di flotta — "tutti i siti sono su?"
 
 ## Elenchi di risorse Kubernetes
 
-Per i progetti con un [Agente Kubernetes](/docs/monitor/kubernetes-agent) installato, sono disponibili i seguenti widget di risorse live. Ognuno accetta filtri opzionali per `cluster`, `namespace` e label.
+Per progetti con un [Kubernetes Agent](/docs/monitor/kubernetes-agent) installato. Ognuno accetta filtri opzionali per cluster, namespace ed etichette.
 
-- **KubernetesPodList** — pod con fase, restart e assegnazione di nodo.
-- **KubernetesNodeList** — nodi con condizioni, capacità e allocazioni.
-- **KubernetesNamespaceList** — namespace e i loro conteggi di workload.
-- **KubernetesDeploymentList** — deployment con repliche desiderate vs. pronte.
-- **KubernetesStatefulSetList** — stateful set con repliche pronte.
-- **KubernetesDaemonSetList** — daemon set con desiderate vs. pronte.
-- **KubernetesJobList** — job con stato di completamento.
-- **KubernetesCronJobList** — cron job con schedulazione e ultima esecuzione.
+- **Kubernetes Pod List** — pod con la loro fase, riavvii e nodo.
+- **Kubernetes Node List** — nodi con le loro condizioni e capacita.
+- **Kubernetes Namespace List** — namespace e conteggi dei workload.
+- **Kubernetes Deployment List** — deployment con repliche desiderate vs. pronte.
+- **Kubernetes StatefulSet List** — stateful set con repliche pronte.
+- **Kubernetes DaemonSet List** — daemon set con desiderati vs. pronti.
+- **Kubernetes Job List** — job e il loro stato di completamento.
+- **Kubernetes CronJob List** — cron job con pianificazione e ultima esecuzione.
 
-Rivolgiti ad essi quando: vuoi una singola dashboard che mescoli lo stato delle risorse Kubernetes con la telemetria proveniente da quei workload.
+Usali quando: vuoi un'unica dashboard che combini stato Kubernetes con la telemetria di quei workload.
 
 ## Elenchi di risorse Docker
 
-Per i progetti con un monitor Docker installato:
+Per progetti con il monitoraggio Docker configurato.
 
-- **DockerHostList** — host che eseguono Docker, con conteggi di container.
-- **DockerContainerList** — container con stato, immagine, host, uptime.
-- **DockerImageList** — immagini e le loro dimensioni.
-- **DockerNetworkList** — reti Docker e conteggi dei container connessi.
-- **DockerVolumeList** — volumi Docker e il loro utilizzo.
+- **Docker Host List** — host che eseguono Docker, con conteggi dei container.
+- **Docker Container List** — container con stato, immagine, host, uptime.
+- **Docker Image List** — immagini e le loro dimensioni.
+- **Docker Network List** — reti Docker e container connessi.
+- **Docker Volume List** — volumi Docker e il loro utilizzo.
 
 ## Infrastruttura
 
-### HostList
+### Host List
 
-Host monitorati dal monitor server di OneUptime — con stato corrente, CPU, memoria e uptime.
+Host monitorati dal monitor server di OneUptime, con stato, CPU, memoria e uptime.
 
-**Configura**: filtri per label o stato di salute corrente.
+**Impostazioni**: filtri per etichette o stato corrente.
 
-## Scegliere il widget giusto
+## Quale widget usare?
 
-Qualche regola pratica:
+Alcune regole rapide:
 
 - **Trend nel tempo?** Chart.
-- **Un numero che conta in questo momento?** Value (o Gauge se ha un intervallo naturale).
-- **Suddivisione su molte cose?** Table.
-- **Cosa sta succedendo nel sistema in questo momento?** LogStream, TraceList, IncidentList.
-- **Stato di una specifica flotta di risorse?** Il widget di elenco risorse corrispondente.
+- **Un solo numero che conta in questo momento?** Value (o Gauge se ha un chiaro min/max).
+- **Scomposizione su molte cose?** Table.
+- **Cosa sta succedendo nel sistema in questo momento?** Log Stream, Trace List, Incident List.
+- **Lo stato di uno specifico gruppo di risorse?** Il widget di elenco corrispondente.
 - **Un'intestazione, un paragrafo o un link?** Text.
 
-La maggior parte delle dashboard usa un mix — un Chart in cima, un Value o due al suo fianco, un divisore Text, poi uno o due elenchi sotto.
+La maggior parte delle dashboard mescola alcuni di essi — un grafico in alto, uno o due valori a fianco, un divisore di testo e uno o due elenchi sotto.
 
-## Cosa leggere dopo
+## Letture successive
 
-- [Variabili e filtri](/docs/dashboards/variables) — rendere i widget riutilizzabili tra servizi / clienti / cluster.
-- [Creare una dashboard](/docs/dashboards/authoring) — il canvas, la griglia e la modalità di edit.
-- [Condivisione e dashboard pubbliche](/docs/dashboards/sharing) — esporre una dashboard fuori dal team.
+- [Variabili e filtri](/docs/dashboards/variables) — rendere i widget riutilizzabili per molti servizi o clienti.
+- [Creazione di una dashboard](/docs/dashboards/authoring) — la meccanica del canvas.
+- [Condivisione e dashboard pubbliche](/docs/dashboards/sharing) — condividere fuori dal tuo team.

@@ -1,85 +1,85 @@
-# Teilen & öffentliche Dashboards
+# Freigabe & öffentliche Dashboards
 
-Die meisten Dashboards sind für Ihr Projekt privat — nur eingeloggte Mitglieder des Projekts können sie sehen. Aber OneUptime lässt Sie auch ein Dashboard unter einer öffentlichen URL veröffentlichen, es optional mit einem Passwort schützen, es nach IP einschränken und es unter einer benutzerdefinierten Domain hosten. Diese Seite behandelt alle vier.
+Standardmäßig sind Dashboards privat zu Ihrem Projekt – nur eingeloggte Teammitglieder können sie sehen. OneUptime erlaubt es Ihnen aber auch, ein Dashboard öffentlich zu teilen, mit einem Passwort zu schützen, auf bestimmte IPs zu beschränken und auf Ihrer eigenen Domain zu hosten. Diese Seite behandelt alle vier Möglichkeiten.
 
 ## Private Dashboards (Standard)
 
-Standardmäßig ist ein Dashboard nur für eingeloggte Benutzer erreichbar, die Projektmitglieder sind. Die URL sieht aus wie `https://oneuptime.com/dashboards/<id>/view`. Der direkte Zugriff erfordert Authentifizierung und die entsprechende Leseberechtigung für das Dashboard.
+Ein Dashboard ist nur für eingeloggte Mitglieder Ihres Projekts erreichbar. Die URL sieht aus wie `https://oneuptime.com/dashboards/<id>/view` und erfordert einen Login.
 
-Innerhalb des Projekts steuern Ownership und Labels, wer was sieht — siehe [Konfiguration & Berechtigungen](/docs/dashboards/configuration).
+Innerhalb des Projekts steuern Eigentümer und Labels, wer was sieht – siehe [Konfiguration & Berechtigungen](/docs/dashboards/configuration).
 
 ## Öffentliche Dashboards
 
-Unter **Dashboard → Settings** schalten Sie **Public Dashboard** ein. Das Dashboard hat jetzt eine zweite URL, die kein Login erfordert. Teilen Sie sie mit Anbietern, Partnern, Kunden, oder fügen Sie sie in eine öffentliche README ein.
+Unter **Dashboard → Einstellungen** schalten Sie **Öffentliches Dashboard** ein. Das Dashboard hat dann eine zweite URL, die keinen Login benötigt. Teilen Sie sie mit Lieferanten, Partnern, Kunden oder fügen Sie sie in eine öffentliche README ein.
 
 Ein öffentliches Dashboard:
 
-- Wird nur im **View**-Modus gerendert. Öffentliche Besucher können nicht bearbeiten, abgesehen von der Änderung der Zeitbereichs-URLs nichts ändern, oder die Widget-Palette sehen.
-- Enthält die Variablen, die Sie definiert haben — Besucher können aus Dropdowns auswählen, genau wie interne Benutzer.
-- Trägt das **Branding**, das Sie unter Settings konfigurieren: Seitentitel, Seitenbeschreibung, Logodatei, Favicon. Diese sind es, was im Browser-Tab und in Social-Media-Vorschauen erscheint.
+- Öffnet sich immer im Modus **Ansicht**. Öffentliche Besucher können nicht bearbeiten oder die Widget-Palette sehen.
+- Enthält die von Ihnen hinzugefügten Variablen. Besucher wählen aus denselben Dropdowns wie Ihr Team.
+- Verwendet das **Branding**, das Sie in den Einstellungen festgelegt haben – Seitentitel, Beschreibung, Logo, Favicon.
 
-Behandeln Sie das Aktivieren von **Public Dashboard** wie das Veröffentlichen einer Webseite. Jedes Widget auf dem Dashboard ist jetzt weltweit lesbar. Auditieren Sie, was sich auf der Arbeitsfläche befindet, bevor Sie den Schalter umlegen.
+Behandeln Sie das Aktivieren eines öffentlichen Dashboards wie das Veröffentlichen einer Webseite. Jedes Widget darauf wird weltweit lesbar. Schauen Sie sich an, was auf der Arbeitsfläche steht, bevor Sie den Schalter umlegen.
 
 ## Master-Passwort
 
-Um ein öffentliches Dashboard mit einem Passwort zu schützen, anstatt es völlig offen zu machen:
+Um ein öffentliches Dashboard mit einem Passwort zu versehen:
 
-1. Aktivieren Sie **Public Dashboard**.
-2. Aktivieren Sie **Master Password**.
-3. Setzen Sie das Passwort.
+1. Schalten Sie **Öffentliches Dashboard** ein.
+2. Schalten Sie **Master-Passwort** ein.
+3. Legen Sie das Passwort fest.
 
-Besucher erhalten eine Passwortabfrage, bevor das Dashboard gerendert wird. Das Passwort wird im Ruhezustand gehasht; nur der Hash wird gespeichert.
+Besucher sehen eine Passwortabfrage, bevor das Dashboard erscheint. Das Passwort wird als Hash gespeichert – wir sehen das eigentliche Passwort nie.
 
 Verwenden Sie ein Master-Passwort, wenn:
 
-- Sie mit einem Partner oder Kunden teilen möchten, aber nicht möchten, dass die URL gültig ist, falls sie durchsickert.
-- Das Dashboard „halböffentlich" ist — offen genug, dass Sie keine OneUptime-Konten für jeden Betrachter wollen, aber nicht offen genug, um es ins offene Internet zu stellen.
+- Sie mit einem Partner oder Kunden teilen möchten, aber die URL nicht nützlich sein soll, falls sie nach außen dringt.
+- Das Dashboard „halböffentlich" ist – offen genug, dass Sie nicht jeden Betrachter als Teammitglied einladen möchten, aber nicht offen genug, um es ins offene Internet zu stellen.
 
-Für wertvollere Zugriffskontrolle (Konten pro Betrachter, Audit-Trail darüber, wer was gesehen hat) halten Sie das Dashboard privat und laden Sie Betrachter als Nur-Lese-Mitglieder zum Projekt ein.
+Für ein strengeres Gating (separate Konten pro Betrachter, ein Prüfprotokoll, wer was gesehen hat) belassen Sie das Dashboard privat und laden Sie Betrachter stattdessen als schreibgeschützte Teammitglieder ein.
 
-## IP-Allowlist
+## IP-Zugriffsliste
 
-Im Tarif **Scale** können Sie ein öffentliches Dashboard auf eine Liste von Quell-IPs oder CIDR-Bereichen beschränken. Konfigurieren Sie die Liste unter **Dashboard → Settings → IP Whitelist**.
+Im **Scale**-Tarif können Sie ein öffentliches Dashboard auf eine Liste von IP-Adressen oder -Bereichen beschränken. Konfigurieren Sie das unter **Dashboard → Einstellungen → IP-Whitelist**.
 
-Verwenden Sie eine IP-Allowlist, wenn:
+Nutzen Sie das, wenn:
 
 - Das Dashboard nur aus Ihrem Büro oder VPN erreichbar sein soll.
-- Ein Lieferantenportal nur über die veröffentlichten Egress-IPs des Lieferanten erreichbar sein soll.
-- Sie eine Verteidigung in der Tiefe zusätzlich zu einem Master-Passwort wollen.
+- Ein Lieferantenportal nur aus deren bekannten IPs erreichbar sein soll.
+- Sie zusätzlichen Schutz neben einem Master-Passwort wünschen.
 
-Anfragen von jeder anderen IP erhalten ein 403.
+Anfragen von anderen IPs werden abgelehnt.
 
-## Benutzerdefinierte Domains
+## Eigene Domains
 
-Standardmäßig wird ein öffentliches Dashboard auf `oneuptime.com` bereitgestellt. Um es auf Ihrer eigenen Subdomain zu hosten (z. B. `dashboard.acme.com`):
+Ab Werk wird ein öffentliches Dashboard auf `oneuptime.com` ausgeliefert. Um es auf Ihrer eigenen Subdomain wie `dashboard.acme.com` zu hosten:
 
-1. Fügen Sie einen CNAME-Datensatz in Ihrem DNS hinzu, der die Subdomain auf das veröffentlichte Ziel von OneUptime verweist.
-2. Unter **Dashboard → Settings → Custom Domains** fügen Sie die Domain hinzu.
-3. Verifizieren Sie den DNS-Datensatz (OneUptime prüft ihn für Sie).
-4. Nach der Verifizierung ist das Dashboard sowohl über die OneUptime-URL als auch über Ihre benutzerdefinierte Domain erreichbar.
+1. Fügen Sie in Ihrem DNS einen CNAME-Eintrag hinzu, der die Subdomain auf das Ziel von OneUptime zeigt.
+2. Fügen Sie die Domain unter **Dashboard → Einstellungen → Eigene Domains** hinzu.
+3. Verifizieren Sie sie. OneUptime prüft den DNS-Eintrag für Sie.
+4. Nach der Verifizierung ist das Dashboard sowohl unter Ihrer eigenen Domain als auch unter der ursprünglichen URL erreichbar.
 
-Benutzerdefinierte Domains sind nützlich für:
+Eigene Domains sind nützlich für:
 
-- Kundengerichtete Dashboards unter Ihrer Marke.
-- Co-Branded-Partner-Dashboards.
-- SEO auf einer öffentlichen Gesundheitsseite.
+- Kundenseitige Dashboards in Ihrem eigenen Branding.
+- Co-Branded Partner-Dashboards.
+- Öffentliche Statusseiten mit einer eigenen URL.
 
-Sie können mehrere benutzerdefinierte Domains an ein Dashboard binden, wenn Sie denselben Inhalt mehreren Zielgruppen anbieten.
+Sie können einem einzelnen Dashboard mehrere eigene Domains zuweisen, wenn Sie denselben Inhalt mehreren Zielgruppen ausliefern möchten.
 
-## Branding für öffentliche Dashboards
+## Branding
 
-Unter **Dashboard → Settings** konfigurieren Sie:
+Unter **Dashboard → Einstellungen** konfigurieren Sie:
 
-- **Seitentitel** — der `<title>`-Tag und die Überschrift, die Besucher sehen.
-- **Seitenbeschreibung** — die Meta-Beschreibung, die von Suchmaschinen und Social-Media-Vorschauen verwendet wird.
-- **Logodatei** — laden Sie ein PNG/SVG hoch; wird in der Dashboard-Kopfzeile angezeigt.
-- **Favicon** — hochgeladen; wird im Browser-Tab angezeigt.
+- **Seitentitel** – was im Browser-Tab und am oberen Seitenrand erscheint.
+- **Seitenbeschreibung** – die Beschreibung, die Suchmaschinen und soziale Vorschauen verwenden.
+- **Logo** – laden Sie ein PNG oder SVG hoch, das im Kopfbereich angezeigt wird.
+- **Favicon** – das kleine Symbol im Browser-Tab.
 
-Branding gilt nur für das Rendering im öffentlichen Modus. Interne Betrachter sehen immer das OneUptime-Branding.
+Branding wirkt nur, wenn das Dashboard öffentlich angezeigt wird. Interne Betrachter sehen weiterhin das Branding von OneUptime.
 
 ## Einbetten
 
-Sie können ein öffentliches Dashboard in einem `<iframe>` auf Ihrer eigenen Website einbetten:
+Sie können ein öffentliches Dashboard in Ihre eigene Website mit einem iframe einbetten:
 
 ```html
 <iframe src="https://dashboard.acme.com/view"
@@ -87,16 +87,16 @@ Sie können ein öffentliches Dashboard in einem `<iframe>` auf Ihrer eigenen We
         frameborder="0"></iframe>
 ```
 
-Wenn Sie ein Dashboard einbetten, das durch ein Master-Passwort geschützt ist, sieht der Besucher die Passwortabfrage innerhalb des iframes.
+Hat das Dashboard ein Master-Passwort, sehen Besucher die Passwortabfrage innerhalb des iframes.
 
-## Teilbare URLs mit Variablen-Zustand
+## Teilbare URLs
 
-Die Dashboard-URL kodiert die aktuellen Variablen-Auswahlen und den Zeitbereich als Query-Parameter. Passen Sie die Dropdowns an, kopieren Sie die URL und fügen Sie sie im Chat ein — der Empfänger sieht das Dashboard mit genau derselben Ansicht, einschließlich des Zeitbereichs, den Sie betrachtet haben.
+Die Dashboard-URL enthält die aktuellen Variablenauswahlen und den Zeitbereich als Query-Parameter. Stellen Sie die Dropdowns ein, kopieren Sie die URL, fügen Sie sie im Chat ein – wer den Link öffnet, sieht das Dashboard mit exakt derselben Ansicht.
 
-Dies ist der schnellste Weg, einen Teamkollegen auf „das Dashboard zum Zeitpunkt des Vorfallstarts" zu verweisen — Zeitbereich anheften, kopieren, einfügen.
+Das ist der schnellste Weg, eine Kollegin auf „das Dashboard zum Zeitpunkt, als der Vorfall begann" zu verweisen. Zeitbereich fixieren, kopieren, einfügen.
 
-## Wo weiterlesen
+## Weiterführende Themen
 
-- [Konfiguration & Berechtigungen](/docs/dashboards/configuration) — Zugriffskontrolle im privaten Modus.
-- [Variablen & Filter](/docs/dashboards/variables) — Variablen, mit denen öffentliche Besucher interagieren können.
-- [Ein Dashboard erstellen](/docs/dashboards/authoring) — was überhaupt auf die Arbeitsfläche kommt.
+- [Konfiguration & Berechtigungen](/docs/dashboards/configuration) – Zugriffskontrolle im privaten Modus.
+- [Variablen & Filter](/docs/dashboards/variables) – Variablen, mit denen Besucher interagieren können.
+- [Dashboard erstellen](/docs/dashboards/authoring) – was auf die Arbeitsfläche gehört.

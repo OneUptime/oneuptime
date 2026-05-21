@@ -1,73 +1,76 @@
-# Workflow-kørsler & logfiler
+# Kørsler & logfiler
 
-Hver gang et workflows trigger udløses, opretter OneUptime en **kørsel** — en optegnelse over én eksekvering med tidsforbrug, status og output pr. node. Kørsler er sådan, du bekræfter, at et workflow virkede, sådan du fejlfinder et, der ikke gjorde, og sådan du skriver en postmortem, når en automatisering opfører sig forkert.
+Hver gang et workflow kører, gemmer OneUptime en optegnelse over, hvad der skete — hvornår det kørte, om det lykkedes, og hvad hver blok gjorde. Den optegnelse hedder en **kørsel**. Kørsler er sådan, du bekræfter, at et workflow virkede, fejlfinder et der ikke gjorde, og kigger tilbage på tidligere aktivitet.
 
 ## Hvor du finder dem
 
-| Side | Omfang |
+| Side | Hvad du ser |
 | --- | --- |
-| **Workflows → Runs & Logs** | Projektomfattende. Hver kørsel af hvert workflow. Filtrér på workflow, status og tidsinterval. |
-| **Et workflows Logs-fane** | Kun kørslerne af dette workflow. |
-| **En kørsels detalje-side** | Én eksekvering, udfoldet med output pr. node og eventuelle fejlmeddelelser. |
+| **Workflows → Runs & Logs** | Hver kørsel fra hvert workflow i projektet. Filtrér efter workflow, status og tid. |
+| **Workflow → Logs-fane** | Kun kørslerne af dette ene workflow. |
+| **En enkelt kørsel** | Én afvikling med outputtet fra hver blok. |
 
 ## Kørselsstatusser
 
-| Status | Betydning |
+| Status | Hvad det betyder |
 | --- | --- |
-| **Scheduled** | Triggeren er udløst, og kørslen er i kø, men workeren har ikke samlet den op endnu. Som regel en brøkdel af et sekund. |
-| **Running** | Workeren går i øjeblikket grafen igennem. Langvarige komponenter (langsomme HTTP-kald, bevidste forsinkelser) holder en kørsel i denne tilstand. |
-| **Success** | Hver node, der kørte, sluttede uden fejl. (Et workflow, der bevidst tog en `error`-gren, er stadig `Success` overall — selve workflowet fejlede ikke.) |
-| **Error** | En node fejlede, og der var ingen `error`-port forbundet til at håndtere den. Kørslen stoppede ved den node. |
-| **Timeout** | Kørslen overskred timeout pr. kørsel. Se [Workflow-konfiguration & sikkerhed](/docs/workflows/configuration). |
+| **Scheduled** | Triggeren udløstes, og kørslen er ved at starte. Tager normalt kun en brøkdel af et sekund. |
+| **Running** | Workflowet er i gang. Langvarige blokke holder en kørsel i denne tilstand. |
+| **Success** | Hver blok, der kørte, afsluttede uden fejl. (At tage en **error**-gren med vilje tæller stadig som success — selve workflowet fejlede ikke.) |
+| **Error** | En blok fejlede, og der var ingen **error**-sti forbundet til at håndtere den. Kørslen stoppede der. |
+| **Timeout** | Kørslen kørte længere end tilladt. Se [Konfiguration & sikkerhed](/docs/workflows/configuration). |
 
 ## Læs en kørsel
 
-Klik en kørsel fra listen for at åbne dens detalje-side. Du ser:
+Klik på en kørsel for at åbne detaljerne. Du vil se:
 
-- **Header** — den trigger, der udløste, start- og sluttidsstempel, samlet varighed, status.
-- **Nodeliste** — hver node, der eksekverede, i rækkefølge, hver med dens opfangede argumenter, dens returværdi og den valgte output-port.
-- **Fejl** — hvis en node fejlede, fejlmeddelelsen og (hvor tilgængelig) stack tracen.
+- **Header** — triggeren, start- og sluttid, samlet varighed og status.
+- **Blokliste** — hver blok der kørte, i rækkefølge. Hver enkelt viser de værdier, den fik, dens output, og hvilken sti den tog.
+- **Errors** — hvis en blok fejlede, så fejlmeddelelsen og (når tilgængelige) flere detaljer.
 
-De opfangede argumenter viser *post-interpolations*-værdier — altså de præcise strenge, noden så, efter at variabler blev løst op. Det er den enkelt mest nyttige fejlsøgningsvisning: hvis en Slack-besked har den literal-tekst `{{Incident.title}}` i sig, ved du, at variabel-referencen ikke kunne løses.
+De viste værdier er præcis, hvad blokken så — efter alle variabler blev udfyldt. Dette er den enkelt mest nyttige debugging-visning: hvis en Slack-besked viser den bogstavelige tekst `{{Incident.title}}` i stedet for den faktiske titel, ved du, at variablen ikke blev løst op.
 
-## Almindelige fejlsøgningsmønstre
+## Almindelig debugging
 
-### "Mit workflow blev ikke udløst."
+### "Mit workflow kørte ikke."
 
-1. Bekræft, at workflowet er **aktiveret** i **Settings**. Nye workflows leveres deaktiverede.
-2. For en model-event-trigger: bekræft, at eventen rent faktisk skete. Åbn entiteten (hændelsen, alarmen, monitoren) og kig i dens historik.
-3. For en webhook-trigger: bekræft, at det eksterne system rammer den rigtige URL. Mange værktøjer logger udgående webhook-levering — tjek der.
-4. For en tidsplan-trigger: bekræft, at cron-udtrykket evaluerer til det tidspunkt, du forventer. Brug en cron-parser, hvis du er i tvivl.
+1. Sørg for, at workflowet er **enabled** i Settings. Nye workflows starter deaktiverede.
+2. For en OneUptime event-trigger: bekræft at eventen faktisk skete. Åbn posten og tjek dens historik.
+3. For en webhook-trigger: bekræft at det andet system sender til den rigtige URL. De fleste værktøjer logger, når de sender en webhook — tjek der.
+4. For en tidsplan-trigger: bekræft at cron-udtrykket matcher det tidspunkt, du forventer.
 
-Hvis triggeren udløstes, men ingen kørsel dukker op, så tjek projektets kørselskvote under **Project Settings → Billing**.
+Hvis triggeren udløstes, men ingen kørsel dukker op, så tjek din kørselskvote under **Project Settings → Billing**.
 
-### "Det kører, men en nedstrøms node eksekverer aldrig."
+### "En senere blok kørte aldrig."
 
-En node, der ikke kører, er som regel et koblingsproblem. Åbn lærredet og tjek:
+En blok, der ikke kører, er som regel et koblingsproblem. Åbn lærredet og tjek:
 
-- Er den opstrøms nodes output-port faktisk forbundet til denne nodes input-port?
-- Tog den opstrøms node en anden port (f.eks. `error` i stedet for `success`, eller `no` i stedet for `yes`)? Kig på kørselsdetaljen for at se, hvilken port den valgte.
+- Er den tidligere bloks output forbundet til denne bloks input?
+- Tog den tidligere blok et andet output, end du forventede (for eksempel **error** i stedet for **success**, eller **No** i stedet for **Yes**)? Kørselsdetaljen viser, hvilken sti der blev taget.
 
-### "En variabel kommer ind som tom."
+### "En variabel kom igennem tom."
 
-Åbn kørselsdetaljen og kig på den fejlende nodes opfangede argumenter. Hvis du ser den literal-tekst `{{NodeId.field}}`, blev referencen ikke løst op — sandsynligvis en tastefejl i `NodeId` eller `field`. Hvis du ser en tom streng, kørte den opstrøms node, men producerede ikke det felt.
+Åbn kørslen og kig på den fejlende bloks værdier.
 
-### "Det virker manuelt, men ikke fra triggeren."
+- Hvis du ser den bogstavelige tekst `{{BlockName.field}}`, blev referencen ikke løst op — sandsynligvis en tastefejl i bloknavnet eller feltnavnet.
+- Hvis du ser en tom streng, kørte den tidligere blok, men producerede ikke det felt.
 
-Brug **Run Manually** med en JSON-payload, der spejler, hvad den rigtige trigger publicerer. Sammenlign så de opfangede argumenter i den manuelle kørsel og produktionskørslen side om side — forskellen ligger som regel i et enkelt feltnavn eller en type.
+### "Det virker, når jeg kører det manuelt, men ikke fra triggeren."
+
+Brug **Run Manually** med en JSON-payload, der ligner det, den rigtige trigger sender. Sammenlign så værdierne i den manuelle kørsel med den rigtige kørsel side om side. Forskellen er som regel et enkelt feltnavn eller en type.
 
 ## Genkør et workflow
 
-Der er ingen "prøv kørslen igen"-knap — by design re-eksekverer OneUptime aldrig en gammel kørsel, fordi de udgående sideeffekter (Slack-beskeder, API-kald) muligvis ikke er idempotente. Hvis du vil gentage arbejdet, så ret workflowet og lad næste rigtige trigger udløse det.
+Der er ingen "prøv denne kørsel igen"-knap. Vi genkører ikke gamle afviklinger automatisk, fordi sideeffekterne (Slack-beskeder, API-kald, tickets) måske ikke er sikre at gentage. For at gøre arbejdet om: ret workflowet, og lad den næste rigtige trigger udløse det.
 
-For manuelle workflows: klik blot **Run Manually** med samme payload.
+For manuelle workflows klikker du bare **Run Manually** med samme payload.
 
-## Log-bevaring
+## Hvor længe gemmes kørsler?
 
-Kørsler bevares på ubestemt tid på projektet. Hvis du har brug for at rydde op i højvolumens støjende workflows (f.eks. et debug-workflow, der udløses hvert minut), så deaktivér eller slet dem — der er ingen bevaringskontakt pr. workflow.
+Kørsler gemmes uden tidsbegrænsning for projektet. Hvis et workflow kører meget ofte og roder i din historik (såsom et debug-workflow, der udløses hvert minut), så deaktivér eller slet det for at stoppe med at tilføje til støjen.
 
 ## Læs videre
 
-- [Workflow-konfiguration & sikkerhed](/docs/workflows/configuration) — timeouts, rekursionsgrænser, redigering af hemmeligheder.
-- [Workflow-variabler](/docs/workflows/variables) — syntaksen, interpolerede argumenter bruger.
-- [Workflow-komponenter](/docs/workflows/components) — returværdi-felterne, hver komponent publicerer.
+- [Konfiguration & sikkerhed](/docs/workflows/configuration) — timeouts, rekursionsgrænser, skjulte hemmeligheder.
+- [Variabler](/docs/workflows/variables) — variabel-syntaksen brugt i dine blokke.
+- [Komponenter](/docs/workflows/components) — hvad hver blok producerer.

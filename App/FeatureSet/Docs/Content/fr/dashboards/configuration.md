@@ -1,80 +1,80 @@
 # Configuration et permissions
 
-Cette page rassemble les paramètres et les boutons de contrôle d'accès qu'il vaut la peine de connaître une fois que vous avez un tableau de bord que vous voulez réellement garder.
+Cette page couvre les paramètres et les contrôles d'accès qu'il convient de connaître une fois que vous avez un tableau de bord que vous souhaitez conserver.
 
-## Propriété
+## Propriétaires
 
-Les **propriétaires** d'un tableau de bord sont les utilisateurs et équipes à qui sont accordées des permissions explicites dessus (distinctes du rôle à l'échelle du projet).
+Les **propriétaires** d'un tableau de bord sont les utilisateurs et équipes auxquels vous avez accordé un accès explicite (en plus de leur rôle dans le projet).
 
-Sous **Tableau de bord → Owners** :
+Sous **Dashboard → Owners** :
 
-- Ajoutez un **propriétaire utilisateur** pour accorder à une personne spécifique un accès supplémentaire à ce tableau de bord.
-- Ajoutez un **propriétaire équipe** pour accorder la même chose à chaque membre d'une équipe.
+- Ajoutez un **propriétaire utilisateur** pour donner à une personne un accès supplémentaire à ce tableau de bord.
+- Ajoutez un **propriétaire équipe** pour donner le même accès à tous les membres d'une équipe.
 
-Utilisez la propriété lorsque le rôle de lecture à l'échelle du projet est trop large — par exemple, un tableau de bord avec des détails sensibles au niveau client qui ne devrait être visible que par l'équipe customer-success.
+Utilisez les propriétaires lorsque le rôle de lecture général du projet est trop large — par exemple, un tableau de bord contenant des détails au niveau du client qui ne devrait être visible que par l'équipe de succès client.
 
 ## Étiquettes
 
-Les étiquettes sont des tags plusieurs-à-plusieurs pour organiser les tableaux de bord. Appliquez-les sous **Tableau de bord → Overview**.
+Les étiquettes sont des balises pour organiser les tableaux de bord. Appliquez-les sous **Dashboard → Overview**.
 
-Motifs d'étiquettes courants :
+Schémas courants :
 
 - **Par équipe** : `team:platform`, `team:checkout`, `team:growth`.
 - **Par environnement** : `env:prod`, `env:staging`.
 - **Par objectif** : `purpose:oncall`, `purpose:exec`, `purpose:investigation`.
 
-La liste **Tableaux de bord** vous permet de filtrer par étiquette, ce qui est le moyen le plus rapide de trouver un tableau de bord dans un projet qui en a accumulé des dizaines.
+La liste **Dashboards** vous permet de filtrer par étiquette, ce qui est le moyen le plus rapide de retrouver un tableau de bord dans un projet qui en a accumulé beaucoup.
 
 ## Permissions
 
-Les tableaux de bord sont des ressources de première classe dans le contrôle d'accès basé sur les rôles de OneUptime. Les permissions pertinentes :
+Les tableaux de bord fonctionnent avec le contrôle d'accès basé sur les rôles de votre projet. Les permissions pertinentes :
 
-| Permission | Autorise |
+| Permission | Ce qu'elle autorise |
 | --- | --- |
-| `CreateDashboard` | Créer de nouveaux tableaux de bord dans le projet. |
-| `ReadDashboard` | Voir les tableaux de bord (en mode privé). |
-| `EditDashboard` | Modifier les widgets, variables, paramètres sur un tableau de bord. |
-| `DeleteDashboard` | Supprimer un tableau de bord. |
+| **Create Dashboard** | Créer de nouveaux tableaux de bord. |
+| **Read Dashboard** | Consulter les tableaux de bord (en mode privé). |
+| **Edit Dashboard** | Modifier les widgets, les variables et les paramètres. |
+| **Delete Dashboard** | Supprimer un tableau de bord. |
 
-Il y a des permissions correspondantes pour les entités de support : les propriétaires de tableau de bord (utilisateur / équipe) et les domaines personnalisés ont leurs propres paires create / read / edit / delete afin que vous puissiez accorder « gérer les propriétaires » sans accorder « éditer le tableau de bord lui-même ».
+Il existe des permissions équivalentes pour les propriétaires de tableaux de bord et les domaines personnalisés, vous pouvez donc accorder « gérer les propriétaires » sans accorder « modifier le tableau de bord ».
 
-Attribuez-les sur les rôles de projet sous **Project Settings → Teams & Roles**.
+Attribuez ces permissions aux rôles de projet sous **Project Settings → Teams & Roles**.
 
-## Contrôle d'accès en mode public
+## Accès aux tableaux de bord publics
 
-L'accès en mode public (voir [Partage et tableaux de bord publics](/docs/dashboards/sharing)) est régi par trois couches, dans l'ordre :
+Lorsque vous rendez un tableau de bord public (voir [Partage et tableaux de bord publics](/docs/dashboards/sharing)), trois paramètres contrôlent qui peut le voir :
 
-1. Bascule **Public Dashboard** — si désactivée, l'URL publique retourne un 404.
-2. **Master Password** — si défini, les visiteurs doivent l'entrer avant que le tableau de bord ne se rende.
-3. **IP Whitelist** (plan Scale) — si défini, les requêtes depuis des IP non listées reçoivent un 403.
+1. Interrupteur **Public Dashboard** — s'il est désactivé, l'URL publique renvoie une 404.
+2. **Master Password** — s'il est défini, les visiteurs saisissent un mot de passe avant que le tableau de bord n'apparaisse.
+3. **IP Whitelist** (plan Scale) — si elle est définie, les requêtes provenant d'autres IP sont rejetées.
 
-Un tableau de bord peut avoir n'importe quelle combinaison. La configuration la plus défensive est « Public activé, mot de passe défini, liste blanche d'IP active » — utile pour les portails partenaires où vous voulez les trois.
+Vous pouvez combiner ces options. La combinaison la plus verrouillée est « Public activé, mot de passe défini, liste d'IP autorisées active » — utile pour des portails partenaires où vous voulez les trois couches.
 
-## Rétention
+## Rétention des données
 
-Les tableaux de bord eux-mêmes n'expirent pas. Les données qu'ils affichent suivent la rétention de télémétrie du projet — les métriques, journaux et traces sont interrogeables tant que votre plan les conserve. Un widget pointant sur « les 90 derniers jours » sur un plan avec 30 jours de rétention rendra ce qui reste dans le stockage.
+Les tableaux de bord eux-mêmes n'expirent pas. Les données qu'ils affichent suivent les paramètres de rétention de votre projet — les métriques, les journaux et les traces sont interrogeables aussi longtemps que votre plan les conserve. Un widget pointé sur « les 90 derniers jours » sur un plan qui en conserve 30 affichera ce qui est encore stocké.
 
-## Cloner un tableau de bord
+## Dupliquer un tableau de bord
 
-Pour dupliquer un tableau de bord existant, ouvrez-le et utilisez l'action **Duplicate** depuis la liste des tableaux de bord. La copie inclut chaque widget, variable et paramètre sauf la configuration en mode public (qui commence toujours désactivée — vous décidez s'il faut la réactiver sur la copie).
+Pour copier un tableau de bord existant, ouvrez la liste des tableaux de bord et choisissez **Duplicate**. La copie comprend tous les widgets, variables et paramètres sauf le partage public — celui-ci commence toujours désactivé pour que vous puissiez décider de le réactiver ou non.
 
-C'est le motif approprié quand vous voulez forker un template (« notre tableau de bord d'astreinte ») en une version spécifique à un service.
+C'est la bonne approche quand vous voulez dériver un modèle (comme « notre tableau de bord d'astreinte ») en une copie spécifique à un service.
 
 ## Supprimer un tableau de bord
 
-Sous **Tableau de bord → Delete**. Ceci est irréversible — la configuration du canevas et tous les bindings de domaines personnalisés sont supprimés. Les données de télémétrie ne sont pas affectées (elles vivent dans les stockages de métriques / journaux / traces, pas sur le tableau de bord).
+Sous **Dashboard → Delete**. Cette action est irréversible — la mise en page du tableau de bord et tous les domaines personnalisés qui y sont rattachés sont supprimés. Vos données de télémétrie ne sont pas affectées.
 
-Si un tableau de bord est publié publiquement avec un domaine personnalisé, l'URL publique cesse de résoudre au moment où vous le supprimez. Retirez d'abord le domaine si vous devez le repointer.
+Si le tableau de bord est public sur un domaine personnalisé, l'URL cesse de répondre dès que vous le supprimez. Déplacez d'abord le domaine vers un autre tableau de bord si vous souhaitez que l'URL continue de fonctionner.
 
-## Migration et sauvegarde
+## Sauvegarde
 
-Pour les installations auto-hébergées : la configuration complète du tableau de bord (widgets, variables, paramètres) vit dans la table `Dashboard` dans Postgres. Une sauvegarde régulière de la base de données est suffisante — il n'y a pas de format d'export de tableau de bord séparé.
+Si vous hébergez OneUptime vous-même, une sauvegarde régulière de la base de données suffit — la configuration du tableau de bord est stockée avec le reste de votre projet.
 
-Pour OneUptime Cloud : les sauvegardes régulières sont gérées pour vous. Si vous voulez une copie locale de la configuration d'un tableau de bord, utilisez l'[API OneUptime](/docs/api-reference/api-reference) pour lire l'enregistrement `Dashboard`.
+Sur OneUptime Cloud, les sauvegardes sont gérées pour vous. Si vous voulez votre propre copie, vous pouvez lire le tableau de bord via l'[API OneUptime](/docs/api-reference/api-reference).
 
-## Où lire ensuite
+## Pour aller plus loin
 
-- [Partage et tableaux de bord publics](/docs/dashboards/sharing) — le côté public du contrôle d'accès.
-- [Variables et filtres](/docs/dashboards/variables) — templating.
-- [Widgets](/docs/dashboards/widgets) — le catalogue de widgets.
-- [Présentation des tableaux de bord](/docs/dashboards/index) — la carte conceptuelle.
+- [Partage et tableaux de bord publics](/docs/dashboards/sharing) — contrôles du mode public.
+- [Variables et filtres](/docs/dashboards/variables) — modélisation.
+- [Widgets](/docs/dashboards/widgets) — le catalogue des widgets.
+- [Présentation des tableaux de bord](/docs/dashboards/index) — la vue d'ensemble.

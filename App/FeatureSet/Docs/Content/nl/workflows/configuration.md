@@ -1,89 +1,89 @@
-# Workflow-configuratie en veiligheid
+# Configuratie en veiligheid
 
-Deze pagina verzamelt de instellingen en veiligheidslimieten die je moet kennen voordat je een workflow op productieverkeer richt.
+Deze pagina behandelt de instellingen en veiligheidslimieten die de moeite waard zijn om te kennen voordat je een workflow op echt verkeer richt.
 
-## In- / uitschakelen
+## Een workflow aan- of uitzetten
 
-Elke workflow heeft een **isEnabled**-vlag in **Settings**. Uitgeschakelde workflows vuren nooit af — model-events, webhooks en geplande runs worden genegeerd. Nieuwe workflows worden uitgeschakeld geleverd.
+Elke workflow heeft een schakelaar **Enabled** in **Settings**. Wanneer die uitstaat draait de workflow niet — webhook-aanroepen, geplande tijden en OneUptime-events worden allemaal genegeerd. Nieuwe workflows starten uitgeschakeld.
 
-Behandel dit als je "klaar voor productie"-schakelaar:
+Gebruik deze schakelaar als je "klaar om te gaan"-poort:
 
 1. Bouw de workflow.
-2. Klik op **Run Manually** met een representatieve payload.
-3. Controleer **Logs** — bevestig dat elke node de verwachte poort nam.
-4. Zet **isEnabled** aan.
+2. Klik op **Run Manually** met een realistische payload.
+3. Controleer de **Logs** — zorg dat elk blok ging waar je verwachtte.
+4. Zet **Enabled** aan.
 
-Een workflow uitschakelen heeft geen invloed op runs die al lopen; het voorkomt alleen dat er nieuwe worden gestart.
+Een workflow uitzetten stopt geen runs die al bezig zijn; het voorkomt alleen dat nieuwe starten.
 
-## Eigenaarschap en labels
+## Eigenaren en labels
 
-- **Eigenaren** — gebruikers en teams die als eigenaar zijn vermeld krijgen permissiegebaseerde toegang en (optioneel) meldingen wanneer de workflow faalt. Configureer onder **Settings → Owners**.
-- **Labels** — many-to-many-tags voor het organiseren van workflows. Filter de workflow-lijst op label. Handig wanneer een project tientallen workflows heeft, georganiseerd per team, integratie of omgeving.
-- **Label rules** — onder **Workflows → Settings → Label Rules** kun je labels automatisch toepassen op nieuwe workflows op basis van regex-matches op naam of beschrijving.
-- **Owner rules** — onder **Workflows → Settings → Owner Rules** kun je eigenaren automatisch toewijzen aan nieuwe workflows.
+- **Owners** — gebruikers en teams die als eigenaar zijn opgenomen, krijgen toegang tot de workflow en kunnen zich aanmelden voor notificaties wanneer hij faalt. Stel ze in onder **Settings → Owners**.
+- **Labels** — tags om workflows te groeperen. De workflowlijst laat je filteren op label, wat een druk project een stuk makkelijker te navigeren maakt. Handig wanneer je workflows hebt georganiseerd per team, integratie of omgeving.
+- **Label rules** — onder **Workflows → Settings → Label Rules** worden labels automatisch toegepast op nieuwe workflows op basis van naam- of beschrijvingspatronen.
+- **Owner rules** — onder **Workflows → Settings → Owner Rules** worden automatisch eigenaren toegewezen aan nieuwe workflows.
 
 ## Geheimen
 
-Globale variabelen kunnen worden gemarkeerd als **secret**. De waarde wordt versleuteld opgeslagen, is write-only in de UI na opslaan en wordt geredigeerd uit runlogs (vervangen door `[REDACTED]`).
+Markeer een globale variabele als **secret** als hij iets gevoeligs bevat. De waarde wordt versleuteld, na opslaan verborgen in de UI en verborgen in de run-logs (weergegeven als `[REDACTED]`).
 
-Gebruik geheime variabelen voor:
+Gebruik secret-variabelen voor:
 
-- API-sleutels voor uitgaande integraties.
-- Bearer-tokens.
+- API-sleutels voor externe services.
+- Authenticatietokens.
 - Webhook-signing-sleutels.
-- Elke waarde die een aanvaller met leestoegang tot een workflow niet zou mogen zien.
+- Alles wat je niet wilt dat iemand met alleen-leesrechten ziet.
 
-Plak geen geheim direct in een argument van een component — verwijzingen zoals `Authorization: Bearer eyJh...` verschijnen in de workflow-JSON en de runlogs in plain text. Verwijs in plaats daarvan naar `{{variable.MY_SECRET}}`.
+Plak een geheim niet direct in een blok — waarden zoals `Authorization: Bearer eyJh...` belanden zichtbaar in de workflow en de logs. Gebruik in plaats daarvan `{{variable.MY_SECRET}}`.
 
-## Run-timeout
+## Hoe lang een run mag duren
 
-Elke run heeft een maximale duur. Als een run niet binnen de timeout is afgerond, wordt hij gemarkeerd als `Timeout` en wordt een eventueel lopende component geannuleerd. De standaard is ruim (minuten, geen seconden) — bekijk de environment-configuratie van de worker voor de exacte waarde in jouw installatie.
+Elke run heeft een maximale lengte. Als een run niet op tijd klaar is, wordt hij gemarkeerd als **Timeout** en wordt het blok dat bezig is geannuleerd. De standaard is ruim — lang genoeg voor normale HTTP-aanroepen en ketens van blokken.
 
-De meeste componenten hebben hun eigen per-aanroep-timeouts binnen de run-timeout — bijvoorbeeld: de API-component geeft het op bij een hangend uitgaand verzoek lang vóórdat de hele run dat doet.
+Individuele blokken hebben hun eigen tijdslimieten daarbinnen — een API-blok geeft bijvoorbeeld op aan een hangende uitgaande aanvraag ruim voordat de hele run dat doet.
 
-## Recursielimiet
+## Limiet op het aanroepen van andere workflows
 
-Met de **Execute Workflow**-component kan de ene workflow de andere aanroepen. Om op hol geslagen lussen te voorkomen waarbij A B aanroept en B weer A, ad infinitum, houdt de worker de aanroepketen bij en stopt hij een keten die een vaste diepte overschrijdt (typisch een klein getal zoals 5). De afgebroken run wordt gemarkeerd als `Error` met een duidelijke melding over de recursielimiet.
+Met de **Execute Workflow**-component kan de ene workflow de andere aanroepen. Om te voorkomen dat workflow A per ongeluk B aanroept die A weer aanroept, is er een limiet op hoe diep de keten kan gaan. Een run die deze limiet overschrijdt eindigt met een duidelijke foutmelding.
 
-Als je een legitieme behoefte hebt aan een lange keten (bijvoorbeeld een recursieve folder-walk die per run één niveau verwerkt), refactor het dan tot één enkele workflow die intern itereert via **Custom Code** — dat patroon valt niet onder de keten-limiet.
+Als je echt een lange keten nodig hebt (bijvoorbeeld een taak die per run één item verwerkt), is het meestal eenvoudiger om binnen één workflow te loopen met **Custom Code**.
 
 ## Webhook-beveiliging
 
-Webhook-triggers stellen een unieke HTTPS-URL beschikbaar. Iedereen die de URL leert kennen kan hem aanroepen. Om jezelf te beschermen tegen onbedoelde of kwaadwillende callers:
+Webhook-triggers geven je een unieke URL. Iedereen die de URL kent kan hem aanroepen. Om je te beschermen tegen onbedoelde of ongewenste aanroepers:
 
-- Behandel de URL als een gedeeld geheim. Plak hem niet in een openbare chat en commit hem niet naar een openbare repo.
-- Voor workflows met hoge waarde: vraag het aanroepende systeem om een gedeeld geheim mee te sturen als header (bijvoorbeeld `X-Webhook-Token`) en valideer dat in een **Conditions**-node voordat je iets destructiefs doet. Definieer het verwachte token als een geheime globale variabele.
-- Voor workflows met zeer hoge waarde: geef de voorkeur aan een model-event-trigger en een handmatige importstap in plaats van een openbare webhook.
+- Behandel de URL als een wachtwoord. Deel hem niet publiekelijk en commit hem niet naar een publieke repo.
+- Voor gevoelige workflows kun je het aanroepende systeem vragen een gedeeld token als header te sturen (zoals `X-Webhook-Token`) en die controleren met een **Conditions**-blok voordat je iets belangrijks doet. Sla het verwachte token op als secret-variabele.
+- Voor zeer gevoelige workflows geef je de voorkeur aan een OneUptime event-trigger en een handmatige importstap in plaats van een publieke webhook.
 
-## Uitgaand netwerkverkeer
+## Uitgaande netwerktoegang
 
-De API- en andere HTTP-achtige componenten versturen verzoeken vanaf het netwerk van de OneUptime Workflow Worker. Als je OneUptime zelf host, is het uitgaande netwerk van de worker jouw zorg — zorg ervoor dat het de externe API's die je aanroept kan bereiken. Als je OneUptime Cloud gebruikt, is ons IP-uitgangsbereik gepubliceerd in [IP Addresses](/docs/configuration/ip-addresses), zodat je aan de ontvangende kant kunt allowlisten.
+API- en andere HTTP-blokken doen hun aanvragen vanuit OneUptime. Bij self-hosting zorg je dat je installatie de services kan bereiken die je aanroept. Bij OneUptime Cloud staan onze uitgaande IP-ranges vermeld in [IP Addresses](/docs/configuration/ip-addresses) zodat je ze aan de andere kant kunt toestaan.
 
 ## Machtigingen
 
-Workflows zijn first-class resources die onder de projectbrede rolgebaseerde toegangscontrole vallen:
+Workflows respecteren de role-based access control van je project. De relevante machtigingen:
 
-- `CreateWorkflow`, `ReadWorkflow`, `EditWorkflow`, `DeleteWorkflow` — de vier CRUD-machtigingen op workflow-templates.
-- `RunWorkflow` — nodig om op **Run Manually** te klikken of om een workflow via de API te dispatchen.
-- `ReadWorkflowLog` — nodig om de **Runs & Logs**-pagina te bekijken.
-- `ReadWorkflowVariable`, `CreateWorkflowVariable`, `EditWorkflowVariable`, `DeleteWorkflowVariable` — controle over de lijst met globale variabelen.
+- **Create / Read / Edit / Delete Workflow** — de basismachtigingen op de workflow zelf.
+- **Run Workflow** — nodig om op **Run Manually** te klikken of een workflow via de API te triggeren.
+- **Read Workflow Log** — nodig om runs te bekijken.
+- **Read / Create / Edit / Delete Workflow Variable** — controle over de lijst met globale variabelen.
 
-De meeste engineers zouden create/edit/read op workflows moeten hebben, maar niet op variabelen. Reserveer variabele-bewerkingsrechten voor de mensen die de geheimen van je project beheren.
+De meeste engineers zouden create/edit/read op workflows moeten hebben, maar niet op variabelen. Bewaar bewerkrechten op variabelen voor de mensen die de geheimen van je project beheren.
 
-## Quota
+## Plan-limieten
 
-OneUptime Cloud beperkt op kleinere abonnementen het aantal runs per maand per project. De limiet wordt getoond op **Project Settings → Billing**. Wanneer je hem bereikt, worden nieuwe triggers afgewezen (en met een reden "quota exceeded" vastgelegd op de betreffende workflow) tot de volgende factureringscyclus. Self-hosted-installaties vallen niet onder een quotum.
+OneUptime Cloud beperkt het aantal runs per maand op kleinere plannen. Je huidige limiet staat onder **Project Settings → Billing**. Wanneer je hem bereikt, worden nieuwe triggers afgewezen tot de volgende factureringscyclus. Self-hosted installaties hebben deze limiet niet.
 
-## Waar workflows *niet* goed in zijn
+## Wanneer workflows niet de juiste tool zijn
 
-Een paar patronen waarvoor je beter naar een ander tool grijpt:
+Een paar gevallen waarin je beter naar iets anders kunt grijpen:
 
-- **Langlopende berekeningen** — workflows zijn gericht op lijmwerk tussen systemen, niet op het verwerken van grote datasets. Draai zwaar werk in je eigen infrastructuur en gebruik een workflow om het op gang te brengen.
-- **Stateful workflows die minuten/uren beslaan** — één run is bedoeld om snel af te ronden. Als je "doe A, wacht twee uur, doe B" nodig hebt, modelleer dan de wachttijd als een externe scheduler die terugpost naar een webhook-trigger.
-- **Stap-voor-stap incidentrespons met menselijke ijkpunten** — daar zijn [Runbooks](/docs/runbooks/index) voor. Gebruik een workflow als er geen mens in de lus zit; gebruik een runbook als die er wel is.
+- **Zware berekeningen of grote datasets** — workflows zijn bedoeld voor licht lijmwerk, niet voor cijfers kraken. Voer zwaar werk uit op je eigen infrastructuur en laat een workflow het aansturen.
+- **Langlopende processen die uren duren** — één run hoort snel klaar te zijn. Als je "doe A, wacht twee uur, doe B" nodig hebt, gebruik dan een externe scheduler die een webhook terugstuurt naar OneUptime wanneer het tijd is.
+- **Stap-voor-stap incidentrespons met mensen in de loop** — daar zijn [Runbooks](/docs/runbooks/index) voor. Workflows zijn voor onbeheerde automatisering.
 
 ## Waar verder lezen
 
-- [Workflows – Overzicht](/docs/workflows/index) — de conceptuele kaart.
-- [Componenten](/docs/workflows/components) — argumentdetails voor elke actie.
-- [Runbooks](/docs/runbooks/index) — wanneer je in plaats daarvan een runbook gebruikt.
+- [Workflows – Overzicht](/docs/workflows/index) — het grote plaatje.
+- [Componenten](/docs/workflows/components) — blok-per-blok referentie.
+- [Runbooks](/docs/runbooks/index) — wanneer je beter een runbook gebruikt.

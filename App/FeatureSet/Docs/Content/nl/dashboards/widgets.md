@@ -1,155 +1,153 @@
-# Dashboard-widgets
+# Widgets
 
-Een widget is één tegel op een dashboard. Elke widget heeft een type (chart, value, list, …), een positie, een grootte en een configuratie. Deze pagina is de catalogus — wat elke widget toont, wat hij als input neemt, wanneer je ernaar grijpt.
+Een widget is één tegel op een dashboard. Deze pagina somt elke widget op die je kunt toevoegen, wat hij toont en wanneer je ernaar grijpt.
 
-Voor canvas-mechanica, zie [Een dashboard maken](/docs/dashboards/authoring).
+Voor hoe je widgets over het canvas sleept, zie [Een dashboard maken](/docs/dashboards/authoring).
 
-## Tijdreeks-widgets
+## Charts en getallen
 
 ### Chart
 
-Een lijn-/staaf-/vlakdiagram van één of meer metric-reeksen over het tijdsbereik van het dashboard.
+Een lijn-, balk- of vlakchart van één of meer metric-series over het tijdsbereik van het dashboard.
 
-**Configureer**:
+**Settings**:
 
-- Eén of meer metric-queries (`metricQueryConfig` voor één reeks, `metricQueryConfigs` voor meerdere).
-- Optionele **formule** die meerdere queries combineert (bijvoorbeeld `errors / total * 100`).
-- Optionele **transformAsRate** voor cumulatieve OpenTelemetry-counters (bijvoorbeeld `system.disk.io`) — de widget berekent `(value - previousValue) / Δt` per bucket.
-- Weergave: reeksen gestapeld vs. overlappend, eenheid Y-as, legenda aan/uit, type chart.
+- Eén of meer metric-queries.
+- Een optionele formule die twee queries combineert (bijvoorbeeld `errors / total * 100` voor een foutpercentage).
+- Een "show as rate"-optie voor cumulatieve counters die zonder reset blijven groeien.
+- Weergaveopties: gestapeld of overlapt, Y-as-eenheid, positie van de legenda, chart-type.
 
-Grijp ernaar wanneer: trends ertoe doen. Request-latency, foutaantal over tijd, wachtrijdiepte, alles waar de vorm van de curve je iets vertelt.
+Gebruik dit wanneer: trends ertoe doen. Latency in de tijd, foutaantal, wachtrijdiepte, alles waar de vorm van de lijn het verhaal vertelt.
 
 ### Value
 
-Eén groot getal met optionele drempels en een optionele sparkline.
+Eén groot getal met optionele gekleurde drempels.
 
-**Configureer**:
+**Settings**:
 
-- Een metric-query (enkele waarde — meestal `last`, `avg` of `max` over het tijdsbereik).
-- Optionele **waarschuwingsdrempel** (geel boven).
-- Optionele **kritieke drempel** (rood boven).
-- Weergave: getalformaat, eenheidsuffix.
+- Een metric-query die één getal teruggeeft (laatste waarde, gemiddelde of max over het tijdsbereik).
+- Een optionele **warning**-drempel (geel boven).
+- Een optionele **critical**-drempel (rood boven).
+- Getalnotatie en eenheid.
 
-Grijp ernaar wanneer: één enkel getal de vraag beantwoordt. Huidig foutpercentage, P95-latency op dit moment, aantal open incidenten.
+Gebruik dit wanneer: één getal de vraag beantwoordt. Huidig foutpercentage, P95-latency op dit moment, aantal openstaande incidenten.
 
 ### Gauge
 
-Een ronde meter met een min, max, waarschuwingsband en kritieke band.
+Een ronde gauge met een minimum, maximum, warning-band en critical-band.
 
-**Configureer**: de metric-query en de vier grenzen (min, max, waarschuwing, kritiek).
+**Settings**: een metric-query en de vier grenzen.
 
-Grijp ernaar wanneer: de waarde binnen een bekend bereik valt. CPU-gebruik (0–100%), schijfvulling, wachtrijcapaciteit.
+Gebruik dit wanneer: de waarde binnen een bekend bereik valt. CPU-percentage (0–100%), schijfgebruik, wachtrijcapaciteit.
 
 ### Table
 
-Een tabellarische weergave van de resultaten van een metric-query, één rij per groep.
+Een tabel met metric-resultaten, één rij per groep.
 
-**Configureer**: de metric-query (meestal gegroepeerd op een label zoals `host.name` of `service.name`), de te tonen kolommen en een rijlimiet.
+**Settings**: een metric-query (meestal gegroepeerd op een label zoals host of service), de kolommen om te tonen en een rijlimiet.
 
-Grijp ernaar wanneer: je liever de uitsplitsing dan de trend wilt. Top 10 luidruchtigste hosts, foutaantal per service, request-rate per endpoint.
+Gebruik dit wanneer: je een uitsplitsing wilt in plaats van een trend. Top 10 luidruchtigste hosts, foutaantal per service, requests per endpoint.
 
-## Annotatie-widget
-
-### Text
+## Text
 
 Een statisch blok Markdown.
 
-**Configureer**: de Markdown-body. Koppen, lijsten, links, nadruk, inline-code, fenced code blocks renderen allemaal.
+**Settings**: de Markdown-body. Koppen, lijsten, links, nadruk en codeblokken worden allemaal gerenderd.
 
-Grijp ernaar wanneer: je een sectie-koptekst wilt, een paragraaf context ("dit dashboard dekt de checkout-service"), een lijst met links naar runbooks of gerelateerde dashboards, of een tijdelijke banner tijdens een incident.
+Gebruik dit wanneer: je een sectiekop wilt, een alinea context, een lijst met links naar runbooks of een tijdelijke banner tijdens een incident.
 
 ## Logs en traces
 
-### LogStream
+### Log Stream
 
-Een live tail van logregels die matchen met een filter.
+Een live tail van logregels die aan een filter voldoen.
 
-**Configureer**: log-filters (service, ernst, attribuutmatches), de te tonen kolommen.
+**Settings**: log-filters (service, severity, attributen) en de kolommen om te tonen.
 
-Grijp ernaar wanneer: je *op dit moment* wilt zien wat de applicatie zegt op een dashboard, zonder de pagina te verlaten om de logs-explorer te openen.
+Gebruik dit wanneer: je wilt zien wat de applicatie nu zegt, zonder het dashboard te verlaten.
 
-### TraceList
+### Trace List
 
-Een lijst van recente traces die matchen met een filter, met duur, status en de servicenaam.
+Een lijst met recente traces die aan een filter voldoen, met duur, status en service.
 
-**Configureer**: trace-filters (service, status, attribuutmatches).
+**Settings**: trace-filters (service, status, attributen).
 
-Grijp ernaar wanneer: je liever een gepagineerde weergave van recente activiteit ziet dan een chart. Veelvoorkomende combinatie: een latency-Chart bovenaan, een TraceList van trage traces eronder.
+Gebruik dit wanneer: je een lijst met recente activiteit wilt in plaats van een chart. Een veelvoorkomend patroon is een latency-chart bovenaan met een lijst van langzame traces eronder.
 
-## Operationele lijsten
+## Live lijsten
 
-### IncidentList
+### Incident List
 
-Een live lijst van incidenten die matchen met een filter.
+Een live lijst met incidenten die aan een filter voldoen.
 
-**Configureer**: filters op status, ernst, labels, monitor of toegewezen team.
+**Settings**: filters op state, severity, labels, monitor of team.
 
-Grijp ernaar wanneer: een dashboard bedoeld is om de vraag "wat is er nu kapot?" te beantwoorden.
+Gebruik dit wanneer: het dashboard de vraag "wat is er nu kapot?" beantwoordt.
 
-### AlertList
+### Alert List
 
-Een live lijst van alerts die matchen met een filter.
+Een live lijst met alerts die aan een filter voldoen.
 
-**Configureer**: filters op status, ernst, labels.
+**Settings**: filters op state, severity, labels.
 
-Grijp ernaar wanneer: dashboards voor alert-gedreven workflows (bijvoorbeeld dashboards van dev-teams die de alerts van hun service in de gaten houden).
+Gebruik dit wanneer: een teamdashboard alerts op zijn services volgt.
 
-### MonitorList
+### Monitor List
 
-Een live lijst van monitors die matchen met een filter, met de huidige status van elke monitor.
+Een live lijst met monitors en hun huidige status.
 
-**Configureer**: filters op monitortype, labels of huidige status.
+**Settings**: filters op monitortype, labels of huidige state.
 
-Grijp ernaar wanneer: je een fleet-level "zijn alle websites up?"-view wilt, of een per-team-lijst van gemonitorde endpoints.
+Gebruik dit wanneer: je een wagenpark-view wilt — "zijn alle sites up?"
 
-## Kubernetes-resource-lijsten
+## Kubernetes-resourcelijsten
 
-Voor projecten met een [Kubernetes-agent](/docs/monitor/kubernetes-agent) geïnstalleerd, zijn de volgende live-resource-widgets beschikbaar. Elk neemt optionele filters voor `cluster`, `namespace` en labels.
+Voor projecten met een [Kubernetes Agent](/docs/monitor/kubernetes-agent) geïnstalleerd. Elke neemt optionele filters voor cluster, namespace en labels.
 
-- **KubernetesPodList** — pods met fase, restarts en nodetoewijzing.
-- **KubernetesNodeList** — nodes met condities, capaciteit en allocaties.
-- **KubernetesNamespaceList** — namespaces en hun workload-tellingen.
-- **KubernetesDeploymentList** — deployments met gewenste vs. ready replicas.
-- **KubernetesStatefulSetList** — stateful sets met ready replicas.
-- **KubernetesDaemonSetList** — daemon sets met gewenst vs. ready.
-- **KubernetesJobList** — jobs met voltooiingsstatus.
-- **KubernetesCronJobList** — cron jobs met schema en laatste run.
+- **Kubernetes Pod List** — pods met hun phase, restarts en node.
+- **Kubernetes Node List** — nodes met hun conditions en capacity.
+- **Kubernetes Namespace List** — namespaces en workload-aantallen.
+- **Kubernetes Deployment List** — deployments met desired vs. ready replica's.
+- **Kubernetes StatefulSet List** — stateful sets met ready replica's.
+- **Kubernetes DaemonSet List** — daemon sets met desired vs. ready.
+- **Kubernetes Job List** — jobs en hun voltooiingsstatus.
+- **Kubernetes CronJob List** — cron jobs met schedule en laatste run.
 
-Grijp ernaar wanneer: je één dashboard wilt dat Kubernetes-resource-state combineert met telemetry van die workloads.
+Gebruik deze wanneer: je één dashboard wilt dat Kubernetes-state mengt met telemetry van die workloads.
 
-## Docker-resource-lijsten
+## Docker-resourcelijsten
 
-Voor projecten met een Docker-monitor geïnstalleerd:
+Voor projecten met Docker-monitoring opgezet.
 
-- **DockerHostList** — hosts die Docker draaien, met aantal containers.
-- **DockerContainerList** — containers met status, image, host, uptime.
-- **DockerImageList** — images en hun groottes.
-- **DockerNetworkList** — Docker-netwerken en aantal verbonden containers.
-- **DockerVolumeList** — Docker-volumes en hun gebruik.
+- **Docker Host List** — hosts die Docker draaien, met container-aantallen.
+- **Docker Container List** — containers met state, image, host, uptime.
+- **Docker Image List** — images en hun groottes.
+- **Docker Network List** — Docker-netwerken en verbonden containers.
+- **Docker Volume List** — Docker-volumes en hun gebruik.
 
 ## Infrastructuur
 
-### HostList
+### Host List
 
-Hosts die door de servermonitor van OneUptime worden gemonitord — met huidige status, CPU, geheugen en uptime.
+Hosts gemonitord door OneUptime's server-monitor, met status, CPU, geheugen en uptime.
 
-**Configureer**: filters op labels of huidige gezondheidsstatus.
+**Settings**: filters op labels of huidige state.
 
-## De juiste widget kiezen
+## Welke widget moet ik gebruiken?
 
 Een paar vuistregels:
 
-- **Trend over tijd?** Chart.
-- **Eén getal dat er nu toe doet?** Value (of Gauge als het een natuurlijk bereik heeft).
+- **Trend in de tijd?** Chart.
+- **Eén getal dat er nu toe doet?** Value (of Gauge als het een duidelijk min/max heeft).
 - **Uitsplitsing over veel dingen?** Table.
-- **Wat gebeurt er op dit moment in het systeem?** LogStream, TraceList, IncidentList.
-- **Status van een specifieke vloot resources?** De bijbehorende resource-lijst-widget.
-- **Een koptekst, paragraaf of link?** Text.
+- **Wat gebeurt er nu in het systeem?** Log Stream, Trace List, Incident List.
+- **De state van een specifieke groep resources?** De bijbehorende lijst-widget.
+- **Een kop, alinea of link?** Text.
 
-De meeste dashboards gebruiken een mix — een Chart bovenaan, een Value of twee ernaast, een Text-scheidingsbalk en daaronder één of twee lijsten.
+De meeste dashboards mengen er een paar — een chart bovenaan, een value of twee ernaast, een tekstscheiding en een lijst of twee eronder.
 
 ## Waar verder lezen
 
-- [Variabelen en filters](/docs/dashboards/variables) — widgets herbruikbaar maken over services / klanten / clusters heen.
-- [Een dashboard maken](/docs/dashboards/authoring) — het canvas, grid en de edit-modus.
-- [Delen en publieke dashboards](/docs/dashboards/sharing) — een dashboard delen buiten het team.
+- [Variabelen en filters](/docs/dashboards/variables) — widgets herbruikbaar maken voor veel services of klanten.
+- [Een dashboard maken](/docs/dashboards/authoring) — de canvas-mechanica.
+- [Delen en publieke dashboards](/docs/dashboards/sharing) — delen buiten je team.

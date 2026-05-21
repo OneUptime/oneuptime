@@ -1,75 +1,68 @@
 # Authoring a Workflow
 
-Create a workflow under **Workflows → Create Workflow**, give it a name and an optional description, then open the **Builder** tab to start dropping nodes onto the canvas.
+To create a workflow, open **Workflows → Create Workflow**, give it a name, and click into the **Builder** tab. You'll see a blank canvas where you'll build the automation.
 
 ## The canvas
 
-The Builder is a zoomable, pannable graph. You add nodes from a component palette, connect them with edges, and configure each node's arguments in a side panel. A save indicator in the header tells you whether your latest edit has been persisted.
+The Builder is a drag-and-drop canvas. You add blocks from the palette on the side, connect them together with lines, and click each block to configure what it does. Changes save automatically — you'll see an indicator at the top once they're saved.
 
-A workflow always starts with exactly one **trigger** node. Triggers have no input port — they're where execution begins. Everything downstream is a **component**.
+Every workflow starts with one **trigger** at the beginning. Everything else is a **component** that does something.
 
-## Anatomy of a node
+## What's on a block
 
-Every node has:
-
-| Field | Purpose |
+| Field | What it does |
 | --- | --- |
-| **Title** | The label shown on the canvas. Defaults to the component name; override it to make complex workflows easier to read. |
-| **Arguments** | The configuration the component needs to do its job — a URL, a Slack channel, a JavaScript snippet, etc. Required arguments are marked with an asterisk. |
-| **Input ports** | Sockets on the left of the node where incoming edges land. Components have one input port called `in`; triggers have none. |
-| **Output ports** | Sockets on the right where outgoing edges start. Components define ports like `success`, `error`, `yes`, `no`. |
-| **Return values** | Data the node produces — its output ports' payloads. Downstream nodes reference these as `{{NodeId.fieldName}}`. |
+| **Title** | The name shown on the canvas. Rename it to make complex workflows easier to read. |
+| **Settings** | What the block needs to do its job — a URL, a Slack channel, a message body, etc. Required fields are marked with an asterisk. |
+| **Input** | The dot on the left where lines come in from earlier blocks. |
+| **Outputs** | The dots on the right where lines go out to the next blocks. Many blocks have separate **success** and **error** outputs so you can handle both cases. |
 
-## Connecting nodes
+## Connecting blocks
 
-Drag from an output port to a downstream node's input port to create an edge. An edge from `success` runs that branch only when the upstream node succeeded; an edge from `error` runs only when it failed. If you don't connect a port, that branch simply ends.
+Drag from a block's output dot to the next block's input dot. The line you draw decides what runs next.
 
-You can fan out: one output port can feed multiple downstream nodes, and they all run in parallel from that point.
+- If you connect from **success**, the next block only runs when the earlier one worked.
+- If you connect from **error**, the next block only runs when the earlier one failed.
+- If you don't connect an output, that path just stops.
 
-## Configuring arguments
+You can connect one output to multiple blocks. They all run at the same time from that point.
 
-Click a node to open its side panel. Each argument has a typed editor:
+## Configuring a block
 
-- **Text / URL / Email / Number / Password** — a single-line input.
-- **JSON** — a JSON editor with syntax highlighting and a validation indicator.
-- **JavaScript** — a code editor for snippets used by the **Custom Code** component.
-- **Markdown / HTML** — rich-text bodies for email and message components.
-- **CronTab** — a schedule expression (used by the Schedule trigger).
-- **Boolean** — a toggle.
-- **Select / Query** — drop-downs for fields that take a fixed set of values or a model-style query.
+Click a block to open its settings on the side. Each setting has the right kind of input — text fields, dropdowns, code editors, toggles, and so on.
 
-Any text field accepts variable interpolation — see [Variables](/docs/workflows/variables) for the rules.
+Most text fields accept variables — that's how data flows from one block to the next. See [Variables](/docs/workflows/variables) for the syntax.
 
-## A minimal first workflow
+## Your first workflow
 
-The fastest way to feel out the canvas:
+The quickest way to feel out the canvas:
 
-1. Drop a **Manual** trigger.
-2. Drop a **Log** component (under **Utils**). Connect the trigger's output port to the Log component's input port.
-3. In the Log component's argument, type `Hello from {{Manual.JSON.name}}`.
-4. Save and enable the workflow.
+1. Drag a **Manual** trigger onto the canvas.
+2. Drag a **Log** component (under **Utils**) next to it. Connect the trigger to the Log component.
+3. In the Log block's message field, type `Hello from {{Manual.JSON.name}}`.
+4. Save and turn the workflow on.
 5. Click **Run Manually**, paste `{ "name": "Ada" }` as the input, and submit.
-6. Open the **Logs** tab. The latest run shows the Log node's captured output: `Hello from Ada`.
+6. Open the **Logs** tab. The latest run shows `Hello from Ada`.
 
-That round-trip — drag, wire, configure, run, inspect — is the rhythm of authoring every workflow.
+That cycle — drag, connect, configure, run, check the log — is how you'll build every workflow.
 
-## Save, enable, and test in production
+## Save and turn on
 
-Workflows are stored as a JSON graph on the `Workflow.graph` column. The Builder saves as you edit; the save indicator in the header shows when the latest change has hit the server. There is no separate "publish" step.
+The canvas saves as you work. There's no separate "publish" step.
 
-But: a workflow only fires its trigger when **isEnabled** is on. New workflows ship disabled. Treat that flag as your "ready for prod" switch — build, click **Run Manually** to dry-run with a sample payload, look at the **Logs**, and only then flip Enable on.
+But a workflow only actually runs when **Enabled** is on in Settings. New workflows start disabled. Use that switch as your safety net — build it, test with **Run Manually**, check the logs, then turn it on.
 
-If you need to pause a workflow without deleting it (e.g., during an unrelated incident), toggle **isEnabled** off in **Settings**. Existing in-flight runs continue; no new ones start.
+To pause a workflow without deleting it, switch **Enabled** off. Runs already in progress finish; no new ones start.
 
-## Reordering and reorganizing
+## Tidying up
 
-- Drag a node to reposition it. The position is stored in the graph so the next person to open the canvas sees the same layout.
-- Right-click an edge to delete it; right-click a node for delete and duplicate options.
-- For wide workflows, lay them out left-to-right so the execution direction matches your reading direction.
+- Drag blocks to move them. The layout is saved so the next person sees the same arrangement.
+- Right-click a line to delete it. Right-click a block to delete or duplicate it.
+- For wide workflows, lay them out left to right so they read in the direction they run.
 
 ## Where to read next
 
-- [Triggers](/docs/workflows/triggers) — the four trigger families and what each exposes as return values.
-- [Components](/docs/workflows/components) — the full catalog and their arguments.
-- [Variables](/docs/workflows/variables) — how to reference data between nodes and from global variables.
-- [Runs & Logs](/docs/workflows/runs-and-logs) — how to debug a misbehaving workflow.
+- [Triggers](/docs/workflows/triggers) — the four ways a workflow can start.
+- [Components](/docs/workflows/components) — every block you can add.
+- [Variables](/docs/workflows/variables) — moving data between blocks.
+- [Runs & Logs](/docs/workflows/runs-and-logs) — checking what happened.

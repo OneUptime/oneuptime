@@ -1,96 +1,92 @@
 # Variablen & Filter
 
-Eine Variable verwandelt ein einzelnes Dashboard in ein Template. Definieren Sie eine `service`-Variable und dasselbe Diagramm wird für `checkout`, `payments` und `search` neu gerendert — wählen Sie aus einem Dropdown am oberen Rand, anstatt drei nahezu identische Dashboards zu bauen.
-
-Diese Seite behandelt die vier Variablentypen, wie ihre Werte in Widget-Abfragen eingespeist werden und die globalen Zeitbereichs- und Aktualisierungssteuerungen, die daneben sitzen.
+Eine Variable verwandelt ein einzelnes Dashboard in eine Vorlage. Fügen Sie eine Variable `service` zu Ihrem Dashboard hinzu, und dieselben Diagramme werden für `checkout`, `payments` oder `search` neu gerendert – Besucher wählen oben aus einem Dropdown, statt dass Sie drei nahezu identische Dashboards bauen.
 
 ## Variablentypen
 
-Fügen Sie Variablen unter **Dashboard → Settings → Variables** hinzu. Jede hat einen Namen (in Widget-Abfragen als `{{name}}` referenziert), eine optionale Beschriftung und einen Typ.
+Fügen Sie Variablen unter **Dashboard → Einstellungen → Variablen** hinzu. Jede Variable hat einen Namen (verwendet als `{{name}}` in Ihren Widgets), eine optionale Beschriftung und einen Typ.
 
-### Custom List
+### Benutzerdefinierte Liste
 
-Ein statisches Dropdown. Sie liefern eine durch Komma getrennte Liste von Werten; der Betrachter wählt einen aus.
+Ein statisches Dropdown. Sie tippen die Optionen selbst ein.
 
-Verwenden Sie es, wenn: die Menge der Optionen klein, fest und nur für Ihr Team aussagekräftig ist. `environment` mit Werten `prod, staging, dev`. `region` mit Werten `us-east-1, eu-west-1, ap-south-1`.
+Verwenden Sie es, wenn: die Auswahl klein und fest ist. `environment` mit den Werten `prod, staging, dev`. `region` mit den Werten `us-east-1, eu-west-1, ap-south-1`.
 
-### Query
+### Abfrage
 
-Die Optionen für das Dropdown werden zur Rendering-Zeit durch eine ClickHouse-Abfrage berechnet.
+Die Optionen stammen aus einer Abfrage Ihrer Daten.
 
-Verwenden Sie es, wenn: die Optionen dynamisch sind und in Ihrer Telemetrie leben. „Jede Kunden-ID, die sich in den letzten 24 Stunden eingeloggt hat" via `SELECT DISTINCT customer_id FROM ...`. Die Abfrage läuft gegen die Daten Ihres Projekts; behandeln Sie das Ergebnis als nicht vertrauenswürdige Eingabe, auch wenn es Ihre eigenen Daten sind.
+Verwenden Sie ihn, wenn: sich die Auswahl mit der Zeit ändert und das Dropdown mitlaufen soll. „Jede Kunden-ID, die in den letzten 24 Stunden gesehen wurde." Die Abfrage läuft gegen die Daten Ihres Projekts und die Ergebnisse werden zum Dropdown.
 
-### Text Input
+### Texteingabe
 
-Ein Freitextfeld. Was auch immer der Betrachter eingibt, wird eingespeist.
+Ein Freitextfeld. Was der Besucher eintippt, wird verwendet.
 
-Verwenden Sie es, wenn: Sie das Dashboard wie ein Suchwerkzeug verwenden möchten. Ein „Filter nach IP"- oder „Filter nach Request-ID"-Dashboard.
+Verwenden Sie es, wenn: sich das Dashboard wie ein Suchwerkzeug verhalten soll. Filtern nach IP-Adresse, Request-ID oder einem anderen frei eingebbaren Wert.
 
 ### Telemetrie-Attribut
 
-Die Optionen sind die unterschiedlichen Werte eines OpenTelemetry-Attributschlüssels über die Telemetrie Ihres Projekts hinweg, über den Zeitbereich des Dashboards.
+Die Optionen sind die unterschiedlichen Werte eines Attributs in Ihrer Telemetrie über den Zeitbereich des Dashboards.
 
-Konfigurieren Sie den **Attributschlüssel** (z. B. `k8s.cluster.name`, `service.name`, `host.name`). Das Widget holt unterschiedliche Werte aus Logs / Metriken / Traces und bietet sie als Dropdown an.
+Konfigurieren Sie den **Attributschlüssel** (zum Beispiel `service.name`, `host.name`, `k8s.cluster.name`). Das Dropdown füllt sich mit jedem unterschiedlichen Wert, der in Ihren Logs, Metriken und Traces gesehen wurde.
 
-Verwenden Sie es, wenn: die Optionen genau die Entitäten sind, mit denen Sie Ihre Telemetrie bereits markiert haben. Cluster-Name, Service-Name, Region, Kunden-ID, Deployment-Umgebung — alles, was Sie bereits als OpenTelemetry-Ressourcen- oder Span-Attribut senden.
-
-Dies ist der häufigste Variablentyp für service-orientierte Dashboards, weil er sich automatisch aktualisiert: Wenn Sie einen neuen Service liefern, der mit `service.name = inventory` markiert ist, erscheint dieser Wert im Dropdown, ohne dass jemand das Dashboard bearbeiten muss.
+Verwenden Sie ihn, wenn: die Auswahl den Tags entspricht, die Sie ohnehin mit Ihrer Telemetrie senden. Dies ist der häufigste Typ, weil er sich automatisch aktualisiert – wenn Sie einen neuen Service mit dem Tag `service.name = inventory` ausrollen, erscheint dieser Name im Dropdown, ohne dass Sie das Dashboard bearbeiten müssen.
 
 ## Mehrfachauswahl
 
-Jede Variable kann auf **Mehrfachauswahl** konfiguriert werden. Wenn aktiviert, wählt der Betrachter einen oder mehrere Werte; das Dashboard filtert nach `value IN (...)` anstelle von `value = ...`.
+Jede Variable kann Mehrfachauswahl erlauben. Ist sie aktiv, kann der Besucher einen oder mehrere Werte wählen; das Dashboard filtert dann auf eines davon.
 
-Verwenden Sie Mehrfachauswahl, wenn: Sie sich „checkout + payments zusammen" anschauen möchten, ohne das Dashboard zu verlassen. Vermeiden Sie sie, wenn die Diagrammberechnung über die ausgewählten Werte hinweg nicht aufgeht — z. B. das Mitteln von Mittelwerten.
+Verwenden Sie Mehrfachauswahl, wenn: Sie „Checkout und Payments zusammen" vergleichen wollen, ohne das Dashboard zu verlassen. Vermeiden Sie sie, wenn die Berechnung über die ausgewählten Werte hinweg nicht funktioniert (zum Beispiel das Durchschnittsbilden von Durchschnitten).
 
 ## Standardwerte
 
-Jede Variable nimmt einen optionalen Standardwert. Das Dashboard wird mit dem Standardwert gerendert, bis der Betrachter das Dropdown ändert. Für öffentliche Dashboards ist der Standardwert das, womit Besucher landen.
+Jede Variable kann einen Standardwert haben. Das Dashboard wird mit dem Standardwert gerendert, bis der Besucher ihn ändert. Bei öffentlichen Dashboards sehen Besucher zuerst den Standardwert.
 
-## Wie Interpolation funktioniert
+## Wie Sie eine Variable in einem Widget verwenden
 
-Überall, wo eine Widget-Abfrage einen String-Filter akzeptiert — eine `WHERE`-Klausel einer Metrik-Abfrage, der Filter eines Listen-Widgets, die Attribut-Übereinstimmung eines Log-Streams — können Sie `{{variable_name}}` referenzieren.
+Überall, wo ein Widget einen Filter akzeptiert – das `WHERE` einer Metrik, der Filter einer Liste, der Attribut-Abgleich eines Log-Streams – können Sie `{{variable_name}}` verwenden.
 
-Zum Beispiel könnte die Metrik-Abfrage eines Charts so aussehen:
+Beispiel: ein Diagramm, gefiltert nach Service:
 
 ```
-SELECT avg(latency_ms) FROM spans WHERE service.name = '{{service}}'
+service.name = '{{service}}'
 ```
 
-Wenn `service` auf `checkout` gesetzt ist, läuft die Abfrage mit `service.name = 'checkout'`. Wenn der Betrachter auf `payments` umschaltet, läuft die Abfrage erneut mit `service.name = 'payments'`.
+Wenn das Dropdown auf `checkout` steht, filtert das Diagramm auf den Checkout-Service. Wechselt der Besucher auf `payments`, wird das Diagramm für Payments neu gerendert.
 
-Speziell für **Telemetrie-Attribut**-Variablen kennt OneUptime den Attributschlüssel und injiziert den Filter in jedes Widget, das dasselbe Attribut erwähnt — Sie müssen nicht die Abfrage jedes Widgets manuell bearbeiten, wenn sich die Variable ändert. Das ist die Magie, die service-templatierte Dashboards sofort einsatzbereit macht.
+Bei **Telemetrie-Attribut**-Variablen weiß OneUptime, auf welches Attribut die Variable abbildet, und wendet den Filter automatisch auf jedes Widget an, das dasselbe Attribut nutzt – Sie müssen kein Widget einzeln bearbeiten.
 
 ## Zeitbereich
 
-Die Kopfzeile des Dashboards hat einen globalen **Zeitbereich**-Picker. Jedes Metrik-Widget fragt gegen dieses Fenster ab. Auswahlmöglichkeiten:
+Der Dashboard-Kopfbereich hat einen globalen Zeitbereich. Jedes Metrik-Widget fragt gegen dieses Fenster ab. Optionen:
 
-- **Voreinstellungen** — letzte 1 Stunde, 24 Stunden, 7 Tage, 30 Tage, 90 Tage (abhängig von Ihrer Aufbewahrung).
-- **Benutzerdefinierter Bereich** — wählen Sie Start- und Endzeitstempel.
+- **Voreinstellungen** – letzte Stunde, 24 Stunden, 7 Tage, 30 Tage, 90 Tage (abhängig von der Aufbewahrungsdauer Ihrer Daten).
+- **Eigener Bereich** – Start- und Endzeit wählen.
 
-Der Zeitbereich ist Teil der URL des Dashboards — das Teilen der URL teilt das Fenster. Das ist während eines Vorfalls praktisch: Heften Sie den Zeitbereich auf „heute 10:00–10:30 UTC" und teilen Sie den Link im Vorfall-Kanal.
+Der Zeitbereich ist Teil der URL des Dashboards – wer die URL teilt, teilt das Fenster mit. Praktisch bei einem Vorfall: fixieren Sie den Zeitbereich auf „heute 10:00–10:30 UTC" und fügen Sie den Link in den Vorfall-Kanal ein.
 
 ## Aktualisierungsintervall
 
-Neben dem Zeitbereich wählen Sie, wie oft Widgets erneut abfragen:
+Neben dem Zeitbereich wählen Sie, wie häufig die Widgets neu abfragen:
 
-- **Aus** — Widgets fragen einmal beim Laden ab.
-- **5s / 10s / 30s / 1m / 5m / 15m** — automatische Aktualisierung.
+- **Aus** – die Widgets fragen einmal beim Laden der Seite ab.
+- **5 s / 10 s / 30 s / 1 min / 5 min / 15 min** – automatische Aktualisierung.
 
-Automatische Aktualisierung ist praktisch für einen wandmontierten Bildschirm und eine aktuelle Vorfallansicht. Für eine Ad-hoc-Untersuchung lassen Sie sie aus, damit die Ansicht stabil bleibt, während Sie scrollen.
+Automatische Aktualisierung eignet sich für einen Wandbildschirm oder eine Live-Vorfallansicht. Lassen Sie sie ausgeschaltet, wenn Sie analysieren – so bleibt die Ansicht still, während Sie schauen.
 
-## Alles zusammenfügen
+## Alles zusammenführen
 
-Ein service-templatiertes Dashboard hat typischerweise:
+Ein service-vorlagenartiges Dashboard hat typischerweise:
 
-1. Eine `service`-Variable vom Typ **Telemetrie-Attribut**, gebunden an `service.name`. Standardwert: Ihr meistbeobachteter Service. Mehrfachauswahl: aus (sodass Diagramme immer einen Service zur Zeit zeigen).
-2. Eine `environment`-Variable vom Typ **Custom List**. Standardwert: `prod`.
-3. Eine `cluster`-Variable vom Typ **Telemetrie-Attribut**, gebunden an `k8s.cluster.name`. Mehrfachauswahl: ein (sodass Sie über Cluster hinweg aggregieren können).
-4. Die Widgets des Dashboards referenzieren diese Variablen in ihren Filtern.
+1. Eine Variable `service` vom Typ **Telemetrie-Attribut** für `service.name`. Standardwert: Ihr am meisten beobachteter Service. Mehrfachauswahl aus (damit Diagramme immer nur einen anzeigen).
+2. Eine Variable `environment` vom Typ **Benutzerdefinierte Liste**. Standardwert: `prod`.
+3. Eine Variable `cluster` vom Typ **Telemetrie-Attribut** für `k8s.cluster.name`. Mehrfachauswahl an (damit Sie über Cluster hinweg vergleichen können).
+4. Widgets, die in ihren Filtern auf diese Variablen verweisen.
 
-Das Ergebnis: ein Dashboard, die Abdeckung der gesamten Flotte, ein paar Dropdowns am oberen Rand.
+Das Ergebnis: ein Dashboard, jeder Service abgedeckt, drei Dropdowns oben.
 
-## Wo weiterlesen
+## Weiterführende Themen
 
-- [Widgets](/docs/dashboards/widgets) — wie jedes Widget einen Filter konsumiert.
-- [Teilen & öffentliche Dashboards](/docs/dashboards/sharing) — Variablen in URLs, einschließlich ihrer Werte für geteilte Links.
-- [Ein Dashboard erstellen](/docs/dashboards/authoring) — die Mechanik der Arbeitsfläche.
+- [Widgets](/docs/dashboards/widgets) – wie jedes Widget einen Filter nutzt.
+- [Freigabe & öffentliche Dashboards](/docs/dashboards/sharing) – Variablen und geteilte Links.
+- [Dashboard erstellen](/docs/dashboards/authoring) – die Mechanik der Arbeitsfläche.

@@ -1,75 +1,68 @@
-# Criar um workflow
+# Criando um Workflow
 
-Crie um workflow em **Workflows → Create Workflow**, dê um nome e uma descrição opcional e abra a aba **Builder** para começar a soltar nós no canvas.
+Para criar um workflow, abra **Workflows → Criar Workflow**, dê um nome a ele e clique na aba **Builder**. Você verá um canvas em branco onde vai construir a automação.
 
 ## O canvas
 
-O Builder é um grafo com zoom e movimentação. Você adiciona nós a partir de uma paleta de componentes, conecta-os com arestas e configura os argumentos de cada nó em um painel lateral. Um indicador de salvamento no cabeçalho avisa se a sua edição mais recente foi persistida.
+O Builder é um canvas de arrastar e soltar. Você adiciona blocos a partir da paleta lateral, conecta-os com linhas e clica em cada bloco para configurar o que ele faz. As alterações são salvas automaticamente — você verá um indicador no topo quando estiverem salvas.
 
-Um workflow sempre começa com exatamente um nó **gatilho**. Gatilhos não têm porta de entrada — é onde a execução começa. Tudo a jusante é um **componente**.
+Todo workflow começa com um **gatilho** no início. Tudo o mais é um **componente** que faz algo.
 
-## Anatomia de um nó
+## O que tem em um bloco
 
-Todo nó tem:
-
-| Campo | Função |
+| Campo | O que faz |
 | --- | --- |
-| **Title** | O rótulo exibido no canvas. O padrão é o nome do componente; sobrescreva para tornar workflows complexos mais fáceis de ler. |
-| **Arguments** | A configuração de que o componente precisa para fazer seu trabalho — uma URL, um canal do Slack, um trecho de JavaScript etc. Argumentos obrigatórios são marcados com um asterisco. |
-| **Portas de entrada** | Soquetes à esquerda do nó onde aterrissam as arestas que chegam. Componentes têm uma porta de entrada chamada `in`; gatilhos não têm nenhuma. |
-| **Portas de saída** | Soquetes à direita onde as arestas que saem começam. Componentes definem portas como `success`, `error`, `yes`, `no`. |
-| **Valores de retorno** | Dados que o nó produz — o payload de suas portas de saída. Nós a jusante referenciam isso como `{{NodeId.fieldName}}`. |
+| **Título** | O nome mostrado no canvas. Renomeie para tornar workflows complexos mais fáceis de ler. |
+| **Configurações** | O que o bloco precisa para fazer seu trabalho — uma URL, um canal do Slack, um corpo de mensagem etc. Campos obrigatórios são marcados com um asterisco. |
+| **Entrada** | O ponto à esquerda onde as linhas dos blocos anteriores chegam. |
+| **Saídas** | Os pontos à direita de onde as linhas saem para os próximos blocos. Muitos blocos têm saídas separadas de **sucesso** e **erro** para que você possa tratar ambos os casos. |
 
-## Conectando nós
+## Conectando blocos
 
-Arraste de uma porta de saída até a porta de entrada de um nó a jusante para criar uma aresta. Uma aresta saindo de `success` roda esse ramo apenas quando o nó a montante teve sucesso; uma aresta saindo de `error` só roda quando ele falhou. Se você não conectar uma porta, esse ramo simplesmente termina.
+Arraste do ponto de saída de um bloco até o ponto de entrada do próximo bloco. A linha que você desenha decide o que executa em seguida.
 
-Você pode fazer fan-out: uma porta de saída pode alimentar vários nós a jusante, e todos rodam em paralelo a partir desse ponto.
+- Se você conectar pela saída de **sucesso**, o próximo bloco só executa quando o anterior funcionou.
+- Se você conectar pela saída de **erro**, o próximo bloco só executa quando o anterior falhou.
+- Se você não conectar uma saída, esse caminho simplesmente para.
 
-## Configurando argumentos
+Você pode conectar uma saída a múltiplos blocos. Todos eles rodam ao mesmo tempo a partir desse ponto.
 
-Clique em um nó para abrir seu painel lateral. Cada argumento tem um editor tipado:
+## Configurando um bloco
 
-- **Text / URL / Email / Number / Password** — uma entrada de uma linha.
-- **JSON** — um editor JSON com destaque de sintaxe e indicador de validação.
-- **JavaScript** — um editor de código para trechos usados pelo componente **Custom Code**.
-- **Markdown / HTML** — corpos de texto enriquecido para componentes de e-mail e mensagens.
-- **CronTab** — uma expressão de agendamento (usada pelo gatilho Schedule).
-- **Boolean** — um toggle.
-- **Select / Query** — dropdowns para campos que aceitam um conjunto fixo de valores ou uma consulta no estilo de modelo.
+Clique em um bloco para abrir suas configurações na lateral. Cada configuração tem o tipo de entrada apropriado — campos de texto, dropdowns, editores de código, interruptores e assim por diante.
 
-Qualquer campo de texto aceita interpolação de variáveis — consulte [Variáveis](/docs/workflows/variables) para as regras.
+A maioria dos campos de texto aceita variáveis — é assim que os dados fluem de um bloco para o próximo. Veja [Variáveis](/docs/workflows/variables) para a sintaxe.
 
-## Um primeiro workflow mínimo
+## Seu primeiro workflow
 
-A forma mais rápida de pegar o ritmo do canvas:
+A forma mais rápida de se familiarizar com o canvas:
 
-1. Coloque um gatilho **Manual**.
-2. Coloque um componente **Log** (em **Utils**). Conecte a porta de saída do gatilho à porta de entrada do componente Log.
-3. No argumento do componente Log, digite `Hello from {{Manual.JSON.name}}`.
-4. Salve e habilite o workflow.
-5. Clique em **Run Manually**, cole `{ "name": "Ada" }` como entrada e envie.
-6. Abra a aba **Logs**. A execução mais recente mostra a saída capturada do nó Log: `Hello from Ada`.
+1. Arraste um gatilho **Manual** para o canvas.
+2. Arraste um componente **Log** (em **Utils**) ao lado dele. Conecte o gatilho ao componente Log.
+3. No campo de mensagem do bloco Log, digite `Hello from {{Manual.JSON.name}}`.
+4. Salve e ative o workflow.
+5. Clique em **Executar Manualmente**, cole `{ "name": "Ada" }` como entrada e envie.
+6. Abra a aba **Logs**. A execução mais recente mostra `Hello from Ada`.
 
-Esse ciclo — arrastar, conectar, configurar, executar, inspecionar — é o ritmo de criar qualquer workflow.
+Esse ciclo — arrastar, conectar, configurar, executar, verificar o log — é como você vai construir todos os workflows.
 
-## Salvar, habilitar e testar em produção
+## Salvar e ativar
 
-Workflows são armazenados como um grafo JSON na coluna `Workflow.graph`. O Builder salva conforme você edita; o indicador de salvamento no cabeçalho mostra quando a alteração mais recente chegou ao servidor. Não existe um passo separado de "publicar".
+O canvas salva enquanto você trabalha. Não há um passo separado de "publicar".
 
-Mas: um workflow só dispara seu gatilho quando **isEnabled** está ligado. Workflows novos nascem desabilitados. Trate essa flag como o seu interruptor de "pronto para produção" — construa, clique em **Run Manually** para fazer um teste a seco com um payload de exemplo, olhe os **Logs** e só então ligue Enable.
+Mas um workflow só roda de verdade quando **Ativado** está ligado nas Configurações. Workflows novos começam desativados. Use esse interruptor como sua rede de segurança — construa, teste com **Executar Manualmente**, verifique os logs e então ative.
 
-Se você precisa pausar um workflow sem excluí-lo (por exemplo, durante um incidente não relacionado), desligue **isEnabled** em **Settings**. As execuções em andamento continuam; nenhuma nova começa.
+Para pausar um workflow sem excluí-lo, desligue **Ativado**. Execuções já em andamento terminam; nenhuma nova começa.
 
-## Reordenar e reorganizar
+## Organização
 
-- Arraste um nó para reposicioná-lo. A posição é armazenada no grafo, então a próxima pessoa a abrir o canvas vê o mesmo layout.
-- Clique com o botão direito numa aresta para excluí-la; clique com o botão direito num nó para opções de excluir e duplicar.
-- Para workflows largos, organize-os da esquerda para a direita para que a direção de execução acompanhe a direção de leitura.
+- Arraste os blocos para movê-los. O layout é salvo para que a próxima pessoa veja o mesmo arranjo.
+- Clique com o botão direito em uma linha para excluí-la. Clique com o botão direito em um bloco para excluí-lo ou duplicá-lo.
+- Para workflows extensos, organize-os da esquerda para a direita para que sejam lidos na mesma direção em que rodam.
 
-## O que ler a seguir
+## O que ler em seguida
 
-- [Gatilhos](/docs/workflows/triggers) — as quatro famílias de gatilho e o que cada uma expõe como valores de retorno.
-- [Componentes](/docs/workflows/components) — o catálogo completo e seus argumentos.
-- [Variáveis](/docs/workflows/variables) — como referenciar dados entre nós e a partir de variáveis globais.
-- [Execuções e registros](/docs/workflows/runs-and-logs) — como depurar um workflow com mau comportamento.
+- [Gatilhos](/docs/workflows/triggers) — as quatro formas de um workflow começar.
+- [Componentes](/docs/workflows/components) — todos os blocos que você pode adicionar.
+- [Variáveis](/docs/workflows/variables) — movendo dados entre blocos.
+- [Execuções e Registros](/docs/workflows/runs-and-logs) — verificando o que aconteceu.

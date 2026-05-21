@@ -1,99 +1,99 @@
 # Variablen
 
-Ein Workflow ist nur dann nützlich, wenn Daten durch ihn fließen. Variablen sind das Mittel, mit dem sich diese Daten bewegen — vom Trigger in die erste Komponente, von der Ausgabe einer Komponente in die Eingabe der nächsten und von projektweiten Geheimnissen überall dorthin, wo sie referenziert werden.
+In Workflows geht es darum, Daten zu bewegen – vom Auslöser zum ersten Baustein, von einem Baustein zum nächsten und von gemeinsam genutzten Werten dorthin, wo Sie sie brauchen. Variablen sind das Mittel, mit dem diese Daten reisen.
 
-OneUptime hat zwei Arten von Variablen und eine Interpolationssyntax, die für beide funktioniert.
+Es gibt zwei Arten, beide nutzen dieselbe Syntax.
 
 ## Globale Variablen
 
-Projektweite Werte, die einmal unter **Workflows → Global Variables** definiert werden. Denken Sie an API-Schlüssel, Basis-URLs, Kanalnamen — alles, was Sie nicht in zehn Workflows hartcodieren möchten.
+Projektweite Werte, die Sie einmal speichern und überall wiederverwenden. Denken Sie an API-Schlüssel, URLs, Kanalnamen – alles, was Sie nicht in zehn verschiedene Workflows kopieren möchten.
 
-Eine globale Variable hat:
+Sie finden sie unter **Workflows → Globale Variablen**. Jede Variable hat:
 
-- **Name** — der Bezeichner, mit dem Sie sie referenzieren. Verwenden Sie `UPPER_SNAKE_CASE`, damit sie in Templates offensichtlich ist.
-- **Value** — der String-Wert. Mehrzeilige Werte werden unterstützt.
-- **Is Secret** — wenn aktiviert, ist der Wert nach dem Speichern in der UI nur beschreibbar und wird in Ausführungsprotokollen redigiert.
+- **Name** – wie Sie sie referenzieren. Verwenden Sie `UPPER_SNAKE_CASE`, damit sie in Ihren Bausteinen hervorsticht.
+- **Wert** – der tatsächliche Wert. Mehrzeilige Werte sind ebenfalls möglich.
+- **Ist geheim** – wenn aktiv, wird der Wert nach dem Speichern in der Oberfläche ausgeblendet und auch in den Ausführungslogs verborgen.
 
-Referenzieren Sie eine globale Variable von überall in jedem Workflow mit:
+Verwenden Sie eine globale Variable in jedem Workflow mit:
 
 ```
 {{variable.NAME}}
 ```
 
-Wenn Sie z. B. `PAGERDUTY_KEY` als geheime Variable definieren, kann jede API-Komponente, die PagerDuty aufruft, sie als `{{variable.PAGERDUTY_KEY}}` lesen, ohne dass jemand den eigentlichen Schlüssel im Workflow-JSON sieht.
+Wenn Sie zum Beispiel Ihren PagerDuty-Schlüssel als `PAGERDUTY_KEY` gespeichert haben, kann jeder Baustein ihn als `{{variable.PAGERDUTY_KEY}}` verwenden – der echte Schlüssel taucht weder im Workflow noch in dessen Logs auf.
 
-## Lokale Variablen
+## Lokale Variablen (Daten aus früheren Bausteinen)
 
-Lokale Variablen sind die Rückgabewerte von Knoten, die in dieser Ausführung bereits gelaufen sind. Jeder Trigger und jede Komponente veröffentlicht eine — siehe [Trigger](/docs/workflows/triggers) und [Komponenten](/docs/workflows/components) für die Listen pro Knoten.
+Lokale Variablen sind die Ausgaben von Bausteinen, die in dieser Ausführung bereits gelaufen sind. Jeder Auslöser und jede Komponente produziert eine Ausgabe, die Sie lesen können.
 
-Referenzieren Sie eine lokale Variable als:
+So referenzieren Sie die Ausgabe eines früheren Bausteins:
 
 ```
-{{NodeId.fieldName}}
+{{BlockName.fieldName}}
 ```
 
-Die `NodeId` ist der Name des Triggers oder der Komponente auf der Arbeitsfläche (Sie können ihn aus Lesbarkeitsgründen umbenennen — halten Sie ihn kurz und `PascalCase`, damit die Referenzen sauber bleiben). Der `fieldName` ist das, was dieser Knoten veröffentlicht.
+`BlockName` ist der Name des Auslösers oder der Komponente auf der Arbeitsfläche (Sie können ihn in etwas Kurzes und Klares umbenennen). `fieldName` ist das, was dieser Baustein erzeugt.
 
 Beispiele:
 
-- Nach einer **API**-Komponente namens `LookupUser`, die erfolgreich zurückkehrt, können nachgelagerte Knoten ihren Statuscode als `{{LookupUser.response-status}}` und den geparsten Body als `{{LookupUser.response-body}}` lesen.
-- Nach einem **Incident → On Create**-Trigger namens `Incident` können Sie `{{Incident.title}}`, `{{Incident.description}}`, `{{Incident.incidentSeverityId}}` und jede andere Spalte des Vorfalls lesen.
-- Nach einer **Custom Code**-Komponente namens `Transform` wird der zurückgegebene Wert als `{{Transform.value}}` bereitgestellt.
+- Nach einem **API**-Baustein namens `LookupUser` können Sie den Statuscode als `{{LookupUser.response-status}}` und den Body als `{{LookupUser.response-body}}` lesen.
+- Nach einem Auslöser **Vorfall → Bei Erstellung** namens `Incident` können Sie `{{Incident.title}}`, `{{Incident.description}}` und alle weiteren Felder des Vorfalls lesen.
+- Nach einem Baustein **Benutzerdefinierter Code** namens `Transform` liegt der Rückgabewert unter `{{Transform.value}}`.
 
-Lokale Variablen sind auf eine einzelne Ausführung beschränkt. Die nächste Ausführung beginnt mit einer leeren Tafel.
+Lokale Variablen existieren nur während der aktuellen Ausführung. Jede neue Ausführung beginnt frisch.
 
-## Wo Interpolation funktioniert
+## Wo Variablen funktionieren
 
-Fast jedes Textstil-Argument unterstützt Interpolation:
+Fast jedes Textfeld akzeptiert Variablen:
 
-- URL-Felder der API-Komponente
-- Nachrichtentext bei Slack / Teams / Discord / Telegram / E-Mail
-- Subject und Body bei E-Mail
-- Header- und Body-Felder (innerhalb von JSON-Werten verwendbar)
-- Linker und rechter Operand bei Conditions
+- Die URL eines API-Bausteins.
+- Der Nachrichtentext in Slack, Teams, Discord, Telegram, E-Mail.
+- Betreff und Body einer E-Mail.
+- Header und Body-Felder (innerhalb von Zeichenketten-Werten).
+- Beide Seiten eines Bedingungs-Bausteins.
 
-Reine JSON-Argumente akzeptieren Interpolation innerhalb von String-Werten; Sie können keinen Schlüssel interpolieren. Wenn Sie eine dynamische Struktur aufbauen müssen, verwenden Sie **Custom Code**, um den Payload zusammenzustellen, und leiten Sie dann seinen Rückgabewert in den nächsten Knoten.
+Reine JSON-Felder akzeptieren Variablen innerhalb von Zeichenketten-Werten, aber Sie können keine Variable als Schlüssel verwenden. Wenn Sie eine Struktur dynamisch aufbauen müssen, nutzen Sie einen Baustein **Benutzerdefinierter Code**, um sie zu erstellen, und geben Sie dessen Ausgabe an den nächsten Baustein weiter.
 
-Die **Custom Code**-Komponente liest Variablen anders — globale Variablen werden auf `args.variables` bereitgestellt, und vorgelagerte Rückgabewerte werden als benannte Argumente übergeben, die Sie auf der Komponente konfigurieren.
+Der Baustein **Benutzerdefinierter Code** liest Variablen anders – globale Variablen kommen über `args.variables` herein, und Sie entscheiden, welche früheren Ausgaben Sie als Argumente übergeben.
 
 ## Beispiele
 
-### Einen Payload aus einem Trigger aufbauen
+### Eine Payload aus einem Webhook zusammenbauen
 
-Ein Webhook empfängt ein CI-Build-Ergebnis. Der Body ist JSON wie `{ "service": "checkout", "status": "failed" }`. Um daraus einen OneUptime-Vorfall zu machen:
+Ein Webhook kommt mit einem Body wie `{ "service": "checkout", "status": "failed" }` an. So machen Sie daraus einen OneUptime-Vorfall:
 
-1. **Webhook**-Trigger namens `CIWebhook`.
-2. **Conditions**-Komponente: links `{{CIWebhook.Request Body.status}}`, Operator `==`, rechts `failed`.
-3. Vom `yes`-Port eine **Create Incident**-Komponente mit:
-   - Title: `CI build failed: {{CIWebhook.Request Body.service}}`
-   - Description: `See {{CIWebhook.Request Body.url}} for the build logs.`
+1. **Webhook**-Auslöser namens `CIWebhook`.
+2. **Bedingungen**-Baustein: links `{{CIWebhook.Request Body.status}}`, Operator `==`, rechts `failed`.
+3. Im **Ja**-Zweig ein Baustein **Vorfall erstellen** mit:
+   - Titel: `CI build failed: {{CIWebhook.Request Body.service}}`
+   - Beschreibung: `See {{CIWebhook.Request Body.url}} for the logs.`
 
-### Ein Geheimnis in einem ausgehenden API-Aufruf verwenden
+### Ein Geheimnis in einem API-Aufruf verwenden
 
 Ein Workflow, der PagerDuty aufruft:
 
-1. Definieren Sie `PAGERDUTY_KEY` als geheime globale Variable.
-2. Setzen Sie auf der **API**-Komponente den `Authorization`-Header auf `Token token={{variable.PAGERDUTY_KEY}}`.
+1. Speichern Sie `PAGERDUTY_KEY` als geheime globale Variable.
+2. Setzen Sie im **API**-Baustein den `Authorization`-Header auf `Token token={{variable.PAGERDUTY_KEY}}`.
 
-Der Schlüssel erscheint nie im Workflow-JSON oder in Ausführungsprotokollen.
+Der Schlüssel bleibt aus dem Workflow und den Logs heraus.
 
 ### Zwei API-Aufrufe verketten
 
-Der erste Aufruf gibt eine ID zurück, die der zweite Aufruf benötigt:
+Der erste Aufruf liefert eine ID, die der zweite benötigt:
 
-1. **API**-Komponente `LookupOrder`: `GET /orders?email={{Manual.JSON.email}}`.
-2. **API**-Komponente `CancelOrder`: `POST /orders/{{LookupOrder.response-body.id}}/cancel`.
+1. **API**-Baustein `LookupOrder`: `GET /orders?email={{Manual.JSON.email}}`.
+2. **API**-Baustein `CancelOrder`: `POST /orders/{{LookupOrder.response-body.id}}/cancel`.
 
-Wenn `LookupOrder` eine Nicht-2xx-Antwort zurückgibt, feuert sein `error`-Port anstelle von `success` — verkabeln Sie diesen Zweig mit einer E-Mail- oder Slack-Komponente, damit Fehler nicht stillschweigend bleiben.
+Wenn `LookupOrder` fehlschlägt, wird statt **Erfolg** der Ausgang **Fehler** ausgelöst. Verbinden Sie diesen mit einem E-Mail- oder Slack-Baustein, damit Fehler nicht unbemerkt bleiben.
 
-## Ein paar Stolperfallen
+## Stolperfallen
 
-- **Tippfehler in Knotennamen brechen Referenzen stillschweigend.** Wenn Sie einen Knoten nach dem Verkabeln von `{{OldName.field}}` nachgelagert umbenennen, aktualisieren Sie jede Referenz. Schauen Sie sich das Ausführungsprotokoll an — wenn Sie das wörtliche `{{OldName.field}}` im erfassten Argument sehen, wurde das Lookup nicht aufgelöst.
-- **Geheimnisse sind case-sensitive.** `{{variable.MyKey}}` und `{{variable.mykey}}` sind unterschiedliche Variablen.
-- **Fehlende Felder sind leer.** Eine Referenz auf `{{Foo.nonexistent}}` ergibt einen leeren String, keinen Fehler. Nützlich, aber es kann Bugs verbergen — verwenden Sie einen **Conditions**-Knoten, um die Anwesenheit zu prüfen, wenn das Feld für den nächsten Schritt erforderlich ist.
+- **Das Umbenennen eines Bausteins zerstört Referenzen.** Wenn Sie einen Baustein umbenennen, aktualisieren Sie jede Stelle, an der er verwendet wird. Im Ausführungslog erscheint eine nicht aufgelöste Referenz wörtlich als `{{BlockName.field}}`.
+- **Variablennamen unterscheiden Groß- und Kleinschreibung.** `{{variable.MyKey}}` und `{{variable.mykey}}` sind verschieden.
+- **Fehlende Felder werden zu leeren Werten.** Eine Referenz auf ein nicht existierendes Feld liefert eine leere Zeichenkette, keinen Fehler. Bequem – aber das kann Fehler verstecken. Prüfen Sie wichtige Felder mit einem Baustein **Bedingungen**, bevor Sie weitermachen.
 
-## Wo weiterlesen
+## Weiterführende Themen
 
-- [Komponenten](/docs/workflows/components) — der vollständige Katalog der Rückgabewert-Namen.
-- [Ausführungen & Protokolle](/docs/workflows/runs-and-logs) — inspizieren Sie den literalen Wert jedes interpolierten Arguments nach einer Ausführung.
-- [Konfiguration & Sicherheit](/docs/workflows/configuration) — was sicher in einer globalen Variable abgelegt werden kann.
+- [Komponenten](/docs/workflows/components) – die vollständige Liste der Ausgaben, die jeder Baustein produziert.
+- [Ausführungen & Logs](/docs/workflows/runs-and-logs) – sehen Sie nach einer Ausführung den tatsächlichen Wert jeder Variablen.
+- [Konfiguration & Sicherheit](/docs/workflows/configuration) – was sicher in eine globale Variable gehört.

@@ -1,73 +1,76 @@
 # Körningar & loggar
 
-Varje gång ett arbetsflödes utlösare triggas skapar OneUptime en **körning** — en post över en exekvering med tidsåtgång, status och utdata per nod. Körningar är hur du bekräftar att ett arbetsflöde fungerade, hur du felsöker ett som inte gjorde det och hur du skriver en post-mortem när en automation missköter sig.
+Varje gång ett arbetsflöde körs sparar OneUptime en post över vad som hände — när det kördes, om det fungerade, och vad varje block gjorde. Den posten kallas en **körning**. Körningar är hur du bekräftar att ett arbetsflöde fungerade, felsöker ett som inte gjorde det och tittar tillbaka på tidigare aktivitet.
 
 ## Var hittar du dem
 
-| Sida | Omfattning |
+| Sida | Vad du ser |
 | --- | --- |
-| **Workflows → Runs & Logs** | Projektomfattande. Varje körning av varje arbetsflöde. Filtrera efter arbetsflöde, status och tidsintervall. |
-| **Ett arbetsflödes Logs-flik** | Bara körningarna av detta arbetsflöde. |
-| **En körnings detaljsida** | En exekvering, utökad med utdata per nod och eventuella felmeddelanden. |
+| **Workflows → Runs & Logs** | Varje körning från varje arbetsflöde i projektet. Filtrera på arbetsflöde, status och tid. |
+| **Workflow → Logs-fliken** | Bara körningarna av detta enda arbetsflöde. |
+| **En enskild körning** | En exekvering, med utdata från varje block. |
 
 ## Körningsstatusar
 
 | Status | Betydelse |
 | --- | --- |
-| **Scheduled** | Utlösaren triggades och körningen är köad, men workern har inte plockat upp den ännu. Vanligtvis en bråkdel av en sekund. |
-| **Running** | Workern går för närvarande igenom grafen. Långkörande komponenter (långsamma HTTP-anrop, avsiktliga fördröjningar) håller en körning i detta tillstånd. |
-| **Success** | Varje nod som körts avslutades utan fel. (Ett arbetsflöde som avsiktligt tog en `error`-gren är fortfarande `Success` totalt sett — själva arbetsflödet misslyckades inte.) |
-| **Error** | En nod misslyckades och det fanns ingen `error`-port kopplad för att hantera den. Körningen stannade vid den noden. |
-| **Timeout** | Körningen överskred timeouten per körning. Se [Konfiguration & säkerhet](/docs/workflows/configuration). |
+| **Scheduled** | Utlösaren triggades och körningen ska just börja. Tar oftast bara en bråkdel av en sekund. |
+| **Running** | Arbetsflödet pågår. Långkörande block håller en körning i detta läge. |
+| **Success** | Varje block som kördes avslutades utan fel. (Att avsiktligt ta en **error**-gren räknas fortfarande som success — själva arbetsflödet misslyckades inte.) |
+| **Error** | Ett block misslyckades och det fanns ingen **error**-väg kopplad för att hantera det. Körningen stannade där. |
+| **Timeout** | Körningen pågick längre än tillåtet. Se [Konfiguration & säkerhet](/docs/workflows/configuration). |
 
 ## Läsa en körning
 
-Klicka på en körning från listan för att öppna dess detaljsida. Du ser:
+Klicka på vilken körning som helst för att öppna detaljerna. Du ser:
 
-- **Header** — utlösaren som triggades, start- och sluttidsstämpel, total varaktighet, status.
-- **Nodlista** — varje nod som exekverades i ordning, var och en med sina fångade argument, sitt returvärde och sin valda utgångsport.
-- **Fel** — om en nod misslyckades, felmeddelandet och (när tillgängligt) stack trace.
+- **Header** — utlösaren, start- och sluttid, total tidsåtgång och status.
+- **Block list** — varje block som kördes, i ordning. Var och en visar värdena det fick, dess utdata och vilken väg det tog.
+- **Errors** — om ett block misslyckades, felmeddelandet och (när det är tillgängligt) mer detaljer.
 
-De fångade argumenten visar värden *efter interpolation* — det vill säga de exakta strängar som noden såg efter att variabler löstes upp. Det här är den enskilt mest användbara felsökningsvyn: om ett Slack-meddelande har den bokstavliga texten `{{Incident.title}}` i sig, vet du att variabelreferensen inte löstes upp.
+Värdena som visas är exakt vad blocket såg — efter att alla variabler fyllts i. Detta är den enskilt mest användbara felsökningsvyn: om ett Slack-meddelande visar den bokstavliga texten `{{Incident.title}}` istället för den faktiska titeln, vet du att variabeln inte löstes.
 
-## Vanliga felsökningsmönster
+## Vanlig felsökning
 
-### "Mitt arbetsflöde triggades inte."
+### "Mitt arbetsflöde kördes inte."
 
-1. Bekräfta att arbetsflödet är **aktiverat** i **Settings**. Nya arbetsflöden levereras inaktiverade.
-2. För en modellhändelse-utlösare: bekräfta att händelsen faktiskt inträffade. Öppna entiteten (incidenten, larmet, monitorn) och titta på dess historik.
-3. För en webhook-utlösare: bekräfta att det externa systemet träffar rätt URL. Många verktyg loggar utgående webhook-leverans — kontrollera där.
-4. För en schemautlösare: bekräfta att cron-uttrycket utvärderas till den tid du förväntar dig. Använd en cron-parser om du är osäker.
+1. Kontrollera att arbetsflödet är **enabled** i Settings. Nya arbetsflöden börjar inaktiverade.
+2. För en OneUptime-händelseutlösare: bekräfta att händelsen faktiskt inträffade. Öppna posten och kontrollera dess historik.
+3. För en webhook-utlösare: bekräfta att det andra systemet skickar till rätt URL. De flesta verktyg loggar när de skickar en webhook — kolla där.
+4. För en schemaläggningsutlösare: bekräfta att cron-uttrycket matchar den tid du förväntar dig.
 
-Om utlösaren triggades men ingen körning dyker upp, kontrollera projektets körningskvot under **Project Settings → Billing**.
+Om utlösaren triggades men ingen körning dyker upp, kolla din körningskvot under **Project Settings → Billing**.
 
-### "Det körs men en nedströmsnod kör aldrig."
+### "Ett senare block kördes aldrig."
 
-En nod som inte körs är oftast ett kopplingsproblem. Öppna arbetsytan och kontrollera:
+Ett block som inte körs är vanligtvis ett kopplingsproblem. Öppna arbetsytan och kontrollera:
 
-- Är uppströmsnodens utgångsport faktiskt kopplad till denna nods ingångsport?
-- Tog uppströmsnoden en annan port (t.ex. `error` istället för `success`, eller `no` istället för `yes`)? Titta på körningsdetaljen för att se vilken port den valde.
+- Är det tidigare blockets utdata kopplad till detta blocks indata?
+- Tog det tidigare blocket en annan utdata än du förväntade dig (till exempel **error** istället för **success**, eller **No** istället för **Yes**)? Körningsdetaljen visar vilken väg som togs.
 
-### "En variabel kommer igenom tom."
+### "En variabel kom igenom tom."
 
-Öppna körningsdetaljen och titta på den misslyckande nodens fångade argument. Om du ser den bokstavliga `{{NodeId.field}}`-texten löstes inte referensen upp — troligen ett stavfel i `NodeId` eller `field`. Om du ser en tom sträng körde uppströmsnoden men producerade inte det fältet.
+Öppna körningen och titta på det misslyckade blockets värden.
 
-### "Det fungerar manuellt men inte från utlösaren."
+- Om du ser den bokstavliga texten `{{BlockName.field}}` löstes inte referensen — sannolikt ett stavfel i blockets namn eller fältnamnet.
+- Om du ser en tom sträng kördes det tidigare blocket men producerade inte det fältet.
 
-Använd **Run Manually** med en JSON-payload som speglar vad den riktiga utlösaren publicerar. Jämför sedan de fångade argumenten i den manuella körningen med produktionskörningen sida vid sida — skillnaden ligger oftast i ett enskilt fältnamn eller typ.
+### "Det fungerar när jag kör det manuellt men inte från utlösaren."
 
-## Köra om ett arbetsflöde
+Använd **Run Manually** med en JSON-payload som ser ut som det den riktiga utlösaren skickar. Jämför sedan värdena i den manuella körningen med den riktiga körningen sida vid sida. Skillnaden är oftast ett enda fältnamn eller en typ.
 
-Det finns ingen "försök igen denna körning"-knapp — det är medvetet, OneUptime kör aldrig om en gammal körning, eftersom de utgående sidoeffekterna (Slack-meddelanden, API-anrop) kanske inte är idempotenta. Om du vill göra om arbetet, fixa arbetsflödet och låt nästa riktiga utlösare trigga det.
+## Köra ett arbetsflöde igen
 
-För manuella arbetsflöden, klicka bara på **Run Manually** med samma payload.
+Det finns ingen "kör om denna körning"-knapp. Vi kör inte gamla exekveringar igen automatiskt eftersom sidoeffekterna (Slack-meddelanden, API-anrop, ärenden) kanske inte är säkra att upprepa. För att göra om arbetet, åtgärda arbetsflödet och låt nästa riktiga utlösare trigga det.
 
-## Loggretention
+För manuella arbetsflöden, klicka helt enkelt på **Run Manually** med samma payload.
 
-Körningar bevaras på obestämd tid på projektet. Om du behöver städa upp högvolymsbrusiga arbetsflöden (t.ex. ett felsökningsarbetsflöde som triggas varje minut), inaktivera eller ta bort dem — det finns ingen växel för retention per arbetsflöde.
+## Hur länge sparas körningar?
 
-## Var läsa vidare
+Körningar sparas obegränsat för projektet. Om ett arbetsflöde körs väldigt ofta och skräpar ner din historik (som ett felsökningsarbetsflöde som triggas varje minut), inaktivera eller radera det för att sluta lägga till bruset.
 
-- [Konfiguration & säkerhet](/docs/workflows/configuration) — timeouts, rekursionsgränser, redaktion av hemligheter.
-- [Variabler](/docs/workflows/variables) — syntaxen som interpolerade argument använder.
-- [Komponenter](/docs/workflows/components) — returvärdesfälten som varje komponent publicerar.
+## Läs vidare
+
+- [Konfiguration & säkerhet](/docs/workflows/configuration) — timeouts, rekursionsgränser, dolda hemligheter.
+- [Variabler](/docs/workflows/variables) — variabelsyntaxen som används i dina block.
+- [Komponenter](/docs/workflows/components) — vad varje block producerar.

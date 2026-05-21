@@ -1,145 +1,147 @@
 # Komponenter
 
-Komponenter är åtgärdsnoderna du placerar efter en utlösare. Var och en gör ett jobb — gör en HTTP-förfrågan, skickar ett Slack-meddelande, förgrenar sig på ett villkor, kör en JavaScript-snutt — och exponerar en eller flera utgångsportar för nästa nod att koppla till.
+Komponenter är byggstenarna du lägger till efter utlösaren. Var och en gör en sak — skickar ett meddelande, anropar ett API, kontrollerar ett villkor — och kopplas till det som kommer härnäst.
 
-Den här sidan är en katalog. För kopplingsregler och själva arbetsytan, se [Skapa ett arbetsflöde](/docs/workflows/authoring).
+Den här sidan är katalogen. För hur du drar, släpper och kopplar dem på arbetsytan, se [Skapa ett arbetsflöde](/docs/workflows/authoring).
 
 ## API
 
-Gör en utgående HTTP-förfrågan till valfri URL.
+Gör en HTTP-förfrågan till valfri URL.
 
-**Argument**:
+**Inställningar**:
 
-- **Method** — `GET`, `POST`, `PUT`, `PATCH`, `DELETE`.
-- **URL** — förfrågans URL. Interpoleras.
-- **Request Headers** — JSON-objekt med rubriker.
-- **Request Body** — JSON- eller text-body för `POST` / `PUT` / `PATCH`.
+- **Method** — `GET`, `POST`, `PUT`, `PATCH` eller `DELETE`.
+- **URL** — adressen att anropa.
+- **Headers** — eventuella headers att skicka.
+- **Body** — förfrågans body för `POST` / `PUT` / `PATCH`.
 
-**Utgångsportar**:
+**Utdata**:
 
-- `success` — triggas när svarsstatus är 2xx. Returvärden: `response-status`, `response-headers`, `response-body`.
-- `error` — triggas vid nätverksfel eller icke-2xx-svar. Returvärde: `error`-meddelande.
+- **Success** — utlöses när anropet fungerade (2xx-svar). Skickar vidare status, headers och body.
+- **Error** — utlöses vid nätverksfel eller ett icke-2xx-svar. Skickar vidare felmeddelandet.
 
-Använd den här för: vilket tredjeparts-REST-API som helst, dina egna admin-endpoints, lättviktsintegrationer som inte har en dedikerad komponent.
+Använd den för: alla externa API:er, dina egna administrationsendpoints, eller integrationer som inte har sin egen komponent.
 
 ## Webhook (utgående)
 
-En tunn omslagsklass runt API-komponenten för det vanliga "fire and forget"-fallet. Postar en JSON-body till en URL och exponerar ett enda `success` / `error`-par.
+En enklare version av API-komponenten för "skicka och glöm"-fall. Postar en JSON-body till en URL.
 
-Föredra **API** om du behöver läsa svarets body nedströms; föredra **Webhook** om du bara vill notifiera ett annat system.
+Använd **API** om du behöver läsa svaret. Använd **Webhook** om du bara vill skicka en notis och gå vidare.
 
 ## Slack
 
-Posta ett meddelande till en Slack-kanal med ditt projekts Slack-arbetsyteanslutning.
+Posta ett meddelande till en Slack-kanal.
 
-**Argument**:
+**Inställningar**:
 
-- **Channel name** — kanalen att posta in i. Botten måste redan vara medlem i den kanalen.
-- **Message text** — meddelandets innehåll. Interpoleras; stöder Slack mrkdwn.
+- **Channel** — kanalnamnet. Boten måste redan vara med i den kanalen.
+- **Message** — texten som ska skickas. Stöder Slack-formatering.
 
-Konfigurera arbetsyteanslutningen i **Project Settings → Workspace Connections → Slack** först. Se [Slack Workspace Connection](/docs/workspace-connections/slack).
+Koppla först Slack till ditt projekt under **Project Settings → Workspace Connections → Slack**. Se [Slack Workspace Connection](/docs/workspace-connections/slack).
 
 ## Microsoft Teams
 
-Posta ett meddelande till en Microsoft Teams-kanal med ditt projekts Teams-anslutning.
+Posta ett meddelande till en Microsoft Teams-kanal.
 
-**Argument**:
+**Inställningar**:
 
-- **Team & channel** — destinationen.
-- **Message text** — meddelandets innehåll.
+- **Team and channel** — var meddelandet ska postas.
+- **Message** — texten som ska skickas.
 
-Se [Microsoft Teams Workspace Connection](/docs/workspace-connections/microsoft-teams) för uppkopplingens konfiguration.
+Se [Microsoft Teams Workspace Connection](/docs/workspace-connections/microsoft-teams) för konfiguration.
 
 ## Discord
 
-Posta ett meddelande till en Discord-kanal via en inkommande webhook-URL som konfigureras på komponenten.
+Posta ett meddelande till en Discord-kanal via en inkommande webhook-URL.
 
 ## Telegram
 
-Skicka ett meddelande till en Telegram-chatt via en bot-token och chatt-ID som konfigureras på komponenten.
+Skicka ett meddelande till en Telegram-chatt med ett bot-token och chatt-ID.
 
 ## E-post
 
-Skicka ett e-postmeddelande genom OneUptimes SMTP-konfiguration.
+Skicka ett e-postmeddelande via OneUptime.
 
-**Argument**:
+**Inställningar**:
 
 - **To** — mottagarens e-postadress.
-- **Subject** — interpoleras.
-- **Body** — Markdown eller HTML.
+- **Subject** — ämnesraden.
+- **Body** — meddelandet i Markdown eller HTML.
 
-E-postmeddelandet skickas från projektets konfigurerade avsändaradress (se [SMTP](/docs/emails/smtp)).
+E-posten skickas från projektets konfigurerade avsändare — se [SMTP](/docs/emails/smtp).
 
 ## Custom Code
 
-Kör en JavaScript-snutt med tillgång till arbetsflödets variabler och uppströmsnodens returvärden.
+Kör en liten bit JavaScript när du behöver något som de andra blocken inte kan göra.
 
-**Argument**:
+**Inställningar**:
 
-- **Code** — JavaScript-kroppen. Den sista uttryckets värde (eller allt som returneras från `(async () => { ... })()`) blir komponentens returvärde.
-- **Arguments** — valfria namngivna värden som skickas in som `args`.
+- **Code** — din JavaScript. Det sista värdet (eller det du returnerar från en async-funktion) blir blockets utdata.
+- **Arguments** — namngivna värden du kan skicka in.
 
-**Utgångsportar**: `success` (returvärde), `error` (fångat undantag).
+**Utdata**: success (ditt returvärde) och error (eventuellt undantag).
 
-Använd den här för: transformera en payload mellan två system, göra en liten beräkning som inte förtjänar en egen komponent, anropa logik som bara finns i JS. Tyngre skriptning som måste köras inuti din egen infrastruktur hör hemma i ett [Runbook](/docs/runbooks/index)-Bash- eller JavaScript-steg.
+Använd det för: omforma data mellan två system, göra en liten beräkning, eller något som inte förtjänar sitt eget block. För tyngre skriptning, använd en [Runbook](/docs/runbooks/index) istället.
 
 ## JSON
 
 Konvertera mellan text och JSON.
 
-- **JSON → Text** — serialisera ett JSON-objekt till en sträng (praktiskt för att pipa in i ett `body`-argument hos en utgående komponent som förväntar sig text).
-- **Text → JSON** — parsa en sträng till ett JSON-objekt. Användbart när ett uppströms-API returnerade sin body som text men du behöver läsa ett fält.
+- **JSON → Text** — gör om ett JSON-objekt till en sträng. Användbart när nästa block förväntar sig text.
+- **Text → JSON** — tolka en sträng till ett JSON-objekt. Användbart när något kom som text och du behöver läsa ett fält.
 
-## Villkor
+## Conditions
 
-Förgrena på en jämförelse. Konfigurera:
+Förgrena baserat på en jämförelse.
 
-- **Left value** — vanligtvis en interpolerad referens som `{{Incident.title}}`.
+**Inställningar**:
+
+- **Left value** — vanligtvis ett värde från ett tidigare block.
 - **Operator** — `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `starts with`, `ends with`.
-- **Right value** — värdet att jämföra mot.
+- **Right value** — vad det ska jämföras mot.
 
-**Utgångsportar**: `yes` och `no`. Koppla resten av arbetsflödet från den gren som matchar din avsikt.
+**Utdata**: **Yes** och **No**. Koppla nästa block till vilken gren du vill.
 
-## Schedule (fördröjning)
+## Delay
 
-Pausa ett arbetsflöde under en konfigurerad varaktighet innan det fortsätter. Användbart när du behöver ge ett externt system en stund att stabilisera sig innan du kontrollerar dess tillstånd.
+Pausa arbetsflödet en bestämd tid innan det fortsätter. Användbart när du behöver ge ett annat system en stund att hinna ikapp.
 
 ## Log
 
-Skriv en rad till arbetsflödets körningslogg. Ren felsökningshjälp; raden fångas på körningen och syns under **Logs**. Ingen extern sidoeffekt.
+Skriv en rad till körningsloggen. Ingen extern effekt — den dyker bara upp i arbetsflödets loggar så att du kan läsa den. Praktiskt för felsökning.
 
 ## Execute Workflow
 
-Anropa ett annat arbetsflöde som ett delsteg. Det anropade arbetsflödet körs självständigt (fire-and-forget) — kontrollen återgår till anroparen så snart anropet har skickats.
+Anropa ett annat arbetsflöde från detta. Det anropade arbetsflödet körs på egen hand — ditt arbetsflöde fortsätter utan att vänta på att det ska bli klart.
 
-Använd det här för att faktorisera ut delad logik från flera arbetsflöden: bygg ett "post-to-incident-channel"-arbetsflöde en gång och anropa det från varje annat arbetsflöde som behöver notifiera kanalen.
+Använd det för att dela gemensam logik. Bygg ett "posta till incidentkanal"-arbetsflöde en gång, och anropa det sedan från vilket annat arbetsflöde som helst som behöver meddela kanalen.
 
-En rekursionsgräns förhindrar arbetsflöden från att anropa varandra i en oändlig loop. Se [Konfiguration & säkerhet](/docs/workflows/configuration).
+Det finns en säkerhetsgräns så att arbetsflöden inte kan fortsätta anropa varandra i en loop. Se [Konfiguration & säkerhet](/docs/workflows/configuration).
 
-## Modellkomponenter (CRUD på OneUptime-entiteter)
+## OneUptime-datakomponenter
 
-För varje OneUptime-entitet som stöder arbetsflöden (monitorer, incidenter, larm, statussidor, jour-policyer, etc.) exponerar paletten automatiskt följande komponenter — sökbara efter entitetsnamn:
+För varje sorts post i OneUptime (monitorer, incidenter, larm, statussidor, jourpolicyer och många fler) har paletten dessa komponenter — sök på typens namn:
 
-- **Find One {Entity}** — hämta en enskild post via fråga.
-- **Find {Entity}** — hämta en lista av poster via fråga (paginerad).
-- **Create {Entity}** — infoga en ny post.
-- **Update {Entity}** — uppdatera en post efter ID.
-- **Delete {Entity}** — ta bort en post efter ID.
-- **Count {Entity}** — räkna poster som matchar en fråga.
+- **Find One** — hämta en post efter ID eller filter.
+- **Find** — hämta en lista med poster.
+- **Create** — lägg till en ny post.
+- **Update** — ändra en post.
+- **Delete** — ta bort en post.
+- **Count** — räkna poster som matchar ett filter.
 
-Det är så här ett arbetsflöde kan läsa och skriva OneUptime-tillstånd utan att lämna plattformen. Till exempel: en webhook från ditt CI-verktyg anropar **Create Incident** med byggets felmeddelande; eller ett schemalagt arbetsflöde kör **Find Incident** var femte minut och e-postar en sammanfattning.
+Det är så ett arbetsflöde kan läsa och ändra OneUptime-data. Till exempel: en webhook från ditt CI-verktyg kan använda **Create Incident** för att öppna en incident med felinformationen.
 
-## Välja rätt komponent
+## Vilken komponent ska jag använda?
 
-Några snabba tumregler:
+Några snabba regler:
 
-- Om en dedikerad komponent finns för det du vill göra (Slack, E-post, en CRUD på en OneUptime-entitet), använd den — den ger dig snyggare felhantering och tydligare loggar än att rulla din egen.
-- Om du behöver anropa ett externt HTTP-API som inte har en dedikerad komponent, använd **API**.
-- Om du behöver *forma* data mellan två komponenter, använd **Custom Code** eller **JSON**.
-- Om du behöver vidta olika åtgärder baserat på ett värde, använd **Villkor**.
+- Om det finns ett dedikerat block för det du vill (Slack, E-post, en OneUptime-post), använd det — du får snyggare felhantering och tydligare loggar.
+- För alla andra externa API:er, använd **API**.
+- För att omforma data mellan block, använd **Custom Code** eller **JSON**.
+- För att vidta olika åtgärder baserat på ett värde, använd **Conditions**.
 
-## Var läsa vidare
+## Läs vidare
 
-- [Variabler](/docs/workflows/variables) — hur du matar data från en komponent till nästa.
-- [Körningar & loggar](/docs/workflows/runs-and-logs) — hur du granskar vad varje komponent returnerade under en körning.
-- [Konfiguration & säkerhet](/docs/workflows/configuration) — gränser, ägarskap och hemligheter.
+- [Variabler](/docs/workflows/variables) — skicka data mellan block.
+- [Körningar & loggar](/docs/workflows/runs-and-logs) — kontrollera vad varje block gjorde under en körning.
+- [Konfiguration & säkerhet](/docs/workflows/configuration) — gränser, ägare och hemligheter.

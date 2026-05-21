@@ -1,80 +1,80 @@
 # Configurazione e permessi
 
-Questa pagina raccoglie le impostazioni e le manopole di controllo accessi che vale la pena conoscere quando hai una dashboard che vuoi davvero tenere in giro.
+Questa pagina raccoglie le impostazioni e i controlli di accesso che vale la pena conoscere quando hai una dashboard che vuoi tenere in giro.
 
-## Ownership
+## Proprietari
 
-Gli **owner** di una dashboard sono gli utenti e i team a cui sono concessi permessi espliciti su di essa (separati dal ruolo a livello di progetto).
+I **proprietari** di una dashboard sono utenti e team a cui hai dato accesso esplicito (in aggiunta al loro ruolo a livello di progetto).
 
-In **Dashboard → Owners**:
+Sotto **Dashboard → Owners**:
 
-- Aggiungi un **user owner** per concedere a una persona specifica accesso extra a questa dashboard.
-- Aggiungi un **team owner** per concedere lo stesso a ogni membro di un team.
+- Aggiungi un **proprietario utente** per dare a una persona un accesso extra a questa dashboard.
+- Aggiungi un **proprietario team** per dare lo stesso a ogni membro di un team.
 
-Usa l'ownership quando il ruolo di lettura a livello di progetto è troppo ampio — es. una dashboard con dettagli sensibili a livello di cliente che dovrebbe essere visibile solo al team customer-success.
+Usa i proprietari quando il ruolo di lettura a livello di progetto e troppo ampio — per esempio, una dashboard con dettagli a livello di cliente che dovrebbe essere visibile solo al team customer success.
 
-## Label
+## Etichette
 
-Le label sono tag many-to-many per organizzare le dashboard. Applicale in **Dashboard → Overview**.
+Le etichette sono tag per organizzare le dashboard. Applicale sotto **Dashboard → Overview**.
 
-Pattern comuni di label:
+Pattern comuni:
 
 - **Per team**: `team:platform`, `team:checkout`, `team:growth`.
 - **Per ambiente**: `env:prod`, `env:staging`.
 - **Per scopo**: `purpose:oncall`, `purpose:exec`, `purpose:investigation`.
 
-L'elenco delle **Dashboard** ti consente di filtrare per label, che è il modo più rapido per trovare una dashboard in un progetto che ne ha accumulate decine.
+L'elenco **Dashboards** ti permette di filtrare per etichetta, che e il modo piu veloce per trovare una dashboard in un progetto che ne ha accumulate molte.
 
 ## Permessi
 
-Le dashboard sono risorse di prima classe nel controllo accessi basato sui ruoli di OneUptime. I permessi rilevanti:
+Le dashboard funzionano con il controllo accessi basato sui ruoli del tuo progetto. I permessi rilevanti:
 
-| Permesso | Consente |
+| Permesso | Cosa consente |
 | --- | --- |
-| `CreateDashboard` | Creare nuove dashboard nel progetto. |
-| `ReadDashboard` | Visualizzare le dashboard (in modalità privata). |
-| `EditDashboard` | Modificare widget, variabili, impostazioni di una dashboard. |
-| `DeleteDashboard` | Cancellare una dashboard. |
+| **Create Dashboard** | Creare nuove dashboard. |
+| **Read Dashboard** | Visualizzare le dashboard (in modalita privata). |
+| **Edit Dashboard** | Modificare widget, variabili e impostazioni. |
+| **Delete Dashboard** | Eliminare una dashboard. |
 
-Ci sono permessi corrispondenti per le entità di supporto: gli owner della dashboard (utente / team) e i domini personalizzati hanno le proprie coppie create / read / edit / delete così puoi concedere "gestisci gli owner" senza concedere "modifica la dashboard stessa".
+Esistono permessi corrispondenti per i proprietari della dashboard e i domini personalizzati, cosi puoi concedere "gestire i proprietari" senza concedere "modificare la dashboard."
 
-Assegna questi sui ruoli di progetto in **Project Settings → Teams & Roles**.
+Assegnali sui ruoli del progetto sotto **Project Settings → Teams & Roles**.
 
-## Controllo accessi in modalità pubblica
+## Accesso per dashboard pubbliche
 
-L'accesso in modalità pubblica (vedi [Condivisione e dashboard pubbliche](/docs/dashboards/sharing)) è governato da tre livelli, nell'ordine:
+Quando rendi una dashboard pubblica (vedi [Condivisione e dashboard pubbliche](/docs/dashboards/sharing)), tre impostazioni controllano chi puo vederla:
 
-1. Toggle **Public Dashboard** — se off, l'URL pubblico restituisce un 404.
-2. **Master Password** — se impostata, i visitatori devono inserirla prima che la dashboard si renderizzi.
-3. **IP Whitelist** (piano Scale) — se impostata, le richieste da IP non in lista ricevono un 403.
+1. Interruttore **Public Dashboard** — se disattivato, l'URL pubblico restituisce un 404.
+2. **Master Password** — se impostata, i visitatori inseriscono una password prima che la dashboard appaia.
+3. **IP Whitelist** (piano Scale) — se impostata, le richieste da altri IP vengono rifiutate.
 
-Una dashboard può avere qualsiasi combinazione. La configurazione più difensiva è "Public on, password impostata, allowlist IP attiva" — utile per portali partner dove vuoi tutti e tre.
+Puoi combinare uno qualsiasi di questi. La combinazione piu restrittiva e "Pubblico attivo, password impostata, allowlist IP attiva" — utile per portali partner dove vuoi tutti e tre i livelli.
 
-## Retention
+## Retention dei dati
 
-Le dashboard in sé non scadono. I dati che mostrano seguono la retention della telemetria del progetto — metriche, log e trace sono interrogabili per il tempo per cui il tuo piano li mantiene. Un widget puntato sugli "ultimi 90 giorni" su un piano con 30 giorni di retention renderizzerà qualunque cosa sia ancora nello store.
+Le dashboard in se non scadono. I dati che mostrano seguono le impostazioni di retention del tuo progetto — metriche, log e trace sono interrogabili finche il tuo piano li conserva. Un widget puntato a "gli ultimi 90 giorni" su un piano che ne conserva 30 mostrera qualsiasi cosa sia ancora memorizzata.
 
-## Clonare una dashboard
+## Duplicare una dashboard
 
-Per duplicare una dashboard esistente, aprila e usa l'azione **Duplicate** dall'elenco delle dashboard. La copia include ogni widget, variabile e impostazione tranne la configurazione di modalità pubblica (che parte sempre off — decidi tu se riabilitarla sulla copia).
+Per copiare una dashboard esistente, apri l'elenco delle dashboard e seleziona **Duplicate**. La copia include ogni widget, variabile e impostazione tranne la condivisione pubblica — quella parte sempre disattivata cosi puoi decidere se riattivarla.
 
-È il pattern giusto quando vuoi forkare un template ("la nostra dashboard on-call") in una versione specifica per servizio.
+E la mossa giusta quando vuoi forkare un template (come "la nostra dashboard on-call") in una copia specifica per un servizio.
 
-## Cancellare una dashboard
+## Eliminare una dashboard
 
-In **Dashboard → Delete**. È irreversibile — la configurazione del canvas e tutti i bindings di domini personalizzati vengono rimossi. I dati di telemetria non sono coinvolti (vivono negli store di metriche / log / trace, non sulla dashboard).
+Sotto **Dashboard → Delete**. Non puo essere annullato — il layout della dashboard e qualsiasi dominio personalizzato associato vengono rimossi. I tuoi dati di telemetria non sono influenzati.
 
-Se una dashboard è pubblicata pubblicamente con un dominio personalizzato, l'URL pubblico smette di risolvere nel momento in cui la cancelli. Stacca prima il dominio se devi ripuntarlo.
+Se la dashboard e pubblica su un dominio personalizzato, l'URL smette di risolvere non appena la elimini. Sposta prima il dominio su una dashboard diversa se vuoi mantenere l'URL funzionante.
 
-## Migrazione e backup
+## Backup
 
-Per le installazioni in self-hosting: la configurazione completa della dashboard (widget, variabili, impostazioni) vive nella tabella `Dashboard` in Postgres. Un backup regolare del database è sufficiente — non esiste un formato di export separato per la dashboard.
+Se utilizzi un'installazione self-hosted di OneUptime, un backup regolare del database e sufficiente — la configurazione della dashboard e memorizzata insieme al resto del tuo progetto.
 
-Per OneUptime Cloud: i backup regolari sono gestiti per te. Se vuoi una copia locale della configurazione di una dashboard, usa l'[API OneUptime](/docs/api-reference/api-reference) per leggere il record `Dashboard`.
+Su OneUptime Cloud, i backup sono gestiti per te. Se vuoi una tua copia, puoi leggere la dashboard tramite l'[API di OneUptime](/docs/api-reference/api-reference).
 
-## Cosa leggere dopo
+## Letture successive
 
-- [Condivisione e dashboard pubbliche](/docs/dashboards/sharing) — il lato pubblico del controllo accessi.
-- [Variabili e filtri](/docs/dashboards/variables) — templatizzazione.
+- [Condivisione e dashboard pubbliche](/docs/dashboards/sharing) — controlli per la modalita pubblica.
+- [Variabili e filtri](/docs/dashboards/variables) — templating.
 - [Widget](/docs/dashboards/widgets) — il catalogo dei widget.
-- [Panoramica delle dashboard](/docs/dashboards/index) — la mappa concettuale.
+- [Panoramica delle dashboard](/docs/dashboards/index) — il quadro generale.

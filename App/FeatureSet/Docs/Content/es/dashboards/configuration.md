@@ -1,80 +1,80 @@
-# Configuración y permisos del panel
+# Configuración y Permisos
 
-Esta página reúne los ajustes y los controles de acceso que conviene conocer una vez que tienes un panel que de verdad quieres conservar.
+Esta página cubre los ajustes y controles de acceso que conviene conocer una vez que tienes un panel que quieres mantener.
 
-## Propiedad
+## Propietarios
 
-Los **propietarios** de un panel son los usuarios y equipos a los que se les conceden permisos explícitos sobre él (separados del rol a nivel de proyecto).
+Los **propietarios** de un panel son usuarios y equipos a los que has dado acceso explícito (además de su rol a nivel de proyecto).
 
-En **Dashboard → Owners**:
+En **Panel → Propietarios**:
 
-- Añade un **propietario usuario** para conceder a una persona específica acceso extra a este panel.
-- Añade un **propietario equipo** para conceder lo mismo a cada miembro de un equipo.
+- Añade un **propietario usuario** para darle a una persona acceso adicional a este panel.
+- Añade un **propietario equipo** para darle lo mismo a cada miembro de un equipo.
 
-Usa la propiedad cuando el rol de lectura a nivel de proyecto sea demasiado amplio — por ejemplo, un panel con detalle sensible a nivel de cliente que solo debería ser visible para el equipo de customer success.
+Usa propietarios cuando el rol de lectura del proyecto sea demasiado amplio — por ejemplo, un panel con detalles a nivel de cliente que solo debería ser visible para el equipo de éxito del cliente.
 
 ## Etiquetas
 
-Las etiquetas son tags muchos-a-muchos para organizar paneles. Aplícalas en **Dashboard → Overview**.
+Las etiquetas son tags para organizar paneles. Aplícalas en **Panel → Resumen**.
 
-Patrones comunes de etiquetas:
+Patrones comunes:
 
 - **Por equipo**: `team:platform`, `team:checkout`, `team:growth`.
 - **Por entorno**: `env:prod`, `env:staging`.
 - **Por propósito**: `purpose:oncall`, `purpose:exec`, `purpose:investigation`.
 
-La lista **Dashboards** te permite filtrar por etiqueta, que es la forma más rápida de encontrar un panel en un proyecto que ha acumulado decenas.
+La lista de **Paneles** te permite filtrar por etiqueta, que es la forma más rápida de encontrar un panel en un proyecto que ha acumulado muchos.
 
 ## Permisos
 
-Los paneles son recursos de primera clase en el control de acceso basado en roles de OneUptime. Los permisos relevantes:
+Los paneles funcionan con el control de acceso basado en roles de tu proyecto. Los permisos relevantes:
 
-| Permiso | Permite |
+| Permiso | Qué permite |
 | --- | --- |
-| `CreateDashboard` | Crear nuevos paneles en el proyecto. |
-| `ReadDashboard` | Ver paneles (en modo privado). |
-| `EditDashboard` | Modificar widgets, variables y ajustes de un panel. |
-| `DeleteDashboard` | Eliminar un panel. |
+| **Crear Panel** | Crear nuevos paneles. |
+| **Leer Panel** | Ver paneles (en modo privado). |
+| **Editar Panel** | Cambiar widgets, variables y configuración. |
+| **Eliminar Panel** | Eliminar un panel. |
 
-Existen permisos equivalentes para las entidades de apoyo: los propietarios del panel (usuario / equipo) y los dominios personalizados tienen sus propios pares create / read / edit / delete para que puedas conceder "gestionar propietarios" sin conceder "editar el panel en sí".
+Hay permisos equivalentes para propietarios de paneles y dominios personalizados, para que puedas otorgar "gestionar propietarios" sin otorgar "editar el panel".
 
-Asígnalos en los roles de proyecto en **Project Settings → Teams & Roles**.
+Asígnalos en los roles del proyecto en **Configuración del Proyecto → Equipos y Roles**.
 
-## Control de acceso en modo público
+## Acceso para paneles públicos
 
-El acceso en modo público (consulta [Compartir y paneles públicos](/docs/dashboards/sharing)) se rige por tres capas, en orden:
+Cuando haces que un panel sea público (consulta [Compartir y Paneles Públicos](/docs/dashboards/sharing)), tres ajustes controlan quién puede verlo:
 
-1. Conmutador **Public Dashboard** — si está apagado, la URL pública devuelve un 404.
-2. **Master Password** — si está establecido, los visitantes deben introducirlo antes de que se renderice el panel.
-3. **IP Whitelist** (plan Scale) — si está establecido, las peticiones desde IP no listadas reciben un 403.
+1. Interruptor **Panel Público** — si está apagado, la URL pública devuelve un 404.
+2. **Contraseña Maestra** — si está configurada, los visitantes introducen una contraseña antes de que aparezca el panel.
+3. **Lista Blanca de IPs** (plan Scale) — si está configurada, se rechazan las solicitudes desde otras IPs.
 
-Un panel puede tener cualquier combinación. La configuración más defensiva es "Público activo, contraseña establecida, lista blanca de IP activa" — útil para portales de socios donde quieres las tres.
+Puedes combinar cualquiera de estos. La combinación más restrictiva es "Público activado, contraseña configurada, lista de IPs permitidas activa" — útil para portales de socios donde quieres las tres capas.
 
-## Retención
+## Retención de datos
 
-Los paneles en sí no caducan. Los datos que muestran siguen la retención de telemetría del proyecto — métricas, logs y trazas son consultables mientras tu plan los retenga. Un widget apuntado a "los últimos 90 días" en un plan con 30 días de retención renderizará lo que aún quede en el almacén.
+Los paneles en sí no caducan. Los datos que muestran siguen la configuración de retención de tu proyecto: las métricas, los logs y las trazas se pueden consultar durante el tiempo que tu plan los conserve. Un widget apuntado a "los últimos 90 días" en un plan que conserva 30 días mostrará lo que aún está almacenado.
 
-## Clonar un panel
+## Duplicar un panel
 
-Para duplicar un panel existente, ábrelo y usa la acción **Duplicate** desde la lista de paneles. La copia incluye cada widget, variable y ajuste excepto la configuración de modo público (que siempre empieza apagada — tú decides si reactivarla en la copia).
+Para copiar un panel existente, abre la lista de paneles y elige **Duplicar**. La copia incluye cada widget, variable y configuración excepto el uso compartido público — eso siempre comienza apagado para que puedas decidir si volver a activarlo.
 
-Este es el patrón adecuado cuando quieres bifurcar una plantilla ("nuestro panel de guardia") en una versión específica del servicio.
+Esta es la jugada correcta cuando quieres bifurcar una plantilla (como "nuestro panel de guardia") en una copia específica para un servicio.
 
 ## Eliminar un panel
 
-En **Dashboard → Delete**. Esto es irreversible — la configuración del lienzo y cualquier vinculación de dominio personalizado se eliminan. Los datos de telemetría no se ven afectados (viven en los almacenes de métricas / logs / trazas, no en el panel).
+En **Panel → Eliminar**. Esto no se puede deshacer: el diseño del panel y cualquier dominio personalizado asociado se eliminan. Tus datos de telemetría no se ven afectados.
 
-Si un panel se publica públicamente con un dominio personalizado, la URL pública deja de resolverse en el momento en que lo eliminas. Quita el dominio primero si necesitas reapuntarlo.
+Si el panel es público en un dominio personalizado, la URL deja de resolverse en cuanto lo eliminas. Mueve el dominio a un panel diferente primero si quieres mantener la URL funcionando.
 
-## Migración y respaldo
+## Copias de seguridad
 
-Para instalaciones auto-alojadas: la configuración completa del panel (widgets, variables, ajustes) vive en la tabla `Dashboard` en Postgres. Un respaldo regular de la base de datos es suficiente — no hay un formato separado de exportación de paneles.
+Si te auto-alojas en OneUptime, una copia de seguridad regular de la base de datos es suficiente: la configuración del panel se almacena junto al resto de tu proyecto.
 
-Para OneUptime Cloud: los respaldos regulares se gestionan por ti. Si quieres una copia local de la configuración de un panel, usa la [API de OneUptime](/docs/api-reference/api-reference) para leer el registro `Dashboard`.
+En OneUptime Cloud, las copias de seguridad se gestionan por ti. Si quieres tu propia copia, puedes leer el panel mediante la [API de OneUptime](/docs/api-reference/api-reference).
 
-## Qué leer a continuación
+## Dónde seguir leyendo
 
-- [Compartir y paneles públicos](/docs/dashboards/sharing) — el lado público del control de acceso.
-- [Variables y filtros del panel](/docs/dashboards/variables) — templating.
-- [Widgets del panel](/docs/dashboards/widgets) — el catálogo de widgets.
-- [Visión general de los paneles](/docs/dashboards/index) — el mapa conceptual.
+- [Compartir y Paneles Públicos](/docs/dashboards/sharing) — controles en modo público.
+- [Variables y Filtros](/docs/dashboards/variables) — plantillado.
+- [Widgets](/docs/dashboards/widgets) — el catálogo de widgets.
+- [Resumen de Paneles](/docs/dashboards/index) — la visión general.

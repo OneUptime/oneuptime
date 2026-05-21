@@ -1,80 +1,80 @@
 # Konfiguration & behörigheter
 
-Den här sidan samlar de inställningar och åtkomstkontroll-rattar som är värda att känna till när du har en instrumentpanel du faktiskt vill behålla.
+Den här sidan täcker de inställningar och åtkomstkontroller som är värda att känna till när du har en instrumentpanel du vill behålla.
 
-## Ägarskap
+## Ägare
 
-En instrumentpanels **ägare** är de användare och team som beviljas explicita behörigheter på den (separat från den projektomfattande rollen).
+En instrumentpanels **ägare** är användare och team som du har gett explicit åtkomst till (utöver deras projektomfattande roll).
 
 Under **Dashboard → Owners**:
 
-- Lägg till en **användarägare** för att ge en specifik person extra åtkomst till denna instrumentpanel.
-- Lägg till en **team-ägare** för att ge samma sak till varje medlem i ett team.
+- Lägg till en **user owner** för att ge en person extra åtkomst till denna instrumentpanel.
+- Lägg till en **team owner** för att ge samma sak till varje medlem i ett team.
 
-Använd ägarskap när den projektomfattande läsrollen är för bred — t.ex. en instrumentpanel med känsliga kundnivå-detaljer som bara ska vara synliga för kundframgångsteamet.
+Använd ägare när den projektomfattande läsrollen är för bred — till exempel en instrumentpanel med kunddetaljer som endast bör vara synlig för kundframgångsteamet.
 
 ## Etiketter
 
-Etiketter är många-till-många-taggar för att organisera instrumentpaneler. Applicera dem under **Dashboard → Overview**.
+Etiketter är taggar för att organisera instrumentpaneler. Tillämpa dem under **Dashboard → Overview**.
 
-Vanliga etikettmönster:
+Vanliga mönster:
 
-- **Efter team**: `team:platform`, `team:checkout`, `team:growth`.
-- **Efter miljö**: `env:prod`, `env:staging`.
-- **Efter syfte**: `purpose:oncall`, `purpose:exec`, `purpose:investigation`.
+- **Per team**: `team:platform`, `team:checkout`, `team:growth`.
+- **Per miljö**: `env:prod`, `env:staging`.
+- **Per syfte**: `purpose:oncall`, `purpose:exec`, `purpose:investigation`.
 
-**Dashboards**-listan låter dig filtrera efter etikett, vilket är det snabbaste sättet att hitta en instrumentpanel i ett projekt som har samlat på sig dussintals.
+Listan **Dashboards** låter dig filtrera på etikett, vilket är det snabbaste sättet att hitta en instrumentpanel i ett projekt som har samlat på sig många av dem.
 
 ## Behörigheter
 
-Instrumentpaneler är förstklassiga resurser i OneUptimes rollbaserade åtkomstkontroll. De relevanta behörigheterna:
+Instrumentpaneler fungerar med ditt projekts rollbaserade åtkomstkontroll. De relevanta behörigheterna:
 
-| Behörighet | Tillåter |
+| Behörighet | Vad den tillåter |
 | --- | --- |
-| `CreateDashboard` | Skapa nya instrumentpaneler i projektet. |
-| `ReadDashboard` | Visa instrumentpaneler (i privat läge). |
-| `EditDashboard` | Modifiera widgetar, variabler, inställningar på en instrumentpanel. |
-| `DeleteDashboard` | Ta bort en instrumentpanel. |
+| **Create Dashboard** | Skapa nya instrumentpaneler. |
+| **Read Dashboard** | Visa instrumentpaneler (i privat läge). |
+| **Edit Dashboard** | Ändra widgetar, variabler och inställningar. |
+| **Delete Dashboard** | Radera en instrumentpanel. |
 
-Det finns matchande behörigheter för de stödjande entiteterna: instrumentpanelägare (användare / team) och anpassade domäner har sina egna create / read / edit / delete-par så att du kan bevilja "hantera ägare" utan att bevilja "redigera själva instrumentpanelen."
+Det finns matchande behörigheter för instrumentpanelägare och anpassade domäner, så att du kan ge "hantera ägare" utan att ge "redigera instrumentpanelen."
 
 Tilldela dessa på projektroller under **Project Settings → Teams & Roles**.
 
-## Åtkomstkontroll i offentligt läge
+## Åtkomst för offentliga instrumentpaneler
 
-Åtkomst i offentligt läge (se [Delning & offentliga instrumentpaneler](/docs/dashboards/sharing)) styrs av tre lager, i ordning:
+När du gör en instrumentpanel offentlig (se [Delning & offentliga instrumentpaneler](/docs/dashboards/sharing)), styr tre inställningar vem som kan se den:
 
-1. **Public Dashboard**-växel — om av returnerar den offentliga URL:en en 404.
-2. **Master Password** — om satt måste besökare ange det innan instrumentpanelen renderas.
-3. **IP Whitelist** (Scale-plan) — om satt får förfrågningar från icke-listade IP:er en 403.
+1. **Public Dashboard**-växel — om av returnerar den offentliga URL:en 404.
+2. **Master Password** — om inställt anger besökare ett lösenord innan instrumentpanelen visas.
+3. **IP Whitelist** (Scale-plan) — om inställt avvisas förfrågningar från andra IP:er.
 
-En instrumentpanel kan ha vilken kombination som helst. Den mest defensiva konfigurationen är "Public på, lösenord satt, IP-tillåtslista aktiv" — användbart för partnerportaler där du vill ha alla tre.
+Du kan kombinera alla dessa. Den mest låsta kombinationen är "Public på, lösenord inställt, IP-tillåtslista aktiv" — användbart för partnerportaler där du vill ha alla tre lagren.
 
-## Retention
+## Datakvarhållning
 
-Instrumentpaneler själva går inte ut. Datan de visar följer projektets telemetri-retention — mätvärden, loggar och traces är frågbara så länge som din plan behåller dem. En widget som pekar på "de senaste 90 dagarna" på en plan med 30 dagars retention kommer att rendera vad som än fortfarande finns i lagret.
+Instrumentpaneler i sig själva förfaller inte. Datan de visar följer ditt projekts kvarhållningsinställningar — mätvärden, loggar och traces är frågbara så länge din plan behåller dem. En widget riktad mot "de senaste 90 dagarna" på en plan som behåller 30 dagar visar vad som fortfarande finns lagrat.
 
-## Klona en instrumentpanel
+## Duplicera en instrumentpanel
 
-För att duplicera en befintlig instrumentpanel, öppna den och använd **Duplicate**-åtgärden från instrumentpanellistan. Kopian inkluderar varje widget, variabel och inställning förutom konfigurationen för offentligt läge (som alltid börjar av — du bestämmer om du vill återaktivera på kopian).
+För att kopiera en befintlig instrumentpanel, öppna instrumentpanellistan och välj **Duplicate**. Kopian inkluderar varje widget, variabel och inställning förutom offentlig delning — den börjar alltid av så att du kan bestämma om du vill slå på den igen.
 
-Det här är rätt mönster när du vill forka en mall ("vår jour-instrumentpanel") till en tjänstspecifik version.
+Detta är rätt drag när du vill forka en mall (som "vår jourinstrumentpanel") till en tjänstespecifik kopia.
 
-## Ta bort en instrumentpanel
+## Radera en instrumentpanel
 
-Under **Dashboard → Delete**. Detta är oåterkalleligt — arbetsytans konfiguration och eventuella anpassade domänkopplingar tas bort. Telemetridata påverkas inte (den bor i metric- / log- / trace-lagren, inte på instrumentpanelen).
+Under **Dashboard → Delete**. Detta kan inte ångras — instrumentpanelens layout och alla anpassade domäner som är kopplade till den tas bort. Din telemetridata påverkas inte.
 
-Om en instrumentpanel publiceras offentligt med en anpassad domän, slutar den offentliga URL:en att lösas i samma stund som du tar bort den. Dra av domänen först om du behöver peka om den.
+Om instrumentpanelen är offentlig på en anpassad domän slutar URL:en svara så snart du raderar den. Flytta domänen till en annan instrumentpanel först om du vill behålla URL:en fungerande.
 
-## Migrering och backup
+## Säkerhetskopiering
 
-För self-hostade installationer: instrumentpanelens fullständiga konfiguration (widgetar, variabler, inställningar) bor i `Dashboard`-tabellen i Postgres. En vanlig databasbackup är tillräcklig — det finns inget separat exportformat för instrumentpaneler.
+Om du kör OneUptime självhostat är en vanlig databassäkerhetskopiering tillräcklig — instrumentpanelens konfiguration sparas tillsammans med resten av ditt projekt.
 
-För OneUptime Cloud: vanliga backuper hanteras åt dig. Om du vill ha en lokal kopia av en instrumentpanels konfiguration, använd [OneUptime API](/docs/api-reference/api-reference) för att läsa `Dashboard`-posten.
+På OneUptime Cloud hanteras säkerhetskopiering åt dig. Om du vill ha din egen kopia kan du läsa instrumentpanelen via [OneUptime API](/docs/api-reference/api-reference).
 
-## Var läsa vidare
+## Läs vidare
 
-- [Delning & offentliga instrumentpaneler](/docs/dashboards/sharing) — den offentliga sidan av åtkomstkontroll.
+- [Delning & offentliga instrumentpaneler](/docs/dashboards/sharing) — kontroller i offentligt läge.
 - [Variabler & filter](/docs/dashboards/variables) — mallning.
 - [Widgetar](/docs/dashboards/widgets) — widget-katalogen.
-- [Översikt över instrumentpaneler](/docs/dashboards/index) — den begreppsmässiga kartan.
+- [Översikt över instrumentpaneler](/docs/dashboards/index) — det stora hela.

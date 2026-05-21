@@ -1,96 +1,92 @@
 # Variables & Filters
 
-A variable turns a single dashboard into a template. Define a `service` variable and the same chart re-renders for `checkout`, `payments`, and `search` — pick from a dropdown at the top instead of building three near-identical dashboards.
-
-This page covers the four variable types, how their values are injected into widget queries, and the global time range and refresh controls that sit next to them.
+A variable turns a single dashboard into a template. Add a `service` variable to your dashboard and the same charts re-render for `checkout`, `payments`, or `search` — viewers pick from a dropdown at the top instead of you building three near-identical dashboards.
 
 ## Variable types
 
-Add variables under **Dashboard → Settings → Variables**. Each has a name (referenced as `{{name}}` in widget queries), an optional label, and a type.
+Add variables under **Dashboard → Settings → Variables**. Each variable has a name (used as `{{name}}` in your widgets), an optional label, and a type.
 
 ### Custom List
 
-A static drop-down. You supply a comma-separated list of values; the viewer picks one.
+A static dropdown. You type the options yourself.
 
-Use it when: the set of choices is small, fixed, and meaningful only to your team. `environment` with values `prod, staging, dev`. `region` with values `us-east-1, eu-west-1, ap-south-1`.
+Use it when: the choices are small and fixed. `environment` with values `prod, staging, dev`. `region` with values `us-east-1, eu-west-1, ap-south-1`.
 
 ### Query
 
-The options for the drop-down are computed by a ClickHouse query at render time.
+The options come from a query against your data.
 
-Use it when: the choices are dynamic and live in your telemetry. "Every customer ID that has logged in the past 24 hours" via `SELECT DISTINCT customer_id FROM ...`. The query runs against your project's data; treat the result as untrusted input even though it's your own data.
+Use it when: the choices change over time and you want the dropdown to keep up. "Every customer ID seen in the past 24 hours." The query runs against your project's data and the results become the dropdown.
 
 ### Text Input
 
-A free-text field. Whatever the viewer types is injected.
+A free-text field. Whatever the viewer types is used.
 
-Use it when: you want the dashboard to act like a search tool. A "filter by IP" or "filter by request ID" dashboard.
+Use it when: you want the dashboard to act like a search tool. Filter by IP address, request ID, or any other free-form value.
 
 ### Telemetry Attribute
 
-The options are the distinct values of an OpenTelemetry attribute key across your project's telemetry, over the dashboard's time range.
+The options are the distinct values of an attribute in your telemetry over the dashboard's time range.
 
-Configure the **attribute key** (e.g., `k8s.cluster.name`, `service.name`, `host.name`). The widget fetches distinct values from logs / metrics / traces and offers them as a drop-down.
+Configure the **attribute key** (for example, `service.name`, `host.name`, `k8s.cluster.name`). The dropdown fills with every distinct value seen in your logs, metrics, and traces.
 
-Use it when: the choices are exactly the entities you've already tagged your telemetry with. Cluster name, service name, region, customer ID, deployment environment — anything you already send as an OpenTelemetry resource or span attribute.
-
-This is the most common variable type for service-oriented dashboards because it auto-updates: when you ship a new service tagged `service.name = inventory`, that value shows up in the dropdown without anyone editing the dashboard.
+Use it when: the choices match the tags you already send with your telemetry. This is the most common type because it updates automatically — when you ship a new service tagged `service.name = inventory`, that name appears in the dropdown without you editing the dashboard.
 
 ## Multi-select
 
-Each variable can be configured **multi-select**. When on, the viewer picks one or more values; the dashboard filters to `value IN (...)` instead of `value = ...`.
+Each variable can allow multiple selections. When on, the viewer can pick one or more values; the dashboard filters to any of them.
 
-Use multi-select when: you want to look at "checkout + payments together" without leaving the dashboard. Avoid it when the chart math doesn't add up across selected values — e.g., averaging averages.
+Use multi-select when: you want to compare "checkout and payments together" without leaving the dashboard. Avoid it when the math doesn't work across selected values (for example, averaging averages).
 
 ## Default values
 
-Every variable takes an optional default. The dashboard renders with the default until the viewer changes the dropdown. For public dashboards, the default is what visitors land on.
+Every variable can have a default. The dashboard renders with the default until the viewer changes it. For public dashboards, the default is what visitors see first.
 
-## How interpolation works
+## How to use a variable in a widget
 
-Anywhere a widget query takes a string filter — a metric query's `WHERE` clause, a list widget's filter, a log stream's attribute match — you can reference `{{variable_name}}`.
+Anywhere a widget takes a filter — a metric's `WHERE`, a list's filter, a log stream's attribute match — you can use `{{variable_name}}`.
 
-For example, a Chart's metric query might be:
+For example, a chart filtered by service:
 
 ```
-SELECT avg(latency_ms) FROM spans WHERE service.name = '{{service}}'
+service.name = '{{service}}'
 ```
 
-When `service` is set to `checkout`, the query runs with `service.name = 'checkout'`. When the viewer flips to `payments`, the query re-runs with `service.name = 'payments'`.
+When the dropdown is set to `checkout`, the chart filters to the checkout service. When the viewer switches to `payments`, the chart re-renders for payments.
 
-For **Telemetry Attribute** variables specifically, OneUptime knows the attribute key and injects the filter into every widget that mentions the same attribute — you don't have to hand-edit each widget's query when the variable changes. This is the magic that makes service-templated dashboards work out of the box.
+For **Telemetry Attribute** variables, OneUptime knows which attribute the variable maps to and applies the filter to every widget that uses the same attribute — you don't have to edit each widget by hand.
 
 ## Time range
 
-The dashboard header has a global **time range** picker. Every metric widget queries against this window. Choices:
+The dashboard header has a global time range. Every metric widget queries against this window. Options:
 
-- **Presets** — Past 1 hour, 24 hours, 7 days, 30 days, 90 days (depending on your retention).
-- **Custom range** — pick start and end timestamps.
+- **Presets** — past hour, 24 hours, 7 days, 30 days, 90 days (depending on your data retention).
+- **Custom** — pick a start and end time.
 
-The time range is part of the dashboard's URL — sharing the URL shares the window. This is convenient during an incident: pin the time range to "10:00–10:30 UTC today" and share the link in the incident channel.
+The time range is part of the dashboard's URL — sharing the URL shares the window. Useful during an incident: pin the time range to "10:00–10:30 UTC today" and paste the link in the incident channel.
 
 ## Refresh interval
 
-Next to the time range, choose how often widgets re-query:
+Next to the time range, pick how often widgets re-query:
 
-- **Off** — widgets query once on load.
+- **Off** — widgets query once when the page loads.
 - **5s / 10s / 30s / 1m / 5m / 15m** — auto-refresh.
 
-Auto-refresh is convenient for a wall-mounted screen and a current-incident view. For ad-hoc investigation, leave it off so the view stays stable while you scroll.
+Auto-refresh is good for a wall-mounted screen or a live incident view. Leave it off when you're investigating so the view stays still while you look.
 
 ## Putting it together
 
 A service-templated dashboard typically has:
 
-1. A `service` variable of type **Telemetry Attribute** bound to `service.name`. Default: your most-watched service. Multi-select: off (so charts always show one service at a time).
+1. A `service` variable of type **Telemetry Attribute** for `service.name`. Default: your most-watched service. Multi-select off (so charts always show one at a time).
 2. An `environment` variable of type **Custom List**. Default: `prod`.
-3. A `cluster` variable of type **Telemetry Attribute** bound to `k8s.cluster.name`. Multi-select: on (so you can roll up across clusters).
-4. The dashboard's widgets reference these variables in their filters.
+3. A `cluster` variable of type **Telemetry Attribute** for `k8s.cluster.name`. Multi-select on (so you can compare across clusters).
+4. Widgets that reference these variables in their filters.
 
-The result: one dashboard, the entire fleet's coverage, a few drop-downs at the top.
+The result: one dashboard, every service covered, three dropdowns at the top.
 
 ## Where to read next
 
-- [Widgets](/docs/dashboards/widgets) — how each widget consumes a filter.
-- [Sharing & Public Dashboards](/docs/dashboards/sharing) — variables in URLs, including their values for shared links.
+- [Widgets](/docs/dashboards/widgets) — how each widget uses a filter.
+- [Sharing & Public Dashboards](/docs/dashboards/sharing) — variables and shared links.
 - [Authoring a Dashboard](/docs/dashboards/authoring) — the canvas mechanics.

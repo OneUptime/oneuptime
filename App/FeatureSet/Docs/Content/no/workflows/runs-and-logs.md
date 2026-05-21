@@ -1,73 +1,76 @@
 # Kjøringer & logger
 
-Hver gang en arbeidsflyts trigger trigges, oppretter OneUptime en **kjøring** — en post over én utførelse med tidtaking, status og output per node. Kjøringer er hvordan du bekrefter at en arbeidsflyt fungerte, hvordan du feilsøker en som ikke gjorde det, og hvordan du skriver en postmortem når en automatisering oppfører seg feil.
+Hver gang en arbeidsflyt kjører, lagrer OneUptime et register over hva som skjedde — når den kjørte, om den fungerte, og hva hver blokk gjorde. Det registeret kalles en **kjøring**. Kjøringer er hvordan du bekrefter at en arbeidsflyt fungerte, feilsøker en som ikke gjorde det, og ser tilbake på tidligere aktivitet.
 
 ## Hvor du finner dem
 
-| Side | Omfang |
+| Side | Hva du ser |
 | --- | --- |
-| **Arbeidsflyter → Kjøringer & logger** | Prosjekt-omfattende. Hver kjøring av hver arbeidsflyt. Filtrer etter arbeidsflyt, status og tidsperiode. |
-| **Logger-fanen på en arbeidsflyt** | Bare kjøringene av denne arbeidsflyten. |
-| **En kjørings detaljside** | Én utførelse, utvidet med output per node og eventuelle feilmeldinger. |
+| **Arbeidsflyter → Kjøringer & logger** | Hver kjøring fra hver arbeidsflyt i prosjektet. Filtrer etter arbeidsflyt, status og tid. |
+| **Arbeidsflyt → Logger-fanen** | Bare kjøringene av denne ene arbeidsflyten. |
+| **En enkelt kjøring** | Én eksekvering, med utdata fra hver blokk. |
 
 ## Kjøringsstatuser
 
-| Status | Betydning |
+| Status | Hva det betyr |
 | --- | --- |
-| **Scheduled** | Triggeren trigget og kjøringen er køet, men workeren har ikke plukket den opp ennå. Vanligvis brøkdelen av et sekund. |
-| **Running** | Workeren går for øyeblikket gjennom grafen. Langvarige komponenter (trege HTTP-kall, tilsiktede forsinkelser) holder en kjøring i denne tilstanden. |
-| **Success** | Hver node som kjørte fullførte uten feil. (En arbeidsflyt som tok en `error`-gren med vilje er fortsatt `Success` totalt — selve arbeidsflyten feilet ikke.) |
-| **Error** | En node feilet og det var ingen `error`-port koblet for å håndtere det. Kjøringen stoppet ved den noden. |
-| **Timeout** | Kjøringen overskred per-kjøring-tidsavbruddet. Se [Konfigurasjon & sikkerhet](/docs/workflows/configuration). |
+| **Planlagt** | Triggeren ble utløst og kjøringen er i ferd med å starte. Tar vanligvis bare en brøkdel av et sekund. |
+| **Kjører** | Arbeidsflyten er i gang. Langvarige blokker holder en kjøring i denne tilstanden. |
+| **Suksess** | Hver blokk som kjørte ble ferdig uten feil. (Å ta en **feil**-gren med vilje regnes fortsatt som suksess — selve arbeidsflyten feilet ikke.) |
+| **Feil** | En blokk feilet og det var ingen **feil**-bane koblet til for å håndtere det. Kjøringen stoppet der. |
+| **Tidsavbrudd** | Kjøringen kjørte lenger enn tillatt. Se [Konfigurasjon & sikkerhet](/docs/workflows/configuration). |
 
 ## Lese en kjøring
 
-Klikk en kjøring fra listen for å åpne detaljsiden. Du ser:
+Klikk på en hvilken som helst kjøring for å åpne detaljene. Du vil se:
 
-- **Header** — triggeren som trigget, start- og slutt-tidsstempel, total varighet, status.
-- **Nodeliste** — hver node som ble utført i rekkefølge, hver med sine fangede argumenter, sin returverdi og sin valgte utgangsport.
-- **Feil** — hvis en node feilet, feilmeldingen og (når tilgjengelig) stack-trace.
+- **Header** — triggeren, start- og sluttid, total varighet og status.
+- **Blokkliste** — hver blokk som kjørte, i rekkefølge. Hver enkelt viser verdiene den fikk, utdata, og hvilken bane den tok.
+- **Feil** — hvis en blokk feilet, feilmeldingen og (når tilgjengelig) flere detaljer.
 
-De fangede argumentene viser *post-interpolering*-verdier — altså de eksakte strengene noden så etter at variabler ble løst opp. Dette er den mest nyttige feilsøkingsvisningen: hvis en Slack-melding inneholder den bokstavelige teksten `{{Incident.title}}`, vet du at variabelreferansen ikke ble løst.
+Verdiene som vises er nøyaktig det blokken så — etter at alle variabler ble fylt inn. Dette er den mest nyttige feilsøkingsvisningen: hvis en Slack-melding viser den bokstavelige teksten `{{Incident.title}}` i stedet for den faktiske tittelen, vet du at variabelen ikke ble løst opp.
 
-## Vanlige feilsøkingsmønstre
+## Vanlig feilsøking
 
-### "Arbeidsflyten min trigget ikke."
+### "Arbeidsflyten min kjørte ikke."
 
-1. Bekreft at arbeidsflyten er **aktivert** i **Innstillinger**. Nye arbeidsflyter leveres deaktivert.
-2. For en modellhendelse-trigger: bekreft at hendelsen faktisk skjedde. Åpne entiteten (hendelsen, varselet, monitoren) og se på historikken.
-3. For en webhook-trigger: bekreft at det eksterne systemet treffer riktig URL. Mange verktøy logger utgående webhook-leveringer — sjekk der.
-4. For en tidsplan-trigger: bekreft at cron-uttrykket evaluerer til den tiden du forventer. Bruk en cron-parser om du er i tvil.
+1. Sørg for at arbeidsflyten er **aktivert** i Innstillinger. Nye arbeidsflyter starter deaktivert.
+2. For en OneUptime-hendelsestrigger: bekreft at hendelsen faktisk skjedde. Åpne oppføringen og sjekk historikken.
+3. For en webhook-trigger: bekreft at det andre systemet sender til riktig URL. De fleste verktøy logger når de sender en webhook — sjekk der.
+4. For en tidsplan-trigger: bekreft at cron-uttrykket matcher tidspunktet du forventer.
 
-Hvis triggeren trigget men ingen kjøring dukker opp, sjekk prosjektets kjøringskvote under **Project Settings → Billing**.
+Hvis triggeren ble utløst, men ingen kjøring dukker opp, sjekk kjøringskvoten din under **Prosjektinnstillinger → Fakturering**.
 
-### "Den kjører, men en nedstrømsnode kjører aldri."
+### "En senere blokk kjørte aldri."
 
-En node som ikke kjører er vanligvis et koblingsproblem. Åpne lerretet og sjekk:
+En blokk som ikke kjører er vanligvis et koblingsproblem. Åpne lerretet og sjekk:
 
-- Er oppstrømsnodens utgangsport faktisk koblet til denne nodens inngangsport?
-- Tok oppstrømsnoden en annen port (f.eks. `error` i stedet for `success`, eller `no` i stedet for `yes`)? Se på kjøringsdetaljen for å se hvilken port den valgte.
+- Er den tidligere blokkens utgang koblet til denne blokkens inngang?
+- Tok den tidligere blokken en annen utgang enn du forventet (for eksempel **feil** i stedet for **suksess**, eller **Nei** i stedet for **Ja**)? Kjøringsdetaljen viser hvilken bane som ble tatt.
 
-### "En variabel kommer gjennom tom."
+### "En variabel kom gjennom som tom."
 
-Åpne kjøringsdetaljen og se på den feilende nodens fangede argumenter. Hvis du ser den bokstavelige `{{NodeId.field}}`-teksten, ble ikke referansen løst — sannsynligvis en skrivefeil i `NodeId` eller `field`. Hvis du ser en tom streng, kjørte oppstrømsnoden men produserte ikke det feltet.
+Åpne kjøringen og se på verdiene til den feilende blokken.
 
-### "Det fungerer manuelt, men ikke fra triggeren."
+- Hvis du ser den bokstavelige teksten `{{BlockName.field}}`, ble ikke referansen løst — sannsynligvis en skrivefeil i blokkens navn eller feltnavn.
+- Hvis du ser en tom streng, kjørte den tidligere blokken, men produserte ikke det feltet.
 
-Bruk **Kjør manuelt** med en JSON-payload som speiler det den ekte triggeren publiserer. Sammenlign så de fangede argumentene i den manuelle kjøringen mot produksjonskjøringen side om side — forskjellen ligger vanligvis i et enkelt feltnavn eller type.
+### "Det fungerer når jeg kjører det manuelt, men ikke fra triggeren."
+
+Bruk **Kjør manuelt** med en JSON-nyttelast som ser ut som det den ekte triggeren sender. Sammenlign så verdiene i den manuelle kjøringen med den ekte kjøringen side om side. Forskjellen er vanligvis ett enkelt feltnavn eller datatype.
 
 ## Kjøre en arbeidsflyt på nytt
 
-Det finnes ingen "prøv på nytt"-knapp — som design kjører OneUptime aldri en gammel kjøring på nytt, fordi de utgående sideeffektene (Slack-meldinger, API-kall) kanskje ikke er idempotente. Hvis du vil gjøre arbeidet på nytt, fiks arbeidsflyten og la neste ekte trigger trigge den.
+Det finnes ingen "prøv denne kjøringen på nytt"-knapp. Vi kjører ikke gamle eksekveringer på nytt automatisk fordi bivirkningene (Slack-meldinger, API-kall, saker) kanskje ikke er trygge å gjenta. For å gjøre arbeidet om igjen, fiks arbeidsflyten og la den neste ekte triggeren utløse den.
 
-For manuelle arbeidsflyter, bare klikk **Kjør manuelt** med samme payload.
+For manuelle arbeidsflyter, klikk bare **Kjør manuelt** med samme nyttelast.
 
-## Loggoppbevaring
+## Hvor lenge oppbevares kjøringer?
 
-Kjøringer beholdes på prosjektet på ubestemt tid. Hvis du må rydde opp i støyende arbeidsflyter med høyt volum (f.eks. en feilsøkings-arbeidsflyt som trigges hvert minutt), deaktiver eller slett dem — det finnes ingen per-arbeidsflyt oppbevaringsbryter.
+Kjøringer oppbevares på ubestemt tid for prosjektet. Hvis en arbeidsflyt kjører veldig ofte og roter til historikken din (som en feilsøkings-arbeidsflyt som utløses hvert minutt), deaktiver eller slett den for å slutte å legge til støy.
 
-## Les videre
+## Hvor du leser videre
 
-- [Konfigurasjon & sikkerhet](/docs/workflows/configuration) — tidsavbrudd, rekursjonsgrenser, redigering av hemmeligheter.
-- [Variabler](/docs/workflows/variables) — syntaksen interpolerte argumenter bruker.
-- [Komponenter](/docs/workflows/components) — returverdi-feltene hver komponent publiserer.
+- [Konfigurasjon & sikkerhet](/docs/workflows/configuration) — tidsavbrudd, rekursjonsgrenser, skjulte hemmeligheter.
+- [Variabler](/docs/workflows/variables) — variabelsyntaksen som brukes i blokkene dine.
+- [Komponenter](/docs/workflows/components) — hva hver blokk produserer.

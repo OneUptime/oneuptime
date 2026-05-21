@@ -1,89 +1,89 @@
 # Configuration et sécurité
 
-Cette page rassemble les paramètres et les limites de sécurité qu'il vaut la peine de connaître avant de pointer un workflow vers du trafic de production.
+Cette page couvre les paramètres et les limites de sécurité qu'il convient de connaître avant de mettre un workflow en production.
 
-## Activer / désactiver
+## Activer ou désactiver un workflow
 
-Chaque workflow a un drapeau **isEnabled** dans **Settings**. Les workflows désactivés ne se déclenchent jamais — les événements de modèle, les webhooks et les exécutions planifiées sont ignorés. Les nouveaux workflows sont livrés désactivés.
+Chaque workflow possède un interrupteur **Enabled** dans **Settings**. Lorsqu'il est désactivé, le workflow ne s'exécute pas — les appels webhook, les heures planifiées et les événements OneUptime sont tous ignorés. Les nouveaux workflows démarrent désactivés.
 
-Traitez-le comme votre interrupteur « prêt pour la prod » :
+Utilisez cet interrupteur comme votre porte « prêt à partir » :
 
 1. Construisez le workflow.
-2. Cliquez sur **Run Manually** avec une charge utile représentative.
-3. Vérifiez **Logs** — confirmez que chaque nœud a pris le port que vous attendiez.
-4. Activez **isEnabled**.
+2. Cliquez sur **Run Manually** avec une charge utile réaliste.
+3. Vérifiez les **Logs** — assurez-vous que chaque bloc a pris le chemin attendu.
+4. Activez **Enabled**.
 
-Désactiver un workflow n'affecte pas les exécutions déjà en cours ; cela empêche seulement de nouvelles d'être créées.
+Désactiver un workflow n'arrête pas les exécutions déjà en cours ; cela empêche simplement de nouvelles exécutions de démarrer.
 
-## Propriété et étiquettes
+## Propriétaires et étiquettes
 
-- **Owners** — les utilisateurs et équipes listés comme propriétaires reçoivent un accès basé sur les permissions et (optionnellement) des notifications lorsque le workflow échoue. Configurez sous **Settings → Owners**.
-- **Labels** — étiquettes plusieurs-à-plusieurs pour organiser les workflows. Filtrez la liste des workflows par étiquette. Utile quand un projet a des dizaines de workflows organisés par équipe, par intégration ou par environnement.
-- **Label rules** — sous **Workflows → Settings → Label Rules**, appliquez automatiquement des étiquettes aux nouveaux workflows en fonction de correspondances regex sur le nom ou la description.
-- **Owner rules** — sous **Workflows → Settings → Owner Rules**, attribuez automatiquement des propriétaires aux nouveaux workflows.
+- **Propriétaires** — les utilisateurs et équipes listés comme propriétaires ont accès au workflow et peuvent choisir de recevoir des notifications lorsqu'il échoue. Définissez-les sous **Settings → Owners**.
+- **Étiquettes** — des balises pour regrouper les workflows. La liste des workflows vous permet de filtrer par étiquette, ce qui facilite grandement la navigation dans un projet chargé. Pratique lorsque vous avez des workflows organisés par équipe, par intégration ou par environnement.
+- **Règles d'étiquettes** — sous **Workflows → Settings → Label Rules**, appliquez automatiquement des étiquettes aux nouveaux workflows en fonction de motifs dans le nom ou la description.
+- **Règles de propriétaires** — sous **Workflows → Settings → Owner Rules**, attribuez automatiquement des propriétaires aux nouveaux workflows.
 
 ## Secrets
 
-Les variables globales peuvent être marquées comme **secret**. La valeur est chiffrée au repos, en écriture seule dans l'interface après l'enregistrement et masquée des journaux d'exécution (remplacée par `[REDACTED]`).
+Marquez une variable globale comme **secret** si elle contient quelque chose de sensible. La valeur est chiffrée, masquée dans l'interface après enregistrement et masquée dans les journaux d'exécution (affichée comme `[REDACTED]`).
 
 Utilisez des variables secrètes pour :
 
-- Clés d'API pour les intégrations sortantes.
-- Jetons Bearer.
-- Clés de signature de webhook.
-- Toute valeur qu'un attaquant avec accès en lecture à un workflow ne devrait pas voir.
+- Les clés d'API de services externes.
+- Les jetons d'authentification.
+- Les clés de signature de webhooks.
+- Tout ce que vous ne voudriez pas voir par quelqu'un disposant d'un accès en lecture seule.
 
-Ne collez pas un secret directement dans l'argument d'un composant — les références comme `Authorization: Bearer eyJh...` apparaissent dans le JSON du workflow et dans les journaux d'exécution en clair. Référencez `{{variable.MY_SECRET}}` à la place.
+Ne collez pas un secret directement dans un bloc — des valeurs comme `Authorization: Bearer eyJh...` finiraient visibles dans le workflow et dans les journaux. Utilisez plutôt `{{variable.MY_SECRET}}`.
 
-## Timeout d'exécution
+## Durée maximale d'une exécution
 
-Chaque exécution a une durée maximale. Si une exécution n'a pas terminé dans le timeout, elle est marquée `Timeout` et tout composant en cours est annulé. La valeur par défaut est généreuse (minutes, pas secondes) — voir la configuration d'environnement du worker pour la valeur exacte dans votre installation.
+Chaque exécution a une durée maximale. Si une exécution n'est pas terminée à temps, elle est marquée **Timeout** et le bloc en cours est annulé. La valeur par défaut est généreuse — suffisante pour les appels HTTP habituels et les chaînes de blocs.
 
-La plupart des composants ont leurs propres timeouts par appel à l'intérieur du timeout d'exécution — par exemple, le composant API abandonnera une requête sortante bloquée bien avant que toute l'exécution ne le fasse.
+Les blocs individuels ont leurs propres limites de temps à l'intérieur de cette enveloppe — par exemple, un bloc API abandonne une requête sortante bloquée bien avant que l'exécution entière n'expire.
 
-## Limite de récursion
+## Limite sur l'appel d'autres workflows
 
-Le composant **Execute Workflow** laisse un workflow en appeler un autre. Pour empêcher les boucles incontrôlées où A appelle B qui appelle A indéfiniment, le worker suit la chaîne d'appels et arrête une chaîne qui dépasse une profondeur fixe (typiquement un petit nombre comme 5). L'exécution terminale est marquée `Error` avec un message clair sur la limite de récursion.
+Le composant **Execute Workflow** permet à un workflow d'en appeler un autre. Pour éviter les boucles accidentelles où le workflow A appelle B qui rappelle A, il existe une limite sur la profondeur de la chaîne. Une exécution qui dépasse cette limite se termine par une erreur claire.
 
-Si vous avez un besoin légitime pour une longue chaîne (par exemple, une marche récursive de dossiers qui traite un niveau par exécution), refactorisez-la en un seul workflow qui itère en interne via **Custom Code** — ce motif n'est pas soumis à la limite de chaîne.
+Si vous avez un véritable besoin d'une longue chaîne (comme une tâche qui traite un élément par exécution), il est généralement plus simple de faire la boucle à l'intérieur d'un seul workflow avec **Custom Code**.
 
 ## Sécurité des webhooks
 
-Les déclencheurs webhook exposent une URL HTTPS unique. Quiconque apprend l'URL peut la frapper. Pour vous défendre contre les appelants accidentels ou hostiles :
+Les déclencheurs webhook vous fournissent une URL unique. Toute personne qui connaît l'URL peut l'appeler. Pour vous protéger des appelants accidentels ou indésirables :
 
-- Traitez l'URL comme un secret partagé. Ne la collez pas dans un chat public ni ne la commitez dans un dépôt public.
-- Pour les workflows à haute valeur, demandez au système appelant d'inclure un secret partagé en en-tête (par exemple, `X-Webhook-Token`) et validez-le dans un nœud **Conditions** avant de faire quoi que ce soit de destructif. Définissez le jeton attendu comme variable globale secrète.
-- Pour les workflows à très haute valeur, préférez un déclencheur d'événement de modèle et une étape d'import manuelle au lieu d'un webhook public.
+- Traitez l'URL comme un mot de passe. Ne la partagez pas publiquement et ne la versionnez pas dans un dépôt public.
+- Pour les workflows sensibles, demandez au système appelant d'envoyer un jeton partagé dans un en-tête (comme `X-Webhook-Token`) et vérifiez-le avec un bloc **Conditions** avant de faire quoi que ce soit d'important. Enregistrez le jeton attendu comme variable secrète.
+- Pour les workflows très sensibles, préférez un déclencheur d'événement OneUptime et une étape d'importation manuelle plutôt qu'un webhook public.
 
-## Trafic réseau sortant
+## Accès réseau sortant
 
-Les composants API et autres composants de style HTTP envoient des requêtes depuis le réseau du Workflow Worker OneUptime. Si vous auto-hébergez OneUptime, le réseau sortant du worker est de votre ressort — assurez-vous qu'il peut atteindre les API tierces que vous appelez. Si vous utilisez OneUptime Cloud, notre plage IP sortante est publiée dans [Adresses IP](/docs/configuration/ip-addresses) afin que vous puissiez la mettre sur liste blanche du côté récepteur.
+Les blocs API et autres blocs HTTP effectuent leurs requêtes depuis OneUptime. Si vous hébergez OneUptime vous-même, assurez-vous que votre installation peut atteindre les services que vous appelez. Si vous utilisez OneUptime Cloud, nos plages d'IP sortantes sont listées dans [Adresses IP](/docs/configuration/ip-addresses) pour que vous puissiez les autoriser de l'autre côté.
 
 ## Permissions
 
-Les workflows sont des ressources de première classe soumises au contrôle d'accès basé sur les rôles au niveau du projet :
+Les workflows respectent le contrôle d'accès basé sur les rôles de votre projet. Les permissions pertinentes :
 
-- `CreateWorkflow`, `ReadWorkflow`, `EditWorkflow`, `DeleteWorkflow` — les quatre permissions CRUD sur les modèles de workflow.
-- `RunWorkflow` — nécessaire pour cliquer sur **Run Manually** ou pour dispatcher un workflow via l'API.
-- `ReadWorkflowLog` — nécessaire pour voir la page **Runs & Logs**.
-- `ReadWorkflowVariable`, `CreateWorkflowVariable`, `EditWorkflowVariable`, `DeleteWorkflowVariable` — contrôle sur la liste des variables globales.
+- **Create / Read / Edit / Delete Workflow** — les permissions de base sur le workflow lui-même.
+- **Run Workflow** — nécessaire pour cliquer sur **Run Manually** ou déclencher un workflow via l'API.
+- **Read Workflow Log** — nécessaire pour consulter les exécutions.
+- **Read / Create / Edit / Delete Workflow Variable** — contrôle sur la liste des variables globales.
 
 La plupart des ingénieurs devraient avoir create/edit/read sur les workflows mais pas sur les variables. Réservez l'accès en édition des variables aux personnes qui gèrent les secrets de votre projet.
 
-## Quotas
+## Limites de plan
 
-OneUptime Cloud plafonne le nombre d'exécutions par mois par projet sur les plans plus petits. Le plafond est affiché sur **Project Settings → Billing**. Quand vous l'atteignez, les nouveaux déclencheurs sont rejetés (et enregistrés avec une raison « quota dépassé » sur le workflow concerné) jusqu'au prochain cycle de facturation. Les installations auto-hébergées ne sont pas soumises à un quota.
+OneUptime Cloud limite le nombre d'exécutions par mois sur les plans inférieurs. Votre limite actuelle est affichée sous **Project Settings → Billing**. Lorsque vous l'atteignez, les nouveaux déclencheurs sont rejetés jusqu'au cycle de facturation suivant. Les installations auto-hébergées n'ont pas cette limite.
 
-## Ce pour quoi les workflows ne sont *pas* bons
+## Quand les workflows ne sont pas le bon outil
 
-Quelques motifs pour lesquels vous devriez vous tourner vers un autre outil :
+Quelques cas où vous devriez vous tourner vers autre chose :
 
-- **Calcul de longue durée** — les workflows sont orientés vers la glu entre systèmes, pas vers le traitement de gros ensembles de données. Exécutez le travail lourd dans votre propre infrastructure et utilisez un workflow pour le lancer.
-- **Workflows à état qui s'étendent sur des minutes/heures** — une seule exécution est censée se terminer rapidement. Si vous avez besoin de « faire la chose A, puis attendre deux heures, puis faire la chose B », modélisez l'attente comme un planificateur externe qui poste de nouveau vers un déclencheur webhook.
-- **Réponse aux incidents étape par étape avec des checkpoints humains** — c'est à cela que servent les [Runbooks](/docs/runbooks/index). Utilisez un workflow s'il n'y a pas d'humain dans la boucle ; utilisez un runbook s'il y en a.
+- **Calculs lourds ou grands ensembles de données** — les workflows sont conçus pour du travail de liaison léger, pas pour des calculs intensifs. Exécutez le travail lourd dans votre propre infrastructure et laissez un workflow le déclencher.
+- **Processus longs qui s'étalent sur des heures** — une exécution unique est censée se terminer rapidement. Si vous avez besoin de « faire A, attendre deux heures, faire B », utilisez un planificateur externe qui renvoie un webhook à OneUptime au bon moment.
+- **Réponse à incident pas à pas avec des humains dans la boucle** — c'est à cela que servent les [Runbooks](/docs/runbooks/index). Les workflows sont pour l'automatisation sans surveillance.
 
-## Où lire ensuite
+## Pour aller plus loin
 
-- [Présentation des workflows](/docs/workflows/index) — la carte conceptuelle.
-- [Composants](/docs/workflows/components) — détails des arguments pour chaque action.
+- [Présentation des workflows](/docs/workflows/index) — la vue d'ensemble.
+- [Composants](/docs/workflows/components) — référence bloc par bloc.
 - [Runbooks](/docs/runbooks/index) — quand utiliser un runbook à la place.
