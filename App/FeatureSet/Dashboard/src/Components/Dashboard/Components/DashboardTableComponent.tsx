@@ -220,6 +220,15 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
       const tupleToValues: Map<string, Array<AggregatedModel>> = new Map();
       if (result && result.data) {
         for (const row of result.data) {
+          /*
+           * Skip samples that don't carry every grouped-by attribute.
+           * The server returns a single "null group" for these, which
+           * otherwise renders as a stray "(unset)" row — meaningless
+           * when the user explicitly grouped by an attribute.
+           */
+          if (!hasAllGroupByValues(row, attrKeys)) {
+            continue;
+          }
           const tupleKey: string = buildTupleKey(row, attrKeys);
           const existing: Array<AggregatedModel> | undefined =
             tupleToValues.get(tupleKey);
@@ -252,6 +261,9 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
         continue;
       }
       for (const row of result.data) {
+        if (!hasAllGroupByValues(row, attrKeys)) {
+          continue;
+        }
         const tupleKey: string = buildTupleKey(row, attrKeys);
         if (!seen.has(tupleKey)) {
           seen.set(tupleKey, extractTupleValues(row, attrKeys));
@@ -756,6 +768,23 @@ function reorderResolved(
     formulaConfigs,
     valueColumns: [...metricColumns, ...formulaColumns],
   };
+}
+
+function hasAllGroupByValues(
+  row: AggregatedModel,
+  attrKeys: Array<string>,
+): boolean {
+  if (attrKeys.length === 0) {
+    return true;
+  }
+  const attributes: Record<string, unknown> = getAttributes(row);
+  for (const key of attrKeys) {
+    const value: unknown = attributes[key];
+    if (value === undefined || value === null || value === "") {
+      return false;
+    }
+  }
+  return true;
 }
 
 function buildTupleKey(row: AggregatedModel, attrKeys: Array<string>): string {
