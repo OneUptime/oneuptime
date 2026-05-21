@@ -553,34 +553,47 @@ export default class UserMiddleware {
       },
     });
 
-    let result: Dictionary<UserTenantAccessPermission> | null = null;
-    for (const projectId of projectIds) {
-      // check if the force sso login is required. and if it is, then check then token.
-
-      let userTenantAccessPermission: UserTenantAccessPermission | null;
-      if (
-        projects.find((p: Project) => {
-          return p._id === projectId.toString() && p.requireSsoForLogin;
-        }) &&
-        !UserMiddleware.doesSsoTokenForProjectExist(req, projectId, userId)
-      ) {
-        // Add default permissions.
-        userTenantAccessPermission =
-          UserPermissionUtil.getDefaultUserTenantAccessPermission(projectId);
-      } else {
-        // get project level permissions if projectid exists in request.
-        userTenantAccessPermission =
-          await AccessTokenService.getUserTenantAccessPermission(
+    /*
+     * Resolve permissions for every project in parallel. With the previous
+     * for-await loop this scaled linearly with project count, adding one
+     * round-trip per project even on cache hits.
+     */
+    const resolved: Array<{
+      projectId: ObjectID;
+      permission: UserTenantAccessPermission | null;
+    }> = await Promise.all(
+      projectIds.map(async (projectId: ObjectID) => {
+        if (
+          projects.find((p: Project) => {
+            return p._id === projectId.toString() && p.requireSsoForLogin;
+          }) &&
+          !UserMiddleware.doesSsoTokenForProjectExist(req, projectId, userId)
+        ) {
+          return {
+            projectId,
+            permission:
+              UserPermissionUtil.getDefaultUserTenantAccessPermission(
+                projectId,
+              ),
+          };
+        }
+        return {
+          projectId,
+          permission: await AccessTokenService.getUserTenantAccessPermission(
             userId,
             projectId,
-          );
-      }
+          ),
+        };
+      }),
+    );
 
-      if (userTenantAccessPermission) {
+    let result: Dictionary<UserTenantAccessPermission> | null = null;
+    for (const { projectId, permission } of resolved) {
+      if (permission) {
         if (!result) {
           result = {};
         }
-        result[projectId.toString()] = userTenantAccessPermission;
+        result[projectId.toString()] = permission;
       }
     }
 

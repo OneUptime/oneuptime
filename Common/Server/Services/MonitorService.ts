@@ -1563,9 +1563,16 @@ ${createdItem.description?.trim() || "No description provided."}
       return;
     }
 
-    for (const monitorProbe of monitorProbes) {
-      await this.refreshMonitorProbeStatus(monitorProbe.monitorId!);
-    }
+    /*
+     * Each monitor appears at most once for a given probeId (composite
+     * unique on MonitorProbe), so concurrent refreshes operate on
+     * disjoint rows and are safe to run in parallel.
+     */
+    await Promise.all(
+      monitorProbes.map((monitorProbe: MonitorProbe) => {
+        return this.refreshMonitorProbeStatus(monitorProbe.monitorId!);
+      }),
+    );
   }
 
   @CaptureSpan()
