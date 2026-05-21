@@ -38,6 +38,9 @@ import MonitorStepDnsMonitor, {
 import MonitorStepDomainMonitor, {
   MonitorStepDomainMonitorUtil,
 } from "./MonitorStepDomainMonitor";
+import MonitorStepDnssecMonitor, {
+  MonitorStepDnssecMonitorUtil,
+} from "./MonitorStepDnssecMonitor";
 import MonitorStepExternalStatusPageMonitor, {
   MonitorStepExternalStatusPageMonitorUtil,
 } from "./MonitorStepExternalStatusPageMonitor";
@@ -109,6 +112,9 @@ export interface MonitorStepType {
   // Domain monitor
   domainMonitor?: MonitorStepDomainMonitor | undefined;
 
+  // DNSSEC monitor
+  dnssecMonitor?: MonitorStepDnssecMonitor | undefined;
+
   // External Status Page monitor
   externalStatusPageMonitor?: MonitorStepExternalStatusPageMonitor | undefined;
 
@@ -150,6 +156,7 @@ export default class MonitorStep extends DatabaseProperty {
       snmpMonitor: undefined,
       dnsMonitor: undefined,
       domainMonitor: undefined,
+      dnssecMonitor: undefined,
       externalStatusPageMonitor: undefined,
       kubernetesMonitor: undefined,
       dockerMonitor: undefined,
@@ -191,6 +198,7 @@ export default class MonitorStep extends DatabaseProperty {
       snmpMonitor: undefined,
       dnsMonitor: undefined,
       domainMonitor: undefined,
+      dnssecMonitor: undefined,
       externalStatusPageMonitor: undefined,
       kubernetesMonitor: undefined,
       dockerMonitor: undefined,
@@ -331,6 +339,13 @@ export default class MonitorStep extends DatabaseProperty {
     domainMonitor: MonitorStepDomainMonitor,
   ): MonitorStep {
     this.data!.domainMonitor = domainMonitor;
+    return this;
+  }
+
+  public setDnssecMonitor(
+    dnssecMonitor: MonitorStepDnssecMonitor,
+  ): MonitorStep {
+    this.data!.dnssecMonitor = dnssecMonitor;
     return this;
   }
 
@@ -508,6 +523,23 @@ export default class MonitorStep extends DatabaseProperty {
       }
     }
 
+    if (monitorType === MonitorType.DNSSEC) {
+      if (!value.data.dnssecMonitor) {
+        return "DNSSEC configuration is required";
+      }
+
+      if (!value.data.dnssecMonitor.domainName) {
+        return "Domain name is required";
+      }
+
+      if (
+        !value.data.dnssecMonitor.resolvers ||
+        value.data.dnssecMonitor.resolvers.length === 0
+      ) {
+        return "At least one resolver is required";
+      }
+    }
+
     if (monitorType === MonitorType.ExternalStatusPage) {
       if (!value.data.externalStatusPageMonitor) {
         return "External status page configuration is required";
@@ -599,6 +631,9 @@ export default class MonitorStep extends DatabaseProperty {
             : undefined,
           domainMonitor: this.data.domainMonitor
             ? MonitorStepDomainMonitorUtil.toJSON(this.data.domainMonitor)
+            : undefined,
+          dnssecMonitor: this.data.dnssecMonitor
+            ? MonitorStepDnssecMonitorUtil.toJSON(this.data.dnssecMonitor)
             : undefined,
           externalStatusPageMonitor: this.data.externalStatusPageMonitor
             ? MonitorStepExternalStatusPageMonitorUtil.toJSON(
@@ -734,6 +769,9 @@ export default class MonitorStep extends DatabaseProperty {
       domainMonitor: json["domainMonitor"]
         ? (json["domainMonitor"] as JSONObject)
         : undefined,
+      dnssecMonitor: json["dnssecMonitor"]
+        ? (json["dnssecMonitor"] as JSONObject)
+        : undefined,
       externalStatusPageMonitor: json["externalStatusPageMonitor"]
         ? (json["externalStatusPageMonitor"] as JSONObject)
         : undefined,
@@ -775,6 +813,7 @@ export default class MonitorStep extends DatabaseProperty {
         snmpMonitor: Zod.any().optional(),
         dnsMonitor: Zod.any().optional(),
         domainMonitor: Zod.any().optional(),
+        dnssecMonitor: Zod.any().optional(),
         externalStatusPageMonitor: Zod.any().optional(),
         kubernetesMonitor: Zod.any().optional(),
         dockerMonitor: Zod.any().optional(),

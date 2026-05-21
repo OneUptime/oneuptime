@@ -314,6 +314,27 @@ export default class MonitorUtil {
       }
     }
 
+    if (monitorType === MonitorType.DNSSEC) {
+      for (const monitorStep of monitorSteps?.data?.monitorStepsInstanceArray ||
+        []) {
+        if (
+          monitorStep.data?.dnssecMonitor?.domainName &&
+          this.hasSecrets(monitorStep.data.dnssecMonitor.domainName)
+        ) {
+          if (!isSecretsLoaded) {
+            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
+            isSecretsLoaded = true;
+          }
+
+          monitorStep.data.dnssecMonitor.domainName =
+            (await MonitorUtil.fillSecretsInStringOrJSON({
+              secrets: monitorSecrets,
+              populateSecretsIn: monitorStep.data.dnssecMonitor.domainName,
+            })) as string;
+        }
+      }
+    }
+
     if (monitorType === MonitorType.ExternalStatusPage) {
       for (const monitorStep of monitorSteps?.data?.monitorStepsInstanceArray ||
         []) {

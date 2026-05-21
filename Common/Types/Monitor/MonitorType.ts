@@ -32,6 +32,9 @@ enum MonitorType {
   // DNS monitoring
   DNS = "DNS",
 
+  // DNSSEC validation monitoring
+  DNSSEC = "DNSSEC",
+
   // Domain registration monitoring
   Domain = "Domain",
 
@@ -65,6 +68,7 @@ export class MonitorTypeHelper {
           MonitorType.IP,
           MonitorType.Port,
           MonitorType.DNS,
+          MonitorType.DNSSEC,
           MonitorType.SSLCertificate,
           MonitorType.Domain,
           MonitorType.ExternalStatusPage,
@@ -274,6 +278,13 @@ export class MonitorTypeHelper {
         icon: IconProp.GlobeAlt,
       },
       {
+        monitorType: MonitorType.DNSSEC,
+        title: "DNSSEC",
+        description:
+          "This monitor type performs full DNSSEC validation — DNSKEY, DS at the parent zone, RRSIG validity windows, AD-flag/SERVFAIL behavior across public resolvers, and primary/secondary nameserver consistency.",
+        icon: IconProp.ShieldCheck,
+      },
+      {
         monitorType: MonitorType.Domain,
         title: "Domain",
         description:
@@ -334,6 +345,7 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.CustomJavaScriptCode ||
       monitorType === MonitorType.SNMP ||
       monitorType === MonitorType.DNS ||
+      monitorType === MonitorType.DNSSEC ||
       monitorType === MonitorType.Domain ||
       monitorType === MonitorType.ExternalStatusPage;
     return isProbeableMonitor;
@@ -359,6 +371,7 @@ export class MonitorTypeHelper {
       MonitorType.Profiles,
       MonitorType.SNMP,
       MonitorType.DNS,
+      MonitorType.DNSSEC,
       MonitorType.Domain,
       MonitorType.ExternalStatusPage,
       MonitorType.Kubernetes,
@@ -397,6 +410,7 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.CustomJavaScriptCode ||
       monitorType === MonitorType.SNMP ||
       monitorType === MonitorType.DNS ||
+      monitorType === MonitorType.DNSSEC ||
       monitorType === MonitorType.Domain ||
       monitorType === MonitorType.ExternalStatusPage
     ) {

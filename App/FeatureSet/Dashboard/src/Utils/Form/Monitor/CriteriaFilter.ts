@@ -355,6 +355,19 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    if (monitorType === MonitorType.DNSSEC) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === CheckOn.DnssecChainValid ||
+          i.value === CheckOn.DnssecDnskeyExists ||
+          i.value === CheckOn.DnssecDsExists ||
+          i.value === CheckOn.DnssecResolverConsensus ||
+          i.value === CheckOn.DnssecNameserverConsistent ||
+          i.value === CheckOn.DnssecSignatureExpiresInDays
+        );
+      });
+    }
+
     if (monitorType === MonitorType.ExternalStatusPage) {
       options = options.filter((i: DropdownOption) => {
         return (
@@ -687,6 +700,29 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    if (
+      checkOn === CheckOn.DnssecChainValid ||
+      checkOn === CheckOn.DnssecDnskeyExists ||
+      checkOn === CheckOn.DnssecDsExists ||
+      checkOn === CheckOn.DnssecResolverConsensus ||
+      checkOn === CheckOn.DnssecNameserverConsistent
+    ) {
+      options = options.filter((i: DropdownOption) => {
+        return i.value === FilterType.True || i.value === FilterType.False;
+      });
+    }
+
+    if (checkOn === CheckOn.DnssecSignatureExpiresInDays) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.GreaterThan ||
+          i.value === FilterType.LessThan ||
+          i.value === FilterType.LessThanOrEqualTo ||
+          i.value === FilterType.GreaterThanOrEqualTo
+        );
+      });
+    }
+
     if (checkOn === CheckOn.ExternalStatusPageIsOnline) {
       options = options.filter((i: DropdownOption) => {
         return i.value === FilterType.True || i.value === FilterType.False;
@@ -892,6 +928,10 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.DomainStatusCode) {
       return "clientTransferProhibited";
+    }
+
+    if (checkOn === CheckOn.DnssecSignatureExpiresInDays) {
+      return "7";
     }
 
     if (checkOn === CheckOn.ExternalStatusPageResponseTime) {

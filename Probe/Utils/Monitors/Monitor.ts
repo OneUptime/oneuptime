@@ -19,6 +19,9 @@ import MonitorStepDnsMonitor from "Common/Types/Monitor/MonitorStepDnsMonitor";
 import DomainMonitorUtil from "./MonitorTypes/DomainMonitor";
 import DomainMonitorResponse from "Common/Types/Monitor/DomainMonitor/DomainMonitorResponse";
 import MonitorStepDomainMonitor from "Common/Types/Monitor/MonitorStepDomainMonitor";
+import DnssecMonitorUtil from "./MonitorTypes/DnssecMonitor";
+import DnssecMonitorResponse from "Common/Types/Monitor/DnssecMonitor/DnssecMonitorResponse";
+import MonitorStepDnssecMonitor from "Common/Types/Monitor/MonitorStepDnssecMonitor";
 import ExternalStatusPageMonitorUtil from "./MonitorTypes/ExternalStatusPageMonitor";
 import ExternalStatusPageMonitorResponse from "Common/Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
 import MonitorStepExternalStatusPageMonitor from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
@@ -650,6 +653,38 @@ export default class MonitorUtil {
       result.responseTimeInMs = response.responseTimeInMs;
       result.failureCause = response.failureCause;
       result.domainResponse = response;
+    }
+
+    if (monitorType === MonitorType.DNSSEC) {
+      if (!monitorStep.data?.dnssecMonitor) {
+        result.failureCause = "DNSSEC configuration not specified";
+        return result;
+      }
+
+      const dnssecConfig: MonitorStepDnssecMonitor =
+        monitorStep.data.dnssecMonitor;
+
+      if (!dnssecConfig.domainName) {
+        result.failureCause = "DNSSEC domain name not specified";
+        return result;
+      }
+
+      const response: DnssecMonitorResponse | null =
+        await DnssecMonitorUtil.query(dnssecConfig, {
+          retry: PROBE_MONITOR_RETRY_LIMIT,
+          monitorId: monitorId,
+          timeout: dnssecConfig.timeout || 10000,
+        });
+
+      if (!response) {
+        return null;
+      }
+
+      result.isOnline = response.isOnline;
+      result.isTimeout = response.isTimeout;
+      result.responseTimeInMs = response.responseTimeInMs;
+      result.failureCause = response.failureCause;
+      result.dnssecResponse = response;
     }
 
     if (monitorType === MonitorType.ExternalStatusPage) {
