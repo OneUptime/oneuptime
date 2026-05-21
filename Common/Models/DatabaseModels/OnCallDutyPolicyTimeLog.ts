@@ -483,6 +483,7 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
     ],
     update: [],
   })
+  @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: true,
@@ -497,6 +498,7 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
   })
   public userId?: ObjectID = undefined;
 
+  @Index()
   @TableColumn({
     title: "Start At",
     type: TableColumnType.Date,
@@ -530,6 +532,7 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
   })
   public startsAt?: Date = undefined;
 
+  @Index()
   @TableColumn({
     title: "Ends At",
     type: TableColumnType.Date,

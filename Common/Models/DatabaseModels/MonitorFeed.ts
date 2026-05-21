@@ -80,6 +80,7 @@ export enum MonitorFeedEventType {
   tableDescription:
     "Log of the entire monitor state change. This is a log of all the monitor state changes, public notes, more etc.",
 })
+@Index(["monitorId", "postedAt"]) // Monitor detail page: feed sorted by postedAt
 export default class MonitorFeed extends BaseModel {
   @ColumnAccessControl({
     create: [

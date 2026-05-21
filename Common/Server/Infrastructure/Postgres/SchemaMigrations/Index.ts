@@ -342,6 +342,7 @@ import { DropServiceDependencyTable1779277271302 } from "./1779277271302-DropSer
 import { AddTelemetryRetentionToHostDockerKubernetes1779282769946 } from "./1779282769946-AddTelemetryRetentionToHostDockerKubernetes";
 import { AttachKubernetesAndDockerToIncidentAndAlert1779302536475 } from "./1779302536475-AttachKubernetesAndDockerToIncidentAndAlert";
 import { AttachServiceToIncidentAndAlert1779303924241 } from "./1779303924241-AttachServiceToIncidentAndAlert";
+import { AddPerformanceIndexes1779392970424 } from "./1779392970424-AddPerformanceIndexes";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -687,4 +688,5 @@ export default [
   AddTelemetryRetentionToHostDockerKubernetes1779282769946,
   AttachKubernetesAndDockerToIncidentAndAlert1779302536475,
   AttachServiceToIncidentAndAlert1779303924241,
+  AddPerformanceIndexes1779392970424,
 ];

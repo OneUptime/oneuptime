@@ -536,6 +536,7 @@ export default class UserOnCallLog extends BaseModel {
     read: [Permission.CurrentUser],
     update: [],
   })
+  @Index()
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,

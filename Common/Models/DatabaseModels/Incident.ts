@@ -118,6 +118,7 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
     delete: true,
   },
 })
+@Index(["projectId", "currentIncidentStateId"]) // Active-incident counters on dashboard
 export default class Incident extends BaseModel {
   @ColumnAccessControl({
     create: [

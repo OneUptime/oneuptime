@@ -60,6 +60,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   icon: IconProp.Logs,
   tableDescription: "Logs of the workflows executed",
 })
+@Index(["workflowStatus", "createdAt"]) // Worker sweep for scheduled/timed-out runs
 export default class WorkflowLog extends BaseModel {
   @ColumnAccessControl({
     create: [],

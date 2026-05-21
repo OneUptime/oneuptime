@@ -114,6 +114,7 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
     delete: true,
   },
 })
+@Index(["projectId", "currentAlertStateId"]) // Active-alert counters on dashboard
 export default class Alert extends BaseModel {
   @ColumnAccessControl({
     create: [
@@ -484,6 +485,7 @@ export default class Alert extends BaseModel {
       Permission.EditAlert,
     ],
   })
+  @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "Monitor ID",

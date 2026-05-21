@@ -62,6 +62,7 @@ import Service from "./Service";
 @Entity({
   name: "TelemetryException",
 })
+@Index(["projectId", "isResolved", "isArchived"]) // Exceptions dashboard counts/filters
 export default class TelemetryException extends DatabaseBaseModel {
   @ColumnAccessControl({
     create: [
@@ -1096,6 +1097,7 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.EditTelemetryException,
     ],
   })
+  @Index()
   @TableColumn({
     title: "Occurances",
     description: "Number of times this exception has occurred",
