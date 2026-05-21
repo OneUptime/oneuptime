@@ -8,6 +8,13 @@ import {
   DatabaseSslCert,
   DatabaseSslKey,
   DatabaseUsername,
+  MaxPostgresConnections,
+  PostgresConnectionAcquireTimeoutMs,
+  PostgresIdleInTransactionTimeoutMs,
+  PostgresIdleTimeoutMs,
+  PostgresQueryTimeoutMs,
+  PostgresSlowQueryLogThresholdMs,
+  PostgresStatementTimeoutMs,
   ShouldDatabaseSslEnable,
 } from "../../../Server/EnvironmentConfig";
 import Migrations from "./SchemaMigrations/Index";
@@ -35,7 +42,25 @@ const dataSourceOptions: DataSourceOptions = {
         cert: DatabaseSslCert,
       }
     : false,
-  // logging: 'all',
+  /*
+   * Anything in `extra` is forwarded to the underlying node-postgres pool
+   * and client. Pool sizing + timeouts live here because TypeORM's defaults
+   * (10 connections, no timeouts) are too small for any non-trivial load.
+   */
+  extra: {
+    max: MaxPostgresConnections,
+    idleTimeoutMillis: PostgresIdleTimeoutMs,
+    connectionTimeoutMillis: PostgresConnectionAcquireTimeoutMs,
+    statement_timeout: PostgresStatementTimeoutMs,
+    query_timeout: PostgresQueryTimeoutMs,
+    idle_in_transaction_session_timeout: PostgresIdleInTransactionTimeoutMs,
+  },
+  /*
+   * Log any query slower than the configured threshold so we can find
+   * offenders in production. TypeORM emits these via the configured
+   * logger; the default `advanced-console` logger writes to stdout.
+   */
+  maxQueryExecutionTime: PostgresSlowQueryLogThresholdMs,
   synchronize: false,
 };
 

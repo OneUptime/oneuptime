@@ -145,6 +145,75 @@ export const ShouldDatabaseSslEnable: boolean = Boolean(
   DatabaseSslCa || (DatabaseSslCert && DatabaseSslKey),
 );
 
+/*
+ * Postgres pool size per API/Worker node. TypeORM's default is 10 which
+ * starves the API under any meaningful load — pick a number that, when
+ * multiplied by the number of running Node processes, stays under the
+ * Postgres server's `max_connections` (default 100 on a stock cluster).
+ */
+export const MaxPostgresConnections: number = parseInt(
+  process.env["DATABASE_MAX_OPEN_CONNECTIONS"] || "50",
+  10,
+);
+
+/*
+ * Postgres-side statement timeout (ms). Caps the wall-clock time of any
+ * single SQL statement. Without this, a single runaway query can pin a
+ * connection forever and starve the pool.
+ */
+export const PostgresStatementTimeoutMs: number = parseInt(
+  process.env["DATABASE_STATEMENT_TIMEOUT_MS"] || "30000",
+  10,
+);
+
+/*
+ * Node-postgres client-side query timeout (ms). Belt-and-braces for the
+ * server-side statement_timeout — fires even if the connection has gone
+ * silent or the server-side timeout doesn't kick in.
+ */
+export const PostgresQueryTimeoutMs: number = parseInt(
+  process.env["DATABASE_QUERY_TIMEOUT_MS"] || "30000",
+  10,
+);
+
+/*
+ * Postgres-side idle-in-transaction timeout (ms). Kills connections that
+ * are stuck holding row locks inside a BEGIN without committing.
+ */
+export const PostgresIdleInTransactionTimeoutMs: number = parseInt(
+  process.env["DATABASE_IDLE_IN_TRANSACTION_TIMEOUT_MS"] || "60000",
+  10,
+);
+
+/*
+ * pg-pool acquire timeout (ms). How long a query waits for a free
+ * connection before failing. Without this, requests pile up invisibly
+ * when the pool is exhausted.
+ */
+export const PostgresConnectionAcquireTimeoutMs: number = parseInt(
+  process.env["DATABASE_CONNECTION_TIMEOUT_MS"] || "5000",
+  10,
+);
+
+/*
+ * pg-pool idle connection timeout (ms). Closes connections that have
+ * been sitting unused for this long, freeing server-side slots.
+ */
+export const PostgresIdleTimeoutMs: number = parseInt(
+  process.env["DATABASE_IDLE_TIMEOUT_MS"] || "30000",
+  10,
+);
+
+/*
+ * TypeORM slow-query log threshold (ms). Any query exceeding this is
+ * logged so we can find offenders in production without per-query
+ * tracing. Set to 0 to disable.
+ */
+export const PostgresSlowQueryLogThresholdMs: number = parseInt(
+  process.env["DATABASE_SLOW_QUERY_LOG_THRESHOLD_MS"] || "1000",
+  10,
+);
+
 export const EncryptionSecret: ObjectID = new ObjectID(
   process.env["ENCRYPTION_SECRET"] || "secret",
 );
