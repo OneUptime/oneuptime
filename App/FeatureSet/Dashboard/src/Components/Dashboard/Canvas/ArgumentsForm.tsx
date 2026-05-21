@@ -505,11 +505,34 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           ...(component?.arguments || {}),
         }}
         onChange={(values: FormValues<JSONObject>) => {
+          /*
+           * Only write back the field IDs that THIS section's BasicForm
+           * actually renders. Without this filter, BasicForm re-emits its
+           * full initialValues snapshot on every change, which clobbers
+           * args managed by custom editors outside the form (the
+           * Columns repeater and the Group By editor write `columns` and
+           * `groupByAttributes` directly via commitComponent — those would
+           * revert to the snapshot BasicForm captured at mount).
+           */
+          const sectionFieldKeys: Set<string> = new Set(
+            sectionGroup.args.map(
+              (arg: ComponentArgument<DashboardBaseComponent>): string => {
+                return String(arg.id);
+              },
+            ),
+          );
+          const filtered: JSONObject = {};
+          const all: JSONObject = (values as JSONObject) || {};
+          for (const key of Object.keys(all)) {
+            if (sectionFieldKeys.has(key)) {
+              filtered[key] = all[key];
+            }
+          }
           commitComponent({
             ...component,
             arguments: {
               ...((component.arguments as JSONObject) || {}),
-              ...((values as JSONObject) || {}),
+              ...filtered,
             },
           });
         }}
