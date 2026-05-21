@@ -505,84 +505,89 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
         transition: "opacity 0.2s ease-in-out",
       }}
     >
-      {showHeader && (
-        <div className="px-2 pt-2 pb-1 flex-shrink-0">
-          {title && (
-            <h3 className="text-sm font-semibold text-gray-700 tracking-tight">
-              {title}
-            </h3>
-          )}
-          {description && (
-            <p className="mt-0.5 text-xs text-gray-400">{description}</p>
+      <div className="flex items-start justify-between gap-3 px-2 pt-2 pb-2 flex-shrink-0">
+        <div className="min-w-0 flex-1">
+          {showHeader && (
+            <>
+              {title && (
+                <h3 className="text-sm font-semibold text-gray-700 tracking-tight truncate">
+                  {title}
+                </h3>
+              )}
+              {description && (
+                <p className="mt-0.5 text-xs text-gray-400">{description}</p>
+              )}
+            </>
           )}
         </div>
-      )}
-      <div className="flex items-center justify-between gap-2 mb-2 px-2">
-        {isGroupedMode ? (
-          <div
-            className={`group relative inline-flex items-center w-56 max-w-full transition-shadow ${
-              searchFocused ? "ring-2 ring-indigo-100 rounded-md" : ""
-            }`}
-          >
-            <span
-              className={`absolute left-2.5 inline-flex h-3.5 w-3.5 pointer-events-none ${
-                searchFocused || searchText
-                  ? "text-indigo-400"
-                  : "text-gray-300"
+        <div className="flex items-center gap-3 flex-shrink-0">
+          {isGroupedMode && (
+            <div
+              className={`group relative inline-flex items-center w-56 max-w-full transition-shadow ${
+                searchFocused ? "ring-2 ring-indigo-100 rounded-md" : ""
               }`}
             >
-              <Icon icon={IconProp.MagnifyingGlass} />
-            </span>
-            <input
-              type="text"
-              value={searchText}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
-                setSearchText(e.target.value);
-              }}
-              onFocus={(): void => {
-                setSearchFocused(true);
-              }}
-              onBlur={(): void => {
-                setSearchFocused(false);
-              }}
-              placeholder="Search rows…"
-              aria-label="Search rows"
-              className="w-full h-8 pl-8 pr-7 text-xs rounded-md border border-gray-200 bg-white text-gray-700 placeholder-gray-400 shadow-sm transition-colors focus:outline-none focus:border-indigo-400 hover:border-gray-300"
-            />
-            {searchText.length > 0 && (
-              <button
-                type="button"
-                onClick={(): void => {
-                  setSearchText("");
-                }}
-                aria-label="Clear search"
-                title="Clear search"
-                className="absolute right-1.5 inline-flex h-5 w-5 items-center justify-center rounded text-gray-300 hover:text-gray-600 hover:bg-gray-100"
+              <span
+                className={`absolute left-2.5 inline-flex h-3.5 w-3.5 pointer-events-none ${
+                  searchFocused || searchText
+                    ? "text-indigo-400"
+                    : "text-gray-300"
+                }`}
               >
-                <span className="h-3 w-3">
-                  <Icon icon={IconProp.XMark} />
-                </span>
-              </button>
-            )}
-          </div>
-        ) : (
-          <span />
-        )}
-        <span className="text-xs text-gray-400 tabular-nums whitespace-nowrap">
-          {isGroupedMode &&
-          searchText.trim() !== "" &&
-          allRowTuples.length !== rowCount ? (
-            <>
-              <span className="font-medium text-gray-500">{rowCount}</span>
-              <span className="text-gray-300"> of {allRowTuples.length} </span>
-              {allRowTuples.length === 1 ? "row" : "rows"}
-            </>
-          ) : (
-            <>
-              {rowCount} {rowCount === 1 ? "row" : "rows"}
-            </>
+                <Icon icon={IconProp.MagnifyingGlass} />
+              </span>
+              <input
+                type="text"
+                value={searchText}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
+                  setSearchText(e.target.value);
+                }}
+                onFocus={(): void => {
+                  setSearchFocused(true);
+                }}
+                onBlur={(): void => {
+                  setSearchFocused(false);
+                }}
+                placeholder="Search rows…"
+                aria-label="Search rows"
+                className="w-full h-8 pl-8 pr-7 text-xs rounded-md border border-gray-200 bg-white text-gray-700 placeholder-gray-400 shadow-sm transition-colors focus:outline-none focus:border-indigo-400 hover:border-gray-300"
+              />
+              {searchText.length > 0 && (
+                <button
+                  type="button"
+                  onClick={(): void => {
+                    setSearchText("");
+                  }}
+                  aria-label="Clear search"
+                  title="Clear search"
+                  className="absolute right-1.5 inline-flex h-5 w-5 items-center justify-center rounded text-gray-300 hover:text-gray-600 hover:bg-gray-100"
+                >
+                  <span className="h-3 w-3">
+                    <Icon icon={IconProp.XMark} />
+                  </span>
+                </button>
+              )}
+            </div>
           )}
-        </span>
+          <span className="text-xs text-gray-400 tabular-nums whitespace-nowrap">
+            {isGroupedMode &&
+            searchText.trim() !== "" &&
+            allRowTuples.length !== rowCount ? (
+              <>
+                <span className="font-medium text-gray-500">{rowCount}</span>
+                <span className="text-gray-300">
+                  {" "}
+                  of {allRowTuples.length}{" "}
+                </span>
+                {allRowTuples.length === 1 ? "row" : "rows"}
+              </>
+            ) : (
+              <>
+                {rowCount} {rowCount === 1 ? "row" : "rows"}
+              </>
+            )}
+          </span>
+        </div>
       </div>
       <div className="flex-1 overflow-auto rounded-md border border-gray-100 mx-1 mb-1">
         <table className="w-full text-sm text-left">
