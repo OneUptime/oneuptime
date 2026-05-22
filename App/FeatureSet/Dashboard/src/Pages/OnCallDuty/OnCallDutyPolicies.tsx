@@ -9,7 +9,11 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicyOwnerTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyOwnerTeam";
+import OnCallDutyPolicyOwnerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyOwnerUser";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 
 const OnCallDutyPage: FunctionComponent<
   PageComponentProps
@@ -17,12 +21,29 @@ const OnCallDutyPage: FunctionComponent<
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<OnCallDutyPolicy>({ modelType: OnCallDutyPolicy });
 
+  const {
+    ownersByResourceId,
+    isLoadingOwners,
+    onResourcesFetched,
+    ownerFilterUI,
+    mergeOwnerFilterIntoQuery,
+  } = useResourceOwners<OnCallDutyPolicy>({
+    ownerUserModelType: OnCallDutyPolicyOwnerUser,
+    ownerTeamModelType: OnCallDutyPolicyOwnerTeam,
+    resourceIdField: "onCallDutyPolicyId",
+  });
+
   return (
     <Fragment>
+      {ownerFilterUI}
       <ModelTable<OnCallDutyPolicy>
         modelType={OnCallDutyPolicy}
         id="on-call-duty-table"
         userPreferencesKey="on-call-duty-table"
+        query={mergeOwnerFilterIntoQuery(undefined)}
+        onFetchSuccess={(data: Array<OnCallDutyPolicy>) => {
+          onResourcesFetched(data);
+        }}
         saveFilterProps={{
           tableId: "on-call-policies-table",
         }}
@@ -148,6 +169,23 @@ const OnCallDutyPage: FunctionComponent<
 
             getElement: (item: OnCallDutyPolicy): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: OnCallDutyPolicy): ReactElement => {
+              const id: string | undefined = item.id?.toString();
+              return (
+                <OwnersCell
+                  owners={id ? ownersByResourceId[id] : undefined}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
         ]}

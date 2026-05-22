@@ -15,10 +15,14 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
+import WorkflowOwnerTeam from "Common/Models/DatabaseModels/WorkflowOwnerTeam";
+import WorkflowOwnerUser from "Common/Models/DatabaseModels/WorkflowOwnerUser";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green500, Red500 } from "Common/Types/BrandColors";
 import WorkflowElement from "../../Components/Workflow/WorkflowElement";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 
 const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const startDate: Date = OneUptimeDate.getSomeDaysAgo(30);
@@ -27,6 +31,18 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Workflow>({ modelType: Workflow });
+
+  const {
+    ownersByResourceId,
+    isLoadingOwners,
+    onResourcesFetched,
+    ownerFilterUI,
+    mergeOwnerFilterIntoQuery,
+  } = useResourceOwners<Workflow>({
+    ownerUserModelType: WorkflowOwnerUser,
+    ownerTeamModelType: WorkflowOwnerTeam,
+    resourceIdField: "workflowId",
+  });
 
   return (
     <Fragment>
@@ -49,10 +65,15 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           />
         )}
 
+        {ownerFilterUI}
         <ModelTable<Workflow>
           modelType={Workflow}
           id="status-page-table"
           userPreferencesKey="workflow-table"
+          query={mergeOwnerFilterIntoQuery(undefined)}
+          onFetchSuccess={(data: Array<Workflow>) => {
+            onResourcesFetched(data);
+          }}
           saveFilterProps={{
             tableId: "workflows-table",
           }}
@@ -222,6 +243,23 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
               hideOnMobile: true,
               getElement: (item: Workflow): ReactElement => {
                 return <LabelsElement labels={item["labels"] || []} />;
+              },
+            },
+            {
+              field: {
+                _id: true,
+              },
+              title: "Owners",
+              type: FieldType.Element,
+              hideOnMobile: true,
+              getElement: (item: Workflow): ReactElement => {
+                const id: string | undefined = item.id?.toString();
+                return (
+                  <OwnersCell
+                    owners={id ? ownersByResourceId[id] : undefined}
+                    isLoading={isLoadingOwners}
+                  />
+                );
               },
             },
           ]}

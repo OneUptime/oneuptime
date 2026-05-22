@@ -9,16 +9,37 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageOwnerTeam from "Common/Models/DatabaseModels/StatusPageOwnerTeam";
+import StatusPageOwnerUser from "Common/Models/DatabaseModels/StatusPageOwnerUser";
 import React, { FunctionComponent, ReactElement } from "react";
 import StatusPageElement from "../../Components/StatusPage/StatusPageElement";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 
 const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<StatusPage>({ modelType: StatusPage });
 
+  const {
+    ownersByResourceId,
+    isLoadingOwners,
+    onResourcesFetched,
+    ownerFilterUI,
+    mergeOwnerFilterIntoQuery,
+  } = useResourceOwners<StatusPage>({
+    ownerUserModelType: StatusPageOwnerUser,
+    ownerTeamModelType: StatusPageOwnerTeam,
+    resourceIdField: "statusPageId",
+  });
+
   return (
     <div>
+      {ownerFilterUI}
       <ModelTable<StatusPage>
+        query={mergeOwnerFilterIntoQuery(undefined)}
+        onFetchSuccess={(data: Array<StatusPage>) => {
+          onResourcesFetched(data);
+        }}
         modelType={StatusPage}
         id="status-page-table"
         userPreferencesKey="status-page-table"
@@ -140,6 +161,23 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
             getElement: (item: StatusPage): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: StatusPage): ReactElement => {
+              const id: string | undefined = item.id?.toString();
+              return (
+                <OwnersCell
+                  owners={id ? ownersByResourceId[id] : undefined}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
         ]}

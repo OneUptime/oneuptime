@@ -2,12 +2,6 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import ServiceElement from "../../Components/Service/ServiceElement";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import Route from "Common/Types/API/Route";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import IconProp from "Common/Types/Icon/IconProp";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
@@ -15,7 +9,11 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import Service from "Common/Models/DatabaseModels/Service";
+import ServiceOwnerTeam from "Common/Models/DatabaseModels/ServiceOwnerTeam";
+import ServiceOwnerUser from "Common/Models/DatabaseModels/ServiceOwnerUser";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 
 const ServicesPage: FunctionComponent<
   PageComponentProps
@@ -23,39 +21,29 @@ const ServicesPage: FunctionComponent<
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Service>({ modelType: Service });
 
-  const settingsButtons: Array<CardButtonSchema> = [
-    {
-      title: "Owner Rules",
-      icon: IconProp.User,
-      buttonStyle: ButtonStyleType.NORMAL,
-      onClick: () => {
-        Navigation.navigate(
-          RouteUtil.populateRouteParams(
-            RouteMap[PageMap.SERVICE_SETTINGS_OWNER_RULES] as Route,
-          ),
-        );
-      },
-    },
-    {
-      title: "Label Rules",
-      icon: IconProp.Tag,
-      buttonStyle: ButtonStyleType.NORMAL,
-      onClick: () => {
-        Navigation.navigate(
-          RouteUtil.populateRouteParams(
-            RouteMap[PageMap.SERVICE_SETTINGS_LABEL_RULES] as Route,
-          ),
-        );
-      },
-    },
-  ];
+  const {
+    ownersByResourceId,
+    isLoadingOwners,
+    onResourcesFetched,
+    ownerFilterUI,
+    mergeOwnerFilterIntoQuery,
+  } = useResourceOwners<Service>({
+    ownerUserModelType: ServiceOwnerUser,
+    ownerTeamModelType: ServiceOwnerTeam,
+    resourceIdField: "serviceId",
+  });
 
   return (
     <Fragment>
+      {ownerFilterUI}
       <ModelTable<Service>
         modelType={Service}
         id="service-table"
         userPreferencesKey="service-table"
+        query={mergeOwnerFilterIntoQuery(undefined)}
+        onFetchSuccess={(data: Array<Service>) => {
+          onResourcesFetched(data);
+        }}
         saveFilterProps={{
           tableId: "service-table",
         }}
@@ -70,7 +58,6 @@ const ServicesPage: FunctionComponent<
         cardProps={{
           title: "Services",
           description: "List and manage services for this project here.",
-          buttons: settingsButtons,
         }}
         showViewIdButton={true}
         noItemsMessage={"No services found."}
@@ -202,6 +189,23 @@ const ServicesPage: FunctionComponent<
 
             getElement: (item: Service): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: Service): ReactElement => {
+              const id: string | undefined = item.id?.toString();
+              return (
+                <OwnersCell
+                  owners={id ? ownersByResourceId[id] : undefined}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
         ]}

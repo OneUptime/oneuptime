@@ -13,7 +13,7 @@ import {
   BulkActionFailed,
   BulkActionOnClickProps,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import {
   ModalTableBulkDefaultActions,
@@ -25,7 +25,6 @@ import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import Query from "Common/Types/BaseDatabase/Query";
-import Includes from "Common/Types/BaseDatabase/Includes";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -34,23 +33,17 @@ import MonitorOwnerUser from "Common/Models/DatabaseModels/MonitorOwnerUser";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
-import Team from "Common/Models/DatabaseModels/Team";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import Dropdown, {
-  DropdownOption,
-  DropdownValue,
-} from "Common/UI/Components/Dropdown/Dropdown";
 import React, {
   FunctionComponent,
   ReactElement,
-  useMemo,
   useState,
   useEffect,
 } from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import MonitorElement from "./Monitor";
-import MonitorOwnersCell, { MonitorOwnerEntry } from "./MonitorOwnersCell";
+import OwnersCell from "../ResourceOwners/OwnersCell";
+import useResourceOwners from "../ResourceOwners/useResourceOwners";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -60,7 +53,6 @@ import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeUtil from "../../Utils/Probe";
-import ProjectUser from "../../Utils/ProjectUser";
 
 export interface ComponentProps {
   query?: Query<Monitor> | undefined;
@@ -85,21 +77,17 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
   const [bulkActionProps, setBulkActionProps] =
     useState<BulkActionOnClickProps<Monitor> | null>(null);
 
-  const [ownersByMonitorId, setOwnersByMonitorId] = useState<{
-    [monitorId: string]: Array<MonitorOwnerEntry>;
-  }>({});
-  const [isLoadingOwners, setIsLoadingOwners] = useState<boolean>(false);
-
-  const [userOptions, setUserOptions] = useState<Array<DropdownOption>>([]);
-  const [teamOptions, setTeamOptions] = useState<Array<DropdownOption>>([]);
-  const [selectedOwnerUserId, setSelectedOwnerUserId] = useState<string | null>(
-    null,
-  );
-  const [selectedOwnerTeamId, setSelectedOwnerTeamId] = useState<string | null>(
-    null,
-  );
-  const [ownerFilterMonitorIds, setOwnerFilterMonitorIds] =
-    useState<Array<string> | null>(null);
+  const {
+    ownersByResourceId,
+    isLoadingOwners,
+    onResourcesFetched,
+    ownerFilterUI,
+    mergeOwnerFilterIntoQuery,
+  } = useResourceOwners<Monitor>({
+    ownerUserModelType: MonitorOwnerUser,
+    ownerTeamModelType: MonitorOwnerTeam,
+    resourceIdField: "monitorId",
+  });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Monitor>({ modelType: Monitor });
@@ -116,291 +104,6 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
 
     fetchProbes();
   }, []);
-
-  useEffect(() => {
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-
-    if (!projectId) {
-      return;
-    }
-
-    const fetchOwnerFilterOptions: () => Promise<void> =
-      async (): Promise<void> => {
-        try {
-          const [users, teamsResult]: [
-            Array<DropdownOption>,
-            ListResult<Team>,
-          ] = await Promise.all([
-            ProjectUser.fetchProjectUsersAsDropdownOptions(projectId),
-            ModelAPI.getList<Team>({
-              modelType: Team,
-              query: { projectId: projectId },
-              limit: LIMIT_PER_PROJECT,
-              skip: 0,
-              select: {
-                _id: true,
-                name: true,
-              },
-              sort: { name: 1 },
-            }),
-          ]);
-
-          setUserOptions(users);
-          setTeamOptions(
-            teamsResult.data.map((team: Team) => {
-              return {
-                value: team._id as string,
-                label: team.name?.toString() || "",
-              };
-            }),
-          );
-        } catch {
-          // dropdowns will stay empty; filter still degrades gracefully
-        }
-      };
-
-    fetchOwnerFilterOptions();
-  }, []);
-
-  useEffect(() => {
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-
-    if (!projectId) {
-      return;
-    }
-
-    if (!selectedOwnerUserId && !selectedOwnerTeamId) {
-      setOwnerFilterMonitorIds(null);
-      return;
-    }
-
-    let cancelled: boolean = false;
-
-    const computeMatchingMonitorIds: () => Promise<void> =
-      async (): Promise<void> => {
-        try {
-          let userMonitorIds: Set<string> | null = null;
-          let teamMonitorIds: Set<string> | null = null;
-
-          if (selectedOwnerUserId) {
-            const result: ListResult<MonitorOwnerUser> =
-              await ModelAPI.getList<MonitorOwnerUser>({
-                modelType: MonitorOwnerUser,
-                query: {
-                  userId: new ObjectID(selectedOwnerUserId),
-                  projectId: projectId,
-                },
-                limit: LIMIT_PER_PROJECT,
-                skip: 0,
-                select: { monitorId: true },
-                sort: {},
-              });
-
-            userMonitorIds = new Set(
-              result.data
-                .map((item: MonitorOwnerUser) => {
-                  return item.monitorId?.toString();
-                })
-                .filter((id: string | undefined): id is string => {
-                  return Boolean(id);
-                }),
-            );
-          }
-
-          if (selectedOwnerTeamId) {
-            const result: ListResult<MonitorOwnerTeam> =
-              await ModelAPI.getList<MonitorOwnerTeam>({
-                modelType: MonitorOwnerTeam,
-                query: {
-                  teamId: new ObjectID(selectedOwnerTeamId),
-                  projectId: projectId,
-                },
-                limit: LIMIT_PER_PROJECT,
-                skip: 0,
-                select: { monitorId: true },
-                sort: {},
-              });
-
-            teamMonitorIds = new Set(
-              result.data
-                .map((item: MonitorOwnerTeam) => {
-                  return item.monitorId?.toString();
-                })
-                .filter((id: string | undefined): id is string => {
-                  return Boolean(id);
-                }),
-            );
-          }
-
-          let finalIds: Array<string>;
-          if (userMonitorIds && teamMonitorIds) {
-            finalIds = [...userMonitorIds].filter((id: string) => {
-              return teamMonitorIds!.has(id);
-            });
-          } else {
-            finalIds = Array.from(
-              userMonitorIds || teamMonitorIds || new Set<string>(),
-            );
-          }
-
-          if (!cancelled) {
-            setOwnerFilterMonitorIds(finalIds);
-          }
-        } catch {
-          if (!cancelled) {
-            setOwnerFilterMonitorIds([]);
-          }
-        }
-      };
-
-    computeMatchingMonitorIds();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedOwnerUserId, selectedOwnerTeamId]);
-
-  const mergedQuery: Query<Monitor> = useMemo(() => {
-    const base: Query<Monitor> = (props.query as Query<Monitor>) || {};
-
-    if (ownerFilterMonitorIds === null) {
-      return base;
-    }
-
-    if (ownerFilterMonitorIds.length === 0) {
-      return {
-        ...base,
-        _id: new Includes([
-          new ObjectID("00000000-0000-0000-0000-000000000000"),
-        ]),
-      } as Query<Monitor>;
-    }
-
-    return {
-      ...base,
-      _id: new Includes(
-        ownerFilterMonitorIds.map((id: string) => {
-          return new ObjectID(id);
-        }),
-      ),
-    } as Query<Monitor>;
-  }, [props.query, ownerFilterMonitorIds]);
-
-  const handleMonitorsFetched: (monitors: Array<Monitor>) => void = (
-    monitors: Array<Monitor>,
-  ): void => {
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-
-    if (!projectId) {
-      return;
-    }
-
-    const monitorIds: Array<string> = monitors
-      .map((m: Monitor) => {
-        return m.id?.toString();
-      })
-      .filter((id: string | undefined): id is string => {
-        return Boolean(id);
-      });
-
-    if (monitorIds.length === 0) {
-      setOwnersByMonitorId({});
-      return;
-    }
-
-    setIsLoadingOwners(true);
-
-    const fetchOwners: () => Promise<void> = async (): Promise<void> => {
-      try {
-        const [userResult, teamResult]: [
-          ListResult<MonitorOwnerUser>,
-          ListResult<MonitorOwnerTeam>,
-        ] = await Promise.all([
-          ModelAPI.getList<MonitorOwnerUser>({
-            modelType: MonitorOwnerUser,
-            query: {
-              monitorId: new Includes(
-                monitorIds.map((id: string) => {
-                  return new ObjectID(id);
-                }),
-              ),
-              projectId: projectId,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: {
-              monitorId: true,
-              user: {
-                _id: true,
-                name: true,
-                email: true,
-                profilePictureId: true,
-              },
-            },
-            sort: {},
-          }),
-          ModelAPI.getList<MonitorOwnerTeam>({
-            modelType: MonitorOwnerTeam,
-            query: {
-              monitorId: new Includes(
-                monitorIds.map((id: string) => {
-                  return new ObjectID(id);
-                }),
-              ),
-              projectId: projectId,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: {
-              monitorId: true,
-              team: {
-                _id: true,
-                name: true,
-              },
-            },
-            sort: {},
-          }),
-        ]);
-
-        const map: { [k: string]: Array<MonitorOwnerEntry> } = {};
-
-        for (const id of monitorIds) {
-          map[id] = [];
-        }
-
-        for (const item of userResult.data) {
-          const key: string | undefined = item.monitorId?.toString();
-          if (key && item.user) {
-            map[key]?.push({ kind: "user", user: item.user });
-          }
-        }
-
-        for (const item of teamResult.data) {
-          const key: string | undefined = item.monitorId?.toString();
-          if (key && item.team) {
-            map[key]?.push({ kind: "team", team: item.team });
-          }
-        }
-
-        setOwnersByMonitorId(map);
-      } catch {
-        // leave owners empty if fetch fails
-      } finally {
-        setIsLoadingOwners(false);
-      }
-    };
-
-    fetchOwners();
-  };
-
-  const clearOwnerFilter: () => void = (): void => {
-    setSelectedOwnerUserId(null);
-    setSelectedOwnerTeamId(null);
-  };
-
-  const isOwnerFilterActive: boolean = Boolean(
-    selectedOwnerUserId || selectedOwnerTeamId,
-  );
 
   const handleBulkAddProbes: (probeId: ObjectID) => Promise<void> = async (
     probeId: ObjectID,
@@ -655,77 +358,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
-      <div className="mb-3 rounded-md border border-gray-200 bg-white p-3 shadow-sm">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-          <div className="flex-1">
-            <label
-              className="mb-1 block text-xs font-medium text-gray-700"
-              htmlFor="monitor-owner-user-filter"
-            >
-              Filter by owner (User)
-            </label>
-            <Dropdown
-              id="monitor-owner-user-filter"
-              placeholder="Any user"
-              options={userOptions}
-              value={
-                selectedOwnerUserId
-                  ? userOptions.find((o: DropdownOption) => {
-                      return o.value === selectedOwnerUserId;
-                    })
-                  : undefined
-              }
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                if (value === null || Array.isArray(value)) {
-                  setSelectedOwnerUserId(null);
-                  return;
-                }
-                setSelectedOwnerUserId(value.toString());
-              }}
-            />
-          </div>
-          <div className="flex-1">
-            <label
-              className="mb-1 block text-xs font-medium text-gray-700"
-              htmlFor="monitor-owner-team-filter"
-            >
-              Filter by owner (Team)
-            </label>
-            <Dropdown
-              id="monitor-owner-team-filter"
-              placeholder="Any team"
-              options={teamOptions}
-              value={
-                selectedOwnerTeamId
-                  ? teamOptions.find((o: DropdownOption) => {
-                      return o.value === selectedOwnerTeamId;
-                    })
-                  : undefined
-              }
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                if (value === null || Array.isArray(value)) {
-                  setSelectedOwnerTeamId(null);
-                  return;
-                }
-                setSelectedOwnerTeamId(value.toString());
-              }}
-            />
-          </div>
-          {isOwnerFilterActive && (
-            <div>
-              <Button
-                title="Clear owners"
-                buttonStyle={ButtonStyleType.NORMAL}
-                onClick={clearOwnerFilter}
-              />
-            </div>
-          )}
-        </div>
-      </div>
+      {ownerFilterUI}
       <ModelTable<Monitor>
         modelType={Monitor}
         name="Monitors"
@@ -859,9 +492,9 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         isCreateable={false}
         isViewable={true}
         refreshToggle={props.refreshToggle}
-        query={mergedQuery}
+        query={mergeOwnerFilterIntoQuery(props.query)}
         onFetchSuccess={(data: Array<Monitor>) => {
-          handleMonitorsFetched(data);
+          onResourcesFetched(data);
         }}
         createEditModalWidth={ModalWidth.Large}
         cardProps={{
@@ -1049,12 +682,9 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             hideOnMobile: true,
             getElement: (item: Monitor): ReactElement => {
               const id: string | undefined = item.id?.toString();
-              const owners: Array<MonitorOwnerEntry> | undefined = id
-                ? ownersByMonitorId[id]
-                : undefined;
               return (
-                <MonitorOwnersCell
-                  owners={owners}
+                <OwnersCell
+                  owners={id ? ownersByResourceId[id] : undefined}
                   isLoading={isLoadingOwners}
                 />
               );

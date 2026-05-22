@@ -3,6 +3,10 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import DockerHostOwnerTeam from "Common/Models/DatabaseModels/DockerHostOwnerTeam";
+import DockerHostOwnerUser from "Common/Models/DatabaseModels/DockerHostOwnerUser";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import React, {
   Fragment,
   FunctionComponent,
@@ -32,6 +36,18 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<DockerHost>({ modelType: DockerHost });
+
+  const {
+    ownersByResourceId,
+    isLoadingOwners,
+    onResourcesFetched,
+    ownerFilterUI,
+    mergeOwnerFilterIntoQuery,
+  } = useResourceOwners<DockerHost>({
+    ownerUserModelType: DockerHostOwnerUser,
+    ownerTeamModelType: DockerHostOwnerTeam,
+    resourceIdField: "dockerHostId",
+  });
 
   const fetchHostCount: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -74,10 +90,15 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   return (
     <Fragment>
+      {ownerFilterUI}
       <ModelTable<DockerHost>
         modelType={DockerHost}
         id="docker-hosts-table"
         userPreferencesKey="docker-hosts-table"
+        query={mergeOwnerFilterIntoQuery(undefined)}
+        onFetchSuccess={(data: Array<DockerHost>) => {
+          onResourcesFetched(data);
+        }}
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
@@ -218,6 +239,23 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             hideOnMobile: true,
             getElement: (item: DockerHost): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: DockerHost): ReactElement => {
+              const id: string | undefined = item.id?.toString();
+              return (
+                <OwnersCell
+                  owners={id ? ownersByResourceId[id] : undefined}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
         ]}

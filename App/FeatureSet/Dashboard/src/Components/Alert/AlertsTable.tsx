@@ -15,10 +15,14 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertOwnerTeam from "Common/Models/DatabaseModels/AlertOwnerTeam";
+import AlertOwnerUser from "Common/Models/DatabaseModels/AlertOwnerUser";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import OwnersCell from "../ResourceOwners/OwnersCell";
+import useResourceOwners from "../ResourceOwners/useResourceOwners";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -73,6 +77,18 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Alert>({ modelType: Alert });
+
+  const {
+    ownersByResourceId,
+    isLoadingOwners,
+    onResourcesFetched,
+    ownerFilterUI,
+    mergeOwnerFilterIntoQuery,
+  } = useResourceOwners<Alert>({
+    ownerUserModelType: AlertOwnerUser,
+    ownerTeamModelType: AlertOwnerTeam,
+    resourceIdField: "alertId",
+  });
 
   // Fetch alert states on mount
   useEffect(() => {
@@ -241,6 +257,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
 
   return (
     <>
+      {ownerFilterUI}
       <ModelTable<Alert>
         name="Alerts"
         userPreferencesKey="alerts-table"
@@ -258,7 +275,10 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
         id="alerts-table"
         isDeleteable={false}
         showCreateForm={Object.keys(initialValuesForAlert).length > 0}
-        query={props.query || {}}
+        query={mergeOwnerFilterIntoQuery(props.query)}
+        onFetchSuccess={(data: Array<Alert>) => {
+          onResourcesFetched(data);
+        }}
         isEditable={false}
         isCreateable={false}
         isViewable={true}
@@ -517,6 +537,23 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
 
             getElement: (item: Alert): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: Alert): ReactElement => {
+              const id: string | undefined = item.id?.toString();
+              return (
+                <OwnersCell
+                  owners={id ? ownersByResourceId[id] : undefined}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
         ]}

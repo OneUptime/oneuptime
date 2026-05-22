@@ -12,16 +12,32 @@ import { APP_API_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import AIAgent from "Common/Models/DatabaseModels/AIAgent";
+import AIAgentOwnerTeam from "Common/Models/DatabaseModels/AIAgentOwnerTeam";
+import AIAgentOwnerUser from "Common/Models/DatabaseModels/AIAgentOwnerUser";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green } from "Common/Types/BrandColors";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 
 const AIAgentsPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<AIAgent>({ modelType: AIAgent });
+
+  const {
+    ownersByResourceId,
+    isLoadingOwners,
+    onResourcesFetched,
+    ownerFilterUI,
+    mergeOwnerFilterIntoQuery,
+  } = useResourceOwners<AIAgent>({
+    ownerUserModelType: AIAgentOwnerUser,
+    ownerTeamModelType: AIAgentOwnerTeam,
+    resourceIdField: "aiAgentId",
+  });
 
   return (
     <Fragment>
@@ -99,10 +115,14 @@ const AIAgentsPage: FunctionComponent<
           ]}
         />
 
+        {ownerFilterUI}
         <ModelTable<AIAgent>
           modelType={AIAgent}
-          query={{
+          query={mergeOwnerFilterIntoQuery({
             projectId: ProjectUtil.getCurrentProjectId()!,
+          })}
+          onFetchSuccess={(data: Array<AIAgent>) => {
+            onResourcesFetched(data);
           }}
           id="ai-agents-table"
           userPreferencesKey={"ai-agents-table"}
@@ -303,6 +323,23 @@ const AIAgentsPage: FunctionComponent<
 
               getElement: (item: AIAgent): ReactElement => {
                 return <LabelsElement labels={item["labels"] || []} />;
+              },
+            },
+            {
+              field: {
+                _id: true,
+              },
+              title: "Owners",
+              type: FieldType.Element,
+              hideOnMobile: true,
+              getElement: (item: AIAgent): ReactElement => {
+                const id: string | undefined = item.id?.toString();
+                return (
+                  <OwnersCell
+                    owners={id ? ownersByResourceId[id] : undefined}
+                    isLoading={isLoadingOwners}
+                  />
+                );
               },
             },
           ]}

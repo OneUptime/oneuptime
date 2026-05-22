@@ -13,8 +13,12 @@ import Query from "Common/Types/BaseDatabase/Query";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
+import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import OwnersCell from "../ResourceOwners/OwnersCell";
+import useResourceOwners from "../ResourceOwners/useResourceOwners";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -83,6 +87,18 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     useBulkLabelActions<ScheduledMaintenance>({
       modelType: ScheduledMaintenance,
     });
+
+  const {
+    ownersByResourceId,
+    isLoadingOwners,
+    onResourcesFetched,
+    ownerFilterUI,
+    mergeOwnerFilterIntoQuery,
+  } = useResourceOwners<ScheduledMaintenance>({
+    ownerUserModelType: ScheduledMaintenanceOwnerUser,
+    ownerTeamModelType: ScheduledMaintenanceOwnerTeam,
+    resourceIdField: "scheduledMaintenanceId",
+  });
 
   // Fetch scheduled maintenance states on mount
   useEffect(() => {
@@ -293,6 +309,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
+      {ownerFilterUI}
       <ModelTable<ScheduledMaintenance>
         modelType={ScheduledMaintenance}
         id="scheduledMaintenances-table"
@@ -306,7 +323,10 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           ],
         }}
         isDeleteable={false}
-        query={props.query || {}}
+        query={mergeOwnerFilterIntoQuery(props.query)}
+        onFetchSuccess={(data: Array<ScheduledMaintenance>) => {
+          onResourcesFetched(data);
+        }}
         isEditable={false}
         isCreateable={false}
         isViewable={true}
@@ -563,6 +583,23 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
 
             getElement: (item: ScheduledMaintenance): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: ScheduledMaintenance): ReactElement => {
+              const id: string | undefined = item.id?.toString();
+              return (
+                <OwnersCell
+                  owners={id ? ownersByResourceId[id] : undefined}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
         ]}

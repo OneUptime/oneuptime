@@ -8,12 +8,16 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
+import IncomingCallPolicyOwnerTeam from "Common/Models/DatabaseModels/IncomingCallPolicyOwnerTeam";
+import IncomingCallPolicyOwnerUser from "Common/Models/DatabaseModels/IncomingCallPolicyOwnerUser";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import Phone from "Common/Types/Phone";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 
 const IncomingCallPoliciesPage: FunctionComponent<
   PageComponentProps
@@ -21,12 +25,29 @@ const IncomingCallPoliciesPage: FunctionComponent<
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<IncomingCallPolicy>({ modelType: IncomingCallPolicy });
 
+  const {
+    ownersByResourceId,
+    isLoadingOwners,
+    onResourcesFetched,
+    ownerFilterUI,
+    mergeOwnerFilterIntoQuery,
+  } = useResourceOwners<IncomingCallPolicy>({
+    ownerUserModelType: IncomingCallPolicyOwnerUser,
+    ownerTeamModelType: IncomingCallPolicyOwnerTeam,
+    resourceIdField: "incomingCallPolicyId",
+  });
+
   return (
     <Fragment>
+      {ownerFilterUI}
       <ModelTable<IncomingCallPolicy>
         modelType={IncomingCallPolicy}
         id="incoming-call-policy-table"
         userPreferencesKey="incoming-call-policy-table"
+        query={mergeOwnerFilterIntoQuery(undefined)}
+        onFetchSuccess={(data: Array<IncomingCallPolicy>) => {
+          onResourcesFetched(data);
+        }}
         saveFilterProps={{
           tableId: "incoming-call-policies-table",
         }}
@@ -199,6 +220,23 @@ const IncomingCallPoliciesPage: FunctionComponent<
             type: FieldType.EntityArray,
             getElement: (item: IncomingCallPolicy): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: IncomingCallPolicy): ReactElement => {
+              const id: string | undefined = item.id?.toString();
+              return (
+                <OwnersCell
+                  owners={id ? ownersByResourceId[id] : undefined}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
         ]}

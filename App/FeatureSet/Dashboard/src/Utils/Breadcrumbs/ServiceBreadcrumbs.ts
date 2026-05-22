@@ -71,6 +71,20 @@ export function getServiceBreadcrumbs(path: string): Array<Link> | undefined {
       "View Service",
       "Code Repositories",
     ]),
+
+    // Service Settings (Product-level)
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_SETTINGS_OWNER_RULES, [
+      "Project",
+      "Services",
+      "Settings",
+      "Owner Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_SETTINGS_LABEL_RULES, [
+      "Project",
+      "Services",
+      "Settings",
+      "Label Rules",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

@@ -25,9 +25,13 @@ import Query from "Common/Types/BaseDatabase/Query";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
+import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
+import OwnersCell from "../ResourceOwners/OwnersCell";
+import useResourceOwners from "../ResourceOwners/useResourceOwners";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import React, {
@@ -78,6 +82,18 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Incident>({ modelType: Incident });
+
+  const {
+    ownersByResourceId,
+    isLoadingOwners,
+    onResourcesFetched,
+    ownerFilterUI,
+    mergeOwnerFilterIntoQuery,
+  } = useResourceOwners<Incident>({
+    ownerUserModelType: IncidentOwnerUser,
+    ownerTeamModelType: IncidentOwnerTeam,
+    resourceIdField: "incidentId",
+  });
 
   // Fetch incident states on mount
   useEffect(() => {
@@ -286,6 +302,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
   return (
     <>
+      {ownerFilterUI}
       <ModelTable<Incident>
         name="Incidents"
         userPreferencesKey="incidents-table"
@@ -301,7 +318,10 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         id="incidents-table"
         isDeleteable={false}
         showCreateForm={false}
-        query={props.query || {}}
+        query={mergeOwnerFilterIntoQuery(props.query)}
+        onFetchSuccess={(data: Array<Incident>) => {
+          onResourcesFetched(data);
+        }}
         isEditable={false}
         isCreateable={false}
         isViewable={true}
@@ -556,6 +576,23 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
             getElement: (item: Incident): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: Incident): ReactElement => {
+              const id: string | undefined = item.id?.toString();
+              return (
+                <OwnersCell
+                  owners={id ? ownersByResourceId[id] : undefined}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
         ]}

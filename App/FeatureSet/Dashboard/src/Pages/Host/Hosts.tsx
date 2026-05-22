@@ -3,6 +3,10 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import Host from "Common/Models/DatabaseModels/Host";
+import HostOwnerTeam from "Common/Models/DatabaseModels/HostOwnerTeam";
+import HostOwnerUser from "Common/Models/DatabaseModels/HostOwnerUser";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import React, {
   Fragment,
   FunctionComponent,
@@ -58,6 +62,18 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Host>({ modelType: Host });
 
+  const {
+    ownersByResourceId,
+    isLoadingOwners,
+    onResourcesFetched,
+    ownerFilterUI,
+    mergeOwnerFilterIntoQuery,
+  } = useResourceOwners<Host>({
+    ownerUserModelType: HostOwnerUser,
+    ownerTeamModelType: HostOwnerTeam,
+    resourceIdField: "hostId",
+  });
+
   const fetchHostCount: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     try {
@@ -99,12 +115,17 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   return (
     <Fragment>
+      {ownerFilterUI}
       <ModelTable<Host>
         modelType={Host}
         id="hosts-table"
         userPreferencesKey="hosts-table"
         saveFilterProps={{
           tableId: "hosts-table",
+        }}
+        query={mergeOwnerFilterIntoQuery(undefined)}
+        onFetchSuccess={(data: Array<Host>) => {
+          onResourcesFetched(data);
         }}
         isDeleteable={false}
         isEditable={false}
@@ -439,6 +460,23 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             hideOnMobile: true,
             getElement: (item: Host): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: Host): ReactElement => {
+              const id: string | undefined = item.id?.toString();
+              return (
+                <OwnersCell
+                  owners={id ? ownersByResourceId[id] : undefined}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
         ]}

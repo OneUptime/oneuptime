@@ -7,17 +7,38 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
+import RunbookOwnerTeam from "Common/Models/DatabaseModels/RunbookOwnerTeam";
+import RunbookOwnerUser from "Common/Models/DatabaseModels/RunbookOwnerUser";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green500, Red500 } from "Common/Types/BrandColors";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 
 const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const {
+    ownersByResourceId,
+    isLoadingOwners,
+    onResourcesFetched,
+    ownerFilterUI,
+    mergeOwnerFilterIntoQuery,
+  } = useResourceOwners<Runbook>({
+    ownerUserModelType: RunbookOwnerUser,
+    ownerTeamModelType: RunbookOwnerTeam,
+    resourceIdField: "runbookId",
+  });
+
   return (
     <Fragment>
+      {ownerFilterUI}
       <ModelTable<Runbook>
         modelType={Runbook}
         id="runbooks-table"
         userPreferencesKey="runbooks-table"
+        query={mergeOwnerFilterIntoQuery(undefined)}
+        onFetchSuccess={(data: Array<Runbook>) => {
+          onResourcesFetched(data);
+        }}
         saveFilterProps={{
           tableId: "runbooks-table",
         }}
@@ -141,6 +162,23 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
             type: FieldType.EntityArray,
             getElement: (item: Runbook): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: Runbook): ReactElement => {
+              const id: string | undefined = item.id?.toString();
+              return (
+                <OwnersCell
+                  owners={id ? ownersByResourceId[id] : undefined}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
         ]}

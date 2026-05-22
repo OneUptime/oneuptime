@@ -16,13 +16,29 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
+import MonitorGroupOwnerTeam from "Common/Models/DatabaseModels/MonitorGroupOwnerTeam";
+import MonitorGroupOwnerUser from "Common/Models/DatabaseModels/MonitorGroupOwnerUser";
 import React, { FunctionComponent, ReactElement } from "react";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 
 const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<MonitorGroup>({ modelType: MonitorGroup });
+
+  const {
+    ownersByResourceId,
+    isLoadingOwners,
+    onResourcesFetched,
+    ownerFilterUI,
+    mergeOwnerFilterIntoQuery,
+  } = useResourceOwners<MonitorGroup>({
+    ownerUserModelType: MonitorGroupOwnerUser,
+    ownerTeamModelType: MonitorGroupOwnerTeam,
+    resourceIdField: "monitorGroupId",
+  });
 
   return (
     <Page
@@ -49,11 +65,16 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
         <DashboardSideMenu project={props.currentProject || undefined} />
       }
     >
+      {ownerFilterUI}
       <ModelTable<MonitorGroup>
         modelType={MonitorGroup}
         name="Monitor Groups"
         id="monitors-group-table"
         userPreferencesKey="monitor-groups-table"
+        query={mergeOwnerFilterIntoQuery(undefined)}
+        onFetchSuccess={(data: Array<MonitorGroup>) => {
+          onResourcesFetched(data);
+        }}
         saveFilterProps={{
           tableId: "monitor-groups-table",
         }}
@@ -165,6 +186,23 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
 
             getElement: (item: MonitorGroup): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: MonitorGroup): ReactElement => {
+              const id: string | undefined = item.id?.toString();
+              return (
+                <OwnersCell
+                  owners={id ? ownersByResourceId[id] : undefined}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
         ]}

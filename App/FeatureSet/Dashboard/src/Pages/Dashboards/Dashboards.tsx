@@ -8,6 +8,8 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
+import DashboardOwnerTeam from "Common/Models/DatabaseModels/DashboardOwnerTeam";
+import DashboardOwnerUser from "Common/Models/DatabaseModels/DashboardOwnerUser";
 import React, {
   Fragment,
   FunctionComponent,
@@ -17,6 +19,8 @@ import React, {
 } from "react";
 import DashboardElement from "../../Components/Dashboard/DashboardElement";
 import DashboardTemplateCard from "../../Components/Dashboard/DashboardTemplateCard";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import {
   DashboardTemplates,
   DashboardTemplateType,
@@ -35,6 +39,18 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Dashboard>({ modelType: Dashboard });
+
+  const {
+    ownersByResourceId,
+    isLoadingOwners,
+    onResourcesFetched,
+    ownerFilterUI,
+    mergeOwnerFilterIntoQuery,
+  } = useResourceOwners<Dashboard>({
+    ownerUserModelType: DashboardOwnerUser,
+    ownerTeamModelType: DashboardOwnerTeam,
+    resourceIdField: "dashboardId",
+  });
 
   const handleTemplateClick: (type: DashboardTemplateType) => void =
     useCallback((type: DashboardTemplateType): void => {
@@ -76,10 +92,15 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <></>
       )}
 
+      {ownerFilterUI}
       <ModelTable<Dashboard>
         modelType={Dashboard}
         id="dashboard-table"
         userPreferencesKey="dashboards-table"
+        query={mergeOwnerFilterIntoQuery(undefined)}
+        onFetchSuccess={(data: Array<Dashboard>) => {
+          onResourcesFetched(data);
+        }}
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
@@ -215,6 +236,23 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
             getElement: (item: Dashboard): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: Dashboard): ReactElement => {
+              const id: string | undefined = item.id?.toString();
+              return (
+                <OwnersCell
+                  owners={id ? ownersByResourceId[id] : undefined}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
         ]}

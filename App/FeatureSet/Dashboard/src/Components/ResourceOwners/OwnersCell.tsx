@@ -1,36 +1,31 @@
-import Team from "Common/Models/DatabaseModels/Team";
-import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
 import UserElement from "../User/User";
 import TeamElement from "../Team/Team";
-import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
-
-export type MonitorOwnerEntry =
-  | { kind: "user"; user: User }
-  | { kind: "team"; team: Team };
+import { ResourceOwnerEntry } from "./OwnerEntry";
 
 export interface ComponentProps {
-  owners: Array<MonitorOwnerEntry> | undefined;
+  owners: Array<ResourceOwnerEntry> | undefined;
   isLoading?: boolean | undefined;
 }
 
-const MonitorOwnersCell: FunctionComponent<ComponentProps> = (
+const OwnersCell: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   if (props.isLoading && !props.owners) {
     return <p className="text-gray-400">Loading...</p>;
   }
 
-  const owners: Array<MonitorOwnerEntry> = props.owners || [];
+  const owners: Array<ResourceOwnerEntry> = props.owners || [];
 
   return (
     <TableColumnListComponent
-      items={owners.map((owner: MonitorOwnerEntry, index: number) => {
+      items={owners.map((owner: ResourceOwnerEntry, index: number) => {
         return { ...owner, _key: index };
       })}
       moreText={owners.length > 4 ? "more owners" : "more owner"}
       className={owners.length > 0 ? "-mb-1 -mt-1" : ""}
-      getEachElement={(entry: MonitorOwnerEntry) => {
+      getEachElement={(entry: ResourceOwnerEntry) => {
         if (entry.kind === "user") {
           return (
             <div className="my-1">
@@ -50,4 +45,4 @@ const MonitorOwnersCell: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default MonitorOwnersCell;
+export default OwnersCell;

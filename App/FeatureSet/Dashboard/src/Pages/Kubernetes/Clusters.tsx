@@ -3,6 +3,10 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import KubernetesClusterOwnerTeam from "Common/Models/DatabaseModels/KubernetesClusterOwnerTeam";
+import KubernetesClusterOwnerUser from "Common/Models/DatabaseModels/KubernetesClusterOwnerUser";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import React, {
   Fragment,
   FunctionComponent,
@@ -34,6 +38,18 @@ const KubernetesClusters: FunctionComponent<
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<KubernetesCluster>({ modelType: KubernetesCluster });
+
+  const {
+    ownersByResourceId,
+    isLoadingOwners,
+    onResourcesFetched,
+    ownerFilterUI,
+    mergeOwnerFilterIntoQuery,
+  } = useResourceOwners<KubernetesCluster>({
+    ownerUserModelType: KubernetesClusterOwnerUser,
+    ownerTeamModelType: KubernetesClusterOwnerTeam,
+    resourceIdField: "kubernetesClusterId",
+  });
 
   const fetchClusterCount: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -77,10 +93,15 @@ const KubernetesClusters: FunctionComponent<
 
   return (
     <Fragment>
+      {ownerFilterUI}
       <ModelTable<KubernetesCluster>
         modelType={KubernetesCluster}
         id="kubernetes-clusters-table"
         userPreferencesKey="kubernetes-clusters-table"
+        query={mergeOwnerFilterIntoQuery(undefined)}
+        onFetchSuccess={(data: Array<KubernetesCluster>) => {
+          onResourcesFetched(data);
+        }}
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
@@ -221,6 +242,23 @@ const KubernetesClusters: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: KubernetesCluster): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: KubernetesCluster): ReactElement => {
+              const id: string | undefined = item.id?.toString();
+              return (
+                <OwnersCell
+                  owners={id ? ownersByResourceId[id] : undefined}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
         ]}
