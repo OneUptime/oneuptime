@@ -9,6 +9,7 @@ import IPv6 from "Common/Types/IP/IPv6";
 import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
 import PositiveNumber from "Common/Types/PositiveNumber";
+import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import Sleep from "Common/Types/Sleep";
 import logger from "Common/Server/Utils/Logger";
 import net from "net";
@@ -20,6 +21,8 @@ export interface PortMonitorResponse {
   responseTimeInMS?: PositiveNumber | undefined;
   failureCause: string;
   isTimeout?: boolean | undefined;
+  probeAttempts?: Array<ProbeAttempt> | undefined;
+  totalAttempts?: number | undefined;
 }
 
 export interface PingOptions {
@@ -28,6 +31,7 @@ export interface PingOptions {
   currentRetryCount?: number | undefined;
   monitorId?: ObjectID | undefined;
   isOnlineCheckRequest?: boolean | undefined;
+  attempts?: Array<ProbeAttempt> | undefined;
 }
 
 export default class PortMonitor {
@@ -42,6 +46,10 @@ export default class PortMonitor {
 
     if (pingOptions?.currentRetryCount === undefined) {
       pingOptions.currentRetryCount = 1;
+    }
+
+    if (!pingOptions.attempts) {
+      pingOptions.attempts = [];
     }
 
     let hostAddress: string = "";
@@ -71,6 +79,7 @@ export default class PortMonitor {
       }`,
     );
 
+    const attemptedAt: Date = new Date();
     try {
       // Ping a host with port
 
@@ -154,6 +163,15 @@ export default class PortMonitor {
 
       const responseTimeInMS: PositiveNumber =
         (await promiseResult) as PositiveNumber;
+      const responseReceivedAt: Date = new Date();
+
+      pingOptions.attempts!.push({
+        attemptNumber: pingOptions.currentRetryCount,
+        attemptedAt,
+        responseReceivedAt,
+        responseTimeInMs: responseTimeInMS.toNumber(),
+        isOnline: true,
+      });
 
       // if response time is greater than 10 seconds then give it one more try
 
@@ -170,6 +188,8 @@ export default class PortMonitor {
         isOnline: true,
         responseTimeInMS: responseTimeInMS,
         failureCause: "",
+        probeAttempts: pingOptions.attempts,
+        totalAttempts: pingOptions.attempts!.length,
       };
     } catch (err: unknown) {
       logger.debug(
@@ -185,6 +205,20 @@ export default class PortMonitor {
       if (!pingOptions.currentRetryCount) {
         pingOptions.currentRetryCount = 0;
       }
+
+      if (!pingOptions.attempts) {
+        pingOptions.attempts = [];
+      }
+
+      const responseReceivedAt: Date = new Date();
+      pingOptions.attempts.push({
+        attemptNumber: pingOptions.currentRetryCount || 1,
+        attemptedAt,
+        responseReceivedAt,
+        responseTimeInMs: responseReceivedAt.getTime() - attemptedAt.getTime(),
+        isOnline: false,
+        failureCause: (err as any).toString(),
+      });
 
       if (pingOptions.currentRetryCount < (pingOptions.retry || 5)) {
         pingOptions.currentRetryCount++;
@@ -211,6 +245,8 @@ export default class PortMonitor {
           isOnline: true,
           failureCause: (err as any).toString(),
           isTimeout: true,
+          probeAttempts: pingOptions.attempts,
+          totalAttempts: pingOptions.attempts.length,
         };
       }
 
@@ -222,6 +258,8 @@ export default class PortMonitor {
           failureCause:
             "Request failed with AggregateError (all connection attempts failed). " +
             (err as any).toString(),
+          probeAttempts: pingOptions.attempts,
+          totalAttempts: pingOptions.attempts.length,
         };
       }
 
@@ -229,6 +267,8 @@ export default class PortMonitor {
         isOnline: false,
         isTimeout: false,
         failureCause: (err as any).toString(),
+        probeAttempts: pingOptions.attempts,
+        totalAttempts: pingOptions.attempts.length,
       };
     }
   }

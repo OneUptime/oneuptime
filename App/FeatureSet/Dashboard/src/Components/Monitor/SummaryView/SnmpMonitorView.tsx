@@ -1,10 +1,12 @@
 import OneUptimeDate from "Common/Types/Date";
+import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import SnmpMonitorResponse, {
   SnmpOidResponse,
 } from "Common/Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
+import ProbeAttemptsView from "./ProbeAttemptsView";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
@@ -23,8 +25,23 @@ const SnmpMonitorView: FunctionComponent<ComponentProps> = (
     responseTimeInMs = Math.round(responseTimeInMs);
   }
 
+  const probeAttempts: Array<ProbeAttempt> =
+    props.probeMonitorResponse.probeAttempts || [];
+  const totalAttempts: number =
+    props.probeMonitorResponse.totalAttempts ?? probeAttempts.length;
+  const hadRetries: boolean = totalAttempts > 1;
+
   return (
     <div className="space-y-5">
+      {hadRetries && (
+        <div className="rounded-md border-2 border-yellow-100 bg-yellow-50 p-3 text-sm text-yellow-900">
+          This check required <strong>{totalAttempts} attempts</strong> to
+          complete
+          {props.probeMonitorResponse.isOnline === false
+            ? " and ultimately failed."
+            : "."}
+        </div>
+      )}
       <div className="flex space-x-3">
         <InfoCard
           className="w-1/4 shadow-none border-2 border-gray-100"
@@ -113,6 +130,13 @@ const SnmpMonitorView: FunctionComponent<ComponentProps> = (
             </table>
           </div>
         </div>
+      )}
+
+      {hadRetries && (
+        <ProbeAttemptsView
+          attempts={probeAttempts}
+          totalAttempts={totalAttempts}
+        />
       )}
     </div>
   );

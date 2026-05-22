@@ -1,3 +1,5 @@
+import ProbeAttempt from "../../Probe/ProbeAttempt";
+
 export interface DnssecKeyRecord {
   flags: number;
   algorithm: number;
@@ -66,4 +68,7 @@ export default interface DnssecMonitorResponse {
 
   // Overall chain validity (DNSKEY exists, DS exists, RRSIG valid, AD across resolvers)
   isChainValid: boolean;
+
+  probeAttempts?: Array<ProbeAttempt> | undefined;
+  totalAttempts?: number | undefined;
 }

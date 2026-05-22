@@ -14,6 +14,7 @@ import ExternalStatusPageMonitorResponse from "../Monitor/ExternalStatusPageMoni
 import MonitorEvaluationSummary from "../Monitor/MonitorEvaluationSummary";
 import ObjectID from "../ObjectID";
 import Port from "../Port";
+import ProbeAttempt from "./ProbeAttempt";
 import RequestFailedDetails from "./RequestFailedDetails";
 
 export default interface ProbeMonitorResponse {
@@ -42,4 +43,6 @@ export default interface ProbeMonitorResponse {
   isTimeout?: boolean | undefined;
   ingestedAt?: Date | undefined;
   evaluationSummary?: MonitorEvaluationSummary | undefined;
+  probeAttempts?: Array<ProbeAttempt> | undefined;
+  totalAttempts?: number | undefined;
 }

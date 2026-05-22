@@ -1,3 +1,4 @@
+import ProbeAttempt from "../../Probe/ProbeAttempt";
 import SnmpDataType from "./SnmpDataType";
 
 export interface SnmpOidResponse {
@@ -13,4 +14,6 @@ export default interface SnmpMonitorResponse {
   failureCause: string;
   oidResponses: Array<SnmpOidResponse>;
   isTimeout?: boolean | undefined;
+  probeAttempts?: Array<ProbeAttempt> | undefined;
+  totalAttempts?: number | undefined;
 }

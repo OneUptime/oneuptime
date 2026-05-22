@@ -319,6 +319,8 @@ export default class MonitorUtil {
         result.isTimeout = response.isTimeout;
         result.responseTimeInMs = response.responseTimeInMS?.toNumber();
         result.failureCause = response.failureCause;
+        result.probeAttempts = response.probeAttempts;
+        result.totalAttempts = response.totalAttempts;
       } else {
         const response: PingResponse | null = await PingMonitor.ping(
           monitorStep.data?.monitorDestination,
@@ -337,6 +339,8 @@ export default class MonitorUtil {
         result.isTimeout = response.isTimeout;
         result.responseTimeInMs = response.responseTimeInMS?.toNumber();
         result.failureCause = response.failureCause;
+        result.probeAttempts = response.probeAttempts;
+        result.totalAttempts = response.totalAttempts;
       }
     }
 
@@ -375,6 +379,8 @@ export default class MonitorUtil {
       result.responseTimeInMs = response.responseTimeInMS?.toNumber();
       result.failureCause = response.failureCause;
       result.isTimeout = response.isTimeout;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
     }
 
     if (monitorType === MonitorType.SyntheticMonitor) {
@@ -455,6 +461,8 @@ export default class MonitorUtil {
       result.sslResponse = {
         ...response,
       };
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
     }
 
     if (monitorType === MonitorType.Website) {
@@ -498,6 +506,8 @@ export default class MonitorUtil {
       result.failureCause = response.failureCause;
       result.isTimeout = response.isTimeout;
       result.requestFailedDetails = response.requestFailedDetails;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
     }
 
     if (monitorType === MonitorType.API) {
@@ -550,6 +560,8 @@ export default class MonitorUtil {
       result.responseCode = response.statusCode;
       result.failureCause = response.failureCause;
       result.requestFailedDetails = response.requestFailedDetails;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
     }
 
     if (monitorType === MonitorType.SNMP) {
@@ -588,6 +600,8 @@ export default class MonitorUtil {
       result.responseTimeInMs = response.responseTimeInMs;
       result.failureCause = response.failureCause;
       result.snmpResponse = response;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
     }
 
     if (monitorType === MonitorType.DNS) {
@@ -621,6 +635,8 @@ export default class MonitorUtil {
       result.responseTimeInMs = response.responseTimeInMs;
       result.failureCause = response.failureCause;
       result.dnsResponse = response;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
     }
 
     if (monitorType === MonitorType.Domain) {
@@ -653,6 +669,8 @@ export default class MonitorUtil {
       result.responseTimeInMs = response.responseTimeInMs;
       result.failureCause = response.failureCause;
       result.domainResponse = response;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
     }
 
     if (monitorType === MonitorType.DNSSEC) {
@@ -685,6 +703,8 @@ export default class MonitorUtil {
       result.responseTimeInMs = response.responseTimeInMs;
       result.failureCause = response.failureCause;
       result.dnssecResponse = response;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
     }
 
     if (monitorType === MonitorType.ExternalStatusPage) {
@@ -718,6 +738,8 @@ export default class MonitorUtil {
       result.responseTimeInMs = response.responseTimeInMs;
       result.failureCause = response.failureCause;
       result.externalStatusPageResponse = response;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
     }
 
     // update the monitoredAt time to the current time.
