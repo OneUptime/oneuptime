@@ -207,6 +207,19 @@ const MetricsViewer: FunctionComponent<Props> = (
     initialUrlState.filters,
   );
 
+  /*
+   * The search bar's X button (and full backspace) only updates `searchValue`
+   * — it doesn't call `onSubmit`. Without this effect, `submittedSearch`
+   * stays at the old value, results stay filtered, and the URL keeps the
+   * stale `?search=...`. Treat an emptied input as an implicit submit.
+   */
+  useEffect(() => {
+    if (searchValue === "" && submittedSearch !== "") {
+      setSubmittedSearch("");
+      setPage(1);
+    }
+  }, [searchValue, submittedSearch]);
+
   // Telemetry attributes for autocomplete
   const [telemetryAttributes, setTelemetryAttributes] = useState<Array<string>>(
     [],

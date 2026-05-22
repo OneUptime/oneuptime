@@ -319,6 +319,20 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     initialUrlState.filters,
   );
 
+  /*
+   * The search bar's X button (and full backspace) only updates `searchValue`
+   * — it doesn't call `onSubmit`. Without this effect, `submittedSearch`
+   * stays at the old value, results stay filtered, and the URL keeps the
+   * stale `?search=...`. Treat an emptied input as an implicit submit so the
+   * displayed input and the applied filter never disagree.
+   */
+  useEffect(() => {
+    if (searchValue === "" && submittedSearch !== "") {
+      setSubmittedSearch("");
+      setPage(1);
+    }
+  }, [searchValue, submittedSearch]);
+
   const [histogramBuckets, setHistogramBuckets] = useState<
     Array<HistogramBucket>
   >([]);
@@ -491,11 +505,23 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           : new Includes(Array.from(resourceIds));
     }
 
+    /*
+     * Text columns need substring matching, not exact equality. The search
+     * bar turns typed `name:GET` into a chip via `onFieldValueSelect`, and
+     * span names are full strings like "GET api/..." — exact-match would
+     * silently return zero rows. Mirror what `parseSearch` does for the same
+     * fields and wrap with `Search`.
+     */
+    const TEXT_CHIP_FIELDS: Set<string> = new Set(["name", "statusMessage"]);
     for (const key of Object.keys(facetGroups)) {
       if (resourceFacetKeys.has(key)) {
         continue;
       }
       const values: Array<string> = facetGroups[key]!;
+      if (TEXT_CHIP_FIELDS.has(key) && values.length === 1) {
+        (query as Record<string, unknown>)[key] = new Search(values[0]!);
+        continue;
+      }
       if (values.length === 1) {
         (query as Record<string, unknown>)[key] = values[0]!;
       } else {
