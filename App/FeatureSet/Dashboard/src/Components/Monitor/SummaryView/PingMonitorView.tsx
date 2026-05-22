@@ -33,15 +33,6 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="space-y-5">
-      {hadRetries && (
-        <div className="rounded-md border-2 border-yellow-100 bg-yellow-50 p-3 text-sm text-yellow-900">
-          This check required <strong>{totalAttempts} attempts</strong> to
-          complete
-          {props.probeMonitorResponse.isOnline === false
-            ? " and ultimately failed."
-            : "."}
-        </div>
-      )}
       <div className="flex space-x-3">
         <InfoCard
           className="w-full shadow-none border-2 border-gray-100 "
