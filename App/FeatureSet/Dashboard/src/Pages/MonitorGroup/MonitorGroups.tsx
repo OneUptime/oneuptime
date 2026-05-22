@@ -1,6 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import CurrentStatusElement from "../../Components/MonitorGroup/CurrentStatus";
-import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DashboardSideMenu from "../Monitor/SideMenu";
@@ -14,12 +13,12 @@ import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelAction
 import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import Label from "Common/Models/DatabaseModels/Label";
 import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
 import MonitorGroupOwnerTeam from "Common/Models/DatabaseModels/MonitorGroupOwnerTeam";
 import MonitorGroupOwnerUser from "Common/Models/DatabaseModels/MonitorGroupOwnerUser";
 import React, { FunctionComponent, ReactElement } from "react";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import ResourceFiltersLayout from "../../Components/ResourceOwners/ResourceFiltersLayout";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 
 const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
@@ -32,12 +31,13 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
     ownersByResourceId,
     isLoadingOwners,
     onResourcesFetched,
-    ownerFilterUI,
-    mergeOwnerFilterIntoQuery,
+    facetPanel,
+    mergeFiltersIntoQuery,
   } = useResourceOwners<MonitorGroup>({
     ownerUserModelType: MonitorGroupOwnerUser,
     ownerTeamModelType: MonitorGroupOwnerTeam,
     resourceIdField: "monitorGroupId",
+    showLabelsFacet: true,
   });
 
   return (
@@ -65,148 +65,130 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
         <DashboardSideMenu project={props.currentProject || undefined} />
       }
     >
-      {ownerFilterUI}
-      <ModelTable<MonitorGroup>
-        modelType={MonitorGroup}
-        name="Monitor Groups"
-        id="monitors-group-table"
-        userPreferencesKey="monitor-groups-table"
-        query={mergeOwnerFilterIntoQuery(undefined)}
-        onFetchSuccess={(data: Array<MonitorGroup>) => {
-          onResourcesFetched(data);
-        }}
-        saveFilterProps={{
-          tableId: "monitor-groups-table",
-        }}
-        isDeleteable={false}
-        showViewIdButton={true}
-        isEditable={false}
-        isCreateable={true}
-        isViewable={true}
-        bulkActions={{
-          buttons: [...labelBulkActions],
-        }}
-        cardProps={{
-          title: "Monitor Groups",
-          description: "Here is a list of monitors groups for this project.",
-        }}
-        noItemsMessage={"No monitor groups found."}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Monitor Name",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Description",
-          },
-        ]}
-        viewPageRoute={Navigation.getCurrentRoute()}
-        showRefreshButton={true}
-        searchableFields={["name", "description"]}
-        filters={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Group Name",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              labels: {
+      <ResourceFiltersLayout facetPanel={facetPanel}>
+        <ModelTable<MonitorGroup>
+          modelType={MonitorGroup}
+          name="Monitor Groups"
+          id="monitors-group-table"
+          userPreferencesKey="monitor-groups-table"
+          query={mergeFiltersIntoQuery(undefined)}
+          onFetchSuccess={(data: Array<MonitorGroup>) => {
+            onResourcesFetched(data);
+          }}
+          saveFilterProps={{
+            tableId: "monitor-groups-table",
+          }}
+          isDeleteable={false}
+          showViewIdButton={true}
+          isEditable={false}
+          isCreateable={true}
+          isViewable={true}
+          bulkActions={{
+            buttons: [...labelBulkActions],
+          }}
+          cardProps={{
+            title: "Monitor Groups",
+            description: "Here is a list of monitors groups for this project.",
+          }}
+          noItemsMessage={"No monitor groups found."}
+          formFields={[
+            {
+              field: {
                 name: true,
-                color: true,
+              },
+              title: "Name",
+
+              fieldType: FormFieldSchemaType.Text,
+              required: true,
+              placeholder: "Monitor Name",
+              validation: {
+                minLength: 2,
               },
             },
-            title: "Labels",
-            type: FieldType.EntityArray,
+            {
+              field: {
+                description: true,
+              },
 
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
+              title: "Description",
+              fieldType: FormFieldSchemaType.LongText,
+              required: false,
+              placeholder: "Description",
             },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Group Name",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              _id: true,
-            },
-            title: "Current Status",
-            type: FieldType.Element,
-            getElement: (item: MonitorGroup): ReactElement => {
-              if (!item["_id"]) {
-                throw new BadDataException("Monitor Group ID not found");
-              }
-
-              return (
-                <CurrentStatusElement
-                  monitorGroupId={new ObjectID(item["_id"].toString())}
-                />
-              );
-            },
-          },
-          {
-            field: {
-              labels: {
+          ]}
+          viewPageRoute={Navigation.getCurrentRoute()}
+          showRefreshButton={true}
+          searchableFields={["name", "description"]}
+          filters={[
+            {
+              field: {
                 name: true,
-                color: true,
+              },
+              title: "Group Name",
+              type: FieldType.Text,
+            },
+          ]}
+          columns={[
+            {
+              field: {
+                name: true,
+              },
+              title: "Group Name",
+              type: FieldType.Text,
+            },
+            {
+              field: {
+                _id: true,
+              },
+              title: "Current Status",
+              type: FieldType.Element,
+              getElement: (item: MonitorGroup): ReactElement => {
+                if (!item["_id"]) {
+                  throw new BadDataException("Monitor Group ID not found");
+                }
+
+                return (
+                  <CurrentStatusElement
+                    monitorGroupId={new ObjectID(item["_id"].toString())}
+                  />
+                );
               },
             },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            hideOnMobile: true,
+            {
+              field: {
+                labels: {
+                  name: true,
+                  color: true,
+                },
+              },
+              title: "Labels",
+              type: FieldType.EntityArray,
+              hideOnMobile: true,
 
-            getElement: (item: MonitorGroup): ReactElement => {
-              return <LabelsElement labels={item["labels"] || []} />;
+              getElement: (item: MonitorGroup): ReactElement => {
+                return <LabelsElement labels={item["labels"] || []} />;
+              },
             },
-          },
-          {
-            field: {
-              _id: true,
+            {
+              field: {
+                _id: true,
+              },
+              title: "Owners",
+              type: FieldType.Element,
+              hideOnMobile: true,
+              getElement: (item: MonitorGroup): ReactElement => {
+                const id: string | undefined = item.id?.toString();
+                return (
+                  <OwnersCell
+                    owners={id ? ownersByResourceId[id] : undefined}
+                    isLoading={isLoadingOwners}
+                  />
+                );
+              },
             },
-            title: "Owners",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: MonitorGroup): ReactElement => {
-              const id: string | undefined = item.id?.toString();
-              return (
-                <OwnersCell
-                  owners={id ? ownersByResourceId[id] : undefined}
-                  isLoading={isLoadingOwners}
-                />
-              );
-            },
-          },
-        ]}
-      />
+          ]}
+        />
+      </ResourceFiltersLayout>
       {labelBulkActionModals}
     </Page>
   );

@@ -1,4 +1,5 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Label from "Common/Models/DatabaseModels/Label";
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -25,17 +26,29 @@ export interface UseResourceOwnersOptions {
   ownerUserModelType: { new (): OwnerJunctionModel };
   ownerTeamModelType: { new (): OwnerJunctionModel };
   resourceIdField: string;
+  /**
+   * Show a Labels facet in the sidebar. When enabled, the merged query
+   * includes `labels: Includes([...])` for the selected labels.
+   */
+  showLabelsFacet?: boolean | undefined;
 }
 
 export interface UseResourceOwnersResult<TResource extends BaseModel> {
   ownersByResourceId: { [resourceId: string]: Array<ResourceOwnerEntry> };
   isLoadingOwners: boolean;
   onResourcesFetched: (resources: Array<TResource>) => void;
-  ownerFilterUI: ReactElement;
-  mergeOwnerFilterIntoQuery: (
+  /**
+   * Vertical facet sidebar element. Render it to the left of the table.
+   */
+  facetPanel: ReactElement;
+  /**
+   * Merge owner + label filters into the base query. Pass the result to
+   * the ModelTable's `query` prop.
+   */
+  mergeFiltersIntoQuery: (
     base: Query<TResource> | undefined,
   ) => Query<TResource>;
-  isOwnerFilterActive: boolean;
+  hasActiveFilters: boolean;
 }
 
 const useResourceOwners: <TResource extends BaseModel>(
@@ -44,6 +57,7 @@ const useResourceOwners: <TResource extends BaseModel>(
   options: UseResourceOwnersOptions,
 ): UseResourceOwnersResult<TResource> => {
   const { ownerUserModelType, ownerTeamModelType, resourceIdField } = options;
+  const showLabelsFacet: boolean = Boolean(options.showLabelsFacet);
 
   const [ownersByResourceId, setOwnersByResourceId] = useState<{
     [resourceId: string]: Array<ResourceOwnerEntry>;
@@ -52,12 +66,16 @@ const useResourceOwners: <TResource extends BaseModel>(
 
   const [userOptions, setUserOptions] = useState<Array<DropdownOption>>([]);
   const [teamOptions, setTeamOptions] = useState<Array<DropdownOption>>([]);
+  const [labelOptions, setLabelOptions] = useState<Array<DropdownOption>>([]);
+
   const [selectedOwnerUserId, setSelectedOwnerUserId] = useState<string | null>(
     null,
   );
   const [selectedOwnerTeamId, setSelectedOwnerTeamId] = useState<string | null>(
     null,
   );
+  const [selectedLabelIds, setSelectedLabelIds] = useState<Array<string>>([]);
+
   const [matchingResourceIds, setMatchingResourceIds] =
     useState<Array<string> | null>(null);
 
@@ -70,21 +88,37 @@ const useResourceOwners: <TResource extends BaseModel>(
 
     const fetchOptions: () => Promise<void> = async (): Promise<void> => {
       try {
-        const [users, teamsResult]: [Array<DropdownOption>, ListResult<Team>] =
-          await Promise.all([
-            ProjectUser.fetchProjectUsersAsDropdownOptions(projectId),
-            ModelAPI.getList<Team>({
-              modelType: Team,
-              query: { projectId: projectId },
-              limit: LIMIT_PER_PROJECT,
-              skip: 0,
-              select: {
-                _id: true,
-                name: true,
-              },
-              sort: { name: 1 },
-            }),
-          ]);
+        const [users, teamsResult, labelsResult]: [
+          Array<DropdownOption>,
+          ListResult<Team>,
+          ListResult<Label> | null,
+        ] = await Promise.all([
+          ProjectUser.fetchProjectUsersAsDropdownOptions(projectId),
+          ModelAPI.getList<Team>({
+            modelType: Team,
+            query: { projectId: projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: {
+              _id: true,
+              name: true,
+            },
+            sort: { name: 1 },
+          }),
+          showLabelsFacet
+            ? ModelAPI.getList<Label>({
+                modelType: Label,
+                query: { projectId: projectId },
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                select: {
+                  _id: true,
+                  name: true,
+                },
+                sort: { name: 1 },
+              })
+            : Promise.resolve(null),
+        ]);
 
         setUserOptions(users);
         setTeamOptions(
@@ -95,13 +129,24 @@ const useResourceOwners: <TResource extends BaseModel>(
             };
           }),
         );
+
+        if (labelsResult) {
+          setLabelOptions(
+            labelsResult.data.map((label: Label) => {
+              return {
+                value: label._id as string,
+                label: label.name?.toString() || "",
+              };
+            }),
+          );
+        }
       } catch {
         // dropdowns will stay empty; filter still degrades gracefully
       }
     };
 
     fetchOptions();
-  }, []);
+  }, [showLabelsFacet]);
 
   useEffect(() => {
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -325,55 +370,76 @@ const useResourceOwners: <TResource extends BaseModel>(
     fetchOwners();
   };
 
-  const mergeOwnerFilterIntoQuery: (
+  const mergeFiltersIntoQuery: (
     base: Query<TResource> | undefined,
   ) => Query<TResource> = (
     base: Query<TResource> | undefined,
   ): Query<TResource> => {
-    const baseQuery: Query<TResource> = (base || {}) as Query<TResource>;
+    const merged: Query<TResource> = {
+      ...((base || {}) as Query<TResource>),
+    } as Query<TResource>;
 
-    if (matchingResourceIds === null) {
-      return baseQuery;
-    }
-
-    if (matchingResourceIds.length === 0) {
-      return {
-        ...baseQuery,
-        _id: new Includes([
+    if (matchingResourceIds !== null) {
+      if (matchingResourceIds.length === 0) {
+        (merged as unknown as Record<string, unknown>)["_id"] = new Includes([
           new ObjectID("00000000-0000-0000-0000-000000000000"),
-        ]),
-      } as Query<TResource>;
+        ]);
+      } else {
+        (merged as unknown as Record<string, unknown>)["_id"] = new Includes(
+          matchingResourceIds.map((id: string) => {
+            return new ObjectID(id);
+          }),
+        );
+      }
     }
 
-    return {
-      ...baseQuery,
-      _id: new Includes(
-        matchingResourceIds.map((id: string) => {
+    if (selectedLabelIds.length > 0) {
+      (merged as unknown as Record<string, unknown>)["labels"] = new Includes(
+        selectedLabelIds.map((id: string) => {
           return new ObjectID(id);
         }),
-      ),
-    } as Query<TResource>;
+      );
+    }
+
+    return merged;
   };
 
-  const clearOwnerFilter: () => void = (): void => {
+  const clearAllFilters: () => void = (): void => {
     setSelectedOwnerUserId(null);
     setSelectedOwnerTeamId(null);
+    setSelectedLabelIds([]);
   };
 
-  const isOwnerFilterActive: boolean = Boolean(
-    selectedOwnerUserId || selectedOwnerTeamId,
+  const hasActiveFilters: boolean = Boolean(
+    selectedOwnerUserId || selectedOwnerTeamId || selectedLabelIds.length > 0,
   );
 
-  const ownerFilterUI: ReactElement = useMemo((): ReactElement => {
+  const facetPanel: ReactElement = useMemo((): ReactElement => {
+    const selectedLabelOptions: Array<DropdownOption> = labelOptions.filter(
+      (o: DropdownOption) => {
+        return selectedLabelIds.includes(o.value.toString());
+      },
+    );
+
     return (
-      <div className="mb-3 rounded-md border border-gray-200 bg-white p-3 shadow-sm">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-          <div className="flex-1">
+      <div className="rounded-md border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-900">Filters</h3>
+          {hasActiveFilters && (
+            <Button
+              title="Clear"
+              buttonStyle={ButtonStyleType.SECONDARY_LINK}
+              onClick={clearAllFilters}
+            />
+          )}
+        </div>
+        <div className="space-y-4">
+          <div>
             <label
               className="mb-1 block text-xs font-medium text-gray-700"
               htmlFor="resource-owner-user-filter"
             >
-              Filter by owner (User)
+              Owner (User)
             </label>
             <Dropdown
               id="resource-owner-user-filter"
@@ -397,12 +463,12 @@ const useResourceOwners: <TResource extends BaseModel>(
               }}
             />
           </div>
-          <div className="flex-1">
+          <div>
             <label
               className="mb-1 block text-xs font-medium text-gray-700"
               htmlFor="resource-owner-team-filter"
             >
-              Filter by owner (Team)
+              Owner (Team)
             </label>
             <Dropdown
               id="resource-owner-team-filter"
@@ -426,12 +492,37 @@ const useResourceOwners: <TResource extends BaseModel>(
               }}
             />
           </div>
-          {isOwnerFilterActive && (
+          {showLabelsFacet && (
             <div>
-              <Button
-                title="Clear owners"
-                buttonStyle={ButtonStyleType.NORMAL}
-                onClick={clearOwnerFilter}
+              <label
+                className="mb-1 block text-xs font-medium text-gray-700"
+                htmlFor="resource-labels-filter"
+              >
+                Labels
+              </label>
+              <Dropdown
+                id="resource-labels-filter"
+                placeholder="Any labels"
+                options={labelOptions}
+                isMultiSelect={true}
+                value={selectedLabelOptions}
+                onChange={(
+                  value: DropdownValue | Array<DropdownValue> | null,
+                ) => {
+                  if (value === null) {
+                    setSelectedLabelIds([]);
+                    return;
+                  }
+                  if (Array.isArray(value)) {
+                    setSelectedLabelIds(
+                      value.map((v: DropdownValue) => {
+                        return v.toString();
+                      }),
+                    );
+                    return;
+                  }
+                  setSelectedLabelIds([value.toString()]);
+                }}
               />
             </div>
           )}
@@ -441,18 +532,21 @@ const useResourceOwners: <TResource extends BaseModel>(
   }, [
     userOptions,
     teamOptions,
+    labelOptions,
     selectedOwnerUserId,
     selectedOwnerTeamId,
-    isOwnerFilterActive,
+    selectedLabelIds,
+    hasActiveFilters,
+    showLabelsFacet,
   ]);
 
   return {
     ownersByResourceId,
     isLoadingOwners,
     onResourcesFetched,
-    ownerFilterUI,
-    mergeOwnerFilterIntoQuery,
-    isOwnerFilterActive,
+    facetPanel,
+    mergeFiltersIntoQuery,
+    hasActiveFilters,
   };
 };
 

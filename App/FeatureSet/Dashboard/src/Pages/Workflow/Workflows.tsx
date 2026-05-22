@@ -22,6 +22,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import { Green500, Red500 } from "Common/Types/BrandColors";
 import WorkflowElement from "../../Components/Workflow/WorkflowElement";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import ResourceFiltersLayout from "../../Components/ResourceOwners/ResourceFiltersLayout";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 
 const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -36,12 +37,13 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
     ownersByResourceId,
     isLoadingOwners,
     onResourcesFetched,
-    ownerFilterUI,
-    mergeOwnerFilterIntoQuery,
+    facetPanel,
+    mergeFiltersIntoQuery,
   } = useResourceOwners<Workflow>({
     ownerUserModelType: WorkflowOwnerUser,
     ownerTeamModelType: WorkflowOwnerTeam,
     resourceIdField: "workflowId",
+    showLabelsFacet: true,
   });
 
   return (
@@ -65,205 +67,189 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           />
         )}
 
-        {ownerFilterUI}
-        <ModelTable<Workflow>
-          modelType={Workflow}
-          id="status-page-table"
-          userPreferencesKey="workflow-table"
-          query={mergeOwnerFilterIntoQuery(undefined)}
-          onFetchSuccess={(data: Array<Workflow>) => {
-            onResourcesFetched(data);
-          }}
-          saveFilterProps={{
-            tableId: "workflows-table",
-          }}
-          isDeleteable={false}
-          isEditable={false}
-          isCreateable={true}
-          bulkActions={{
-            buttons: [...labelBulkActions],
-          }}
-          name="Workflows"
-          isViewable={true}
-          showViewIdButton={true}
-          cardProps={{
-            title: "Workflows",
-            description: "Here is a list of workflows for this project.",
-          }}
-          videoLink={URL.fromString("https://youtu.be/z-b7_KQcUDY")}
-          noItemsMessage={"No workflows found."}
-          formSteps={[
-            {
-              title: "Workflow Info",
-              id: "workflow-info",
-            },
-            {
-              title: "Labels",
-              id: "labels",
-            },
-          ]}
-          formFields={[
-            {
-              field: {
-                name: true,
+        <ResourceFiltersLayout facetPanel={facetPanel}>
+          <ModelTable<Workflow>
+            modelType={Workflow}
+            id="status-page-table"
+            userPreferencesKey="workflow-table"
+            query={mergeFiltersIntoQuery(undefined)}
+            onFetchSuccess={(data: Array<Workflow>) => {
+              onResourcesFetched(data);
+            }}
+            saveFilterProps={{
+              tableId: "workflows-table",
+            }}
+            isDeleteable={false}
+            isEditable={false}
+            isCreateable={true}
+            bulkActions={{
+              buttons: [...labelBulkActions],
+            }}
+            name="Workflows"
+            isViewable={true}
+            showViewIdButton={true}
+            cardProps={{
+              title: "Workflows",
+              description: "Here is a list of workflows for this project.",
+            }}
+            videoLink={URL.fromString("https://youtu.be/z-b7_KQcUDY")}
+            noItemsMessage={"No workflows found."}
+            formSteps={[
+              {
+                title: "Workflow Info",
+                id: "workflow-info",
               },
-              stepId: "workflow-info",
-              title: "Name",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              placeholder: "Workflow Name",
-              validation: {
-                minLength: 2,
+              {
+                title: "Labels",
+                id: "labels",
               },
-            },
-            {
-              field: {
-                description: true,
-              },
-              stepId: "workflow-info",
-              title: "Description",
-              fieldType: FormFieldSchemaType.LongText,
-              required: true,
-              placeholder: "Description",
-            },
-            {
-              field: {
-                isEnabled: true,
-              },
-              stepId: "workflow-info",
-              title: "Enabled",
-              fieldType: FormFieldSchemaType.Toggle,
-            },
-            {
-              field: {
-                labels: true,
-              },
-              stepId: "labels",
-              title: "Labels ",
-              description:
-                "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-              fieldType: FormFieldSchemaType.MultiSelectDropdown,
-              dropdownModal: {
-                type: Label,
-                labelField: "name",
-                valueField: "_id",
-              },
-              required: false,
-              placeholder: "Labels",
-            },
-          ]}
-          showRefreshButton={true}
-          searchableFields={["name", "description"]}
-          viewPageRoute={Navigation.getCurrentRoute()}
-          filters={[
-            {
-              title: "Name",
-              type: FieldType.Text,
-              field: {
-                name: true,
-              },
-            },
-            {
-              title: "Description",
-              type: FieldType.Text,
-              field: {
-                description: true,
-              },
-            },
-            {
-              title: "Enabled",
-              type: FieldType.Boolean,
-              field: {
-                isEnabled: true,
-              },
-            },
-            {
-              title: "Labels",
-              type: FieldType.EntityArray,
-              field: {
-                labels: {
+            ]}
+            formFields={[
+              {
+                field: {
                   name: true,
-                  color: true,
+                },
+                stepId: "workflow-info",
+                title: "Name",
+                fieldType: FormFieldSchemaType.Text,
+                required: true,
+                placeholder: "Workflow Name",
+                validation: {
+                  minLength: 2,
                 },
               },
-              filterEntityType: Label,
-              filterQuery: {
-                projectId: ProjectUtil.getCurrentProjectId()!,
+              {
+                field: {
+                  description: true,
+                },
+                stepId: "workflow-info",
+                title: "Description",
+                fieldType: FormFieldSchemaType.LongText,
+                required: true,
+                placeholder: "Description",
               },
-              filterDropdownField: {
-                label: "name",
-                value: "_id",
+              {
+                field: {
+                  isEnabled: true,
+                },
+                stepId: "workflow-info",
+                title: "Enabled",
+                fieldType: FormFieldSchemaType.Toggle,
               },
-              filterDropdownOptions: [],
-            },
-          ]}
-          columns={[
-            {
-              field: {
-                name: true,
+              {
+                field: {
+                  labels: true,
+                },
+                stepId: "labels",
+                title: "Labels ",
+                description:
+                  "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
+                fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                dropdownModal: {
+                  type: Label,
+                  labelField: "name",
+                  valueField: "_id",
+                },
+                required: false,
+                placeholder: "Labels",
               },
-              title: "Name",
-              type: FieldType.Element,
-              getElement: (item: Workflow): ReactElement => {
-                return <WorkflowElement workflow={item} />;
+            ]}
+            showRefreshButton={true}
+            searchableFields={["name", "description"]}
+            viewPageRoute={Navigation.getCurrentRoute()}
+            filters={[
+              {
+                title: "Name",
+                type: FieldType.Text,
+                field: {
+                  name: true,
+                },
               },
-            },
-            {
-              field: {
-                description: true,
+              {
+                title: "Description",
+                type: FieldType.Text,
+                field: {
+                  description: true,
+                },
               },
-              title: "Description",
-              type: FieldType.LongText,
-              hideOnMobile: true,
-            },
-            {
-              field: {
-                isEnabled: true,
+              {
+                title: "Enabled",
+                type: FieldType.Boolean,
+                field: {
+                  isEnabled: true,
+                },
               },
-              title: "Enabled",
-              type: FieldType.Element,
-              getElement: (item: Workflow): ReactElement => {
-                if (item.isEnabled) {
+            ]}
+            columns={[
+              {
+                field: {
+                  name: true,
+                },
+                title: "Name",
+                type: FieldType.Element,
+                getElement: (item: Workflow): ReactElement => {
+                  return <WorkflowElement workflow={item} />;
+                },
+              },
+              {
+                field: {
+                  description: true,
+                },
+                title: "Description",
+                type: FieldType.LongText,
+                hideOnMobile: true,
+              },
+              {
+                field: {
+                  isEnabled: true,
+                },
+                title: "Enabled",
+                type: FieldType.Element,
+                getElement: (item: Workflow): ReactElement => {
+                  if (item.isEnabled) {
+                    return (
+                      <Pill text="Enabled" color={Green500} isMinimal={true} />
+                    );
+                  }
                   return (
-                    <Pill text="Enabled" color={Green500} isMinimal={true} />
+                    <Pill text="Disabled" color={Red500} isMinimal={true} />
                   );
-                }
-                return <Pill text="Disabled" color={Red500} isMinimal={true} />;
-              },
-            },
-            {
-              field: {
-                labels: {
-                  name: true,
-                  color: true,
                 },
               },
-              title: "Labels",
-              type: FieldType.EntityArray,
-              hideOnMobile: true,
-              getElement: (item: Workflow): ReactElement => {
-                return <LabelsElement labels={item["labels"] || []} />;
+              {
+                field: {
+                  labels: {
+                    name: true,
+                    color: true,
+                  },
+                },
+                title: "Labels",
+                type: FieldType.EntityArray,
+                hideOnMobile: true,
+                getElement: (item: Workflow): ReactElement => {
+                  return <LabelsElement labels={item["labels"] || []} />;
+                },
               },
-            },
-            {
-              field: {
-                _id: true,
+              {
+                field: {
+                  _id: true,
+                },
+                title: "Owners",
+                type: FieldType.Element,
+                hideOnMobile: true,
+                getElement: (item: Workflow): ReactElement => {
+                  const id: string | undefined = item.id?.toString();
+                  return (
+                    <OwnersCell
+                      owners={id ? ownersByResourceId[id] : undefined}
+                      isLoading={isLoadingOwners}
+                    />
+                  );
+                },
               },
-              title: "Owners",
-              type: FieldType.Element,
-              hideOnMobile: true,
-              getElement: (item: Workflow): ReactElement => {
-                const id: string | undefined = item.id?.toString();
-                return (
-                  <OwnersCell
-                    owners={id ? ownersByResourceId[id] : undefined}
-                    isLoading={isLoadingOwners}
-                  />
-                );
-              },
-            },
-          ]}
-        />
+            ]}
+          />
+        </ResourceFiltersLayout>
         {labelBulkActionModals}
       </>
     </Fragment>

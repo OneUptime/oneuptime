@@ -6,6 +6,7 @@ import Host from "Common/Models/DatabaseModels/Host";
 import HostOwnerTeam from "Common/Models/DatabaseModels/HostOwnerTeam";
 import HostOwnerUser from "Common/Models/DatabaseModels/HostOwnerUser";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import ResourceFiltersLayout from "../../Components/ResourceOwners/ResourceFiltersLayout";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import React, {
   Fragment,
@@ -28,7 +29,6 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import HostDocumentationCard from "../../Components/Host/DocumentationCard";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
-import ProjectUtil from "Common/UI/Utils/Project";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 
@@ -66,12 +66,13 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     ownersByResourceId,
     isLoadingOwners,
     onResourcesFetched,
-    ownerFilterUI,
-    mergeOwnerFilterIntoQuery,
+    facetPanel,
+    mergeFiltersIntoQuery,
   } = useResourceOwners<Host>({
     ownerUserModelType: HostOwnerUser,
     ownerTeamModelType: HostOwnerTeam,
     resourceIdField: "hostId",
+    showLabelsFacet: true,
   });
 
   const fetchHostCount: PromiseVoidFunction = async (): Promise<void> => {
@@ -115,384 +116,370 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   return (
     <Fragment>
-      {ownerFilterUI}
-      <ModelTable<Host>
-        modelType={Host}
-        id="hosts-table"
-        userPreferencesKey="hosts-table"
-        saveFilterProps={{
-          tableId: "hosts-table",
-        }}
-        query={mergeOwnerFilterIntoQuery(undefined)}
-        onFetchSuccess={(data: Array<Host>) => {
-          onResourcesFetched(data);
-        }}
-        isDeleteable={false}
-        isEditable={false}
-        isCreateable={true}
-        showRefreshButton={true}
-        searchableFields={["name", "description"]}
-        bulkActions={{
-          buttons: [...labelBulkActions],
-        }}
-        name="Hosts"
-        isViewable={true}
-        selectMoreFields={{
-          osType: true,
-          osVersion: true,
-          hostArch: true,
-          hostIpAddresses: true,
-          cpuCores: true,
-          totalMemoryBytes: true,
-          processCount: true,
-          containerRuntime: true,
-        }}
-        cardProps={{
-          title: "Hosts",
-          description:
-            "Hosts being monitored in this project. Auto-discovered from any OTel telemetry that carries host.name plus a host signal (host.id, os.type, system.* metrics, etc).",
-        }}
-        showViewIdButton={true}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "production-host-1",
-          },
-          {
-            field: {
-              hostIdentifier: true,
-            },
-            title: "Host Identifier",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "host-prod-1",
+      <ResourceFiltersLayout facetPanel={facetPanel}>
+        <ModelTable<Host>
+          modelType={Host}
+          id="hosts-table"
+          userPreferencesKey="hosts-table"
+          saveFilterProps={{
+            tableId: "hosts-table",
+          }}
+          query={mergeFiltersIntoQuery(undefined)}
+          onFetchSuccess={(data: Array<Host>) => {
+            onResourcesFetched(data);
+          }}
+          isDeleteable={false}
+          isEditable={false}
+          isCreateable={true}
+          showRefreshButton={true}
+          searchableFields={["name", "description"]}
+          bulkActions={{
+            buttons: [...labelBulkActions],
+          }}
+          name="Hosts"
+          isViewable={true}
+          selectMoreFields={{
+            osType: true,
+            osVersion: true,
+            hostArch: true,
+            hostIpAddresses: true,
+            cpuCores: true,
+            totalMemoryBytes: true,
+            processCount: true,
+            containerRuntime: true,
+          }}
+          cardProps={{
+            title: "Hosts",
             description:
-              "This should match the host.name attribute reported by the OTel collector.",
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Production host running in US East",
-          },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
-        ]}
-        filters={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              hostIdentifier: true,
-            },
-            title: "Host Identifier",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              otelCollectorStatus: true,
-            },
-            title: "Status",
-            type: FieldType.Dropdown,
-            filterDropdownOptions: [
-              { value: "connected", label: "Connected" },
-              { value: "disconnected", label: "Disconnected" },
-            ],
-          },
-          {
-            field: {
-              osType: true,
-            },
-            title: "OS",
-            type: FieldType.Dropdown,
-            filterDropdownOptions: [
-              { value: "linux", label: "Linux" },
-              { value: "darwin", label: "macOS" },
-              { value: "windows", label: "Windows" },
-              { value: "freebsd", label: "FreeBSD" },
-            ],
-          },
-          {
-            field: {
-              hostArch: true,
-            },
-            title: "Architecture",
-            type: FieldType.Dropdown,
-            filterDropdownOptions: [
-              { value: "amd64", label: "amd64" },
-              { value: "arm64", label: "arm64" },
-              { value: "x86", label: "x86" },
-              { value: "arm", label: "arm" },
-            ],
-          },
-          {
-            field: {
-              containerRuntime: true,
-            },
-            title: "Container Runtime",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              hostIpAddresses: true,
-            },
-            title: "IP Address",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              lastSeenAt: true,
-            },
-            title: "Last Seen",
-            type: FieldType.Date,
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            type: FieldType.Element,
-            getElement: (item: Host): ReactElement => {
-              const id: string = (item.hostIdentifier as string) || "";
-              const name: string = (item.name as string) || "";
-              const showId: boolean = id !== "" && id !== name;
-              const route: Route = RouteUtil.populateRouteParams(
-                RouteMap[PageMap.HOST_VIEW] as Route,
-                {
-                  modelId: new ObjectID(item._id as string),
-                },
-              );
-              return (
-                <div className="min-w-0">
-                  <AppLink
-                    to={route}
-                    className="text-sm font-medium text-gray-900 truncate hover:underline"
-                  >
-                    {name || "—"}
-                  </AppLink>
-                  {showId && (
-                    <div className="text-xs text-gray-500 font-mono truncate">
-                      {id}
-                    </div>
-                  )}
-                </div>
-              );
-            },
-          },
-          {
-            field: {
-              osType: true,
-            },
-            title: "OS",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: Host): ReactElement => {
-              const osType: string = (item.osType as string) || "";
-              const arch: string = (item.hostArch as string) || "";
-              if (!osType && !arch) {
-                return <span className="text-sm text-gray-400">—</span>;
-              }
-              return (
-                <div className="text-sm text-gray-700">
-                  <span className="capitalize">{osType || "unknown"}</span>
-                  {arch && (
-                    <span className="ml-1.5 text-xs font-mono text-gray-500">
-                      {arch}
-                    </span>
-                  )}
-                </div>
-              );
-            },
-          },
-          {
-            field: {
-              hostIpAddresses: true,
-            },
-            title: "IP Address",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: Host): ReactElement => {
-              const ipString: string = (item.hostIpAddresses as string) || "";
-              if (!ipString) {
-                return <span className="text-sm text-gray-400">—</span>;
-              }
-              const ips: Array<string> = ipString
-                .split(",")
-                .map((s: string) => {
-                  return s.trim();
-                })
-                .filter((s: string) => {
-                  return s.length > 0;
-                });
-              if (ips.length === 0) {
-                return <span className="text-sm text-gray-400">—</span>;
-              }
-              const primary: string = ips[0]!;
-              const rest: number = ips.length - 1;
-              return (
-                <div className="text-sm text-gray-700">
-                  <div className="font-mono">{primary}</div>
-                  {rest > 0 && (
-                    <div className="text-xs text-gray-500">+{rest} more</div>
-                  )}
-                </div>
-              );
-            },
-          },
-          {
-            field: {
-              cpuCores: true,
-            },
-            title: "Resources",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: Host): ReactElement => {
-              const summary: ResourceSummary = {
-                cores: item.cpuCores ?? undefined,
-                memoryBytes: item.totalMemoryBytes ?? undefined,
-                processes: item.processCount ?? undefined,
-              };
-              if (
-                summary.cores === undefined &&
-                summary.memoryBytes === undefined &&
-                summary.processes === undefined
-              ) {
-                return <span className="text-sm text-gray-400">—</span>;
-              }
-              const parts: Array<string> = [];
-              if (summary.cores !== undefined) {
-                parts.push(
-                  `${summary.cores} core${summary.cores === 1 ? "" : "s"}`,
-                );
-              }
-              if (summary.memoryBytes !== undefined) {
-                parts.push(formatMemory(summary.memoryBytes));
-              }
-              return (
-                <div className="text-sm text-gray-700">
-                  <div>{parts.join(" · ") || "—"}</div>
-                  {summary.processes !== undefined && (
-                    <div className="text-xs text-gray-500">
-                      {summary.processes} processes
-                    </div>
-                  )}
-                </div>
-              );
-            },
-          },
-          {
-            field: {
-              otelCollectorStatus: true,
-            },
-            title: "Status",
-            type: FieldType.Element,
-            getElement: (item: Host): ReactElement => {
-              const isConnected: boolean =
-                item.otelCollectorStatus === "connected";
-              return (
-                <Pill
-                  text={isConnected ? "Connected" : "Disconnected"}
-                  color={isConnected ? Green : Red}
-                />
-              );
-            },
-          },
-          {
-            field: {
-              lastSeenAt: true,
-            },
-            title: "Last Seen",
-            type: FieldType.DateTime,
-          },
-          {
-            field: {
-              labels: {
+              "Hosts being monitored in this project. Auto-discovered from any OTel telemetry that carries host.name plus a host signal (host.id, os.type, system.* metrics, etc).",
+          }}
+          showViewIdButton={true}
+          formFields={[
+            {
+              field: {
                 name: true,
-                color: true,
+              },
+              title: "Name",
+              fieldType: FormFieldSchemaType.Text,
+              required: true,
+              placeholder: "production-host-1",
+            },
+            {
+              field: {
+                hostIdentifier: true,
+              },
+              title: "Host Identifier",
+              fieldType: FormFieldSchemaType.Text,
+              required: true,
+              placeholder: "host-prod-1",
+              description:
+                "This should match the host.name attribute reported by the OTel collector.",
+            },
+            {
+              field: {
+                description: true,
+              },
+              title: "Description",
+              fieldType: FormFieldSchemaType.LongText,
+              required: false,
+              placeholder: "Production host running in US East",
+            },
+            {
+              field: {
+                labels: true,
+              },
+              title: "Labels",
+              description:
+                "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
+              fieldType: FormFieldSchemaType.MultiSelectDropdown,
+              dropdownModal: {
+                type: Label,
+                labelField: "name",
+                valueField: "_id",
+              },
+              required: false,
+              placeholder: "Labels",
+            },
+          ]}
+          filters={[
+            {
+              field: {
+                name: true,
+              },
+              title: "Name",
+              type: FieldType.Text,
+            },
+            {
+              field: {
+                hostIdentifier: true,
+              },
+              title: "Host Identifier",
+              type: FieldType.Text,
+            },
+            {
+              field: {
+                otelCollectorStatus: true,
+              },
+              title: "Status",
+              type: FieldType.Dropdown,
+              filterDropdownOptions: [
+                { value: "connected", label: "Connected" },
+                { value: "disconnected", label: "Disconnected" },
+              ],
+            },
+            {
+              field: {
+                osType: true,
+              },
+              title: "OS",
+              type: FieldType.Dropdown,
+              filterDropdownOptions: [
+                { value: "linux", label: "Linux" },
+                { value: "darwin", label: "macOS" },
+                { value: "windows", label: "Windows" },
+                { value: "freebsd", label: "FreeBSD" },
+              ],
+            },
+            {
+              field: {
+                hostArch: true,
+              },
+              title: "Architecture",
+              type: FieldType.Dropdown,
+              filterDropdownOptions: [
+                { value: "amd64", label: "amd64" },
+                { value: "arm64", label: "arm64" },
+                { value: "x86", label: "x86" },
+                { value: "arm", label: "arm" },
+              ],
+            },
+            {
+              field: {
+                containerRuntime: true,
+              },
+              title: "Container Runtime",
+              type: FieldType.Text,
+            },
+            {
+              field: {
+                hostIpAddresses: true,
+              },
+              title: "IP Address",
+              type: FieldType.Text,
+            },
+            {
+              field: {
+                lastSeenAt: true,
+              },
+              title: "Last Seen",
+              type: FieldType.Date,
+            },
+          ]}
+          columns={[
+            {
+              field: {
+                name: true,
+              },
+              title: "Name",
+              type: FieldType.Element,
+              getElement: (item: Host): ReactElement => {
+                const id: string = (item.hostIdentifier as string) || "";
+                const name: string = (item.name as string) || "";
+                const showId: boolean = id !== "" && id !== name;
+                const route: Route = RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.HOST_VIEW] as Route,
+                  {
+                    modelId: new ObjectID(item._id as string),
+                  },
+                );
+                return (
+                  <div className="min-w-0">
+                    <AppLink
+                      to={route}
+                      className="text-sm font-medium text-gray-900 truncate hover:underline"
+                    >
+                      {name || "—"}
+                    </AppLink>
+                    {showId && (
+                      <div className="text-xs text-gray-500 font-mono truncate">
+                        {id}
+                      </div>
+                    )}
+                  </div>
+                );
               },
             },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            hideOnMobile: true,
-            getElement: (item: Host): ReactElement => {
-              return <LabelsElement labels={item["labels"] || []} />;
+            {
+              field: {
+                osType: true,
+              },
+              title: "OS",
+              type: FieldType.Element,
+              hideOnMobile: true,
+              getElement: (item: Host): ReactElement => {
+                const osType: string = (item.osType as string) || "";
+                const arch: string = (item.hostArch as string) || "";
+                if (!osType && !arch) {
+                  return <span className="text-sm text-gray-400">—</span>;
+                }
+                return (
+                  <div className="text-sm text-gray-700">
+                    <span className="capitalize">{osType || "unknown"}</span>
+                    {arch && (
+                      <span className="ml-1.5 text-xs font-mono text-gray-500">
+                        {arch}
+                      </span>
+                    )}
+                  </div>
+                );
+              },
             },
-          },
-          {
-            field: {
-              _id: true,
+            {
+              field: {
+                hostIpAddresses: true,
+              },
+              title: "IP Address",
+              type: FieldType.Element,
+              hideOnMobile: true,
+              getElement: (item: Host): ReactElement => {
+                const ipString: string = (item.hostIpAddresses as string) || "";
+                if (!ipString) {
+                  return <span className="text-sm text-gray-400">—</span>;
+                }
+                const ips: Array<string> = ipString
+                  .split(",")
+                  .map((s: string) => {
+                    return s.trim();
+                  })
+                  .filter((s: string) => {
+                    return s.length > 0;
+                  });
+                if (ips.length === 0) {
+                  return <span className="text-sm text-gray-400">—</span>;
+                }
+                const primary: string = ips[0]!;
+                const rest: number = ips.length - 1;
+                return (
+                  <div className="text-sm text-gray-700">
+                    <div className="font-mono">{primary}</div>
+                    {rest > 0 && (
+                      <div className="text-xs text-gray-500">+{rest} more</div>
+                    )}
+                  </div>
+                );
+              },
             },
-            title: "Owners",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: Host): ReactElement => {
-              const id: string | undefined = item.id?.toString();
-              return (
-                <OwnersCell
-                  owners={id ? ownersByResourceId[id] : undefined}
-                  isLoading={isLoadingOwners}
-                />
-              );
+            {
+              field: {
+                cpuCores: true,
+              },
+              title: "Resources",
+              type: FieldType.Element,
+              hideOnMobile: true,
+              getElement: (item: Host): ReactElement => {
+                const summary: ResourceSummary = {
+                  cores: item.cpuCores ?? undefined,
+                  memoryBytes: item.totalMemoryBytes ?? undefined,
+                  processes: item.processCount ?? undefined,
+                };
+                if (
+                  summary.cores === undefined &&
+                  summary.memoryBytes === undefined &&
+                  summary.processes === undefined
+                ) {
+                  return <span className="text-sm text-gray-400">—</span>;
+                }
+                const parts: Array<string> = [];
+                if (summary.cores !== undefined) {
+                  parts.push(
+                    `${summary.cores} core${summary.cores === 1 ? "" : "s"}`,
+                  );
+                }
+                if (summary.memoryBytes !== undefined) {
+                  parts.push(formatMemory(summary.memoryBytes));
+                }
+                return (
+                  <div className="text-sm text-gray-700">
+                    <div>{parts.join(" · ") || "—"}</div>
+                    {summary.processes !== undefined && (
+                      <div className="text-xs text-gray-500">
+                        {summary.processes} processes
+                      </div>
+                    )}
+                  </div>
+                );
+              },
             },
-          },
-        ]}
-        onViewPage={(item: Host): Promise<Route> => {
-          return Promise.resolve(
-            new Route(
-              RouteUtil.populateRouteParams(
-                RouteMap[PageMap.HOST_VIEW] as Route,
-                {
-                  modelId: item._id,
+            {
+              field: {
+                otelCollectorStatus: true,
+              },
+              title: "Status",
+              type: FieldType.Element,
+              getElement: (item: Host): ReactElement => {
+                const isConnected: boolean =
+                  item.otelCollectorStatus === "connected";
+                return (
+                  <Pill
+                    text={isConnected ? "Connected" : "Disconnected"}
+                    color={isConnected ? Green : Red}
+                  />
+                );
+              },
+            },
+            {
+              field: {
+                lastSeenAt: true,
+              },
+              title: "Last Seen",
+              type: FieldType.DateTime,
+            },
+            {
+              field: {
+                labels: {
+                  name: true,
+                  color: true,
                 },
-              ).toString(),
-            ),
-          );
-        }}
-      />
+              },
+              title: "Labels",
+              type: FieldType.EntityArray,
+              hideOnMobile: true,
+              getElement: (item: Host): ReactElement => {
+                return <LabelsElement labels={item["labels"] || []} />;
+              },
+            },
+            {
+              field: {
+                _id: true,
+              },
+              title: "Owners",
+              type: FieldType.Element,
+              hideOnMobile: true,
+              getElement: (item: Host): ReactElement => {
+                const id: string | undefined = item.id?.toString();
+                return (
+                  <OwnersCell
+                    owners={id ? ownersByResourceId[id] : undefined}
+                    isLoading={isLoadingOwners}
+                  />
+                );
+              },
+            },
+          ]}
+          onViewPage={(item: Host): Promise<Route> => {
+            return Promise.resolve(
+              new Route(
+                RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.HOST_VIEW] as Route,
+                  {
+                    modelId: item._id,
+                  },
+                ).toString(),
+              ),
+            );
+          }}
+        />
+      </ResourceFiltersLayout>
       {labelBulkActionModals}
     </Fragment>
   );

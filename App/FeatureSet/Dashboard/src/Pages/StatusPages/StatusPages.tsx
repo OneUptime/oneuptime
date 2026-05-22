@@ -1,5 +1,4 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -7,13 +6,13 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import Label from "Common/Models/DatabaseModels/Label";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageOwnerTeam from "Common/Models/DatabaseModels/StatusPageOwnerTeam";
 import StatusPageOwnerUser from "Common/Models/DatabaseModels/StatusPageOwnerUser";
 import React, { FunctionComponent, ReactElement } from "react";
 import StatusPageElement from "../../Components/StatusPage/StatusPageElement";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import ResourceFiltersLayout from "../../Components/ResourceOwners/ResourceFiltersLayout";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 
 const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -24,164 +23,148 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
     ownersByResourceId,
     isLoadingOwners,
     onResourcesFetched,
-    ownerFilterUI,
-    mergeOwnerFilterIntoQuery,
+    facetPanel,
+    mergeFiltersIntoQuery,
   } = useResourceOwners<StatusPage>({
     ownerUserModelType: StatusPageOwnerUser,
     ownerTeamModelType: StatusPageOwnerTeam,
     resourceIdField: "statusPageId",
+    showLabelsFacet: true,
   });
 
   return (
     <div>
-      {ownerFilterUI}
-      <ModelTable<StatusPage>
-        query={mergeOwnerFilterIntoQuery(undefined)}
-        onFetchSuccess={(data: Array<StatusPage>) => {
-          onResourcesFetched(data);
-        }}
-        modelType={StatusPage}
-        id="status-page-table"
-        userPreferencesKey="status-page-table"
-        isDeleteable={false}
-        isEditable={false}
-        isCreateable={true}
-        bulkActions={{
-          buttons: [...labelBulkActions],
-        }}
-        name="Status Pages"
-        isViewable={true}
-        cardProps={{
-          title: "Status Pages",
-          description: "Here is a list of status pages for this project.",
-        }}
-        videoLink={URL.fromString("https://youtu.be/F6BNipy5VCk")}
-        showViewIdButton={true}
-        noItemsMessage={"No status pages found."}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Status Page Name",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Description",
-          },
-        ]}
-        saveFilterProps={{
-          tableId: "all-status-pages-table",
-        }}
-        showRefreshButton={true}
-        searchableFields={["name", "description"]}
-        viewPageRoute={Navigation.getCurrentRoute()}
-        filters={[
-          {
-            field: {
-              _id: true,
-            },
-            title: "Status Page ID",
-            type: FieldType.ObjectID,
-          },
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            type: FieldType.LongText,
-          },
-          {
-            field: {
-              labels: {
+      <ResourceFiltersLayout facetPanel={facetPanel}>
+        <ModelTable<StatusPage>
+          query={mergeFiltersIntoQuery(undefined)}
+          onFetchSuccess={(data: Array<StatusPage>) => {
+            onResourcesFetched(data);
+          }}
+          modelType={StatusPage}
+          id="status-page-table"
+          userPreferencesKey="status-page-table"
+          isDeleteable={false}
+          isEditable={false}
+          isCreateable={true}
+          bulkActions={{
+            buttons: [...labelBulkActions],
+          }}
+          name="Status Pages"
+          isViewable={true}
+          cardProps={{
+            title: "Status Pages",
+            description: "Here is a list of status pages for this project.",
+          }}
+          videoLink={URL.fromString("https://youtu.be/F6BNipy5VCk")}
+          showViewIdButton={true}
+          noItemsMessage={"No status pages found."}
+          formFields={[
+            {
+              field: {
                 name: true,
-                color: true,
+              },
+              title: "Name",
+              fieldType: FormFieldSchemaType.Text,
+              required: true,
+              placeholder: "Status Page Name",
+              validation: {
+                minLength: 2,
               },
             },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
+            {
+              field: {
+                description: true,
+              },
+              title: "Description",
+              fieldType: FormFieldSchemaType.LongText,
+              required: false,
+              placeholder: "Description",
             },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
+          ]}
+          saveFilterProps={{
+            tableId: "all-status-pages-table",
+          }}
+          showRefreshButton={true}
+          searchableFields={["name", "description"]}
+          viewPageRoute={Navigation.getCurrentRoute()}
+          filters={[
+            {
+              field: {
+                _id: true,
+              },
+              title: "Status Page ID",
+              type: FieldType.ObjectID,
             },
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            type: FieldType.Element,
-            getElement: (item: StatusPage): ReactElement => {
-              return <StatusPageElement statusPage={item} />;
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            noValueMessage: "-",
-            title: "Description",
-            type: FieldType.LongText,
-            hideOnMobile: true,
-          },
-          {
-            field: {
-              labels: {
+            {
+              field: {
                 name: true,
-                color: true,
+              },
+              title: "Name",
+              type: FieldType.Text,
+            },
+            {
+              field: {
+                description: true,
+              },
+              title: "Description",
+              type: FieldType.LongText,
+            },
+          ]}
+          columns={[
+            {
+              field: {
+                name: true,
+              },
+              title: "Name",
+              type: FieldType.Element,
+              getElement: (item: StatusPage): ReactElement => {
+                return <StatusPageElement statusPage={item} />;
               },
             },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            hideOnMobile: true,
+            {
+              field: {
+                description: true,
+              },
+              noValueMessage: "-",
+              title: "Description",
+              type: FieldType.LongText,
+              hideOnMobile: true,
+            },
+            {
+              field: {
+                labels: {
+                  name: true,
+                  color: true,
+                },
+              },
+              title: "Labels",
+              type: FieldType.EntityArray,
+              hideOnMobile: true,
 
-            getElement: (item: StatusPage): ReactElement => {
-              return <LabelsElement labels={item["labels"] || []} />;
+              getElement: (item: StatusPage): ReactElement => {
+                return <LabelsElement labels={item["labels"] || []} />;
+              },
             },
-          },
-          {
-            field: {
-              _id: true,
+            {
+              field: {
+                _id: true,
+              },
+              title: "Owners",
+              type: FieldType.Element,
+              hideOnMobile: true,
+              getElement: (item: StatusPage): ReactElement => {
+                const id: string | undefined = item.id?.toString();
+                return (
+                  <OwnersCell
+                    owners={id ? ownersByResourceId[id] : undefined}
+                    isLoading={isLoadingOwners}
+                  />
+                );
+              },
             },
-            title: "Owners",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: StatusPage): ReactElement => {
-              const id: string | undefined = item.id?.toString();
-              return (
-                <OwnersCell
-                  owners={id ? ownersByResourceId[id] : undefined}
-                  isLoading={isLoadingOwners}
-                />
-              );
-            },
-          },
-        ]}
-      />
+          ]}
+        />
+      </ResourceFiltersLayout>
       {labelBulkActionModals}
     </div>
   );

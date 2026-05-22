@@ -6,6 +6,7 @@ import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import KubernetesClusterOwnerTeam from "Common/Models/DatabaseModels/KubernetesClusterOwnerTeam";
 import KubernetesClusterOwnerUser from "Common/Models/DatabaseModels/KubernetesClusterOwnerUser";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import ResourceFiltersLayout from "../../Components/ResourceOwners/ResourceFiltersLayout";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import React, {
   Fragment,
@@ -43,12 +44,13 @@ const KubernetesClusters: FunctionComponent<
     ownersByResourceId,
     isLoadingOwners,
     onResourcesFetched,
-    ownerFilterUI,
-    mergeOwnerFilterIntoQuery,
+    facetPanel,
+    mergeFiltersIntoQuery,
   } = useResourceOwners<KubernetesCluster>({
     ownerUserModelType: KubernetesClusterOwnerUser,
     ownerTeamModelType: KubernetesClusterOwnerTeam,
     resourceIdField: "kubernetesClusterId",
+    showLabelsFacet: true,
   });
 
   const fetchClusterCount: PromiseVoidFunction = async (): Promise<void> => {
@@ -93,188 +95,189 @@ const KubernetesClusters: FunctionComponent<
 
   return (
     <Fragment>
-      {ownerFilterUI}
-      <ModelTable<KubernetesCluster>
-        modelType={KubernetesCluster}
-        id="kubernetes-clusters-table"
-        userPreferencesKey="kubernetes-clusters-table"
-        query={mergeOwnerFilterIntoQuery(undefined)}
-        onFetchSuccess={(data: Array<KubernetesCluster>) => {
-          onResourcesFetched(data);
-        }}
-        isDeleteable={false}
-        isEditable={false}
-        isCreateable={true}
-        bulkActions={{
-          buttons: [...labelBulkActions],
-        }}
-        name="Kubernetes Clusters"
-        isViewable={true}
-        searchableFields={["name", "description"]}
-        filters={[]}
-        cardProps={{
-          title: "Kubernetes Clusters",
-          description:
-            "Clusters being monitored in this project. Install the OneUptime kubernetes-agent Helm chart to connect a cluster.",
-        }}
-        showViewIdButton={true}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "production-us-east",
-          },
-          {
-            field: {
-              clusterIdentifier: true,
-            },
-            title: "Cluster Identifier",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "production-us-east-1",
+      <ResourceFiltersLayout facetPanel={facetPanel}>
+        <ModelTable<KubernetesCluster>
+          modelType={KubernetesCluster}
+          id="kubernetes-clusters-table"
+          userPreferencesKey="kubernetes-clusters-table"
+          query={mergeFiltersIntoQuery(undefined)}
+          onFetchSuccess={(data: Array<KubernetesCluster>) => {
+            onResourcesFetched(data);
+          }}
+          isDeleteable={false}
+          isEditable={false}
+          isCreateable={true}
+          bulkActions={{
+            buttons: [...labelBulkActions],
+          }}
+          name="Kubernetes Clusters"
+          isViewable={true}
+          searchableFields={["name", "description"]}
+          filters={[]}
+          cardProps={{
+            title: "Kubernetes Clusters",
             description:
-              "This should match the clusterName value in your kubernetes-agent Helm chart.",
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Production cluster running in US East",
-          },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            type: FieldType.Element,
-            getElement: (item: KubernetesCluster): ReactElement => {
-              const route: Route = RouteUtil.populateRouteParams(
-                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW] as Route,
-                {
-                  modelId: new ObjectID(item._id as string),
-                },
-              );
-              return (
-                <AppLink
-                  to={route}
-                  className="text-sm font-medium text-gray-900 hover:underline"
-                >
-                  {(item.name as string) || "—"}
-                </AppLink>
-              );
-            },
-          },
-          {
-            field: {
-              clusterIdentifier: true,
-            },
-            title: "Cluster Identifier",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              otelCollectorStatus: true,
-            },
-            title: "Status",
-            type: FieldType.Element,
-            getElement: (item: KubernetesCluster): ReactElement => {
-              const isConnected: boolean =
-                item.otelCollectorStatus === "connected";
-              return (
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`inline-block w-2 h-2 rounded-full ${
-                      isConnected ? "bg-emerald-500" : "bg-red-500"
-                    }`}
-                  />
-                  <span
-                    className={`text-sm font-medium ${
-                      isConnected ? "text-emerald-700" : "text-red-700"
-                    }`}
-                  >
-                    {isConnected ? "Connected" : "Disconnected"}
-                  </span>
-                </div>
-              );
-            },
-          },
-          {
-            field: {
-              lastSeenAt: true,
-            },
-            title: "Last Seen",
-            type: FieldType.DateTime,
-          },
-          {
-            field: {
-              labels: {
+              "Clusters being monitored in this project. Install the OneUptime kubernetes-agent Helm chart to connect a cluster.",
+          }}
+          showViewIdButton={true}
+          formFields={[
+            {
+              field: {
                 name: true,
-                color: true,
+              },
+              title: "Name",
+              fieldType: FormFieldSchemaType.Text,
+              required: true,
+              placeholder: "production-us-east",
+            },
+            {
+              field: {
+                clusterIdentifier: true,
+              },
+              title: "Cluster Identifier",
+              fieldType: FormFieldSchemaType.Text,
+              required: true,
+              placeholder: "production-us-east-1",
+              description:
+                "This should match the clusterName value in your kubernetes-agent Helm chart.",
+            },
+            {
+              field: {
+                description: true,
+              },
+              title: "Description",
+              fieldType: FormFieldSchemaType.LongText,
+              required: false,
+              placeholder: "Production cluster running in US East",
+            },
+            {
+              field: {
+                labels: true,
+              },
+              title: "Labels",
+              description:
+                "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
+              fieldType: FormFieldSchemaType.MultiSelectDropdown,
+              dropdownModal: {
+                type: Label,
+                labelField: "name",
+                valueField: "_id",
+              },
+              required: false,
+              placeholder: "Labels",
+            },
+          ]}
+          columns={[
+            {
+              field: {
+                name: true,
+              },
+              title: "Name",
+              type: FieldType.Element,
+              getElement: (item: KubernetesCluster): ReactElement => {
+                const route: Route = RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW] as Route,
+                  {
+                    modelId: new ObjectID(item._id as string),
+                  },
+                );
+                return (
+                  <AppLink
+                    to={route}
+                    className="text-sm font-medium text-gray-900 hover:underline"
+                  >
+                    {(item.name as string) || "—"}
+                  </AppLink>
+                );
               },
             },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            hideOnMobile: true,
-            getElement: (item: KubernetesCluster): ReactElement => {
-              return <LabelsElement labels={item["labels"] || []} />;
+            {
+              field: {
+                clusterIdentifier: true,
+              },
+              title: "Cluster Identifier",
+              type: FieldType.Text,
             },
-          },
-          {
-            field: {
-              _id: true,
+            {
+              field: {
+                otelCollectorStatus: true,
+              },
+              title: "Status",
+              type: FieldType.Element,
+              getElement: (item: KubernetesCluster): ReactElement => {
+                const isConnected: boolean =
+                  item.otelCollectorStatus === "connected";
+                return (
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-block w-2 h-2 rounded-full ${
+                        isConnected ? "bg-emerald-500" : "bg-red-500"
+                      }`}
+                    />
+                    <span
+                      className={`text-sm font-medium ${
+                        isConnected ? "text-emerald-700" : "text-red-700"
+                      }`}
+                    >
+                      {isConnected ? "Connected" : "Disconnected"}
+                    </span>
+                  </div>
+                );
+              },
             },
-            title: "Owners",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: KubernetesCluster): ReactElement => {
-              const id: string | undefined = item.id?.toString();
-              return (
-                <OwnersCell
-                  owners={id ? ownersByResourceId[id] : undefined}
-                  isLoading={isLoadingOwners}
-                />
-              );
+            {
+              field: {
+                lastSeenAt: true,
+              },
+              title: "Last Seen",
+              type: FieldType.DateTime,
             },
-          },
-        ]}
-        onViewPage={(item: KubernetesCluster): Promise<Route> => {
-          return Promise.resolve(
-            new Route(
-              RouteUtil.populateRouteParams(
-                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW] as Route,
-                {
-                  modelId: item._id,
+            {
+              field: {
+                labels: {
+                  name: true,
+                  color: true,
                 },
-              ).toString(),
-            ),
-          );
-        }}
-      />
+              },
+              title: "Labels",
+              type: FieldType.EntityArray,
+              hideOnMobile: true,
+              getElement: (item: KubernetesCluster): ReactElement => {
+                return <LabelsElement labels={item["labels"] || []} />;
+              },
+            },
+            {
+              field: {
+                _id: true,
+              },
+              title: "Owners",
+              type: FieldType.Element,
+              hideOnMobile: true,
+              getElement: (item: KubernetesCluster): ReactElement => {
+                const id: string | undefined = item.id?.toString();
+                return (
+                  <OwnersCell
+                    owners={id ? ownersByResourceId[id] : undefined}
+                    isLoading={isLoadingOwners}
+                  />
+                );
+              },
+            },
+          ]}
+          onViewPage={(item: KubernetesCluster): Promise<Route> => {
+            return Promise.resolve(
+              new Route(
+                RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW] as Route,
+                  {
+                    modelId: item._id,
+                  },
+                ).toString(),
+              ),
+            );
+          }}
+        />
+      </ResourceFiltersLayout>
       {labelBulkActionModals}
     </Fragment>
   );

@@ -10,7 +10,6 @@ import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelAction
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
-import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
@@ -18,6 +17,7 @@ import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/Schedule
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import OwnersCell from "../ResourceOwners/OwnersCell";
+import ResourceFiltersLayout from "../ResourceOwners/ResourceFiltersLayout";
 import useResourceOwners from "../ResourceOwners/useResourceOwners";
 import React, {
   FunctionComponent,
@@ -92,12 +92,13 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     ownersByResourceId,
     isLoadingOwners,
     onResourcesFetched,
-    ownerFilterUI,
-    mergeOwnerFilterIntoQuery,
+    facetPanel,
+    mergeFiltersIntoQuery,
   } = useResourceOwners<ScheduledMaintenance>({
     ownerUserModelType: ScheduledMaintenanceOwnerUser,
     ownerTeamModelType: ScheduledMaintenanceOwnerTeam,
     resourceIdField: "scheduledMaintenanceId",
+    showLabelsFacet: true,
   });
 
   // Fetch scheduled maintenance states on mount
@@ -309,301 +310,286 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
-      {ownerFilterUI}
-      <ModelTable<ScheduledMaintenance>
-        modelType={ScheduledMaintenance}
-        id="scheduledMaintenances-table"
-        name="Scheduled Maintenance Events"
-        userPreferencesKey={"scheduled-maintenance-table"}
-        bulkActions={{
-          buttons: [
-            getBulkChangeStateAction(),
-            ...labelBulkActions,
-            ModalTableBulkDefaultActions.Delete,
-          ],
-        }}
-        isDeleteable={false}
-        query={mergeOwnerFilterIntoQuery(props.query)}
-        onFetchSuccess={(data: Array<ScheduledMaintenance>) => {
-          onResourcesFetched(data);
-        }}
-        isEditable={false}
-        isCreateable={false}
-        isViewable={true}
-        saveFilterProps={props.saveFilterProps}
-        showCreateForm={false}
-        cardProps={{
-          title: props.title || "Scheduled Maintenance Events",
-          description:
-            props.description ||
-            "Here is a list of scheduled maintenance events for this project.",
-          buttons: cardbuttons,
-        }}
-        noItemsMessage={
-          props.noItemsMessage || "No Scheduled Maintenance Event found."
-        }
-        showViewIdButton={true}
-        viewButtonText="View Event"
-        showRefreshButton={true}
-        searchableFields={["title", "description"]}
-        viewPageRoute={props.viewPageRoute}
-        filters={[
-          {
-            title: "Scheduled Maintenance ID",
-            type: FieldType.Text,
-            field: {
-              _id: true,
-            },
-          },
-          {
-            title: "Scheduled Maintenance Number",
-            type: FieldType.Number,
-            field: {
-              scheduledMaintenanceNumber: true,
-            },
-          },
-          {
-            field: {
-              title: true,
-            },
-            title: "Title",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              currentScheduledMaintenanceState: {
-                name: true,
-              },
-            },
-            title: "Current State",
-            type: FieldType.Entity,
-            filterEntityType: ScheduledMaintenanceState,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              monitors: {
-                name: true,
+      <ResourceFiltersLayout facetPanel={facetPanel}>
+        <ModelTable<ScheduledMaintenance>
+          modelType={ScheduledMaintenance}
+          id="scheduledMaintenances-table"
+          name="Scheduled Maintenance Events"
+          userPreferencesKey={"scheduled-maintenance-table"}
+          bulkActions={{
+            buttons: [
+              getBulkChangeStateAction(),
+              ...labelBulkActions,
+              ModalTableBulkDefaultActions.Delete,
+            ],
+          }}
+          isDeleteable={false}
+          query={mergeFiltersIntoQuery(props.query)}
+          onFetchSuccess={(data: Array<ScheduledMaintenance>) => {
+            onResourcesFetched(data);
+          }}
+          isEditable={false}
+          isCreateable={false}
+          isViewable={true}
+          saveFilterProps={props.saveFilterProps}
+          showCreateForm={false}
+          cardProps={{
+            title: props.title || "Scheduled Maintenance Events",
+            description:
+              props.description ||
+              "Here is a list of scheduled maintenance events for this project.",
+            buttons: cardbuttons,
+          }}
+          noItemsMessage={
+            props.noItemsMessage || "No Scheduled Maintenance Event found."
+          }
+          showViewIdButton={true}
+          viewButtonText="View Event"
+          showRefreshButton={true}
+          searchableFields={["title", "description"]}
+          viewPageRoute={props.viewPageRoute}
+          filters={[
+            {
+              title: "Scheduled Maintenance ID",
+              type: FieldType.Text,
+              field: {
                 _id: true,
-                projectId: true,
               },
             },
-            title: "Monitors Affected",
-            type: FieldType.EntityArray,
-            filterEntityType: Monitor,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              statusPages: {
-                name: true,
-                _id: true,
-                projectId: true,
+            {
+              title: "Scheduled Maintenance Number",
+              type: FieldType.Number,
+              field: {
+                scheduledMaintenanceNumber: true,
               },
             },
-            title: "Shown on Status Page",
-            type: FieldType.EntityArray,
-            filterEntityType: StatusPage,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
+            {
+              field: {
+                title: true,
+              },
+              title: "Title",
+              type: FieldType.Text,
             },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              createdAt: true,
-            },
-            title: "Created At",
-            type: FieldType.Date,
-          },
-          {
-            field: {
-              startsAt: true,
-            },
-            title: "Starts At",
-            type: FieldType.Date,
-          },
-          {
-            field: {
-              endsAt: true,
-            },
-            title: "Ends At",
-            type: FieldType.Date,
-          },
-          {
-            field: {
-              labels: {
-                name: true,
-                color: true,
+            {
+              field: {
+                currentScheduledMaintenanceState: {
+                  name: true,
+                },
+              },
+              title: "Current State",
+              type: FieldType.Entity,
+              filterEntityType: ScheduledMaintenanceState,
+              filterQuery: {
+                projectId: ProjectUtil.getCurrentProjectId()!,
+              },
+              filterDropdownField: {
+                label: "name",
+                value: "_id",
               },
             },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
+            {
+              field: {
+                monitors: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                },
+              },
+              title: "Monitors Affected",
+              type: FieldType.EntityArray,
+              filterEntityType: Monitor,
+              filterQuery: {
+                projectId: ProjectUtil.getCurrentProjectId()!,
+              },
+              filterDropdownField: {
+                label: "name",
+                value: "_id",
+              },
             },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
+            {
+              field: {
+                statusPages: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                },
+              },
+              title: "Shown on Status Page",
+              type: FieldType.EntityArray,
+              filterEntityType: StatusPage,
+              filterQuery: {
+                projectId: ProjectUtil.getCurrentProjectId()!,
+              },
+              filterDropdownField: {
+                label: "name",
+                value: "_id",
+              },
             },
-          },
-        ]}
-        selectMoreFields={{
-          scheduledMaintenanceNumberWithPrefix: true,
-        }}
-        columns={[
-          {
-            field: {
-              scheduledMaintenanceNumber: true,
+            {
+              field: {
+                createdAt: true,
+              },
+              title: "Created At",
+              type: FieldType.Date,
             },
-            title: "Scheduled Maintenance Number",
-            type: FieldType.Text,
-            getElement: (item: ScheduledMaintenance): ReactElement => {
-              if (!item.scheduledMaintenanceNumber) {
-                return <>-</>;
-              }
+            {
+              field: {
+                startsAt: true,
+              },
+              title: "Starts At",
+              type: FieldType.Date,
+            },
+            {
+              field: {
+                endsAt: true,
+              },
+              title: "Ends At",
+              type: FieldType.Date,
+            },
+          ]}
+          selectMoreFields={{
+            scheduledMaintenanceNumberWithPrefix: true,
+          }}
+          columns={[
+            {
+              field: {
+                scheduledMaintenanceNumber: true,
+              },
+              title: "Scheduled Maintenance Number",
+              type: FieldType.Text,
+              getElement: (item: ScheduledMaintenance): ReactElement => {
+                if (!item.scheduledMaintenanceNumber) {
+                  return <>-</>;
+                }
 
-              return (
-                <>
-                  {item.scheduledMaintenanceNumberWithPrefix ||
-                    `#${item.scheduledMaintenanceNumber}`}
-                </>
-              );
-            },
-          },
-          {
-            field: {
-              title: true,
-            },
-            title: "Title",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              currentScheduledMaintenanceState: {
-                name: true,
-                color: true,
-              },
-            },
-            title: "Current State",
-            type: FieldType.Entity,
-
-            getElement: (item: ScheduledMaintenance): ReactElement => {
-              if (item["currentScheduledMaintenanceState"]) {
                 return (
-                  <Pill
-                    color={item.currentScheduledMaintenanceState.color || Black}
-                    text={
-                      item.currentScheduledMaintenanceState.name || "Unknown"
-                    }
+                  <>
+                    {item.scheduledMaintenanceNumberWithPrefix ||
+                      `#${item.scheduledMaintenanceNumber}`}
+                  </>
+                );
+              },
+            },
+            {
+              field: {
+                title: true,
+              },
+              title: "Title",
+              type: FieldType.Text,
+            },
+            {
+              field: {
+                currentScheduledMaintenanceState: {
+                  name: true,
+                  color: true,
+                },
+              },
+              title: "Current State",
+              type: FieldType.Entity,
+
+              getElement: (item: ScheduledMaintenance): ReactElement => {
+                if (item["currentScheduledMaintenanceState"]) {
+                  return (
+                    <Pill
+                      color={
+                        item.currentScheduledMaintenanceState.color || Black
+                      }
+                      text={
+                        item.currentScheduledMaintenanceState.name || "Unknown"
+                      }
+                    />
+                  );
+                }
+
+                return <></>;
+              },
+            },
+
+            {
+              field: {
+                monitors: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                },
+              },
+              title: "Monitors Affected",
+              type: FieldType.EntityArray,
+              hideOnMobile: true,
+
+              getElement: (item: ScheduledMaintenance): ReactElement => {
+                return <MonitorsElement monitors={item["monitors"] || []} />;
+              },
+            },
+            {
+              field: {
+                statusPages: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                },
+              },
+              title: "Shown on Status Page",
+              type: FieldType.EntityArray,
+              hideOnMobile: true,
+
+              getElement: (item: ScheduledMaintenance): ReactElement => {
+                return (
+                  <StatusPagesElement statusPages={item["statusPages"] || []} />
+                );
+              },
+            },
+            {
+              field: {
+                startsAt: true,
+              },
+              title: "Starts At",
+              type: FieldType.DateTime,
+              hideOnMobile: true,
+            },
+            {
+              field: {
+                endsAt: true,
+              },
+              title: "Ends At",
+              type: FieldType.DateTime,
+              hideOnMobile: true,
+            },
+            {
+              field: {
+                labels: {
+                  name: true,
+                  color: true,
+                },
+              },
+              title: "Labels",
+              type: FieldType.EntityArray,
+              hideOnMobile: true,
+
+              getElement: (item: ScheduledMaintenance): ReactElement => {
+                return <LabelsElement labels={item["labels"] || []} />;
+              },
+            },
+            {
+              field: {
+                _id: true,
+              },
+              title: "Owners",
+              type: FieldType.Element,
+              hideOnMobile: true,
+              getElement: (item: ScheduledMaintenance): ReactElement => {
+                const id: string | undefined = item.id?.toString();
+                return (
+                  <OwnersCell
+                    owners={id ? ownersByResourceId[id] : undefined}
+                    isLoading={isLoadingOwners}
                   />
                 );
-              }
-
-              return <></>;
-            },
-          },
-
-          {
-            field: {
-              monitors: {
-                name: true,
-                _id: true,
-                projectId: true,
               },
             },
-            title: "Monitors Affected",
-            type: FieldType.EntityArray,
-            hideOnMobile: true,
-
-            getElement: (item: ScheduledMaintenance): ReactElement => {
-              return <MonitorsElement monitors={item["monitors"] || []} />;
-            },
-          },
-          {
-            field: {
-              statusPages: {
-                name: true,
-                _id: true,
-                projectId: true,
-              },
-            },
-            title: "Shown on Status Page",
-            type: FieldType.EntityArray,
-            hideOnMobile: true,
-
-            getElement: (item: ScheduledMaintenance): ReactElement => {
-              return (
-                <StatusPagesElement statusPages={item["statusPages"] || []} />
-              );
-            },
-          },
-          {
-            field: {
-              startsAt: true,
-            },
-            title: "Starts At",
-            type: FieldType.DateTime,
-            hideOnMobile: true,
-          },
-          {
-            field: {
-              endsAt: true,
-            },
-            title: "Ends At",
-            type: FieldType.DateTime,
-            hideOnMobile: true,
-          },
-          {
-            field: {
-              labels: {
-                name: true,
-                color: true,
-              },
-            },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            hideOnMobile: true,
-
-            getElement: (item: ScheduledMaintenance): ReactElement => {
-              return <LabelsElement labels={item["labels"] || []} />;
-            },
-          },
-          {
-            field: {
-              _id: true,
-            },
-            title: "Owners",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: ScheduledMaintenance): ReactElement => {
-              const id: string | undefined = item.id?.toString();
-              return (
-                <OwnersCell
-                  owners={id ? ownersByResourceId[id] : undefined}
-                  isLoading={isLoadingOwners}
-                />
-              );
-            },
-          },
-        ]}
-      />
+          ]}
+        />
+      </ResourceFiltersLayout>
 
       {scheduledMaintenanceTemplates.length === 0 &&
         showScheduledMaintenanceTemplateModal &&

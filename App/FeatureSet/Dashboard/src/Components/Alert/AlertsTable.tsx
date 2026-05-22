@@ -19,9 +19,9 @@ import AlertOwnerTeam from "Common/Models/DatabaseModels/AlertOwnerTeam";
 import AlertOwnerUser from "Common/Models/DatabaseModels/AlertOwnerUser";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
-import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import OwnersCell from "../ResourceOwners/OwnersCell";
+import ResourceFiltersLayout from "../ResourceOwners/ResourceFiltersLayout";
 import useResourceOwners from "../ResourceOwners/useResourceOwners";
 import React, {
   FunctionComponent,
@@ -82,12 +82,13 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
     ownersByResourceId,
     isLoadingOwners,
     onResourcesFetched,
-    ownerFilterUI,
-    mergeOwnerFilterIntoQuery,
+    facetPanel,
+    mergeFiltersIntoQuery,
   } = useResourceOwners<Alert>({
     ownerUserModelType: AlertOwnerUser,
     ownerTeamModelType: AlertOwnerTeam,
     resourceIdField: "alertId",
+    showLabelsFacet: true,
   });
 
   // Fetch alert states on mount
@@ -257,307 +258,292 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
 
   return (
     <>
-      {ownerFilterUI}
-      <ModelTable<Alert>
-        name="Alerts"
-        userPreferencesKey="alerts-table"
-        bulkActions={{
-          buttons: [
-            getBulkChangeStateAction(),
-            ...labelBulkActions,
-            ModalTableBulkDefaultActions.Delete,
-          ],
-        }}
-        onCreateEditModalClose={(): void => {
-          setInitialValuesForAlert({});
-        }}
-        modelType={Alert}
-        id="alerts-table"
-        isDeleteable={false}
-        showCreateForm={Object.keys(initialValuesForAlert).length > 0}
-        query={mergeOwnerFilterIntoQuery(props.query)}
-        onFetchSuccess={(data: Array<Alert>) => {
-          onResourcesFetched(data);
-        }}
-        isEditable={false}
-        isCreateable={false}
-        isViewable={true}
-        createInitialValues={
-          Object.keys(initialValuesForAlert).length > 0
-            ? initialValuesForAlert
-            : props.createInitialValues
-        }
-        cardProps={{
-          title: props.title || "Alerts",
-          buttons: cardbuttons,
-          description:
-            props.description || "Here is a list of alerts for this project.",
-        }}
-        noItemsMessage={props.noItemsMessage || "No alerts found."}
-        showRefreshButton={true}
-        searchableFields={["title", "description"]}
-        showViewIdButton={true}
-        saveFilterProps={props.saveFilterProps}
-        viewPageRoute={RouteUtil.populateRouteParams(RouteMap[PageMap.ALERTS]!)}
-        filters={[
-          {
-            title: "Alert ID",
-            type: FieldType.Text,
-            field: {
-              _id: true,
-            },
-          },
-          {
-            title: "Alert Number",
-            type: FieldType.Number,
-            field: {
-              alertNumber: true,
-            },
-          },
-          {
-            field: {
-              title: true,
-            },
-            title: "Title",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              alertSeverity: {
-                name: true,
-              },
-            },
-            title: "Severity",
-            type: FieldType.Entity,
-
-            filterEntityType: AlertSeverity,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              currentAlertState: {
-                name: true,
-                color: true,
-              },
-            },
-            title: "State",
-            type: FieldType.Entity,
-
-            filterEntityType: AlertState,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              monitor: {
-                name: true,
+      <ResourceFiltersLayout facetPanel={facetPanel}>
+        <ModelTable<Alert>
+          name="Alerts"
+          userPreferencesKey="alerts-table"
+          bulkActions={{
+            buttons: [
+              getBulkChangeStateAction(),
+              ...labelBulkActions,
+              ModalTableBulkDefaultActions.Delete,
+            ],
+          }}
+          onCreateEditModalClose={(): void => {
+            setInitialValuesForAlert({});
+          }}
+          modelType={Alert}
+          id="alerts-table"
+          isDeleteable={false}
+          showCreateForm={Object.keys(initialValuesForAlert).length > 0}
+          query={mergeFiltersIntoQuery(props.query)}
+          onFetchSuccess={(data: Array<Alert>) => {
+            onResourcesFetched(data);
+          }}
+          isEditable={false}
+          isCreateable={false}
+          isViewable={true}
+          createInitialValues={
+            Object.keys(initialValuesForAlert).length > 0
+              ? initialValuesForAlert
+              : props.createInitialValues
+          }
+          cardProps={{
+            title: props.title || "Alerts",
+            buttons: cardbuttons,
+            description:
+              props.description || "Here is a list of alerts for this project.",
+          }}
+          noItemsMessage={props.noItemsMessage || "No alerts found."}
+          showRefreshButton={true}
+          searchableFields={["title", "description"]}
+          showViewIdButton={true}
+          saveFilterProps={props.saveFilterProps}
+          viewPageRoute={RouteUtil.populateRouteParams(
+            RouteMap[PageMap.ALERTS]!,
+          )}
+          filters={[
+            {
+              title: "Alert ID",
+              type: FieldType.Text,
+              field: {
                 _id: true,
-                projectId: true,
               },
             },
-            title: "Monitor Affected",
-            type: FieldType.EntityArray,
-
-            filterEntityType: Monitor,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              createdAt: true,
-            },
-            title: "Created",
-            type: FieldType.Date,
-          },
-          {
-            field: {
-              labels: {
-                name: true,
+            {
+              title: "Alert Number",
+              type: FieldType.Number,
+              field: {
+                alertNumber: true,
               },
             },
-            title: "Labels",
-            type: FieldType.EntityArray,
+            {
+              field: {
+                title: true,
+              },
+              title: "Title",
+              type: FieldType.Text,
+            },
+            {
+              field: {
+                alertSeverity: {
+                  name: true,
+                },
+              },
+              title: "Severity",
+              type: FieldType.Entity,
 
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-        ]}
-        selectMoreFields={{
-          alertNumberWithPrefix: true,
-          isPrivate: true,
-        }}
-        columns={[
-          {
-            field: {
-              alertNumber: true,
-            },
-            title: "Alert Number",
-            type: FieldType.Text,
-            getElement: (item: Alert): ReactElement => {
-              if (!item.alertNumber) {
-                return <>-</>;
-              }
-
-              const numberLabel: string =
-                item.alertNumberWithPrefix || `#${item.alertNumber}`;
-
-              return (
-                <span className="inline-flex items-center">
-                  <span>{numberLabel}</span>
-                  {item.isPrivate === true && (
-                    <span
-                      title="Private alert — visible only to its owners, project admins, and project owners"
-                      className="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200 align-middle"
-                    >
-                      <Icon icon={IconProp.Lock} className="w-3 h-3" />
-                      Private
-                    </span>
-                  )}
-                </span>
-              );
-            },
-          },
-          {
-            field: {
-              title: true,
-            },
-            title: "Title",
-            type: FieldType.Element,
-            getElement: (item: Alert): ReactElement => {
-              return <AlertElement alert={item} />;
-            },
-          },
-          {
-            field: {
-              currentAlertState: {
-                name: true,
-                color: true,
+              filterEntityType: AlertSeverity,
+              filterQuery: {
+                projectId: ProjectUtil.getCurrentProjectId()!,
+              },
+              filterDropdownField: {
+                label: "name",
+                value: "_id",
               },
             },
-            title: "State",
-            type: FieldType.Entity,
+            {
+              field: {
+                currentAlertState: {
+                  name: true,
+                  color: true,
+                },
+              },
+              title: "State",
+              type: FieldType.Entity,
 
-            getElement: (item: Alert): ReactElement => {
-              if (item["currentAlertState"]) {
+              filterEntityType: AlertState,
+              filterQuery: {
+                projectId: ProjectUtil.getCurrentProjectId()!,
+              },
+              filterDropdownField: {
+                label: "name",
+                value: "_id",
+              },
+            },
+            {
+              field: {
+                monitor: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                },
+              },
+              title: "Monitor Affected",
+              type: FieldType.EntityArray,
+
+              filterEntityType: Monitor,
+              filterQuery: {
+                projectId: ProjectUtil.getCurrentProjectId()!,
+              },
+              filterDropdownField: {
+                label: "name",
+                value: "_id",
+              },
+            },
+            {
+              field: {
+                createdAt: true,
+              },
+              title: "Created",
+              type: FieldType.Date,
+            },
+          ]}
+          selectMoreFields={{
+            alertNumberWithPrefix: true,
+            isPrivate: true,
+          }}
+          columns={[
+            {
+              field: {
+                alertNumber: true,
+              },
+              title: "Alert Number",
+              type: FieldType.Text,
+              getElement: (item: Alert): ReactElement => {
+                if (!item.alertNumber) {
+                  return <>-</>;
+                }
+
+                const numberLabel: string =
+                  item.alertNumberWithPrefix || `#${item.alertNumber}`;
+
                 return (
-                  <Pill
-                    isMinimal={true}
-                    color={item.currentAlertState.color || Black}
-                    text={item.currentAlertState.name || "Unknown"}
+                  <span className="inline-flex items-center">
+                    <span>{numberLabel}</span>
+                    {item.isPrivate === true && (
+                      <span
+                        title="Private alert — visible only to its owners, project admins, and project owners"
+                        className="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200 align-middle"
+                      >
+                        <Icon icon={IconProp.Lock} className="w-3 h-3" />
+                        Private
+                      </span>
+                    )}
+                  </span>
+                );
+              },
+            },
+            {
+              field: {
+                title: true,
+              },
+              title: "Title",
+              type: FieldType.Element,
+              getElement: (item: Alert): ReactElement => {
+                return <AlertElement alert={item} />;
+              },
+            },
+            {
+              field: {
+                currentAlertState: {
+                  name: true,
+                  color: true,
+                },
+              },
+              title: "State",
+              type: FieldType.Entity,
+
+              getElement: (item: Alert): ReactElement => {
+                if (item["currentAlertState"]) {
+                  return (
+                    <Pill
+                      isMinimal={true}
+                      color={item.currentAlertState.color || Black}
+                      text={item.currentAlertState.name || "Unknown"}
+                    />
+                  );
+                }
+
+                return <></>;
+              },
+            },
+            {
+              field: {
+                alertSeverity: {
+                  name: true,
+                  color: true,
+                },
+              },
+
+              title: "Severity",
+              type: FieldType.Entity,
+
+              getElement: (item: Alert): ReactElement => {
+                if (item["alertSeverity"]) {
+                  return (
+                    <Pill
+                      isMinimal={false}
+                      color={item.alertSeverity.color || Black}
+                      text={item.alertSeverity.name || "Unknown"}
+                    />
+                  );
+                }
+
+                return <></>;
+              },
+            },
+            {
+              field: {
+                monitor: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                },
+              },
+              title: "Monitor Affected",
+              type: FieldType.EntityArray,
+
+              getElement: (item: Alert): ReactElement => {
+                if (item["monitor"]) {
+                  return <MonitorElement monitor={item["monitor"]!} />;
+                }
+                return <span>-</span>;
+              },
+            },
+            {
+              field: {
+                createdAt: true,
+              },
+              title: "Created",
+              type: FieldType.DateTime,
+              hideOnMobile: true,
+            },
+            {
+              field: {
+                labels: {
+                  name: true,
+                  color: true,
+                },
+              },
+              title: "Labels",
+              type: FieldType.EntityArray,
+              hideOnMobile: true,
+
+              getElement: (item: Alert): ReactElement => {
+                return <LabelsElement labels={item["labels"] || []} />;
+              },
+            },
+            {
+              field: {
+                _id: true,
+              },
+              title: "Owners",
+              type: FieldType.Element,
+              hideOnMobile: true,
+              getElement: (item: Alert): ReactElement => {
+                const id: string | undefined = item.id?.toString();
+                return (
+                  <OwnersCell
+                    owners={id ? ownersByResourceId[id] : undefined}
+                    isLoading={isLoadingOwners}
                   />
                 );
-              }
-
-              return <></>;
-            },
-          },
-          {
-            field: {
-              alertSeverity: {
-                name: true,
-                color: true,
               },
             },
-
-            title: "Severity",
-            type: FieldType.Entity,
-
-            getElement: (item: Alert): ReactElement => {
-              if (item["alertSeverity"]) {
-                return (
-                  <Pill
-                    isMinimal={false}
-                    color={item.alertSeverity.color || Black}
-                    text={item.alertSeverity.name || "Unknown"}
-                  />
-                );
-              }
-
-              return <></>;
-            },
-          },
-          {
-            field: {
-              monitor: {
-                name: true,
-                _id: true,
-                projectId: true,
-              },
-            },
-            title: "Monitor Affected",
-            type: FieldType.EntityArray,
-
-            getElement: (item: Alert): ReactElement => {
-              if (item["monitor"]) {
-                return <MonitorElement monitor={item["monitor"]!} />;
-              }
-              return <span>-</span>;
-            },
-          },
-          {
-            field: {
-              createdAt: true,
-            },
-            title: "Created",
-            type: FieldType.DateTime,
-            hideOnMobile: true,
-          },
-          {
-            field: {
-              labels: {
-                name: true,
-                color: true,
-              },
-            },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            hideOnMobile: true,
-
-            getElement: (item: Alert): ReactElement => {
-              return <LabelsElement labels={item["labels"] || []} />;
-            },
-          },
-          {
-            field: {
-              _id: true,
-            },
-            title: "Owners",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: Alert): ReactElement => {
-              const id: string | undefined = item.id?.toString();
-              return (
-                <OwnersCell
-                  owners={id ? ownersByResourceId[id] : undefined}
-                  isLoading={isLoadingOwners}
-                />
-              );
-            },
-          },
-        ]}
-      />
+          ]}
+        />
+      </ResourceFiltersLayout>
 
       {error && (
         <ConfirmModal

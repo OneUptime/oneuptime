@@ -1,12 +1,10 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import Label from "Common/Models/DatabaseModels/Label";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
 import DashboardOwnerTeam from "Common/Models/DatabaseModels/DashboardOwnerTeam";
 import DashboardOwnerUser from "Common/Models/DatabaseModels/DashboardOwnerUser";
@@ -20,6 +18,7 @@ import React, {
 import DashboardElement from "../../Components/Dashboard/DashboardElement";
 import DashboardTemplateCard from "../../Components/Dashboard/DashboardTemplateCard";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import ResourceFiltersLayout from "../../Components/ResourceOwners/ResourceFiltersLayout";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import {
   DashboardTemplates,
@@ -44,12 +43,13 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
     ownersByResourceId,
     isLoadingOwners,
     onResourcesFetched,
-    ownerFilterUI,
-    mergeOwnerFilterIntoQuery,
+    facetPanel,
+    mergeFiltersIntoQuery,
   } = useResourceOwners<Dashboard>({
     ownerUserModelType: DashboardOwnerUser,
     ownerTeamModelType: DashboardOwnerTeam,
     resourceIdField: "dashboardId",
+    showLabelsFacet: true,
   });
 
   const handleTemplateClick: (type: DashboardTemplateType) => void =
@@ -92,171 +92,154 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <></>
       )}
 
-      {ownerFilterUI}
-      <ModelTable<Dashboard>
-        modelType={Dashboard}
-        id="dashboard-table"
-        userPreferencesKey="dashboards-table"
-        query={mergeOwnerFilterIntoQuery(undefined)}
-        onFetchSuccess={(data: Array<Dashboard>) => {
-          onResourcesFetched(data);
-        }}
-        isDeleteable={false}
-        isEditable={false}
-        isCreateable={true}
-        bulkActions={{
-          buttons: [...labelBulkActions],
-        }}
-        name="Dashboards"
-        isViewable={true}
-        showCreateForm={showCreateForm}
-        cardProps={{
-          title: "Dashboards",
-          description: "Here is a list of dashboards for this project.",
-          buttons: [
+      <ResourceFiltersLayout facetPanel={facetPanel}>
+        <ModelTable<Dashboard>
+          modelType={Dashboard}
+          id="dashboard-table"
+          userPreferencesKey="dashboards-table"
+          query={mergeFiltersIntoQuery(undefined)}
+          onFetchSuccess={(data: Array<Dashboard>) => {
+            onResourcesFetched(data);
+          }}
+          isDeleteable={false}
+          isEditable={false}
+          isCreateable={true}
+          bulkActions={{
+            buttons: [...labelBulkActions],
+          }}
+          name="Dashboards"
+          isViewable={true}
+          showCreateForm={showCreateForm}
+          cardProps={{
+            title: "Dashboards",
+            description: "Here is a list of dashboards for this project.",
+            buttons: [
+              {
+                title: "Create from Template",
+                buttonStyle: ButtonStyleType.OUTLINE,
+                onClick: () => {
+                  setShowTemplateModal(true);
+                },
+                icon: IconProp.Add,
+              },
+            ],
+          }}
+          showViewIdButton={true}
+          noItemsMessage={"No dashboards found."}
+          formFields={[
             {
-              title: "Create from Template",
-              buttonStyle: ButtonStyleType.OUTLINE,
-              onClick: () => {
-                setShowTemplateModal(true);
-              },
-              icon: IconProp.Add,
-            },
-          ],
-        }}
-        showViewIdButton={true}
-        noItemsMessage={"No dashboards found."}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Dashboard Name",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Description",
-          },
-        ]}
-        onBeforeCreate={async (
-          item: Dashboard,
-          miscDataProps: JSONObject,
-        ): Promise<Dashboard> => {
-          if (
-            selectedTemplate &&
-            selectedTemplate !== DashboardTemplateType.Blank
-          ) {
-            miscDataProps["dashboardTemplateType"] = selectedTemplate;
-          }
-          setSelectedTemplate(null);
-          setShowCreateForm(false);
-          return item;
-        }}
-        saveFilterProps={{
-          tableId: "all-dashboards-table",
-        }}
-        showRefreshButton={true}
-        searchableFields={["name", "description"]}
-        viewPageRoute={Navigation.getCurrentRoute()}
-        filters={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            type: FieldType.LongText,
-          },
-          {
-            field: {
-              labels: {
+              field: {
                 name: true,
-                color: true,
+              },
+              title: "Name",
+              fieldType: FormFieldSchemaType.Text,
+              required: true,
+              placeholder: "Dashboard Name",
+              validation: {
+                minLength: 2,
               },
             },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
+            {
+              field: {
+                description: true,
+              },
+              title: "Description",
+              fieldType: FormFieldSchemaType.LongText,
+              required: false,
+              placeholder: "Description",
             },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            type: FieldType.Element,
-            getElement: (item: Dashboard): ReactElement => {
-              return <DashboardElement dashboard={item} />;
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            noValueMessage: "-",
-            title: "Description",
-            type: FieldType.LongText,
-            hideOnMobile: true,
-          },
-          {
-            field: {
-              labels: {
+          ]}
+          onBeforeCreate={async (
+            item: Dashboard,
+            miscDataProps: JSONObject,
+          ): Promise<Dashboard> => {
+            if (
+              selectedTemplate &&
+              selectedTemplate !== DashboardTemplateType.Blank
+            ) {
+              miscDataProps["dashboardTemplateType"] = selectedTemplate;
+            }
+            setSelectedTemplate(null);
+            setShowCreateForm(false);
+            return item;
+          }}
+          saveFilterProps={{
+            tableId: "all-dashboards-table",
+          }}
+          showRefreshButton={true}
+          searchableFields={["name", "description"]}
+          viewPageRoute={Navigation.getCurrentRoute()}
+          filters={[
+            {
+              field: {
                 name: true,
-                color: true,
+              },
+              title: "Name",
+              type: FieldType.Text,
+            },
+            {
+              field: {
+                description: true,
+              },
+              title: "Description",
+              type: FieldType.LongText,
+            },
+          ]}
+          columns={[
+            {
+              field: {
+                name: true,
+              },
+              title: "Name",
+              type: FieldType.Element,
+              getElement: (item: Dashboard): ReactElement => {
+                return <DashboardElement dashboard={item} />;
               },
             },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            hideOnMobile: true,
+            {
+              field: {
+                description: true,
+              },
+              noValueMessage: "-",
+              title: "Description",
+              type: FieldType.LongText,
+              hideOnMobile: true,
+            },
+            {
+              field: {
+                labels: {
+                  name: true,
+                  color: true,
+                },
+              },
+              title: "Labels",
+              type: FieldType.EntityArray,
+              hideOnMobile: true,
 
-            getElement: (item: Dashboard): ReactElement => {
-              return <LabelsElement labels={item["labels"] || []} />;
+              getElement: (item: Dashboard): ReactElement => {
+                return <LabelsElement labels={item["labels"] || []} />;
+              },
             },
-          },
-          {
-            field: {
-              _id: true,
+            {
+              field: {
+                _id: true,
+              },
+              title: "Owners",
+              type: FieldType.Element,
+              hideOnMobile: true,
+              getElement: (item: Dashboard): ReactElement => {
+                const id: string | undefined = item.id?.toString();
+                return (
+                  <OwnersCell
+                    owners={id ? ownersByResourceId[id] : undefined}
+                    isLoading={isLoadingOwners}
+                  />
+                );
+              },
             },
-            title: "Owners",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: Dashboard): ReactElement => {
-              const id: string | undefined = item.id?.toString();
-              return (
-                <OwnersCell
-                  owners={id ? ownersByResourceId[id] : undefined}
-                  isLoading={isLoadingOwners}
-                />
-              );
-            },
-          },
-        ]}
-      />
+          ]}
+        />
+      </ResourceFiltersLayout>
       {labelBulkActionModals}
     </Fragment>
   );

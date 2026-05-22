@@ -1,6 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ServiceElement from "../../Components/Service/ServiceElement";
-import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -13,6 +12,7 @@ import ServiceOwnerTeam from "Common/Models/DatabaseModels/ServiceOwnerTeam";
 import ServiceOwnerUser from "Common/Models/DatabaseModels/ServiceOwnerUser";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import ResourceFiltersLayout from "../../Components/ResourceOwners/ResourceFiltersLayout";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 
 const ServicesPage: FunctionComponent<
@@ -25,191 +25,175 @@ const ServicesPage: FunctionComponent<
     ownersByResourceId,
     isLoadingOwners,
     onResourcesFetched,
-    ownerFilterUI,
-    mergeOwnerFilterIntoQuery,
+    facetPanel,
+    mergeFiltersIntoQuery,
   } = useResourceOwners<Service>({
     ownerUserModelType: ServiceOwnerUser,
     ownerTeamModelType: ServiceOwnerTeam,
     resourceIdField: "serviceId",
+    showLabelsFacet: true,
   });
 
   return (
     <Fragment>
-      {ownerFilterUI}
-      <ModelTable<Service>
-        modelType={Service}
-        id="service-table"
-        userPreferencesKey="service-table"
-        query={mergeOwnerFilterIntoQuery(undefined)}
-        onFetchSuccess={(data: Array<Service>) => {
-          onResourcesFetched(data);
-        }}
-        saveFilterProps={{
-          tableId: "service-table",
-        }}
-        isDeleteable={false}
-        isEditable={false}
-        isCreateable={true}
-        bulkActions={{
-          buttons: [...labelBulkActions],
-        }}
-        name="Services"
-        isViewable={true}
-        cardProps={{
-          title: "Services",
-          description: "List and manage services for this project here.",
-        }}
-        showViewIdButton={true}
-        noItemsMessage={"No services found."}
-        selectMoreFields={{
-          serviceColor: true,
-        }}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Service Name",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Description",
-          },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            description:
-              "Labels help you categorize and organize your services.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            required: false,
-            placeholder: "Labels",
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-          },
-        ]}
-        showRefreshButton={true}
-        viewPageRoute={Navigation.getCurrentRoute()}
-        searchableFields={["name", "description"]}
-        filters={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            type: FieldType.LongText,
-          },
-          {
-            field: {
-              labels: {
+      <ResourceFiltersLayout facetPanel={facetPanel}>
+        <ModelTable<Service>
+          modelType={Service}
+          id="service-table"
+          userPreferencesKey="service-table"
+          query={mergeFiltersIntoQuery(undefined)}
+          onFetchSuccess={(data: Array<Service>) => {
+            onResourcesFetched(data);
+          }}
+          saveFilterProps={{
+            tableId: "service-table",
+          }}
+          isDeleteable={false}
+          isEditable={false}
+          isCreateable={true}
+          bulkActions={{
+            buttons: [...labelBulkActions],
+          }}
+          name="Services"
+          isViewable={true}
+          cardProps={{
+            title: "Services",
+            description: "List and manage services for this project here.",
+          }}
+          showViewIdButton={true}
+          noItemsMessage={"No services found."}
+          selectMoreFields={{
+            serviceColor: true,
+          }}
+          formFields={[
+            {
+              field: {
                 name: true,
-                color: true,
+              },
+              title: "Name",
+              fieldType: FormFieldSchemaType.Text,
+              required: true,
+              placeholder: "Service Name",
+              validation: {
+                minLength: 2,
               },
             },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
+            {
+              field: {
+                description: true,
+              },
+              title: "Description",
+              fieldType: FormFieldSchemaType.LongText,
+              required: false,
+              placeholder: "Description",
             },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              lastSeenAt: true,
-            },
-            title: "Last Seen",
-            type: FieldType.Date,
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            type: FieldType.Element,
-            getElement: (service: Service): ReactElement => {
-              return (
-                <Fragment>
-                  <ServiceElement service={service} />
-                </Fragment>
-              );
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            noValueMessage: "-",
-            title: "Description",
-            type: FieldType.LongText,
-          },
-          {
-            field: {
-              lastSeenAt: true,
-            },
-            title: "Last Seen",
-            type: FieldType.DateTime,
-          },
-          {
-            field: {
-              labels: {
-                name: true,
-                color: true,
+            {
+              field: {
+                labels: true,
+              },
+              title: "Labels",
+              description:
+                "Labels help you categorize and organize your services.",
+              fieldType: FormFieldSchemaType.MultiSelectDropdown,
+              required: false,
+              placeholder: "Labels",
+              dropdownModal: {
+                type: Label,
+                labelField: "name",
+                valueField: "_id",
               },
             },
-            title: "Labels",
-            type: FieldType.EntityArray,
+          ]}
+          showRefreshButton={true}
+          viewPageRoute={Navigation.getCurrentRoute()}
+          searchableFields={["name", "description"]}
+          filters={[
+            {
+              field: {
+                name: true,
+              },
+              title: "Name",
+              type: FieldType.Text,
+            },
+            {
+              field: {
+                description: true,
+              },
+              title: "Description",
+              type: FieldType.LongText,
+            },
+            {
+              field: {
+                lastSeenAt: true,
+              },
+              title: "Last Seen",
+              type: FieldType.Date,
+            },
+          ]}
+          columns={[
+            {
+              field: {
+                name: true,
+              },
+              title: "Name",
+              type: FieldType.Element,
+              getElement: (service: Service): ReactElement => {
+                return (
+                  <Fragment>
+                    <ServiceElement service={service} />
+                  </Fragment>
+                );
+              },
+            },
+            {
+              field: {
+                description: true,
+              },
+              noValueMessage: "-",
+              title: "Description",
+              type: FieldType.LongText,
+            },
+            {
+              field: {
+                lastSeenAt: true,
+              },
+              title: "Last Seen",
+              type: FieldType.DateTime,
+            },
+            {
+              field: {
+                labels: {
+                  name: true,
+                  color: true,
+                },
+              },
+              title: "Labels",
+              type: FieldType.EntityArray,
 
-            getElement: (item: Service): ReactElement => {
-              return <LabelsElement labels={item["labels"] || []} />;
+              getElement: (item: Service): ReactElement => {
+                return <LabelsElement labels={item["labels"] || []} />;
+              },
             },
-          },
-          {
-            field: {
-              _id: true,
+            {
+              field: {
+                _id: true,
+              },
+              title: "Owners",
+              type: FieldType.Element,
+              hideOnMobile: true,
+              getElement: (item: Service): ReactElement => {
+                const id: string | undefined = item.id?.toString();
+                return (
+                  <OwnersCell
+                    owners={id ? ownersByResourceId[id] : undefined}
+                    isLoading={isLoadingOwners}
+                  />
+                );
+              },
             },
-            title: "Owners",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: Service): ReactElement => {
-              const id: string | undefined = item.id?.toString();
-              return (
-                <OwnersCell
-                  owners={id ? ownersByResourceId[id] : undefined}
-                  isLoading={isLoadingOwners}
-                />
-              );
-            },
-          },
-        ]}
-      />
+          ]}
+        />
+      </ResourceFiltersLayout>
       {labelBulkActionModals}
     </Fragment>
   );
