@@ -673,6 +673,7 @@ export default class Profile extends AnalyticsBaseModel {
       primaryKeys: ["projectId", "startTime", "serviceId", "profileType"],
       partitionKey: "sipHash64(projectId) % 16",
       ttlExpression: "retentionDate DELETE",
+      defaultSortColumn: "startTime",
     });
   }
 

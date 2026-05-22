@@ -535,9 +535,19 @@ export default class AnalyticsDatabaseService<
   ): Promise<Array<TBaseModel>> {
     try {
       if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
+        /*
+         * Default sort uses the model's declared `defaultSortColumn`
+         * (e.g. `time` for Log, `startTime` for Span) so the query
+         * streams from the ClickHouse sort key. The historical
+         * fallback of `createdAt` is not in the sort key on most
+         * analytics tables, which triggered a full sort even on
+         * small LIMITed queries.
+         */
+        const defaultSortColumn: string =
+          this.model.defaultSortColumn || "createdAt";
         findBy.sort = {
-          createdAt: SortOrder.Descending,
-        };
+          [defaultSortColumn]: SortOrder.Descending,
+        } as any;
 
         if (!findBy.select) {
           findBy.select = {} as any;

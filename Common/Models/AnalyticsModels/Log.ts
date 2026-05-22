@@ -569,6 +569,7 @@ export default class Log extends AnalyticsBaseModel {
       primaryKeys: ["projectId", "time", "serviceId"],
       partitionKey: "sipHash64(projectId) % 16",
       ttlExpression: "retentionDate DELETE",
+      defaultSortColumn: "time",
     });
   }
 

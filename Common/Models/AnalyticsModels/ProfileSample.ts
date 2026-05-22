@@ -542,6 +542,7 @@ export default class ProfileSample extends AnalyticsBaseModel {
       ],
       partitionKey: "sipHash64(projectId) % 16",
       ttlExpression: "retentionDate DELETE",
+      defaultSortColumn: "time",
     });
   }
 

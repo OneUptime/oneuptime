@@ -29,6 +29,22 @@ import { UserPermission } from "../../Types/Permission";
 import PositiveNumber from "../../Types/PositiveNumber";
 import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import GlobalCache from "../Infrastructure/GlobalCache";
+import logger from "../Utils/Logger";
+
+/*
+ * Aggregate cache TTL. Dashboards typically auto-refresh every 30s+,
+ * so an 8s window collapses bursts of identical requests (e.g. 12
+ * widgets loading on the same page) onto a single ClickHouse query
+ * while still looking real-time to humans.
+ *
+ * Project-scoped only: analytics data is project-wide and the
+ * service layer enforces project-scoped read permissions, so
+ * caching across users within the same project is safe. Endpoints
+ * with row-level access scoping should override `getAggregate` to
+ * skip the cache (or shape the key to include the access scope).
+ */
+const ANALYTICS_AGGREGATE_CACHE_TTL_SECONDS: number = 8;
 
 export default class BaseAnalyticsAPI<
   TAnalyticsDataModel extends AnalyticsDataModel,
@@ -344,14 +360,89 @@ export default class BaseAnalyticsAPI<
     const databaseProps: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
+    /*
+     * Short-lived project-scoped cache. A dashboard refresh fires
+     * one /aggregate call per widget — typically 10+ identical or
+     * near-identical aggregations against the same time window
+     * inside a few hundred milliseconds. Cache the result for 8s
+     * so the underlying ClickHouse aggregation runs once per
+     * burst. On cache outage (Redis down, parse error, …) we fall
+     * through to a live query so behavior degrades to today's.
+     */
+    const projectId: string | undefined = databaseProps.tenantId?.toString();
+    const cacheNamespace: string = `${this.getEntityName()}-aggregate`;
+    const cacheKey: string | null = projectId
+      ? `${projectId}:${this.buildAggregateCacheKey(aggregateBy)}`
+      : null;
+
+    if (cacheKey) {
+      try {
+        const cached: JSONObject | null = await GlobalCache.getJSONObject(
+          cacheNamespace,
+          cacheKey,
+        );
+        if (cached) {
+          return Response.sendJsonObjectResponse(req, res, cached);
+        }
+      } catch (err) {
+        logger.debug(`${cacheNamespace} cache read failed`);
+        logger.debug(err);
+      }
+    }
+
     const aggregateResult: AggregatedResult = await this.service.aggregateBy({
       ...aggregateBy,
       props: databaseProps,
     });
 
-    return Response.sendJsonObjectResponse(req, res, {
-      ...(aggregateResult as any),
-    });
+    const responseBody: JSONObject = { ...(aggregateResult as any) };
+
+    if (cacheKey) {
+      try {
+        await GlobalCache.setJSON(cacheNamespace, cacheKey, responseBody, {
+          expiresInSeconds: ANALYTICS_AGGREGATE_CACHE_TTL_SECONDS,
+        });
+      } catch (err) {
+        logger.debug(`${cacheNamespace} cache write failed`);
+        logger.debug(err);
+      }
+    }
+
+    return Response.sendJsonObjectResponse(req, res, responseBody);
+  }
+
+  /*
+   * Stable serialization for the aggregate cache key. Date instances
+   * are normalized to ISO so two logically-equal time windows hit
+   * the same cache slot, and we sort object keys so the ordering is
+   * deterministic across clients and across V8 versions.
+   */
+  protected buildAggregateCacheKey(
+    aggregateBy: AggregateBy<AnalyticsDataModel>,
+  ): string {
+    return JSON.stringify(
+      aggregateBy,
+      (_key: string, value: unknown): unknown => {
+        if (value instanceof Date) {
+          return value.toISOString();
+        }
+        if (
+          value &&
+          typeof value === "object" &&
+          !Array.isArray(value) &&
+          (value as Record<string, unknown>).constructor === Object
+        ) {
+          const sorted: Record<string, unknown> = {};
+          for (const k of Object.keys(
+            value as Record<string, unknown>,
+          ).sort()) {
+            sorted[k] = (value as Record<string, unknown>)[k];
+          }
+          return sorted;
+        }
+        return value;
+      },
+    );
   }
 
   @CaptureSpan()

@@ -188,6 +188,7 @@ export default class MonitorLog extends AnalyticsBaseModel {
       primaryKeys: ["projectId", "time", "monitorId"],
       partitionKey: "sipHash64(projectId) % 16",
       ttlExpression: "retentionDate DELETE",
+      defaultSortColumn: "time",
     });
   }
 
