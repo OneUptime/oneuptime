@@ -68,6 +68,9 @@ const ServiceLabelRulesPage: FunctionComponent<
       id="service-label-rules-table"
       name="Settings > Service Label Rules"
       userPreferencesKey="service-label-rules-table"
+      saveFilterProps={{
+        tableId: "service-label-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

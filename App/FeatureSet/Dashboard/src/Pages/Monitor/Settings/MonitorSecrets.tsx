@@ -39,6 +39,9 @@ const MonitorSecrets: FunctionComponent<
         }}
         id="monitor-secret-table"
         name="Settings > Monitor Secret"
+        saveFilterProps={{
+          tableId: "monitor-secrets-table",
+        }}
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}

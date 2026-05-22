@@ -27,6 +27,9 @@ const ServiceOwners: FunctionComponent<
         id="table-service-owner-team"
         userPreferencesKey="service-owner-team-table"
         name="Service > Owner Team"
+        saveFilterProps={{
+          tableId: "service-owner-team-table",
+        }}
         singularName="Team"
         isDeleteable={true}
         createVerb={"Add"}
@@ -123,6 +126,9 @@ const ServiceOwners: FunctionComponent<
         id="table-service-owner-user"
         name="Service > Owner User"
         userPreferencesKey="service-owner-user-table"
+        saveFilterProps={{
+          tableId: "service-owner-user-table",
+        }}
         isDeleteable={true}
         singularName="User"
         isCreateable={true}

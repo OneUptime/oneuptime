@@ -103,6 +103,9 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         modelType={Host}
         id="hosts-table"
         userPreferencesKey="hosts-table"
+        saveFilterProps={{
+          tableId: "hosts-table",
+        }}
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}

@@ -18,6 +18,9 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
         modelType={Runbook}
         id="runbooks-table"
         userPreferencesKey="runbooks-table"
+        saveFilterProps={{
+          tableId: "runbooks-table",
+        }}
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}

@@ -358,6 +358,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="table-incident-owner-team"
         userPreferencesKey="incident-owner-team-table"
         name="Incident Template > Owner Team"
+        saveFilterProps={{
+          tableId: "incident-template-owner-team-table",
+        }}
         singularName="Team"
         isDeleteable={true}
         createVerb={"Add"}
@@ -445,6 +448,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="table-incident-owner-team"
         name="Incident > Owner Team"
         userPreferencesKey="incident-owner-user-table"
+        saveFilterProps={{
+          tableId: "incident-template-owner-user-table",
+        }}
         isDeleteable={true}
         singularName="User"
         isCreateable={true}

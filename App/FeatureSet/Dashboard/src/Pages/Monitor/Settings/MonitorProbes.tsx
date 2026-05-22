@@ -41,6 +41,9 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           id="probes-table"
           name="Settings > Global Probes"
           userPreferencesKey={"admin-probes-table"}
+          saveFilterProps={{
+            tableId: "settings-global-probes-table",
+          }}
           isDeleteable={false}
           isEditable={false}
           isCreateable={false}
@@ -114,6 +117,9 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           id="probes-table"
           userPreferencesKey={"probes-table"}
           name="Settings > Probes"
+          saveFilterProps={{
+            tableId: "settings-project-probes-table",
+          }}
           isDeleteable={false}
           isEditable={false}
           isViewable={true}

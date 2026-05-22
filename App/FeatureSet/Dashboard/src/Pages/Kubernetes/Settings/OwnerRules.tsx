@@ -40,6 +40,9 @@ const KubernetesClusterOwnerRulesPage: FunctionComponent<
       id="kubernetesCluster-owner-rules-table"
       name="Settings > Kubernetes Cluster Owner Rules"
       userPreferencesKey="kubernetesCluster-owner-rules-table"
+      saveFilterProps={{
+        tableId: "kubernetes-cluster-owner-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

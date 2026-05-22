@@ -30,6 +30,9 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           modelType={WorkflowLog}
           id="workflow-logs-table"
           userPreferencesKey="workflow-logs-table"
+          saveFilterProps={{
+            tableId: "workflow-logs-table",
+          }}
           isDeleteable={false}
           actionButtons={[
             {

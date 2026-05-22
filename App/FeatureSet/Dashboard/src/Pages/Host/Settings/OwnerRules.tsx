@@ -40,6 +40,9 @@ const HostOwnerRulesPage: FunctionComponent<
       id="host-owner-rules-table"
       name="Settings > Host Owner Rules"
       userPreferencesKey="host-owner-rules-table"
+      saveFilterProps={{
+        tableId: "host-owner-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

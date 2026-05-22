@@ -44,6 +44,9 @@ const ScheduledMaintenanceLabelRulesPage: FunctionComponent<
         id="scheduled-maintenance-label-rules-table"
         name="Settings > Scheduled Maintenance Label Rules"
         userPreferencesKey="scheduled-maintenance-label-rules-table"
+        saveFilterProps={{
+          tableId: "scheduled-maintenance-label-rules-table",
+        }}
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}

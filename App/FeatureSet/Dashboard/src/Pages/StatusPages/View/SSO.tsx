@@ -60,6 +60,9 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
           }}
           id="sso-table"
           name="Status Pages > Status Page View > Project SSO"
+          saveFilterProps={{
+            tableId: "status-page-sso-table",
+          }}
           isDeleteable={true}
           isEditable={true}
           isCreateable={true}

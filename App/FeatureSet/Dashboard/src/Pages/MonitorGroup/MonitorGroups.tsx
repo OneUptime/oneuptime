@@ -54,6 +54,9 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
         name="Monitor Groups"
         id="monitors-group-table"
         userPreferencesKey="monitor-groups-table"
+        saveFilterProps={{
+          tableId: "monitor-groups-table",
+        }}
         isDeleteable={false}
         showViewIdButton={true}
         isEditable={false}

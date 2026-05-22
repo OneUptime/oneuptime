@@ -37,6 +37,9 @@ const HostLabelRulesPage: FunctionComponent<
       id="host-label-rules-table"
       name="Settings > Host Label Rules"
       userPreferencesKey="host-label-rules-table"
+      saveFilterProps={{
+        tableId: "host-label-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

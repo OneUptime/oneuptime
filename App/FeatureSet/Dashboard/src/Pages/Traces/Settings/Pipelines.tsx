@@ -50,6 +50,9 @@ const TracePipelines: FunctionComponent<
       id="trace-pipelines-table"
       name="Traces > Settings > Pipelines"
       userPreferencesKey="trace-pipelines-table"
+      saveFilterProps={{
+        tableId: "trace-pipelines-table",
+      }}
       isDeleteable={false}
       isEditable={false}
       isCreateable={true}

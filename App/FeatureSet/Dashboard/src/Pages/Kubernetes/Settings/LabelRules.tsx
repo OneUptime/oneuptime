@@ -37,6 +37,9 @@ const KubernetesClusterLabelRulesPage: FunctionComponent<
       id="kubernetesCluster-label-rules-table"
       name="Settings > Kubernetes Cluster Label Rules"
       userPreferencesKey="kubernetesCluster-label-rules-table"
+      saveFilterProps={{
+        tableId: "kubernetes-cluster-label-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

@@ -27,6 +27,9 @@ const IncomingCallPoliciesPage: FunctionComponent<
         modelType={IncomingCallPolicy}
         id="incoming-call-policy-table"
         userPreferencesKey="incoming-call-policy-table"
+        saveFilterProps={{
+          tableId: "incoming-call-policies-table",
+        }}
         isDeleteable={false}
         name="On-Call > Incoming Call Policies"
         showViewIdButton={true}

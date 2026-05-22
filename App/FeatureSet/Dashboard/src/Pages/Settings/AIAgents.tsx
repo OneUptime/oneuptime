@@ -31,6 +31,9 @@ const AIAgentsPage: FunctionComponent<
           id="ai-agents-table"
           name="Settings > Global AI Agents"
           userPreferencesKey={"admin-ai-agents-table"}
+          saveFilterProps={{
+            tableId: "settings-global-ai-agents-table",
+          }}
           isDeleteable={false}
           isEditable={false}
           isCreateable={false}
@@ -104,6 +107,9 @@ const AIAgentsPage: FunctionComponent<
           id="ai-agents-table"
           userPreferencesKey={"ai-agents-table"}
           name="Settings > AI Agents"
+          saveFilterProps={{
+            tableId: "settings-project-ai-agents-table",
+          }}
           isDeleteable={false}
           isEditable={false}
           isViewable={true}

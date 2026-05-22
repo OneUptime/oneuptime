@@ -108,6 +108,9 @@ const LogPipelines: FunctionComponent<
       id="log-pipelines-table"
       name="Logs > Settings > Pipelines"
       userPreferencesKey="log-pipelines-table"
+      saveFilterProps={{
+        tableId: "log-pipelines-table",
+      }}
       isDeleteable={false}
       isEditable={false}
       isCreateable={true}

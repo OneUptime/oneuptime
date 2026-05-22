@@ -58,6 +58,9 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
       id="incident-owner-rules-table"
       name="Settings > Incident Owner Rules"
       userPreferencesKey="incident-owner-rules-table"
+      saveFilterProps={{
+        tableId: "incident-owner-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}
@@ -296,6 +299,9 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
       id="incident-episode-owner-rules-table"
       name="Settings > Incident Episode Owner Rules"
       userPreferencesKey="incident-episode-owner-rules-table"
+      saveFilterProps={{
+        tableId: "incident-episode-owner-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

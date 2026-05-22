@@ -37,6 +37,9 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
         modelType={MonitorTemplate}
         id="monitor-templates-table"
         userPreferencesKey="monitor-templates-table"
+        saveFilterProps={{
+          tableId: "monitor-templates-table",
+        }}
         name="Settings > Monitor Templates"
         isDeleteable={false}
         isEditable={false}

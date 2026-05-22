@@ -218,6 +218,9 @@ const UserView: FunctionComponent<PageComponentProps> = (
         modelType={TeamMember}
         id="table-User-member"
         userPreferencesKey="user-member-table"
+        saveFilterProps={{
+          tableId: "settings-user-view-members-table",
+        }}
         isDeleteable={true}
         name="Settings > User > Member"
         createVerb={"Invite"}

@@ -739,6 +739,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         modelType={TeamMember}
         id="table-team-member"
         userPreferencesKey="team-member-table"
+        saveFilterProps={{
+          tableId: "settings-team-view-members-table",
+        }}
         isDeleteable={!isPushGroupsManaged}
         bulkActions={
           !isPushGroupsManaged
@@ -915,6 +918,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         modelType={TeamComplianceSetting}
         id="table-team-compliance-setting"
         userPreferencesKey="team-compliance-setting-table"
+        saveFilterProps={{
+          tableId: "settings-team-compliance-setting-table",
+        }}
         isDeleteable={true}
         name="Settings > Team > Compliance Settings"
         isCreateable={true}

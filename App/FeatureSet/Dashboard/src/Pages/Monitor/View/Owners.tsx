@@ -29,6 +29,9 @@ const MonitorOwners: FunctionComponent<
         id="table-monitor-owner-team"
         name="Monitor > Owner Team"
         userPreferencesKey="monitor-owner-team-table"
+        saveFilterProps={{
+          tableId: "monitor-owner-team-table",
+        }}
         singularName="Team"
         isDeleteable={true}
         createVerb={"Add"}
@@ -125,6 +128,9 @@ const MonitorOwners: FunctionComponent<
         id="table-monitor-owner-team"
         name="Monitor > Owner Team"
         userPreferencesKey="monitor-owner-user-table"
+        saveFilterProps={{
+          tableId: "monitor-owner-user-table",
+        }}
         isDeleteable={true}
         singularName="User"
         isCreateable={true}

@@ -145,6 +145,9 @@ const AlertGroupingRulesPage: FunctionComponent<
         id="alert-grouping-rules-table"
         name="Settings > Alert Grouping Rules"
         userPreferencesKey="alert-grouping-rules-table"
+        saveFilterProps={{
+          tableId: "alert-grouping-rules-table",
+        }}
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}

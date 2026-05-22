@@ -55,6 +55,9 @@ const OIDCPage: FunctionComponent<PageComponentProps> = (
           }}
           id="oidc-table"
           name="Status Pages > Status Page View > Status Page OIDC"
+          saveFilterProps={{
+            tableId: "status-page-oidc-table",
+          }}
           isDeleteable={true}
           isEditable={true}
           isCreateable={true}

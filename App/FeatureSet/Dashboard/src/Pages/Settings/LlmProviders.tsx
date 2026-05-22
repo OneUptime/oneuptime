@@ -102,6 +102,9 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           id="global-llms-table"
           name="Settings > Global LLM Providers"
           userPreferencesKey={"settings-global-llms-table"}
+          saveFilterProps={{
+            tableId: "settings-global-llms-table",
+          }}
           isDeleteable={false}
           isEditable={false}
           isCreateable={false}
@@ -179,6 +182,9 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           id="project-llms-table"
           userPreferencesKey={"settings-project-llms-table"}
           name="Settings > LLM Providers"
+          saveFilterProps={{
+            tableId: "settings-project-llms-table",
+          }}
           isDeleteable={true}
           isEditable={false}
           isViewable={true}

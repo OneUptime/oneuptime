@@ -27,6 +27,9 @@ const KubernetesClusterOwners: FunctionComponent<
         id="table-kubernetes-cluster-owner-team"
         name="Kubernetes Cluster > Owner Team"
         userPreferencesKey="kubernetes-cluster-owner-team-table"
+        saveFilterProps={{
+          tableId: "kubernetes-cluster-owner-team-table",
+        }}
         singularName="Team"
         isDeleteable={true}
         createVerb={"Add"}
@@ -127,6 +130,9 @@ const KubernetesClusterOwners: FunctionComponent<
         id="table-kubernetes-cluster-owner-user"
         name="Kubernetes Cluster > Owner User"
         userPreferencesKey="kubernetes-cluster-owner-user-table"
+        saveFilterProps={{
+          tableId: "kubernetes-cluster-owner-user-table",
+        }}
         isDeleteable={true}
         singularName="User"
         isCreateable={true}

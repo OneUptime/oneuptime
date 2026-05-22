@@ -69,6 +69,9 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
       id="alert-on-call-rules-table"
       name="Settings > Alert On-Call Rules"
       userPreferencesKey="alert-on-call-rules-table"
+      saveFilterProps={{
+        tableId: "alert-on-call-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}
@@ -276,6 +279,9 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
       id="alert-episode-on-call-rules-table"
       name="Settings > Alert Episode On-Call Rules"
       userPreferencesKey="alert-episode-on-call-rules-table"
+      saveFilterProps={{
+        tableId: "alert-episode-on-call-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

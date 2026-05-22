@@ -27,6 +27,9 @@ const RunbookOwners: FunctionComponent<
         id="table-runbook-owner-team"
         name="Runbook > Owner Team"
         userPreferencesKey="runbook-owner-team-table"
+        saveFilterProps={{
+          tableId: "runbook-owner-team-table",
+        }}
         singularName="Team"
         isDeleteable={true}
         createVerb={"Add"}
@@ -123,6 +126,9 @@ const RunbookOwners: FunctionComponent<
         id="table-runbook-owner-user"
         name="Runbook > Owner User"
         userPreferencesKey="runbook-owner-user-table"
+        saveFilterProps={{
+          tableId: "runbook-owner-user-table",
+        }}
         isDeleteable={true}
         singularName="User"
         isCreateable={true}

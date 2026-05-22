@@ -61,6 +61,9 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
       id="alert-label-rules-table"
       name="Settings > Alert Label Rules"
       userPreferencesKey="alert-label-rules-table"
+      saveFilterProps={{
+        tableId: "alert-label-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}
@@ -266,6 +269,9 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
       id="alert-episode-label-rules-table"
       name="Settings > Alert Episode Label Rules"
       userPreferencesKey="alert-episode-label-rules-table"
+      saveFilterProps={{
+        tableId: "alert-episode-label-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

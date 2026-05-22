@@ -37,6 +37,9 @@ const DashboardLabelRulesPage: FunctionComponent<
       id="dashboard-label-rules-table"
       name="Settings > Dashboard Label Rules"
       userPreferencesKey="dashboard-label-rules-table"
+      saveFilterProps={{
+        tableId: "dashboard-label-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

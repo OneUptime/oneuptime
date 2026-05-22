@@ -27,6 +27,9 @@ const EpisodeOwners: FunctionComponent<
         id="table-episode-owner-team"
         name="Episode > Owner Team"
         userPreferencesKey="episode-owner-team-table"
+        saveFilterProps={{
+          tableId: "incident-episode-owner-team-table",
+        }}
         singularName="Team"
         isDeleteable={true}
         createVerb={"Add"}
@@ -125,6 +128,9 @@ const EpisodeOwners: FunctionComponent<
         id="table-episode-owner-user"
         name="Episode > Owner User"
         userPreferencesKey="episode-owner-user-table"
+        saveFilterProps={{
+          tableId: "incident-episode-owner-user-table",
+        }}
         isDeleteable={true}
         singularName="User"
         isCreateable={true}

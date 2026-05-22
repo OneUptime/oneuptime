@@ -26,6 +26,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         id="status-page-group"
         name="Status Page > Groups"
         userPreferencesKey="status-page-group-table"
+        saveFilterProps={{
+          tableId: "status-page-groups-table",
+        }}
         isDeleteable={true}
         sortBy="order"
         showViewIdButton={true}

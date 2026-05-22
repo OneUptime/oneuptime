@@ -27,6 +27,9 @@ const WorkflowOwners: FunctionComponent<
         id="table-workflow-owner-team"
         name="Workflow > Owner Team"
         userPreferencesKey="workflow-owner-team-table"
+        saveFilterProps={{
+          tableId: "workflow-owner-team-table",
+        }}
         singularName="Team"
         isDeleteable={true}
         createVerb={"Add"}
@@ -125,6 +128,9 @@ const WorkflowOwners: FunctionComponent<
         id="table-workflow-owner-user"
         name="Workflow > Owner User"
         userPreferencesKey="workflow-owner-user-table"
+        saveFilterProps={{
+          tableId: "workflow-owner-user-table",
+        }}
         isDeleteable={true}
         singularName="User"
         isCreateable={true}

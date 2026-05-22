@@ -40,6 +40,9 @@ const WorkflowOwnerRulesPage: FunctionComponent<
       id="workflow-owner-rules-table"
       name="Settings > Workflow Owner Rules"
       userPreferencesKey="workflow-owner-rules-table"
+      saveFilterProps={{
+        tableId: "workflow-owner-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

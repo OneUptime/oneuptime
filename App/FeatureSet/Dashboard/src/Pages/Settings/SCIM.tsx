@@ -81,6 +81,9 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                 }}
                 id="scim-table"
                 name="Settings > Project SCIM"
+                saveFilterProps={{
+                  tableId: "settings-project-scim-table",
+                }}
                 isDeleteable={true}
                 isEditable={true}
                 isCreateable={true}

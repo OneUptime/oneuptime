@@ -62,6 +62,9 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
       id="incident-label-rules-table"
       name="Settings > Incident Label Rules"
       userPreferencesKey="incident-label-rules-table"
+      saveFilterProps={{
+        tableId: "incident-label-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}
@@ -279,6 +282,9 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
       id="incident-episode-label-rules-table"
       name="Settings > Incident Episode Label Rules"
       userPreferencesKey="incident-episode-label-rules-table"
+      saveFilterProps={{
+        tableId: "incident-episode-label-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

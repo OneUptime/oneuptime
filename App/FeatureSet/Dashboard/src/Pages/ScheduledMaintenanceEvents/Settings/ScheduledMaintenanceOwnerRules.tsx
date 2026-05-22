@@ -47,6 +47,9 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
         id="scheduled-maintenance-owner-rules-table"
         name="Settings > Scheduled Maintenance Owner Rules"
         userPreferencesKey="scheduled-maintenance-owner-rules-table"
+        saveFilterProps={{
+          tableId: "scheduled-maintenance-owner-rules-table",
+        }}
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}

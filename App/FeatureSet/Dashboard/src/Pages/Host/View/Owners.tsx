@@ -25,6 +25,9 @@ const HostOwners: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="table-host-owner-team"
         name="Host > Owner Team"
         userPreferencesKey="host-owner-team-table"
+        saveFilterProps={{
+          tableId: "host-owner-team-table",
+        }}
         singularName="Team"
         isDeleteable={true}
         createVerb={"Add"}
@@ -121,6 +124,9 @@ const HostOwners: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="table-host-owner-user"
         name="Host > Owner User"
         userPreferencesKey="host-owner-user-table"
+        saveFilterProps={{
+          tableId: "host-owner-user-table",
+        }}
         isDeleteable={true}
         singularName="User"
         isCreateable={true}

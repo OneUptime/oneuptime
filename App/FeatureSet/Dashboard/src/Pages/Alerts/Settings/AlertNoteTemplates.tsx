@@ -17,6 +17,9 @@ const AlertNoteTemplates: FunctionComponent<PageComponentProps> = (
         id="alert-templates-table"
         name="Settings > Alert Templates"
         userPreferencesKey="alert-templates-table"
+        saveFilterProps={{
+          tableId: "alert-note-templates-table",
+        }}
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}

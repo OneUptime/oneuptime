@@ -16,6 +16,9 @@ const Teams: FunctionComponent<PageComponentProps> = (
         modelType={Team}
         id="teams-table"
         name="Settings > Teams"
+        saveFilterProps={{
+          tableId: "settings-teams-table",
+        }}
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}

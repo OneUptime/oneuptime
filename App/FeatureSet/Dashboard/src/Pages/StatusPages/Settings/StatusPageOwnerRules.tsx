@@ -40,6 +40,9 @@ const StatusPageOwnerRulesPage: FunctionComponent<
       id="status-page-owner-rules-table"
       name="Settings > Status Page Owner Rules"
       userPreferencesKey="status-page-owner-rules-table"
+      saveFilterProps={{
+        tableId: "status-page-owner-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

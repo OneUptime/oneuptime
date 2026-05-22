@@ -37,6 +37,9 @@ const DockerHostLabelRulesPage: FunctionComponent<
       id="dockerHost-label-rules-table"
       name="Settings > Docker Host Label Rules"
       userPreferencesKey="dockerHost-label-rules-table"
+      saveFilterProps={{
+        tableId: "docker-host-label-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

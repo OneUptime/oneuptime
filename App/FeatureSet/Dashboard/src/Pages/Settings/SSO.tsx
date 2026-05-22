@@ -46,6 +46,9 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
           }}
           id="sso-table"
           name="Settings > Project SSO"
+          saveFilterProps={{
+            tableId: "settings-project-sso-table",
+          }}
           isDeleteable={true}
           isEditable={true}
           isCreateable={true}

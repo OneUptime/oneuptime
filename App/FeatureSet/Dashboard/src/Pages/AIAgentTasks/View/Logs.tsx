@@ -41,6 +41,9 @@ const AIAgentTaskLogsPage: FunctionComponent<
         <ModelTable<AIAgentTaskLog>
           modelType={AIAgentTaskLog}
           id="ai-agent-task-logs-table"
+          saveFilterProps={{
+            tableId: "ai-agent-task-logs-table",
+          }}
           isDeleteable={false}
           isEditable={false}
           isCreateable={false}

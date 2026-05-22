@@ -38,6 +38,9 @@ const RunbookSecrets: FunctionComponent<
         }}
         id="runbook-secret-table"
         name="Settings > Runbook Secret"
+        saveFilterProps={{
+          tableId: "runbook-secrets-table",
+        }}
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}

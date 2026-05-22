@@ -284,6 +284,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="table-ScheduledMaintenance-owner-team"
         userPreferencesKey="scheduled-maintenance-owner-team-table"
         name="ScheduledMaintenance Template > Owner Team"
+        saveFilterProps={{
+          tableId: "scheduled-maintenance-template-owner-team-table",
+        }}
         singularName="Team"
         isDeleteable={true}
         createVerb={"Add"}
@@ -373,6 +376,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="table-ScheduledMaintenance-owner-team"
         userPreferencesKey="scheduled-maintenance-owner-user-table"
         name="ScheduledMaintenance > Owner Team"
+        saveFilterProps={{
+          tableId: "scheduled-maintenance-template-owner-user-table",
+        }}
         isDeleteable={true}
         singularName="User"
         isCreateable={true}

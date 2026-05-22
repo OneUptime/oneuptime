@@ -25,6 +25,9 @@ const AlertOwners: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="table-alert-owner-team"
         name="Alert > Owner Team"
         userPreferencesKey="alert-owner-team-table"
+        saveFilterProps={{
+          tableId: "alert-owner-team-table",
+        }}
         singularName="Team"
         isDeleteable={true}
         createVerb={"Add"}
@@ -121,6 +124,9 @@ const AlertOwners: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="table-alert-owner-team"
         name="Alert > Owner Team"
         userPreferencesKey="alert-owner-user-table"
+        saveFilterProps={{
+          tableId: "alert-owner-user-table",
+        }}
         isDeleteable={true}
         singularName="User"
         isCreateable={true}

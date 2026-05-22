@@ -27,6 +27,9 @@ const StatusPageOwners: FunctionComponent<
         id="table-statusPage-owner-team"
         name="StatusPage > Owner Team"
         userPreferencesKey="status-page-owner-team-table"
+        saveFilterProps={{
+          tableId: "status-page-owner-team-table",
+        }}
         singularName="Team"
         isDeleteable={true}
         createVerb={"Add"}
@@ -126,6 +129,9 @@ const StatusPageOwners: FunctionComponent<
         id="table-statusPage-owner-team"
         name="StatusPage > Owner Team"
         userPreferencesKey="status-page-owner-user-table"
+        saveFilterProps={{
+          tableId: "status-page-owner-user-table",
+        }}
         isDeleteable={true}
         singularName="User"
         isCreateable={true}

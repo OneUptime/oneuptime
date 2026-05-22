@@ -40,6 +40,9 @@ const MonitorOwnerRulesPage: FunctionComponent<
       id="monitor-owner-rules-table"
       name="Settings > Monitor Owner Rules"
       userPreferencesKey="monitor-owner-rules-table"
+      saveFilterProps={{
+        tableId: "monitor-owner-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

@@ -193,6 +193,9 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
         id="table-scheduled-maintenance-internal-note"
         name="Scheduled Maintenance Events > Public Notes"
         userPreferencesKey="scheduled-maintenance-public-note-table"
+        saveFilterProps={{
+          tableId: "scheduled-maintenance-public-note-table",
+        }}
         isDeleteable={true}
         createEditModalWidth={ModalWidth.Large}
         isCreateable={true}

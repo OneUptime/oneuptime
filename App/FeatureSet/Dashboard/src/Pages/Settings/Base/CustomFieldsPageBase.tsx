@@ -43,6 +43,9 @@ const CustomFieldsPageBase: (
         showViewIdButton={true}
         id="custom-fields-table"
         name={"Settings > " + props.title}
+        saveFilterProps={{
+          tableId: "settings-custom-fields-" + props.modelType.name + "-table",
+        }}
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}

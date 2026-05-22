@@ -54,6 +54,9 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
       id="alert-owner-rules-table"
       name="Settings > Alert Owner Rules"
       userPreferencesKey="alert-owner-rules-table"
+      saveFilterProps={{
+        tableId: "alert-owner-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}
@@ -291,6 +294,9 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
       id="alert-episode-owner-rules-table"
       name="Settings > Alert Episode Owner Rules"
       userPreferencesKey="alert-episode-owner-rules-table"
+      saveFilterProps={{
+        tableId: "alert-episode-owner-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

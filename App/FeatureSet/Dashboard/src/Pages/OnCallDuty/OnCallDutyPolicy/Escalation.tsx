@@ -30,6 +30,9 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
         modelType={OnCallDutyEscalationRule}
         id="table-scheduled-maintenance-internal-note"
         userPreferencesKey="scheduled-maintenance-internal-note-table"
+        saveFilterProps={{
+          tableId: "on-call-policy-escalation-rules-table",
+        }}
         name="Scheduled Maintenance Events > Public Notes"
         isDeleteable={true}
         isCreateable={true}

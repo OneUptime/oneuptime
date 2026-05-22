@@ -71,6 +71,9 @@ const ServiceOwnerRulesPage: FunctionComponent<
       id="service-owner-rules-table"
       name="Settings > Service Owner Rules"
       userPreferencesKey="service-owner-rules-table"
+      saveFilterProps={{
+        tableId: "service-owner-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

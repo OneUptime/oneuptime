@@ -354,6 +354,9 @@ const StatusPageWebhookSubscribers: FunctionComponent<PageComponentProps> = (
             id="table-webhook-subscriber"
             name="Status Page > Webhook Subscribers"
             userPreferencesKey="status-page-webhook-subscribers-table"
+            saveFilterProps={{
+              tableId: "status-page-webhook-subscribers-table",
+            }}
             isDeleteable={true}
             showViewIdButton={true}
             isCreateable={true}

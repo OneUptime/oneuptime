@@ -27,6 +27,9 @@ const OnCallDutyScheduleOwners: FunctionComponent<
         id="table-on-call-schedule-owner-team"
         userPreferencesKey="on-call-schedule-owner-team-table"
         name="On-Call Schedule > Owner Team"
+        saveFilterProps={{
+          tableId: "on-call-schedule-owner-team-table",
+        }}
         singularName="Team"
         isDeleteable={true}
         createVerb={"Add"}
@@ -128,6 +131,9 @@ const OnCallDutyScheduleOwners: FunctionComponent<
         id="table-on-call-schedule-owner-user"
         userPreferencesKey="on-call-schedule-owner-user-table"
         name="On-Call Schedule > Owner User"
+        saveFilterProps={{
+          tableId: "on-call-schedule-owner-user-table",
+        }}
         isDeleteable={true}
         singularName="User"
         isCreateable={true}

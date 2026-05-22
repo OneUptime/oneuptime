@@ -22,6 +22,9 @@ const TeamMemberCustomFields: FunctionComponent<PageComponentProps> = (
         showViewIdButton={true}
         id="team-member-custom-fields-table"
         name="Settings > Team Member Custom Fields"
+        saveFilterProps={{
+          tableId: "settings-team-member-custom-fields-table",
+        }}
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}

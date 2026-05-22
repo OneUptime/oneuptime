@@ -56,6 +56,9 @@ const ServicesPage: FunctionComponent<
         modelType={Service}
         id="service-table"
         userPreferencesKey="service-table"
+        saveFilterProps={{
+          tableId: "service-table",
+        }}
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}

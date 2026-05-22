@@ -22,6 +22,9 @@ const OnCallDutyPage: FunctionComponent<
         modelType={OnCallDutySchedule}
         id="on-call-duty-table"
         userPreferencesKey="on-call-duty-table"
+        saveFilterProps={{
+          tableId: "on-call-schedules-table",
+        }}
         isDeleteable={false}
         name="On-Call > Schedules"
         showViewIdButton={true}

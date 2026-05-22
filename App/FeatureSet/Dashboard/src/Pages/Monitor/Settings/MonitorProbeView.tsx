@@ -222,6 +222,9 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
         modelType={ProbeOwnerTeam}
         id="table-monitor-owner-team"
         userPreferencesKey="probe-owner-team-table"
+        saveFilterProps={{
+          tableId: "probe-owner-team-table",
+        }}
         name="Probe > Owner Team"
         singularName="Team"
         isDeleteable={true}
@@ -318,6 +321,9 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
         id="table-monitor-owner-team"
         name="Probe > Owner Team"
         userPreferencesKey="probe-owner-user-table"
+        saveFilterProps={{
+          tableId: "probe-owner-user-table",
+        }}
         isDeleteable={true}
         singularName="User"
         isCreateable={true}

@@ -41,6 +41,9 @@ const OIDCPage: FunctionComponent<PageComponentProps> = (
           }}
           id="oidc-table"
           name="Settings > Project OIDC"
+          saveFilterProps={{
+            tableId: "settings-project-oidc-table",
+          }}
           isDeleteable={true}
           isEditable={true}
           isCreateable={true}

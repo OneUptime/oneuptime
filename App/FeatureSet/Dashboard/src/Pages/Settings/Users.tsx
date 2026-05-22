@@ -78,6 +78,9 @@ const Teams: FunctionComponent<PageComponentProps> = (
                   id="teams-table"
                   name="Settings > Users"
                   userPreferencesKey="users-table"
+                  saveFilterProps={{
+                    tableId: "settings-users-table",
+                  }}
                   isDeleteable={!isPushGroupsManaged}
                   bulkActions={
                     !isPushGroupsManaged

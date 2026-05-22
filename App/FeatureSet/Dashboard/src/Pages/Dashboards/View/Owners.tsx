@@ -27,6 +27,9 @@ const DashboardOwners: FunctionComponent<
         id="table-dashboard-owner-team"
         name="Dashboard > Owner Team"
         userPreferencesKey="dashboard-owner-team-table"
+        saveFilterProps={{
+          tableId: "dashboard-owner-team-table",
+        }}
         singularName="Team"
         isDeleteable={true}
         createVerb={"Add"}
@@ -125,6 +128,9 @@ const DashboardOwners: FunctionComponent<
         id="table-dashboard-owner-user"
         name="Dashboard > Owner User"
         userPreferencesKey="dashboard-owner-user-table"
+        saveFilterProps={{
+          tableId: "dashboard-owner-user-table",
+        }}
         isDeleteable={true}
         singularName="User"
         isCreateable={true}

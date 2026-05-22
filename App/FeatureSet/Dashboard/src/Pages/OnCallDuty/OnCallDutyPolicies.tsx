@@ -23,6 +23,9 @@ const OnCallDutyPage: FunctionComponent<
         modelType={OnCallDutyPolicy}
         id="on-call-duty-table"
         userPreferencesKey="on-call-duty-table"
+        saveFilterProps={{
+          tableId: "on-call-policies-table",
+        }}
         isDeleteable={false}
         name="On-Call > Policies"
         showViewIdButton={true}

@@ -100,6 +100,9 @@ const IncidentSlaRulesPage: FunctionComponent<
         id="incident-sla-rules-table"
         name="Settings > Incident SLA Rules"
         userPreferencesKey="incident-sla-rules-table"
+        saveFilterProps={{
+          tableId: "incident-sla-rules-table",
+        }}
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}

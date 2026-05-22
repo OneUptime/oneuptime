@@ -473,6 +473,9 @@ const Settings: FunctionComponent<ComponentProps> = (
             modelType={BillingPaymentMethod}
             id="payment-methods-table"
             userPreferencesKey="billing-payment-methods-table"
+            saveFilterProps={{
+              tableId: "settings-payment-methods-table",
+            }}
             isDeleteable={true}
             isEditable={false}
             isCreateable={false}

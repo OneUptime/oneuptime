@@ -53,6 +53,9 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           modelType={Workflow}
           id="status-page-table"
           userPreferencesKey="workflow-table"
+          saveFilterProps={{
+            tableId: "workflows-table",
+          }}
           isDeleteable={false}
           isEditable={false}
           isCreateable={true}

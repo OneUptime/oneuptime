@@ -48,6 +48,9 @@ const Domains: FunctionComponent<PageComponentProps> = (): ReactElement => {
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         id="domains-table"
+        saveFilterProps={{
+          tableId: "settings-domains-table",
+        }}
         isDeleteable={true}
         isEditable={false}
         isCreateable={true}

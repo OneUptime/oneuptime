@@ -27,6 +27,9 @@ const DockerHostOwners: FunctionComponent<
         id="table-docker-host-owner-team"
         name="Docker Host > Owner Team"
         userPreferencesKey="docker-host-owner-team-table"
+        saveFilterProps={{
+          tableId: "docker-host-owner-team-table",
+        }}
         singularName="Team"
         isDeleteable={true}
         createVerb={"Add"}
@@ -125,6 +128,9 @@ const DockerHostOwners: FunctionComponent<
         id="table-docker-host-owner-user"
         name="Docker Host > Owner User"
         userPreferencesKey="docker-host-owner-user-table"
+        saveFilterProps={{
+          tableId: "docker-host-owner-user-table",
+        }}
         isDeleteable={true}
         singularName="User"
         isCreateable={true}

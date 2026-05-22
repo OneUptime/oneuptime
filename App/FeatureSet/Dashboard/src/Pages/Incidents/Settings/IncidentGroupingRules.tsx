@@ -150,6 +150,9 @@ const IncidentGroupingRulesPage: FunctionComponent<
         id="incident-grouping-rules-table"
         name="Settings > Incident Grouping Rules"
         userPreferencesKey="incident-grouping-rules-table"
+        saveFilterProps={{
+          tableId: "incident-grouping-rules-table",
+        }}
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}

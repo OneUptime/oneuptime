@@ -41,6 +41,9 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         userPreferencesKey="user-notification-logs-timeline-table"
         id="notification-logs-timeline-table"
         name="User Settings > Notification Logs > Timeline"
+        saveFilterProps={{
+          tableId: "user-notification-logs-timeline-table",
+        }}
         isDeleteable={false}
         isEditable={false}
         isCreateable={false}

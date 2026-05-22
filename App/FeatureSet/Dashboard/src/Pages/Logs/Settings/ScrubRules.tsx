@@ -182,6 +182,9 @@ const LogScrubRules: FunctionComponent<
       id="log-scrub-rules-table"
       name="Logs > Settings > Scrub Rules"
       userPreferencesKey="log-scrub-rules-table"
+      saveFilterProps={{
+        tableId: "log-scrub-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

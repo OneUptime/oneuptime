@@ -26,6 +26,9 @@ const IncomingCallPolicyOwners: FunctionComponent<
         modelType={IncomingCallPolicyOwnerTeam}
         id="table-incoming-call-policy-owner-team"
         userPreferencesKey="incoming-call-policy-owner-team-table"
+        saveFilterProps={{
+          tableId: "incoming-call-policy-owner-team-table",
+        }}
         name="Incoming Call Policy > Owner Team"
         singularName="Team"
         isDeleteable={true}
@@ -125,6 +128,9 @@ const IncomingCallPolicyOwners: FunctionComponent<
         modelType={IncomingCallPolicyOwnerUser}
         id="table-incoming-call-policy-owner-user"
         userPreferencesKey="incoming-call-policy-owner-user-table"
+        saveFilterProps={{
+          tableId: "incoming-call-policy-owner-user-table",
+        }}
         name="Incoming Call Policy > Owner User"
         isDeleteable={true}
         singularName="User"

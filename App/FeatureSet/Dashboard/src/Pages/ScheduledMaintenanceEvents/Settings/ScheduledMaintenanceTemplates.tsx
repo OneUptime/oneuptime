@@ -405,6 +405,9 @@ const ScheduledMaintenanceTemplates: FunctionComponent<PageComponentProps> = (
         modelType={ScheduledMaintenanceTemplate}
         id="Scheduled-Maintenance-templates-table"
         userPreferencesKey="scheduled-maintenance-templates-table"
+        saveFilterProps={{
+          tableId: "scheduled-maintenance-templates-table",
+        }}
         name="Settings > Scheduled Maintenance Templates"
         isDeleteable={false}
         isEditable={false}

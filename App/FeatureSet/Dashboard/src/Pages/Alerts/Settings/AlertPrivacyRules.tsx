@@ -49,6 +49,9 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
       id="alert-privacy-rules-table"
       name="Settings > Alert Privacy Rules"
       userPreferencesKey="alert-privacy-rules-table"
+      saveFilterProps={{
+        tableId: "alert-privacy-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}
@@ -226,6 +229,9 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
       id="alert-episode-privacy-rules-table"
       name="Settings > Alert Episode Privacy Rules"
       userPreferencesKey="alert-episode-privacy-rules-table"
+      saveFilterProps={{
+        tableId: "alert-episode-privacy-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

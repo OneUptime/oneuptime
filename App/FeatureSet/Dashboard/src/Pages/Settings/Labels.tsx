@@ -19,6 +19,9 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="labels-table"
         name="Settings > Labels"
         userPreferencesKey="labels-table"
+        saveFilterProps={{
+          tableId: "labels-table",
+        }}
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}
