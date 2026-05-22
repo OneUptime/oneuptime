@@ -121,6 +121,7 @@ export default class Response {
     list: Array<BaseModel | AnalyticsDataModel>,
     count: PositiveNumber | number,
     modelType: { new (): BaseModel | AnalyticsDataModel },
+    options?: { hasMore?: boolean | undefined } | undefined,
   ): void {
     if (!(count instanceof PositiveNumber)) {
       count = new PositiveNumber(count);
@@ -144,7 +145,7 @@ export default class Response {
       );
     }
 
-    return this.sendJsonArrayResponse(req, res, jsonArray, count);
+    return this.sendJsonArrayResponse(req, res, jsonArray, count, options);
   }
 
   @CaptureSpan()
@@ -194,6 +195,7 @@ export default class Response {
     res: ExpressResponse,
     list: Array<JSONObject>,
     count: PositiveNumber,
+    options?: { hasMore?: boolean | undefined } | undefined,
   ): void {
     const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
@@ -203,6 +205,7 @@ export default class Response {
       count: new PositiveNumber(0),
       skip: new PositiveNumber(0),
       limit: new PositiveNumber(0),
+      hasMore: options?.hasMore,
     });
 
     if (!list) {

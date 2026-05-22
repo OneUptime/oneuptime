@@ -363,6 +363,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const [query, setQuery] = useState<Query<TBaseModel>>({});
   const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
   const [totalItemsCount, setTotalItemsCount] = useState<number>(0);
+  /*
+   * Analytics endpoints (Log/Span/Metric/...) skip COUNT(*) for
+   * performance and instead return `hasMore`. When `hasMore` is
+   * `undefined`, the endpoint emitted an exact `count` and the
+   * pagination falls back to the count-based UI.
+   */
+  const [hasMore, setHasMore] = useState<boolean | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [error, setError] = useState<string>("");
@@ -1171,6 +1178,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       });
 
       setTotalItemsCount(listResult.count);
+      setHasMore(listResult.hasMore);
       setData(listResult.data);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -2063,6 +2071,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         dragDropIdField={"_id"}
         dragDropIndexField={props.dragDropIndexField}
         totalItemsCount={totalItemsCount}
+        hasMore={hasMore}
         data={data}
         id={props.id}
         columns={tableColumns}
@@ -2219,6 +2228,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         dragDropIndexField={props.dragDropIndexField}
         isLoading={getTableLoadingState()}
         totalItemsCount={totalItemsCount}
+        hasMore={hasMore}
         data={data}
         id={props.id}
         fields={fields}
@@ -2600,12 +2610,23 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 />
               </div>
             )}
-            {showMatchPill && totalItemsCount >= 0 && (
+            {showMatchPill && totalItemsCount >= 0 && hasMore === undefined && (
               <span
                 className="flex-none whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
                 title={`${totalItemsCount} ${totalItemsCount === 1 ? "result" : "results"}`}
               >
                 {totalItemsCount} {totalItemsCount === 1 ? "match" : "matches"}
+              </span>
+            )}
+            {showMatchPill && hasMore !== undefined && data.length > 0 && (
+              <span
+                className="flex-none whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
+                title={`${data.length}${hasMore ? "+" : ""} ${
+                  data.length === 1 ? "result" : "results"
+                } on this page`}
+              >
+                {data.length}
+                {hasMore ? "+" : ""} {data.length === 1 ? "match" : "matches"}
               </span>
             )}
             {searchText.length > 0 || selectedLabels.length > 0 ? (

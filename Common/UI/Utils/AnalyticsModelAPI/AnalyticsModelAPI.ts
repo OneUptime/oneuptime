@@ -315,6 +315,7 @@ export default class ModelAPI {
         count: result.count,
         skip: result.skip,
         limit: result.limit,
+        hasMore: result.hasMore,
       };
     }
 

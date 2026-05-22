@@ -268,29 +268,46 @@ export default class BaseAnalyticsAPI<
     const databaseProps: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-    const [list, count] = await Promise.all([
-      this.service.findBy({
-        query,
-        select,
-        skip: skip,
-        limit: limit,
-        sort: sort,
-        groupBy: groupBy,
-        props: databaseProps,
-      }),
-      this.service.countBy({
-        query,
-        groupBy: groupBy,
-        props: databaseProps,
-      }),
-    ]);
+    /*
+     * Skip the parallel countBy on analytics tables. countBy on Log /
+     * Span / Metric over wide time ranges scans every matching block
+     * (no LIMIT) and routinely dominates list-endpoint latency under
+     * heavy ingest. Instead we over-fetch by one row and derive
+     * `hasMore` from whether the extra row showed up. `count` is
+     * emitted as a lower bound (`skip + data.length + hasMore`) so
+     * older clients that read `count` keep rendering something
+     * sensible while newer clients use `hasMore` for prev/next.
+     */
+    const overfetchLimit: PositiveNumber = new PositiveNumber(
+      limit.toNumber() + 1,
+    );
+
+    const list: Array<AnalyticsDataModel> = await this.service.findBy({
+      query,
+      select,
+      skip: skip,
+      limit: overfetchLimit,
+      sort: sort,
+      groupBy: groupBy,
+      props: databaseProps,
+    });
+
+    const hasMore: boolean = list.length > limit.toNumber();
+    if (hasMore) {
+      list.length = limit.toNumber();
+    }
+
+    const lowerBoundCount: PositiveNumber = new PositiveNumber(
+      skip.toNumber() + list.length + (hasMore ? 1 : 0),
+    );
 
     return Response.sendEntityArrayResponse(
       req,
       res,
       list,
-      count,
+      lowerBoundCount,
       this.entityType,
+      { hasMore },
     );
   }
 
