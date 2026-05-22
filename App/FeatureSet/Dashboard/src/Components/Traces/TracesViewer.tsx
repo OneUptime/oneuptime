@@ -111,8 +111,9 @@ const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
   },
   {
     syntax: "name:<span name>",
-    description: "Filter by span name (substring match)",
-    example: "name:POST",
+    description:
+      'Filter by span name (substring match). Quote values with spaces: name:"SELECT wp_options".',
+    example: 'name:"SELECT wp_options"',
   },
   {
     syntax: "trace:<trace id>",
@@ -381,11 +382,21 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     const fieldFilters: Record<string, Array<string>> = {};
     const attributes: Record<string, string> = {};
     const freeTextParts: Array<string> = [];
-    const rawTokens: Array<string> = raw.match(/@\S+:[^\s]+|\S+/g) || [];
     /*
-     * Tolerate a space between the colon and the value (e.g. `name: POST`).
-     * Whitespace-tokenization splits that into `["name:", "POST"]`; merge the
-     * pair back together when the prefix is a known field or any `@attr:`.
+     * Tokenizer:
+     *  1. `@?\S+:"[^"]*"` — `field:"value"` or `@attr:"value"` with spaces
+     *     inside double quotes (e.g. `name:"SELECT wp_options"`).
+     *  2. `@\S+:[^\s]+`   — `@attr:value` (no spaces, no quotes).
+     *  3. `\S+`           — bare token (field prefix on its own, free text,
+     *                       or unquoted `field:value` that fits in one word).
+     */
+    const rawTokens: Array<string> =
+      raw.match(/@?\S+:"[^"]*"|@\S+:[^\s]+|\S+/g) || [];
+    /*
+     * Two merges in this loop:
+     *  - `name: POST` → `["name:", "POST"]` → `name:POST` (space after colon).
+     *  - `name: "SELECT wp_options"` → `["name:", "\"SELECT", "wp_options\""]`
+     *    → `name:"SELECT wp_options"` (keep absorbing until closing quote).
      */
     const tokens: Array<string> = [];
     for (let i: number = 0; i < rawTokens.length; i++) {
@@ -397,18 +408,41 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           ? prefix.slice(1).toLowerCase()
           : prefix.toLowerCase();
         if (isAttr || KNOWN_FIELD_KEYS.has(fieldName)) {
-          tokens.push(token + rawTokens[i + 1]!);
+          let merged: string = token + rawTokens[i + 1]!;
           i++;
+          if (merged.includes(':"') && !merged.endsWith('"')) {
+            while (i + 1 < rawTokens.length && !merged.endsWith('"')) {
+              i++;
+              merged = merged + " " + rawTokens[i]!;
+            }
+          }
+          tokens.push(merged);
           continue;
         }
       }
+      // Standalone token with an unclosed quote — absorb until close.
+      if (token.includes(':"') && !token.endsWith('"')) {
+        let merged: string = token;
+        while (i + 1 < rawTokens.length && !merged.endsWith('"')) {
+          i++;
+          merged = merged + " " + rawTokens[i]!;
+        }
+        tokens.push(merged);
+        continue;
+      }
       tokens.push(token);
     }
+    const stripQuotes: (s: string) => string = (s: string): string => {
+      if (s.length >= 2 && s.startsWith('"') && s.endsWith('"')) {
+        return s.slice(1, -1);
+      }
+      return s;
+    };
     for (const token of tokens) {
       // @attribute:value → attribute filter
       const attrMatch: RegExpMatchArray | null = token.match(/^@([^:]+):(.*)$/);
       if (attrMatch) {
-        const attrValue: string = attrMatch[2]!;
+        const attrValue: string = stripQuotes(attrMatch[2]!);
         if (attrValue.length > 0) {
           attributes[attrMatch[1]!] = attrValue;
         }
@@ -418,7 +452,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       const fieldMatch: RegExpMatchArray | null = token.match(/^([^:]+):(.*)$/);
       if (fieldMatch) {
         const fieldName: string = fieldMatch[1]!.toLowerCase();
-        const fieldValue: string = fieldMatch[2]!;
+        const fieldValue: string = stripQuotes(fieldMatch[2]!);
         if (KNOWN_FIELD_KEYS.has(fieldName) && fieldValue.length > 0) {
           const backendField: string = FIELD_ALIAS_MAP[fieldName] || fieldName;
           if (!fieldFilters[backendField]) {
@@ -1377,13 +1411,21 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
          * case-insensitive so users can type `Service:api`; attribute keys
          * keep their original case because the data is case-sensitive (the
          * backend matches them case-insensitively at query time).
+         *
+         * Surrounding double quotes are stripped: typing `name:"SELECT"`
+         * should store the chip as `SELECT`, otherwise the backend SQL
+         * becomes `name ILIKE '%"SELECT"%'` and matches nothing.
          */
         const lowerFieldKey: string = fieldKey.toLowerCase();
         const isKnownField: boolean = KNOWN_FIELD_KEYS.has(lowerFieldKey);
         const facetKey: string = isKnownField
           ? FIELD_ALIAS_MAP[lowerFieldKey] || lowerFieldKey
           : `attributes.${fieldKey}`;
-        handleFacetInclude(facetKey, value);
+        const cleanValue: string =
+          value.length >= 2 && value.startsWith('"') && value.endsWith('"')
+            ? value.slice(1, -1)
+            : value;
+        handleFacetInclude(facetKey, cleanValue);
       }}
       searchFieldAliasMap={FIELD_ALIAS_MAP}
       searchHelpRows={SEARCH_HELP_ROWS}

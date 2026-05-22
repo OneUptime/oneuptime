@@ -501,12 +501,13 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   } = useCallback((raw: string) => {
     const fieldFilters: Record<string, Array<string>> = {};
     const freeTextParts: Array<string> = [];
-    const rawTokens: Array<string> = raw.match(/@\S+:[^\s]+|\S+/g) || [];
     /*
-     * Tolerate a space between the colon and the value (e.g. `@type: TypeError`).
-     * Whitespace-tokenization splits that into `["@type:", "TypeError"]`; merge
-     * the pair back together when the prefix is an `@attr:`.
+     * Tokenizer also matches `@attr:"value with spaces"`. See the matching
+     * block in TracesViewer for details on the merge logic that handles
+     * `@type: "..."` (space after colon) and unclosed quotes.
      */
+    const rawTokens: Array<string> =
+      raw.match(/@?\S+:"[^"]*"|@\S+:[^\s]+|\S+/g) || [];
     const tokens: Array<string> = [];
     for (let i: number = 0; i < rawTokens.length; i++) {
       const token: string = rawTokens[i]!;
@@ -515,17 +516,39 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         token.startsWith("@") &&
         i + 1 < rawTokens.length
       ) {
-        tokens.push(token + rawTokens[i + 1]!);
+        let merged: string = token + rawTokens[i + 1]!;
         i++;
+        if (merged.includes(':"') && !merged.endsWith('"')) {
+          while (i + 1 < rawTokens.length && !merged.endsWith('"')) {
+            i++;
+            merged = merged + " " + rawTokens[i]!;
+          }
+        }
+        tokens.push(merged);
+        continue;
+      }
+      if (token.includes(':"') && !token.endsWith('"')) {
+        let merged: string = token;
+        while (i + 1 < rawTokens.length && !merged.endsWith('"')) {
+          i++;
+          merged = merged + " " + rawTokens[i]!;
+        }
+        tokens.push(merged);
         continue;
       }
       tokens.push(token);
     }
+    const stripQuotes: (s: string) => string = (s: string): string => {
+      if (s.length >= 2 && s.startsWith('"') && s.endsWith('"')) {
+        return s.slice(1, -1);
+      }
+      return s;
+    };
     for (const token of tokens) {
       const match: RegExpMatchArray | null = token.match(/^@([^:]+):(.*)$/);
       if (match) {
         const alias: string = match[1]!;
-        const value: string = match[2]!;
+        const value: string = stripQuotes(match[2]!);
         if (value.length === 0) {
           continue;
         }
@@ -1208,11 +1231,20 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
          * — preserving the previous behavior rather than silently breaking
          * the filter. Alias detection is case-insensitive so users can type
          * `Type:` or `SERVICE:`; attribute keys keep their original case.
+         *
+         * Strip surrounding quotes before storing the chip so `type:"My Type"`
+         * doesn't store `"My Type"` literally (which would never match).
+         * The unknown-field branch keeps the quotes because the resulting
+         * search string is re-parsed by `parseSearch`, which strips them.
          */
         const aliased: string | undefined =
           FIELD_ALIAS_MAP[fieldKey.toLowerCase()];
         if (aliased) {
-          handleFacetInclude(aliased, value);
+          const cleanValue: string =
+            value.length >= 2 && value.startsWith('"') && value.endsWith('"')
+              ? value.slice(1, -1)
+              : value;
+          handleFacetInclude(aliased, cleanValue);
           return;
         }
         const newSearch: string = `@${fieldKey}:${value}`;

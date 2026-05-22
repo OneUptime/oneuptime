@@ -418,12 +418,13 @@ const MetricsViewer: FunctionComponent<Props> = (
     let serviceFragment: string | null = null;
     const attributes: Record<string, string> = {};
     const freeTextParts: Array<string> = [];
-    const rawTokens: Array<string> = raw.match(/@\S+:[^\s]+|\S+/g) || [];
     /*
-     * Tolerate a space between the colon and the value (e.g. `name: cpu`).
-     * Whitespace-tokenization splits that into `["name:", "cpu"]`; merge the
-     * pair back together when the prefix is a known field or any `@attr:`.
+     * Tokenizer also matches `field:"value with spaces"` so users can search
+     * metric names that include spaces. See the matching block in
+     * TracesViewer for details.
      */
+    const rawTokens: Array<string> =
+      raw.match(/@?\S+:"[^"]*"|@\S+:[^\s]+|\S+/g) || [];
     const tokens: Array<string> = [];
     for (let i: number = 0; i < rawTokens.length; i++) {
       const token: string = rawTokens[i]!;
@@ -434,19 +435,41 @@ const MetricsViewer: FunctionComponent<Props> = (
           ? prefix.slice(1).toLowerCase()
           : prefix.toLowerCase();
         if (isAttr || KNOWN_FIELD_KEYS.has(fieldName)) {
-          tokens.push(token + rawTokens[i + 1]!);
+          let merged: string = token + rawTokens[i + 1]!;
           i++;
+          if (merged.includes(':"') && !merged.endsWith('"')) {
+            while (i + 1 < rawTokens.length && !merged.endsWith('"')) {
+              i++;
+              merged = merged + " " + rawTokens[i]!;
+            }
+          }
+          tokens.push(merged);
           continue;
         }
       }
+      if (token.includes(':"') && !token.endsWith('"')) {
+        let merged: string = token;
+        while (i + 1 < rawTokens.length && !merged.endsWith('"')) {
+          i++;
+          merged = merged + " " + rawTokens[i]!;
+        }
+        tokens.push(merged);
+        continue;
+      }
       tokens.push(token);
     }
+    const stripQuotes: (s: string) => string = (s: string): string => {
+      if (s.length >= 2 && s.startsWith('"') && s.endsWith('"')) {
+        return s.slice(1, -1);
+      }
+      return s;
+    };
     for (const token of tokens) {
       // @attribute:value → attribute filter
       const attrMatch: RegExpMatchArray | null = token.match(/^@([^:]+):(.*)$/);
       if (attrMatch) {
         const attrKey: string = attrMatch[1]!;
-        const attrValue: string = attrMatch[2]!;
+        const attrValue: string = stripQuotes(attrMatch[2]!);
         if (attrValue.length > 0) {
           attributes[attrKey] = attrValue;
         }
@@ -456,7 +479,7 @@ const MetricsViewer: FunctionComponent<Props> = (
       const fieldMatch: RegExpMatchArray | null = token.match(/^([^:]+):(.*)$/);
       if (fieldMatch) {
         const fieldName: string = fieldMatch[1]!.toLowerCase();
-        const fieldValue: string = fieldMatch[2]!;
+        const fieldValue: string = stripQuotes(fieldMatch[2]!);
         if (fieldName === "name" && fieldValue.length > 0) {
           nameFragment = fieldValue;
         } else if (fieldName === "service" && fieldValue.length > 0) {
@@ -1008,6 +1031,11 @@ const MetricsViewer: FunctionComponent<Props> = (
          * Known-field detection is case-insensitive; attribute keys keep
          * their original case (the backend matches map keys case-
          * insensitively at query time).
+         *
+         * For the attribute (chip) branch, strip surrounding quotes so a
+         * value like `"my-value"` doesn't get stored literally as a chip.
+         * The known-field branch preserves quotes because the resulting
+         * search string is re-parsed by `parseSearch`, which strips them.
          */
         const lowerFieldKey: string = fieldKey.toLowerCase();
         if (KNOWN_FIELD_KEYS.has(lowerFieldKey)) {
@@ -1017,7 +1045,11 @@ const MetricsViewer: FunctionComponent<Props> = (
           setPage(1);
           return;
         }
-        handleFacetInclude(`attributes.${fieldKey}`, value);
+        const cleanValue: string =
+          value.length >= 2 && value.startsWith('"') && value.endsWith('"')
+            ? value.slice(1, -1)
+            : value;
+        handleFacetInclude(`attributes.${fieldKey}`, cleanValue);
       }}
       searchFieldAliasMap={FIELD_ALIAS_MAP}
       searchHelpRows={SEARCH_HELP_ROWS}
