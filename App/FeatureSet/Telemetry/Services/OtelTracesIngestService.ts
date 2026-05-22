@@ -171,8 +171,12 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         );
       }
 
-      req.body = req.body?.toJSON ? req.body.toJSON() : req.body;
-
+      /*
+       * Send the 200 first, then enqueue the raw request bytes. The
+       * heavy protobuf decode + toJSON used to run here on the
+       * Express event loop, blocking all other requests (including
+       * dashboard reads). The worker now handles it.
+       */
       Response.sendEmptySuccessResponse(req, res);
 
       await TracesQueueService.addTraceIngestJob(req as TelemetryRequest);
@@ -243,17 +247,27 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
               "attributes"
             ] as JSONArray) || [];
 
-          const kubernetesClusterId: ObjectID | null =
-            await this.autoDiscoverKubernetesCluster({
+          /*
+           * K8s cluster and Docker host discovery are independent — they
+           * inspect different resource attributes and don't share state.
+           * Run them concurrently so per-resource Postgres latency
+           * collapses from `t(k8s) + t(docker)` to `max(t(k8s), t(docker))`.
+           * `autoDiscoverHost` still has to wait because it consumes
+           * the two ids above.
+           */
+          const [kubernetesClusterId, dockerHostId]: [
+            ObjectID | null,
+            ObjectID | null,
+          ] = await Promise.all([
+            this.autoDiscoverKubernetesCluster({
               projectId,
               attributes: resourceAttributes_raw,
-            });
-
-          const dockerHostId: ObjectID | null =
-            await this.autoDiscoverDockerHost({
+            }),
+            this.autoDiscoverDockerHost({
               projectId,
               attributes: resourceAttributes_raw,
-            });
+            }),
+          ]);
 
           /*
            * Generic Host auto-discovery from resource attributes.

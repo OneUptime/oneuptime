@@ -4,6 +4,12 @@ import { JSONObject } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
 import logger from "Common/Server/Utils/Logger";
 import Dictionary from "Common/Types/Dictionary";
+import ProductType from "Common/Types/MeteredPlan/ProductType";
+import {
+  OtelPayloadEncoding,
+  OtelPayloadFormat,
+} from "../../Utils/OtelPayloadDecoder";
+import { headerValueToString } from "Common/Server/Utils/Express";
 
 export enum TelemetryType {
   Logs = "logs",
@@ -67,7 +73,24 @@ export interface IncomingRequestIngestJobData {
 export interface TelemetryIngestJobData {
   type: TelemetryType;
   projectId?: string;
+  /*
+   * Legacy: the parsed JSON body. Still consumed by paths that
+   * already had decoded JSON (Fluent, Syslog) and as a fallback for
+   * any in-flight OTel jobs enqueued before the deferred-decode path
+   * landed. New OTel jobs use `bodyBase64` + `bodyFormat` instead so
+   * the heavy decode runs in the worker, not the HTTP request thread.
+   */
   requestBody?: JSONObject;
+  /*
+   * New: raw HTTP request body, base64-encoded. The worker decodes
+   * gzip (if `bodyEncoding === "gzip"`) and then protobuf or JSON
+   * (per `bodyFormat`) before invoking the ingest service. Shifts
+   * the CPU-bound decode off the Express event loop.
+   */
+  bodyBase64?: string;
+  bodyFormat?: OtelPayloadFormat;
+  bodyEncoding?: OtelPayloadEncoding;
+  productType?: ProductType;
   requestHeaders?: Record<string, string>;
   ingestionTimestamp: Date;
   // ProbeIngest-specific
@@ -108,10 +131,47 @@ export default class TelemetryQueueService {
       const jobData: TelemetryIngestJobData = {
         type,
         projectId: req.projectId.toString(),
-        requestBody: req.body,
         requestHeaders: req.headers as Record<string, string>,
         ingestionTimestamp: OneUptimeDate.getCurrentDate(),
       };
+
+      /*
+       * Deferred-decode path: when the OTel middleware leaves
+       * `req.body` as a raw Buffer (the new default), we ship the
+       * bytes + format metadata so the worker can run the protobuf
+       * decode and JSON normalization off the HTTP request thread.
+       * Legacy callers (Fluent / Syslog) hand us a parsed JSON body
+       * — fall back to the old `requestBody` path for those.
+       */
+      const isRawBuffer: boolean =
+        Buffer.isBuffer(req.body) || req.body instanceof Uint8Array;
+
+      if (isRawBuffer) {
+        const buffer: Buffer = Buffer.isBuffer(req.body)
+          ? (req.body as Buffer)
+          : Buffer.from(req.body as Uint8Array);
+        const contentEncoding: string | undefined = headerValueToString(
+          req.headers["content-encoding"],
+        );
+        const contentType: string | undefined = headerValueToString(
+          req.headers["content-type"],
+        );
+        const isProtobuf: boolean =
+          !contentType ||
+          contentType.includes("application/x-protobuf") ||
+          contentType.includes("application/protobuf");
+
+        jobData.bodyBase64 = buffer.toString("base64");
+        jobData.bodyFormat = isProtobuf
+          ? OtelPayloadFormat.Protobuf
+          : OtelPayloadFormat.Json;
+        jobData.bodyEncoding = contentEncoding?.includes("gzip")
+          ? "gzip"
+          : "none";
+        jobData.productType = req.productType;
+      } else {
+        jobData.requestBody = req.body;
+      }
 
       const jobId: string = `${type}-${req.projectId?.toString()}-${OneUptimeDate.getCurrentDateAsUnixNano()}`;
 

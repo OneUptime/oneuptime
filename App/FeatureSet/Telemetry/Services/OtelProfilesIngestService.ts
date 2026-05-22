@@ -133,8 +133,10 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
         );
       }
 
-      req.body = req.body?.toJSON ? req.body.toJSON() : req.body;
-
+      /*
+       * Send 200 first, then enqueue the raw bytes. Protobuf decode
+       * now happens in the worker — see TelemetryQueueService.
+       */
       Response.sendEmptySuccessResponse(req, res);
 
       await ProfilesQueueService.addProfileIngestJob(req as TelemetryRequest);

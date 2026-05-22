@@ -25,6 +25,29 @@ import {
   TELEMETRY_CONCURRENCY,
   TELEMETRY_LOCK_DURATION_MS,
 } from "../../Config";
+import OtelPayloadDecoder from "../../Utils/OtelPayloadDecoder";
+import { JSONObject } from "Common/Types/JSON";
+
+/*
+ * Resolve the parsed JSON body for an OTel job. New jobs ship the raw
+ * request bytes (`bodyBase64`) plus format metadata so the heavy
+ * gunzip + protobuf decode runs here in the worker, not on the HTTP
+ * request thread. Old in-flight jobs still carry a pre-decoded
+ * `requestBody` and are passed through unchanged.
+ */
+async function resolveOtelBody(
+  jobData: TelemetryIngestJobData,
+): Promise<JSONObject> {
+  if (jobData.bodyBase64 && jobData.bodyFormat && jobData.productType) {
+    return await OtelPayloadDecoder.decodeFromQueue({
+      productType: jobData.productType,
+      format: jobData.bodyFormat,
+      encoding: jobData.bodyEncoding ?? "none",
+      bufferBase64: jobData.bodyBase64,
+    });
+  }
+  return (jobData.requestBody as JSONObject) || ({} as JSONObject);
+}
 
 // Set up the unified worker for processing telemetry queue
 QueueWorker.getWorker(
@@ -39,10 +62,10 @@ QueueWorker.getWorker(
       // Process based on telemetry type
       switch (jobData.type) {
         case TelemetryType.Logs: {
-          // Create a mock request object with the queued data
+          const body: JSONObject = await resolveOtelBody(jobData);
           const mockRequest: TelemetryRequest = {
             projectId: new ObjectID(jobData.projectId!.toString()),
-            body: jobData.requestBody!,
+            body,
             headers: jobData.requestHeaders!,
           } as TelemetryRequest;
 
@@ -54,9 +77,10 @@ QueueWorker.getWorker(
         }
 
         case TelemetryType.Traces: {
+          const body: JSONObject = await resolveOtelBody(jobData);
           const mockRequest: TelemetryRequest = {
             projectId: new ObjectID(jobData.projectId!.toString()),
-            body: jobData.requestBody!,
+            body,
             headers: jobData.requestHeaders!,
           } as TelemetryRequest;
 
@@ -68,9 +92,10 @@ QueueWorker.getWorker(
         }
 
         case TelemetryType.Metrics: {
+          const body: JSONObject = await resolveOtelBody(jobData);
           const mockRequest: TelemetryRequest = {
             projectId: new ObjectID(jobData.projectId!.toString()),
-            body: jobData.requestBody!,
+            body,
             headers: jobData.requestHeaders!,
           } as TelemetryRequest;
 
@@ -82,9 +107,10 @@ QueueWorker.getWorker(
         }
 
         case TelemetryType.Profiles: {
+          const body: JSONObject = await resolveOtelBody(jobData);
           const mockRequest: TelemetryRequest = {
             projectId: new ObjectID(jobData.projectId!.toString()),
-            body: jobData.requestBody!,
+            body,
             headers: jobData.requestHeaders!,
           } as TelemetryRequest;
 

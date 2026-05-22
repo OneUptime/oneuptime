@@ -160,8 +160,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         );
       }
 
-      req.body = req.body?.toJSON ? req.body.toJSON() : req.body;
-
+      /*
+       * Send 200 first, then enqueue the raw bytes. Protobuf decode
+       * now happens in the worker — see TelemetryQueueService.
+       */
       Response.sendEmptySuccessResponse(req, res);
 
       await MetricsQueueService.addMetricIngestJob(req as TelemetryRequest);
@@ -494,19 +496,27 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               "attributes"
             ] as JSONArray) || [];
 
-          // Auto-discover Kubernetes cluster from resource attributes
-          const kubernetesClusterId: ObjectID | null =
-            await this.autoDiscoverKubernetesCluster({
+          /*
+           * Auto-discover Kubernetes cluster and Docker host from
+           * resource attributes. The two lookups are independent —
+           * they read different attributes and don't share state —
+           * so issue them concurrently to collapse per-resource
+           * latency. autoDiscoverHost still has to wait below
+           * because it consumes both ids.
+           */
+          const [kubernetesClusterId, dockerHostId]: [
+            ObjectID | null,
+            ObjectID | null,
+          ] = await Promise.all([
+            this.autoDiscoverKubernetesCluster({
               projectId,
               attributes: resourceAttributes_raw,
-            });
-
-          // Auto-discover Docker host from resource attributes
-          const dockerHostId: ObjectID | null =
-            await this.autoDiscoverDockerHost({
+            }),
+            this.autoDiscoverDockerHost({
               projectId,
               attributes: resourceAttributes_raw,
-            });
+            }),
+          ]);
 
           /*
            * Generic Host auto-discovery. Pre-scan the resource's

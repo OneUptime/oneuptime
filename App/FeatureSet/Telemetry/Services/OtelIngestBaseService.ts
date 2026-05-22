@@ -24,6 +24,43 @@ export default abstract class OtelIngestBaseService {
     24 * 60 * 60; // 1 day
 
   /*
+   * Per-resource Postgres maintenance (updateLastSeen, label promotion)
+   * runs on every ingest batch even when nothing has changed. With 100
+   * concurrent telemetry workers and many resources per batch, those
+   * UPDATEs dominate Postgres pool occupancy and starve dashboard auth
+   * queries. Fence each (scope, id) pair behind a short Redis TTL so
+   * we only re-run the maintenance work once per window. Race-safe is
+   * not required — two workers re-running updateLastSeen at the same
+   * instant is harmless; we just want to drop the steady-state cost.
+   */
+  private static readonly MAINTENANCE_FENCE_NAMESPACE: string =
+    "otel-maintenance-fence";
+  private static readonly MAINTENANCE_FENCE_TTL_SECONDS: number = 5 * 60; // 5 minutes
+
+  protected static async shouldRunMaintenance(
+    scope: string,
+    id: string,
+  ): Promise<boolean> {
+    try {
+      const key: string = `${scope}:${id}`;
+      const seen: string | null = await GlobalCache.getString(
+        this.MAINTENANCE_FENCE_NAMESPACE,
+        key,
+      );
+      if (seen) {
+        return false;
+      }
+      await GlobalCache.setString(this.MAINTENANCE_FENCE_NAMESPACE, key, "1", {
+        expiresInSeconds: this.MAINTENANCE_FENCE_TTL_SECONDS,
+      });
+      return true;
+    } catch {
+      // If the cache is down, default to running the maintenance.
+      return true;
+    }
+  }
+
+  /*
    * Resolves a real (user-facing) service name from OTel resource
    * attributes. Returns null when the batch is host- / docker-host-
    * level telemetry that should be routed to the matching Host or
@@ -384,18 +421,28 @@ export default abstract class OtelIngestBaseService {
 
       if (clusterIdStr) {
         const clusterId: ObjectID = new ObjectID(clusterIdStr);
-        const agentVersion: string | null = this.getStringAttribute(
-          data.attributes,
-          "oneuptime.agent.version",
-        );
-        await KubernetesClusterService.updateLastSeen(clusterId, {
-          agentVersion: agentVersion || undefined,
-        });
-        await this.promoteOneuptimeLabelsToCluster({
-          projectId: data.projectId,
-          kubernetesClusterId: clusterId,
-          attributes: data.attributes,
-        });
+        /*
+         * Skip the per-batch UPDATE + label upsert when we've already
+         * run it for this cluster in the current fence window. With
+         * 100 telemetry workers each touching the same handful of
+         * clusters, this is the single biggest Postgres write hot
+         * spot on the ingest path; the staleness on `lastSeenAt` is
+         * bounded by the TTL.
+         */
+        if (await this.shouldRunMaintenance("k8s-cluster", clusterIdStr)) {
+          const agentVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "oneuptime.agent.version",
+          );
+          await KubernetesClusterService.updateLastSeen(clusterId, {
+            agentVersion: agentVersion || undefined,
+          });
+          await this.promoteOneuptimeLabelsToCluster({
+            projectId: data.projectId,
+            kubernetesClusterId: clusterId,
+            attributes: data.attributes,
+          });
+        }
         return clusterId;
       }
 
@@ -624,20 +671,27 @@ export default abstract class OtelIngestBaseService {
 
       if (hostIdStr) {
         const dockerHostId: ObjectID = new ObjectID(hostIdStr);
-        const agentVersion: string | null = this.getStringAttribute(
-          data.attributes,
-          "oneuptime.agent.version",
-        );
-        await DockerHostService.updateLastSeen(dockerHostId, {
-          osType: osType || undefined,
-          osVersion: osVersion || undefined,
-          agentVersion: agentVersion || undefined,
-        });
-        await this.promoteOneuptimeLabelsToDockerHost({
-          projectId: data.projectId,
-          dockerHostId,
-          attributes: data.attributes,
-        });
+        /*
+         * Same fence rationale as the Kubernetes path — skip the
+         * per-batch maintenance UPDATE + label upsert when we
+         * already ran it within the fence window.
+         */
+        if (await this.shouldRunMaintenance("docker-host", hostIdStr)) {
+          const agentVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "oneuptime.agent.version",
+          );
+          await DockerHostService.updateLastSeen(dockerHostId, {
+            osType: osType || undefined,
+            osVersion: osVersion || undefined,
+            agentVersion: agentVersion || undefined,
+          });
+          await this.promoteOneuptimeLabelsToDockerHost({
+            projectId: data.projectId,
+            dockerHostId,
+            attributes: data.attributes,
+          });
+        }
         return dockerHostId;
       }
 
@@ -836,25 +890,34 @@ export default abstract class OtelIngestBaseService {
       }
 
       if (hostIdStr) {
-        const agentVersion: string | null = this.getStringAttribute(
-          data.attributes,
-          "oneuptime.agent.version",
-        );
-        await HostService.updateLastSeen(new ObjectID(hostIdStr), {
-          osType: osType || undefined,
-          osVersion: osVersion || undefined,
-          hostId: hostIdAttr || undefined,
-          hostArch: hostArch || undefined,
-          hostType: hostType || undefined,
-          hostIpAddresses: hostIpJoined || undefined,
-          cpuCores: data.cpuCores,
-          totalMemoryBytes: data.totalMemoryBytes,
-          processCount: data.processCount,
-          containerRuntime: containerRuntime || undefined,
-          dockerHostId: data.dockerHostId || undefined,
-          kubernetesClusterId: data.kubernetesClusterId || undefined,
-          agentVersion: agentVersion || undefined,
-        });
+        /*
+         * Same fence rationale as the K8s / Docker paths — bound the
+         * per-batch updateLastSeen UPDATE to one Postgres write per
+         * (host, fence-window). Host's update includes infra stats
+         * (cpu/memory/process counts) but those are sampled over
+         * minutes, so a 5-minute stale window is acceptable.
+         */
+        if (await this.shouldRunMaintenance("host", hostIdStr)) {
+          const agentVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "oneuptime.agent.version",
+          );
+          await HostService.updateLastSeen(new ObjectID(hostIdStr), {
+            osType: osType || undefined,
+            osVersion: osVersion || undefined,
+            hostId: hostIdAttr || undefined,
+            hostArch: hostArch || undefined,
+            hostType: hostType || undefined,
+            hostIpAddresses: hostIpJoined || undefined,
+            cpuCores: data.cpuCores,
+            totalMemoryBytes: data.totalMemoryBytes,
+            processCount: data.processCount,
+            containerRuntime: containerRuntime || undefined,
+            dockerHostId: data.dockerHostId || undefined,
+            kubernetesClusterId: data.kubernetesClusterId || undefined,
+            agentVersion: agentVersion || undefined,
+          });
+        }
         return new ObjectID(hostIdStr);
       }
 

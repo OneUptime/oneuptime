@@ -92,8 +92,11 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         );
       }
 
-      req.body = req.body?.toJSON ? req.body.toJSON() : req.body;
-
+      /*
+       * Respond first, then enqueue the raw bytes. Protobuf decode +
+       * JSON normalization now happens in the worker so the HTTP
+       * event loop isn't blocked on every ingest call.
+       */
       Response.sendEmptySuccessResponse(req, res);
 
       await LogsQueueService.addLogIngestJob(req as TelemetryRequest);
@@ -186,14 +189,25 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             ] as JSONArray) || [];
 
           /*
-           * Auto-discover Kubernetes cluster from resource attributes.
-           * Returns the cluster ID so the inventory hook can key its buffer.
+           * Auto-discover Kubernetes cluster and Docker host from
+           * resource attributes. They look at disjoint attributes
+           * and don't share state, so we issue both Postgres
+           * lookups concurrently and only wait once. The cluster id
+           * is also what the inventory hook below keys its buffer on.
            */
-          const kubernetesClusterId: ObjectID | null =
-            await this.autoDiscoverKubernetesCluster({
+          const [kubernetesClusterId, dockerHostId]: [
+            ObjectID | null,
+            ObjectID | null,
+          ] = await Promise.all([
+            this.autoDiscoverKubernetesCluster({
               projectId,
               attributes: resourceAttributes_raw,
-            });
+            }),
+            this.autoDiscoverDockerHost({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+          ]);
 
           /*
            * The OTel k8sobjects receiver tags each log record (not the
@@ -203,13 +217,6 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
            * inventoried — zero cost on non-k8sobjects batches.
            */
           const isK8sInventoryEligible: boolean = Boolean(kubernetesClusterId);
-
-          // Auto-discover Docker host from resource attributes
-          const dockerHostId: ObjectID | null =
-            await this.autoDiscoverDockerHost({
-              projectId,
-              attributes: resourceAttributes_raw,
-            });
 
           /*
            * Docker inventory eligibility — same shape as the K8s gate.
