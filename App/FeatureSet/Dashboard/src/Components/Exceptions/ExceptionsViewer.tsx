@@ -109,6 +109,112 @@ const FIELD_ALIAS_MAP: Record<string, string> = {
 
 export type ExceptionStatus = "unresolved" | "resolved" | "archived" | "all";
 
+const EXCEPTION_STATUS_VALUES: ReadonlyArray<ExceptionStatus> = [
+  "unresolved",
+  "resolved",
+  "archived",
+  "all",
+];
+
+interface InitialUrlState {
+  search: string;
+  filters: Array<ActiveFilter>;
+  timeRange: RangeStartAndEndDateTime;
+  page: number;
+  pageSize: number;
+  status: ExceptionStatus | null;
+}
+
+/*
+ * Parse filter state from `window.location.search` on first mount so refresh
+ * + back-from-exception-detail restore the view rather than resetting it.
+ * Defensive: malformed/unknown values fall back to defaults.
+ */
+function readInitialUrlState(): InitialUrlState {
+  const params: URLSearchParams = new URLSearchParams(window.location.search);
+
+  const rawSearch: string | null = params.get("search");
+  let search: string = "";
+  if (rawSearch) {
+    try {
+      search = decodeURIComponent(rawSearch);
+    } catch {
+      search = rawSearch;
+    }
+  }
+
+  let filters: Array<ActiveFilter> = [];
+  const filtersRaw: string | null = params.get("filters");
+  if (filtersRaw) {
+    try {
+      const parsed: unknown = JSON.parse(filtersRaw);
+      if (Array.isArray(parsed)) {
+        filters = (parsed as Array<unknown>)
+          .filter((pair: unknown): pair is [string, string] => {
+            return (
+              Array.isArray(pair) &&
+              pair.length === 2 &&
+              typeof pair[0] === "string" &&
+              typeof pair[1] === "string"
+            );
+          })
+          .map(([facetKey, value]: [string, string]): ActiveFilter => {
+            return {
+              facetKey,
+              value,
+              displayKey: facetKey,
+              displayValue: value,
+            };
+          });
+      }
+    } catch {
+      // malformed JSON → ignore
+    }
+  }
+
+  let timeRange: RangeStartAndEndDateTime = { range: TimeRange.PAST_ONE_DAY };
+  const rangeRaw: string | null = params.get("range");
+  if (rangeRaw) {
+    const knownRanges: Array<string> = Object.values(TimeRange);
+    if (knownRanges.includes(rangeRaw)) {
+      const matched: TimeRange = rangeRaw as TimeRange;
+      if (matched === TimeRange.CUSTOM) {
+        const startStr: string | null = params.get("start");
+        const endStr: string | null = params.get("end");
+        if (startStr && endStr) {
+          const startDate: Date = new Date(startStr);
+          const endDate: Date = new Date(endStr);
+          if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+            timeRange = {
+              range: matched,
+              startAndEndDate: new InBetween<Date>(startDate, endDate),
+            };
+          }
+        }
+      } else {
+        timeRange = { range: matched };
+      }
+    }
+  }
+
+  const pageRaw: string | null = params.get("page");
+  const page: number =
+    pageRaw && /^\d+$/.test(pageRaw) ? Math.max(1, parseInt(pageRaw, 10)) : 1;
+  const pageSizeRaw: string | null = params.get("pageSize");
+  const pageSize: number =
+    pageSizeRaw && /^\d+$/.test(pageSizeRaw)
+      ? Math.max(1, parseInt(pageSizeRaw, 10))
+      : DEFAULT_PAGE_SIZE;
+
+  const statusRaw: string | null = params.get("status");
+  const status: ExceptionStatus | null =
+    statusRaw && EXCEPTION_STATUS_VALUES.includes(statusRaw as ExceptionStatus)
+      ? (statusRaw as ExceptionStatus)
+      : null;
+
+  return { search, filters, timeRange, page, pageSize, status };
+}
+
 export interface ExceptionsViewerProps {
   defaultStatus?: ExceptionStatus;
   serviceId?: ObjectID | undefined;
@@ -117,14 +223,22 @@ export interface ExceptionsViewerProps {
 const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   props: ExceptionsViewerProps,
 ): ReactElement => {
+  /*
+   * Parse filter state from the URL once on first mount so refresh and
+   * back-from-exception-detail restore the view.
+   */
+  const initialUrlState: InitialUrlState = useMemo(readInitialUrlState, []);
+
+  const defaultStatus: ExceptionStatus = props.defaultStatus || "unresolved";
+
   const [status, setStatus] = useState<ExceptionStatus>(
-    props.defaultStatus || "unresolved",
+    initialUrlState.status || defaultStatus,
   );
 
   const [exceptions, setExceptions] = useState<Array<TelemetryException>>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
-  const [page, setPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
+  const [page, setPage] = useState<number>(initialUrlState.page);
+  const [pageSize, setPageSize] = useState<number>(initialUrlState.pageSize);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
@@ -135,9 +249,13 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     Array<KubernetesCluster>
   >([]);
 
-  const [searchValue, setSearchValue] = useState<string>("");
-  const [submittedSearch, setSubmittedSearch] = useState<string>("");
-  const [activeFilters, setActiveFilters] = useState<Array<ActiveFilter>>([]);
+  const [searchValue, setSearchValue] = useState<string>(initialUrlState.search);
+  const [submittedSearch, setSubmittedSearch] = useState<string>(
+    initialUrlState.search,
+  );
+  const [activeFilters, setActiveFilters] = useState<Array<ActiveFilter>>(
+    initialUrlState.filters,
+  );
 
   const [telemetryAttributes, setTelemetryAttributes] = useState<Array<string>>(
     [],
@@ -151,13 +269,73 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   const lastValueSuggestionKeyRef: React.MutableRefObject<string> =
     useRef<string>("");
 
-  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
-    range: TimeRange.PAST_ONE_DAY,
-  });
+  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>(
+    initialUrlState.timeRange,
+  );
   const [histogramBuckets, setHistogramBuckets] = useState<
     Array<HistogramBucket>
   >([]);
   const [histogramLoading, setHistogramLoading] = useState<boolean>(false);
+
+  /*
+   * Mirror filter state to the URL so refresh and back-from-exception-detail
+   * restore the view. `replaceState` keeps history clean — individual filter
+   * tweaks don't push extra entries.
+   */
+  useEffect(() => {
+    const params: URLSearchParams = new URLSearchParams();
+    if (submittedSearch) {
+      params.set("search", submittedSearch);
+    }
+    if (activeFilters.length > 0) {
+      const tuples: Array<[string, string]> = activeFilters.map(
+        (f: ActiveFilter): [string, string] => {
+          return [f.facetKey, f.value];
+        },
+      );
+      params.set("filters", JSON.stringify(tuples));
+    }
+    if (timeRange.range !== TimeRange.PAST_ONE_DAY) {
+      params.set("range", timeRange.range);
+    }
+    if (
+      timeRange.range === TimeRange.CUSTOM &&
+      timeRange.startAndEndDate
+    ) {
+      params.set(
+        "start",
+        timeRange.startAndEndDate.startValue.toISOString(),
+      );
+      params.set("end", timeRange.startAndEndDate.endValue.toISOString());
+    }
+    if (page > 1) {
+      params.set("page", String(page));
+    }
+    if (pageSize !== DEFAULT_PAGE_SIZE) {
+      params.set("pageSize", String(pageSize));
+    }
+    if (status !== defaultStatus) {
+      params.set("status", status);
+    }
+
+    const query: string = params.toString();
+    const nextSearch: string = query ? `?${query}` : "";
+    if (nextSearch !== window.location.search) {
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}${nextSearch}${window.location.hash}`,
+      );
+    }
+  }, [
+    submittedSearch,
+    activeFilters,
+    timeRange,
+    page,
+    pageSize,
+    status,
+    defaultStatus,
+  ]);
 
   // Load services / hosts / docker hosts / k8s clusters once
   useEffect(() => {
@@ -818,20 +996,45 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     setPage(1);
   }, []);
 
-  // Read-only chips for prop-level scoping (e.g. service view page)
+  /*
+   * Read-only chips for prop-level scoping (e.g. service view page), merged
+   * with user-added chips. Display labels are re-derived from facetConfigs so
+   * URL-restored chips (which only carry facetKey/value) still render the
+   * human-readable label once services/hosts/etc. load.
+   */
   const mergedActiveFilters: Array<ActiveFilter> = useMemo(() => {
+    const resolveDisplay: (chip: ActiveFilter) => ActiveFilter = (
+      chip: ActiveFilter,
+    ) => {
+      const config: FacetConfig | undefined = facetConfigs.find(
+        (c: FacetConfig): boolean => {
+          return c.key === chip.facetKey;
+        },
+      );
+      const displayKey: string = chip.facetKey.startsWith("attributes.")
+        ? chip.facetKey.substring("attributes.".length)
+        : config?.title || chip.displayKey || chip.facetKey;
+      const displayValue: string =
+        config?.valueDisplayMap?.[chip.value] ||
+        chip.displayValue ||
+        chip.value;
+      return { ...chip, displayKey, displayValue };
+    };
+
     const base: Array<ActiveFilter> = [];
     if (props.serviceId) {
-      base.push({
-        facetKey: "serviceId",
-        value: props.serviceId.toString(),
-        displayKey: "Service",
-        displayValue: props.serviceId.toString(),
-        readOnly: true,
-      });
+      base.push(
+        resolveDisplay({
+          facetKey: "serviceId",
+          value: props.serviceId.toString(),
+          displayKey: "Service",
+          displayValue: props.serviceId.toString(),
+          readOnly: true,
+        }),
+      );
     }
-    return [...base, ...activeFilters];
-  }, [props.serviceId, activeFilters]);
+    return [...base, ...activeFilters.map(resolveDisplay)];
+  }, [props.serviceId, activeFilters, facetConfigs]);
 
   // Row click → navigate to exception detail
   const handleRowClick: (exception: TelemetryException) => void = useCallback(

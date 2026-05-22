@@ -77,6 +77,99 @@ const FIELD_ALIAS_MAP: Record<string, string> = {
 
 const KNOWN_FIELD_KEYS: Set<string> = new Set(["name", "service"]);
 
+interface InitialUrlState {
+  search: string;
+  filters: Array<ActiveFilter>;
+  timeRange: RangeStartAndEndDateTime;
+  page: number;
+  pageSize: number;
+}
+
+/*
+ * Parse filter state from `window.location.search` on first mount so refresh
+ * + back-from-metric-detail restore the view rather than resetting it.
+ * Defensive: malformed JSON / unknown enum / non-numeric values fall back to
+ * defaults instead of throwing.
+ */
+function readInitialUrlState(): InitialUrlState {
+  const params: URLSearchParams = new URLSearchParams(window.location.search);
+
+  const rawSearch: string | null = params.get("search");
+  let search: string = "";
+  if (rawSearch) {
+    try {
+      search = decodeURIComponent(rawSearch);
+    } catch {
+      search = rawSearch;
+    }
+  }
+
+  let filters: Array<ActiveFilter> = [];
+  const filtersRaw: string | null = params.get("filters");
+  if (filtersRaw) {
+    try {
+      const parsed: unknown = JSON.parse(filtersRaw);
+      if (Array.isArray(parsed)) {
+        filters = (parsed as Array<unknown>)
+          .filter((pair: unknown): pair is [string, string] => {
+            return (
+              Array.isArray(pair) &&
+              pair.length === 2 &&
+              typeof pair[0] === "string" &&
+              typeof pair[1] === "string"
+            );
+          })
+          .map(([facetKey, value]: [string, string]): ActiveFilter => {
+            return {
+              facetKey,
+              value,
+              displayKey: facetKey,
+              displayValue: value,
+            };
+          });
+      }
+    } catch {
+      // malformed JSON → ignore
+    }
+  }
+
+  let timeRange: RangeStartAndEndDateTime = { range: TimeRange.PAST_ONE_HOUR };
+  const rangeRaw: string | null = params.get("range");
+  if (rangeRaw) {
+    const knownRanges: Array<string> = Object.values(TimeRange);
+    if (knownRanges.includes(rangeRaw)) {
+      const matched: TimeRange = rangeRaw as TimeRange;
+      if (matched === TimeRange.CUSTOM) {
+        const startStr: string | null = params.get("start");
+        const endStr: string | null = params.get("end");
+        if (startStr && endStr) {
+          const startDate: Date = new Date(startStr);
+          const endDate: Date = new Date(endStr);
+          if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+            timeRange = {
+              range: matched,
+              startAndEndDate: new InBetween<Date>(startDate, endDate),
+            };
+          }
+        }
+      } else {
+        timeRange = { range: matched };
+      }
+    }
+  }
+
+  const pageRaw: string | null = params.get("page");
+  const page: number =
+    pageRaw && /^\d+$/.test(pageRaw) ? Math.max(1, parseInt(pageRaw, 10)) : 1;
+  const pageSizeRaw: string | null = params.get("pageSize");
+  const pageSize: number =
+    pageSizeRaw && /^\d+$/.test(pageSizeRaw)
+      ? Math.max(1, parseInt(pageSizeRaw, 10))
+      : DEFAULT_PAGE_SIZE;
+
+  return { search, filters, timeRange, page, pageSize };
+}
+
 interface Props {
   serviceIds?: Array<ObjectID> | undefined;
   attributeFilters?: Record<string, string> | undefined;
@@ -86,23 +179,33 @@ interface Props {
 const MetricsViewer: FunctionComponent<Props> = (
   props: Props,
 ): ReactElement => {
+  /*
+   * Parse all filter state from the URL once on first mount so refresh +
+   * back-from-metric-detail restore the view.
+   */
+  const initialUrlState: InitialUrlState = useMemo(readInitialUrlState, []);
+
   const [metrics, setMetrics] = useState<Array<MetricType>>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
-  const [page, setPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
+  const [page, setPage] = useState<number>(initialUrlState.page);
+  const [pageSize, setPageSize] = useState<number>(initialUrlState.pageSize);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
   const [services, setServices] = useState<Array<Service>>([]);
 
-  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
-    range: TimeRange.PAST_ONE_HOUR,
-  });
+  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>(
+    initialUrlState.timeRange,
+  );
 
-  const [searchValue, setSearchValue] = useState<string>("");
-  const [submittedSearch, setSubmittedSearch] = useState<string>("");
+  const [searchValue, setSearchValue] = useState<string>(initialUrlState.search);
+  const [submittedSearch, setSubmittedSearch] = useState<string>(
+    initialUrlState.search,
+  );
 
-  const [activeFilters, setActiveFilters] = useState<Array<ActiveFilter>>([]);
+  const [activeFilters, setActiveFilters] = useState<Array<ActiveFilter>>(
+    initialUrlState.filters,
+  );
 
   // Telemetry attributes for autocomplete
   const [telemetryAttributes, setTelemetryAttributes] = useState<Array<string>>(
@@ -147,6 +250,55 @@ const MetricsViewer: FunctionComponent<Props> = (
     );
     return hasServiceIds || hasAttributeFilters;
   }, [props.serviceIds, props.attributeFilters]);
+
+  /*
+   * Mirror filter state to the URL so refresh and back-from-metric-detail
+   * restore the view. Uses `replaceState` so individual filter tweaks don't
+   * push history entries.
+   */
+  useEffect(() => {
+    const params: URLSearchParams = new URLSearchParams();
+    if (submittedSearch) {
+      params.set("search", submittedSearch);
+    }
+    if (activeFilters.length > 0) {
+      const tuples: Array<[string, string]> = activeFilters.map(
+        (f: ActiveFilter): [string, string] => {
+          return [f.facetKey, f.value];
+        },
+      );
+      params.set("filters", JSON.stringify(tuples));
+    }
+    if (timeRange.range !== TimeRange.PAST_ONE_HOUR) {
+      params.set("range", timeRange.range);
+    }
+    if (
+      timeRange.range === TimeRange.CUSTOM &&
+      timeRange.startAndEndDate
+    ) {
+      params.set(
+        "start",
+        timeRange.startAndEndDate.startValue.toISOString(),
+      );
+      params.set("end", timeRange.startAndEndDate.endValue.toISOString());
+    }
+    if (page > 1) {
+      params.set("page", String(page));
+    }
+    if (pageSize !== DEFAULT_PAGE_SIZE) {
+      params.set("pageSize", String(pageSize));
+    }
+
+    const query: string = params.toString();
+    const nextSearch: string = query ? `?${query}` : "";
+    if (nextSearch !== window.location.search) {
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}${nextSearch}${window.location.hash}`,
+      );
+    }
+  }, [submittedSearch, activeFilters, timeRange, page, pageSize]);
 
   // Load services and telemetry attributes once
   useEffect(() => {
@@ -696,16 +848,36 @@ const MetricsViewer: FunctionComponent<Props> = (
 
   // Read-only chips for prop-level scoping (e.g. service view page)
   const mergedActiveFilters: Array<ActiveFilter> = useMemo(() => {
+    const resolveDisplay: (chip: ActiveFilter) => ActiveFilter = (
+      chip: ActiveFilter,
+    ) => {
+      const config: FacetConfig | undefined = facetConfigs.find(
+        (c: FacetConfig): boolean => {
+          return c.key === chip.facetKey;
+        },
+      );
+      const displayKey: string = chip.facetKey.startsWith("attributes.")
+        ? chip.facetKey.substring("attributes.".length)
+        : config?.title || chip.displayKey || chip.facetKey;
+      const displayValue: string =
+        config?.valueDisplayMap?.[chip.value] ||
+        chip.displayValue ||
+        chip.value;
+      return { ...chip, displayKey, displayValue };
+    };
+
     const base: Array<ActiveFilter> = [];
     if (props.serviceIds && props.serviceIds.length > 0) {
       for (const serviceId of props.serviceIds) {
-        base.push({
-          facetKey: "serviceId",
-          value: serviceId.toString(),
-          displayKey: "Service",
-          displayValue: serviceId.toString(),
-          readOnly: true,
-        });
+        base.push(
+          resolveDisplay({
+            facetKey: "serviceId",
+            value: serviceId.toString(),
+            displayKey: "Service",
+            displayValue: serviceId.toString(),
+            readOnly: true,
+          }),
+        );
       }
     }
     if (props.attributeFilters) {
@@ -724,12 +896,13 @@ const MetricsViewer: FunctionComponent<Props> = (
         });
       }
     }
-    return [...base, ...activeFilters];
+    return [...base, ...activeFilters.map(resolveDisplay)];
   }, [
     props.serviceIds,
     props.attributeFilters,
     props.attributeFilterDisplayKeys,
     activeFilters,
+    facetConfigs,
   ]);
 
   // Row click → navigate to metric viewer

@@ -2439,7 +2439,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       })
       .filter((l: SearchLabelOption) => {
         return (
-          lowerPrefix.length === 0 || l.name.toLowerCase().includes(lowerPrefix)
+          lowerPrefix.length === 0 ||
+          l.name.toLowerCase().startsWith(lowerPrefix)
         );
       })
       .slice(0, 8);

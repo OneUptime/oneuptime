@@ -72,6 +72,14 @@ export interface ComponentProps {
   limit?: number | undefined;
   onCountChange?: ((count: number) => void) | undefined;
   onShowDocumentation?: (() => void) | undefined;
+  /*
+   * When true, mirror time range / chip filters / page / pageSize to the URL
+   * via `replaceState` so refresh and back-from-detail restore the view.
+   * Off by default because this component is embedded inside other pages
+   * (Incident, Alert, Service, etc.) where it must not clobber the URL.
+   * Only the main /logs page should opt in.
+   */
+  syncUrlState?: boolean | undefined;
 }
 
 const DEFAULT_PAGE_SIZE: number = 100;
@@ -83,6 +91,90 @@ const FACET_FILTER_KEYS: Array<string> = [
   "traceId",
   "spanId",
 ];
+
+interface InitialUrlState {
+  facetFilters: Map<string, Set<string>>;
+  timeRange: RangeStartAndEndDateTime;
+  page: number;
+  pageSize: number;
+}
+
+/*
+ * Parse filter state from `window.location.search` on first mount so refresh
+ * + back-from-log-detail restore the view. Only invoked when the consumer
+ * passes `syncUrlState`. Defensive: malformed JSON / unknown enum / non-numeric
+ * values fall back to defaults rather than throwing.
+ */
+function readInitialUrlState(defaultPageSize: number): InitialUrlState {
+  const params: URLSearchParams = new URLSearchParams(window.location.search);
+
+  const facetFilters: Map<string, Set<string>> = new Map();
+  const filtersRaw: string | null = params.get("filters");
+  if (filtersRaw) {
+    try {
+      const parsed: unknown = JSON.parse(filtersRaw);
+      if (Array.isArray(parsed)) {
+        for (const entry of parsed) {
+          if (
+            Array.isArray(entry) &&
+            entry.length === 2 &&
+            typeof entry[0] === "string" &&
+            Array.isArray(entry[1])
+          ) {
+            const values: Set<string> = new Set(
+              (entry[1] as Array<unknown>).filter(
+                (v: unknown): v is string => {
+                  return typeof v === "string";
+                },
+              ),
+            );
+            if (values.size > 0) {
+              facetFilters.set(entry[0], values);
+            }
+          }
+        }
+      }
+    } catch {
+      // malformed JSON → ignore
+    }
+  }
+
+  let timeRange: RangeStartAndEndDateTime = { range: TimeRange.PAST_ONE_HOUR };
+  const rangeRaw: string | null = params.get("range");
+  if (rangeRaw) {
+    const knownRanges: Array<string> = Object.values(TimeRange);
+    if (knownRanges.includes(rangeRaw)) {
+      const matched: TimeRange = rangeRaw as TimeRange;
+      if (matched === TimeRange.CUSTOM) {
+        const startStr: string | null = params.get("start");
+        const endStr: string | null = params.get("end");
+        if (startStr && endStr) {
+          const startDate: Date = new Date(startStr);
+          const endDate: Date = new Date(endStr);
+          if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+            timeRange = {
+              range: matched,
+              startAndEndDate: new InBetween<Date>(startDate, endDate),
+            };
+          }
+        }
+      } else {
+        timeRange = { range: matched };
+      }
+    }
+  }
+
+  const pageRaw: string | null = params.get("page");
+  const page: number =
+    pageRaw && /^\d+$/.test(pageRaw) ? Math.max(1, parseInt(pageRaw, 10)) : 1;
+  const pageSizeRaw: string | null = params.get("pageSize");
+  const pageSize: number =
+    pageSizeRaw && /^\d+$/.test(pageSizeRaw)
+      ? Math.max(1, parseInt(pageSizeRaw, 10))
+      : defaultPageSize;
+
+  return { facetFilters, timeRange, page, pageSize };
+}
 
 function getColumnsStorageKey(viewerId: string): string {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -220,24 +312,39 @@ async function postApi(
 const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const effectiveDefaultPageSize: number = props.limit || DEFAULT_PAGE_SIZE;
+
+  /*
+   * URL → state seeding. Only read the URL if the consumer asked for it; when
+   * disabled (the default, for embedded usages), keep the historical defaults
+   * so we don't accidentally pick up unrelated query params from the host
+   * page.
+   */
+  const initialUrlState: InitialUrlState | null = useMemo(() => {
+    if (!props.syncUrlState) {
+      return null;
+    }
+    return readInitialUrlState(effectiveDefaultPageSize);
+  }, [props.syncUrlState, effectiveDefaultPageSize]);
+
   const [logs, setLogs] = useState<Array<Log>>([]);
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [filterOptions, setFilterOptions] = useState<Query<Log>>(() => {
     const base: Query<Log> = buildBaseQuery(props);
+    const initialRange: RangeStartAndEndDateTime =
+      initialUrlState?.timeRange || { range: TimeRange.PAST_ONE_HOUR };
     const defaultRange: InBetween<Date> =
-      RangeStartAndEndDateTimeUtil.getStartAndEndDate({
-        range: TimeRange.PAST_ONE_HOUR,
-      });
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(initialRange);
     (base as any).time = new InBetween<Date>(
       defaultRange.startValue,
       defaultRange.endValue,
     );
     return base;
   });
-  const [page, setPage] = useState<number>(1);
+  const [page, setPage] = useState<number>(initialUrlState?.page || 1);
   const [pageSize, setPageSize] = useState<number>(
-    props.limit || DEFAULT_PAGE_SIZE,
+    initialUrlState?.pageSize || effectiveDefaultPageSize,
   );
   const [totalCount, setTotalCount] = useState<number>(0);
   const [sortField, setSortField] = useState<LogsSortField>("time");
@@ -280,12 +387,12 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   // Track user-applied facet filters: Map<facetKey, Set<value>>
   const [appliedFacetFilters, setAppliedFacetFilters] = useState<
     Map<string, Set<string>>
-  >(new Map());
+  >(initialUrlState?.facetFilters || new Map());
 
   // Time range state — single source of truth for histogram, facets, and log query
-  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
-    range: TimeRange.PAST_ONE_HOUR,
-  });
+  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>(
+    initialUrlState?.timeRange || { range: TimeRange.PAST_ONE_HOUR },
+  );
 
   useEffect(() => {
     const base: Query<Log> = buildBaseQuery(props);
@@ -298,6 +405,64 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     setFilterOptions(base);
     setPage(1);
   }, [props.serviceIds, props.traceIds, props.spanIds, props.logQuery]);
+
+  /*
+   * Mirror time range / chip filters / page / pageSize to the URL so refresh
+   * and back-from-log-detail restore the view. `replaceState` keeps history
+   * clean. Opt-in via `syncUrlState` — embedded usages (Incident, Alert,
+   * Service detail pages, etc.) leave this off so they don't clobber the
+   * host page's URL.
+   */
+  useEffect(() => {
+    if (!props.syncUrlState) {
+      return;
+    }
+    const params: URLSearchParams = new URLSearchParams();
+    if (appliedFacetFilters.size > 0) {
+      const tuples: Array<[string, Array<string>]> = Array.from(
+        appliedFacetFilters.entries(),
+      ).map(([key, values]: [string, Set<string>]): [string, Array<string>] => {
+        return [key, Array.from(values)];
+      });
+      params.set("filters", JSON.stringify(tuples));
+    }
+    if (timeRange.range !== TimeRange.PAST_ONE_HOUR) {
+      params.set("range", timeRange.range);
+    }
+    if (
+      timeRange.range === TimeRange.CUSTOM &&
+      timeRange.startAndEndDate
+    ) {
+      params.set(
+        "start",
+        timeRange.startAndEndDate.startValue.toISOString(),
+      );
+      params.set("end", timeRange.startAndEndDate.endValue.toISOString());
+    }
+    if (page > 1) {
+      params.set("page", String(page));
+    }
+    if (pageSize !== effectiveDefaultPageSize) {
+      params.set("pageSize", String(pageSize));
+    }
+
+    const query: string = params.toString();
+    const nextSearch: string = query ? `?${query}` : "";
+    if (nextSearch !== window.location.search) {
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}${nextSearch}${window.location.hash}`,
+      );
+    }
+  }, [
+    props.syncUrlState,
+    appliedFacetFilters,
+    timeRange,
+    page,
+    pageSize,
+    effectiveDefaultPageSize,
+  ]);
 
   const select: Select<Log> = useMemo(() => {
     return {
