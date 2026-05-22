@@ -1,6 +1,8 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { Link } from "react-router-dom";
 import Span, { SpanStatus, SpanKind } from "Common/Models/AnalyticsModels/Span";
 import Service from "Common/Models/DatabaseModels/Service";
+import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import SpanUtil from "../../Utils/SpanUtil";
 
@@ -8,7 +10,7 @@ export interface TraceRowProps {
   span: Span;
   service?: Service | undefined;
   maxDurationNano: number;
-  onClick?: () => void;
+  to?: Route | undefined;
 }
 
 type StatusTheme = {
@@ -136,18 +138,15 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
 
   const isError: boolean = span.statusCode === SpanStatus.Error;
 
+  /*
+   * Render as a real anchor so cmd/ctrl/middle-click open the trace in a new
+   * tab and right-click exposes "Open in new tab". Plain clicks still go
+   * through React Router's client-side navigation.
+   */
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={props.onClick}
-      onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          props.onClick?.();
-        }
-      }}
-      className="group relative cursor-pointer border-b border-gray-100 bg-white transition-colors duration-150 last:border-b-0 hover:bg-gray-50/70 focus:outline-none focus-visible:bg-indigo-50/40 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-indigo-300"
+    <Link
+      to={props.to?.toString() || ""}
+      className="group relative block cursor-pointer border-b border-gray-100 bg-white text-inherit no-underline transition-colors duration-150 last:border-b-0 hover:bg-gray-50/70 focus:outline-none focus-visible:bg-indigo-50/40 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-indigo-300"
     >
       <div className="flex items-center gap-4 px-5 py-3">
         {/* Status indicator */}
@@ -291,7 +290,7 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
           </>
         )}
       </div>
-    </div>
+    </Link>
   );
 };
 

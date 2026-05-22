@@ -253,14 +253,38 @@ const MetricsViewer: FunctionComponent<Props> = (
     let serviceFragment: string | null = null;
     const attributes: Record<string, string> = {};
     const freeTextParts: Array<string> = [];
-    const tokens: Array<string> = raw.match(/@\S+:[^\s]+|\S+/g) || [];
+    const rawTokens: Array<string> = raw.match(/@\S+:[^\s]+|\S+/g) || [];
+    /*
+     * Tolerate a space between the colon and the value (e.g. `name: cpu`).
+     * Whitespace-tokenization splits that into `["name:", "cpu"]`; merge the
+     * pair back together when the prefix is a known field or any `@attr:`.
+     */
+    const tokens: Array<string> = [];
+    for (let i: number = 0; i < rawTokens.length; i++) {
+      const token: string = rawTokens[i]!;
+      if (token.endsWith(":") && i + 1 < rawTokens.length) {
+        const prefix: string = token.slice(0, -1);
+        const isAttr: boolean = prefix.startsWith("@");
+        const fieldName: string = isAttr
+          ? prefix.slice(1).toLowerCase()
+          : prefix.toLowerCase();
+        if (isAttr || KNOWN_FIELD_KEYS.has(fieldName)) {
+          tokens.push(token + rawTokens[i + 1]!);
+          i++;
+          continue;
+        }
+      }
+      tokens.push(token);
+    }
     for (const token of tokens) {
       // @attribute:value → attribute filter
       const attrMatch: RegExpMatchArray | null = token.match(/^@([^:]+):(.*)$/);
       if (attrMatch) {
         const attrKey: string = attrMatch[1]!;
         const attrValue: string = attrMatch[2]!;
-        attributes[attrKey] = attrValue;
+        if (attrValue.length > 0) {
+          attributes[attrKey] = attrValue;
+        }
         continue;
       }
       // field:value (no @) → known field filter
@@ -268,9 +292,9 @@ const MetricsViewer: FunctionComponent<Props> = (
       if (fieldMatch) {
         const fieldName: string = fieldMatch[1]!.toLowerCase();
         const fieldValue: string = fieldMatch[2]!;
-        if (fieldName === "name") {
+        if (fieldName === "name" && fieldValue.length > 0) {
           nameFragment = fieldValue;
-        } else if (fieldName === "service") {
+        } else if (fieldName === "service" && fieldValue.length > 0) {
           serviceFragment = fieldValue;
         } else {
           freeTextParts.push(token);

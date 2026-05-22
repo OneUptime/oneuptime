@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import TelemetryViewer from "Common/UI/Components/TelemetryViewer/TelemetryViewer";
 import Navigation from "Common/UI/Utils/Navigation";
+import Route from "Common/Types/API/Route";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import {
@@ -112,7 +113,7 @@ const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
   {
     syntax: "name:<span name>",
     description: "Filter by span name (substring match)",
-    example: "name:GET /users",
+    example: "name:POST",
   },
   {
     syntax: "trace:<trace id>",
@@ -283,24 +284,50 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     const fieldFilters: Record<string, Array<string>> = {};
     const attributes: Record<string, string> = {};
     const freeTextParts: Array<string> = [];
-    const tokens: Array<string> = raw.match(/@\S+:[^\s]+|\S+/g) || [];
+    const rawTokens: Array<string> = raw.match(/@\S+:[^\s]+|\S+/g) || [];
+    /*
+     * Tolerate a space between the colon and the value (e.g. `name: POST`).
+     * Whitespace-tokenization splits that into `["name:", "POST"]`; merge the
+     * pair back together when the prefix is a known field or any `@attr:`.
+     */
+    const tokens: Array<string> = [];
+    for (let i: number = 0; i < rawTokens.length; i++) {
+      const token: string = rawTokens[i]!;
+      if (token.endsWith(":") && i + 1 < rawTokens.length) {
+        const prefix: string = token.slice(0, -1);
+        const isAttr: boolean = prefix.startsWith("@");
+        const fieldName: string = isAttr
+          ? prefix.slice(1).toLowerCase()
+          : prefix.toLowerCase();
+        if (isAttr || KNOWN_FIELD_KEYS.has(fieldName)) {
+          tokens.push(token + rawTokens[i + 1]!);
+          i++;
+          continue;
+        }
+      }
+      tokens.push(token);
+    }
     for (const token of tokens) {
       // @attribute:value → attribute filter
       const attrMatch: RegExpMatchArray | null = token.match(/^@([^:]+):(.*)$/);
       if (attrMatch) {
-        attributes[attrMatch[1]!] = attrMatch[2]!;
+        const attrValue: string = attrMatch[2]!;
+        if (attrValue.length > 0) {
+          attributes[attrMatch[1]!] = attrValue;
+        }
         continue;
       }
       // field:value (no @) → known field filter
       const fieldMatch: RegExpMatchArray | null = token.match(/^([^:]+):(.*)$/);
       if (fieldMatch) {
         const fieldName: string = fieldMatch[1]!.toLowerCase();
-        if (KNOWN_FIELD_KEYS.has(fieldName)) {
+        const fieldValue: string = fieldMatch[2]!;
+        if (KNOWN_FIELD_KEYS.has(fieldName) && fieldValue.length > 0) {
           const backendField: string = FIELD_ALIAS_MAP[fieldName] || fieldName;
           if (!fieldFilters[backendField]) {
             fieldFilters[backendField] = [];
           }
-          fieldFilters[backendField]!.push(fieldMatch[2]!);
+          fieldFilters[backendField]!.push(fieldValue);
           continue;
         }
       }
@@ -1095,16 +1122,21 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       setPage(1);
     }, []);
 
-  // Row click → navigate to trace view page
-  const handleRowClick: (span: Span) => void = useCallback((span: Span) => {
-    if (span.traceId) {
-      Navigation.navigate(
-        RouteUtil.populateRouteParams(RouteMap[PageMap.TRACE_VIEW]!, {
-          modelId: span.traceId.toString(),
-        }),
-      );
-    }
-  }, []);
+  /*
+   * Build the route to a trace's detail page so rows can render as real
+   * anchors (cmd/ctrl/middle-click → open in new tab).
+   */
+  const getTraceRoute: (span: Span) => Route | undefined = useCallback(
+    (span: Span) => {
+      if (!span.traceId) {
+        return undefined;
+      }
+      return RouteUtil.populateRouteParams(RouteMap[PageMap.TRACE_VIEW]!, {
+        modelId: span.traceId.toString(),
+      });
+    },
+    [],
+  );
 
   return (
     <TelemetryViewer<Span>
@@ -1126,9 +1158,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
             span={span}
             service={service}
             maxDurationNano={maxDurationNano}
-            onClick={() => {
-              handleRowClick(span);
-            }}
+            to={getTraceRoute(span)}
           />
         );
       }}

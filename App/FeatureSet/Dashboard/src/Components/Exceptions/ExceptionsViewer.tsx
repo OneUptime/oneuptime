@@ -310,12 +310,34 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   } = useCallback((raw: string) => {
     const fieldFilters: Record<string, Array<string>> = {};
     const freeTextParts: Array<string> = [];
-    const tokens: Array<string> = raw.match(/@\S+:[^\s]+|\S+/g) || [];
+    const rawTokens: Array<string> = raw.match(/@\S+:[^\s]+|\S+/g) || [];
+    /*
+     * Tolerate a space between the colon and the value (e.g. `@type: TypeError`).
+     * Whitespace-tokenization splits that into `["@type:", "TypeError"]`; merge
+     * the pair back together when the prefix is an `@attr:`.
+     */
+    const tokens: Array<string> = [];
+    for (let i: number = 0; i < rawTokens.length; i++) {
+      const token: string = rawTokens[i]!;
+      if (
+        token.endsWith(":") &&
+        token.startsWith("@") &&
+        i + 1 < rawTokens.length
+      ) {
+        tokens.push(token + rawTokens[i + 1]!);
+        i++;
+        continue;
+      }
+      tokens.push(token);
+    }
     for (const token of tokens) {
       const match: RegExpMatchArray | null = token.match(/^@([^:]+):(.*)$/);
       if (match) {
         const alias: string = match[1]!;
         const value: string = match[2]!;
+        if (value.length === 0) {
+          continue;
+        }
         const backendField: string = FIELD_ALIAS_MAP[alias] || alias;
         if (!fieldFilters[backendField]) {
           fieldFilters[backendField] = [];
