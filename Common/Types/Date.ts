@@ -1554,7 +1554,13 @@ export default class OneUptimeDate {
           .toDate();
       }
 
-      return moment(trimmedDate).toDate();
+      // moment.js throws on non-ISO formats like TLS cert dates ("Mar 31 00:00:00 2026 GMT").
+      // Fall back to native Date which handles this format correctly.
+      try {
+        return moment(trimmedDate).toDate();
+      } catch (_err: unknown) {
+        return new Date(trimmedDate);
+      }
     }
 
     if (
