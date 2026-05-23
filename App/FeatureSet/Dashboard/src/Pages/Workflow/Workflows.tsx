@@ -199,13 +199,6 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 description: true,
               },
             },
-            {
-              title: "Enabled",
-              type: FieldType.Boolean,
-              field: {
-                isEnabled: true,
-              },
-            },
           ]}
           columns={[
             {

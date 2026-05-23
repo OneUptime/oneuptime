@@ -439,63 +439,6 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              alertSeverity: {
-                name: true,
-              },
-            },
-            title: "Severity",
-            type: FieldType.Entity,
-
-            filterEntityType: AlertSeverity,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              currentAlertState: {
-                name: true,
-                color: true,
-              },
-            },
-            title: "State",
-            type: FieldType.Entity,
-
-            filterEntityType: AlertState,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              monitor: {
-                name: true,
-                _id: true,
-                projectId: true,
-              },
-            },
-            title: "Monitor Affected",
-            type: FieldType.EntityArray,
-
-            filterEntityType: Monitor,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
               createdAt: true,
             },
             title: "Created",

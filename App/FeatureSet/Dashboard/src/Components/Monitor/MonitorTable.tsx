@@ -603,33 +603,6 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             },
           },
           {
-            title: "Monitor Type",
-            type: FieldType.Text,
-            field: {
-              monitorType: true,
-            },
-            filterDropdownOptions:
-              MonitorTypeUtil.monitorTypesAsDropdownOptions(),
-          },
-          {
-            title: "Monitor Status",
-            type: FieldType.Entity,
-            field: {
-              currentMonitorStatus: {
-                color: true,
-                name: true,
-              },
-            },
-            filterEntityType: MonitorStatus,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
             title: "Created At",
             type: FieldType.Date,
             field: {

@@ -276,43 +276,6 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
           {
             field: {
-              otelCollectorStatus: true,
-            },
-            title: "Status",
-            type: FieldType.Dropdown,
-            filterDropdownOptions: [
-              { value: "connected", label: "Connected" },
-              { value: "disconnected", label: "Disconnected" },
-            ],
-          },
-          {
-            field: {
-              osType: true,
-            },
-            title: "OS",
-            type: FieldType.Dropdown,
-            filterDropdownOptions: [
-              { value: "linux", label: "Linux" },
-              { value: "darwin", label: "macOS" },
-              { value: "windows", label: "Windows" },
-              { value: "freebsd", label: "FreeBSD" },
-            ],
-          },
-          {
-            field: {
-              hostArch: true,
-            },
-            title: "Architecture",
-            type: FieldType.Dropdown,
-            filterDropdownOptions: [
-              { value: "amd64", label: "amd64" },
-              { value: "arm64", label: "arm64" },
-              { value: "x86", label: "x86" },
-              { value: "arm", label: "arm" },
-            ],
-          },
-          {
-            field: {
               containerRuntime: true,
             },
             title: "Container Runtime",

@@ -479,63 +479,6 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              incidentSeverity: {
-                name: true,
-              },
-            },
-            title: "Severity",
-            type: FieldType.Entity,
-
-            filterEntityType: IncidentSeverity,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              currentIncidentState: {
-                name: true,
-                color: true,
-              },
-            },
-            title: "State",
-            type: FieldType.Entity,
-
-            filterEntityType: IncidentState,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              monitors: {
-                name: true,
-                _id: true,
-                projectId: true,
-              },
-            },
-            title: "Monitors Affected",
-            type: FieldType.EntityArray,
-
-            filterEntityType: Monitor,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
               declaredAt: true,
             },
             title: "Declared",

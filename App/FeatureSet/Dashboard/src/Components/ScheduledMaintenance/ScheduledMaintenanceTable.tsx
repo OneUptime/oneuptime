@@ -421,23 +421,6 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              currentScheduledMaintenanceState: {
-                name: true,
-              },
-            },
-            title: "Current State",
-            type: FieldType.Entity,
-            filterEntityType: ScheduledMaintenanceState,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
               monitors: {
                 name: true,
                 _id: true,

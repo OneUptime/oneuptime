@@ -156,13 +156,6 @@ const IncomingCallPoliciesPage: FunctionComponent<
             title: "Name",
             type: FieldType.Text,
           },
-          {
-            field: {
-              isEnabled: true,
-            },
-            title: "Enabled",
-            type: FieldType.Boolean,
-          },
         ]}
         columns={[
           {

@@ -136,11 +136,6 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
             type: FieldType.Text,
             field: { description: true },
           },
-          {
-            title: "Enabled",
-            type: FieldType.Boolean,
-            field: { isEnabled: true },
-          },
         ]}
         columns={[
           {
