@@ -6,6 +6,7 @@ import URL from "Common/Types/API/URL";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import AIAgentElement from "Common/UI/Components/AIAgent/AIAgent";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { APP_API_URL } from "Common/UI/Config";
@@ -19,7 +20,6 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green } from "Common/Types/BrandColors";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
-import ResourceFiltersLayout from "../../Components/ResourceOwners/ResourceFiltersLayout";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 
 const AIAgentsPage: FunctionComponent<
@@ -28,11 +28,18 @@ const AIAgentsPage: FunctionComponent<
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<AIAgent>({ modelType: AIAgent });
 
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<AIAgent>({
+      ownerUserModelType: AIAgentOwnerUser,
+      ownerTeamModelType: AIAgentOwnerTeam,
+      resourceIdField: "aiAgentId",
+    });
+
   const {
     ownersByResourceId,
     isLoadingOwners,
     onResourcesFetched,
-    facetPanel,
+    filterBar,
     mergeFiltersIntoQuery,
   } = useResourceOwners<AIAgent>({
     ownerUserModelType: AIAgentOwnerUser,
@@ -117,219 +124,219 @@ const AIAgentsPage: FunctionComponent<
           ]}
         />
 
-        <ResourceFiltersLayout facetPanel={facetPanel}>
-          <ModelTable<AIAgent>
-            modelType={AIAgent}
-            query={mergeFiltersIntoQuery({
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            })}
-            onFetchSuccess={(data: Array<AIAgent>) => {
-              onResourcesFetched(data);
-            }}
-            id="ai-agents-table"
-            userPreferencesKey={"ai-agents-table"}
-            name="Settings > AI Agents"
-            saveFilterProps={{
-              tableId: "settings-project-ai-agents-table",
-            }}
-            isDeleteable={false}
-            isEditable={false}
-            isViewable={true}
-            isCreateable={true}
-            bulkActions={{
-              buttons: [...labelBulkActions],
-            }}
-            cardProps={{
-              title: "Self-Hosted AI Agents",
+        <ModelTable<AIAgent>
+          modelType={AIAgent}
+          topContent={filterBar}
+          query={mergeFiltersIntoQuery({
+            projectId: ProjectUtil.getCurrentProjectId()!,
+          })}
+          onFetchSuccess={(data: Array<AIAgent>) => {
+            onResourcesFetched(data);
+          }}
+          id="ai-agents-table"
+          userPreferencesKey={"ai-agents-table"}
+          name="Settings > AI Agents"
+          saveFilterProps={{
+            tableId: "settings-project-ai-agents-table",
+          }}
+          isDeleteable={false}
+          isEditable={false}
+          isViewable={true}
+          isCreateable={true}
+          bulkActions={{
+            buttons: [...labelBulkActions, ...ownerBulkActions],
+          }}
+          cardProps={{
+            title: "Self-Hosted AI Agents",
+            description:
+              "Self-Hosted AI Agents run on your infrastructure and can be customized for your specific incident management needs.",
+          }}
+          documentationLink={Route.fromString("/docs/ai/ai-agent")}
+          selectMoreFields={{
+            iconFileId: true,
+          }}
+          noItemsMessage={"No AI agents found."}
+          viewPageRoute={Navigation.getCurrentRoute()}
+          formSteps={[
+            {
+              title: "Basic Info",
+              id: "basic-info",
+            },
+            {
+              title: "More",
+              id: "more",
+            },
+          ]}
+          formFields={[
+            {
+              field: {
+                name: true,
+              },
+              stepId: "basic-info",
+              title: "Name",
+              fieldType: FormFieldSchemaType.Text,
+              required: true,
+              placeholder: "my-ai-agent",
+              validation: {
+                minLength: 2,
+              },
+            },
+
+            {
+              field: {
+                description: true,
+              },
+              title: "Description",
+              stepId: "basic-info",
+              fieldType: FormFieldSchemaType.LongText,
+              required: true,
+              placeholder:
+                "This AI agent handles incident triage and response.",
+            },
+
+            {
+              field: {
+                iconFile: true,
+              },
+              title: "AI Agent Logo",
+              stepId: "basic-info",
+              fieldType: FormFieldSchemaType.ImageFile,
+              required: false,
+              placeholder: "Upload logo",
+            },
+            {
+              field: {
+                isDefault: true,
+              },
+              title: "Set as Default",
+              stepId: "more",
+              fieldType: FormFieldSchemaType.Toggle,
+              required: false,
               description:
-                "Self-Hosted AI Agents run on your infrastructure and can be customized for your specific incident management needs.",
-            }}
-            documentationLink={Route.fromString("/docs/ai/ai-agent")}
-            selectMoreFields={{
-              iconFileId: true,
-            }}
-            noItemsMessage={"No AI agents found."}
-            viewPageRoute={Navigation.getCurrentRoute()}
-            formSteps={[
-              {
-                title: "Basic Info",
-                id: "basic-info",
+                "Set this as the default AI Agent for the project. When a default is set, this agent will be used for automated tasks.",
+            },
+            {
+              field: {
+                labels: true,
               },
-              {
-                title: "More",
-                id: "more",
+
+              title: "Labels ",
+              stepId: "more",
+              description:
+                "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
+              fieldType: FormFieldSchemaType.MultiSelectDropdown,
+              dropdownModal: {
+                type: Label,
+                labelField: "name",
+                valueField: "_id",
               },
-            ]}
-            formFields={[
-              {
-                field: {
+              required: false,
+              placeholder: "Labels",
+            },
+          ]}
+          showRefreshButton={true}
+          searchableFields={["name", "description"]}
+          filters={[
+            {
+              field: {
+                name: true,
+              },
+              title: "Name",
+              type: FieldType.Text,
+            },
+            {
+              field: {
+                description: true,
+              },
+              title: "Description",
+              type: FieldType.Text,
+            },
+            {
+              field: {
+                isDefault: true,
+              },
+              title: "Default",
+              type: FieldType.Boolean,
+            },
+          ]}
+          columns={[
+            {
+              field: {
+                name: true,
+              },
+              title: "Name",
+              type: FieldType.Text,
+
+              getElement: (item: AIAgent): ReactElement => {
+                return <AIAgentElement aiAgent={item} />;
+              },
+            },
+            {
+              field: {
+                description: true,
+              },
+              title: "Description",
+              type: FieldType.Text,
+            },
+            {
+              field: {
+                connectionStatus: true,
+              },
+              title: "Status",
+              type: FieldType.Element,
+
+              getElement: (item: AIAgent): ReactElement => {
+                return <AIAgentStatusElement aiAgent={item} />;
+              },
+            },
+            {
+              field: {
+                isDefault: true,
+              },
+              title: "Default",
+              type: FieldType.Boolean,
+              getElement: (item: AIAgent): ReactElement => {
+                if (item.isDefault) {
+                  return <Pill text="Default" color={Green} />;
+                }
+                return <span className="text-gray-400">-</span>;
+              },
+            },
+            {
+              field: {
+                labels: {
                   name: true,
-                },
-                stepId: "basic-info",
-                title: "Name",
-                fieldType: FormFieldSchemaType.Text,
-                required: true,
-                placeholder: "my-ai-agent",
-                validation: {
-                  minLength: 2,
+                  color: true,
                 },
               },
+              title: "Labels",
+              type: FieldType.EntityArray,
 
-              {
-                field: {
-                  description: true,
-                },
-                title: "Description",
-                stepId: "basic-info",
-                fieldType: FormFieldSchemaType.LongText,
-                required: true,
-                placeholder:
-                  "This AI agent handles incident triage and response.",
+              getElement: (item: AIAgent): ReactElement => {
+                return <LabelsElement labels={item["labels"] || []} />;
               },
-
-              {
-                field: {
-                  iconFile: true,
-                },
-                title: "AI Agent Logo",
-                stepId: "basic-info",
-                fieldType: FormFieldSchemaType.ImageFile,
-                required: false,
-                placeholder: "Upload logo",
+            },
+            {
+              field: {
+                _id: true,
               },
-              {
-                field: {
-                  isDefault: true,
-                },
-                title: "Set as Default",
-                stepId: "more",
-                fieldType: FormFieldSchemaType.Toggle,
-                required: false,
-                description:
-                  "Set this as the default AI Agent for the project. When a default is set, this agent will be used for automated tasks.",
+              title: "Owners",
+              type: FieldType.Element,
+              hideOnMobile: true,
+              getElement: (item: AIAgent): ReactElement => {
+                const id: string | undefined = item.id?.toString();
+                return (
+                  <OwnersCell
+                    owners={id ? ownersByResourceId[id] : undefined}
+                    isLoading={isLoadingOwners}
+                  />
+                );
               },
-              {
-                field: {
-                  labels: true,
-                },
-
-                title: "Labels ",
-                stepId: "more",
-                description:
-                  "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                dropdownModal: {
-                  type: Label,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                required: false,
-                placeholder: "Labels",
-              },
-            ]}
-            showRefreshButton={true}
-            searchableFields={["name", "description"]}
-            filters={[
-              {
-                field: {
-                  name: true,
-                },
-                title: "Name",
-                type: FieldType.Text,
-              },
-              {
-                field: {
-                  description: true,
-                },
-                title: "Description",
-                type: FieldType.Text,
-              },
-              {
-                field: {
-                  isDefault: true,
-                },
-                title: "Default",
-                type: FieldType.Boolean,
-              },
-            ]}
-            columns={[
-              {
-                field: {
-                  name: true,
-                },
-                title: "Name",
-                type: FieldType.Text,
-
-                getElement: (item: AIAgent): ReactElement => {
-                  return <AIAgentElement aiAgent={item} />;
-                },
-              },
-              {
-                field: {
-                  description: true,
-                },
-                title: "Description",
-                type: FieldType.Text,
-              },
-              {
-                field: {
-                  connectionStatus: true,
-                },
-                title: "Status",
-                type: FieldType.Element,
-
-                getElement: (item: AIAgent): ReactElement => {
-                  return <AIAgentStatusElement aiAgent={item} />;
-                },
-              },
-              {
-                field: {
-                  isDefault: true,
-                },
-                title: "Default",
-                type: FieldType.Boolean,
-                getElement: (item: AIAgent): ReactElement => {
-                  if (item.isDefault) {
-                    return <Pill text="Default" color={Green} />;
-                  }
-                  return <span className="text-gray-400">-</span>;
-                },
-              },
-              {
-                field: {
-                  labels: {
-                    name: true,
-                    color: true,
-                  },
-                },
-                title: "Labels",
-                type: FieldType.EntityArray,
-
-                getElement: (item: AIAgent): ReactElement => {
-                  return <LabelsElement labels={item["labels"] || []} />;
-                },
-              },
-              {
-                field: {
-                  _id: true,
-                },
-                title: "Owners",
-                type: FieldType.Element,
-                hideOnMobile: true,
-                getElement: (item: AIAgent): ReactElement => {
-                  const id: string | undefined = item.id?.toString();
-                  return (
-                    <OwnersCell
-                      owners={id ? ownersByResourceId[id] : undefined}
-                      isLoading={isLoadingOwners}
-                    />
-                  );
-                },
-              },
-            ]}
-          />
-        </ResourceFiltersLayout>
+            },
+          ]}
+        />
         {labelBulkActionModals}
+        {ownerBulkActionModals}
       </>
     </Fragment>
   );

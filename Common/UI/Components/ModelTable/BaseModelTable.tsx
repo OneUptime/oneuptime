@@ -161,6 +161,11 @@ export interface BaseTableProps<
     | undefined
     | ((data: Array<TBaseModel>, totalCount: number) => void);
   cardProps?: CardComponentProps | undefined;
+  /**
+   * Optional content rendered inside the card body, above the table rows.
+   * Useful for in-table filter chips, alerts, etc.
+   */
+  topContent?: ReactElement | undefined;
   helpContent?:
     | {
         title: string;
@@ -3077,6 +3082,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               ) : (
                 <></>
               )}
+              {props.topContent}
               {tableColumns.length > 0 && showAs === ShowAs.Table ? (
                 getTable()
               ) : (
@@ -3103,6 +3109,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           ) : (
             <></>
           )}
+          {!props.cardProps && props.topContent}
           {!props.cardProps && showAs === ShowAs.Table ? getTable() : <></>}
           {!props.cardProps && showAs === ShowAs.List ? getList() : <></>}
         </div>

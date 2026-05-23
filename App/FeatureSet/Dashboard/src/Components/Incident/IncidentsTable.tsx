@@ -18,6 +18,7 @@ import {
 } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
@@ -31,7 +32,6 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
 import OwnersCell from "../ResourceOwners/OwnersCell";
-import ResourceFiltersLayout from "../ResourceOwners/ResourceFiltersLayout";
 import useResourceOwners from "../ResourceOwners/useResourceOwners";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import React, {
@@ -83,11 +83,18 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Incident>({ modelType: Incident });
 
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<Incident>({
+      ownerUserModelType: IncidentOwnerUser,
+      ownerTeamModelType: IncidentOwnerTeam,
+      resourceIdField: "incidentId",
+    });
+
   const {
     ownersByResourceId,
     isLoadingOwners,
     onResourcesFetched,
-    facetPanel,
+    filterBar,
     mergeFiltersIntoQuery,
   } = useResourceOwners<Incident>({
     ownerUserModelType: IncidentOwnerUser,
@@ -303,284 +310,284 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
   return (
     <>
-      <ResourceFiltersLayout facetPanel={facetPanel}>
-        <ModelTable<Incident>
-          name="Incidents"
-          userPreferencesKey="incidents-table"
-          bulkActions={{
-            buttons: [
-              getBulkChangeStateAction(),
-              ...labelBulkActions,
-              ModalTableBulkDefaultActions.Delete,
-            ],
-          }}
-          modelType={Incident}
-          saveFilterProps={props.saveFilterProps}
-          id="incidents-table"
-          isDeleteable={false}
-          showCreateForm={false}
-          query={mergeFiltersIntoQuery(props.query)}
-          onFetchSuccess={(data: Array<Incident>) => {
-            onResourcesFetched(data);
-          }}
-          isEditable={false}
-          isCreateable={false}
-          isViewable={true}
-          cardProps={{
-            title: props.title || "Incidents",
-            buttons: cardbuttons,
-            description:
-              props.description ||
-              "Here is a list of incidents for this project.",
-          }}
-          createVerb="Declare"
-          noItemsMessage={props.noItemsMessage || "No incidents found."}
-          showRefreshButton={true}
-          searchableFields={["title", "description"]}
-          showViewIdButton={true}
-          viewPageRoute={RouteUtil.populateRouteParams(
-            RouteMap[PageMap.INCIDENTS]!,
-          )}
-          filters={[
-            {
-              title: "Incident ID",
-              type: FieldType.Text,
-              field: {
+      <ModelTable<Incident>
+        name="Incidents"
+        userPreferencesKey="incidents-table"
+        bulkActions={{
+          buttons: [
+            getBulkChangeStateAction(),
+            ...labelBulkActions,
+            ...ownerBulkActions,
+            ModalTableBulkDefaultActions.Delete,
+          ],
+        }}
+        modelType={Incident}
+        saveFilterProps={props.saveFilterProps}
+        id="incidents-table"
+        isDeleteable={false}
+        showCreateForm={false}
+        topContent={filterBar}
+        query={mergeFiltersIntoQuery(props.query)}
+        onFetchSuccess={(data: Array<Incident>) => {
+          onResourcesFetched(data);
+        }}
+        isEditable={false}
+        isCreateable={false}
+        isViewable={true}
+        cardProps={{
+          title: props.title || "Incidents",
+          buttons: cardbuttons,
+          description:
+            props.description ||
+            "Here is a list of incidents for this project.",
+        }}
+        createVerb="Declare"
+        noItemsMessage={props.noItemsMessage || "No incidents found."}
+        showRefreshButton={true}
+        searchableFields={["title", "description"]}
+        showViewIdButton={true}
+        viewPageRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.INCIDENTS]!,
+        )}
+        filters={[
+          {
+            title: "Incident ID",
+            type: FieldType.Text,
+            field: {
+              _id: true,
+            },
+          },
+          {
+            title: "Incident Number",
+            type: FieldType.Number,
+            field: {
+              incidentNumber: true,
+            },
+          },
+          {
+            field: {
+              title: true,
+            },
+            title: "Title",
+            type: FieldType.Text,
+          },
+          {
+            field: {
+              incidentSeverity: {
+                name: true,
+              },
+            },
+            title: "Severity",
+            type: FieldType.Entity,
+
+            filterEntityType: IncidentSeverity,
+            filterQuery: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
+          },
+          {
+            field: {
+              currentIncidentState: {
+                name: true,
+                color: true,
+              },
+            },
+            title: "State",
+            type: FieldType.Entity,
+
+            filterEntityType: IncidentState,
+            filterQuery: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
+          },
+          {
+            field: {
+              monitors: {
+                name: true,
                 _id: true,
+                projectId: true,
               },
             },
-            {
-              title: "Incident Number",
-              type: FieldType.Number,
-              field: {
-                incidentNumber: true,
-              },
-            },
-            {
-              field: {
-                title: true,
-              },
-              title: "Title",
-              type: FieldType.Text,
-            },
-            {
-              field: {
-                incidentSeverity: {
-                  name: true,
-                },
-              },
-              title: "Severity",
-              type: FieldType.Entity,
+            title: "Monitors Affected",
+            type: FieldType.EntityArray,
 
-              filterEntityType: IncidentSeverity,
-              filterQuery: {
-                projectId: ProjectUtil.getCurrentProjectId()!,
-              },
-              filterDropdownField: {
-                label: "name",
-                value: "_id",
+            filterEntityType: Monitor,
+            filterQuery: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
+          },
+          {
+            field: {
+              declaredAt: true,
+            },
+            title: "Declared",
+            type: FieldType.Date,
+          },
+        ]}
+        selectMoreFields={{
+          incidentNumberWithPrefix: true,
+          isPrivate: true,
+        }}
+        columns={[
+          {
+            field: {
+              incidentNumber: true,
+            },
+            title: "Incident Number",
+            type: FieldType.Text,
+            getElement: (item: Incident): ReactElement => {
+              if (!item.incidentNumber) {
+                return <>-</>;
+              }
+
+              const numberLabel: string =
+                item.incidentNumberWithPrefix || `#${item.incidentNumber}`;
+
+              return (
+                <span className="inline-flex items-center">
+                  <span>{numberLabel}</span>
+                  {item.isPrivate === true && (
+                    <span
+                      title="Private incident — visible only to its owners, project admins, and project owners"
+                      className="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200 align-middle"
+                    >
+                      <Icon icon={IconProp.Lock} className="w-3 h-3" />
+                      Private
+                    </span>
+                  )}
+                </span>
+              );
+            },
+          },
+          {
+            field: {
+              title: true,
+            },
+            title: "Title",
+            type: FieldType.Element,
+
+            getElement: (item: Incident): ReactElement => {
+              return <IncidentElement incident={item} />;
+            },
+          },
+          {
+            field: {
+              currentIncidentState: {
+                name: true,
+                color: true,
               },
             },
-            {
-              field: {
-                currentIncidentState: {
-                  name: true,
-                  color: true,
-                },
-              },
-              title: "State",
-              type: FieldType.Entity,
+            title: "State",
+            type: FieldType.Entity,
 
-              filterEntityType: IncidentState,
-              filterQuery: {
-                projectId: ProjectUtil.getCurrentProjectId()!,
-              },
-              filterDropdownField: {
-                label: "name",
-                value: "_id",
-              },
-            },
-            {
-              field: {
-                monitors: {
-                  name: true,
-                  _id: true,
-                  projectId: true,
-                },
-              },
-              title: "Monitors Affected",
-              type: FieldType.EntityArray,
-
-              filterEntityType: Monitor,
-              filterQuery: {
-                projectId: ProjectUtil.getCurrentProjectId()!,
-              },
-              filterDropdownField: {
-                label: "name",
-                value: "_id",
-              },
-            },
-            {
-              field: {
-                declaredAt: true,
-              },
-              title: "Declared",
-              type: FieldType.Date,
-            },
-          ]}
-          selectMoreFields={{
-            incidentNumberWithPrefix: true,
-            isPrivate: true,
-          }}
-          columns={[
-            {
-              field: {
-                incidentNumber: true,
-              },
-              title: "Incident Number",
-              type: FieldType.Text,
-              getElement: (item: Incident): ReactElement => {
-                if (!item.incidentNumber) {
-                  return <>-</>;
-                }
-
-                const numberLabel: string =
-                  item.incidentNumberWithPrefix || `#${item.incidentNumber}`;
-
+            getElement: (item: Incident): ReactElement => {
+              if (item["currentIncidentState"]) {
                 return (
-                  <span className="inline-flex items-center">
-                    <span>{numberLabel}</span>
-                    {item.isPrivate === true && (
-                      <span
-                        title="Private incident — visible only to its owners, project admins, and project owners"
-                        className="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200 align-middle"
-                      >
-                        <Icon icon={IconProp.Lock} className="w-3 h-3" />
-                        Private
-                      </span>
-                    )}
-                  </span>
-                );
-              },
-            },
-            {
-              field: {
-                title: true,
-              },
-              title: "Title",
-              type: FieldType.Element,
-
-              getElement: (item: Incident): ReactElement => {
-                return <IncidentElement incident={item} />;
-              },
-            },
-            {
-              field: {
-                currentIncidentState: {
-                  name: true,
-                  color: true,
-                },
-              },
-              title: "State",
-              type: FieldType.Entity,
-
-              getElement: (item: Incident): ReactElement => {
-                if (item["currentIncidentState"]) {
-                  return (
-                    <Pill
-                      isMinimal={true}
-                      color={item.currentIncidentState.color || Black}
-                      text={item.currentIncidentState.name || "Unknown"}
-                    />
-                  );
-                }
-
-                return <></>;
-              },
-            },
-            {
-              field: {
-                incidentSeverity: {
-                  name: true,
-                  color: true,
-                },
-              },
-
-              title: "Severity",
-              type: FieldType.Entity,
-              hideOnMobile: true,
-              getElement: (item: Incident): ReactElement => {
-                if (item["incidentSeverity"]) {
-                  return (
-                    <Pill
-                      isMinimal={true}
-                      color={item.incidentSeverity.color || Black}
-                      text={item.incidentSeverity.name || "Unknown"}
-                    />
-                  );
-                }
-
-                return <></>;
-              },
-            },
-            {
-              field: {
-                monitors: {
-                  name: true,
-                  _id: true,
-                  projectId: true,
-                },
-              },
-              title: "Monitors Affected",
-              type: FieldType.EntityArray,
-
-              getElement: (item: Incident): ReactElement => {
-                return <MonitorsElement monitors={item["monitors"] || []} />;
-              },
-            },
-            {
-              field: {
-                declaredAt: true,
-              },
-              title: "Declared",
-              type: FieldType.DateTime,
-              hideOnMobile: true,
-            },
-            {
-              field: {
-                labels: {
-                  name: true,
-                  color: true,
-                },
-              },
-              title: "Labels",
-              type: FieldType.EntityArray,
-              hideOnMobile: true,
-
-              getElement: (item: Incident): ReactElement => {
-                return <LabelsElement labels={item["labels"] || []} />;
-              },
-            },
-            {
-              field: {
-                _id: true,
-              },
-              title: "Owners",
-              type: FieldType.Element,
-              hideOnMobile: true,
-              getElement: (item: Incident): ReactElement => {
-                const id: string | undefined = item.id?.toString();
-                return (
-                  <OwnersCell
-                    owners={id ? ownersByResourceId[id] : undefined}
-                    isLoading={isLoadingOwners}
+                  <Pill
+                    isMinimal={true}
+                    color={item.currentIncidentState.color || Black}
+                    text={item.currentIncidentState.name || "Unknown"}
                   />
                 );
+              }
+
+              return <></>;
+            },
+          },
+          {
+            field: {
+              incidentSeverity: {
+                name: true,
+                color: true,
               },
             },
-          ]}
-        />
-      </ResourceFiltersLayout>
+
+            title: "Severity",
+            type: FieldType.Entity,
+            hideOnMobile: true,
+            getElement: (item: Incident): ReactElement => {
+              if (item["incidentSeverity"]) {
+                return (
+                  <Pill
+                    isMinimal={true}
+                    color={item.incidentSeverity.color || Black}
+                    text={item.incidentSeverity.name || "Unknown"}
+                  />
+                );
+              }
+
+              return <></>;
+            },
+          },
+          {
+            field: {
+              monitors: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+            },
+            title: "Monitors Affected",
+            type: FieldType.EntityArray,
+
+            getElement: (item: Incident): ReactElement => {
+              return <MonitorsElement monitors={item["monitors"] || []} />;
+            },
+          },
+          {
+            field: {
+              declaredAt: true,
+            },
+            title: "Declared",
+            type: FieldType.DateTime,
+            hideOnMobile: true,
+          },
+          {
+            field: {
+              labels: {
+                name: true,
+                color: true,
+              },
+            },
+            title: "Labels",
+            type: FieldType.EntityArray,
+            hideOnMobile: true,
+
+            getElement: (item: Incident): ReactElement => {
+              return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: Incident): ReactElement => {
+              const id: string | undefined = item.id?.toString();
+              return (
+                <OwnersCell
+                  owners={id ? ownersByResourceId[id] : undefined}
+                  isLoading={isLoadingOwners}
+                />
+              );
+            },
+          },
+        ]}
+      />
 
       {incidentTemplates.length === 0 &&
         showIncidentTemplateModal &&
@@ -660,6 +667,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
       )}
 
       {labelBulkActionModals}
+      {ownerBulkActionModals}
 
       {showBulkStateChangeModal && (
         <BasicFormModal

@@ -5,16 +5,17 @@ import User from "Common/Models/DatabaseModels/User";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Dropdown, {
-  DropdownOption,
-  DropdownValue,
-} from "Common/UI/Components/Dropdown/Dropdown";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import Icon from "Common/UI/Components/Icon/Icon";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { ReactElement, useEffect, useMemo, useState } from "react";
 import ProjectUser from "../../Utils/ProjectUser";
+import FilterChipDropdown, {
+  FilterChipDropdownOption,
+} from "./FilterChipDropdown";
 import { ResourceOwnerEntry } from "./OwnerEntry";
 
 type OwnerJunctionModel = BaseModel & {
@@ -27,7 +28,7 @@ export interface UseResourceOwnersOptions {
   ownerTeamModelType: { new (): OwnerJunctionModel };
   resourceIdField: string;
   /**
-   * Show a Labels facet in the sidebar. When enabled, the merged query
+   * Show a Labels chip in the filter bar. When enabled, the merged query
    * includes `labels: Includes([...])` for the selected labels.
    */
   showLabelsFacet?: boolean | undefined;
@@ -38,9 +39,10 @@ export interface UseResourceOwnersResult<TResource extends BaseModel> {
   isLoadingOwners: boolean;
   onResourcesFetched: (resources: Array<TResource>) => void;
   /**
-   * Vertical facet sidebar element. Render it to the left of the table.
+   * Compact row of chip-dropdowns (one per filter type). Render it via the
+   * `topContent` prop of ModelTable so it sits inside the table card.
    */
-  facetPanel: ReactElement;
+  filterBar: ReactElement;
   /**
    * Merge owner + label filters into the base query. Pass the result to
    * the ModelTable's `query` prop.
@@ -50,6 +52,26 @@ export interface UseResourceOwnersResult<TResource extends BaseModel> {
   ) => Query<TResource>;
   hasActiveFilters: boolean;
 }
+
+type OwnerSelectionKind = "user" | "team";
+
+const OWNER_KEY_PREFIX: { user: "user:"; team: "team:" } = {
+  user: "user:",
+  team: "team:",
+};
+
+const parseOwnerKey: (key: string) => {
+  kind: OwnerSelectionKind;
+  id: string;
+} | null = (key: string): { kind: OwnerSelectionKind; id: string } | null => {
+  if (key.startsWith(OWNER_KEY_PREFIX.user)) {
+    return { kind: "user", id: key.slice(OWNER_KEY_PREFIX.user.length) };
+  }
+  if (key.startsWith(OWNER_KEY_PREFIX.team)) {
+    return { kind: "team", id: key.slice(OWNER_KEY_PREFIX.team.length) };
+  }
+  return null;
+};
 
 const useResourceOwners: <TResource extends BaseModel>(
   options: UseResourceOwnersOptions,
@@ -68,12 +90,7 @@ const useResourceOwners: <TResource extends BaseModel>(
   const [teamOptions, setTeamOptions] = useState<Array<DropdownOption>>([]);
   const [labelOptions, setLabelOptions] = useState<Array<DropdownOption>>([]);
 
-  const [selectedOwnerUserId, setSelectedOwnerUserId] = useState<string | null>(
-    null,
-  );
-  const [selectedOwnerTeamId, setSelectedOwnerTeamId] = useState<string | null>(
-    null,
-  );
+  const [selectedOwnerKeys, setSelectedOwnerKeys] = useState<Array<string>>([]);
   const [selectedLabelIds, setSelectedLabelIds] = useState<Array<string>>([]);
 
   const [matchingResourceIds, setMatchingResourceIds] =
@@ -155,91 +172,105 @@ const useResourceOwners: <TResource extends BaseModel>(
       return;
     }
 
-    if (!selectedOwnerUserId && !selectedOwnerTeamId) {
+    if (selectedOwnerKeys.length === 0) {
       setMatchingResourceIds(null);
       return;
+    }
+
+    const userIds: Array<string> = [];
+    const teamIds: Array<string> = [];
+    for (const key of selectedOwnerKeys) {
+      const parsed: { kind: OwnerSelectionKind; id: string } | null =
+        parseOwnerKey(key);
+      if (parsed?.kind === "user") {
+        userIds.push(parsed.id);
+      } else if (parsed?.kind === "team") {
+        teamIds.push(parsed.id);
+      }
     }
 
     let cancelled: boolean = false;
 
     const computeMatching: () => Promise<void> = async (): Promise<void> => {
       try {
-        let userResourceIds: Set<string> | null = null;
-        let teamResourceIds: Set<string> | null = null;
+        const fetches: Array<Promise<Array<string>>> = [];
 
-        if (selectedOwnerUserId) {
-          const result: ListResult<OwnerJunctionModel> =
-            await ModelAPI.getList<OwnerJunctionModel>({
+        if (userIds.length > 0) {
+          fetches.push(
+            ModelAPI.getList<OwnerJunctionModel>({
               modelType: ownerUserModelType,
               query: {
-                userId: new ObjectID(selectedOwnerUserId),
+                userId: new Includes(
+                  userIds.map((id: string) => {
+                    return new ObjectID(id);
+                  }),
+                ),
                 projectId: projectId,
               } as Query<OwnerJunctionModel>,
               limit: LIMIT_PER_PROJECT,
               skip: 0,
               select: { [resourceIdField]: true } as Record<string, true>,
               sort: {},
-            });
-
-          userResourceIds = new Set(
-            result.data
-              .map((item: OwnerJunctionModel) => {
-                const value: unknown = (
-                  item as unknown as Record<string, unknown>
-                )[resourceIdField];
-                return value !== undefined && value !== null
-                  ? (value as { toString: () => string }).toString()
-                  : undefined;
-              })
-              .filter((id: string | undefined): id is string => {
-                return Boolean(id);
-              }),
+            }).then((result: ListResult<OwnerJunctionModel>) => {
+              return result.data
+                .map((item: OwnerJunctionModel) => {
+                  const value: unknown = (
+                    item as unknown as Record<string, unknown>
+                  )[resourceIdField];
+                  return value !== undefined && value !== null
+                    ? (value as { toString: () => string }).toString()
+                    : undefined;
+                })
+                .filter((id: string | undefined): id is string => {
+                  return Boolean(id);
+                });
+            }),
           );
         }
 
-        if (selectedOwnerTeamId) {
-          const result: ListResult<OwnerJunctionModel> =
-            await ModelAPI.getList<OwnerJunctionModel>({
+        if (teamIds.length > 0) {
+          fetches.push(
+            ModelAPI.getList<OwnerJunctionModel>({
               modelType: ownerTeamModelType,
               query: {
-                teamId: new ObjectID(selectedOwnerTeamId),
+                teamId: new Includes(
+                  teamIds.map((id: string) => {
+                    return new ObjectID(id);
+                  }),
+                ),
                 projectId: projectId,
               } as Query<OwnerJunctionModel>,
               limit: LIMIT_PER_PROJECT,
               skip: 0,
               select: { [resourceIdField]: true } as Record<string, true>,
               sort: {},
-            });
-
-          teamResourceIds = new Set(
-            result.data
-              .map((item: OwnerJunctionModel) => {
-                const value: unknown = (
-                  item as unknown as Record<string, unknown>
-                )[resourceIdField];
-                return value !== undefined && value !== null
-                  ? (value as { toString: () => string }).toString()
-                  : undefined;
-              })
-              .filter((id: string | undefined): id is string => {
-                return Boolean(id);
-              }),
+            }).then((result: ListResult<OwnerJunctionModel>) => {
+              return result.data
+                .map((item: OwnerJunctionModel) => {
+                  const value: unknown = (
+                    item as unknown as Record<string, unknown>
+                  )[resourceIdField];
+                  return value !== undefined && value !== null
+                    ? (value as { toString: () => string }).toString()
+                    : undefined;
+                })
+                .filter((id: string | undefined): id is string => {
+                  return Boolean(id);
+                });
+            }),
           );
         }
 
-        let finalIds: Array<string>;
-        if (userResourceIds && teamResourceIds) {
-          finalIds = [...userResourceIds].filter((id: string) => {
-            return teamResourceIds!.has(id);
-          });
-        } else {
-          finalIds = Array.from(
-            userResourceIds || teamResourceIds || new Set<string>(),
-          );
+        const results: Array<Array<string>> = await Promise.all(fetches);
+        const union: Set<string> = new Set();
+        for (const list of results) {
+          for (const id of list) {
+            union.add(id);
+          }
         }
 
         if (!cancelled) {
-          setMatchingResourceIds(finalIds);
+          setMatchingResourceIds(Array.from(union));
         }
       } catch {
         if (!cancelled) {
@@ -253,7 +284,7 @@ const useResourceOwners: <TResource extends BaseModel>(
     return () => {
       cancelled = true;
     };
-  }, [selectedOwnerUserId, selectedOwnerTeamId]);
+  }, [selectedOwnerKeys]);
 
   const onResourcesFetched: (resources: Array<TResource>) => void = (
     resources: Array<TResource>,
@@ -404,147 +435,143 @@ const useResourceOwners: <TResource extends BaseModel>(
     return merged;
   };
 
-  const clearAllFilters: () => void = (): void => {
-    setSelectedOwnerUserId(null);
-    setSelectedOwnerTeamId(null);
-    setSelectedLabelIds([]);
-  };
-
   const hasActiveFilters: boolean = Boolean(
-    selectedOwnerUserId || selectedOwnerTeamId || selectedLabelIds.length > 0,
+    selectedOwnerKeys.length > 0 || selectedLabelIds.length > 0,
   );
 
-  const facetPanel: ReactElement = useMemo((): ReactElement => {
-    const selectedLabelOptions: Array<DropdownOption> = labelOptions.filter(
-      (o: DropdownOption) => {
-        return selectedLabelIds.includes(o.value.toString());
-      },
-    );
-
+  const getInitials: (name: string) => string = (name: string): string => {
+    const parts: Array<string> = name
+      .trim()
+      .split(/\s+/)
+      .filter((p: string) => {
+        return p.length > 0;
+      });
+    if (parts.length === 0) {
+      return "?";
+    }
+    if (parts.length === 1) {
+      return parts[0]!.charAt(0).toUpperCase();
+    }
     return (
-      <div className="rounded-md border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-900">Filters</h3>
-          {hasActiveFilters && (
-            <Button
-              title="Clear"
-              buttonStyle={ButtonStyleType.SECONDARY_LINK}
-              onClick={clearAllFilters}
-            />
-          )}
-        </div>
-        <div className="space-y-4">
-          <div>
-            <label
-              className="mb-1 block text-xs font-medium text-gray-700"
-              htmlFor="resource-owner-user-filter"
-            >
-              Owner (User)
-            </label>
-            <Dropdown
-              id="resource-owner-user-filter"
-              placeholder="Any user"
-              options={userOptions}
-              value={
-                selectedOwnerUserId
-                  ? userOptions.find((o: DropdownOption) => {
-                      return o.value === selectedOwnerUserId;
-                    })
-                  : undefined
+      parts[0]!.charAt(0) + parts[parts.length - 1]!.charAt(0)
+    ).toUpperCase();
+  };
+
+  const ownerChipOptions: Array<FilterChipDropdownOption> =
+    useMemo((): Array<FilterChipDropdownOption> => {
+      const users: Array<FilterChipDropdownOption> = userOptions.map(
+        (o: DropdownOption) => {
+          return {
+            value: `${OWNER_KEY_PREFIX.user}${o.value.toString()}`,
+            label: o.label,
+            initials: getInitials(o.label),
+            icon: IconProp.User,
+            group: "People",
+          };
+        },
+      );
+      const teams: Array<FilterChipDropdownOption> = teamOptions.map(
+        (o: DropdownOption) => {
+          return {
+            value: `${OWNER_KEY_PREFIX.team}${o.value.toString()}`,
+            label: o.label,
+            initials: getInitials(o.label),
+            icon: IconProp.Team,
+            group: "Teams",
+          };
+        },
+      );
+      return [...users, ...teams];
+    }, [userOptions, teamOptions]);
+
+  const labelChipOptions: Array<FilterChipDropdownOption> =
+    useMemo((): Array<FilterChipDropdownOption> => {
+      return labelOptions.map((o: DropdownOption) => {
+        return {
+          value: o.value.toString(),
+          label: o.label,
+          initials: getInitials(o.label),
+        };
+      });
+    }, [labelOptions]);
+
+  const filterBar: ReactElement = useMemo((): ReactElement => {
+    return (
+      <div className="-mt-1 mb-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg border border-dashed border-gray-200 bg-gray-50/60 px-3 py-2">
+        <span className="inline-flex items-center gap-1.5 pr-1 text-xs font-semibold uppercase tracking-wider text-gray-400">
+          <Icon icon={IconProp.Filter} className="h-3.5 w-3.5" />
+          Filter by
+        </span>
+        <FilterChipDropdown
+          label="Owner"
+          emptyIcon={IconProp.User}
+          options={ownerChipOptions}
+          isMultiSelect={true}
+          value={selectedOwnerKeys}
+          searchPlaceholder="Search people and teams..."
+          popoverWidthClassName="w-72"
+          onChange={(value: string | Array<string> | null) => {
+            if (value === null) {
+              setSelectedOwnerKeys([]);
+              return;
+            }
+            if (Array.isArray(value)) {
+              setSelectedOwnerKeys(value);
+              return;
+            }
+            setSelectedOwnerKeys([value]);
+          }}
+        />
+        {showLabelsFacet && (
+          <FilterChipDropdown
+            label="Labels"
+            emptyIcon={IconProp.Tag}
+            options={labelChipOptions}
+            isMultiSelect={true}
+            value={selectedLabelIds}
+            searchPlaceholder="Search labels..."
+            onChange={(value: string | Array<string> | null) => {
+              if (value === null) {
+                setSelectedLabelIds([]);
+                return;
               }
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                if (value === null || Array.isArray(value)) {
-                  setSelectedOwnerUserId(null);
-                  return;
-                }
-                setSelectedOwnerUserId(value.toString());
-              }}
-            />
-          </div>
-          <div>
-            <label
-              className="mb-1 block text-xs font-medium text-gray-700"
-              htmlFor="resource-owner-team-filter"
-            >
-              Owner (Team)
-            </label>
-            <Dropdown
-              id="resource-owner-team-filter"
-              placeholder="Any team"
-              options={teamOptions}
-              value={
-                selectedOwnerTeamId
-                  ? teamOptions.find((o: DropdownOption) => {
-                      return o.value === selectedOwnerTeamId;
-                    })
-                  : undefined
+              if (Array.isArray(value)) {
+                setSelectedLabelIds(value);
+                return;
               }
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                if (value === null || Array.isArray(value)) {
-                  setSelectedOwnerTeamId(null);
-                  return;
-                }
-                setSelectedOwnerTeamId(value.toString());
-              }}
-            />
-          </div>
-          {showLabelsFacet && (
-            <div>
-              <label
-                className="mb-1 block text-xs font-medium text-gray-700"
-                htmlFor="resource-labels-filter"
-              >
-                Labels
-              </label>
-              <Dropdown
-                id="resource-labels-filter"
-                placeholder="Any labels"
-                options={labelOptions}
-                isMultiSelect={true}
-                value={selectedLabelOptions}
-                onChange={(
-                  value: DropdownValue | Array<DropdownValue> | null,
-                ) => {
-                  if (value === null) {
-                    setSelectedLabelIds([]);
-                    return;
-                  }
-                  if (Array.isArray(value)) {
-                    setSelectedLabelIds(
-                      value.map((v: DropdownValue) => {
-                        return v.toString();
-                      }),
-                    );
-                    return;
-                  }
-                  setSelectedLabelIds([value.toString()]);
-                }}
-              />
-            </div>
-          )}
-        </div>
+              setSelectedLabelIds([value]);
+            }}
+          />
+        )}
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedOwnerKeys([]);
+              setSelectedLabelIds([]);
+            }}
+            className="ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-200/60 hover:text-gray-800 focus:outline-none"
+          >
+            <Icon icon={IconProp.Close} className="h-3 w-3" />
+            Clear all
+          </button>
+        )}
       </div>
     );
   }, [
-    userOptions,
-    teamOptions,
-    labelOptions,
-    selectedOwnerUserId,
-    selectedOwnerTeamId,
+    ownerChipOptions,
+    labelChipOptions,
+    selectedOwnerKeys,
     selectedLabelIds,
-    hasActiveFilters,
     showLabelsFacet,
+    hasActiveFilters,
   ]);
 
   return {
     ownersByResourceId,
     isLoadingOwners,
     onResourcesFetched,
-    facetPanel,
+    filterBar,
     mergeFiltersIntoQuery,
     hasActiveFilters,
   };
