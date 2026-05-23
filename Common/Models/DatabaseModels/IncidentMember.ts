@@ -605,6 +605,15 @@ export default class IncidentMember extends BaseModel {
     read: [],
     update: [],
   })
+  /*
+   * Indexed because `IncidentMembers/SendMemberAddedNotification`
+   * cron polls `WHERE isMemberNotified = false` every minute. Without
+   * the index the cron does a full table scan that grows with every
+   * incident-member assignment ever made. Matches the indexing
+   * pattern used by the sibling `isOwnerNotified` flag on state
+   * timeline tables.
+   */
+  @Index()
   @TableColumn({
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,

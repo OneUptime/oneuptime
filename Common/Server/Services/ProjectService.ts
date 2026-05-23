@@ -103,6 +103,17 @@ export class ProjectService extends DatabaseService<Model> {
    */
   private requireSsoForLoginCache: InMemoryTTLCache<boolean> =
     new InMemoryTTLCache(10_000);
+  /*
+   * Caches the current billing plan per project. `getCurrentPlan` is hit
+   * by `CommonAPI.getDatabaseCommonInteractionProps` on every
+   * authenticated request when billing is enabled — without caching,
+   * that's one Postgres findOneById per API call to a billable project.
+   * Plans change rarely (subscription create / cancel / change), so a
+   * 60s staleness window is acceptable.
+   */
+  private currentPlanCache: InMemoryTTLCache<CurrentPlan> = new InMemoryTTLCache(
+    10_000,
+  );
 
   public constructor() {
     super(Model);
@@ -1492,6 +1503,13 @@ export class ProjectService extends DatabaseService<Model> {
       return { plan: null, isSubscriptionUnpaid: false };
     }
 
+    const cacheKey: string = projectId.toString();
+    const cached: CurrentPlan | undefined =
+      this.currentPlanCache.get(cacheKey);
+    if (cached !== undefined) {
+      return cached;
+    }
+
     const project: Model | null = await this.findOneById({
       id: projectId,
       select: {
@@ -1506,10 +1524,12 @@ export class ProjectService extends DatabaseService<Model> {
     });
 
     if (!project) {
+      // Don't cache "not found" — let the caller surface a fresh error.
       throw new BadDataException("Project ID is invalid");
     }
 
     if (!project.paymentProviderPlanId) {
+      // Don't cache "no plan" — the project may be mid-onboarding.
       throw new BadDataException("Project does not have any plans");
     }
 
@@ -1518,7 +1538,7 @@ export class ProjectService extends DatabaseService<Model> {
       getAllEnvVars(),
     );
 
-    return {
+    const result: CurrentPlan = {
       plan: plan,
       isSubscriptionUnpaid:
         !BillingService.isSubscriptionActive(
@@ -1528,6 +1548,8 @@ export class ProjectService extends DatabaseService<Model> {
           project.paymentProviderMeteredSubscriptionStatus!,
         ),
     };
+    this.currentPlanCache.set(cacheKey, result, 60_000);
+    return result;
   }
 
   @CaptureSpan()

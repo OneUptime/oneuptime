@@ -344,6 +344,8 @@ import { AttachKubernetesAndDockerToIncidentAndAlert1779302536475 } from "./1779
 import { AttachServiceToIncidentAndAlert1779303924241 } from "./1779303924241-AttachServiceToIncidentAndAlert";
 import { AddAgentVersionToKubernetesDockerHost1779392865146 } from "./1779392865146-AddAgentVersionToKubernetesDockerHost";
 import { AddPerformanceIndexes1779392970424 } from "./1779392970424-AddPerformanceIndexes";
+import { AddFacetsToTableView1779536271671 } from "./1779536271671-AddFacetsToTableView";
+import { AddIsMemberNotifiedIndex1779540427366 } from "./1779540427366-AddIsMemberNotifiedIndex";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -691,4 +693,6 @@ export default [
   AttachServiceToIncidentAndAlert1779303924241,
   AddAgentVersionToKubernetesDockerHost1779392865146,
   AddPerformanceIndexes1779392970424,
+  AddFacetsToTableView1779536271671,
+  AddIsMemberNotifiedIndex1779540427366,
 ];
