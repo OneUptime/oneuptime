@@ -17,7 +17,9 @@ import Phone from "Common/Types/Phone";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
-import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
+import useResourceOwners, {
+  ResourceFacet,
+} from "../../Components/ResourceOwners/useResourceOwners";
 
 const IncomingCallPoliciesPage: FunctionComponent<
   PageComponentProps
@@ -32,6 +34,22 @@ const IncomingCallPoliciesPage: FunctionComponent<
       resourceIdField: "incomingCallPolicyId",
     });
 
+  const incomingCallPolicyExtraFacets: Array<ResourceFacet> = [
+    {
+      key: "isEnabled",
+      label: "Enabled",
+      icon: IconProp.Power,
+      isMultiSelect: false,
+      options: [
+        { value: "true", label: "Enabled" },
+        { value: "false", label: "Disabled" },
+      ],
+      toQueryValue: (values: Array<string>): unknown => {
+        return values[0] === "true";
+      },
+    },
+  ];
+
   const {
     ownersByResourceId,
     isLoadingOwners,
@@ -43,6 +61,7 @@ const IncomingCallPoliciesPage: FunctionComponent<
     ownerTeamModelType: IncomingCallPolicyOwnerTeam,
     resourceIdField: "incomingCallPolicyId",
     showLabelsFacet: true,
+    extraFacets: incomingCallPolicyExtraFacets,
   });
 
   return (

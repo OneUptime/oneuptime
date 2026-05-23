@@ -23,7 +23,10 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import { Green500, Red500 } from "Common/Types/BrandColors";
 import WorkflowElement from "../../Components/Workflow/WorkflowElement";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
-import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
+import useResourceOwners, {
+  ResourceFacet,
+} from "../../Components/ResourceOwners/useResourceOwners";
+import IconProp from "Common/Types/Icon/IconProp";
 
 const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const startDate: Date = OneUptimeDate.getSomeDaysAgo(30);
@@ -40,6 +43,22 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
       resourceIdField: "workflowId",
     });
 
+  const workflowExtraFacets: Array<ResourceFacet> = [
+    {
+      key: "isEnabled",
+      label: "Enabled",
+      icon: IconProp.Power,
+      isMultiSelect: false,
+      options: [
+        { value: "true", label: "Enabled" },
+        { value: "false", label: "Disabled" },
+      ],
+      toQueryValue: (values: Array<string>): unknown => {
+        return values[0] === "true";
+      },
+    },
+  ];
+
   const {
     ownersByResourceId,
     isLoadingOwners,
@@ -51,6 +70,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
     ownerTeamModelType: WorkflowOwnerTeam,
     resourceIdField: "workflowId",
     showLabelsFacet: true,
+    extraFacets: workflowExtraFacets,
   });
 
   return (

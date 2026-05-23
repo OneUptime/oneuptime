@@ -13,7 +13,10 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green500, Red500 } from "Common/Types/BrandColors";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
-import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
+import useResourceOwners, {
+  ResourceFacet,
+} from "../../Components/ResourceOwners/useResourceOwners";
+import IconProp from "Common/Types/Icon/IconProp";
 
 const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
@@ -22,6 +25,22 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
       ownerTeamModelType: RunbookOwnerTeam,
       resourceIdField: "runbookId",
     });
+
+  const runbookExtraFacets: Array<ResourceFacet> = [
+    {
+      key: "isEnabled",
+      label: "Enabled",
+      icon: IconProp.Power,
+      isMultiSelect: false,
+      options: [
+        { value: "true", label: "Enabled" },
+        { value: "false", label: "Disabled" },
+      ],
+      toQueryValue: (values: Array<string>): unknown => {
+        return values[0] === "true";
+      },
+    },
+  ];
 
   const {
     ownersByResourceId,
@@ -34,6 +53,7 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
     ownerTeamModelType: RunbookOwnerTeam,
     resourceIdField: "runbookId",
     showLabelsFacet: true,
+    extraFacets: runbookExtraFacets,
   });
 
   return (

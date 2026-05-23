@@ -6,7 +6,11 @@ import Host from "Common/Models/DatabaseModels/Host";
 import HostOwnerTeam from "Common/Models/DatabaseModels/HostOwnerTeam";
 import HostOwnerUser from "Common/Models/DatabaseModels/HostOwnerUser";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
-import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
+import useResourceOwners, {
+  ResourceFacet,
+} from "../../Components/ResourceOwners/useResourceOwners";
+import IconProp from "Common/Types/Icon/IconProp";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import React, {
   Fragment,
   FunctionComponent,
@@ -69,6 +73,52 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
       resourceIdField: "hostId",
     });
 
+  const hostExtraFacets: Array<ResourceFacet> = [
+    {
+      key: "otelCollectorStatus",
+      label: "Status",
+      icon: IconProp.Wifi,
+      isMultiSelect: false,
+      options: [
+        { value: "connected", label: "Connected" },
+        { value: "disconnected", label: "Disconnected" },
+      ],
+      toQueryValue: (values: Array<string>): unknown => {
+        return values[0];
+      },
+    },
+    {
+      key: "osType",
+      label: "OS",
+      icon: IconProp.ComputerDesktop,
+      isMultiSelect: true,
+      options: [
+        { value: "linux", label: "Linux" },
+        { value: "darwin", label: "macOS" },
+        { value: "windows", label: "Windows" },
+        { value: "freebsd", label: "FreeBSD" },
+      ],
+      toQueryValue: (values: Array<string>): unknown => {
+        return new Includes(values);
+      },
+    },
+    {
+      key: "hostArch",
+      label: "Architecture",
+      icon: IconProp.CPUChip,
+      isMultiSelect: true,
+      options: [
+        { value: "amd64", label: "amd64" },
+        { value: "arm64", label: "arm64" },
+        { value: "x86", label: "x86" },
+        { value: "arm", label: "arm" },
+      ],
+      toQueryValue: (values: Array<string>): unknown => {
+        return new Includes(values);
+      },
+    },
+  ];
+
   const {
     ownersByResourceId,
     isLoadingOwners,
@@ -80,6 +130,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     ownerTeamModelType: HostOwnerTeam,
     resourceIdField: "hostId",
     showLabelsFacet: true,
+    extraFacets: hostExtraFacets,
   });
 
   const fetchHostCount: PromiseVoidFunction = async (): Promise<void> => {

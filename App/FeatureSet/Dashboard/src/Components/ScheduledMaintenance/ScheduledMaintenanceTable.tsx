@@ -18,7 +18,11 @@ import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/Schedule
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import OwnersCell from "../ResourceOwners/OwnersCell";
-import useResourceOwners from "../ResourceOwners/useResourceOwners";
+import useResourceOwners, {
+  ResourceFacet,
+} from "../ResourceOwners/useResourceOwners";
+import { FilterChipDropdownOption } from "../ResourceOwners/FilterChipDropdown";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -95,6 +99,42 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
       resourceIdField: "scheduledMaintenanceId",
     });
 
+  const scheduledMaintenanceExtraFacets: Array<ResourceFacet> = [
+    {
+      key: "currentScheduledMaintenanceState",
+      label: "State",
+      icon: IconProp.Flag,
+      isMultiSelect: true,
+      searchPlaceholder: "Search states...",
+      fetchOptions: async (
+        projectId: ObjectID,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        const result: ListResult<ScheduledMaintenanceState> =
+          await ModelAPI.getList<ScheduledMaintenanceState>({
+            modelType: ScheduledMaintenanceState,
+            query: { projectId: projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { _id: true, name: true, order: true },
+            sort: { order: SortOrder.Ascending },
+          });
+        return result.data.map((s: ScheduledMaintenanceState) => {
+          return {
+            value: s.id?.toString() || "",
+            label: s.name?.toString() || "",
+          };
+        });
+      },
+      toQueryValue: (values: Array<string>): unknown => {
+        return new Includes(
+          values.map((v: string) => {
+            return new ObjectID(v);
+          }),
+        );
+      },
+    },
+  ];
+
   const {
     ownersByResourceId,
     isLoadingOwners,
@@ -106,6 +146,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     ownerTeamModelType: ScheduledMaintenanceOwnerTeam,
     resourceIdField: "scheduledMaintenanceId",
     showLabelsFacet: true,
+    extraFacets: scheduledMaintenanceExtraFacets,
   });
 
   // Fetch scheduled maintenance states on mount

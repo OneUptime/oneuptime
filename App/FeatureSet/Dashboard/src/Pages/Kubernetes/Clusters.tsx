@@ -6,7 +6,10 @@ import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import KubernetesClusterOwnerTeam from "Common/Models/DatabaseModels/KubernetesClusterOwnerTeam";
 import KubernetesClusterOwnerUser from "Common/Models/DatabaseModels/KubernetesClusterOwnerUser";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
-import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
+import useResourceOwners, {
+  ResourceFacet,
+} from "../../Components/ResourceOwners/useResourceOwners";
+import IconProp from "Common/Types/Icon/IconProp";
 import React, {
   Fragment,
   FunctionComponent,
@@ -47,6 +50,22 @@ const KubernetesClusters: FunctionComponent<
       resourceIdField: "kubernetesClusterId",
     });
 
+  const kubernetesExtraFacets: Array<ResourceFacet> = [
+    {
+      key: "otelCollectorStatus",
+      label: "Status",
+      icon: IconProp.Wifi,
+      isMultiSelect: false,
+      options: [
+        { value: "connected", label: "Connected" },
+        { value: "disconnected", label: "Disconnected" },
+      ],
+      toQueryValue: (values: Array<string>): unknown => {
+        return values[0];
+      },
+    },
+  ];
+
   const {
     ownersByResourceId,
     isLoadingOwners,
@@ -58,6 +77,7 @@ const KubernetesClusters: FunctionComponent<
     ownerTeamModelType: KubernetesClusterOwnerTeam,
     resourceIdField: "kubernetesClusterId",
     showLabelsFacet: true,
+    extraFacets: kubernetesExtraFacets,
   });
 
   const fetchClusterCount: PromiseVoidFunction = async (): Promise<void> => {

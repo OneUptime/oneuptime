@@ -32,7 +32,11 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
 import OwnersCell from "../ResourceOwners/OwnersCell";
-import useResourceOwners from "../ResourceOwners/useResourceOwners";
+import useResourceOwners, {
+  ResourceFacet,
+} from "../ResourceOwners/useResourceOwners";
+import { FilterChipDropdownOption } from "../ResourceOwners/FilterChipDropdown";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import React, {
   FunctionComponent,
@@ -90,6 +94,107 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
       resourceIdField: "incidentId",
     });
 
+  const incidentExtraFacets: Array<ResourceFacet> = [
+    {
+      key: "currentIncidentState",
+      label: "State",
+      icon: IconProp.Flag,
+      isMultiSelect: true,
+      searchPlaceholder: "Search states...",
+      fetchOptions: async (
+        projectId: ObjectID,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        const result: ListResult<IncidentState> =
+          await ModelAPI.getList<IncidentState>({
+            modelType: IncidentState,
+            query: { projectId: projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { _id: true, name: true, order: true },
+            sort: { order: SortOrder.Ascending },
+          });
+        return result.data.map((s: IncidentState) => {
+          return {
+            value: s.id?.toString() || "",
+            label: s.name?.toString() || "",
+          };
+        });
+      },
+      toQueryValue: (values: Array<string>): unknown => {
+        return new Includes(
+          values.map((v: string) => {
+            return new ObjectID(v);
+          }),
+        );
+      },
+    },
+    {
+      key: "incidentSeverity",
+      label: "Severity",
+      icon: IconProp.Fire,
+      isMultiSelect: true,
+      searchPlaceholder: "Search severities...",
+      fetchOptions: async (
+        projectId: ObjectID,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        const result: ListResult<IncidentSeverity> =
+          await ModelAPI.getList<IncidentSeverity>({
+            modelType: IncidentSeverity,
+            query: { projectId: projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { _id: true, name: true, order: true },
+            sort: { order: SortOrder.Ascending },
+          });
+        return result.data.map((s: IncidentSeverity) => {
+          return {
+            value: s.id?.toString() || "",
+            label: s.name?.toString() || "",
+          };
+        });
+      },
+      toQueryValue: (values: Array<string>): unknown => {
+        return new Includes(
+          values.map((v: string) => {
+            return new ObjectID(v);
+          }),
+        );
+      },
+    },
+    {
+      key: "monitors",
+      label: "Monitor",
+      icon: IconProp.Signal,
+      isMultiSelect: true,
+      searchPlaceholder: "Search monitors...",
+      fetchOptions: async (
+        projectId: ObjectID,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        const result: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
+          modelType: Monitor,
+          query: { projectId: projectId },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: { _id: true, name: true },
+          sort: { name: SortOrder.Ascending },
+        });
+        return result.data.map((m: Monitor) => {
+          return {
+            value: m.id?.toString() || "",
+            label: m.name?.toString() || "",
+          };
+        });
+      },
+      toQueryValue: (values: Array<string>): unknown => {
+        return new Includes(
+          values.map((v: string) => {
+            return new ObjectID(v);
+          }),
+        );
+      },
+    },
+  ];
+
   const {
     ownersByResourceId,
     isLoadingOwners,
@@ -101,6 +206,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
     ownerTeamModelType: IncidentOwnerTeam,
     resourceIdField: "incidentId",
     showLabelsFacet: true,
+    extraFacets: incidentExtraFacets,
   });
 
   // Fetch incident states on mount

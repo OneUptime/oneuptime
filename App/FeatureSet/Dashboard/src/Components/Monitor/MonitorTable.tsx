@@ -43,7 +43,14 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import MonitorElement from "./Monitor";
 import OwnersCell from "../ResourceOwners/OwnersCell";
-import useResourceOwners from "../ResourceOwners/useResourceOwners";
+import useResourceOwners, {
+  ResourceFacet,
+} from "../ResourceOwners/useResourceOwners";
+import { FilterChipDropdownOption } from "../ResourceOwners/FilterChipDropdown";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -77,6 +84,60 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
   const [bulkActionProps, setBulkActionProps] =
     useState<BulkActionOnClickProps<Monitor> | null>(null);
 
+  const monitorExtraFacets: Array<ResourceFacet> = [
+    {
+      key: "currentMonitorStatus",
+      label: "Status",
+      icon: IconProp.Heartbeat,
+      isMultiSelect: true,
+      searchPlaceholder: "Search statuses...",
+      fetchOptions: async (
+        projectId: ObjectID,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        const result: ListResult<MonitorStatus> =
+          await ModelAPI.getList<MonitorStatus>({
+            modelType: MonitorStatus,
+            query: { projectId: projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { _id: true, name: true, order: true },
+            sort: { order: SortOrder.Ascending },
+          });
+        return result.data.map((s: MonitorStatus) => {
+          return {
+            value: s.id?.toString() || "",
+            label: s.name?.toString() || "",
+          };
+        });
+      },
+      toQueryValue: (values: Array<string>): unknown => {
+        return new Includes(
+          values.map((v: string) => {
+            return new ObjectID(v);
+          }),
+        );
+      },
+    },
+    {
+      key: "monitorType",
+      label: "Type",
+      icon: IconProp.Cube,
+      isMultiSelect: true,
+      searchPlaceholder: "Search monitor types...",
+      options: MonitorTypeUtil.monitorTypesAsDropdownOptions().map(
+        (o: DropdownOption): FilterChipDropdownOption => {
+          return {
+            value: o.value.toString(),
+            label: o.label,
+          };
+        },
+      ),
+      toQueryValue: (values: Array<string>): unknown => {
+        return new Includes(values);
+      },
+    },
+  ];
+
   const {
     ownersByResourceId,
     isLoadingOwners,
@@ -88,6 +149,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
     ownerTeamModelType: MonitorOwnerTeam,
     resourceIdField: "monitorId",
     showLabelsFacet: true,
+    extraFacets: monitorExtraFacets,
   });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =

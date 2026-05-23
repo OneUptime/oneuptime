@@ -6,7 +6,10 @@ import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerHostOwnerTeam from "Common/Models/DatabaseModels/DockerHostOwnerTeam";
 import DockerHostOwnerUser from "Common/Models/DatabaseModels/DockerHostOwnerUser";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
-import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
+import useResourceOwners, {
+  ResourceFacet,
+} from "../../Components/ResourceOwners/useResourceOwners";
+import IconProp from "Common/Types/Icon/IconProp";
 import React, {
   Fragment,
   FunctionComponent,
@@ -45,6 +48,22 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
       resourceIdField: "dockerHostId",
     });
 
+  const dockerExtraFacets: Array<ResourceFacet> = [
+    {
+      key: "otelCollectorStatus",
+      label: "Status",
+      icon: IconProp.Wifi,
+      isMultiSelect: false,
+      options: [
+        { value: "connected", label: "Connected" },
+        { value: "disconnected", label: "Disconnected" },
+      ],
+      toQueryValue: (values: Array<string>): unknown => {
+        return values[0];
+      },
+    },
+  ];
+
   const {
     ownersByResourceId,
     isLoadingOwners,
@@ -56,6 +75,7 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     ownerTeamModelType: DockerHostOwnerTeam,
     resourceIdField: "dockerHostId",
     showLabelsFacet: true,
+    extraFacets: dockerExtraFacets,
   });
 
   const fetchHostCount: PromiseVoidFunction = async (): Promise<void> => {

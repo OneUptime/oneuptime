@@ -22,7 +22,12 @@ import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import OwnersCell from "../ResourceOwners/OwnersCell";
-import useResourceOwners from "../ResourceOwners/useResourceOwners";
+import useResourceOwners, {
+  ResourceFacet,
+} from "../ResourceOwners/useResourceOwners";
+import { FilterChipDropdownOption } from "../ResourceOwners/FilterChipDropdown";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -85,6 +90,107 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
       resourceIdField: "alertId",
     });
 
+  const alertExtraFacets: Array<ResourceFacet> = [
+    {
+      key: "currentAlertState",
+      label: "State",
+      icon: IconProp.Flag,
+      isMultiSelect: true,
+      searchPlaceholder: "Search states...",
+      fetchOptions: async (
+        projectId: ObjectID,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        const result: ListResult<AlertState> =
+          await ModelAPI.getList<AlertState>({
+            modelType: AlertState,
+            query: { projectId: projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { _id: true, name: true, order: true },
+            sort: { order: SortOrder.Ascending },
+          });
+        return result.data.map((s: AlertState) => {
+          return {
+            value: s.id?.toString() || "",
+            label: s.name?.toString() || "",
+          };
+        });
+      },
+      toQueryValue: (values: Array<string>): unknown => {
+        return new Includes(
+          values.map((v: string) => {
+            return new ObjectID(v);
+          }),
+        );
+      },
+    },
+    {
+      key: "alertSeverity",
+      label: "Severity",
+      icon: IconProp.Fire,
+      isMultiSelect: true,
+      searchPlaceholder: "Search severities...",
+      fetchOptions: async (
+        projectId: ObjectID,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        const result: ListResult<AlertSeverity> =
+          await ModelAPI.getList<AlertSeverity>({
+            modelType: AlertSeverity,
+            query: { projectId: projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { _id: true, name: true, order: true },
+            sort: { order: SortOrder.Ascending },
+          });
+        return result.data.map((s: AlertSeverity) => {
+          return {
+            value: s.id?.toString() || "",
+            label: s.name?.toString() || "",
+          };
+        });
+      },
+      toQueryValue: (values: Array<string>): unknown => {
+        return new Includes(
+          values.map((v: string) => {
+            return new ObjectID(v);
+          }),
+        );
+      },
+    },
+    {
+      key: "monitor",
+      label: "Monitor",
+      icon: IconProp.Signal,
+      isMultiSelect: true,
+      searchPlaceholder: "Search monitors...",
+      fetchOptions: async (
+        projectId: ObjectID,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        const result: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
+          modelType: Monitor,
+          query: { projectId: projectId },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: { _id: true, name: true },
+          sort: { name: SortOrder.Ascending },
+        });
+        return result.data.map((m: Monitor) => {
+          return {
+            value: m.id?.toString() || "",
+            label: m.name?.toString() || "",
+          };
+        });
+      },
+      toQueryValue: (values: Array<string>): unknown => {
+        return new Includes(
+          values.map((v: string) => {
+            return new ObjectID(v);
+          }),
+        );
+      },
+    },
+  ];
+
   const {
     ownersByResourceId,
     isLoadingOwners,
@@ -96,6 +202,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
     ownerTeamModelType: AlertOwnerTeam,
     resourceIdField: "alertId",
     showLabelsFacet: true,
+    extraFacets: alertExtraFacets,
   });
 
   // Fetch alert states on mount
