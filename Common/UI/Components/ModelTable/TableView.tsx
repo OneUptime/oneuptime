@@ -406,20 +406,23 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
               icon={IconProp.Bookmark}
               className="h-4 w-4 flex-none text-indigo-500"
             />
-            <span className="flex flex-col leading-tight">
-              <span className="text-[10px] font-medium uppercase tracking-wide text-indigo-400">
-                Saved view
+            <span className="inline-flex items-baseline gap-1.5 whitespace-nowrap leading-none">
+              <span className="text-[10px] font-medium uppercase tracking-wider text-indigo-400">
+                View
               </span>
               <span className="max-w-[14rem] truncate text-sm font-semibold">
                 {currentlySelectedView.name}
               </span>
             </span>
-            <span aria-hidden="true" className="ml-1 h-5 w-px bg-indigo-200" />
+            <span
+              aria-hidden="true"
+              className="mx-0.5 h-4 w-px bg-indigo-200"
+            />
             <button
               type="button"
               aria-label="Clear saved view"
               title="Clear saved view"
-              className="-mr-1 inline-flex h-6 w-6 flex-none items-center justify-center rounded-md text-indigo-500 transition-colors hover:bg-indigo-200 hover:text-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              className="-mr-1 inline-flex h-5 w-5 flex-none items-center justify-center rounded-md text-indigo-500 transition-colors hover:bg-indigo-200 hover:text-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-400"
               onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                 event.stopPropagation();
                 setCurrentlySelectedView(null);
@@ -427,7 +430,7 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
                 closeDropdownMenu();
               }}
             >
-              <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
+              <Icon icon={IconProp.Close} className="h-3 w-3" />
             </button>
             <Icon
               icon={IconProp.ChevronDown}

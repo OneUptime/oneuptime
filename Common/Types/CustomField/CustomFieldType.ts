@@ -3,6 +3,7 @@ enum CustomFieldType {
   Number = "Number",
   Boolean = "Boolean",
   Dropdown = "Dropdown",
+  MultiSelectDropdown = "MultiSelectDropdown",
 }
 
 export default CustomFieldType;

@@ -132,6 +132,77 @@ const Detail: DetailFunction = <T extends GenericObject>(
     );
   };
 
+  type GetMultiSelectDropdownViewerFunction = (
+    data: Array<string | number | boolean> | string,
+    options: Array<DropdownOption | DropdownOptionGroup>,
+    placeholder: string,
+  ) => ReactElement;
+
+  const getMultiSelectDropdownViewer: GetMultiSelectDropdownViewerFunction = (
+    data: Array<string | number | boolean> | string,
+    options: Array<DropdownOption | DropdownOptionGroup>,
+    placeholder: string,
+  ): ReactElement => {
+    const values: Array<string | number | boolean> = Array.isArray(data)
+      ? data
+      : typeof data === "string" && data.length > 0
+        ? [data]
+        : [];
+
+    if (values.length === 0) {
+      return (
+        <span className="text-gray-400 italic text-sm">{placeholder}</span>
+      );
+    }
+
+    const flatOptions: Array<DropdownOption> = (options || []).flatMap(
+      (item: DropdownOption | DropdownOptionGroup) => {
+        if ("options" in item && Array.isArray(item.options)) {
+          return item.options;
+        }
+        return [item as DropdownOption];
+      },
+    );
+
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        {values.map(
+          (value: string | number | boolean, index: number): ReactElement => {
+            const matched: DropdownOption | undefined = flatOptions.find(
+              (option: DropdownOption) => {
+                return option.value === value;
+              },
+            );
+            const label: string = matched
+              ? (matched.label as string)
+              : String(value);
+            return (
+              <span
+                key={`${String(value)}-${index}`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-700 text-sm font-medium"
+              >
+                <svg
+                  className="w-3.5 h-3.5 text-indigo-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+                {label}
+              </span>
+            );
+          },
+        )}
+      </div>
+    );
+  };
+
   type GetDictionaryOfStringsViewerFunction = (
     data: Dictionary<string>,
   ) => ReactElement;
@@ -427,6 +498,14 @@ const Detail: DetailFunction = <T extends GenericObject>(
     if (field.fieldType === FieldType.Dropdown) {
       data = getDropdownViewer(
         data as string,
+        field.dropdownOptions || [],
+        field.placeholder as string,
+      );
+    }
+
+    if (field.fieldType === FieldType.MultiSelectDropdown) {
+      data = getMultiSelectDropdownViewer(
+        data as Array<string | number | boolean> | string,
         field.dropdownOptions || [],
         field.placeholder as string,
       );

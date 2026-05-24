@@ -161,7 +161,9 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
             fields={schemaList.map((schemaItem: BaseModel) => {
               const isDropdown: boolean =
                 (schemaItem as any).customFieldType ===
-                CustomFieldType.Dropdown;
+                  CustomFieldType.Dropdown ||
+                (schemaItem as any).customFieldType ===
+                  CustomFieldType.MultiSelectDropdown;
               return {
                 key: (schemaItem as any).name,
                 title: (schemaItem as any).name,
@@ -191,7 +193,9 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
               fields: schemaList.map((schemaItem: BaseModel) => {
                 const isDropdown: boolean =
                   (schemaItem as any).customFieldType ===
-                  CustomFieldType.Dropdown;
+                    CustomFieldType.Dropdown ||
+                  (schemaItem as any).customFieldType ===
+                    CustomFieldType.MultiSelectDropdown;
                 return {
                   field: {
                     [(schemaItem as any).name]: true,

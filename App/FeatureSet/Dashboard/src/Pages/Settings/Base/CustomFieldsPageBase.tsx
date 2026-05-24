@@ -1,5 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
+import DropdownOptionsInput from "Common/UI/Components/CustomFields/DropdownOptionsInput";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -13,6 +15,23 @@ import StatusPageCustomField from "Common/Models/DatabaseModels/StatusPageCustom
 import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
 import React, { Fragment, ReactElement } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
+
+const FIELD_TYPE_LABELS: Record<CustomFieldType, string> = {
+  [CustomFieldType.Text]: "Text",
+  [CustomFieldType.Number]: "Number",
+  [CustomFieldType.Boolean]: "Boolean",
+  [CustomFieldType.Dropdown]: "Dropdown (single select)",
+  [CustomFieldType.MultiSelectDropdown]: "Dropdown (multi-select)",
+};
+
+const isDropdownType: (value: unknown) => boolean = (
+  value: unknown,
+): boolean => {
+  return (
+    value === CustomFieldType.Dropdown ||
+    value === CustomFieldType.MultiSelectDropdown
+  );
+};
 
 export type CustomFieldsBaseModels =
   | MonitorCustomField
@@ -84,17 +103,19 @@ const CustomFieldsPageBase: (
               customFieldType: true,
             },
             title: "Field Type",
+            description:
+              "Choose how data is entered for this field. Dropdown types also need a list of options below.",
             fieldType: FormFieldSchemaType.Dropdown,
             required: true,
             placeholder: "Please select field type.",
-            dropdownOptions: Object.keys(CustomFieldType).map(
-              (item: string) => {
-                return {
-                  label: item,
-                  value: item,
-                };
-              },
-            ),
+            dropdownOptions: (
+              Object.keys(CustomFieldType) as Array<CustomFieldType>
+            ).map((item: CustomFieldType) => {
+              return {
+                label: FIELD_TYPE_LABELS[item] || item,
+                value: item,
+              };
+            }),
           },
           {
             field: {
@@ -102,15 +123,39 @@ const CustomFieldsPageBase: (
             },
             title: "Dropdown Options",
             description:
-              "Enter one option per line. These options will be shown when this custom field is edited.",
-            fieldType: FormFieldSchemaType.LongText,
+              "Add the options that should appear in the dropdown when this field is edited.",
+            fieldType: FormFieldSchemaType.CustomComponent,
             required: (item: FormValues<CustomFieldsBaseModels>) => {
-              return (item as any).customFieldType === CustomFieldType.Dropdown;
+              return isDropdownType((item as any).customFieldType);
             },
             showIf: (item: FormValues<CustomFieldsBaseModels>) => {
-              return (item as any).customFieldType === CustomFieldType.Dropdown;
+              return isDropdownType((item as any).customFieldType);
             },
-            placeholder: "Option 1\nOption 2\nOption 3",
+            getCustomElement: (
+              _values: FormValues<CustomFieldsBaseModels>,
+              customElementProps: CustomElementProps,
+            ) => {
+              return (
+                <DropdownOptionsInput
+                  initialValue={
+                    typeof customElementProps.initialValue === "string"
+                      ? customElementProps.initialValue
+                      : ""
+                  }
+                  error={customElementProps.error}
+                  onChange={(value: string) => {
+                    if (customElementProps.onChange) {
+                      customElementProps.onChange(value);
+                    }
+                  }}
+                  onBlur={() => {
+                    if (customElementProps.onBlur) {
+                      customElementProps.onBlur();
+                    }
+                  }}
+                />
+              );
+            },
           },
         ]}
         showRefreshButton={true}
