@@ -988,7 +988,7 @@ const useResourceOwners: <TResource extends BaseModel>(
           query: query,
           limit: PICKER_PAGE_SIZE,
           skip: 0,
-          select: { _id: true, name: true },
+          select: { _id: true, name: true, color: true },
           sort: { name: SortOrder.Ascending },
         });
         return result.data.map((l: Label) => {
@@ -996,7 +996,7 @@ const useResourceOwners: <TResource extends BaseModel>(
           return {
             value: l._id as string,
             label: label,
-            initials: getInitials(label),
+            color: l.color?.toString() || "#9ca3af",
           };
         });
       } catch {
@@ -1027,7 +1027,7 @@ const useResourceOwners: <TResource extends BaseModel>(
           } as Query<Label>,
           limit: ids.length,
           skip: 0,
-          select: { _id: true, name: true },
+          select: { _id: true, name: true, color: true },
           sort: {},
         });
         return result.data.map((l: Label) => {
@@ -1035,7 +1035,7 @@ const useResourceOwners: <TResource extends BaseModel>(
           return {
             value: l._id as string,
             label: label,
-            initials: getInitials(label),
+            color: l.color?.toString() || "#9ca3af",
           };
         });
       } catch {

@@ -122,11 +122,9 @@ function readInitialUrlState(defaultPageSize: number): InitialUrlState {
             Array.isArray(entry[1])
           ) {
             const values: Set<string> = new Set(
-              (entry[1] as Array<unknown>).filter(
-                (v: unknown): v is string => {
-                  return typeof v === "string";
-                },
-              ),
+              (entry[1] as Array<unknown>).filter((v: unknown): v is string => {
+                return typeof v === "string";
+              }),
             );
             if (values.size > 0) {
               facetFilters.set(entry[0], values);
@@ -166,10 +164,10 @@ function readInitialUrlState(defaultPageSize: number): InitialUrlState {
 
   const pageRaw: string | null = params.get("page");
   const page: number =
-    pageRaw && /^\d+$/.test(pageRaw) ? Math.max(1, parseInt(pageRaw, 10)) : 1;
+    pageRaw && (/^\d+$/).test(pageRaw) ? Math.max(1, parseInt(pageRaw, 10)) : 1;
   const pageSizeRaw: string | null = params.get("pageSize");
   const pageSize: number =
-    pageSizeRaw && /^\d+$/.test(pageSizeRaw)
+    pageSizeRaw && (/^\d+$/).test(pageSizeRaw)
       ? Math.max(1, parseInt(pageSizeRaw, 10))
       : defaultPageSize;
 
@@ -429,14 +427,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     if (timeRange.range !== TimeRange.PAST_ONE_HOUR) {
       params.set("range", timeRange.range);
     }
-    if (
-      timeRange.range === TimeRange.CUSTOM &&
-      timeRange.startAndEndDate
-    ) {
-      params.set(
-        "start",
-        timeRange.startAndEndDate.startValue.toISOString(),
-      );
+    if (timeRange.range === TimeRange.CUSTOM && timeRange.startAndEndDate) {
+      params.set("start", timeRange.startAndEndDate.startValue.toISOString());
       params.set("end", timeRange.startAndEndDate.endValue.toISOString());
     }
     if (page > 1) {

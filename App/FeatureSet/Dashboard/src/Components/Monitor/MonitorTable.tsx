@@ -114,13 +114,14 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             query: query,
             limit: 50,
             skip: 0,
-            select: { _id: true, name: true, priority: true },
+            select: { _id: true, name: true, priority: true, color: true },
             sort: { priority: SortOrder.Ascending },
           });
         return result.data.map((s: MonitorStatus) => {
           return {
             value: s.id?.toString() || "",
             label: s.name?.toString() || "",
+            color: s.color?.toString() || "#9ca3af",
           };
         });
       },
@@ -140,13 +141,14 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             } as Query<MonitorStatus>,
             limit: values.length,
             skip: 0,
-            select: { _id: true, name: true },
+            select: { _id: true, name: true, color: true },
             sort: {},
           });
         return result.data.map((s: MonitorStatus) => {
           return {
             value: s.id?.toString() || "",
             label: s.name?.toString() || "",
+            color: s.color?.toString() || "#9ca3af",
           };
         });
       },

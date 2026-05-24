@@ -119,13 +119,14 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             query: query,
             limit: 50,
             skip: 0,
-            select: { _id: true, name: true, order: true },
+            select: { _id: true, name: true, order: true, color: true },
             sort: { order: SortOrder.Ascending },
           });
         return result.data.map((s: AlertState) => {
           return {
             value: s.id?.toString() || "",
             label: s.name?.toString() || "",
+            color: s.color?.toString() || "#9ca3af",
           };
         });
       },
@@ -145,13 +146,14 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             } as Query<AlertState>,
             limit: values.length,
             skip: 0,
-            select: { _id: true, name: true },
+            select: { _id: true, name: true, color: true },
             sort: {},
           });
         return result.data.map((s: AlertState) => {
           return {
             value: s.id?.toString() || "",
             label: s.name?.toString() || "",
+            color: s.color?.toString() || "#9ca3af",
           };
         });
       },
@@ -186,13 +188,14 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             query: query,
             limit: 50,
             skip: 0,
-            select: { _id: true, name: true, order: true },
+            select: { _id: true, name: true, order: true, color: true },
             sort: { order: SortOrder.Ascending },
           });
         return result.data.map((s: AlertSeverity) => {
           return {
             value: s.id?.toString() || "",
             label: s.name?.toString() || "",
+            color: s.color?.toString() || "#9ca3af",
           };
         });
       },
@@ -212,13 +215,14 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             } as Query<AlertSeverity>,
             limit: values.length,
             skip: 0,
-            select: { _id: true, name: true },
+            select: { _id: true, name: true, color: true },
             sort: {},
           });
         return result.data.map((s: AlertSeverity) => {
           return {
             value: s.id?.toString() || "",
             label: s.name?.toString() || "",
+            color: s.color?.toString() || "#9ca3af",
           };
         });
       },

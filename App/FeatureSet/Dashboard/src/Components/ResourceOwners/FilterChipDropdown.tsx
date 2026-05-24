@@ -19,9 +19,17 @@ export interface FilterChipDropdownOption {
   icon?: IconProp | undefined;
   /**
    * Initials shown in a colored circle as the option avatar. Takes precedence
-   * over `icon`. The background color is hashed from `value`.
+   * over `icon`. The background color is hashed from `value` unless `color`
+   * is also provided.
    */
   initials?: string | undefined;
+  /**
+   * Explicit color for the avatar dot (CSS color string — hex, rgb, named).
+   * When provided without `initials`, renders as a small solid circle
+   * (the right call for labels / status colors). With `initials`, the dot
+   * gets the color as its background.
+   */
+  color?: string | undefined;
   /** Optional group key for sectioning options under a heading. */
   group?: string | undefined;
 }
@@ -147,12 +155,34 @@ const Avatar: FunctionComponent<{
   const sizeClass: string =
     size === "xs" ? "h-4 w-4 text-[9px]" : "h-6 w-6 text-[11px]";
 
-  if (option.initials) {
+  // Color-only swatch: a small solid dot. Used for labels / monitor status
+  // / severity where the entity carries its own brand color.
+  if (option.color && !option.initials) {
+    const dotSize: string = size === "xs" ? "h-2.5 w-2.5" : "h-3 w-3";
     return (
       <span
-        className={`inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white ${sizeClass} ${getAvatarColorClass(
-          option.value,
-        )}`}
+        className={`inline-flex shrink-0 items-center justify-center ${sizeClass}`}
+        aria-hidden="true"
+      >
+        <span
+          className={`${dotSize} rounded-full ring-1 ring-black/5`}
+          style={{ backgroundColor: option.color }}
+        />
+      </span>
+    );
+  }
+
+  if (option.initials) {
+    const bgStyle: React.CSSProperties | undefined = option.color
+      ? { backgroundColor: option.color }
+      : undefined;
+    const bgClass: string = option.color
+      ? ""
+      : getAvatarColorClass(option.value);
+    return (
+      <span
+        className={`inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white ${sizeClass} ${bgClass}`}
+        style={bgStyle}
         aria-hidden="true"
       >
         {option.initials.slice(0, 2).toUpperCase()}
@@ -261,6 +291,12 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
   }, [props.value]);
 
   const hasValue: boolean = selectedValues.length > 0;
+  /*
+   * The chip should look "active" whenever it contributes to the query —
+   * that includes empty / not_empty operators which carry no values but
+   * still narrow the result set.
+   */
+  const isChipActive: boolean = hasValue || isEmptyOperator;
 
   /*
    * Resolve labels for selected values that aren't in loadedOptions or
@@ -415,17 +451,6 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
     setIsComponentVisible(!isComponentVisible);
   };
 
-  const clearSelection: (e: React.MouseEvent) => void = (
-    e: React.MouseEvent,
-  ): void => {
-    e.stopPropagation();
-    if (isMulti) {
-      props.onChange([]);
-    } else {
-      props.onChange(null);
-    }
-  };
-
   const selectOption: (optionValue: string) => void = (
     optionValue: string,
   ): void => {
@@ -454,36 +479,64 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
   const chipInactiveClasses: string =
     "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50";
 
+  const clearChipFully: () => void = (): void => {
+    if (isMulti) {
+      props.onChange([]);
+    } else {
+      props.onChange(null);
+    }
+    /*
+     * Reset operator back to default so the chip fully resets — without
+     * this, clearing an "is empty" chip would leave the operator dangling
+     * and the chip would silently still be active.
+     */
+    if (props.onOperatorChange) {
+      props.onOperatorChange("is");
+    }
+  };
+
   return (
     <div className="relative inline-block">
       <button
         type="button"
         onClick={togglePopover}
-        className={`${chipBaseClasses} ${hasValue ? chipActiveClasses : chipInactiveClasses}`}
+        className={`${chipBaseClasses} ${isChipActive ? chipActiveClasses : chipInactiveClasses}`}
         aria-expanded={isComponentVisible}
         aria-haspopup="listbox"
       >
-        {hasValue && selectedOptions[0] ? (
+        {isChipActive ? (
           <>
-            <Avatar option={selectedOptions[0]} size="xs" />
+            {hasValue && selectedOptions[0] ? (
+              <Avatar option={selectedOptions[0]} size="xs" />
+            ) : (
+              props.emptyIcon && (
+                <Icon
+                  icon={props.emptyIcon}
+                  className="h-3.5 w-3.5 text-indigo-500"
+                />
+              )
+            )}
             <span className="whitespace-nowrap">
               <span className="text-indigo-500/80">{props.label}</span>
               <span className="mx-1 text-indigo-300">·</span>
-              <span className="font-semibold">{displayValue}</span>
+              <span className="font-semibold">
+                {isEmptyOperator
+                  ? FILTER_OPERATOR_LABELS[operator]
+                  : `${operator === "is_not" ? "not " : ""}${displayValue}`}
+              </span>
             </span>
             <span
               role="button"
               tabIndex={0}
-              onClick={clearSelection}
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
+                clearChipFully();
+              }}
               onKeyDown={(e: React.KeyboardEvent) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   e.stopPropagation();
-                  if (isMulti) {
-                    props.onChange([]);
-                  } else {
-                    props.onChange(null);
-                  }
+                  clearChipFully();
                 }
               }}
               className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full text-indigo-400 transition-colors hover:bg-indigo-200 hover:text-indigo-900 focus:outline-none"

@@ -346,6 +346,7 @@ import { AddAgentVersionToKubernetesDockerHost1779392865146 } from "./1779392865
 import { AddPerformanceIndexes1779392970424 } from "./1779392970424-AddPerformanceIndexes";
 import { AddFacetsToTableView1779536271671 } from "./1779536271671-AddFacetsToTableView";
 import { AddIsMemberNotifiedIndex1779540427366 } from "./1779540427366-AddIsMemberNotifiedIndex";
+import { AddDropdownOptionsToCustomFields1779619108628 } from "./1779619108628-AddDropdownOptionsToCustomFields";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -695,4 +696,5 @@ export default [
   AddPerformanceIndexes1779392970424,
   AddFacetsToTableView1779536271671,
   AddIsMemberNotifiedIndex1779540427366,
+  AddDropdownOptionsToCustomFields1779619108628,
 ];

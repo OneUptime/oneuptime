@@ -414,10 +414,7 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
                 {currentlySelectedView.name}
               </span>
             </span>
-            <span
-              aria-hidden="true"
-              className="ml-1 h-5 w-px bg-indigo-200"
-            />
+            <span aria-hidden="true" className="ml-1 h-5 w-px bg-indigo-200" />
             <button
               type="button"
               aria-label="Clear saved view"

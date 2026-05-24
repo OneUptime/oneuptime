@@ -129,13 +129,14 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             query: query,
             limit: 50,
             skip: 0,
-            select: { _id: true, name: true, order: true },
+            select: { _id: true, name: true, order: true, color: true },
             sort: { order: SortOrder.Ascending },
           });
         return result.data.map((s: ScheduledMaintenanceState) => {
           return {
             value: s.id?.toString() || "",
             label: s.name?.toString() || "",
+            color: s.color?.toString() || "#9ca3af",
           };
         });
       },
@@ -155,13 +156,14 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             } as Query<ScheduledMaintenanceState>,
             limit: values.length,
             skip: 0,
-            select: { _id: true, name: true },
+            select: { _id: true, name: true, color: true },
             sort: {},
           });
         return result.data.map((s: ScheduledMaintenanceState) => {
           return {
             value: s.id?.toString() || "",
             label: s.name?.toString() || "",
+            color: s.color?.toString() || "#9ca3af",
           };
         });
       },

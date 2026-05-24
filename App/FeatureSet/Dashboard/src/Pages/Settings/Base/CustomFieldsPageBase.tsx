@@ -1,6 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -94,6 +95,22 @@ const CustomFieldsPageBase: (
                 };
               },
             ),
+          },
+          {
+            field: {
+              dropdownOptions: true,
+            },
+            title: "Dropdown Options",
+            description:
+              "Enter one option per line. These options will be shown when this custom field is edited.",
+            fieldType: FormFieldSchemaType.LongText,
+            required: (item: FormValues<CustomFieldsBaseModels>) => {
+              return (item as any).customFieldType === CustomFieldType.Dropdown;
+            },
+            showIf: (item: FormValues<CustomFieldsBaseModels>) => {
+              return (item as any).customFieldType === CustomFieldType.Dropdown;
+            },
+            placeholder: "Option 1\nOption 2\nOption 3",
           },
         ]}
         showRefreshButton={true}

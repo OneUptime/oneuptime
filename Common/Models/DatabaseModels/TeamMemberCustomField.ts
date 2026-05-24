@@ -264,6 +264,43 @@ export default class TeamMemberCustomField extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadTeamMemberCustomField,
     ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTeamMemberCustomField,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Dropdown Options",
+    description:
+      "Options for the dropdown field, one per line. Only used when Custom Field Type is Dropdown.",
+    example: "Option 1\nOption 2\nOption 3",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public dropdownOptions?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateTeamMemberCustomField,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadTeamMemberCustomField,
+    ],
     update: [],
   })
   @TableColumn({

@@ -111,9 +111,8 @@ export class ProjectService extends DatabaseService<Model> {
    * Plans change rarely (subscription create / cancel / change), so a
    * 60s staleness window is acceptable.
    */
-  private currentPlanCache: InMemoryTTLCache<CurrentPlan> = new InMemoryTTLCache(
-    10_000,
-  );
+  private currentPlanCache: InMemoryTTLCache<CurrentPlan> =
+    new InMemoryTTLCache(10_000);
 
   public constructor() {
     super(Model);
@@ -1504,8 +1503,7 @@ export class ProjectService extends DatabaseService<Model> {
     }
 
     const cacheKey: string = projectId.toString();
-    const cached: CurrentPlan | undefined =
-      this.currentPlanCache.get(cacheKey);
+    const cached: CurrentPlan | undefined = this.currentPlanCache.get(cacheKey);
     if (cached !== undefined) {
       return cached;
     }
