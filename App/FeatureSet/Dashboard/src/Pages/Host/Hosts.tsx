@@ -87,7 +87,9 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
       toQueryValue: (
         values: Array<string>,
         operator: FilterOperator,
-      ): unknown => buildEnumFacetQuery(values, operator, false),
+      ): unknown => {
+        return buildEnumFacetQuery(values, operator, false);
+      },
     },
     {
       key: "osType",
@@ -103,7 +105,9 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
       toQueryValue: (
         values: Array<string>,
         operator: FilterOperator,
-      ): unknown => buildEnumFacetQuery(values, operator),
+      ): unknown => {
+        return buildEnumFacetQuery(values, operator);
+      },
     },
     {
       key: "hostArch",
@@ -119,7 +123,9 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
       toQueryValue: (
         values: Array<string>,
         operator: FilterOperator,
-      ): unknown => buildEnumFacetQuery(values, operator),
+      ): unknown => {
+        return buildEnumFacetQuery(values, operator);
+      },
     },
   ];
 

@@ -88,9 +88,7 @@ export const buildEntityFacetQuery: (
     return new ObjectID(v);
   });
   if (isMulti) {
-    return operator === "is_not"
-      ? new IncludesNone(ids)
-      : new Includes(ids);
+    return operator === "is_not" ? new IncludesNone(ids) : new Includes(ids);
   }
   // NotEqual only accepts string/number/Date — wrap ObjectID's string form.
   return operator === "is_not" ? new NotEqual(values[0]!) : ids[0]!;
@@ -121,10 +119,7 @@ export const buildEnumFacetQuery: (
 export const buildBooleanFacetQuery: (
   values: Array<string>,
   operator: FilterOperator,
-) => unknown = (
-  values: Array<string>,
-  operator: FilterOperator,
-): unknown => {
+) => unknown = (values: Array<string>, operator: FilterOperator): unknown => {
   if (operator === "is_empty") {
     return new IsNull();
   }
@@ -135,8 +130,10 @@ export const buildBooleanFacetQuery: (
     return undefined;
   }
   const asBool: boolean = values[0] === "true";
-  // NotEqual<CompareType> can't take boolean; coerce to a string the
-  // ORM compares against. The Includes/equality path keeps the real bool.
+  /*
+   * NotEqual<CompareType> can't take boolean; coerce to a string the
+   * ORM compares against. The Includes/equality path keeps the real bool.
+   */
   return operator === "is_not" ? new NotEqual(String(asBool)) : asBool;
 };
 
@@ -1183,11 +1180,9 @@ const useResourceOwners: <TResource extends BaseModel>(
               searchPlaceholder={facet.searchPlaceholder}
               operator={facetOperators[facet.key] || "is"}
               onOperatorChange={(op: FilterOperator) => {
-                setFacetOperators(
-                  (prev: { [k: string]: FilterOperator }) => {
-                    return { ...prev, [facet.key]: op };
-                  },
-                );
+                setFacetOperators((prev: { [k: string]: FilterOperator }) => {
+                  return { ...prev, [facet.key]: op };
+                });
               }}
               supportedOperators={
                 facet.supportedOperators || [

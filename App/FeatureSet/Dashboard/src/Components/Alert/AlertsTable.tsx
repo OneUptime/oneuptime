@@ -155,7 +155,12 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
           };
         });
       },
-      toQueryValue: (values: Array<string>, operator: FilterOperator): unknown => buildEntityFacetQuery(values, operator, true),
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildEntityFacetQuery(values, operator, true);
+      },
     },
     {
       key: "alertSeverity",
@@ -217,7 +222,12 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
           };
         });
       },
-      toQueryValue: (values: Array<string>, operator: FilterOperator): unknown => buildEntityFacetQuery(values, operator, true),
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildEntityFacetQuery(values, operator, true);
+      },
     },
     {
       key: "monitor",
@@ -277,7 +287,12 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
           };
         });
       },
-      toQueryValue: (values: Array<string>, operator: FilterOperator): unknown => buildEntityFacetQuery(values, operator, true),
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildEntityFacetQuery(values, operator, true);
+      },
     },
   ];
 

@@ -63,7 +63,9 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
       toQueryValue: (
         values: Array<string>,
         operator: FilterOperator,
-      ): unknown => buildEnumFacetQuery(values, operator, false),
+      ): unknown => {
+        return buildEnumFacetQuery(values, operator, false);
+      },
     },
   ];
 

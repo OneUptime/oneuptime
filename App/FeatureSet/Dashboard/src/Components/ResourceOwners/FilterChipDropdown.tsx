@@ -184,10 +184,8 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
   const isMulti: boolean = Boolean(props.isMultiSelect);
   const isAsync: boolean = Boolean(props.loadOptions);
   const operator: FilterOperator = props.operator || "is";
-  const supportedOperators: Array<FilterOperator> = props.supportedOperators || [
-    "is",
-    "is_not",
-  ];
+  const supportedOperators: Array<FilterOperator> =
+    props.supportedOperators || ["is", "is_not"];
   const isEmptyOperator: boolean =
     operator === "is_empty" || operator === "is_not_empty";
 
@@ -519,9 +517,7 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
         >
           {supportedOperators.length > 1 && (
             <div className="flex items-center gap-1.5 border-b border-gray-100 px-2 py-1.5 text-xs text-gray-500">
-              <span className="shrink-0">
-                {props.label.toLowerCase()}
-              </span>
+              <span className="shrink-0">{props.label.toLowerCase()}</span>
               <select
                 value={operator}
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {

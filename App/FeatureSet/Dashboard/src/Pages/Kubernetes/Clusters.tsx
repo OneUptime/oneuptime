@@ -65,7 +65,9 @@ const KubernetesClusters: FunctionComponent<
       toQueryValue: (
         values: Array<string>,
         operator: FilterOperator,
-      ): unknown => buildEnumFacetQuery(values, operator, false),
+      ): unknown => {
+        return buildEnumFacetQuery(values, operator, false);
+      },
     },
   ];
 

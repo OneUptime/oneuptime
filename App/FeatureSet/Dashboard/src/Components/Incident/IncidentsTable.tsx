@@ -160,7 +160,12 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           };
         });
       },
-      toQueryValue: (values: Array<string>, operator: FilterOperator): unknown => buildEntityFacetQuery(values, operator, true),
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildEntityFacetQuery(values, operator, true);
+      },
     },
     {
       key: "incidentSeverity",
@@ -222,7 +227,12 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           };
         });
       },
-      toQueryValue: (values: Array<string>, operator: FilterOperator): unknown => buildEntityFacetQuery(values, operator, true),
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildEntityFacetQuery(values, operator, true);
+      },
     },
     {
       key: "monitors",
@@ -282,7 +292,12 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           };
         });
       },
-      toQueryValue: (values: Array<string>, operator: FilterOperator): unknown => buildEntityFacetQuery(values, operator, true),
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildEntityFacetQuery(values, operator, true);
+      },
     },
   ];
 

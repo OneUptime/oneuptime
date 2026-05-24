@@ -50,7 +50,9 @@ const IncomingCallPoliciesPage: FunctionComponent<
       toQueryValue: (
         values: Array<string>,
         operator: FilterOperator,
-      ): unknown => buildBooleanFacetQuery(values, operator),
+      ): unknown => {
+        return buildBooleanFacetQuery(values, operator);
+      },
     },
   ];
 

@@ -150,7 +150,12 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
           };
         });
       },
-      toQueryValue: (values: Array<string>, operator: FilterOperator): unknown => buildEntityFacetQuery(values, operator, true),
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildEntityFacetQuery(values, operator, true);
+      },
     },
     {
       key: "monitorType",
@@ -169,7 +174,9 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
       toQueryValue: (
         values: Array<string>,
         operator: FilterOperator,
-      ): unknown => buildEnumFacetQuery(values, operator),
+      ): unknown => {
+        return buildEnumFacetQuery(values, operator);
+      },
     },
   ];
 
