@@ -2,6 +2,7 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import MonitorsElement from "../../Components/Monitor/Monitors";
 import ProjectUtil from "Common/UI/Utils/Project";
 import IncidentElement from "./Incident";
+import AppLink from "../AppLink/AppLink";
 import { Black } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -618,9 +619,25 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
               const numberLabel: string =
                 item.incidentNumberWithPrefix || `#${item.incidentNumber}`;
 
+              const numberContent: ReactElement = item._id ? (
+                <AppLink
+                  className="hover:underline"
+                  to={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.INCIDENT_VIEW] as Route,
+                    {
+                      modelId: new ObjectID(item._id as string),
+                    },
+                  )}
+                >
+                  <span>{numberLabel}</span>
+                </AppLink>
+              ) : (
+                <span>{numberLabel}</span>
+              );
+
               return (
                 <span className="inline-flex items-center">
-                  <span>{numberLabel}</span>
+                  {numberContent}
                   {item.isPrivate === true && (
                     <span
                       title="Private incident — visible only to its owners, project admins, and project owners"

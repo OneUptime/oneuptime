@@ -2,6 +2,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import MonitorsElement from "../Monitor/Monitors";
 import StatusPagesElement from "../StatusPage/StatusPagesElement";
+import AppLink from "../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
 import { Black } from "Common/Types/BrandColors";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -539,12 +540,27 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                 return <>-</>;
               }
 
-              return (
-                <>
-                  {item.scheduledMaintenanceNumberWithPrefix ||
-                    `#${item.scheduledMaintenanceNumber}`}
-                </>
-              );
+              const numberLabel: string =
+                item.scheduledMaintenanceNumberWithPrefix ||
+                `#${item.scheduledMaintenanceNumber}`;
+
+              if (item._id) {
+                return (
+                  <AppLink
+                    className="hover:underline"
+                    to={RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW] as Route,
+                      {
+                        modelId: new ObjectID(item._id as string),
+                      },
+                    )}
+                  >
+                    <span>{numberLabel}</span>
+                  </AppLink>
+                );
+              }
+
+              return <span>{numberLabel}</span>;
             },
           },
           {

@@ -1,6 +1,7 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ProjectUtil from "Common/UI/Utils/Project";
 import AlertElement from "./Alert";
+import AppLink from "../AppLink/AppLink";
 import { Black } from "Common/Types/BrandColors";
 import { JSONObject } from "Common/Types/JSON";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -577,9 +578,25 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
               const numberLabel: string =
                 item.alertNumberWithPrefix || `#${item.alertNumber}`;
 
+              const numberContent: ReactElement = item._id ? (
+                <AppLink
+                  className="hover:underline"
+                  to={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.ALERT_VIEW] as Route,
+                    {
+                      modelId: new ObjectID(item._id as string),
+                    },
+                  )}
+                >
+                  <span>{numberLabel}</span>
+                </AppLink>
+              ) : (
+                <span>{numberLabel}</span>
+              );
+
               return (
                 <span className="inline-flex items-center">
-                  <span>{numberLabel}</span>
+                  {numberContent}
                   {item.isPrivate === true && (
                     <span
                       title="Private alert — visible only to its owners, project admins, and project owners"
