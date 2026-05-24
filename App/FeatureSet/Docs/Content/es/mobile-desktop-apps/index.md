@@ -1,49 +1,46 @@
 # Aplicaciones móviles y de escritorio de OneUptime
 
-OneUptime ofrece aplicaciones móviles y de escritorio similares a las nativas a través de la tecnología de aplicaciones web progresivas (PWA). Estas aplicaciones proporcionan una experiencia fluida en todas las plataformas principales sin necesidad de descargarlas desde tiendas de aplicaciones.
+OneUptime ofrece dos maneras de utilizar la plataforma fuera del navegador:
 
-## ¿Qué es una aplicación web progresiva (PWA)?
+- **Aplicaciones móviles nativas** para iOS y Android, publicadas en la **Apple App Store** y en **Google Play**. Estas entregan avisos de guardia, alertas de incidentes y acciones de confirmación directamente a su teléfono.
+- **Aplicaciones de escritorio instalables** para Windows, macOS y Linux, distribuidas como una Progressive Web App (PWA) que se instala directamente desde su navegador. Estas le proporcionan al panel de OneUptime su propia ventana, icono y superficie de notificaciones en su computadora.
 
-Una aplicación web progresiva es una aplicación web que utiliza las capacidades web modernas para ofrecer una experiencia similar a una aplicación nativa a los usuarios.
+## Móvil (Aplicaciones nativas)
 
-## Guías de instalación
+La aplicación **OneUptime On-Call** es una aplicación nativa creada con React Native. Se distribuye a través de las tiendas oficiales, por lo que obtiene actualizaciones automáticas, notificaciones push y desbloqueo biométrico.
 
-Elige tu plataforma a continuación para obtener instrucciones de instalación detalladas:
+- **iOS** — [Descargar en el App Store](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391). Requiere iOS 15.0 o posterior. Consulte la [Guía de instalación para iOS](./ios-installation.md).
+- **Android** — [Consíguelo en Google Play](https://play.google.com/store/apps/details?id=com.oneuptime.oncall). Requiere Android 8.0 o posterior. También está disponible una [descarga directa del APK](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk) para dispositivos sin Google Play. Consulte la [Guía de instalación para Android](./android-installation.md).
 
-- [Instalación en Android](./android-installation.md)
-- [Instalación en iOS](./ios-installation.md)
+## Escritorio (Progressive Web App)
+
+El panel web de OneUptime es una Progressive Web App, por lo que puede instalarlo como una aplicación de escritorio desde cualquier navegador moderno sin pasar por ninguna tienda.
+
 - [Instalación en Windows](./windows-installation.md)
 - [Instalación en macOS](./macos-installation.md)
 - [Instalación en Linux](./linux-installation.md)
 
+### Primeros pasos en escritorio
 
-## Primeros pasos
+1. Abra su instancia de OneUptime en un navegador basado en Chromium (Chrome, Edge) o en Safari.
+2. Busque el botón **Instalar** en la barra de direcciones o en **Archivo → Añadir al Dock / Apps → Instalar este sitio como aplicación**.
+3. Inicie la aplicación instalada desde el menú Inicio, el Launchpad o el lanzador de aplicaciones.
 
-1. Visita tu instancia de OneUptime en un navegador compatible
-2. Busca la solicitud "Instalar" o "Agregar a pantalla de inicio"
-3. Sigue los pasos de instalación específicos de la plataforma
-4. Abre la aplicación desde el cajón de aplicaciones o el escritorio de tu dispositivo
+### Solución de problemas en escritorio
 
-## Solución de problemas
-
-### Problemas comunes
-
-**La opción de instalación no aparece:**
-- Asegúrate de estar usando un navegador compatible
-- Verifica que tu instancia de OneUptime se sirva a través de HTTPS
-- Intenta actualizar la página o limpiar el caché del navegador
+**No aparece la opción de instalación:**
+- Asegúrese de estar utilizando un navegador compatible.
+- Confirme que su instancia de OneUptime se sirve mediante HTTPS.
+- Actualice la página o borre la caché de su navegador.
 
 **Las notificaciones push no funcionan:**
-- Concede permisos de notificación cuando se te solicite
-- Comprueba la configuración de notificaciones del navegador
-- Asegúrate de que la instancia de OneUptime tenga las notificaciones configuradas
-
+- Conceda permisos de notificación cuando el navegador se lo solicite.
+- Revise la configuración de notificaciones del navegador en su sistema operativo.
+- Usuarios autoalojados: confirme que las notificaciones push estén configuradas en su instancia de OneUptime.
 
 ## Soporte
 
-Si encuentras algún problema con la PWA de OneUptime:
-
-1. Consulta la sección de solución de problemas anterior
-2. Verifica que tu navegador cumpla con los requisitos mínimos
-3. Contacta con soporte a través de tu panel de OneUptime
-4. Reporta los problemas en nuestro [repositorio de GitHub](https://github.com/OneUptime/oneuptime)
+- Problemas específicos de móvil: consulte las guías de instalación para [iOS](./ios-installation.md) o [Android](./android-installation.md).
+- Problemas específicos de escritorio: consulte las guías de instalación para [Windows](./windows-installation.md), [macOS](./macos-installation.md) o [Linux](./linux-installation.md).
+- Preguntas generales: consulte la página de [Preguntas frecuentes y solución de problemas](./faq-troubleshooting.md).
+- Reporte errores o solicite nuevas funciones en nuestro [repositorio de GitHub](https://github.com/OneUptime/oneuptime).

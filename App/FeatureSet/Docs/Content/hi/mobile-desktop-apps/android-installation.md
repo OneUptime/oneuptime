@@ -1,162 +1,99 @@
 # Android Installation Guide
 
-सर्वोत्तम monitoring experience के लिए OneUptime को अपने Android device पर native app के रूप में install करें।
+Google Play Store से **OneUptime On-Call** native Android app install करें, या Google Play के बिना devices पर सीधे APK sideload करें।
 
-## Installation Methods
+## आवश्यकताएं
 
-### Method 1: Chrome Browser (अनुशंसित)
+- **Android 8.0 (Oreo) या बाद का version** चलाने वाला Android phone या tablet
+- एक active OneUptime account (या आपके self-hosted OneUptime instance का URL)
+- sign-in के लिए और push notifications प्राप्त करने के लिए Internet connection
 
-1. **OneUptime को Chrome में खोलें**
-   - अपने Android device पर Google Chrome launch करें
-   - अपने OneUptime instance URL पर जाएं
-   - page पूरी तरह load होने का इंतज़ार करें
+## Option 1: Google Play से Install करें (अनुशंसित)
 
-2. **Install Prompt**
-   - नीचे "Add to Home Screen" banner देखें
-   - "Install" या "Add to Home Screen" पर tap करें
-   - यदि prompt नहीं दिखाई दे, तो top-right corner में three-dot menu (⋮) पर tap करें
+1. अपने device पर **Google Play Store** open करें।
+2. **"OneUptime On-Call"** search करें, या अपने device पर यह link open करें:
+   [https://play.google.com/store/apps/details?id=com.oneuptime.oncall](https://play.google.com/store/apps/details?id=com.oneuptime.oncall)
+3. **Install** पर tap करें।
+4. एक बार install हो जाने पर, **Open** पर tap करें या अपने app drawer से **OneUptime On-Call** launch करें।
 
-3. **Menu के माध्यम से Manual Installation**
-   - Chrome menu (three dots) पर tap करें
-   - "Add to Home Screen" या "Install App" चुनें
-   - यदि चाहें तो app का नाम customize करें
-   - confirm करने के लिए "Add" पर tap करें
+## Option 2: APK को सीधे Install करें
 
-4. **App Launch करें**
-   - अपनी home screen या app drawer पर OneUptime icon खोजें
-   - full-screen mode में app launch करने के लिए tap करें
+Google Play के बिना devices के लिए (उदाहरण के लिए, GrapheneOS, /e/OS, या Huawei devices), GitHub Releases से official APK install करें:
 
-### Method 2: Samsung Internet
+1. अपने Android device पर, यह link open करें:
+   [https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk)
+2. प्रॉम्प्ट होने पर, अपने browser को unknown apps install करने की अनुमति दें:
+   **Settings → Apps → \[आपका browser\] → Install unknown apps → Allow from this source**।
+3. downloaded APK को open करें और **Install** पर tap करें।
+4. अपने app drawer से **OneUptime On-Call** launch करें।
 
-1. **OneUptime खोलें**
-   - Samsung Internet browser launch करें
-   - अपने OneUptime instance पर जाएं
-   - page पूरी तरह load होने का इंतज़ार करें
+APK को OneUptime द्वारा Play Store release के समान source से built और signed किया गया है। sideload करते समय app updates automatic नहीं होते — जब कोई नया version release हो तो ऊपर दिए गए link से latest APK download करें।
 
-2. **Home Screen पर Add करें**
-   - menu button (three lines) पर tap करें
-   - "Add page to" → "Home screen" चुनें
-   - app का नाम दर्ज करें और "Add" पर tap करें
+## पहला Launch और Sign-in
 
-3. **Launch करें**
-   - अपनी home screen पर app icon खोजें
-   - app mode में OneUptime खोलने के लिए tap करें
+1. **Server URL**
+   - यदि आप OneUptime Cloud का उपयोग कर रहे हैं, तो default `https://oneuptime.com` को छोड़ दें।
+   - यदि आप self-hosting कर रहे हैं, तो अपने OneUptime instance का URL enter करें (उदाहरण के लिए, `https://oneuptime.example.com`)।
+   - app आगे बढ़ने से पहले verify करता है कि server reachable है।
+2. **Sign In**
+   - अपने OneUptime account के लिए email और password enter करें।
+   - बाद के launches पर तेज़ unlock के लिए वैकल्पिक रूप से **biometric unlock** (fingerprint) enable करें।
+3. **Notifications Allow करें**
+   - prompt होने पर, **Allow** पर tap करें ताकि app on-call pages, incident alerts, और acknowledgements deliver कर सके।
 
-### Method 3: Firefox
+## Push Notifications
 
-1. **OneUptime खोलें**
-   - Firefox browser launch करें
-   - अपने OneUptime URL पर जाएं
-   - page पूरी तरह load होने दें
+Push notifications, Expo Push के माध्यम से Firebase Cloud Messaging (FCM) के द्वारा deliver होते हैं। यह सुनिश्चित करने के लिए कि on-call रहते हुए pages आपको reliably पहुंचें:
 
-2. **Install करें**
-   - three-dot menu पर tap करें
-   - "Install" चुनें (यदि उपलब्ध हो)
-   - या "Add to Home Screen" चुनें
-   - installation confirm करें
+1. **Settings → Apps → OneUptime On-Call → Notifications** open करें और पुष्टि करें कि सभी categories enabled हैं।
+2. **Settings → Apps → OneUptime On-Call → Battery** open करें और **Unrestricted** चुनें (या battery optimization disable करें) ताकि OS background pushes में delay न करे।
+3. app को background में run करने की अनुमति दें और इसके लिए किसी भी "Data Saver" restrictions को disable करें।
+4. यदि आप Samsung devices का उपयोग करते हैं, तो OneUptime On-Call के लिए **Settings → Device care → Battery → Background usage limits** भी बंद कर दें।
+5. किसी भी **Do Not Disturb** exception lists में OneUptime On-Call add करें ताकि आपकी on-call shift के दौरान भी pages ring करते रहें।
 
-### Customization Options
+## Updates
 
-### App Name
-- installation के दौरान, आप app का नाम customize कर सकते हैं
-- Default: "OneUptime"
-- अनुशंसित: "OneUptime" रखें या अपनी company का नाम जोड़ें
+**Google Play:**
+- Updates automatically install होते हैं। manually trigger करने के लिए, **Play Store → Profile → Manage apps & device → Updates available → OneUptime On-Call → Update** open करें।
 
-### Notification Settings
-1. **Permissions Grant करें**
-   - जब पूछा जाए तो notifications की अनुमति दें
-   - Settings → Apps → OneUptime → Notifications पर जाएं
-   - सर्वोत्तम experience के लिए सभी notification categories सक्षम करें
+**APK sideload:**
+- ऊपर दिए गए GitHub Releases link से latest APK फिर से download करें और existing app के ऊपर install करें — आपका data, server URL, और login सुरक्षित रहता है।
 
-2. **Alerts Customize करें**
-   - configure करें कि कौन से incidents notifications trigger करते हैं
-   - notification priority levels सेट करें
-   - sound और vibration preferences चुनें
+## Uninstall
 
-## समस्या निवारण
+1. **OneUptime On-Call** icon को **Long-press** करें, फिर **Uninstall** पर tap करें।
+2. या **Settings → Apps → OneUptime On-Call → Uninstall** open करें।
+3. app को हटाने की पुष्टि करें।
 
-### Installation संबंधी समस्याएं
+आपका OneUptime account और on-call schedules server-side stored होते हैं और जब आप app uninstall करते हैं तो हटाए नहीं जाते।
 
-**"Add to Home Screen" दिखाई नहीं दे रहा:**
-```
-1. browser cache और cookies clear करें
-2. सुनिश्चित करें कि आप HTTPS (secure connection) पर हैं
-3. prompt देखने से पहले page पर 2-3 मिनट इंतज़ार करें
-4. जांचें कि आपके OneUptime instance पर PWA requirements पूरी हैं
-```
+## Troubleshooting
 
-**Installation fail हो रहा है:**
-```
-1. storage space खाली करें (कम से कम 50MB चाहिए)
-2. अपना browser latest version पर update करें
-3. अपना browser restart करें और फिर कोशिश करें
-4. दूसरा browser आज़माएं (Chrome अनुशंसित)
-```
+**Sign in करते समय "Network Error":**
+- verify करें कि **Server URL** सही है और आपके device से reachable है।
+- यदि आप corporate network या VPN पर हैं, तो सुनिश्चित करें कि OneUptime instance accessible है।
+- पुष्टि करें कि server HTTPS पर valid certificate के साथ serve हो रहा है।
 
-**App icon नहीं दिख रहा:**
-```
-1. home screen और app drawer जांचें
-2. apps section में "Recently added" देखें
-3. app drawer में "OneUptime" खोजें
-4. यदि आवश्यक हो तो Reinstall करें
-```
+**Push notifications प्राप्त नहीं हो रहे:**
+- पुष्टि करें कि notifications **Settings → Apps → OneUptime On-Call → Notifications** पर enabled हैं।
+- OneUptime On-Call के लिए battery optimization disable करें (ऊपर Push Notifications देखें)।
+- सुनिश्चित करें कि Do Not Disturb बंद है, या OneUptime On-Call exception list पर है।
+- server के साथ registered push token refresh करने के लिए sign out करें और फिर से sign in करें।
+- Self-hosted users: पुष्टि करें कि push notifications आपके OneUptime instance पर configure हैं (self-hosted [Push Notifications](/docs/self-hosted/push-notifications) guide देखें)।
 
-### Notification संबंधी समस्याएं
+**Biometric unlock काम नहीं कर रहा:**
+- **Settings → Security → Fingerprint** में एक fingerprint enrol करें।
+- OneUptime On-Call app के अंदर **Settings** screen से biometric unlock को फिर से enable करें।
 
-**Notifications नहीं मिल रही:**
-```
-1. notification permissions जांचें:
-   - Settings → Apps → OneUptime → Permissions → Notifications
-2. सुनिश्चित करें कि OneUptime dashboard में notifications सक्षम हैं
-3. Do Not Disturb settings जांचें
-4. सत्यापित करें कि battery optimization settings OneUptime को block नहीं कर रहीं
-```
+**APK install block हो रहा है:**
+- आपको unknown apps install करने के लिए browser को permission देनी होगी (ऊपर Option 2 देखें)।
+- कुछ carriers या enterprise device profiles sideloading को पूरी तरह से block करते हैं; उस स्थिति में, Google Play version का उपयोग करें।
 
-**Notifications delayed हो रही हैं:**
-```
-1. OneUptime के लिए battery optimization अक्षम करें:
-   - Settings → Apps → OneUptime → Battery → Optimize battery usage
-2. background activity की अनुमति दें
-3. data saver settings जांचें
-```
+**App launch पर crash होता है:**
+- Google Play से या latest APK से latest version पर update करें।
+- अपना device restart करें।
+- यदि समस्या बनी रहती है, तो uninstall करके फिर से install करें, फिर sign in करें।
 
-## Uninstallation
+## Support
 
-### App हटाएं
-1. home screen पर OneUptime icon को **Long press** करें
-2. **"Uninstall"** चुनें या trash में drag करें
-3. removal confirm करें
-
-### Alternative Method
-1. **Settings → Apps** पर जाएं
-2. **"OneUptime"** खोजें
-3. **"Uninstall"** पर tap करें
-4. removal confirm करें
-
-## Updates और Maintenance
-
-### Automatic Updates
-OneUptime PWA स्वचालित रूप से update होता है:
-- **Automatic Updates**: online होने पर visit करते समय App update होता है
-- **No Manual Updates**: store apps के विपरीत, user action आवश्यक नहीं
-- **Instant Updates**: नई features तुरंत उपलब्ध
-- **Rollback Safe**: खराब updates को जल्दी revert किया जा सकता है
-
-## Advanced Configuration
-
-### Developer Options
-उन advanced users के लिए जो PWA inspect करना चाहते हैं:
-1. Android में Developer Options सक्षम करें
-2. ADB के साथ computer से connect करें
-3. remote debugging के लिए Chrome DevTools उपयोग करें
-
-### Network Configuration
-- internal OneUptime instance access करने के लिए VPN configure करें
-- यदि आपके organization को आवश्यकता हो तो proxy settings सेट अप करें
-- सुनिश्चित करें कि firewall PWA resources की अनुमति देता है
-
-## Security Recommendations
-1. **HTTPS Only**: केवल secure OneUptime instances से install करें
-2. **Official URLs**: सत्यापित करें कि आप अपने organization के official OneUptime URL से install कर रहे हैं
-3. **Permissions**: केवल आवश्यक permissions grant करें
-4. **Updates**: अपने Android OS और browsers को अपडेट रखें
+यदि आपको अभी भी सहायता चाहिए, तो अपने OneUptime dashboard के माध्यम से संपर्क करें या हमारे [GitHub repository](https://github.com/OneUptime/oneuptime) पर एक issue open करें।

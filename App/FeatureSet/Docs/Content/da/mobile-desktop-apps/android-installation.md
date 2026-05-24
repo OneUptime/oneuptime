@@ -1,174 +1,99 @@
 # Android-installationsvejledning
 
-Installer OneUptime som en native app på din Android-enhed for den bedste overvågningsoplevelse.
+Installer den native Android-app **OneUptime On-Call** fra Google Play Store, eller sideload APK'en direkte på enheder uden Google Play.
 
-## Installationsmetoder
+## Krav
 
-### Metode 1: Chrome-browser (anbefalet)
+- Android-telefon eller -tablet med **Android 8.0 (Oreo) eller nyere**
+- En aktiv OneUptime-konto (eller URL'en til din selvhostede OneUptime-instans)
+- Internetforbindelse til log ind og for at modtage push-notifikationer
 
-1. **Åbn OneUptime i Chrome**
-   - Start Google Chrome på din Android-enhed
-   - Naviger til din OneUptime-instans-URL
-   - Vent på, at siden er fuldt indlæst
+## Mulighed 1: Installer fra Google Play (anbefalet)
 
-2. **Installationsprompt**
-   - Se efter banneret "Tilføj til startskærm" nederst
-   - Tryk på "Installer" eller "Tilføj til startskærm"
-   - Hvis du ikke ser prompten, skal du trykke på tre-punkts-menuen (⋮) i øverste højre hjørne
+1. Åbn **Google Play Store** på din enhed.
+2. Søg efter **"OneUptime On-Call"**, eller åbn dette link på din enhed:
+   [https://play.google.com/store/apps/details?id=com.oneuptime.oncall](https://play.google.com/store/apps/details?id=com.oneuptime.oncall)
+3. Tryk på **Installer**.
+4. Når den er installeret, skal du trykke på **Åbn** eller starte **OneUptime On-Call** fra din app-skuffe.
 
-3. **Manuel installation via menu**
-   - Tryk på Chrome-menuen (tre punkter)
-   - Vælg "Tilføj til startskærm" eller "Installer app"
-   - Tilpas app-navnet, hvis ønsket
-   - Tryk på "Tilføj" for at bekræfte
+## Mulighed 2: Installer APK'en direkte
 
-4. **Start appen**
-   - Find OneUptime-ikonet på din startskærm eller i app-skuffen
-   - Tryk for at starte appen i fuld skærm-tilstand
+For enheder uden Google Play (for eksempel GrapheneOS, /e/OS eller Huawei-enheder), installer den officielle APK fra GitHub Releases:
 
-### Metode 2: Samsung Internet
+1. Åbn dette link på din Android-enhed:
+   [https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk)
+2. Når du bliver bedt om det, skal du tillade din browser at installere ukendte apps:
+   **Indstillinger → Apps → \[Din browser\] → Installer ukendte apps → Tillad fra denne kilde**.
+3. Åbn den downloadede APK, og tryk på **Installer**.
+4. Start **OneUptime On-Call** fra din app-skuffe.
 
-1. **Åbn OneUptime**
-   - Start Samsung Internet-browseren
-   - Gå til din OneUptime-instans
-   - Vent på fuldstændig sideindlæsning
+APK'en er bygget og signeret af OneUptime fra den samme kildekode som Play Store-udgivelsen. App-opdateringer er ikke automatiske ved sideloading — download den nyeste APK fra linket ovenfor, når en ny version udgives.
 
-2. **Tilføj til startskærm**
-   - Tryk på menuknappen (tre linjer)
-   - Vælg "Tilføj side til" → "Startskærm"
-   - Indtast app-navn og tryk på "Tilføj"
+## Første start og log ind
 
-3. **Start**
-   - Find app-ikonet på din startskærm
-   - Tryk for at åbne OneUptime i app-tilstand
+1. **Server-URL**
+   - Hvis du bruger OneUptime Cloud, så lad standarden `https://oneuptime.com` stå.
+   - Hvis du selvhoster, skal du indtaste URL'en til din OneUptime-instans (f.eks. `https://oneuptime.example.com`).
+   - Appen verificerer, at serveren kan nås, før du kan fortsætte.
+2. **Log ind**
+   - Indtast e-mail og adgangskode til din OneUptime-konto.
+   - Aktivér eventuelt **biometrisk oplåsning** (fingeraftryk) for hurtigere oplåsning ved senere starter.
+3. **Tillad notifikationer**
+   - Når du bliver bedt om det, skal du trykke på **Tillad**, så appen kan levere on-call-tilkald, hændelsesalarmer og kvitteringer.
 
-### Metode 3: Firefox
+## Push-notifikationer
 
-1. **Åbn OneUptime**
-   - Start Firefox-browseren
-   - Naviger til din OneUptime-URL
-   - Lad siden indlæse fuldstændigt
+Push-notifikationer leveres via Firebase Cloud Messaging (FCM) gennem Expo Push. For at sikre, at tilkald når sikkert frem til dig, mens du har on-call-vagt:
 
-2. **Installer**
-   - Tryk på tre-punkts-menuen
-   - Vælg "Installer" (hvis tilgængeligt)
-   - Eller vælg "Tilføj til startskærm"
-   - Bekræft installationen
-
-### Tilpasningsmuligheder
-
-### App-navn
-- Under installationen kan du tilpasse app-navnet
-- Standard: "OneUptime"
-- Anbefalet: Behold som "OneUptime" eller tilføj dit firmanavn
-
-### Notifikationsindstillinger
-1. **Giv tilladelser**
-   - Tillad notifikationer, når du bliver bedt om det
-   - Gå til Indstillinger → Apps → OneUptime → Notifikationer
-   - Aktiver alle notifikationskategorier for den bedste oplevelse
-
-2. **Tilpas advarsler**
-   - Konfigurer hvilke incidents der udløser notifikationer
-   - Sæt notifikationsprioritetsniveauer
-   - Vælg lyd- og vibrationspræferencer
-
-## Fejlfinding
-
-### Installationsproblemer
-
-**"Tilføj til startskærm" vises ikke:**
-```
-1. Ryd browsercache og cookies
-2. Sørg for, at du er på HTTPS (sikker forbindelse)
-3. Vent 2-3 minutter på siden, inden du leder efter prompten
-4. Kontroller, om PWA-kravene er opfyldt på din OneUptime-instans
-```
-
-**Installation mislykkes:**
-```
-1. Frigør lagerplads (kræver mindst 50 MB)
-2. Opdater din browser til den nyeste version
-3. Genstart din browser og prøv igen
-4. Prøv en anden browser (Chrome anbefales)
-```
-
-**App-ikon vises ikke:**
-```
-1. Kontroller startskærm og app-skuffe
-2. Se i afsnittet "Senest tilføjede" apps
-3. Søg efter "OneUptime" i app-skuffen
-4. Geninstaller om nødvendigt
-```
-
-### Notifikationsproblemer
-
-**Modtager ikke notifikationer:**
-```
-1. Kontroller notifikationstilladelser:
-   - Indstillinger → Apps → OneUptime → Tilladelser → Notifikationer
-2. Sørg for, at notifikationer er aktiveret i OneUptime-dashboardet
-3. Kontroller indstillinger for Forstyr ikke
-4. Bekræft, at batterioptimering ikke blokerer OneUptime
-```
-
-**Notifikationer forsinket:**
-```
-1. Deaktiver batterioptimering for OneUptime:
-   - Indstillinger → Apps → OneUptime → Batteri → Optimer batteriforbrug
-2. Tillad baggrundssaktivitet
-3. Kontroller indstillinger for datasparer
-```
-
-## Afinstallation
-
-### Fjern app
-1. **Langt tryk** på OneUptime-ikonet på startskærmen
-2. Vælg **"Afinstaller"** eller træk til papirkurven
-3. Bekræft fjernelse
-
-### Alternativ metode
-1. Gå til **Indstillinger → Apps**
-2. Find **"OneUptime"**
-3. Tryk på **"Afinstaller"**
-4. Bekræft fjernelse
-
-### Ryd data
-- Afinstallation fjerner alle cachelagrede data
-- Dine OneUptime-kontodata forbliver sikre på serveren
-- Geninstallation kræver nyt login
-
-## Avanceret konfiguration
-
-### Udviklermuligheder
-For avancerede brugere, der ønsker at inspicere PWA'en:
-1. Aktiver Udviklermuligheder i Android
-2. Opret forbindelse til computer med ADB
-3. Brug Chrome DevTools til fjerndebugning
-
-### Netværkskonfiguration
-- Konfigurer VPN, hvis du tilgår intern OneUptime-instans
-- Opsæt proxyindstillinger, hvis det kræves af din organisation
-- Sørg for, at firewall tillader PWA-ressourcer
+1. Åbn **Indstillinger → Apps → OneUptime On-Call → Notifikationer**, og bekræft, at alle kategorier er aktiveret.
+2. Åbn **Indstillinger → Apps → OneUptime On-Call → Batteri**, og vælg **Ubegrænset** (eller deaktiver batterioptimering), så operativsystemet ikke forsinker push-meddelelser i baggrunden.
+3. Tillad appen at køre i baggrunden, og deaktiver eventuelle "Datasparer"-begrænsninger for den.
+4. Hvis du bruger Samsung-enheder, skal du også slå **Indstillinger → Enhedspleje → Batteri → Grænser for baggrundsforbrug** fra for OneUptime On-Call.
+5. Føj OneUptime On-Call til alle undtagelseslister for **Do Not Disturb**, så tilkald stadig ringer under din on-call-vagt.
 
 ## Opdateringer
 
-OneUptime PWA opdateres automatisk:
-- **Automatiske opdateringer**: App opdateres, når du besøger den online
-- **Ingen manuelle opdateringer**: I modsætning til store-apps kræves ingen brugerhandling
-- **Øjeblikkelige opdateringer**: Nye funktioner er straks tilgængelige
-- **Tilbagerulningssikker**: Dårlige opdateringer kan hurtigt tilbagerulles
+**Google Play:**
+- Opdateringer installeres automatisk. For at udløse en manuelt skal du åbne **Play Store → Profil → Administrer apps og enhed → Opdateringer tilgængelige → OneUptime On-Call → Opdater**.
 
-## Bedste praksis
+**APK-sideload:**
+- Download den nyeste APK igen fra GitHub Releases-linket ovenfor, og installer oven på den eksisterende app — dine data, server-URL og log ind bevares.
 
-### Til optimal ydeevne
-1. **Første start**: Altid online til den første opsætning
-2. **Regelmæssig brug**: Åbn app regelmæssigt for at holde cachen frisk
-3. **Lagerstyring**: Hold tilstrækkelig ledig plads
-4. **Netværk**: Brug Wi-Fi til den første installation og større opdateringer
+## Afinstaller
 
-### Sikkerhedsanbefalinger
-1. **Kun HTTPS**: Installer kun fra sikre OneUptime-instanser
-2. **Officielle URL'er**: Bekræft, at du installerer fra din organisations officielle OneUptime-URL
-3. **Tilladelser**: Giv kun nødvendige tilladelser
-4. **Opdateringer**: Hold dit Android OS og browsere opdaterede
+1. **Tryk længe** på **OneUptime On-Call**-ikonet, og tryk derefter på **Afinstaller**.
+2. Eller åbn **Indstillinger → Apps → OneUptime On-Call → Afinstaller**.
+3. Bekræft for at fjerne appen.
+
+Din OneUptime-konto og dine on-call-planer er lagret på serversiden og fjernes ikke, når du afinstallerer appen.
+
+## Fejlfinding
+
+**"Netværksfejl" ved log ind:**
+- Bekræft, at **Server-URL** er korrekt og kan nås fra din enhed.
+- Hvis du er på et virksomhedsnetværk eller en VPN, så sørg for, at OneUptime-instansen er tilgængelig.
+- Bekræft, at serveren serveres over HTTPS med et gyldigt certifikat.
+
+**Modtager ikke push-notifikationer:**
+- Bekræft, at notifikationer er aktiveret under **Indstillinger → Apps → OneUptime On-Call → Notifikationer**.
+- Deaktiver batterioptimering for OneUptime On-Call (se Push-notifikationer ovenfor).
+- Sørg for, at Do Not Disturb er slået fra, eller at OneUptime On-Call er på undtagelseslisten.
+- Log ud, og log ind igen for at opdatere det push-token, der er registreret hos serveren.
+- Selvhostede brugere: bekræft, at push-notifikationer er konfigureret på din OneUptime-instans (se vejledningen [Push-notifikationer](/docs/self-hosted/push-notifications) for selvhostning).
+
+**Biometrisk oplåsning virker ikke:**
+- Registrer et fingeraftryk under **Indstillinger → Sikkerhed → Fingeraftryk**.
+- Genaktivér biometrisk oplåsning fra **Indstillinger**-skærmen i OneUptime On-Call-appen.
+
+**APK-installation blokeret:**
+- Du skal give browseren tilladelse til at installere ukendte apps (se Mulighed 2 ovenfor).
+- Visse teleudbydere eller virksomhedsenhedsprofiler blokerer sideloading fuldstændigt; brug i så fald Google Play-versionen i stedet.
+
+**Appen går ned ved start:**
+- Opdater til den nyeste version fra Google Play eller den nyeste APK.
+- Genstart din enhed.
+- Hvis problemet fortsætter, så afinstaller og geninstaller, og log ind igen.
+
+## Support
+
+Hvis du stadig har brug for hjælp, kan du kontakte os via dit OneUptime-dashboard eller åbne et issue på vores [GitHub-repository](https://github.com/OneUptime/oneuptime).

@@ -1,219 +1,83 @@
 # Installationsguide för iOS
 
-Installera OneUptime som en inbyggd app på din iPhone eller iPad för sömlös övervakning när du är på språng.
+Installera den inbyggda iOS-appen **OneUptime On-Call** från Apple App Store på din iPhone eller iPad.
 
-## Installationsmetoder
+## Krav
 
-### Metod 1: Safari (rekommenderas)
+- iPhone eller iPad som kör **iOS 15.0 eller senare**
+- Ett aktivt OneUptime-konto (eller URL:en till din egendrivna OneUptime-instans)
+- Internetanslutning för inloggning och för att ta emot push-aviseringar
 
-Safari ger den bästa PWA-upplevelsen på iOS-enheter.
+## Installera från App Store
 
-1. **Öppna OneUptime i Safari**
-   - Starta Safari på din iOS-enhet
-   - Navigera till URL:en för din OneUptime-instans
-   - Vänta tills sidan laddas helt
-   - Se till att du är inloggad på ditt OneUptime-konto
+1. **Öppna App Store** på din iPhone eller iPad.
+2. Tryck på fliken **Sök** och sök efter **"OneUptime On-Call"**, eller öppna den här länken på din enhet:
+   [https://apps.apple.com/us/app/oneuptime-on-call/id6759615391](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391)
+3. Tryck på **Hämta** och autentisera sedan med Face ID, Touch ID eller ditt Apple-ID-lösenord.
+4. När installationen är klar trycker du på **Öppna** eller startar **OneUptime On-Call** från hemskärmen.
 
-2. **Öppna delningsmenyn**
-   - Tryck på **Dela-knappen** (fyrkant med pil uppåt) i det nedre verktygsfältet
-   - Scrolla genom delningsalternativen för att hitta "Lägg till på startskärmen"
+## Första start och inloggning
 
-3. **Lägg till på startskärmen**
-   - Tryck på **"Lägg till på startskärmen"**
-   - Anpassa appnamnet (standard: "OneUptime")
-   - Tryck på **"Lägg till"** i det övre högra hörnet
+1. **Server-URL**
+   - Om du använder OneUptime Cloud, behåll standardvärdet `https://oneuptime.com`.
+   - Om du har egen drift anger du URL:en till din OneUptime-instans (t.ex. `https://oneuptime.example.com`).
+   - Appen verifierar att servern är nåbar innan den fortsätter.
+2. **Logga in**
+   - Ange e-postadressen och lösenordet för ditt OneUptime-konto.
+   - Aktivera valfritt **Face ID** eller **Touch ID** för snabbare upplåsning vid senare starter.
+3. **Tillåt aviseringar**
+   - När du tillfrågas trycker du på **Tillåt** så att appen kan leverera jourutkallelser, incidentvarningar och bekräftelser.
 
-4. **Starta appen**
-   - Hitta OneUptime-ikonen på din startskärm
-   - Tryck för att starta i helskärms-appläge
+## Push-aviseringar
 
-### Metod 2: Chrome-webbläsare
+Push-aviseringar levereras via Apple Push Notification service (APNs) genom Expo Push. För att säkerställa att utkallelser når dig pålitligt:
 
-Chrome fungerar, men Safari rekommenderas för bästa iOS PWA-upplevelse.
+1. Gå till **Inställningar → Aviseringar → OneUptime On-Call**.
+2. Aktivera **Tillåt aviseringar**, **Ljud**, **Märken** och leverans till **Låsskärm / Banner / Aviseringscenter**.
+3. Ställ in **Aviseringsgruppering** på **Automatisk**.
+4. Om du har jour, inaktivera **Lågenergiläge** under ditt skift och undvik att tvångsstänga appen — iOS kan fördröja leverans i bakgrunden om appen tvångsstängs.
+5. Lägg till **OneUptime On-Call** i alla **Fokus**-lägen där du fortfarande vill ta emot utkallelser.
 
-1. **Öppna OneUptime i Chrome**
-   - Starta Chrome-webbläsaren
-   - Gå till din OneUptime-instans
-   - Låt sidan laddas helt
+## Uppdateringar
 
-2. **Lägg till på startskärmen**
-   - Tryck på **tredubbelpunktsmenyn** (fler alternativ)
-   - Välj **"Lägg till på startskärmen"**
-   - Anpassa appnamnet om du vill
-   - Tryck på **"Lägg till"**
+Appen uppdateras via App Store:
 
-### Metod 3: Andra webbläsare
+- Öppna **App Store**, tryck på din profilbild, scrolla till **OneUptime On-Call** och tryck på **Uppdatera**.
+- Eller aktivera **Inställningar → App Store → Appuppdateringar** för att installera uppdateringar automatiskt.
 
-Firefox, Edge och andra webbläsare stöder grundläggande PWA-installation:
+## Avinstallera
 
-1. **Öppna OneUptime**
-   - Starta din föredragna webbläsare
-   - Navigera till OneUptime-URL:en
-   - Vänta tills sidan laddas helt
+1. **Tryck och håll** på ikonen för **OneUptime On-Call** på hemskärmen.
+2. Tryck på **Ta bort app → Radera app**.
+3. Bekräfta genom att trycka på **Radera**.
 
-2. **Leta efter installationsalternativ**
-   - Kontrollera webbläsarmenyn för "Lägg till på startskärmen" eller "Installera"
-   - Följ webbläsarspecifika installationsprompter
-
-### Anpassningsalternativ
-
-### App-ikon och namn
-- **Anpassat namn**: Ändra under installationen eller senare
-- **Ikonplacering**: Organisera i mappar eller specifika startskärmssidor
-- **Märkaviseringar**: Visa antal olästa incidenter
-
-### Aviseringskonfiguration
-1. **Aktivera aviseringar**
-   - Tryck på **"Tillåt"** för aviseringar när du uppmanas
-   - Eller gå till Inställningar → Aviseringar → OneUptime
-   - Aktivera alla aviseringstyper för heltäckande övervakning
-
-2. **Anpassa varningsstilar**
-   - **Låsskärm**: Visa incidentvarningar på låst enhet
-   - **Bannerstil**: Välj tillfälliga eller bestående banners
-   - **Ljud**: Anpassa aviseringsljud och vibrationer
-   - **Kritiska varningar**: Aktivera för högprioriterade incidenter (kräver behörighet)
+Ditt OneUptime-konto och dina jourscheman lagras på serversidan och tas inte bort när du avinstallerar appen.
 
 ## Felsökning
 
-### Installationsproblem
+**App Store säger att appen "inte är tillgänglig i din region":**
+- Appen är publicerad i den globala App Store. Om den inte visas i din region, kontakta [supporten](mailto:support@oneuptime.com).
 
-**"Lägg till på startskärmen" visas inte:**
-```
-Lösningar:
-1. Se till att du använder Safari (bästa kompatibiliteten)
-2. Uppdatera sidan och vänta 30 sekunder
-3. Kontrollera att du är på rätt OneUptime-URL
-4. Verifiera HTTPS-anslutning (leta efter låsikonen)
-5. Rensa Safari-cache: Inställningar → Safari → Rensa historik och webbplatsdata
-```
-
-**Installationen är klar men ingen ikon visas:**
-```
-Lösningar:
-1. Kontrollera alla startskärmssidor
-2. Titta i Appbiblioteket (svep förbi den sista startskärmssidan)
-3. Använd Spotlight-sökning för att hitta "OneUptime"
-4. Starta om enheten och kontrollera igen
-5. Installera om vid behov
-```
-
-**Appen kraschar vid start:**
-```
-Lösningar:
-1. Tvångsstäng och öppna appen igen
-2. Starta om din iOS-enhet
-3. Rensa Safari-cache och installera om
-4. Se till att iOS-versionen är 11.3 eller högre
-5. Frigör enhetens lagringsutrymme
-```
-
-### Aviseringsproblem
+**"Nätverksfel" vid inloggning:**
+- Kontrollera att **Server-URL** är korrekt och nåbar från din enhet.
+- Om du befinner dig på ett företagsnätverk eller VPN, säkerställ att OneUptime-instansen är åtkomlig.
+- Bekräfta att servern levereras via HTTPS med ett giltigt certifikat.
 
 **Tar inte emot push-aviseringar:**
-```
-Kontrollera dessa inställningar:
-1. Inställningar → Aviseringar → OneUptime → Tillåt aviseringar
-2. Inställningar → Skärmtid → Begränsningar för innehåll och sekretess → Tillåtna appar
-3. Inställningar för Stör ej
-4. Kontrollera aviseringsinställningar i OneUptime-instrumentpanelen
-5. Logga ut och logga in igen på OneUptime
-```
+- Öppna **Inställningar → Aviseringar → OneUptime On-Call** och bekräfta att aviseringar är tillåtna.
+- Inaktivera **Stör ej** eller lägg till OneUptime On-Call i listan över tillåtna appar för ditt aktiva Fokus-läge.
+- Logga ut och logga in igen för att uppdatera push-token som är registrerad hos servern.
+- Användare med egen drift: bekräfta att push-aviseringar är konfigurerade på din OneUptime-instans (se guiden [Push-aviseringar](/docs/self-hosted/push-notifications) för egen drift).
 
-**Försenade eller missade aviseringar:**
-```
-Lösningar:
-1. Håll appen igång i bakgrunden (tvångsstäng inte)
-2. Inaktivera lågenergistudg under kritisk övervakning
-3. Kontrollera Bakgrundsappuppdatering: Inställningar → Allmänt → Bakgrundsappuppdatering
-4. Se till att det finns tillräckligt med lagringsutrymme
-```
+**Face ID / Touch ID fungerar inte:**
+- Se till att biometrisk data är registrerad i **Inställningar → Face ID och lösenkod** eller **Inställningar → Touch ID och lösenkod**.
+- Aktivera biometrisk upplåsning på nytt från skärmen **Inställningar** inuti appen OneUptime On-Call.
 
-## Avinstallation
+**Appen kraschar vid start:**
+- Uppdatera till den senaste versionen från App Store.
+- Starta om enheten.
+- Om problemet kvarstår, radera och installera om appen och logga sedan in igen.
 
-### Ta bort från startskärmen
-1. **Håll ned** OneUptime-appikonen
-2. Tryck på **"Ta bort app"**
-3. Välj **"Ta bort app"**
-4. Bekräfta borttagningen
+## Support
 
-### Alternativ metod
-1. Gå till **Inställningar → Allmänt → iPhone-lagring**
-2. Hitta **OneUptime** i applistan
-3. Tryck på **"Ta bort app"**
-4. Bekräfta borttagningen
-
-## Uppdateringar och underhåll
-
-### Automatiska uppdateringar
-- OneUptime PWA uppdateras automatiskt när du är online
-- Inga App Store-uppdateringar krävs
-- Nya funktioner tillgängliga omedelbart efter serverdriftsättning
-- Kritiska säkerhetsuppdateringar tillämpas direkt
-
-## iPad-specifik installation
-
-### Förbättrad iPad-upplevelse
-1. **Större gränssnitt**: Optimerade layouter för iPad-skärmstorlekar
-2. **Flerfönstersvisning**: Kör flera OneUptime-fönster samtidigt
-3. **Tangentbordsgenvägar**: Fullständigt stöd för externa tangentbord
-4. **Dra och släpp**: Flytta data mellan OneUptime och andra appar
-
-### iPad-installationssteg
-Samma som iPhone-installation, men med ytterligare överväganden:
-- Använd liggande läge för optimal instrumentpanelsvisning
-- Överväg delad visning med andra produktivitetsappar
-- Konfigurera tangentbordsgenvägar för vanliga åtgärder
-
-## Apple Watch-integration
-
-Medan OneUptime inte har en dedikerad watchOS-app kan du:
-- **Ta emot aviseringar**: Incidentvarningar visas på Apple Watch
-- **Snabbåtgärder**: Bekräfta incidenter från klockaviseringar
-- **Siri-integration**: Fråga Siri om systemstatus (när konfigurerad)
-
-## Avancerad konfiguration
-
-### Integration med Genvägar-appen
-Skapa anpassade Siri-genvägar för OneUptime:
-1. Öppna **Genvägar**-appen
-2. Skapa **Ny genväg**
-3. Lägg till åtgärden **"Öppna app"**
-4. Välj **OneUptime**
-5. Lägg till en röstfras som "Kontrollera systemstatus"
-
-### Fokuslägen
-Integrera OneUptime med iOS-fokuslägen:
-1. **Inställningar → Fokus**
-2. Välj eller skapa ett fokusläge
-3. **Appar → Lägg till appar → OneUptime**
-4. Konfigurera aviseringsbeteendet för olika fokuslägen
-
-## Uppdateringar och underhåll
-
-### Automatiska uppdateringar
-- OneUptime PWA uppdateras automatiskt när du är online
-- Inga App Store-uppdateringar krävs
-- Nya funktioner tillgängliga omedelbart efter serverdriftsättning
-- Kritiska säkerhetsuppdateringar tillämpas direkt
-
-### Manuell uppdateringsprocess
-Tvinga uppdatering av appen:
-1. Öppna OneUptime i Safari
-2. Dra ned för att uppdatera
-3. Appen laddar ner senaste versionen
-4. Nya funktioner tillgängliga omedelbart
-
-## Bästa praxis
-
-### Säkerhetsrekommendationer
-1. **Verifiera URL**: Installera bara från din organisations officiella OneUptime-instans
-2. **Endast HTTPS**: Se till att anslutningen är säker (leta efter låsikonen)
-3. **Regelbundna uppdateringar**: Håll iOS uppdaterat för säkerhetskorrigeringar
-4. **Appbehörigheter**: Bevilja bara nödvändiga behörigheter
-
-### Prestandaoptimering
-1. **Wi-Fi-installation**: Använd Wi-Fi för initial installation och stora uppdateringar
-2. **Bakgrundsuppdatering**: Aktivera för aktuella aviseringar
-3. **Lagringshantering**: Behåll tillräckligt med ledigt utrymme
-4. **Regelbunden omstart**: Starta om appen varje vecka för optimal prestanda
+Om du fortfarande behöver hjälp, kontakta oss via din OneUptime-instrumentpanel eller skapa ett ärende på vårt [GitHub-arkiv](https://github.com/OneUptime/oneuptime).

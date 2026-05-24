@@ -1,179 +1,83 @@
 # iOS Installation Guide
 
-चलते-फिरते seamless monitoring के लिए OneUptime को अपने iPhone या iPad पर native app के रूप में install करें।
+अपने iPhone या iPad पर Apple App Store से **OneUptime On-Call** native iOS app install करें।
 
-## Installation Methods
+## आवश्यकताएं
 
-### Method 1: Safari (अनुशंसित)
+- **iOS 15.0 या बाद का version** चलाने वाला iPhone या iPad
+- एक active OneUptime account (या आपके self-hosted OneUptime instance का URL)
+- sign-in के लिए और push notifications प्राप्त करने के लिए Internet connection
 
-Safari iOS devices पर सबसे अच्छा PWA experience प्रदान करता है।
+## App Store से Install करें
 
-1. **OneUptime को Safari में खोलें**
-   - अपने iOS device पर Safari launch करें
-   - अपने OneUptime instance URL पर जाएं
-   - page पूरी तरह load होने का इंतज़ार करें
-   - सुनिश्चित करें कि आप अपने OneUptime account में signed in हैं
+1. अपने iPhone या iPad पर **App Store** open करें।
+2. **Search** tab पर tap करें और **"OneUptime On-Call"** search करें, या अपने device पर यह link open करें:
+   [https://apps.apple.com/us/app/oneuptime-on-call/id6759615391](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391)
+3. **Get** पर tap करें, फिर Face ID, Touch ID, या अपने Apple ID password से authenticate करें।
+4. एक बार install हो जाने पर, **Open** पर tap करें या अपनी home screen से **OneUptime On-Call** launch करें।
 
-2. **Share Menu Access करें**
-   - bottom toolbar में **Share button** (ऊपर arrow के साथ square) पर tap करें
-   - "Add to Home Screen" खोजने के लिए share options scroll करें
+## पहला Launch और Sign-in
 
-3. **Home Screen पर Add करें**
-   - **"Add to Home Screen"** पर tap करें
-   - app का नाम customize करें (default: "OneUptime")
-   - top-right corner में **"Add"** पर tap करें
+1. **Server URL**
+   - यदि आप OneUptime Cloud का उपयोग कर रहे हैं, तो default `https://oneuptime.com` को छोड़ दें।
+   - यदि आप self-hosting कर रहे हैं, तो अपने OneUptime instance का URL enter करें (उदाहरण के लिए, `https://oneuptime.example.com`)।
+   - app आगे बढ़ने से पहले verify करता है कि server reachable है।
+2. **Sign In**
+   - अपने OneUptime account के लिए email और password enter करें।
+   - बाद के launches पर तेज़ unlock के लिए वैकल्पिक रूप से **Face ID** या **Touch ID** enable करें।
+3. **Notifications Allow करें**
+   - prompt होने पर, **Allow** पर tap करें ताकि app on-call pages, incident alerts, और acknowledgements deliver कर सके।
 
-4. **App Launch करें**
-   - अपनी home screen पर OneUptime icon खोजें
-   - full-screen app mode में launch करने के लिए tap करें
+## Push Notifications
 
-### Method 2: Chrome Browser
+Push notifications, Expo Push के माध्यम से Apple Push Notification service (APNs) के द्वारा deliver होते हैं। यह सुनिश्चित करने के लिए कि pages आपको reliably पहुंचें:
 
-Chrome काम करता है, लेकिन iOS PWA experience के लिए Safari अनुशंसित है।
+1. **Settings → Notifications → OneUptime On-Call** पर जाएं।
+2. **Allow Notifications**, **Sounds**, **Badges**, और **Lock Screen / Banner / Notification Centre** delivery enable करें।
+3. **Notification Grouping** को **Automatic** पर set करें।
+4. यदि आप on-call हैं, तो अपनी shift के दौरान **Low Power Mode** disable करें और app को Force-Quit करने से बचें — यदि app force-closed हो तो iOS background delivery में delay कर सकता है।
+5. किसी भी **Focus** mode में **OneUptime On-Call** add करें जहां आप अभी भी pages प्राप्त करना चाहते हैं।
 
-1. **OneUptime को Chrome में खोलें**
-   - Chrome browser launch करें
-   - अपने OneUptime instance पर जाएं
-   - page पूरी तरह load होने दें
+## Updates
 
-2. **Home Screen पर Add करें**
-   - **three-dot menu** (more options) पर tap करें
-   - **"Add to Home Screen"** चुनें
-   - यदि चाहें तो app का नाम customize करें
-   - **"Add"** पर tap करें
+app को App Store के माध्यम से update किया जाता है:
 
-### Method 3: अन्य Browsers
+- **App Store** open करें, अपनी profile picture पर tap करें, **OneUptime On-Call** तक scroll करें, और **Update** पर tap करें।
+- या updates automatically install करने के लिए **Settings → App Store → App Updates** enable करें।
 
-Firefox, Edge और अन्य browsers basic PWA installation का समर्थन करते हैं:
+## Uninstall
 
-1. **OneUptime खोलें**
-   - अपना पसंदीदा browser launch करें
-   - OneUptime URL पर जाएं
-   - page पूरी तरह load होने दें
+1. अपनी home screen पर **OneUptime On-Call** icon को **Long-press** करें।
+2. **Remove App → Delete App** पर tap करें।
+3. **Delete** पर tap करके पुष्टि करें।
 
-2. **Install Option देखें**
-   - "Add to Home Screen" या "Install" के लिए browser menu जांचें
-   - browser-specific installation prompts का पालन करें
+आपका OneUptime account और on-call schedules server-side stored होते हैं और जब आप app uninstall करते हैं तो हटाए नहीं जाते।
 
-### Customization Options
+## Troubleshooting
 
-### App Icon और Name
-- **Custom Name**: installation के दौरान या बाद में बदलें
-- **Icon Placement**: folders में या specific home screen pages पर organize करें
-- **Badge Notifications**: unread incident count दिखाएं
+**App Store कहता है कि app "Not Available in Your Region" है:**
+- app global App Store पर publish है। यदि यह आपके region में नहीं दिखाई देता है, तो [support](mailto:support@oneuptime.com) से संपर्क करें।
 
-### Notification Configuration
-1. **Notifications सक्षम करें**
-   - prompt होने पर notifications के लिए **"Allow"** पर tap करें
-   - या Settings → Notifications → OneUptime पर जाएं
-   - व्यापक monitoring के लिए सभी notification types सक्षम करें
+**Sign in करते समय "Network Error":**
+- verify करें कि **Server URL** सही है और आपके device से reachable है।
+- यदि आप corporate network या VPN पर हैं, तो सुनिश्चित करें कि OneUptime instance accessible है।
+- पुष्टि करें कि server HTTPS पर valid certificate के साथ serve हो रहा है।
 
-2. **Alert Styles Customize करें**
-   - **Lock Screen**: locked device पर incident alerts दिखाएं
-   - **Banner Style**: temporary या persistent banners चुनें
-   - **Sounds**: notification sounds और vibrations customize करें
-   - **Critical Alerts**: high-priority incidents के लिए सक्षम करें (permission आवश्यक)
+**Push notifications प्राप्त नहीं हो रहे:**
+- **Settings → Notifications → OneUptime On-Call** open करें और पुष्टि करें कि notifications allowed हैं।
+- **Do Not Disturb** disable करें या OneUptime On-Call को अपने active Focus mode की allow list में add करें।
+- server के साथ registered push token refresh करने के लिए sign out करें और फिर से sign in करें।
+- Self-hosted users: पुष्टि करें कि push notifications आपके OneUptime instance पर configure हैं (self-hosted [Push Notifications](/docs/self-hosted/push-notifications) guide देखें)।
 
-## समस्या निवारण
+**Face ID / Touch ID काम नहीं कर रहा:**
+- सुनिश्चित करें कि biometrics **Settings → Face ID & Passcode** या **Settings → Touch ID & Passcode** में enrolled हैं।
+- OneUptime On-Call app के अंदर **Settings** screen से biometric unlock को फिर से enable करें।
 
-### Installation संबंधी समस्याएं
+**App launch पर crash होता है:**
+- App Store से latest version पर update करें।
+- अपना device restart करें।
+- यदि समस्या बनी रहती है, तो app को delete करें और फिर से install करें, फिर sign in करें।
 
-**"Add to Home Screen" दिखाई नहीं दे रहा:**
-```
-Solutions:
-1. सुनिश्चित करें कि आप Safari उपयोग कर रहे हैं (सर्वोत्तम compatibility)
-2. page refresh करें और 30 seconds इंतज़ार करें
-3. जांचें कि आप सही OneUptime URL पर हैं
-4. HTTPS connection सत्यापित करें (lock icon देखें)
-5. Safari cache clear करें: Settings → Safari → Clear History and Website Data
-```
+## Support
 
-**Installation पूरी होती है लेकिन icon नहीं दिखता:**
-```
-Solutions:
-1. सभी home screen pages जांचें
-2. App Library में देखें (last home screen page के बाद left swipe करें)
-3. "OneUptime" खोजने के लिए Spotlight Search उपयोग करें
-4. device restart करें और फिर जांचें
-5. यदि आवश्यक हो तो Reinstall करें
-```
-
-**Launch पर App crash होता है:**
-```
-Solutions:
-1. app force close करें और फिर खोलें
-2. अपना iOS device restart करें
-3. Safari cache clear करें और reinstall करें
-4. सुनिश्चित करें कि iOS version 11.3 या अधिक है
-5. device storage space खाली करें
-```
-
-### Notification संबंधी समस्याएं
-
-**Push notifications नहीं मिल रहीं:**
-```
-इन settings जांचें:
-1. Settings → Notifications → OneUptime → Allow Notifications
-2. Settings → Screen Time → Content & Privacy Restrictions → Allowed Apps
-3. Do Not Disturb settings
-4. OneUptime dashboard में notification settings जांचें
-5. OneUptime से sign out करें और वापस sign in करें
-```
-
-**Notifications delayed या missed हो रही हैं:**
-```
-Solutions:
-1. background में app चलता रहने दें (force close न करें)
-2. critical monitoring के दौरान Low Power Mode अक्षम करें
-3. Background App Refresh जांचें: Settings → General → Background App Refresh
-4. पर्याप्त storage space सुनिश्चित करें
-```
-
-## Uninstallation
-
-### Home Screen से हटाएं
-1. OneUptime app icon को **Long press** करें
-2. **"Remove App"** पर tap करें
-3. **"Delete App"** चुनें
-4. deletion confirm करें
-
-### Alternative Method
-1. **Settings → General → iPhone Storage** पर जाएं
-2. app list में **OneUptime** खोजें
-3. **"Delete App"** पर tap करें
-4. removal confirm करें
-
-## iPad-Specific Installation
-
-### बेहतर iPad Experience
-1. **Larger Interface**: iPad screen sizes के लिए optimized layouts
-2. **Multi-Window**: एक साथ कई OneUptime windows चलाएं
-3. **Keyboard Shortcuts**: external keyboards के लिए full support
-4. **Drag और Drop**: OneUptime और अन्य apps के बीच data move करें
-
-### iPad Installation Steps
-iPhone installation के समान, लेकिन additional considerations के साथ:
-- optimal dashboard viewing के लिए landscape mode उपयोग करें
-- अन्य productivity apps के साथ Split View setup पर विचार करें
-- सामान्य actions के लिए keyboard shortcuts configure करें
-
-## Updates और Maintenance
-
-### Automatic Updates
-- OneUptime PWA online होने पर स्वचालित रूप से update होता है
-- कोई App Store updates आवश्यक नहीं
-- server deployment के बाद नई features तुरंत उपलब्ध
-- critical security updates तुरंत लागू
-
-### Manual Refresh
-app को force update करें:
-1. Safari में OneUptime खोलें
-2. pull down to refresh करें
-3. App latest version download करेगा
-4. नई features तुरंत उपलब्ध
-
-## Security Recommendations
-1. **URL Verify करें**: केवल अपने organization के official OneUptime instance से install करें
-2. **HTTPS Only**: secure connection सुनिश्चित करें (lock icon देखें)
-3. **Regular Updates**: security patches के लिए iOS updated रखें
-4. **App Permissions**: केवल आवश्यक permissions grant करें
+यदि आपको अभी भी सहायता चाहिए, तो अपने OneUptime dashboard के माध्यम से संपर्क करें या हमारे [GitHub repository](https://github.com/OneUptime/oneuptime) पर एक issue open करें।

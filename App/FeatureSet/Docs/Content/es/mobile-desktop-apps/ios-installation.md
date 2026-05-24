@@ -1,231 +1,83 @@
-# Guía de instalación en iOS
+# Guía de instalación para iOS
 
-Instala OneUptime como una aplicación nativa en tu iPhone o iPad para un monitoreo fluido desde cualquier lugar.
+Instale la aplicación nativa de iOS **OneUptime On-Call** desde la Apple App Store en su iPhone o iPad.
 
-## Métodos de instalación
+## Requisitos
 
-### Método 1: Safari (recomendado)
+- iPhone o iPad con **iOS 15.0 o posterior**
+- Una cuenta activa de OneUptime (o la URL de su instancia autoalojada de OneUptime)
+- Conexión a Internet para iniciar sesión y recibir notificaciones push
 
-Safari proporciona la mejor experiencia de PWA en dispositivos iOS.
+## Instalación desde la App Store
 
-1. **Abre OneUptime en Safari**
-   - Inicia Safari en tu dispositivo iOS
-   - Navega a la URL de tu instancia de OneUptime
-   - Espera a que la página cargue completamente
-   - Asegúrate de haber iniciado sesión en tu cuenta de OneUptime
+1. **Abra la App Store** en su iPhone o iPad.
+2. Toque la pestaña **Buscar** y busque **"OneUptime On-Call"**, o abra este enlace desde su dispositivo:
+   [https://apps.apple.com/us/app/oneuptime-on-call/id6759615391](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391)
+3. Toque **Obtener** y, a continuación, autentíquese con Face ID, Touch ID o la contraseña de su Apple ID.
+4. Una vez instalada, toque **Abrir** o inicie **OneUptime On-Call** desde su pantalla de inicio.
 
-2. **Acceder al menú compartir**
-   - Toca el **botón Compartir** (cuadrado con flecha apuntando hacia arriba) en la barra de herramientas inferior
-   - Desplázate por las opciones de compartir para encontrar "Agregar a pantalla de inicio"
+## Primer inicio e inicio de sesión
 
-3. **Agregar a la pantalla de inicio**
-   - Toca **"Agregar a pantalla de inicio"**
-   - Personaliza el nombre de la aplicación (predeterminado: "OneUptime")
-   - Toca **"Agregar"** en la esquina superior derecha
+1. **URL del servidor**
+   - Si usa OneUptime Cloud, deje el valor predeterminado `https://oneuptime.com`.
+   - Si está autoalojando, introduzca la URL de su instancia de OneUptime (p. ej., `https://oneuptime.example.com`).
+   - La aplicación verifica que el servidor sea accesible antes de continuar.
+2. **Iniciar sesión**
+   - Introduzca el correo electrónico y la contraseña de su cuenta de OneUptime.
+   - Opcionalmente, habilite **Face ID** o **Touch ID** para desbloqueos más rápidos en los siguientes inicios.
+3. **Permitir notificaciones**
+   - Cuando se le solicite, toque **Permitir** para que la aplicación pueda entregar avisos de guardia, alertas de incidentes y confirmaciones.
 
-4. **Inicia la aplicación**
-   - Encuentra el ícono de OneUptime en tu pantalla de inicio
-   - Toca para abrir en modo de aplicación a pantalla completa
+## Notificaciones push
 
-### Método 2: Navegador Chrome
+Las notificaciones push se entregan a través del servicio Apple Push Notification (APNs) mediante Expo Push. Para asegurarse de que los avisos le lleguen de forma fiable:
 
-Aunque Chrome funciona, Safari es el recomendado para la mejor experiencia de PWA en iOS.
+1. Vaya a **Ajustes → Notificaciones → OneUptime On-Call**.
+2. Habilite **Permitir notificaciones**, **Sonidos**, **Globos** y la entrega en **Pantalla bloqueada / Banner / Centro de notificaciones**.
+3. Configure **Agrupación de notificaciones** en **Automática**.
+4. Si está de guardia, desactive el **Modo de bajo consumo** durante su turno y evite forzar el cierre de la aplicación — iOS puede retrasar la entrega en segundo plano si se fuerza el cierre.
+5. Añada **OneUptime On-Call** a cualquier modo de **Concentración** en el que aún desee recibir avisos.
 
-1. **Abre OneUptime en Chrome**
-   - Inicia el navegador Chrome
-   - Ve a tu instancia de OneUptime
-   - Permite que la página cargue completamente
+## Actualizaciones
 
-2. **Agregar a la pantalla de inicio**
-   - Toca el **menú de tres puntos** (más opciones)
-   - Selecciona **"Agregar a pantalla de inicio"**
-   - Personaliza el nombre de la aplicación si lo deseas
-   - Toca **"Agregar"**
+La aplicación se actualiza a través de la App Store:
 
-### Método 3: Otros navegadores
-
-Firefox, Edge y otros navegadores admiten la instalación básica de PWA:
-
-1. **Abre OneUptime**
-   - Inicia tu navegador preferido
-   - Navega a la URL de OneUptime
-   - Espera a que la página cargue completamente
-
-2. **Busca la opción de instalación**
-   - Comprueba el menú del navegador para "Agregar a pantalla de inicio" o "Instalar"
-   - Sigue las instrucciones de instalación específicas del navegador
-
-### Opciones de personalización
-
-### Ícono y nombre de la aplicación
-- **Nombre personalizado**: Cambia durante la instalación o posteriormente
-- **Ubicación del ícono**: Organiza en carpetas o páginas específicas de la pantalla de inicio
-- **Notificaciones de insignia**: Muestra el recuento de incidentes no leídos
-
-### Configuración de notificaciones
-1. **Habilitar notificaciones**
-   - Cuando se solicite, toca **"Permitir"** para las notificaciones
-   - O ve a Configuración → Notificaciones → OneUptime
-   - Habilita todos los tipos de notificaciones para un monitoreo completo
-
-2. **Personalizar estilos de alerta**
-   - **Pantalla de bloqueo**: Muestra alertas de incidentes en el dispositivo bloqueado
-   - **Estilo de banner**: Elige banners temporales o persistentes
-   - **Sonidos**: Personaliza sonidos de notificación y vibración
-   - **Alertas críticas**: Habilita para incidentes de alta prioridad (requiere permiso)
-
-## Solución de problemas
-
-### Problemas de instalación
-
-**"Agregar a pantalla de inicio" no está visible:**
-```
-Soluciones:
-1. Asegúrate de estar usando Safari (mejor compatibilidad)
-2. Actualiza la página y espera 30 segundos
-3. Verifica que estés en la URL correcta de OneUptime
-4. Verifica la conexión HTTPS (busca el ícono del candado)
-5. Limpia el caché de Safari: Configuración → Safari → Borrar historial y datos de sitios web
-```
-
-**La instalación completa pero no aparece ningún ícono:**
-```
-Soluciones:
-1. Comprueba todas las páginas de la pantalla de inicio
-2. Busca en la Biblioteca de aplicaciones (desliza hacia la izquierda más allá de la última página de la pantalla de inicio)
-3. Usa la búsqueda de Spotlight para encontrar "OneUptime"
-4. Reinicia el dispositivo y comprueba de nuevo
-5. Reinstala si es necesario
-```
-
-**La aplicación se bloquea al iniciar:**
-```
-Soluciones:
-1. Fuerza el cierre y vuelve a abrir la aplicación
-2. Reinicia tu dispositivo iOS
-3. Limpia el caché de Safari y reinstala
-4. Asegúrate de que la versión de iOS sea 11.3 o superior
-5. Libera espacio de almacenamiento del dispositivo
-```
-
-### Problemas de notificaciones
-
-**No recibes notificaciones push:**
-```
-Comprueba estos ajustes:
-1. Configuración → Notificaciones → OneUptime → Permitir notificaciones
-2. Configuración → Tiempo de pantalla → Restricciones de contenido y privacidad → Aplicaciones permitidas
-3. Configuración de No molestar
-4. Comprueba la configuración de notificaciones en el panel de OneUptime
-5. Cierra sesión y vuelve a iniciarla en OneUptime
-```
-
-**Notificaciones retrasadas o no recibidas:**
-```
-Soluciones:
-1. Mantén la aplicación ejecutándose en segundo plano (no la cierres a la fuerza)
-2. Deshabilita el modo de bajo consumo durante el monitoreo crítico
-3. Comprueba la actualización de aplicaciones en segundo plano: Configuración → General → Actualización de aplicaciones en segundo plano
-4. Asegúrate de que haya suficiente espacio de almacenamiento disponible
-```
+- Abra la **App Store**, toque su foto de perfil, desplácese hasta **OneUptime On-Call** y toque **Actualizar**.
+- O habilite **Ajustes → App Store → Actualizaciones de apps** para instalar las actualizaciones automáticamente.
 
 ## Desinstalación
 
-### Eliminar de la pantalla de inicio
-1. **Mantén pulsado** el ícono de la aplicación OneUptime
-2. Toca **"Eliminar aplicación"**
-3. Selecciona **"Eliminar aplicación"**
-4. Confirma la eliminación
+1. **Mantenga pulsado** el icono de **OneUptime On-Call** en su pantalla de inicio.
+2. Toque **Eliminar app → Eliminar app**.
+3. Confirme tocando **Eliminar**.
 
-### Método alternativo
-1. Ve a **Configuración → General → Almacenamiento del iPhone**
-2. Busca **OneUptime** en la lista de aplicaciones
-3. Toca **"Eliminar aplicación"**
-4. Confirma la eliminación
+Su cuenta de OneUptime y sus turnos de guardia se almacenan en el servidor y no se eliminan al desinstalar la aplicación.
 
-## Actualizaciones y mantenimiento
+## Solución de problemas
 
-### Actualizaciones automáticas
-- La PWA de OneUptime se actualiza automáticamente cuando está en línea
-- No se requieren actualizaciones de la App Store
-- Las nuevas funciones están disponibles de inmediato después del despliegue del servidor
-- Las actualizaciones de seguridad críticas se aplican al instante
+**La App Store indica que la aplicación "No está disponible en su región":**
+- La aplicación se publica en la App Store global. Si no aparece en su región, contacte con [soporte](mailto:support@oneuptime.com).
 
-## Instalación específica para iPad
+**"Error de red" al iniciar sesión:**
+- Verifique que la **URL del servidor** sea correcta y accesible desde su dispositivo.
+- Si está en una red corporativa o VPN, asegúrese de que la instancia de OneUptime sea accesible.
+- Confirme que el servidor se sirva a través de HTTPS con un certificado válido.
 
-### Experiencia mejorada en iPad
-1. **Interfaz más grande**: Diseños optimizados para el tamaño de pantalla del iPad
-2. **Ventanas múltiples**: Ejecuta múltiples ventanas de OneUptime simultáneamente
-3. **Atajos de teclado**: Compatibilidad total con teclados externos
-4. **Arrastrar y soltar**: Mueve datos entre OneUptime y otras aplicaciones
+**No se reciben notificaciones push:**
+- Abra **Ajustes → Notificaciones → OneUptime On-Call** y confirme que las notificaciones estén permitidas.
+- Desactive **No molestar** o añada OneUptime On-Call a la lista de permitidos de su modo de Concentración activo.
+- Cierre sesión y vuelva a iniciarla para actualizar el token push registrado con el servidor.
+- Usuarios autoalojados: confirme que las notificaciones push estén configuradas en su instancia de OneUptime (consulte la guía de [Notificaciones push](/docs/self-hosted/push-notifications) para instalaciones autoalojadas).
 
-### Pasos de instalación en iPad
-Igual que en iPhone, pero con consideraciones adicionales:
-- Usa el modo horizontal para ver el panel de manera óptima
-- Considera configurar la vista dividida con otras aplicaciones de productividad
-- Configura atajos de teclado para acciones comunes
+**Face ID / Touch ID no funcionan:**
+- Asegúrese de tener datos biométricos registrados en **Ajustes → Face ID y código** o **Ajustes → Touch ID y código**.
+- Vuelva a habilitar el desbloqueo biométrico desde la pantalla **Configuración** dentro de la aplicación OneUptime On-Call.
 
-## Integración con Apple Watch
+**La aplicación se bloquea al iniciar:**
+- Actualice a la última versión desde la App Store.
+- Reinicie su dispositivo.
+- Si el problema persiste, elimine y reinstale la aplicación, y vuelva a iniciar sesión.
 
-Aunque OneUptime no tiene una aplicación watchOS dedicada, puedes:
-- **Recibir notificaciones**: Las alertas de incidentes aparecen en el Apple Watch
-- **Acciones rápidas**: Reconoce incidentes desde las notificaciones del reloj
-- **Integración con Siri**: Pregunta a Siri sobre el estado del sistema (cuando está configurado)
+## Soporte
 
-## Configuración avanzada
-
-### Integración con la aplicación Atajos
-Crea atajos de Siri personalizados para OneUptime:
-1. Abre la aplicación **Atajos**
-2. Crea un **Nuevo atajo**
-3. Agrega la acción **"Abrir aplicación"**
-4. Selecciona **OneUptime**
-5. Agrega una frase de voz como "Comprobar el estado del sistema"
-
-### Modos de enfoque
-Integra OneUptime con los modos de Enfoque de iOS:
-1. **Configuración → Enfoque**
-2. Selecciona o crea un modo de Enfoque
-3. **Aplicaciones → Agregar aplicaciones → OneUptime**
-4. Configura el comportamiento de notificación para diferentes estados de Enfoque
-
-## Actualizaciones y mantenimiento
-
-### Actualizaciones automáticas
-- La PWA de OneUptime se actualiza automáticamente cuando está en línea
-- No se requieren actualizaciones de la App Store
-- Las nuevas funciones están disponibles de inmediato después del despliegue del servidor
-- Las actualizaciones de seguridad críticas se aplican al instante
-
-### Actualización manual
-Fuerza la actualización de la aplicación:
-1. Abre OneUptime en Safari
-2. Desliza hacia abajo para actualizar
-3. La aplicación descargará la última versión
-4. Las nuevas funciones estarán disponibles de inmediato
-
-### Gestión del caché
-Mantén la aplicación funcionando de manera óptima:
-- **Uso regular**: Abre la aplicación diariamente para mantener el caché actualizado
-- **Monitoreo del almacenamiento**: Mantén al menos 1 GB de espacio libre
-- **Acceso a la red**: Conéctate a WiFi regularmente para las actualizaciones
-
-## Buenas prácticas
-
-### Recomendaciones de seguridad
-1. **Verifica la URL**: Solo instala desde la instancia oficial de OneUptime de tu organización
-2. **Solo HTTPS**: Asegura una conexión segura (busca el ícono del candado)
-3. **Actualizaciones regulares**: Mantén iOS actualizado con los parches de seguridad
-4. **Permisos de la aplicación**: Solo concede los permisos necesarios
-
-### Optimización del rendimiento
-1. **Instalación con WiFi**: Usa WiFi para la instalación inicial y las actualizaciones importantes
-2. **Actualización en segundo plano**: Habilita para recibir notificaciones oportunas
-3. **Gestión del almacenamiento**: Mantén espacio libre adecuado
-4. **Reinicio regular**: Reinicia la aplicación semanalmente para un rendimiento óptimo
-
-### Buenas prácticas de monitoreo
-1. **Notificaciones críticas**: Habilita solo para alertas de alta prioridad
-2. **Múltiples dispositivos**: Instala tanto en iPhone como en iPad para redundancia
-3. **Acceso del equipo**: Comparte la guía de instalación con los miembros del equipo
-4. **Pruebas**: Prueba periódicamente la entrega de notificaciones y la funcionalidad sin conexión
+Si aún necesita ayuda, póngase en contacto a través de su panel de OneUptime o abra un issue en nuestro [repositorio de GitHub](https://github.com/OneUptime/oneuptime).
