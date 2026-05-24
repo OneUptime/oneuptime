@@ -527,31 +527,47 @@ const useResourceOwners: <TResource extends BaseModel>(
      * shapes — without this, the entire owners map ends up keyed by
      * undefined and every row shows "No owners".
      */
-    const ids: Array<string> = resources
-      .map((r: TResource) => {
-        const fromGetter: string | undefined = r.id?.toString();
-        if (fromGetter) {
-          return fromGetter;
-        }
-        const raw: Record<string, unknown> = r as unknown as Record<
-          string,
-          unknown
-        >;
-        const rawId: unknown = raw["_id"];
-        if (typeof rawId === "string") {
-          return rawId;
-        }
+    const resourceIdOf: (r: TResource) => string | undefined = (
+      r: TResource,
+    ): string | undefined => {
+      const fromGetter: string | undefined = r.id?.toString();
+      if (fromGetter) {
+        return fromGetter;
+      }
+      const raw: Record<string, unknown> = r as unknown as Record<
+        string,
+        unknown
+      >;
+      const rawId: unknown = raw["_id"];
+      if (typeof rawId === "string") {
+        return rawId;
+      }
+      if (rawId && typeof rawId === "object") {
+        const envelope: { _type?: unknown; value?: unknown } = rawId as {
+          _type?: unknown;
+          value?: unknown;
+        };
         if (
-          rawId &&
-          typeof (rawId as { toString?: () => string }).toString === "function"
+          envelope._type === "ObjectID" &&
+          typeof envelope.value === "string"
         ) {
-          const s: string = (rawId as { toString: () => string }).toString();
-          if (s && s !== "[object Object]") {
-            return s;
-          }
+          return envelope.value;
         }
-        return undefined;
-      })
+      }
+      if (
+        rawId &&
+        typeof (rawId as { toString?: () => string }).toString === "function"
+      ) {
+        const s: string = (rawId as { toString: () => string }).toString();
+        if (s && s !== "[object Object]") {
+          return s;
+        }
+      }
+      return undefined;
+    };
+
+    const ids: Array<string> = resources
+      .map(resourceIdOf)
       .filter((id: string | undefined): id is string => {
         return Boolean(id);
       });
@@ -582,6 +598,54 @@ const useResourceOwners: <TResource extends BaseModel>(
     type WithFlexibleId = Record<string, unknown> & {
       getColumnValue?: (col: string) => unknown;
     };
+    /*
+     * Coerce a value of unknown shape into the underlying id string.
+     * The API serializes ObjectID columns as `{_type:"ObjectID",value:"…"}`,
+     * which `String()` flattens to "[object Object]" — so we look for the
+     * envelope shape explicitly before falling back to `toString()`.
+     */
+    const coerceToIdString: (value: unknown) => string | undefined = (
+      value: unknown,
+    ): string | undefined => {
+      if (value === null || value === undefined) {
+        return undefined;
+      }
+      if (typeof value === "string") {
+        return value;
+      }
+      if (typeof value === "object") {
+        const envelope: { _type?: unknown; value?: unknown } = value as {
+          _type?: unknown;
+          value?: unknown;
+        };
+        if (
+          envelope._type === "ObjectID" &&
+          typeof envelope.value === "string"
+        ) {
+          return envelope.value;
+        }
+        const nested: Record<string, unknown> = value as Record<
+          string,
+          unknown
+        >;
+        if (typeof nested["id"] === "string") {
+          return nested["id"] as string;
+        }
+        if (typeof nested["_id"] === "string") {
+          return nested["_id"] as string;
+        }
+      }
+      if (
+        typeof (value as { toString?: () => string }).toString === "function"
+      ) {
+        const str: string = (value as { toString: () => string }).toString();
+        if (str && str !== "[object Object]") {
+          return str;
+        }
+      }
+      return undefined;
+    };
+
     const extractResourceId: (
       item: OwnerJunctionModel,
     ) => string | undefined = (
@@ -601,17 +665,9 @@ const useResourceOwners: <TResource extends BaseModel>(
         relationRaw ? relationRaw["id"] : undefined,
       ];
       for (const c of candidates) {
-        if (c === null || c === undefined) {
-          continue;
-        }
-        if (typeof c === "string") {
-          return c;
-        }
-        if (typeof (c as { toString?: () => string }).toString === "function") {
-          const str: string = (c as { toString: () => string }).toString();
-          if (str && str !== "[object Object]") {
-            return str;
-          }
+        const id: string | undefined = coerceToIdString(c);
+        if (id) {
+          return id;
         }
       }
       return undefined;
@@ -1430,13 +1486,21 @@ const useResourceOwners: <TResource extends BaseModel>(
     let fallbackKey: string | undefined;
     if (typeof rawId === "string") {
       fallbackKey = rawId;
-    } else if (
-      rawId &&
-      typeof (rawId as { toString?: () => string }).toString === "function"
-    ) {
-      const s: string = (rawId as { toString: () => string }).toString();
-      if (s && s !== "[object Object]") {
-        fallbackKey = s;
+    } else if (rawId && typeof rawId === "object") {
+      // Handle the API's `{_type:"ObjectID", value:"..."}` envelope.
+      const envelope: { _type?: unknown; value?: unknown } = rawId as {
+        _type?: unknown;
+        value?: unknown;
+      };
+      if (envelope._type === "ObjectID" && typeof envelope.value === "string") {
+        fallbackKey = envelope.value;
+      } else if (
+        typeof (rawId as { toString?: () => string }).toString === "function"
+      ) {
+        const s: string = (rawId as { toString: () => string }).toString();
+        if (s && s !== "[object Object]") {
+          fallbackKey = s;
+        }
       }
     }
     if (fallbackKey && ownersByResourceId[fallbackKey]) {
