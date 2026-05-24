@@ -162,11 +162,19 @@ const AddOwnerPopover: FunctionComponent<ComponentProps> = (
     setIsComponentVisible(isOpen);
   }, [isOpen, setIsComponentVisible]);
 
-  // Tell the parent when the user closes the popover by clicking outside.
+  /*
+   * Tell the parent when the user closes the popover by clicking outside.
+   * We only fire onClose on a true visible→hidden transition; otherwise the
+   * initial render (where isComponentVisible is still false while isOpen has
+   * just become true) would immediately close the popover before it shows.
+   */
+  const prevIsComponentVisibleRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
   useEffect(() => {
-    if (!isComponentVisible && isOpen) {
+    if (prevIsComponentVisibleRef.current && !isComponentVisible && isOpen) {
       onClose();
     }
+    prevIsComponentVisibleRef.current = isComponentVisible;
   }, [isComponentVisible, isOpen, onClose]);
 
   // Reset internal state and focus the search input when (re-)opening.

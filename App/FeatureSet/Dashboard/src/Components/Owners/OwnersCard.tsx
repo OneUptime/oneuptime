@@ -9,13 +9,11 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
-import Image from "Common/UI/Components/Image/Image";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import UserUtil from "Common/UI/Utils/User";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -25,121 +23,13 @@ import React, {
   useState,
 } from "react";
 import AddOwnerPopover, { AddOwnerSelection } from "./AddOwnerPopover";
+import OwnerAvatar, { OwnerAvatarItem } from "./OwnerAvatar";
 
-interface OwnerCircle {
+interface OwnerCircle extends OwnerAvatarItem {
   rowId: ObjectID;
-  type: "user" | "team";
-  name: string;
-  userId?: ObjectID | undefined;
-  hasProfilePicture: boolean;
   email?: string | undefined;
   existingId: string;
 }
-
-const USER_AVATAR_PALETTE: Array<{ bg: string; ring: string }> = [
-  { bg: "bg-gradient-to-br from-indigo-500 to-violet-600", ring: "ring-white" },
-  { bg: "bg-gradient-to-br from-sky-500 to-blue-600", ring: "ring-white" },
-  { bg: "bg-gradient-to-br from-fuchsia-500 to-pink-600", ring: "ring-white" },
-  {
-    bg: "bg-gradient-to-br from-emerald-500 to-teal-600",
-    ring: "ring-white",
-  },
-  { bg: "bg-gradient-to-br from-amber-500 to-orange-600", ring: "ring-white" },
-  { bg: "bg-gradient-to-br from-rose-500 to-red-600", ring: "ring-white" },
-  {
-    bg: "bg-gradient-to-br from-violet-500 to-purple-600",
-    ring: "ring-white",
-  },
-  { bg: "bg-gradient-to-br from-cyan-500 to-sky-600", ring: "ring-white" },
-];
-
-const TEAM_AVATAR_PALETTE: Array<{ bg: string; ring: string }> = [
-  { bg: "bg-gradient-to-br from-slate-700 to-slate-900", ring: "ring-white" },
-  { bg: "bg-gradient-to-br from-gray-700 to-gray-900", ring: "ring-white" },
-  { bg: "bg-gradient-to-br from-stone-700 to-stone-900", ring: "ring-white" },
-  { bg: "bg-gradient-to-br from-zinc-700 to-zinc-900", ring: "ring-white" },
-  {
-    bg: "bg-gradient-to-br from-neutral-700 to-neutral-900",
-    ring: "ring-white",
-  },
-];
-
-function hashString(text: string): number {
-  let hash: number = 0;
-  for (let i: number = 0; i < text.length; i++) {
-    hash = (hash * 31 + text.charCodeAt(i)) | 0;
-  }
-  return Math.abs(hash);
-}
-
-function getUserAvatarStyle(name: string): { bg: string; ring: string } {
-  const idx: number = hashString(name) % USER_AVATAR_PALETTE.length;
-  return USER_AVATAR_PALETTE[idx] as { bg: string; ring: string };
-}
-
-function getTeamAvatarStyle(name: string): { bg: string; ring: string } {
-  const idx: number = hashString(name) % TEAM_AVATAR_PALETTE.length;
-  return TEAM_AVATAR_PALETTE[idx] as { bg: string; ring: string };
-}
-
-function getInitials(name: string): string {
-  const parts: Array<string> = name
-    .trim()
-    .split(/\s+/)
-    .filter((p: string) => {
-      return p.length > 0;
-    });
-  if (parts.length === 0) {
-    return "?";
-  }
-  if (parts.length === 1) {
-    return ((parts[0] as string)[0] || "?").toUpperCase();
-  }
-  const first: string = (parts[0] as string)[0] || "";
-  const last: string = (parts[parts.length - 1] as string)[0] || "";
-  return (first + last).toUpperCase();
-}
-
-interface AvatarVisualProps {
-  item: OwnerCircle;
-  size: "sm" | "md" | "lg";
-}
-
-const AvatarVisual: FunctionComponent<AvatarVisualProps> = (
-  props: AvatarVisualProps,
-): ReactElement => {
-  const { item, size } = props;
-
-  const sizeClasses: string =
-    size === "lg"
-      ? "h-14 w-14 text-base"
-      : size === "md"
-        ? "h-11 w-11 text-sm"
-        : "h-8 w-8 text-xs";
-
-  if (item.type === "user" && item.hasProfilePicture && item.userId) {
-    return (
-      <Image
-        className={`${sizeClasses} rounded-full object-cover ring-2 ring-white shadow-sm bg-gray-100`}
-        imageUrl={UserUtil.getProfilePictureRoute(item.userId)}
-        alt={item.name}
-      />
-    );
-  }
-
-  const palette: { bg: string; ring: string } =
-    item.type === "user"
-      ? getUserAvatarStyle(item.name)
-      : getTeamAvatarStyle(item.name);
-
-  return (
-    <div
-      className={`${sizeClasses} ${palette.bg} rounded-full ring-2 ${palette.ring} shadow-sm flex items-center justify-center font-semibold text-white select-none`}
-    >
-      {getInitials(item.name)}
-    </div>
-  );
-};
 
 interface OwnerCircleViewProps {
   item: OwnerCircle;
@@ -155,7 +45,7 @@ const OwnerCircleView: FunctionComponent<OwnerCircleViewProps> = (
   const tooltipContent: ReactElement = (
     <div className="flex items-center gap-3 p-1.5 min-w-[180px]">
       <div className="flex-shrink-0">
-        <AvatarVisual item={item} size="lg" />
+        <OwnerAvatar item={item} size="lg" />
       </div>
       <div className="flex flex-col min-w-0">
         <div className="text-sm font-semibold text-gray-900 truncate">
@@ -177,20 +67,8 @@ const OwnerCircleView: FunctionComponent<OwnerCircleViewProps> = (
       <Tooltip richContent={tooltipContent}>
         <div className="cursor-default">
           <div className="transition-transform duration-200 group-hover:scale-105">
-            <AvatarVisual item={item} size="md" />
+            <OwnerAvatar item={item} size="md" />
           </div>
-          {item.type === "team" && (
-            <div
-              className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full bg-white ring-1 ring-gray-200 flex items-center justify-center shadow-sm"
-              aria-hidden="true"
-            >
-              <Icon
-                icon={IconProp.UserGroup}
-                className="h-2.5 w-2.5 text-gray-600"
-                size={SizeProp.Smaller}
-              />
-            </div>
-          )}
         </div>
       </Tooltip>
       <button
