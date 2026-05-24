@@ -1,22 +1,14 @@
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
-import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import RunbookOwnerTeam from "Common/Models/DatabaseModels/RunbookOwnerTeam";
 import RunbookOwnerUser from "Common/Models/DatabaseModels/RunbookOwnerUser";
 import Team from "Common/Models/DatabaseModels/Team";
-import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import {
-  DropdownOption,
-  DropdownOptionGroup,
-} from "Common/UI/Components/Dropdown/Dropdown";
-import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import Image from "Common/UI/Components/Image/Image";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -33,6 +25,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import AddOwnerPopover, { AddOwnerSelection } from "./AddOwnerPopover";
 
 interface OwnerCircle {
   rowId: ObjectID;
@@ -228,9 +221,7 @@ const OwnersCard: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string>("");
 
-  const [showAddModal, setShowAddModal] = useState<boolean>(false);
-  const [isAdding, setIsAdding] = useState<boolean>(false);
-  const [addError, setAddError] = useState<string>("");
+  const [isPopoverOpen, setIsPopoverOpen] = useState<boolean>(false);
 
   const [confirmRemove, setConfirmRemove] = useState<OwnerCircle | null>(null);
   const [isRemoving, setIsRemoving] = useState<boolean>(false);
@@ -338,147 +329,47 @@ const OwnersCard: FunctionComponent<ComponentProps> = (
     void loadOwners();
   }, [loadOwners]);
 
-  const fetchOwnerOptions: () => Promise<
-    Array<DropdownOption | DropdownOptionGroup>
-  > = useCallback(async (): Promise<
-    Array<DropdownOption | DropdownOptionGroup>
-  > => {
-    if (!projectIdString) {
-      return [];
-    }
-
-    const projectId: ObjectID = new ObjectID(projectIdString);
-
-    const [teamMembersResult, teamsResult]: [
-      ListResult<TeamMember>,
-      ListResult<Team>,
-    ] = await Promise.all([
-      ModelAPI.getList<TeamMember>({
-        modelType: TeamMember,
-        query: { projectId },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          _id: true,
-          user: {
-            _id: true,
-            name: true,
-            email: true,
-          },
-        },
-        sort: {},
-      }),
-      ModelAPI.getList<Team>({
-        modelType: Team,
-        query: { projectId },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          _id: true,
-          name: true,
-        },
-        sort: { name: SortOrder.Ascending },
-      }),
-    ]);
-
-    const taken: Set<string> = new Set(
+  const takenKeys: Set<string> = useMemo(() => {
+    return new Set(
       items.map((i: OwnerCircle) => {
         return `${i.type}:${i.existingId}`;
       }),
     );
+  }, [items]);
 
-    const seenUsers: Set<string> = new Set();
-    const userOptions: Array<DropdownOption> = [];
-    for (const tm of teamMembersResult.data) {
-      const u: User | undefined = tm.user as User | undefined;
-      const uid: string | undefined = u?._id?.toString();
-      if (!u || !uid || seenUsers.has(uid)) {
-        continue;
-      }
-      seenUsers.add(uid);
-      if (taken.has(`user:${uid}`)) {
-        continue;
-      }
-      const display: string = u.name?.toString() || u.email?.toString() || uid;
-      userOptions.push({
-        value: `user:${uid}`,
-        label: display,
-      });
-    }
+  const handleAddOwner: (selection: AddOwnerSelection) => Promise<void> =
+    useCallback(
+      async (selection: AddOwnerSelection): Promise<void> => {
+        if (!projectIdString) {
+          return;
+        }
 
-    const teamOptions: Array<DropdownOption> = [];
-    for (const t of teamsResult.data) {
-      const tid: string | undefined = t._id?.toString();
-      if (!tid) {
-        continue;
-      }
-      if (taken.has(`team:${tid}`)) {
-        continue;
-      }
-      teamOptions.push({
-        value: `team:${tid}`,
-        label: t.name?.toString() || "Team",
-      });
-    }
+        const projectId: ObjectID = new ObjectID(projectIdString);
 
-    const groups: Array<DropdownOption | DropdownOptionGroup> = [];
-    if (userOptions.length > 0) {
-      groups.push({ label: "People", options: userOptions });
-    }
-    if (teamOptions.length > 0) {
-      groups.push({ label: "Teams", options: teamOptions });
-    }
-    return groups;
-  }, [projectIdString, items]);
+        if (selection.kind === "user") {
+          const m: RunbookOwnerUser = new RunbookOwnerUser();
+          m.runbookId = props.runbookId;
+          m.projectId = projectId;
+          m.userId = selection.id;
+          await ModelAPI.create<RunbookOwnerUser>({
+            model: m,
+            modelType: RunbookOwnerUser,
+          });
+        } else {
+          const m: RunbookOwnerTeam = new RunbookOwnerTeam();
+          m.runbookId = props.runbookId;
+          m.projectId = projectId;
+          m.teamId = selection.id;
+          await ModelAPI.create<RunbookOwnerTeam>({
+            model: m,
+            modelType: RunbookOwnerTeam,
+          });
+        }
 
-  const handleAdd: (data: JSONObject) => Promise<void> = async (
-    data: JSONObject,
-  ): Promise<void> => {
-    if (!projectIdString) {
-      return;
-    }
-
-    const projectId: ObjectID = new ObjectID(projectIdString);
-
-    setIsAdding(true);
-    setAddError("");
-
-    try {
-      const raw: string = (data["owner"] as string) || "";
-      const [kind, id] = raw.split(":");
-
-      if (!kind || !id) {
-        throw new Error("Please select an owner.");
-      }
-
-      if (kind === "user") {
-        const m: RunbookOwnerUser = new RunbookOwnerUser();
-        m.runbookId = props.runbookId;
-        m.projectId = projectId;
-        m.userId = new ObjectID(id);
-        await ModelAPI.create<RunbookOwnerUser>({
-          model: m,
-          modelType: RunbookOwnerUser,
-        });
-      } else if (kind === "team") {
-        const m: RunbookOwnerTeam = new RunbookOwnerTeam();
-        m.runbookId = props.runbookId;
-        m.projectId = projectId;
-        m.teamId = new ObjectID(id);
-        await ModelAPI.create<RunbookOwnerTeam>({
-          model: m,
-          modelType: RunbookOwnerTeam,
-        });
-      }
-
-      setShowAddModal(false);
-      await loadOwners();
-    } catch (err) {
-      setAddError(API.getFriendlyMessage(err));
-    } finally {
-      setIsAdding(false);
-    }
-  };
+        await loadOwners();
+      },
+      [projectIdString, props.runbookId, loadOwners],
+    );
 
   const handleRemoveConfirm: () => Promise<void> = async (): Promise<void> => {
     if (!confirmRemove) {
@@ -578,21 +469,32 @@ const OwnersCard: FunctionComponent<ComponentProps> = (
               Add a teammate or a team so they get notified about changes to
               this runbook.
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setAddError("");
-                setShowAddModal(true);
-              }}
-              className="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 shadow-sm transition-colors"
-            >
-              <Icon
-                icon={IconProp.Add}
-                className="h-3.5 w-3.5"
-                size={SizeProp.Small}
+            <div className="relative mt-4 inline-block">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPopoverOpen((prev: boolean) => {
+                    return !prev;
+                  });
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 shadow-sm transition-colors"
+              >
+                <Icon
+                  icon={IconProp.Add}
+                  className="h-3.5 w-3.5"
+                  size={SizeProp.Small}
+                />
+                <span>Add owner</span>
+              </button>
+              <AddOwnerPopover
+                isOpen={isPopoverOpen}
+                onClose={() => {
+                  setIsPopoverOpen(false);
+                }}
+                takenKeys={takenKeys}
+                onSelect={handleAddOwner}
               />
-              <span>Add owner</span>
-            </button>
+            </div>
           </div>
         ) : (
           <div className="flex items-center flex-wrap gap-y-3">
@@ -610,23 +512,35 @@ const OwnersCard: FunctionComponent<ComponentProps> = (
                   />
                 );
               })}
-              <Tooltip text="Add owner">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAddError("");
-                    setShowAddModal(true);
+              <div className="relative">
+                <Tooltip text="Add owner">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsPopoverOpen((prev: boolean) => {
+                        return !prev;
+                      });
+                    }}
+                    aria-label="Add owner"
+                    aria-expanded={isPopoverOpen}
+                    className="-ml-2 h-11 w-11 rounded-full border-2 border-dashed border-gray-300 bg-white text-gray-400 flex items-center justify-center hover:border-indigo-500 hover:text-white hover:bg-indigo-600 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 transition-all duration-200 hover:scale-105 hover:-translate-y-0.5 relative z-10"
+                  >
+                    <Icon
+                      icon={IconProp.Add}
+                      className="h-5 w-5"
+                      size={SizeProp.Five}
+                    />
+                  </button>
+                </Tooltip>
+                <AddOwnerPopover
+                  isOpen={isPopoverOpen}
+                  onClose={() => {
+                    setIsPopoverOpen(false);
                   }}
-                  aria-label="Add owner"
-                  className="-ml-2 h-11 w-11 rounded-full border-2 border-dashed border-gray-300 bg-white text-gray-400 flex items-center justify-center hover:border-indigo-500 hover:text-white hover:bg-indigo-600 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 transition-all duration-200 hover:scale-105 hover:-translate-y-0.5 relative z-10"
-                >
-                  <Icon
-                    icon={IconProp.Add}
-                    className="h-5 w-5"
-                    size={SizeProp.Five}
-                  />
-                </button>
-              </Tooltip>
+                  takenKeys={takenKeys}
+                  onSelect={handleAddOwner}
+                />
+              </div>
             </div>
           </div>
         )}
@@ -640,38 +554,6 @@ const OwnersCard: FunctionComponent<ComponentProps> = (
             />
             <span>{loadError}</span>
           </div>
-        )}
-
-        {showAddModal && (
-          <BasicFormModal<JSONObject>
-            title="Add Owner"
-            description="Add a teammate or a team as an owner of this runbook."
-            submitButtonText="Add Owner"
-            isLoading={isAdding}
-            error={addError}
-            onClose={() => {
-              setShowAddModal(false);
-              setAddError("");
-            }}
-            onSubmit={(data: JSONObject) => {
-              void handleAdd(data);
-            }}
-            formProps={{
-              initialValues: {},
-              fields: [
-                {
-                  field: { owner: true },
-                  title: "Owner",
-                  description:
-                    "Select a teammate or a team. They will be notified about changes to this runbook.",
-                  fieldType: FormFieldSchemaType.Dropdown,
-                  required: true,
-                  placeholder: "Search people or teams...",
-                  fetchDropdownOptions: fetchOwnerOptions,
-                },
-              ],
-            }}
-          />
         )}
 
         {confirmRemove && (

@@ -1198,6 +1198,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       setTotalItemsCount(listResult.count);
       setHasMore(listResult.hasMore);
       setData(listResult.data);
+      /*
+       * Fire onFetchSuccess so consumers (e.g. the resource-owners hook)
+       * can react to the loaded page. Previously the prop was declared
+       * but never invoked, which broke per-row owner enrichment.
+       */
+      if (props.onFetchSuccess) {
+        props.onFetchSuccess(listResult.data, listResult.count);
+      }
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
