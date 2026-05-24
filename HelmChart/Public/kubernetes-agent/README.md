@@ -173,7 +173,8 @@ Useful knobs:
 
 | Key | Default | Description |
 | --- | --- | --- |
-| `ebpf.contextPropagation` | `true` | OBI injects W3C `traceparent` into outbound HTTP/TCP so requests crossing service boundaries link into a single trace, no SDK required. |
+| `ebpf.contextPropagation` | `true` | OBI injects W3C `traceparent` into outbound traffic so requests crossing service boundaries link into a single trace, no SDK required. |
+| `ebpf.contextPropagationMode` | `headers` | How OBI injects the `traceparent`. `headers` (default) only modifies HTTP/1.1 request headers — safe alongside service meshes (Linkerd, Istio), mTLS, and eBPF CNIs (Cilium, Calico). `ip` injects an IPv4/IPv6 option for propagation over raw TCP; can be dropped by middleboxes. `all` does both — most coverage but the IP-option half can break service-mesh proxies (linkerd2-proxy, envoy) by corrupting bytes those proxies validate. |
 | `ebpf.trackRequestHeaders` | `true` | Kernel-side header tracking so propagation works for plain HTTP servers (non-Go, non-TLS). Only effective when `contextPropagation` is true. |
 | `ebpf.logToTraceCorrelation` | `true` | OBI injects `trace_id` / `span_id` into **JSON-formatted** log lines from instrumented processes (existing fields preserved); the filelog DaemonSet lifts them onto the LogRecord so clicking a span in the trace view jumps to its logs. Plain-text logs pass through unchanged — to get trace_id, your app must log in JSON, and buffered runtimes need `PYTHONUNBUFFERED=1` (Python) or `Console.Out.AutoFlush = true` (.NET). |
 
@@ -233,6 +234,39 @@ kubectl delete namespace oneuptime-kubernetes-agent
 ## Troubleshooting
 
 See the [Install the Kubernetes Agent](https://oneuptime.com/docs/monitor/kubernetes-agent) guide — it covers the "hostPath blocked" error, missing logs, and horizontal sharding for large clusters.
+
+### Application pods fail or restart after enabling the agent (service mesh)
+
+If you run a service mesh (Linkerd, Istio, Consul Connect) or an eBPF-based CNI (Cilium, Calico-eBPF) and application pods start failing, timing out, or restarting after the agent installs, there are two interactions to be aware of:
+
+1. **OBI's IP-option trace propagation modifies packet headers.** Service-mesh proxies and eBPF CNIs validate the bytes they receive — an extra IP option from OBI can fail mTLS, get dropped by the CNI, or confuse the proxy. The chart defaults to `ebpf.contextPropagationMode: headers` (HTTP/1.1 headers only, no packet modification) for exactly this reason. If you upgraded from an older release with `--reuse-values`, you may still be on the old `all` behavior — re-apply explicitly:
+
+    ```bash
+    helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+      --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
+      --set ebpf.contextPropagationMode=headers
+    ```
+
+2. **OBI attaches uprobes to executables — including sidecars.** Attaching to `linkerd2-proxy`, `envoy`, or a CNI agent can stall the binary. The default `ebpf.excludeExePaths` already lists the common ones (`linkerd2-proxy`, `envoy`, `istio-pilot-agent`, `pilot-agent`, `cilium-*`, `calico-node`, `kube-router`). If you maintain your own exclude list, make sure these basenames are present.
+
+**Do NOT add broad globs like `*/proxy` to `excludeExePaths`** — `*/proxy` will also match *your* binaries (`auth-proxy`, `oauth2-proxy`, ...) and silently drop their traces. List the specific sidecar basename instead.
+
+### No traces appear even though OBI pods are running
+
+Three things to check, in order:
+
+1. **`ebpf.autoTargetExe`** — defaults to `*` (everything OBI can recognize). If you've narrowed it, your services may not match.
+2. **`ebpf.excludeExePaths`** — make sure your service's binary basename isn't in here, and that you haven't added a broad glob like `*/proxy` or `*/app` that matches it accidentally. Run `helm get values <release>` to see the effective list.
+3. **Service mesh** — if all your traffic flows through `linkerd2-proxy` or `envoy` and those are excluded (correctly — see above), OBI still sees the application's local connection to the sidecar on `127.0.0.1`. If you see no traces at all, also check that `ebpf.printTraces=true` shows spans in the OBI pod's stdout:
+
+    ```bash
+    helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+      --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
+      --set ebpf.printTraces=true
+    kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
+    ```
+
+    No spans there means OBI isn't capturing traffic on that node. Spans there but nothing in OneUptime means the OTLP export path is broken — check the metrics-collector Deployment logs.
 
 ## Source
 

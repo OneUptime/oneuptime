@@ -294,10 +294,23 @@ ebpf:
   # OBI can recognize". Set to a narrower pattern (e.g. "*/python,*/java") if
   # you only want specific runtimes.
   autoTargetExe: "*"
-  # Comma-separated globs of executables to skip. Defaults filter out
-  # shells, the kubelet, the container runtime, and the OBI/collector pods
-  # themselves so you don't see noise from cluster plumbing.
-  excludeExePaths: "*/sh,*/bash,*/dash,*/busybox,*/sleep,*/grep,*/awk,*/sed,*/ps,*/cat,*/find,*/runc,*/containerd*,*/dockerd,*/kubelet,*/kube-proxy,*/coredns,*/etcd,*/otelcol*,*/ebpf-instrument,*/obi"
+  # Comma-separated globs of executables to skip. Defaults filter out:
+  #   - Shell / coreutils noise (sh, bash, awk, sed, ...) so transient
+  #     pod execs don't show up as one-off services.
+  #   - Cluster plumbing (kubelet, kube-proxy, containerd, runc, dockerd,
+  #     coredns, etcd) and the OBI/collector pods themselves.
+  #   - Service-mesh data-plane sidecars (linkerd2-proxy, envoy,
+  #     istio/pilot-agent) and CNI agents (cilium-*, calico-node,
+  #     kube-router). Attaching uprobes to these binaries can stall or
+  #     restart them — and most of them already export their own
+  #     Prometheus metrics that the chart can scrape via
+  #     `serviceMesh.enabled: true` instead.
+  #
+  # CAUTION when adding your own entries: each pattern is an "if matched,
+  # skip" rule, so a broad glob like `*/proxy` will also exclude any of
+  # YOUR own binaries named `*-proxy` (auth-proxy, oauth2-proxy, …) and
+  # silently drop their traces. Prefer specific basenames over wildcards.
+  excludeExePaths: "*/sh,*/bash,*/dash,*/busybox,*/sleep,*/grep,*/awk,*/sed,*/ps,*/cat,*/find,*/runc,*/containerd*,*/dockerd,*/kubelet,*/kube-proxy,*/coredns,*/etcd,*/otelcol*,*/ebpf-instrument,*/obi,*/linkerd2-proxy,*/envoy,*/istio-pilot-agent,*/pilot-agent,*/cilium-agent,*/cilium-operator,*/cilium-envoy,*/calico-node,*/kube-router"
   # OBI log level: debug, info, warn, error
   logLevel: "info"
   # Print spans to stdout in addition to OTLP export — useful for confirming
@@ -339,11 +352,34 @@ ebpf:
     tcpStats: true
 
   # Distributed trace context propagation. OBI injects W3C `traceparent`
-  # into outbound HTTP requests (and a custom TCP option for non-HTTP TCP)
   # so a request crossing pod A → pod B shows up as ONE trace in the
   # dashboard, no SDK changes in either app. Requires the privileged
   # security context that the DaemonSet already runs with.
   contextPropagation: true
+  # How OBI injects the `traceparent`. Maps directly to OBI's
+  # `OTEL_EBPF_BPF_CONTEXT_PROPAGATION`:
+  #
+  #   headers — (default, safe) Inject only into HTTP/1.1 request headers.
+  #     Works for the common HTTP/gRPC case and does NOT touch the
+  #     network packets themselves, so it composes cleanly with service
+  #     meshes (Linkerd, Istio), mTLS, and eBPF-based CNIs (Cilium,
+  #     Calico). This is what you want unless you specifically need
+  #     propagation across raw TCP.
+  #
+  #   ip — Inject via an IPv4/IPv6 option on outbound packets. Lets
+  #     propagation work for non-HTTP TCP (custom protocols, encrypted
+  #     traffic OBI can't read). May be dropped by middleboxes/NATs and
+  #     can confuse CNI plugins that inspect every packet.
+  #
+  #   all — Both `headers` AND `ip`. Most propagation coverage but the
+  #     IP-option half is the one that tends to break service-mesh
+  #     proxies (linkerd2-proxy, envoy) by corrupting the bytes those
+  #     proxies validate, which can make application pods fail or
+  #     restart. Avoid in clusters running a service mesh.
+  #
+  # If you don't have a service mesh and want propagation across raw
+  # TCP too, set this to `all`.
+  contextPropagationMode: "headers"
   # Track HTTP request headers in kernel for traceparent extraction on
   # the receiving side via kprobes. Needed for propagation to work across
   # plain (non-Go, non-TLS) HTTP servers. Only takes effect if

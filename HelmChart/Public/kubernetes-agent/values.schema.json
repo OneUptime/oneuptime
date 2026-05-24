@@ -467,6 +467,11 @@
           "type": "boolean",
           "description": "Inject W3C `traceparent` into outbound traffic so traces span services without SDK changes."
         },
+        "contextPropagationMode": {
+          "type": "string",
+          "enum": ["headers", "ip", "all"],
+          "description": "How OBI injects the traceparent. 'headers' (default, safe with service meshes / mTLS / eBPF CNIs) — HTTP/1.1 request headers only. 'ip' — IPv4/IPv6 option on outbound packets (covers raw TCP but may be dropped by middleboxes). 'all' — both (most coverage; the IP-option half can break service-mesh proxies)."
+        },
         "trackRequestHeaders": {
           "type": "boolean",
           "description": "Track HTTP request headers in kernel for traceparent extraction. Only effective if `contextPropagation` is true."
