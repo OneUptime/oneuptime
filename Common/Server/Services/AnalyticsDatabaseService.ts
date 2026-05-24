@@ -920,10 +920,20 @@ export default class AnalyticsDatabaseService<
       deleteBy.query
     );
 
+    /*
+     * Use ClickHouse lightweight deletes (`DELETE FROM`) rather than
+     * `ALTER TABLE … DELETE`. The latter creates an async mutation that
+     * rewrites whole parts and is bounded by `number_of_mutations_to_throw`
+     * (default 1000). Customers with chatty state transitions hit that
+     * ceiling and every subsequent delete fails with TOO_MANY_MUTATIONS.
+     * Lightweight deletes mark rows via the hidden `_row_exists` column
+     * and are reconciled during normal merges, so they don't accumulate
+     * in the mutations queue.
+     */
     /* eslint-disable prettier/prettier */
     const statement: Statement = SQL`
-            ALTER TABLE ${databaseName}.${this.model.tableName}
-            DELETE WHERE TRUE `.append(whereStatement);
+            DELETE FROM ${databaseName}.${this.model.tableName}
+            WHERE TRUE `.append(whereStatement);
 
     logger.debug(`${this.model.tableName} Delete Statement`, { tableName: this.model.tableName } as LogAttributes);
     logger.debug(statement, { tableName: this.model.tableName } as LogAttributes);

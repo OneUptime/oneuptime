@@ -66,8 +66,13 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
 
     for (const tableName of cascadeTargets) {
       try {
+        /*
+         * Lightweight delete — see toDeleteStatement() in
+         * AnalyticsDatabaseService for the rationale (avoids the
+         * ALTER mutations queue which is capped at 1000 per table).
+         */
         const statement: Statement =
-          SQL`ALTER TABLE ${databaseName}.${tableName} DELETE WHERE TRUE `.append(
+          SQL`DELETE FROM ${databaseName}.${tableName} WHERE TRUE `.append(
             whereStatement,
           );
         await this.execute(statement);

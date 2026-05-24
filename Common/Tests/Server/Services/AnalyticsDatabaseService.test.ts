@@ -357,8 +357,8 @@ describe("AnalyticsDatabaseService", () => {
       });
 
       expect(statement.query).toBe(
-        "ALTER TABLE {p0:Identifier}.{p1:Identifier}\n" +
-          "DELETE WHERE TRUE <where-statement>",
+        "DELETE FROM {p0:Identifier}.{p1:Identifier}\n" +
+          "WHERE TRUE <where-statement>",
       );
       expect(statement.query_params).toStrictEqual({
         p0: "oneuptime",
