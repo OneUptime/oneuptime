@@ -2,8 +2,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import RunbookOwnerTeam from "Common/Models/DatabaseModels/RunbookOwnerTeam";
-import RunbookOwnerUser from "Common/Models/DatabaseModels/RunbookOwnerUser";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -206,14 +205,30 @@ const OwnerCircleView: FunctionComponent<OwnerCircleViewProps> = (
   );
 };
 
-export interface ComponentProps {
-  runbookId: ObjectID;
+export interface ComponentProps<
+  TOwnerUser extends BaseModel,
+  TOwnerTeam extends BaseModel,
+> {
+  resourceId: ObjectID;
+  /**
+   * Foreign-key column on the owner models that points back to the resource,
+   * e.g. "runbookId", "monitorId", "alertId".
+   */
+  resourceIdField: string;
+  /**
+   * Lowercase singular noun used in user-facing copy ("this {name} ...").
+   * Example: "runbook", "monitor", "incident".
+   */
+  resourceDisplayName: string;
+  ownerUserModelType: { new (): TOwnerUser };
+  ownerTeamModelType: { new (): TOwnerTeam };
 }
 
-const OwnersCard: FunctionComponent<ComponentProps> = (
-  props: ComponentProps,
-): ReactElement => {
-  const runbookIdString: string = props.runbookId.toString();
+function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
+  props: ComponentProps<TOwnerUser, TOwnerTeam>,
+): ReactElement {
+  const resourceIdString: string = props.resourceId.toString();
+  const { resourceIdField, resourceDisplayName } = props;
   const projectIdString: string | null =
     ProjectUtil.getCurrentProjectId()?.toString() ?? null;
 
@@ -235,22 +250,26 @@ const OwnersCard: FunctionComponent<ComponentProps> = (
       }
 
       const projectId: ObjectID = new ObjectID(projectIdString);
-      const runbookId: ObjectID = new ObjectID(runbookIdString);
+      const resourceId: ObjectID = new ObjectID(resourceIdString);
 
       setIsLoading(true);
       setLoadError("");
 
       try {
+        const ownerQuery: Record<string, unknown> = {
+          [resourceIdField]: resourceId,
+          projectId,
+        };
+
         const [userOwnersResult, teamOwnersResult]: [
-          ListResult<RunbookOwnerUser>,
-          ListResult<RunbookOwnerTeam>,
+          ListResult<TOwnerUser>,
+          ListResult<TOwnerTeam>,
         ] = await Promise.all([
-          ModelAPI.getList<RunbookOwnerUser>({
-            modelType: RunbookOwnerUser,
-            query: {
-              runbookId,
-              projectId,
-            },
+          ModelAPI.getList<TOwnerUser>({
+            modelType: props.ownerUserModelType,
+            query: ownerQuery as Parameters<
+              typeof ModelAPI.getList<TOwnerUser>
+            >[0]["query"],
             limit: LIMIT_PER_PROJECT,
             skip: 0,
             select: {
@@ -262,15 +281,16 @@ const OwnersCard: FunctionComponent<ComponentProps> = (
                 email: true,
                 profilePictureId: true,
               },
-            },
-            sort: { createdAt: SortOrder.Ascending },
+            } as Parameters<typeof ModelAPI.getList<TOwnerUser>>[0]["select"],
+            sort: { createdAt: SortOrder.Ascending } as Parameters<
+              typeof ModelAPI.getList<TOwnerUser>
+            >[0]["sort"],
           }),
-          ModelAPI.getList<RunbookOwnerTeam>({
-            modelType: RunbookOwnerTeam,
-            query: {
-              runbookId,
-              projectId,
-            },
+          ModelAPI.getList<TOwnerTeam>({
+            modelType: props.ownerTeamModelType,
+            query: ownerQuery as Parameters<
+              typeof ModelAPI.getList<TOwnerTeam>
+            >[0]["query"],
             limit: LIMIT_PER_PROJECT,
             skip: 0,
             select: {
@@ -280,15 +300,21 @@ const OwnersCard: FunctionComponent<ComponentProps> = (
                 _id: true,
                 name: true,
               },
-            },
-            sort: { createdAt: SortOrder.Ascending },
+            } as Parameters<typeof ModelAPI.getList<TOwnerTeam>>[0]["select"],
+            sort: { createdAt: SortOrder.Ascending } as Parameters<
+              typeof ModelAPI.getList<TOwnerTeam>
+            >[0]["sort"],
           }),
         ]);
 
         const next: Array<OwnerCircle> = [];
 
         for (const row of userOwnersResult.data) {
-          const u: User | undefined = row.user as User | undefined;
+          const rowRecord: Record<string, unknown> = row as unknown as Record<
+            string,
+            unknown
+          >;
+          const u: User | undefined = rowRecord["user"] as User | undefined;
           if (!u || !row.id) {
             continue;
           }
@@ -304,7 +330,11 @@ const OwnersCard: FunctionComponent<ComponentProps> = (
         }
 
         for (const row of teamOwnersResult.data) {
-          const t: Team | undefined = row.team as Team | undefined;
+          const rowRecord: Record<string, unknown> = row as unknown as Record<
+            string,
+            unknown
+          >;
+          const t: Team | undefined = rowRecord["team"] as Team | undefined;
           if (!t || !row.id) {
             continue;
           }
@@ -323,7 +353,13 @@ const OwnersCard: FunctionComponent<ComponentProps> = (
       } finally {
         setIsLoading(false);
       }
-    }, [runbookIdString, projectIdString]);
+    }, [
+      resourceIdString,
+      projectIdString,
+      resourceIdField,
+      props.ownerUserModelType,
+      props.ownerTeamModelType,
+    ]);
 
   useEffect(() => {
     void loadOwners();
@@ -347,28 +383,43 @@ const OwnersCard: FunctionComponent<ComponentProps> = (
         const projectId: ObjectID = new ObjectID(projectIdString);
 
         if (selection.kind === "user") {
-          const m: RunbookOwnerUser = new RunbookOwnerUser();
-          m.runbookId = props.runbookId;
-          m.projectId = projectId;
-          m.userId = selection.id;
-          await ModelAPI.create<RunbookOwnerUser>({
+          const m: TOwnerUser = new props.ownerUserModelType();
+          const fields: Record<string, unknown> = m as unknown as Record<
+            string,
+            unknown
+          >;
+          fields[resourceIdField] = props.resourceId;
+          fields["projectId"] = projectId;
+          fields["userId"] = selection.id;
+          await ModelAPI.create<TOwnerUser>({
             model: m,
-            modelType: RunbookOwnerUser,
+            modelType: props.ownerUserModelType,
           });
         } else {
-          const m: RunbookOwnerTeam = new RunbookOwnerTeam();
-          m.runbookId = props.runbookId;
-          m.projectId = projectId;
-          m.teamId = selection.id;
-          await ModelAPI.create<RunbookOwnerTeam>({
+          const m: TOwnerTeam = new props.ownerTeamModelType();
+          const fields: Record<string, unknown> = m as unknown as Record<
+            string,
+            unknown
+          >;
+          fields[resourceIdField] = props.resourceId;
+          fields["projectId"] = projectId;
+          fields["teamId"] = selection.id;
+          await ModelAPI.create<TOwnerTeam>({
             model: m,
-            modelType: RunbookOwnerTeam,
+            modelType: props.ownerTeamModelType,
           });
         }
 
         await loadOwners();
       },
-      [projectIdString, props.runbookId, loadOwners],
+      [
+        projectIdString,
+        props.resourceId,
+        props.ownerUserModelType,
+        props.ownerTeamModelType,
+        resourceIdField,
+        loadOwners,
+      ],
     );
 
   const handleRemoveConfirm: () => Promise<void> = async (): Promise<void> => {
@@ -381,13 +432,13 @@ const OwnersCard: FunctionComponent<ComponentProps> = (
 
     try {
       if (confirmRemove.type === "user") {
-        await ModelAPI.deleteItem<RunbookOwnerUser>({
-          modelType: RunbookOwnerUser,
+        await ModelAPI.deleteItem<TOwnerUser>({
+          modelType: props.ownerUserModelType,
           id: confirmRemove.rowId,
         });
       } else {
-        await ModelAPI.deleteItem<RunbookOwnerTeam>({
-          modelType: RunbookOwnerTeam,
+        await ModelAPI.deleteItem<TOwnerTeam>({
+          modelType: props.ownerTeamModelType,
           id: confirmRemove.rowId,
         });
       }
@@ -440,8 +491,8 @@ const OwnersCard: FunctionComponent<ComponentProps> = (
 
   const descriptionNode: ReactElement = (
     <span>
-      People and teams responsible for this runbook. They are notified about
-      changes.
+      People and teams responsible for this {resourceDisplayName}. They are
+      notified about changes.
       {countLabel && <span className="ml-1 text-gray-400">· {countLabel}</span>}
     </span>
   );
@@ -467,7 +518,7 @@ const OwnersCard: FunctionComponent<ComponentProps> = (
             </div>
             <div className="text-xs text-gray-500 mt-1 max-w-xs">
               Add a teammate or a team so they get notified about changes to
-              this runbook.
+              this {resourceDisplayName}.
             </div>
             <div className="relative mt-4 inline-block">
               <button
@@ -566,7 +617,7 @@ const OwnersCard: FunctionComponent<ComponentProps> = (
                   {confirmRemove.name}
                 </span>
                 {confirmRemove.type === "team" ? " (Team)" : ""} as an owner of
-                this runbook?
+                this {resourceDisplayName}?
               </span>
             }
             submitButtonText="Remove"
@@ -585,6 +636,6 @@ const OwnersCard: FunctionComponent<ComponentProps> = (
       </>
     </Card>
   );
-};
+}
 
 export default OwnersCard;

@@ -1622,6 +1622,17 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     serializeToTableColumns();
   }, [data]);
 
+  /*
+   * Re-serialize whenever the parent passes a new `columns` reference. The
+   * column array carries `getElement` closures that capture parent state
+   * (e.g. an owners map populated asynchronously). Without this, the cell
+   * renders are frozen at first paint and never see updated state — which
+   * is what made the Owners column stick on "Loading…" forever.
+   */
+  useEffect(() => {
+    serializeToTableColumns();
+  }, [props.columns]);
+
   const setActionSchema: VoidFunction = () => {
     const permissions: Array<Permission> = PermissionUtil.getAllPermissions();
 
