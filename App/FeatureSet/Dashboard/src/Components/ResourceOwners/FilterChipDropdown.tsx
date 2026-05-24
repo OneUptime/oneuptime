@@ -517,12 +517,12 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-700">
-                    No matches
+                    {searchText.trim() ? "No matches" : "Nothing to show"}
                   </p>
                   <p className="text-xs text-gray-400">
                     {searchText.trim()
                       ? "Try a different search term"
-                      : "Type to search"}
+                      : "No options available"}
                   </p>
                 </div>
               </div>

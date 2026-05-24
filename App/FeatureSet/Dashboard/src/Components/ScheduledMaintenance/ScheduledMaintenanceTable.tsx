@@ -34,6 +34,7 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import Search from "Common/Types/BaseDatabase/Search";
 import API from "Common/UI/Utils/API/API";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
@@ -106,17 +107,52 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
       icon: IconProp.Flag,
       isMultiSelect: true,
       searchPlaceholder: "Search states...",
-      fetchOptions: async (
+      loadOptions: async (
         projectId: ObjectID,
+        searchTerm: string,
       ): Promise<Array<FilterChipDropdownOption>> => {
+        const query: Query<ScheduledMaintenanceState> = {
+          projectId: projectId,
+        } as Query<ScheduledMaintenanceState>;
+        if (searchTerm.trim()) {
+          (query as unknown as Record<string, unknown>)["name"] = new Search(
+            searchTerm.trim(),
+          );
+        }
         const result: ListResult<ScheduledMaintenanceState> =
           await ModelAPI.getList<ScheduledMaintenanceState>({
             modelType: ScheduledMaintenanceState,
-            query: { projectId: projectId },
-            limit: LIMIT_PER_PROJECT,
+            query: query,
+            limit: 50,
             skip: 0,
             select: { _id: true, name: true, order: true },
             sort: { order: SortOrder.Ascending },
+          });
+        return result.data.map((s: ScheduledMaintenanceState) => {
+          return {
+            value: s.id?.toString() || "",
+            label: s.name?.toString() || "",
+          };
+        });
+      },
+      resolveOptions: async (
+        projectId: ObjectID,
+        values: Array<string>,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        if (values.length === 0) {
+          return [];
+        }
+        const result: ListResult<ScheduledMaintenanceState> =
+          await ModelAPI.getList<ScheduledMaintenanceState>({
+            modelType: ScheduledMaintenanceState,
+            query: {
+              projectId: projectId,
+              _id: new Includes(values),
+            } as Query<ScheduledMaintenanceState>,
+            limit: values.length,
+            skip: 0,
+            select: { _id: true, name: true },
+            sort: {},
           });
         return result.data.map((s: ScheduledMaintenanceState) => {
           return {

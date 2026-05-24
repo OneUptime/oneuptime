@@ -28,7 +28,6 @@ import useResourceOwners, {
 } from "../ResourceOwners/useResourceOwners";
 import { FilterChipDropdownOption } from "../ResourceOwners/FilterChipDropdown";
 import Includes from "Common/Types/BaseDatabase/Includes";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -98,17 +97,52 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
       icon: IconProp.Flag,
       isMultiSelect: true,
       searchPlaceholder: "Search states...",
-      fetchOptions: async (
+      loadOptions: async (
         projectId: ObjectID,
+        searchTerm: string,
       ): Promise<Array<FilterChipDropdownOption>> => {
+        const query: Query<AlertState> = {
+          projectId: projectId,
+        } as Query<AlertState>;
+        if (searchTerm.trim()) {
+          (query as unknown as Record<string, unknown>)["name"] = new Search(
+            searchTerm.trim(),
+          );
+        }
         const result: ListResult<AlertState> =
           await ModelAPI.getList<AlertState>({
             modelType: AlertState,
-            query: { projectId: projectId },
-            limit: LIMIT_PER_PROJECT,
+            query: query,
+            limit: 50,
             skip: 0,
             select: { _id: true, name: true, order: true },
             sort: { order: SortOrder.Ascending },
+          });
+        return result.data.map((s: AlertState) => {
+          return {
+            value: s.id?.toString() || "",
+            label: s.name?.toString() || "",
+          };
+        });
+      },
+      resolveOptions: async (
+        projectId: ObjectID,
+        values: Array<string>,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        if (values.length === 0) {
+          return [];
+        }
+        const result: ListResult<AlertState> =
+          await ModelAPI.getList<AlertState>({
+            modelType: AlertState,
+            query: {
+              projectId: projectId,
+              _id: new Includes(values),
+            } as Query<AlertState>,
+            limit: values.length,
+            skip: 0,
+            select: { _id: true, name: true },
+            sort: {},
           });
         return result.data.map((s: AlertState) => {
           return {
@@ -131,17 +165,52 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
       icon: IconProp.Fire,
       isMultiSelect: true,
       searchPlaceholder: "Search severities...",
-      fetchOptions: async (
+      loadOptions: async (
         projectId: ObjectID,
+        searchTerm: string,
       ): Promise<Array<FilterChipDropdownOption>> => {
+        const query: Query<AlertSeverity> = {
+          projectId: projectId,
+        } as Query<AlertSeverity>;
+        if (searchTerm.trim()) {
+          (query as unknown as Record<string, unknown>)["name"] = new Search(
+            searchTerm.trim(),
+          );
+        }
         const result: ListResult<AlertSeverity> =
           await ModelAPI.getList<AlertSeverity>({
             modelType: AlertSeverity,
-            query: { projectId: projectId },
-            limit: LIMIT_PER_PROJECT,
+            query: query,
+            limit: 50,
             skip: 0,
             select: { _id: true, name: true, order: true },
             sort: { order: SortOrder.Ascending },
+          });
+        return result.data.map((s: AlertSeverity) => {
+          return {
+            value: s.id?.toString() || "",
+            label: s.name?.toString() || "",
+          };
+        });
+      },
+      resolveOptions: async (
+        projectId: ObjectID,
+        values: Array<string>,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        if (values.length === 0) {
+          return [];
+        }
+        const result: ListResult<AlertSeverity> =
+          await ModelAPI.getList<AlertSeverity>({
+            modelType: AlertSeverity,
+            query: {
+              projectId: projectId,
+              _id: new Includes(values),
+            } as Query<AlertSeverity>,
+            limit: values.length,
+            skip: 0,
+            select: { _id: true, name: true },
+            sort: {},
           });
         return result.data.map((s: AlertSeverity) => {
           return {

@@ -102,17 +102,52 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
       icon: IconProp.Flag,
       isMultiSelect: true,
       searchPlaceholder: "Search states...",
-      fetchOptions: async (
+      loadOptions: async (
         projectId: ObjectID,
+        searchTerm: string,
       ): Promise<Array<FilterChipDropdownOption>> => {
+        const query: Query<IncidentState> = {
+          projectId: projectId,
+        } as Query<IncidentState>;
+        if (searchTerm.trim()) {
+          (query as unknown as Record<string, unknown>)["name"] = new Search(
+            searchTerm.trim(),
+          );
+        }
         const result: ListResult<IncidentState> =
           await ModelAPI.getList<IncidentState>({
             modelType: IncidentState,
-            query: { projectId: projectId },
-            limit: LIMIT_PER_PROJECT,
+            query: query,
+            limit: 50,
             skip: 0,
             select: { _id: true, name: true, order: true },
             sort: { order: SortOrder.Ascending },
+          });
+        return result.data.map((s: IncidentState) => {
+          return {
+            value: s.id?.toString() || "",
+            label: s.name?.toString() || "",
+          };
+        });
+      },
+      resolveOptions: async (
+        projectId: ObjectID,
+        values: Array<string>,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        if (values.length === 0) {
+          return [];
+        }
+        const result: ListResult<IncidentState> =
+          await ModelAPI.getList<IncidentState>({
+            modelType: IncidentState,
+            query: {
+              projectId: projectId,
+              _id: new Includes(values),
+            } as Query<IncidentState>,
+            limit: values.length,
+            skip: 0,
+            select: { _id: true, name: true },
+            sort: {},
           });
         return result.data.map((s: IncidentState) => {
           return {
@@ -135,17 +170,52 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
       icon: IconProp.Fire,
       isMultiSelect: true,
       searchPlaceholder: "Search severities...",
-      fetchOptions: async (
+      loadOptions: async (
         projectId: ObjectID,
+        searchTerm: string,
       ): Promise<Array<FilterChipDropdownOption>> => {
+        const query: Query<IncidentSeverity> = {
+          projectId: projectId,
+        } as Query<IncidentSeverity>;
+        if (searchTerm.trim()) {
+          (query as unknown as Record<string, unknown>)["name"] = new Search(
+            searchTerm.trim(),
+          );
+        }
         const result: ListResult<IncidentSeverity> =
           await ModelAPI.getList<IncidentSeverity>({
             modelType: IncidentSeverity,
-            query: { projectId: projectId },
-            limit: LIMIT_PER_PROJECT,
+            query: query,
+            limit: 50,
             skip: 0,
             select: { _id: true, name: true, order: true },
             sort: { order: SortOrder.Ascending },
+          });
+        return result.data.map((s: IncidentSeverity) => {
+          return {
+            value: s.id?.toString() || "",
+            label: s.name?.toString() || "",
+          };
+        });
+      },
+      resolveOptions: async (
+        projectId: ObjectID,
+        values: Array<string>,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        if (values.length === 0) {
+          return [];
+        }
+        const result: ListResult<IncidentSeverity> =
+          await ModelAPI.getList<IncidentSeverity>({
+            modelType: IncidentSeverity,
+            query: {
+              projectId: projectId,
+              _id: new Includes(values),
+            } as Query<IncidentSeverity>,
+            limit: values.length,
+            skip: 0,
+            select: { _id: true, name: true },
+            sort: {},
           });
         return result.data.map((s: IncidentSeverity) => {
           return {

@@ -883,12 +883,29 @@ const useResourceOwners: <TResource extends BaseModel>(
   );
 
   const filterBar: ReactElement = useMemo((): ReactElement => {
+    const activeCount: number =
+      (selectedOwnerKeys.length > 0 ? 1 : 0) +
+      (selectedLabelIds.length > 0 ? 1 : 0) +
+      extraFacets.filter((f: ResourceFacet) => {
+        return (facetSelections[f.key] || []).length > 0;
+      }).length;
+
     return (
-      <div className="-mt-1 mb-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg border border-dashed border-gray-200 bg-gray-50/60 px-3 py-2">
-        <span className="inline-flex items-center gap-1.5 pr-1 text-xs font-semibold uppercase tracking-wider text-gray-400">
+      <div className="-mt-1 mb-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm">
+        <span className="inline-flex items-center gap-1.5 pr-1 text-xs font-semibold text-gray-500">
           <Icon icon={IconProp.Filter} className="h-3.5 w-3.5" />
-          Filter by
+          Filter
+          {activeCount > 0 && (
+            <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-indigo-100 px-1 text-[10px] font-semibold text-indigo-700">
+              {activeCount}
+            </span>
+          )}
         </span>
+        <span
+          aria-hidden="true"
+          className="hidden h-5 w-px bg-gray-200 sm:inline-block"
+        />
+
         <FilterChipDropdown
           label="Owner"
           emptyIcon={IconProp.User}

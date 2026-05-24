@@ -48,7 +48,7 @@ import useResourceOwners, {
 } from "../ResourceOwners/useResourceOwners";
 import { FilterChipDropdownOption } from "../ResourceOwners/FilterChipDropdown";
 import Includes from "Common/Types/BaseDatabase/Includes";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import Search from "Common/Types/BaseDatabase/Search";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
@@ -91,17 +91,52 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
       icon: IconProp.Heartbeat,
       isMultiSelect: true,
       searchPlaceholder: "Search statuses...",
-      fetchOptions: async (
+      loadOptions: async (
         projectId: ObjectID,
+        searchTerm: string,
       ): Promise<Array<FilterChipDropdownOption>> => {
+        const query: Query<MonitorStatus> = {
+          projectId: projectId,
+        } as Query<MonitorStatus>;
+        if (searchTerm.trim()) {
+          (query as unknown as Record<string, unknown>)["name"] = new Search(
+            searchTerm.trim(),
+          );
+        }
         const result: ListResult<MonitorStatus> =
           await ModelAPI.getList<MonitorStatus>({
             modelType: MonitorStatus,
-            query: { projectId: projectId },
-            limit: LIMIT_PER_PROJECT,
+            query: query,
+            limit: 50,
             skip: 0,
             select: { _id: true, name: true, order: true },
             sort: { order: SortOrder.Ascending },
+          });
+        return result.data.map((s: MonitorStatus) => {
+          return {
+            value: s.id?.toString() || "",
+            label: s.name?.toString() || "",
+          };
+        });
+      },
+      resolveOptions: async (
+        projectId: ObjectID,
+        values: Array<string>,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        if (values.length === 0) {
+          return [];
+        }
+        const result: ListResult<MonitorStatus> =
+          await ModelAPI.getList<MonitorStatus>({
+            modelType: MonitorStatus,
+            query: {
+              projectId: projectId,
+              _id: new Includes(values),
+            } as Query<MonitorStatus>,
+            limit: values.length,
+            skip: 0,
+            select: { _id: true, name: true },
+            sort: {},
           });
         return result.data.map((s: MonitorStatus) => {
           return {

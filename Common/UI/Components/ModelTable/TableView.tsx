@@ -187,9 +187,36 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
     });
   };
 
-  const hasActiveFilters: boolean =
+  const hasQueryFilters: boolean =
     Boolean(props.currentQuery) &&
     Object.keys(props.currentQuery as Record<string, unknown>).length > 0;
+
+  /*
+   * A facet snapshot is non-empty when any of its values is a non-empty
+   * array, a non-empty object, or otherwise truthy. This lets "Save as
+   * New View" appear when only facet chips are active (no panel filters).
+   */
+  const hasFacetState: boolean = Boolean(
+    props.currentFacetState &&
+      Object.values(props.currentFacetState).some((v: unknown) => {
+        if (v === null || v === undefined) {
+          return false;
+        }
+        if (Array.isArray(v)) {
+          return v.length > 0;
+        }
+        if (typeof v === "object") {
+          return Object.values(v as Record<string, unknown>).some(
+            (inner: unknown) => {
+              return Array.isArray(inner) ? inner.length > 0 : Boolean(inner);
+            },
+          );
+        }
+        return Boolean(v);
+      }),
+  );
+
+  const hasActiveFilters: boolean = hasQueryFilters || hasFacetState;
 
   const getMenuContents: GetReactElementArrayFunction =
     (): Array<ReactElement> => {
