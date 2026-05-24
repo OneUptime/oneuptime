@@ -57,7 +57,7 @@ const IncomingCallPoliciesPage: FunctionComponent<
   ];
 
   const {
-    ownersByResourceId,
+    getOwnersForResource,
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
@@ -242,10 +242,9 @@ const IncomingCallPoliciesPage: FunctionComponent<
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: IncomingCallPolicy): ReactElement => {
-              const id: string | undefined = item.id?.toString();
               return (
                 <OwnersCell
-                  owners={id ? ownersByResourceId[id] : undefined}
+                  owners={getOwnersForResource(item)}
                   isLoading={isLoadingOwners}
                 />
               );

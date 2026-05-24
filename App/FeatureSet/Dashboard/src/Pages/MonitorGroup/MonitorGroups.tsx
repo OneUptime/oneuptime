@@ -35,7 +35,7 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
     });
 
   const {
-    ownersByResourceId,
+    getOwnersForResource,
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
@@ -188,10 +188,9 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: MonitorGroup): ReactElement => {
-              const id: string | undefined = item.id?.toString();
               return (
                 <OwnersCell
-                  owners={id ? ownersByResourceId[id] : undefined}
+                  owners={getOwnersForResource(item)}
                   isLoading={isLoadingOwners}
                 />
               );

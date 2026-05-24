@@ -29,7 +29,7 @@ const OnCallDutyPage: FunctionComponent<
     });
 
   const {
-    ownersByResourceId,
+    getOwnersForResource,
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
@@ -172,10 +172,9 @@ const OnCallDutyPage: FunctionComponent<
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: OnCallDutyPolicy): ReactElement => {
-              const id: string | undefined = item.id?.toString();
               return (
                 <OwnersCell
-                  owners={id ? ownersByResourceId[id] : undefined}
+                  owners={getOwnersForResource(item)}
                   isLoading={isLoadingOwners}
                 />
               );

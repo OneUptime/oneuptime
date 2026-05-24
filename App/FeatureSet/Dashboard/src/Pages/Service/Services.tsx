@@ -29,7 +29,7 @@ const ServicesPage: FunctionComponent<
     });
 
   const {
-    ownersByResourceId,
+    getOwnersForResource,
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
@@ -193,10 +193,9 @@ const ServicesPage: FunctionComponent<
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: Service): ReactElement => {
-              const id: string | undefined = item.id?.toString();
               return (
                 <OwnersCell
-                  owners={id ? ownersByResourceId[id] : undefined}
+                  owners={getOwnersForResource(item)}
                   isLoading={isLoadingOwners}
                 />
               );

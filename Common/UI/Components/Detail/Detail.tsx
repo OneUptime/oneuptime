@@ -113,19 +113,13 @@ const Detail: DetailFunction = <T extends GenericObject>(
     }
 
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-700 text-sm font-medium">
+      <span className="inline-flex items-center gap-x-1.5 px-2 py-1 rounded-md bg-indigo-50 text-indigo-700 text-xs font-medium ring-1 ring-inset ring-indigo-700/10">
         <svg
-          className="w-3.5 h-3.5 text-indigo-500"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
+          className="h-1.5 w-1.5 fill-indigo-500"
+          viewBox="0 0 6 6"
+          aria-hidden="true"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 5l7 7-7 7"
-          />
+          <circle cx={3} cy={3} r={3} />
         </svg>
         {selectedOption.label as string}
       </span>
@@ -179,20 +173,14 @@ const Detail: DetailFunction = <T extends GenericObject>(
             return (
               <span
                 key={`${String(value)}-${index}`}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-700 text-sm font-medium"
+                className="inline-flex items-center gap-x-1.5 px-2 py-1 rounded-md bg-indigo-50 text-indigo-700 text-xs font-medium ring-1 ring-inset ring-indigo-700/10"
               >
                 <svg
-                  className="w-3.5 h-3.5 text-indigo-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+                  className="h-1.5 w-1.5 fill-indigo-500"
+                  viewBox="0 0 6 6"
+                  aria-hidden="true"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
+                  <circle cx={3} cy={3} r={3} />
                 </svg>
                 {label}
               </span>

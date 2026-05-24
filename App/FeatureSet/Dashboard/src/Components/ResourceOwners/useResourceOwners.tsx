@@ -246,6 +246,14 @@ export interface UseResourceOwnersOptions {
 
 export interface UseResourceOwnersResult<TResource extends BaseModel> {
   ownersByResourceId: { [resourceId: string]: Array<ResourceOwnerEntry> };
+  /**
+   * Resource-id-tolerant lookup. Pass the resource row directly; the hook
+   * handles the `id`-getter vs raw `_id` discrepancy that bit us before.
+   * Prefer this over indexing `ownersByResourceId` from the consumer.
+   */
+  getOwnersForResource: (
+    resource: TResource,
+  ) => Array<ResourceOwnerEntry> | undefined;
   isLoadingOwners: boolean;
   onResourcesFetched: (resources: Array<TResource>) => void;
   /**
@@ -513,9 +521,36 @@ const useResourceOwners: <TResource extends BaseModel>(
       return;
     }
 
+    /*
+     * Some code paths hand us plain JSON (e.g. when BaseModel isn't fully
+     * deserialized). Fall back through `id` → `_id` so we cover both
+     * shapes — without this, the entire owners map ends up keyed by
+     * undefined and every row shows "No owners".
+     */
     const ids: Array<string> = resources
       .map((r: TResource) => {
-        return r.id?.toString();
+        const fromGetter: string | undefined = r.id?.toString();
+        if (fromGetter) {
+          return fromGetter;
+        }
+        const raw: Record<string, unknown> = r as unknown as Record<
+          string,
+          unknown
+        >;
+        const rawId: unknown = raw["_id"];
+        if (typeof rawId === "string") {
+          return rawId;
+        }
+        if (
+          rawId &&
+          typeof (rawId as { toString?: () => string }).toString === "function"
+        ) {
+          const s: string = (rawId as { toString: () => string }).toString();
+          if (s && s !== "[object Object]") {
+            return s;
+          }
+        }
+        return undefined;
       })
       .filter((id: string | undefined): id is string => {
         return Boolean(id);
@@ -527,6 +562,16 @@ const useResourceOwners: <TResource extends BaseModel>(
     }
 
     setIsLoadingOwners(true);
+
+    /*
+     * Derive the relation property name from the FK column name (e.g.
+     * `monitorId` → `monitor`). When the FK isn't returned in the
+     * serialized response (some endpoints strip FK columns and only emit
+     * the joined entity), we fall back to `relation._id`.
+     */
+    const relationField: string = resourceIdField.endsWith("Id")
+      ? resourceIdField.slice(0, -2)
+      : resourceIdField;
 
     /**
      * Extract the resource id from a junction record. We try a few accessors
@@ -543,12 +588,17 @@ const useResourceOwners: <TResource extends BaseModel>(
       item: OwnerJunctionModel,
     ): string | undefined => {
       const raw: WithFlexibleId = item as unknown as WithFlexibleId;
+      const relationRaw: WithFlexibleId | undefined =
+        (raw[relationField] as WithFlexibleId | undefined) || undefined;
       const candidates: Array<unknown> = [
         raw[resourceIdField],
         raw[`_${resourceIdField}`],
         typeof raw.getColumnValue === "function"
           ? raw.getColumnValue(resourceIdField)
           : undefined,
+        // Fallback: nested relation object (e.g. junction.monitor._id).
+        relationRaw ? relationRaw["_id"] : undefined,
+        relationRaw ? relationRaw["id"] : undefined,
       ];
       for (const c of candidates) {
         if (c === null || c === undefined) {
@@ -591,6 +641,12 @@ const useResourceOwners: <TResource extends BaseModel>(
             select: {
               _id: true,
               [resourceIdField]: true,
+              /*
+               * Belt + suspenders: ask for the relation's id too so
+               * extractResourceId has a fallback when the FK column is
+               * stripped from the response by the API layer.
+               */
+              [relationField]: { _id: true },
               user: {
                 _id: true,
                 name: true,
@@ -611,6 +667,7 @@ const useResourceOwners: <TResource extends BaseModel>(
             select: {
               _id: true,
               [resourceIdField]: true,
+              [relationField]: { _id: true },
               team: {
                 _id: true,
                 name: true,
@@ -1353,8 +1410,44 @@ const useResourceOwners: <TResource extends BaseModel>(
     }
   };
 
+  const getOwnersForResource: (
+    resource: TResource,
+  ) => Array<ResourceOwnerEntry> | undefined = (
+    resource: TResource,
+  ): Array<ResourceOwnerEntry> | undefined => {
+    if (!resource) {
+      return undefined;
+    }
+    const fromGetter: string | undefined = resource.id?.toString();
+    if (fromGetter && ownersByResourceId[fromGetter]) {
+      return ownersByResourceId[fromGetter];
+    }
+    const raw: Record<string, unknown> = resource as unknown as Record<
+      string,
+      unknown
+    >;
+    const rawId: unknown = raw["_id"];
+    let fallbackKey: string | undefined;
+    if (typeof rawId === "string") {
+      fallbackKey = rawId;
+    } else if (
+      rawId &&
+      typeof (rawId as { toString?: () => string }).toString === "function"
+    ) {
+      const s: string = (rawId as { toString: () => string }).toString();
+      if (s && s !== "[object Object]") {
+        fallbackKey = s;
+      }
+    }
+    if (fallbackKey && ownersByResourceId[fallbackKey]) {
+      return ownersByResourceId[fallbackKey];
+    }
+    return fromGetter ? ownersByResourceId[fromGetter] : undefined;
+  };
+
   return {
     ownersByResourceId,
+    getOwnersForResource,
     isLoadingOwners,
     onResourcesFetched,
     filterBar,

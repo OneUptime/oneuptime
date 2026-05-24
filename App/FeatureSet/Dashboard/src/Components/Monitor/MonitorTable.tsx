@@ -183,7 +183,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
   ];
 
   const {
-    ownersByResourceId,
+    getOwnersForResource,
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
@@ -755,10 +755,9 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: Monitor): ReactElement => {
-              const id: string | undefined = item.id?.toString();
               return (
                 <OwnersCell
-                  owners={id ? ownersByResourceId[id] : undefined}
+                  owners={getOwnersForResource(item)}
                   isLoading={isLoadingOwners}
                 />
               );
