@@ -193,9 +193,13 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
     Object.keys(props.currentQuery as Record<string, unknown>).length > 0;
 
   /*
-   * A facet snapshot is non-empty when any of its values is a non-empty
-   * array, a non-empty object, or otherwise truthy. This lets "Save as
-   * New View" appear when only facet chips are active (no panel filters).
+   * A facet snapshot is "active" only when it contains real selections —
+   * a non-empty array, or an object whose nested values are non-empty.
+   * Primitive top-level values (e.g. operator strings like "is") are
+   * default settings emitted by useResourceOwners even with zero
+   * selections, and must not count as active state — otherwise the
+   * Saved Views trigger would always show on tables that wire up
+   * useResourceOwners, even with no views and no user-applied filters.
    */
   const hasFacetState: boolean = Boolean(
     props.currentFacetState &&
@@ -213,7 +217,7 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
             },
           );
         }
-        return Boolean(v);
+        return false;
       }),
   );
 
