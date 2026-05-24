@@ -3106,7 +3106,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               ) : (
                 <></>
               )}
-              {props.topContent}
+              {props.topContent || <></>}
               {tableColumns.length > 0 && showAs === ShowAs.Table ? (
                 getTable()
               ) : (

@@ -8,7 +8,9 @@ import DockerHostOwnerUser from "Common/Models/DatabaseModels/DockerHostOwnerUse
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import useResourceOwners, {
   ResourceFacet,
+  buildEnumFacetQuery,
 } from "../../Components/ResourceOwners/useResourceOwners";
+import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
 import IconProp from "Common/Types/Icon/IconProp";
 import React, {
   Fragment,
@@ -58,9 +60,10 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         { value: "connected", label: "Connected" },
         { value: "disconnected", label: "Disconnected" },
       ],
-      toQueryValue: (values: Array<string>): unknown => {
-        return values[0];
-      },
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => buildEnumFacetQuery(values, operator, false),
     },
   ];
 

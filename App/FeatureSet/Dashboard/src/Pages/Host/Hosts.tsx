@@ -8,9 +8,10 @@ import HostOwnerUser from "Common/Models/DatabaseModels/HostOwnerUser";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import useResourceOwners, {
   ResourceFacet,
+  buildEnumFacetQuery,
 } from "../../Components/ResourceOwners/useResourceOwners";
+import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
 import IconProp from "Common/Types/Icon/IconProp";
-import Includes from "Common/Types/BaseDatabase/Includes";
 import React, {
   Fragment,
   FunctionComponent,
@@ -83,9 +84,10 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         { value: "connected", label: "Connected" },
         { value: "disconnected", label: "Disconnected" },
       ],
-      toQueryValue: (values: Array<string>): unknown => {
-        return values[0];
-      },
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => buildEnumFacetQuery(values, operator, false),
     },
     {
       key: "osType",
@@ -98,9 +100,10 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         { value: "windows", label: "Windows" },
         { value: "freebsd", label: "FreeBSD" },
       ],
-      toQueryValue: (values: Array<string>): unknown => {
-        return new Includes(values);
-      },
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => buildEnumFacetQuery(values, operator),
     },
     {
       key: "hostArch",
@@ -113,9 +116,10 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         { value: "x86", label: "x86" },
         { value: "arm", label: "arm" },
       ],
-      toQueryValue: (values: Array<string>): unknown => {
-        return new Includes(values);
-      },
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => buildEnumFacetQuery(values, operator),
     },
   ];
 

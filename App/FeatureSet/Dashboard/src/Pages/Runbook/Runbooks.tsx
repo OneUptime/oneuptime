@@ -15,7 +15,9 @@ import { Green500, Red500 } from "Common/Types/BrandColors";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import useResourceOwners, {
   ResourceFacet,
+  buildBooleanFacetQuery,
 } from "../../Components/ResourceOwners/useResourceOwners";
+import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
 import IconProp from "Common/Types/Icon/IconProp";
 
 const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -36,9 +38,11 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
         { value: "true", label: "Enabled" },
         { value: "false", label: "Disabled" },
       ],
-      toQueryValue: (values: Array<string>): unknown => {
-        return values[0] === "true";
-      },
+      supportedOperators: ["is", "is_not"],
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => buildBooleanFacetQuery(values, operator),
     },
   ];
 

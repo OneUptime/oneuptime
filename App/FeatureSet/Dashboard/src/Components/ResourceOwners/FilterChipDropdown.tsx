@@ -26,6 +26,27 @@ export interface FilterChipDropdownOption {
   group?: string | undefined;
 }
 
+/**
+ * Filter operator that the chip surfaces to the user.
+ * - "is" / "is_not" — match against the selected options
+ * - "is_empty" / "is_not_empty" — match rows with no value / any value
+ *   (no option selection required)
+ */
+export type FilterOperator = "is" | "is_not" | "is_empty" | "is_not_empty";
+
+export const FILTER_OPERATOR_LABELS: Record<FilterOperator, string> = {
+  is: "is",
+  is_not: "is not",
+  is_empty: "is empty",
+  is_not_empty: "is not empty",
+};
+
+export const isValueOperator: (op: FilterOperator) => boolean = (
+  op: FilterOperator,
+): boolean => {
+  return op === "is" || op === "is_not";
+};
+
 export interface ComponentProps {
   label: string;
   /**
@@ -75,6 +96,20 @@ export interface ComponentProps {
    * active selection (e.g. a filter or category icon).
    */
   emptyIcon?: IconProp | undefined;
+  /**
+   * Current operator (controlled). Defaults to "is".
+   */
+  operator?: FilterOperator | undefined;
+  /**
+   * Notified when the user picks a different operator. Required to make
+   * the operator switcher usable.
+   */
+  onOperatorChange?: ((operator: FilterOperator) => void) | undefined;
+  /**
+   * Which operators to expose in the dropdown. Defaults to ["is", "is_not"].
+   * Add "is_empty" / "is_not_empty" for nullable / optional fields.
+   */
+  supportedOperators?: Array<FilterOperator> | undefined;
 }
 
 const AVATAR_PALETTE: Array<string> = [
@@ -148,6 +183,13 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
 
   const isMulti: boolean = Boolean(props.isMultiSelect);
   const isAsync: boolean = Boolean(props.loadOptions);
+  const operator: FilterOperator = props.operator || "is";
+  const supportedOperators: Array<FilterOperator> = props.supportedOperators || [
+    "is",
+    "is_not",
+  ];
+  const isEmptyOperator: boolean =
+    operator === "is_empty" || operator === "is_not_empty";
 
   /**
    * For async (loadOptions) mode, this holds the server's last response.
@@ -475,29 +517,61 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
           className={`absolute left-0 top-full z-20 mt-2 ${props.popoverWidthClassName || "w-72"} origin-top-left overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl ring-1 ring-black/5`}
           role="dialog"
         >
-          <div className="border-b border-gray-100 p-2">
-            <div className="relative">
-              <Icon
-                icon={IconProp.Search}
-                className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={searchText}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  setSearchText(e.target.value);
+          {supportedOperators.length > 1 && (
+            <div className="flex items-center gap-1.5 border-b border-gray-100 px-2 py-1.5 text-xs text-gray-500">
+              <span className="shrink-0">
+                {props.label.toLowerCase()}
+              </span>
+              <select
+                value={operator}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                  if (props.onOperatorChange) {
+                    props.onOperatorChange(e.target.value as FilterOperator);
+                  }
                 }}
-                placeholder={
-                  props.searchPlaceholder ||
-                  `Search ${props.label.toLowerCase()}...`
-                }
-                className="w-full rounded-md border border-gray-200 bg-gray-50 py-1.5 pl-7 pr-2 text-sm placeholder-gray-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
-              />
+                className="cursor-pointer rounded border border-gray-200 bg-white px-1.5 py-0.5 text-xs font-medium text-gray-700 hover:border-gray-300 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                aria-label={`${props.label} operator`}
+              >
+                {supportedOperators.map((op: FilterOperator) => {
+                  return (
+                    <option key={op} value={op}>
+                      {FILTER_OPERATOR_LABELS[op]}
+                    </option>
+                  );
+                })}
+              </select>
             </div>
-          </div>
+          )}
+          {!isEmptyOperator && (
+            <div className="border-b border-gray-100 p-2">
+              <div className="relative">
+                <Icon
+                  icon={IconProp.Search}
+                  className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchText}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    setSearchText(e.target.value);
+                  }}
+                  placeholder={
+                    props.searchPlaceholder ||
+                    `Search ${props.label.toLowerCase()}...`
+                  }
+                  className="w-full rounded-md border border-gray-200 bg-gray-50 py-1.5 pl-7 pr-2 text-sm placeholder-gray-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                />
+              </div>
+            </div>
+          )}
+          {isEmptyOperator && (
+            <div className="px-3 py-4 text-center text-xs text-gray-500">
+              No additional selection needed.
+            </div>
+          )}
           <div
-            className="max-h-72 overflow-y-auto py-1"
+            className={`max-h-72 overflow-y-auto py-1 ${isEmptyOperator ? "hidden" : ""}`}
             role="listbox"
             aria-multiselectable={isMulti}
           >

@@ -317,6 +317,19 @@ RunCron(
           },
         );
 
+        /*
+         * Pre-compute markdown conversions for episode.description once per
+         * episode. These values do not vary per status page or per subscriber,
+         * so memoizing here avoids N redundant markdown parses during fan-out.
+         */
+        const episodeDescriptionHtml: string = await Markdown.convertToHTML(
+          episode.description || "",
+          MarkdownContentType.Email,
+        );
+        const episodeDescriptionPlainText: string = Markdown.convertToPlainText(
+          episode.description || "",
+        );
+
         let notificationSentToAtLeastOneSubscriber: boolean = false;
 
         for (const statuspage of statusPages) {
@@ -444,12 +457,13 @@ RunCron(
               episodeDescription: episode.description || "",
             };
 
-            // Prepare SMS-specific template variables with plain text (no HTML/Markdown)
+            /*
+             * Prepare SMS-specific template variables with plain text (no HTML/Markdown).
+             * Uses the memoized plain-text conversion computed once per episode above.
+             */
             const smsTemplateVariables: Record<string, string> = {
               ...templateVariables,
-              episodeDescription: Markdown.convertToPlainText(
-                episode.description || "",
-              ),
+              episodeDescription: episodeDescriptionPlainText,
             };
 
             for (const subscriber of subscribers) {
@@ -578,10 +592,7 @@ RunCron(
                           episodeSeverity:
                             episode.incidentSeverity?.name || " - ",
                           episodeTitle: episode.title || "",
-                          episodeDescription: await Markdown.convertToHTML(
-                            episode.description || "",
-                            MarkdownContentType.Email,
-                          ),
+                          episodeDescription: episodeDescriptionHtml,
                           unsubscribeUrl: unsubscribeUrl,
 
                           subscriberEmailNotificationFooterText:

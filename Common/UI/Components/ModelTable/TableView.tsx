@@ -399,63 +399,66 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
       if (currentlySelectedView) {
         return (
           <div
-            className={`${triggerBase} border-indigo-300 bg-indigo-50 text-indigo-700 hover:border-indigo-400 hover:bg-indigo-100`}
+            className={`${triggerBase} border-indigo-200 bg-indigo-50 text-indigo-700 hover:border-indigo-300 hover:bg-indigo-100`}
             title={`Saved view: ${currentlySelectedView.name}`}
           >
             <Icon
-              icon={IconProp.Window}
+              icon={IconProp.Bookmark}
               className="h-4 w-4 flex-none text-indigo-500"
             />
-            <span className="max-w-[12rem] truncate">
-              {currentlySelectedView.name}
+            <span className="flex flex-col leading-tight">
+              <span className="text-[10px] font-medium uppercase tracking-wide text-indigo-400">
+                Saved view
+              </span>
+              <span className="max-w-[14rem] truncate text-sm font-semibold">
+                {currentlySelectedView.name}
+              </span>
             </span>
-            <div
-              role="button"
-              tabIndex={0}
+            <span
+              aria-hidden="true"
+              className="ml-1 h-5 w-px bg-indigo-200"
+            />
+            <button
+              type="button"
               aria-label="Clear saved view"
               title="Clear saved view"
-              className="-mr-1 ml-1 inline-flex h-5 w-5 flex-none items-center justify-center rounded-full bg-indigo-100 text-indigo-600 ring-1 ring-inset ring-indigo-300 hover:bg-indigo-200 hover:text-indigo-900 hover:ring-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              onClick={(event: React.MouseEvent<HTMLDivElement>) => {
+              className="-mr-1 inline-flex h-6 w-6 flex-none items-center justify-center rounded-md text-indigo-500 transition-colors hover:bg-indigo-200 hover:text-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                 event.stopPropagation();
                 setCurrentlySelectedView(null);
                 props.onViewChange?.(null);
                 closeDropdownMenu();
               }}
-              onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  setCurrentlySelectedView(null);
-                  props.onViewChange?.(null);
-                  closeDropdownMenu();
-                }
-              }}
             >
-              <Icon
-                icon={IconProp.Close}
-                size={SizeProp.Small}
-                thick={ThickProp.Thick}
-              />
-            </div>
+              <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
+            </button>
+            <Icon
+              icon={IconProp.ChevronDown}
+              className="h-3.5 w-3.5 flex-none text-indigo-400"
+            />
           </div>
         );
       }
 
       return (
         <div
-          className={`${triggerBase} border-gray-300 bg-white text-gray-700 hover:bg-gray-50`}
+          className={`${triggerBase} border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50`}
           title="Saved Views"
         >
           <Icon
-            icon={IconProp.Window}
-            className="h-4 w-4 flex-none text-gray-500"
+            icon={IconProp.Bookmark}
+            className="h-4 w-4 flex-none text-gray-400"
           />
-          <span>Saved Views</span>
+          <span className="text-sm">Saved Views</span>
           {allTableViews.length > 0 && (
-            <span className="text-gray-400">
+            <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-gray-100 px-1.5 text-[11px] font-medium text-gray-600">
               {allTableViews.length.toLocaleString()}
             </span>
           )}
+          <Icon
+            icon={IconProp.ChevronDown}
+            className="h-3.5 w-3.5 flex-none text-gray-400"
+          />
         </div>
       );
     };

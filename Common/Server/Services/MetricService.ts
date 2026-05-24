@@ -4,18 +4,126 @@ import Metric from "../../Models/AnalyticsModels/Metric";
 import AggregateBy, {
   AggregateUtil,
 } from "../Types/AnalyticsDatabase/AggregateBy";
+import DeleteBy from "../Types/AnalyticsDatabase/DeleteBy";
+import Query from "../Types/AnalyticsDatabase/Query";
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import AggregationType, {
   getPercentileLevel,
   isPercentileAggregation,
 } from "../../Types/BaseDatabase/AggregationType";
 import AggregationInterval from "../../Types/BaseDatabase/AggregationInterval";
+import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import logger, { LogAttributes } from "../Utils/Logger";
 
 export class MetricService extends AnalyticsDatabaseService<Metric> {
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
     super({ modelType: Metric, database: clickhouseDatabase });
+  }
+
+  /*
+   * Cascade deletes from `MetricItemV2` into the aggregating
+   * materialized-view target tables.
+   *
+   * `MetricItemAggMV1m` and `MetricBaselineHourly` are AggregatingMergeTree
+   * tables populated by attached MVs that only fire on inserts —
+   * `ALTER ... DELETE` against the source table does not roll back the
+   * previously-accumulated `sumState`/`countState` rows already in the MV
+   * tables. Without a matching DELETE on each MV, dashboard widgets that
+   * read from `MetricItemAggMV1m` keep counting and averaging metrics
+   * belonging to entities (incidents, alerts) the user has just deleted.
+   * See https://github.com/OneUptime/oneuptime/issues/2419.
+   *
+   * The cascade only runs when the caller scoped the delete by
+   * `serviceId`. Global time-based purges (TTL cleanup) are handled by
+   * each MV table's own `retentionDate TTL DELETE`, so cascading those
+   * would pointlessly scan the whole MV. The per-host MV
+   * (`MetricItemAggMV1mByHost`) is keyed by `hostIdentifier` rather than
+   * `serviceId`, so a service-scoped delete has nothing to remove there —
+   * skip it.
+   */
+  public override async deleteBy(deleteBy: DeleteBy<Metric>): Promise<void> {
+    await super.deleteBy(deleteBy);
+
+    const cascadeQuery: Query<Metric> | null = this.buildMVCascadeQuery(
+      deleteBy.query,
+    );
+    if (!cascadeQuery) {
+      return;
+    }
+
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+    const databaseName: string = this.database.getDatasourceOptions().database!;
+    const whereStatement: Statement =
+      this.statementGenerator.toWhereStatement(cascadeQuery);
+
+    const cascadeTargets: ReadonlyArray<AnalyticsTableName> = [
+      AnalyticsTableName.MetricItemAggMV1m,
+      AnalyticsTableName.MetricBaselineHourly,
+    ];
+
+    for (const tableName of cascadeTargets) {
+      try {
+        const statement: Statement =
+          SQL`ALTER TABLE ${databaseName}.${tableName} DELETE WHERE TRUE `.append(
+            whereStatement,
+          );
+        await this.execute(statement);
+      } catch (err) {
+        logger.error(
+          `Cascade delete into ${tableName} failed; dashboard widgets reading from this MV may temporarily show stale aggregated values for the deleted entity.`,
+        );
+        logger.error(err);
+      }
+    }
+  }
+
+  private buildMVCascadeQuery(query: Query<Metric>): Query<Metric> | null {
+    if (!query || typeof query !== "object") {
+      return null;
+    }
+
+    const queryRecord: Record<string, unknown> = query as unknown as Record<
+      string,
+      unknown
+    >;
+
+    /*
+     * Cascade only when the delete is scoped by serviceId. The MV sort
+     * key is (projectId, name, serviceId, bucketTime); without serviceId
+     * the DELETE would scan a huge swath of unrelated rows and risk
+     * removing data that belongs to other entities sharing the same
+     * project.
+     */
+    if (
+      queryRecord["serviceId"] === undefined ||
+      queryRecord["serviceId"] === null
+    ) {
+      return null;
+    }
+
+    /*
+     * Only project the keys the MV target tables actually expose.
+     * `time`, `attributes`, `serviceType`, and the metric-payload
+     * columns don't exist on the MV schema and would either fail
+     * where-statement generation or reference a missing column.
+     */
+    const allowedKeys: ReadonlyArray<string> = [
+      "projectId",
+      "name",
+      "serviceId",
+    ];
+    const out: Record<string, unknown> = {};
+    for (const key of allowedKeys) {
+      const value: unknown = queryRecord[key];
+      if (value !== undefined) {
+        out[key] = value;
+      }
+    }
+
+    return out as unknown as Query<Metric>;
   }
 
   /**

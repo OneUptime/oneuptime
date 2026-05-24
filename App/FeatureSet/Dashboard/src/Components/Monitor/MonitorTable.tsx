@@ -45,8 +45,13 @@ import MonitorElement from "./Monitor";
 import OwnersCell from "../ResourceOwners/OwnersCell";
 import useResourceOwners, {
   ResourceFacet,
+  buildEntityFacetQuery,
+  buildEnumFacetQuery,
 } from "../ResourceOwners/useResourceOwners";
-import { FilterChipDropdownOption } from "../ResourceOwners/FilterChipDropdown";
+import {
+  FilterChipDropdownOption,
+  FilterOperator,
+} from "../ResourceOwners/FilterChipDropdown";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Search from "Common/Types/BaseDatabase/Search";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -109,8 +114,8 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             query: query,
             limit: 50,
             skip: 0,
-            select: { _id: true, name: true, order: true },
-            sort: { order: SortOrder.Ascending },
+            select: { _id: true, name: true, priority: true },
+            sort: { priority: SortOrder.Ascending },
           });
         return result.data.map((s: MonitorStatus) => {
           return {
@@ -145,13 +150,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
           };
         });
       },
-      toQueryValue: (values: Array<string>): unknown => {
-        return new Includes(
-          values.map((v: string) => {
-            return new ObjectID(v);
-          }),
-        );
-      },
+      toQueryValue: (values: Array<string>, operator: FilterOperator): unknown => buildEntityFacetQuery(values, operator, true),
     },
     {
       key: "monitorType",
@@ -167,9 +166,10 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
           };
         },
       ),
-      toQueryValue: (values: Array<string>): unknown => {
-        return new Includes(values);
-      },
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => buildEnumFacetQuery(values, operator),
     },
   ];
 

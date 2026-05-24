@@ -21,12 +21,124 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import IsNull from "Common/Types/BaseDatabase/IsNull";
+import NotEqual from "Common/Types/BaseDatabase/NotEqual";
+import NotNull from "Common/Types/BaseDatabase/NotNull";
 import FilterChipDropdown, {
   FilterChipDropdownOption,
+  FilterOperator,
 } from "./FilterChipDropdown";
 import { ResourceOwnerEntry } from "./OwnerEntry";
 
 const PICKER_PAGE_SIZE: number = 50;
+
+/**
+ * Default query value builder when a facet doesn't supply its own
+ * `toQueryValue`. Handles is / is_not / is_empty / is_not_empty for
+ * raw-string fields.
+ */
+const defaultFacetQueryValue: (
+  values: Array<string>,
+  operator: FilterOperator,
+  isMulti: boolean,
+) => unknown = (
+  values: Array<string>,
+  operator: FilterOperator,
+  isMulti: boolean,
+): unknown => {
+  if (operator === "is_empty") {
+    return new IsNull();
+  }
+  if (operator === "is_not_empty") {
+    return new NotNull();
+  }
+  if (isMulti) {
+    return operator === "is_not"
+      ? new IncludesNone(values)
+      : new Includes(values);
+  }
+  return operator === "is_not" ? new NotEqual(values[0]!) : values[0];
+};
+
+/**
+ * Helper for facets whose values are ObjectIDs (entity references like
+ * Status, Severity, State, Monitor). Wraps each value in ObjectID and
+ * picks the right operator wrapper.
+ */
+export const buildEntityFacetQuery: (
+  values: Array<string>,
+  operator: FilterOperator,
+  isMulti: boolean,
+) => unknown = (
+  values: Array<string>,
+  operator: FilterOperator,
+  isMulti: boolean,
+): unknown => {
+  if (operator === "is_empty") {
+    return new IsNull();
+  }
+  if (operator === "is_not_empty") {
+    return new NotNull();
+  }
+  if (values.length === 0) {
+    return undefined;
+  }
+  const ids: Array<ObjectID> = values.map((v: string) => {
+    return new ObjectID(v);
+  });
+  if (isMulti) {
+    return operator === "is_not"
+      ? new IncludesNone(ids)
+      : new Includes(ids);
+  }
+  // NotEqual only accepts string/number/Date — wrap ObjectID's string form.
+  return operator === "is_not" ? new NotEqual(values[0]!) : ids[0]!;
+};
+
+/**
+ * Helper for facets whose values are plain strings (enum-like fields:
+ * MonitorType, otelCollectorStatus, OS, Architecture). Defaults to
+ * multi-select semantics; pass `false` for single-select fields.
+ */
+export const buildEnumFacetQuery: (
+  values: Array<string>,
+  operator: FilterOperator,
+  isMulti?: boolean,
+) => unknown = (
+  values: Array<string>,
+  operator: FilterOperator,
+  isMulti: boolean = true,
+): unknown => {
+  return defaultFacetQueryValue(values, operator, isMulti);
+};
+
+/**
+ * Helper for boolean facets. Maps string "true"/"false" → real booleans
+ * with optional NotEqual for the "is_not" operator. Empty operators
+ * aren't meaningful here (booleans aren't nullable in our schema).
+ */
+export const buildBooleanFacetQuery: (
+  values: Array<string>,
+  operator: FilterOperator,
+) => unknown = (
+  values: Array<string>,
+  operator: FilterOperator,
+): unknown => {
+  if (operator === "is_empty") {
+    return new IsNull();
+  }
+  if (operator === "is_not_empty") {
+    return new NotNull();
+  }
+  if (values.length === 0) {
+    return undefined;
+  }
+  const asBool: boolean = values[0] === "true";
+  // NotEqual<CompareType> can't take boolean; coerce to a string the
+  // ORM compares against. The Includes/equality path keeps the real bool.
+  return operator === "is_not" ? new NotEqual(String(asBool)) : asBool;
+};
 
 const getInitials: (name: string) => string = (name: string): string => {
   const parts: Array<string> = name
@@ -109,7 +221,14 @@ export interface ResourceFacet {
    *   `(values) => values[0] === "true"`
    *   `(values) => new Includes(values.map((v) => new ObjectID(v)))`
    */
-  toQueryValue?: ((values: Array<string>) => unknown) | undefined;
+  toQueryValue?:
+    | ((values: Array<string>, operator: FilterOperator) => unknown)
+    | undefined;
+  /**
+   * Which operators this facet should expose in the chip dropdown.
+   * Defaults to ["is", "is_not", "is_empty", "is_not_empty"].
+   */
+  supportedOperators?: Array<FilterOperator> | undefined;
 }
 
 export interface UseResourceOwnersOptions {
@@ -194,6 +313,13 @@ const useResourceOwners: <TResource extends BaseModel>(
 
   const [selectedOwnerKeys, setSelectedOwnerKeys] = useState<Array<string>>([]);
   const [selectedLabelIds, setSelectedLabelIds] = useState<Array<string>>([]);
+
+  // Per-facet operator (defaults to "is" when missing).
+  const [ownerOperator, setOwnerOperator] = useState<FilterOperator>("is");
+  const [labelOperator, setLabelOperator] = useState<FilterOperator>("is");
+  const [facetOperators, setFacetOperators] = useState<{
+    [facetKey: string]: FilterOperator;
+  }>({});
 
   // Per-facet selected values keyed by facet.key.
   const [facetSelections, setFacetSelections] = useState<{
@@ -548,39 +674,68 @@ const useResourceOwners: <TResource extends BaseModel>(
       ...((base || {}) as Query<TResource>),
     } as Query<TResource>;
 
-    if (matchingResourceIds !== null) {
+    // Owner — drives _id Includes/IncludesNone based on operator.
+    if (ownerOperator === "is_empty") {
+      (merged as unknown as Record<string, unknown>)["_id"] = new Includes([
+        new ObjectID("00000000-0000-0000-0000-000000000000"),
+      ]);
+    } else if (matchingResourceIds !== null) {
       if (matchingResourceIds.length === 0) {
-        (merged as unknown as Record<string, unknown>)["_id"] = new Includes([
-          new ObjectID("00000000-0000-0000-0000-000000000000"),
-        ]);
+        if (ownerOperator !== "is_not") {
+          (merged as unknown as Record<string, unknown>)["_id"] = new Includes([
+            new ObjectID("00000000-0000-0000-0000-000000000000"),
+          ]);
+        }
+        // is_not with empty set → no filter (everything matches "not in empty")
       } else {
-        (merged as unknown as Record<string, unknown>)["_id"] = new Includes(
-          matchingResourceIds.map((id: string) => {
+        const idsAsObjectIds: Array<ObjectID> = matchingResourceIds.map(
+          (id: string) => {
             return new ObjectID(id);
-          }),
+          },
         );
+        (merged as unknown as Record<string, unknown>)["_id"] =
+          ownerOperator === "is_not"
+            ? new IncludesNone(idsAsObjectIds)
+            : new Includes(idsAsObjectIds);
       }
     }
 
-    if (selectedLabelIds.length > 0) {
-      (merged as unknown as Record<string, unknown>)["labels"] = new Includes(
-        selectedLabelIds.map((id: string) => {
+    // Labels.
+    if (labelOperator === "is_empty") {
+      (merged as unknown as Record<string, unknown>)["labels"] = new IsNull();
+    } else if (labelOperator === "is_not_empty") {
+      (merged as unknown as Record<string, unknown>)["labels"] = new NotNull();
+    } else if (selectedLabelIds.length > 0) {
+      const labelObjectIds: Array<ObjectID> = selectedLabelIds.map(
+        (id: string) => {
           return new ObjectID(id);
-        }),
+        },
       );
+      (merged as unknown as Record<string, unknown>)["labels"] =
+        labelOperator === "is_not"
+          ? new IncludesNone(labelObjectIds)
+          : new Includes(labelObjectIds);
     }
 
+    // Extra facets.
     for (const facet of extraFacets) {
+      const op: FilterOperator = facetOperators[facet.key] || "is";
       const selected: Array<string> = facetSelections[facet.key] || [];
+      const field: string = facet.queryField || facet.key;
+
+      if (op === "is_empty" || op === "is_not_empty") {
+        (merged as unknown as Record<string, unknown>)[field] =
+          op === "is_empty" ? new IsNull() : new NotNull();
+        continue;
+      }
+
       if (selected.length === 0) {
         continue;
       }
-      const field: string = facet.queryField || facet.key;
+
       const value: unknown = facet.toQueryValue
-        ? facet.toQueryValue(selected)
-        : facet.isMultiSelect
-          ? new Includes(selected)
-          : selected[0];
+        ? facet.toQueryValue(selected, op)
+        : defaultFacetQueryValue(selected, op, Boolean(facet.isMultiSelect));
       (merged as unknown as Record<string, unknown>)[field] = value;
     }
 
@@ -588,13 +743,24 @@ const useResourceOwners: <TResource extends BaseModel>(
   };
 
   const anyExtraFacetActive: boolean = extraFacets.some((f: ResourceFacet) => {
+    const op: FilterOperator = facetOperators[f.key] || "is";
+    if (op === "is_empty" || op === "is_not_empty") {
+      return true;
+    }
     return (facetSelections[f.key] || []).length > 0;
   });
 
+  const ownerOperatorActive: boolean =
+    ownerOperator === "is_empty" ||
+    ownerOperator === "is_not_empty" ||
+    selectedOwnerKeys.length > 0;
+  const labelOperatorActive: boolean =
+    labelOperator === "is_empty" ||
+    labelOperator === "is_not_empty" ||
+    selectedLabelIds.length > 0;
+
   const hasActiveFilters: boolean = Boolean(
-    selectedOwnerKeys.length > 0 ||
-      selectedLabelIds.length > 0 ||
-      anyExtraFacetActive,
+    ownerOperatorActive || labelOperatorActive || anyExtraFacetActive,
   );
 
   /**
@@ -883,10 +1049,22 @@ const useResourceOwners: <TResource extends BaseModel>(
   );
 
   const filterBar: ReactElement = useMemo((): ReactElement => {
+    const isOwnerActive: boolean =
+      ownerOperator === "is_empty" ||
+      ownerOperator === "is_not_empty" ||
+      selectedOwnerKeys.length > 0;
+    const isLabelActive: boolean =
+      labelOperator === "is_empty" ||
+      labelOperator === "is_not_empty" ||
+      selectedLabelIds.length > 0;
     const activeCount: number =
-      (selectedOwnerKeys.length > 0 ? 1 : 0) +
-      (selectedLabelIds.length > 0 ? 1 : 0) +
+      (isOwnerActive ? 1 : 0) +
+      (isLabelActive ? 1 : 0) +
       extraFacets.filter((f: ResourceFacet) => {
+        const op: FilterOperator = facetOperators[f.key] || "is";
+        if (op === "is_empty" || op === "is_not_empty") {
+          return true;
+        }
         return (facetSelections[f.key] || []).length > 0;
       }).length;
 
@@ -915,6 +1093,11 @@ const useResourceOwners: <TResource extends BaseModel>(
           value={selectedOwnerKeys}
           searchPlaceholder="Search people and teams..."
           popoverWidthClassName="w-72"
+          operator={ownerOperator}
+          onOperatorChange={(op: FilterOperator) => {
+            setOwnerOperator(op);
+          }}
+          supportedOperators={["is", "is_not", "is_empty", "is_not_empty"]}
           onChange={(value: string | Array<string> | null) => {
             if (value === null) {
               setSelectedOwnerKeys([]);
@@ -936,6 +1119,11 @@ const useResourceOwners: <TResource extends BaseModel>(
             isMultiSelect={true}
             value={selectedLabelIds}
             searchPlaceholder="Search labels..."
+            operator={labelOperator}
+            onOperatorChange={(op: FilterOperator) => {
+              setLabelOperator(op);
+            }}
+            supportedOperators={["is", "is_not", "is_empty", "is_not_empty"]}
             onChange={(value: string | Array<string> | null) => {
               if (value === null) {
                 setSelectedLabelIds([]);
@@ -993,6 +1181,22 @@ const useResourceOwners: <TResource extends BaseModel>(
               isMultiSelect={facet.isMultiSelect}
               value={value}
               searchPlaceholder={facet.searchPlaceholder}
+              operator={facetOperators[facet.key] || "is"}
+              onOperatorChange={(op: FilterOperator) => {
+                setFacetOperators(
+                  (prev: { [k: string]: FilterOperator }) => {
+                    return { ...prev, [facet.key]: op };
+                  },
+                );
+              }}
+              supportedOperators={
+                facet.supportedOperators || [
+                  "is",
+                  "is_not",
+                  "is_empty",
+                  "is_not_empty",
+                ]
+              }
               onChange={(next: string | Array<string> | null) => {
                 setFacetSelections((prev: { [k: string]: Array<string> }) => {
                   const updated: { [k: string]: Array<string> } = { ...prev };
@@ -1016,6 +1220,9 @@ const useResourceOwners: <TResource extends BaseModel>(
               setSelectedOwnerKeys([]);
               setSelectedLabelIds([]);
               setFacetSelections({});
+              setOwnerOperator("is");
+              setLabelOperator("is");
+              setFacetOperators({});
             }}
             className="ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-200/60 hover:text-gray-800 focus:outline-none"
           >
@@ -1037,6 +1244,9 @@ const useResourceOwners: <TResource extends BaseModel>(
     extraFacets,
     facetSelections,
     facetDynamicOptions,
+    ownerOperator,
+    labelOperator,
+    facetOperators,
   ]);
 
   const facetSaveState: JSONObject = useMemo((): JSONObject => {
@@ -1044,8 +1254,18 @@ const useResourceOwners: <TResource extends BaseModel>(
       selectedOwnerKeys: selectedOwnerKeys,
       selectedLabelIds: selectedLabelIds,
       facetSelections: facetSelections as unknown as JSONObject,
+      ownerOperator: ownerOperator,
+      labelOperator: labelOperator,
+      facetOperators: facetOperators as unknown as JSONObject,
     };
-  }, [selectedOwnerKeys, selectedLabelIds, facetSelections]);
+  }, [
+    selectedOwnerKeys,
+    selectedLabelIds,
+    facetSelections,
+    ownerOperator,
+    labelOperator,
+    facetOperators,
+  ]);
 
   const restoreFacetState: (state: JSONObject | null) => void = (
     state: JSONObject | null,
@@ -1054,8 +1274,19 @@ const useResourceOwners: <TResource extends BaseModel>(
       setSelectedOwnerKeys([]);
       setSelectedLabelIds([]);
       setFacetSelections({});
+      setOwnerOperator("is");
+      setLabelOperator("is");
+      setFacetOperators({});
       return;
     }
+
+    const isValidOperator: (v: unknown) => v is FilterOperator = (
+      v: unknown,
+    ): v is FilterOperator => {
+      return (
+        v === "is" || v === "is_not" || v === "is_empty" || v === "is_not_empty"
+      );
+    };
 
     const rawOwners: unknown = state["selectedOwnerKeys"];
     if (Array.isArray(rawOwners)) {
@@ -1098,6 +1329,32 @@ const useResourceOwners: <TResource extends BaseModel>(
       setFacetSelections(next);
     } else {
       setFacetSelections({});
+    }
+
+    setOwnerOperator(
+      isValidOperator(state["ownerOperator"]) ? state["ownerOperator"] : "is",
+    );
+    setLabelOperator(
+      isValidOperator(state["labelOperator"]) ? state["labelOperator"] : "is",
+    );
+
+    const rawFacetOps: unknown = state["facetOperators"];
+    if (
+      rawFacetOps &&
+      typeof rawFacetOps === "object" &&
+      !Array.isArray(rawFacetOps)
+    ) {
+      const next: { [k: string]: FilterOperator } = {};
+      for (const [k, v] of Object.entries(
+        rawFacetOps as Record<string, unknown>,
+      )) {
+        if (isValidOperator(v)) {
+          next[k] = v;
+        }
+      }
+      setFacetOperators(next);
+    } else {
+      setFacetOperators({});
     }
   };
 

@@ -20,8 +20,12 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import OwnersCell from "../ResourceOwners/OwnersCell";
 import useResourceOwners, {
   ResourceFacet,
+  buildEntityFacetQuery,
 } from "../ResourceOwners/useResourceOwners";
-import { FilterChipDropdownOption } from "../ResourceOwners/FilterChipDropdown";
+import {
+  FilterChipDropdownOption,
+  FilterOperator,
+} from "../ResourceOwners/FilterChipDropdown";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import React, {
   FunctionComponent,
@@ -161,13 +165,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           };
         });
       },
-      toQueryValue: (values: Array<string>): unknown => {
-        return new Includes(
-          values.map((v: string) => {
-            return new ObjectID(v);
-          }),
-        );
-      },
+      toQueryValue: (values: Array<string>, operator: FilterOperator): unknown => buildEntityFacetQuery(values, operator, true),
     },
   ];
 
