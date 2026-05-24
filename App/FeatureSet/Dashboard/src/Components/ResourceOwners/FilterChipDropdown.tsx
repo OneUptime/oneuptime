@@ -155,8 +155,10 @@ const Avatar: FunctionComponent<{
   const sizeClass: string =
     size === "xs" ? "h-4 w-4 text-[9px]" : "h-6 w-6 text-[11px]";
 
-  // Color-only swatch: a small solid dot. Used for labels / monitor status
-  // / severity where the entity carries its own brand color.
+  /*
+   * Color-only swatch: a small solid dot. Used for labels / monitor status
+   * / severity where the entity carries its own brand color.
+   */
   if (option.color && !option.initials) {
     const dotSize: string = size === "xs" ? "h-2.5 w-2.5" : "h-3 w-3";
     return (
@@ -506,16 +508,16 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
       >
         {isChipActive ? (
           <>
-            {hasValue && selectedOptions[0] ? (
+            {hasValue && selectedOptions.length === 1 && selectedOptions[0] ? (
+              // Single selection: show the entity's color dot / avatar.
               <Avatar option={selectedOptions[0]} size="xs" />
-            ) : (
-              props.emptyIcon && (
-                <Icon
-                  icon={props.emptyIcon}
-                  className="h-3.5 w-3.5 text-indigo-500"
-                />
-              )
-            )}
+            ) : !hasValue && props.emptyIcon ? (
+              // Empty-operator only: keep the category icon as a hint.
+              <Icon
+                icon={props.emptyIcon}
+                className="h-3.5 w-3.5 text-indigo-500"
+              />
+            ) : null}
             <span className="whitespace-nowrap">
               <span className="text-indigo-500/80">{props.label}</span>
               <span className="mx-1 text-indigo-300">·</span>
