@@ -65,6 +65,8 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
     onResourcesFetched,
     filterBar,
     mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
   } = useResourceOwners<Workflow>({
     ownerUserModelType: WorkflowOwnerUser,
     ownerTeamModelType: WorkflowOwnerTeam,
@@ -99,6 +101,8 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           id="status-page-table"
           userPreferencesKey="workflow-table"
           topContent={filterBar}
+          currentFacetState={facetSaveState}
+          onFacetStateRestored={restoreFacetState}
           query={mergeFiltersIntoQuery(undefined)}
           onFetchSuccess={(data: Array<Workflow>) => {
             onResourcesFetched(data);

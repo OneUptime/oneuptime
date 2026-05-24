@@ -34,6 +34,8 @@ const ServicesPage: FunctionComponent<
     onResourcesFetched,
     filterBar,
     mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
   } = useResourceOwners<Service>({
     ownerUserModelType: ServiceOwnerUser,
     ownerTeamModelType: ServiceOwnerTeam,
@@ -48,6 +50,8 @@ const ServicesPage: FunctionComponent<
         id="service-table"
         userPreferencesKey="service-table"
         topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(undefined)}
         onFetchSuccess={(data: Array<Service>) => {
           onResourcesFetched(data);

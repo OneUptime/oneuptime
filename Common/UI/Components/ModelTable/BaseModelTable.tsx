@@ -245,6 +245,19 @@ export interface BaseTableProps<
 
   saveFilterProps?: SaveFilterProps | undefined;
 
+  /**
+   * Extra serializable state to persist alongside the saved view (e.g. facet
+   * selections from a parent hook). Stored on `TableView.facets`. The shape
+   * is opaque to ModelTable.
+   */
+  currentFacetState?: JSONObject | undefined;
+  /**
+   * Called when a saved view is loaded so the parent can restore its facet
+   * state. `null` means "no saved facet data" (e.g. the user reset to the
+   * default empty view).
+   */
+  onFacetStateRestored?: ((state: JSONObject | null) => void) | undefined;
+
   onFilterApplied?: ((isFilterApplied: boolean) => void) | undefined;
 
   formSummary?: FormSummaryConfig | undefined;
@@ -1273,6 +1286,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           currentSortBy={sortBy}
           currentItemsOnPage={itemsOnPage}
           currentSortOrder={sortOrder}
+          currentFacetState={props.currentFacetState}
           onViewChange={async (tableView: TableView | null) => {
             setTableView(tableView);
 
@@ -1299,12 +1313,22 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               if (classicTableFilters.length === 0) {
                 await getFilterDropdownItems();
               }
+
+              if (props.onFacetStateRestored) {
+                props.onFacetStateRestored(
+                  (tableView.facets as JSONObject | undefined) || null,
+                );
+              }
             } else {
               setQuery({});
               setSortBy(null);
               setSortOrder(SortOrder.Descending);
               setItemsOnPage(10);
               setCurrentPageNumber(1);
+
+              if (props.onFacetStateRestored) {
+                props.onFacetStateRestored(null);
+              }
             }
           }}
         />

@@ -56,6 +56,8 @@ const IncomingCallPoliciesPage: FunctionComponent<
     onResourcesFetched,
     filterBar,
     mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
   } = useResourceOwners<IncomingCallPolicy>({
     ownerUserModelType: IncomingCallPolicyOwnerUser,
     ownerTeamModelType: IncomingCallPolicyOwnerTeam,
@@ -71,6 +73,8 @@ const IncomingCallPoliciesPage: FunctionComponent<
         id="incoming-call-policy-table"
         userPreferencesKey="incoming-call-policy-table"
         topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(undefined)}
         onFetchSuccess={(data: Array<IncomingCallPolicy>) => {
           onResourcesFetched(data);

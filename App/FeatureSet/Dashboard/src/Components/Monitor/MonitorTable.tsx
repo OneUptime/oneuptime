@@ -144,6 +144,8 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
     onResourcesFetched,
     filterBar,
     mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
   } = useResourceOwners<Monitor>({
     ownerUserModelType: MonitorOwnerUser,
     ownerTeamModelType: MonitorOwnerTeam,
@@ -563,6 +565,8 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         isViewable={true}
         refreshToggle={props.refreshToggle}
         topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(props.query)}
         onFetchSuccess={(data: Array<Monitor>) => {
           onResourcesFetched(data);

@@ -41,6 +41,8 @@ const AIAgentsPage: FunctionComponent<
     onResourcesFetched,
     filterBar,
     mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
   } = useResourceOwners<AIAgent>({
     ownerUserModelType: AIAgentOwnerUser,
     ownerTeamModelType: AIAgentOwnerTeam,
@@ -127,6 +129,8 @@ const AIAgentsPage: FunctionComponent<
         <ModelTable<AIAgent>
           modelType={AIAgent}
           topContent={filterBar}
+          currentFacetState={facetSaveState}
+          onFacetStateRestored={restoreFacetState}
           query={mergeFiltersIntoQuery({
             projectId: ProjectUtil.getCurrentProjectId()!,
           })}

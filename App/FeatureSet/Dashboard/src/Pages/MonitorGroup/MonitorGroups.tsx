@@ -40,6 +40,8 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
     onResourcesFetched,
     filterBar,
     mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
   } = useResourceOwners<MonitorGroup>({
     ownerUserModelType: MonitorGroupOwnerUser,
     ownerTeamModelType: MonitorGroupOwnerTeam,
@@ -78,6 +80,8 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
         id="monitors-group-table"
         userPreferencesKey="monitor-groups-table"
         topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(undefined)}
         onFetchSuccess={(data: Array<MonitorGroup>) => {
           onResourcesFetched(data);

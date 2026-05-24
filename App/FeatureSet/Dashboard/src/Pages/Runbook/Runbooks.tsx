@@ -48,6 +48,8 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
     onResourcesFetched,
     filterBar,
     mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
   } = useResourceOwners<Runbook>({
     ownerUserModelType: RunbookOwnerUser,
     ownerTeamModelType: RunbookOwnerTeam,
@@ -63,6 +65,8 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="runbooks-table"
         userPreferencesKey="runbooks-table"
         topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(undefined)}
         onFetchSuccess={(data: Array<Runbook>) => {
           onResourcesFetched(data);

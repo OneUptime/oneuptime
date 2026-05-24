@@ -28,7 +28,33 @@ export interface FilterChipDropdownOption {
 
 export interface ComponentProps {
   label: string;
-  options: Array<FilterChipDropdownOption>;
+  /**
+   * Static option list. Used directly when provided. Client-side searched
+   * by the chip's built-in search input.
+   *
+   * For large/unbounded option sets (e.g. a Monitor picker that could
+   * grow to thousands of entries) pass `loadOptions` instead.
+   */
+  options?: Array<FilterChipDropdownOption> | undefined;
+  /**
+   * Async loader invoked with the current search term whenever the user
+   * opens the dropdown or types (debounced ~250ms). Server is responsible
+   * for the actual matching + pagination; the chip just renders the
+   * returned list. When supplied, `options` is ignored.
+   */
+  loadOptions?:
+    | ((searchTerm: string) => Promise<Array<FilterChipDropdownOption>>)
+    | undefined;
+  /**
+   * Resolve selected values into label-bearing options, for cases where a
+   * selection isn't in the current `loadOptions` page (the user picked it
+   * earlier or it's a saved view that pre-populates the chip). Called
+   * lazily when needed. Optional but strongly recommended alongside
+   * `loadOptions`.
+   */
+  resolveOptions?:
+    | ((values: Array<string>) => Promise<Array<FilterChipDropdownOption>>)
+    | undefined;
   /**
    * Selected value. For single-select pass a string (or null). For
    * multi-select pass an array of strings.
@@ -121,6 +147,68 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
     useRef<HTMLInputElement | null>(null);
 
   const isMulti: boolean = Boolean(props.isMultiSelect);
+  const isAsync: boolean = Boolean(props.loadOptions);
+
+  /**
+   * For async (loadOptions) mode, this holds the server's last response.
+   * For static (options) mode, it mirrors props.options.
+   */
+  const [loadedOptions, setLoadedOptions] = useState<
+    Array<FilterChipDropdownOption>
+  >(props.options || []);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  /**
+   * Cache of values → resolved option, populated lazily for selections
+   * that aren't in `loadedOptions` (e.g. saved-view restoration before
+   * the dropdown has ever opened).
+   */
+  const [resolvedSelections, setResolvedSelections] = useState<{
+    [value: string]: FilterChipDropdownOption;
+  }>({});
+
+  // Mirror static options into loadedOptions when not in async mode.
+  useEffect(() => {
+    if (!isAsync) {
+      setLoadedOptions(props.options || []);
+    }
+  }, [props.options, isAsync]);
+
+  // Async: load on open + whenever the search term changes (debounced).
+  useEffect(() => {
+    if (!isAsync || !props.loadOptions) {
+      return;
+    }
+    if (!isComponentVisible) {
+      return;
+    }
+
+    let cancelled: boolean = false;
+    const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+      setIsLoading(true);
+      props.loadOptions!(searchText)
+        .then((opts: Array<FilterChipDropdownOption>) => {
+          if (!cancelled) {
+            setLoadedOptions(opts);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setLoadedOptions([]);
+          }
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setIsLoading(false);
+          }
+        });
+    }, 200);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [isAsync, isComponentVisible, searchText, props.loadOptions]);
 
   const selectedValues: Array<string> = useMemo((): Array<string> => {
     if (props.value === null) {
@@ -134,22 +222,72 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
 
   const hasValue: boolean = selectedValues.length > 0;
 
-  const selectedOptions: Array<FilterChipDropdownOption> =
-    useMemo((): Array<FilterChipDropdownOption> => {
-      return selectedValues
-        .map((v: string) => {
-          return props.options.find((o: FilterChipDropdownOption) => {
-            return o.value === v;
-          });
-        })
-        .filter(
-          (
-            o: FilterChipDropdownOption | undefined,
-          ): o is FilterChipDropdownOption => {
-            return Boolean(o);
+  /*
+   * Resolve labels for selected values that aren't in loadedOptions or
+   * already-resolved cache. Only relevant in async mode.
+   */
+  useEffect(() => {
+    if (!isAsync || !props.resolveOptions || selectedValues.length === 0) {
+      return;
+    }
+
+    const unresolved: Array<string> = selectedValues.filter((v: string) => {
+      const inLoaded: boolean = loadedOptions.some(
+        (o: FilterChipDropdownOption) => {
+          return o.value === v;
+        },
+      );
+      return !inLoaded && !resolvedSelections[v];
+    });
+
+    if (unresolved.length === 0) {
+      return;
+    }
+
+    let cancelled: boolean = false;
+    props
+      .resolveOptions(unresolved)
+      .then((opts: Array<FilterChipDropdownOption>) => {
+        if (cancelled) {
+          return;
+        }
+        setResolvedSelections(
+          (prev: { [v: string]: FilterChipDropdownOption }) => {
+            const next: { [v: string]: FilterChipDropdownOption } = { ...prev };
+            for (const o of opts) {
+              next[o.value] = o;
+            }
+            return next;
           },
         );
-    }, [selectedValues, props.options]);
+      })
+      .catch(() => {
+        // leave unresolved; chip falls back to raw value as the label
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  }, [isAsync, props.resolveOptions, selectedValues, loadedOptions]);
+
+  const selectedOptions: Array<FilterChipDropdownOption> =
+    useMemo((): Array<FilterChipDropdownOption> => {
+      return selectedValues.map((v: string) => {
+        const fromLoaded: FilterChipDropdownOption | undefined =
+          loadedOptions.find((o: FilterChipDropdownOption) => {
+            return o.value === v;
+          });
+        if (fromLoaded) {
+          return fromLoaded;
+        }
+        if (resolvedSelections[v]) {
+          return resolvedSelections[v]!;
+        }
+        // Fallback so the chip still renders something usable.
+        return { value: v, label: v };
+      });
+    }, [selectedValues, loadedOptions, resolvedSelections]);
 
   const displayValue: string = useMemo((): string => {
     if (selectedOptions.length === 0) {
@@ -167,19 +305,23 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
     return `${visible.join(", ")}${extra > 0 ? ` +${extra}` : ""}`;
   }, [selectedOptions]);
 
+  // In async mode, the server already filtered — don't re-filter client-side.
   const filteredOptions: Array<FilterChipDropdownOption> =
     useMemo((): Array<FilterChipDropdownOption> => {
+      if (isAsync) {
+        return loadedOptions;
+      }
       const trimmed: string = searchText.trim().toLowerCase();
       if (!trimmed) {
-        return props.options;
+        return loadedOptions;
       }
-      return props.options.filter((o: FilterChipDropdownOption) => {
+      return loadedOptions.filter((o: FilterChipDropdownOption) => {
         return (
           o.label.toLowerCase().includes(trimmed) ||
           (o.sublabel ? o.sublabel.toLowerCase().includes(trimmed) : false)
         );
       });
-    }, [searchText, props.options]);
+    }, [isAsync, searchText, loadedOptions]);
 
   const groupedOptions: Array<{
     group: string | undefined;
@@ -359,7 +501,13 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
             role="listbox"
             aria-multiselectable={isMulti}
           >
-            {filteredOptions.length === 0 && (
+            {isLoading && (
+              <div className="flex items-center justify-center gap-2 px-3 py-3 text-xs text-gray-500">
+                <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-500" />
+                Loading...
+              </div>
+            )}
+            {!isLoading && filteredOptions.length === 0 && (
               <div className="flex flex-col items-center gap-2 px-3 py-6 text-center">
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100">
                   <Icon
@@ -372,7 +520,9 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                     No matches
                   </p>
                   <p className="text-xs text-gray-400">
-                    Try a different search term
+                    {searchText.trim()
+                      ? "Try a different search term"
+                      : "Type to search"}
                   </p>
                 </div>
               </div>

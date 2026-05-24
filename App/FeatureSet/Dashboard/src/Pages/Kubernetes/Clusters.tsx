@@ -72,6 +72,8 @@ const KubernetesClusters: FunctionComponent<
     onResourcesFetched,
     filterBar,
     mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
   } = useResourceOwners<KubernetesCluster>({
     ownerUserModelType: KubernetesClusterOwnerUser,
     ownerTeamModelType: KubernetesClusterOwnerTeam,
@@ -127,6 +129,8 @@ const KubernetesClusters: FunctionComponent<
         id="kubernetes-clusters-table"
         userPreferencesKey="kubernetes-clusters-table"
         topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(undefined)}
         onFetchSuccess={(data: Array<KubernetesCluster>) => {
           onResourcesFetched(data);

@@ -1,22 +1,50 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Label from "Common/Models/DatabaseModels/Label";
 import Team from "Common/Models/DatabaseModels/Team";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
+import Search from "Common/Types/BaseDatabase/Search";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
+import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import React, { ReactElement, useEffect, useMemo, useState } from "react";
-import ProjectUser from "../../Utils/ProjectUser";
+import React, {
+  ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import FilterChipDropdown, {
   FilterChipDropdownOption,
 } from "./FilterChipDropdown";
 import { ResourceOwnerEntry } from "./OwnerEntry";
+
+const PICKER_PAGE_SIZE: number = 50;
+
+const getInitials: (name: string) => string = (name: string): string => {
+  const parts: Array<string> = name
+    .trim()
+    .split(/\s+/)
+    .filter((p: string) => {
+      return p.length > 0;
+    });
+  if (parts.length === 0) {
+    return "?";
+  }
+  if (parts.length === 1) {
+    return parts[0]!.charAt(0).toUpperCase();
+  }
+  return (
+    parts[0]!.charAt(0) + parts[parts.length - 1]!.charAt(0)
+  ).toUpperCase();
+};
 
 type OwnerJunctionModel = BaseModel & {
   user?: User;
@@ -34,14 +62,38 @@ export interface ResourceFacet {
   isMultiSelect?: boolean | undefined;
   /** Hint shown inside the popover search box. */
   searchPlaceholder?: string | undefined;
-  /** Static option list (use either this or `fetchOptions`). */
+  /** Static option list (use either this or `fetchOptions` / `loadOptions`). */
   options?: Array<FilterChipDropdownOption> | undefined;
   /**
    * Dynamic option list, fetched once on mount. Receives the current
-   * project's id.
+   * project's id. Suitable for bounded option sets (state, severity,
+   * status — typically <100 rows).
    */
   fetchOptions?:
     | ((projectId: ObjectID) => Promise<Array<FilterChipDropdownOption>>)
+    | undefined;
+  /**
+   * Async loader for unbounded / very large option sets (e.g. a Monitor
+   * picker on a project with thousands of monitors). The chip calls this
+   * on open and on each (debounced) keystroke, so the server does the
+   * heavy lifting. When set, `options` / `fetchOptions` are ignored.
+   */
+  loadOptions?:
+    | ((
+        projectId: ObjectID,
+        searchTerm: string,
+      ) => Promise<Array<FilterChipDropdownOption>>)
+    | undefined;
+  /**
+   * Companion to `loadOptions`. Resolves a set of previously-selected
+   * values (e.g. from a saved view) into options so the chip can show
+   * proper labels even when the values aren't in the current search page.
+   */
+  resolveOptions?:
+    | ((
+        projectId: ObjectID,
+        values: Array<string>,
+      ) => Promise<Array<FilterChipDropdownOption>>)
     | undefined;
   /**
    * Query field name. Defaults to `key`. Useful when the chip key differs
@@ -93,6 +145,17 @@ export interface UseResourceOwnersResult<TResource extends BaseModel> {
     base: Query<TResource> | undefined,
   ) => Query<TResource>;
   hasActiveFilters: boolean;
+  /**
+   * Serializable snapshot of all facet selections (owner, labels, extras).
+   * Pass to ModelTable's `currentFacetState` so saved views capture it.
+   */
+  facetSaveState: JSONObject;
+  /**
+   * Restore the hook's selections from a previously saved snapshot. Wire to
+   * ModelTable's `onFacetStateRestored` so loading a saved view restores
+   * the chips.
+   */
+  restoreFacetState: (state: JSONObject | null) => void;
 }
 
 type OwnerSelectionKind = "user" | "team";
@@ -129,10 +192,6 @@ const useResourceOwners: <TResource extends BaseModel>(
   }>({});
   const [isLoadingOwners, setIsLoadingOwners] = useState<boolean>(false);
 
-  const [userOptions, setUserOptions] = useState<Array<DropdownOption>>([]);
-  const [teamOptions, setTeamOptions] = useState<Array<DropdownOption>>([]);
-  const [labelOptions, setLabelOptions] = useState<Array<DropdownOption>>([]);
-
   const [selectedOwnerKeys, setSelectedOwnerKeys] = useState<Array<string>>([]);
   const [selectedLabelIds, setSelectedLabelIds] = useState<Array<string>>([]);
 
@@ -150,82 +209,14 @@ const useResourceOwners: <TResource extends BaseModel>(
 
   useEffect(() => {
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-
-    if (!projectId) {
-      return;
-    }
-
-    const fetchOptions: () => Promise<void> = async (): Promise<void> => {
-      try {
-        const [users, teamsResult, labelsResult]: [
-          Array<DropdownOption>,
-          ListResult<Team>,
-          ListResult<Label> | null,
-        ] = await Promise.all([
-          ProjectUser.fetchProjectUsersAsDropdownOptions(projectId),
-          ModelAPI.getList<Team>({
-            modelType: Team,
-            query: { projectId: projectId },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: {
-              _id: true,
-              name: true,
-            },
-            sort: { name: 1 },
-          }),
-          showLabelsFacet
-            ? ModelAPI.getList<Label>({
-                modelType: Label,
-                query: { projectId: projectId },
-                limit: LIMIT_PER_PROJECT,
-                skip: 0,
-                select: {
-                  _id: true,
-                  name: true,
-                },
-                sort: { name: 1 },
-              })
-            : Promise.resolve(null),
-        ]);
-
-        setUserOptions(users);
-        setTeamOptions(
-          teamsResult.data.map((team: Team) => {
-            return {
-              value: team._id as string,
-              label: team.name?.toString() || "",
-            };
-          }),
-        );
-
-        if (labelsResult) {
-          setLabelOptions(
-            labelsResult.data.map((label: Label) => {
-              return {
-                value: label._id as string,
-                label: label.name?.toString() || "",
-              };
-            }),
-          );
-        }
-      } catch {
-        // dropdowns will stay empty; filter still degrades gracefully
-      }
-    };
-
-    fetchOptions();
-  }, [showLabelsFacet]);
-
-  useEffect(() => {
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
     if (!projectId) {
       return;
     }
 
     const facetsToFetch: Array<ResourceFacet> = extraFacets.filter(
       (f: ResourceFacet) => {
-        return Boolean(f.fetchOptions);
+        // Skip facets with loadOptions — the chip will lazy-load instead.
+        return Boolean(f.fetchOptions) && !f.loadOptions;
       },
     );
 
@@ -606,61 +597,290 @@ const useResourceOwners: <TResource extends BaseModel>(
       anyExtraFacetActive,
   );
 
-  const getInitials: (name: string) => string = (name: string): string => {
-    const parts: Array<string> = name
-      .trim()
-      .split(/\s+/)
-      .filter((p: string) => {
-        return p.length > 0;
-      });
-    if (parts.length === 0) {
-      return "?";
-    }
-    if (parts.length === 1) {
-      return parts[0]!.charAt(0).toUpperCase();
-    }
-    return (
-      parts[0]!.charAt(0) + parts[parts.length - 1]!.charAt(0)
-    ).toUpperCase();
-  };
+  /**
+   * Server-side search for the Owner chip. Hits TeamMember + Team in
+   * parallel, dedups users, and returns up to 50 of each kind.
+   */
+  const loadOwners: (
+    searchTerm: string,
+  ) => Promise<Array<FilterChipDropdownOption>> = useCallback(
+    async (searchTerm: string): Promise<Array<FilterChipDropdownOption>> => {
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+      if (!projectId) {
+        return [];
+      }
 
-  const ownerChipOptions: Array<FilterChipDropdownOption> =
-    useMemo((): Array<FilterChipDropdownOption> => {
-      const users: Array<FilterChipDropdownOption> = userOptions.map(
-        (o: DropdownOption) => {
-          return {
-            value: `${OWNER_KEY_PREFIX.user}${o.value.toString()}`,
-            label: o.label,
-            initials: getInitials(o.label),
+      const trimmed: string = searchTerm.trim();
+      const userQuery: Query<TeamMember> = {
+        projectId: projectId,
+      } as Query<TeamMember>;
+      const teamQuery: Query<Team> = {
+        projectId: projectId,
+      } as Query<Team>;
+
+      if (trimmed) {
+        // Search nested user.name for TeamMember and name for Team.
+        (userQuery as unknown as Record<string, unknown>)["user"] = {
+          name: new Search(trimmed),
+        };
+        (teamQuery as unknown as Record<string, unknown>)["name"] = new Search(
+          trimmed,
+        );
+      }
+
+      try {
+        const [teamMembersResult, teamsResult]: [
+          ListResult<TeamMember>,
+          ListResult<Team>,
+        ] = await Promise.all([
+          ModelAPI.getList<TeamMember>({
+            modelType: TeamMember,
+            query: userQuery,
+            limit: PICKER_PAGE_SIZE,
+            skip: 0,
+            select: {
+              _id: true,
+              user: {
+                _id: true,
+                name: true,
+                email: true,
+              },
+            },
+            sort: {},
+          }),
+          ModelAPI.getList<Team>({
+            modelType: Team,
+            query: teamQuery,
+            limit: PICKER_PAGE_SIZE,
+            skip: 0,
+            select: {
+              _id: true,
+              name: true,
+            },
+            sort: { name: SortOrder.Ascending },
+          }),
+        ]);
+
+        const seenUserIds: Set<string> = new Set<string>();
+        const userResults: Array<FilterChipDropdownOption> = [];
+        for (const tm of teamMembersResult.data) {
+          const userId: string | undefined = tm.user?._id?.toString();
+          if (!userId || seenUserIds.has(userId)) {
+            continue;
+          }
+          seenUserIds.add(userId);
+          const label: string =
+            tm.user?.name?.toString() || tm.user?.email?.toString() || "";
+          userResults.push({
+            value: `${OWNER_KEY_PREFIX.user}${userId}`,
+            label: label,
+            initials: getInitials(label),
             icon: IconProp.User,
             group: "People",
-          };
-        },
-      );
-      const teams: Array<FilterChipDropdownOption> = teamOptions.map(
-        (o: DropdownOption) => {
-          return {
-            value: `${OWNER_KEY_PREFIX.team}${o.value.toString()}`,
-            label: o.label,
-            initials: getInitials(o.label),
-            icon: IconProp.Team,
-            group: "Teams",
-          };
-        },
-      );
-      return [...users, ...teams];
-    }, [userOptions, teamOptions]);
+          });
+        }
 
-  const labelChipOptions: Array<FilterChipDropdownOption> =
-    useMemo((): Array<FilterChipDropdownOption> => {
-      return labelOptions.map((o: DropdownOption) => {
-        return {
-          value: o.value.toString(),
-          label: o.label,
-          initials: getInitials(o.label),
-        };
-      });
-    }, [labelOptions]);
+        const teamResults: Array<FilterChipDropdownOption> =
+          teamsResult.data.map((t: Team) => {
+            const label: string = t.name?.toString() || "";
+            return {
+              value: `${OWNER_KEY_PREFIX.team}${t._id as string}`,
+              label: label,
+              initials: getInitials(label),
+              icon: IconProp.Team,
+              group: "Teams",
+            };
+          });
+
+        return [...userResults, ...teamResults];
+      } catch {
+        return [];
+      }
+    },
+    [],
+  );
+
+  /**
+   * Resolve a set of saved Owner keys back into labeled options. Splits
+   * by user:/team: prefix and fetches each kind in one query.
+   */
+  const resolveOwners: (
+    keys: Array<string>,
+  ) => Promise<Array<FilterChipDropdownOption>> = useCallback(
+    async (keys: Array<string>): Promise<Array<FilterChipDropdownOption>> => {
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+      if (!projectId || keys.length === 0) {
+        return [];
+      }
+
+      const userIds: Array<string> = [];
+      const teamIds: Array<string> = [];
+      for (const k of keys) {
+        const parsed: { kind: OwnerSelectionKind; id: string } | null =
+          parseOwnerKey(k);
+        if (parsed?.kind === "user") {
+          userIds.push(parsed.id);
+        } else if (parsed?.kind === "team") {
+          teamIds.push(parsed.id);
+        }
+      }
+
+      const results: Array<FilterChipDropdownOption> = [];
+
+      try {
+        if (userIds.length > 0) {
+          const teamMembersResult: ListResult<TeamMember> =
+            await ModelAPI.getList<TeamMember>({
+              modelType: TeamMember,
+              query: {
+                projectId: projectId,
+                userId: new Includes(userIds),
+              } as Query<TeamMember>,
+              limit: userIds.length,
+              skip: 0,
+              select: {
+                _id: true,
+                user: {
+                  _id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+              sort: {},
+            });
+          const seen: Set<string> = new Set<string>();
+          for (const tm of teamMembersResult.data) {
+            const userId: string | undefined = tm.user?._id?.toString();
+            if (!userId || seen.has(userId)) {
+              continue;
+            }
+            seen.add(userId);
+            const label: string =
+              tm.user?.name?.toString() || tm.user?.email?.toString() || "";
+            results.push({
+              value: `${OWNER_KEY_PREFIX.user}${userId}`,
+              label: label,
+              initials: getInitials(label),
+              icon: IconProp.User,
+              group: "People",
+            });
+          }
+        }
+
+        if (teamIds.length > 0) {
+          const teamsResult: ListResult<Team> = await ModelAPI.getList<Team>({
+            modelType: Team,
+            query: {
+              projectId: projectId,
+              _id: new Includes(teamIds),
+            } as Query<Team>,
+            limit: teamIds.length,
+            skip: 0,
+            select: { _id: true, name: true },
+            sort: {},
+          });
+          for (const t of teamsResult.data) {
+            const label: string = t.name?.toString() || "";
+            results.push({
+              value: `${OWNER_KEY_PREFIX.team}${t._id as string}`,
+              label: label,
+              initials: getInitials(label),
+              icon: IconProp.Team,
+              group: "Teams",
+            });
+          }
+        }
+      } catch {
+        // ignore — chip will fall back to raw value as label
+      }
+
+      return results;
+    },
+    [],
+  );
+
+  /**
+   * Server-side search for the Labels chip.
+   */
+  const loadLabelsForChip: (
+    searchTerm: string,
+  ) => Promise<Array<FilterChipDropdownOption>> = useCallback(
+    async (searchTerm: string): Promise<Array<FilterChipDropdownOption>> => {
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+      if (!projectId) {
+        return [];
+      }
+
+      const trimmed: string = searchTerm.trim();
+      const query: Query<Label> = { projectId: projectId } as Query<Label>;
+      if (trimmed) {
+        (query as unknown as Record<string, unknown>)["name"] = new Search(
+          trimmed,
+        );
+      }
+
+      try {
+        const result: ListResult<Label> = await ModelAPI.getList<Label>({
+          modelType: Label,
+          query: query,
+          limit: PICKER_PAGE_SIZE,
+          skip: 0,
+          select: { _id: true, name: true },
+          sort: { name: SortOrder.Ascending },
+        });
+        return result.data.map((l: Label) => {
+          const label: string = l.name?.toString() || "";
+          return {
+            value: l._id as string,
+            label: label,
+            initials: getInitials(label),
+          };
+        });
+      } catch {
+        return [];
+      }
+    },
+    [],
+  );
+
+  /**
+   * Resolve saved label IDs to options.
+   */
+  const resolveLabelsForChip: (
+    ids: Array<string>,
+  ) => Promise<Array<FilterChipDropdownOption>> = useCallback(
+    async (ids: Array<string>): Promise<Array<FilterChipDropdownOption>> => {
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+      if (!projectId || ids.length === 0) {
+        return [];
+      }
+
+      try {
+        const result: ListResult<Label> = await ModelAPI.getList<Label>({
+          modelType: Label,
+          query: {
+            projectId: projectId,
+            _id: new Includes(ids),
+          } as Query<Label>,
+          limit: ids.length,
+          skip: 0,
+          select: { _id: true, name: true },
+          sort: {},
+        });
+        return result.data.map((l: Label) => {
+          const label: string = l.name?.toString() || "";
+          return {
+            value: l._id as string,
+            label: label,
+            initials: getInitials(label),
+          };
+        });
+      } catch {
+        return [];
+      }
+    },
+    [],
+  );
 
   const filterBar: ReactElement = useMemo((): ReactElement => {
     return (
@@ -672,7 +892,8 @@ const useResourceOwners: <TResource extends BaseModel>(
         <FilterChipDropdown
           label="Owner"
           emptyIcon={IconProp.User}
-          options={ownerChipOptions}
+          loadOptions={loadOwners}
+          resolveOptions={resolveOwners}
           isMultiSelect={true}
           value={selectedOwnerKeys}
           searchPlaceholder="Search people and teams..."
@@ -693,7 +914,8 @@ const useResourceOwners: <TResource extends BaseModel>(
           <FilterChipDropdown
             label="Labels"
             emptyIcon={IconProp.Tag}
-            options={labelChipOptions}
+            loadOptions={loadLabelsForChip}
+            resolveOptions={resolveLabelsForChip}
             isMultiSelect={true}
             value={selectedLabelIds}
             searchPlaceholder="Search labels..."
@@ -717,12 +939,40 @@ const useResourceOwners: <TResource extends BaseModel>(
           const value: string | Array<string> | null = facet.isMultiSelect
             ? selected
             : selected[0] || null;
+          const loadOptions:
+            | ((searchTerm: string) => Promise<Array<FilterChipDropdownOption>>)
+            | undefined = facet.loadOptions
+            ? (searchTerm: string) => {
+                const projectId: ObjectID | null =
+                  ProjectUtil.getCurrentProjectId();
+                if (!projectId) {
+                  return Promise.resolve([]);
+                }
+                return facet.loadOptions!(projectId, searchTerm);
+              }
+            : undefined;
+          const resolveOptions:
+            | ((
+                values: Array<string>,
+              ) => Promise<Array<FilterChipDropdownOption>>)
+            | undefined = facet.resolveOptions
+            ? (values: Array<string>) => {
+                const projectId: ObjectID | null =
+                  ProjectUtil.getCurrentProjectId();
+                if (!projectId) {
+                  return Promise.resolve([]);
+                }
+                return facet.resolveOptions!(projectId, values);
+              }
+            : undefined;
           return (
             <FilterChipDropdown
               key={facet.key}
               label={facet.label}
               emptyIcon={facet.icon}
-              options={opts}
+              options={loadOptions ? undefined : opts}
+              loadOptions={loadOptions}
+              resolveOptions={resolveOptions}
               isMultiSelect={facet.isMultiSelect}
               value={value}
               searchPlaceholder={facet.searchPlaceholder}
@@ -759,8 +1009,10 @@ const useResourceOwners: <TResource extends BaseModel>(
       </div>
     );
   }, [
-    ownerChipOptions,
-    labelChipOptions,
+    loadOwners,
+    resolveOwners,
+    loadLabelsForChip,
+    resolveLabelsForChip,
     selectedOwnerKeys,
     selectedLabelIds,
     showLabelsFacet,
@@ -770,6 +1022,68 @@ const useResourceOwners: <TResource extends BaseModel>(
     facetDynamicOptions,
   ]);
 
+  const facetSaveState: JSONObject = useMemo((): JSONObject => {
+    return {
+      selectedOwnerKeys: selectedOwnerKeys,
+      selectedLabelIds: selectedLabelIds,
+      facetSelections: facetSelections as unknown as JSONObject,
+    };
+  }, [selectedOwnerKeys, selectedLabelIds, facetSelections]);
+
+  const restoreFacetState: (state: JSONObject | null) => void = (
+    state: JSONObject | null,
+  ): void => {
+    if (!state) {
+      setSelectedOwnerKeys([]);
+      setSelectedLabelIds([]);
+      setFacetSelections({});
+      return;
+    }
+
+    const rawOwners: unknown = state["selectedOwnerKeys"];
+    if (Array.isArray(rawOwners)) {
+      setSelectedOwnerKeys(
+        rawOwners.filter((v: unknown): v is string => {
+          return typeof v === "string";
+        }),
+      );
+    } else {
+      setSelectedOwnerKeys([]);
+    }
+
+    const rawLabels: unknown = state["selectedLabelIds"];
+    if (Array.isArray(rawLabels)) {
+      setSelectedLabelIds(
+        rawLabels.filter((v: unknown): v is string => {
+          return typeof v === "string";
+        }),
+      );
+    } else {
+      setSelectedLabelIds([]);
+    }
+
+    const rawSelections: unknown = state["facetSelections"];
+    if (
+      rawSelections &&
+      typeof rawSelections === "object" &&
+      !Array.isArray(rawSelections)
+    ) {
+      const next: { [k: string]: Array<string> } = {};
+      for (const [k, v] of Object.entries(
+        rawSelections as Record<string, unknown>,
+      )) {
+        if (Array.isArray(v)) {
+          next[k] = v.filter((x: unknown): x is string => {
+            return typeof x === "string";
+          });
+        }
+      }
+      setFacetSelections(next);
+    } else {
+      setFacetSelections({});
+    }
+  };
+
   return {
     ownersByResourceId,
     isLoadingOwners,
@@ -777,6 +1091,8 @@ const useResourceOwners: <TResource extends BaseModel>(
     filterBar,
     mergeFiltersIntoQuery,
     hasActiveFilters,
+    facetSaveState,
+    restoreFacetState,
   };
 };
 

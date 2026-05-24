@@ -32,6 +32,8 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
     onResourcesFetched,
     filterBar,
     mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
   } = useResourceOwners<StatusPage>({
     ownerUserModelType: StatusPageOwnerUser,
     ownerTeamModelType: StatusPageOwnerTeam,
@@ -43,6 +45,8 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
     <div>
       <ModelTable<StatusPage>
         topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(undefined)}
         onFetchSuccess={(data: Array<StatusPage>) => {
           onResourcesFetched(data);

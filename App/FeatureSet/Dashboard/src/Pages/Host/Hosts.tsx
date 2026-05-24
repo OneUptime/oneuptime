@@ -125,6 +125,8 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     onResourcesFetched,
     filterBar,
     mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
   } = useResourceOwners<Host>({
     ownerUserModelType: HostOwnerUser,
     ownerTeamModelType: HostOwnerTeam,
@@ -182,6 +184,8 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           tableId: "hosts-table",
         }}
         topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(undefined)}
         onFetchSuccess={(data: Array<Host>) => {
           onResourcesFetched(data);

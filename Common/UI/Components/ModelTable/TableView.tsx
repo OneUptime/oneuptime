@@ -26,6 +26,7 @@ import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import Sort from "../../../Types/BaseDatabase/Sort";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
+import { JSONObject } from "../../../Types/JSON";
 
 export interface ComponentProps<T extends GenericObject> {
   tableId: string;
@@ -34,6 +35,11 @@ export interface ComponentProps<T extends GenericObject> {
   currentSortOrder: SortOrder | null;
   currentSortBy: keyof T | null;
   currentItemsOnPage: number;
+  /**
+   * Opaque facet snapshot persisted alongside the saved view (stored on
+   * `TableView.facets`). Owner: the parent's filter hook.
+   */
+  currentFacetState?: JSONObject | undefined;
   tableView: TableView | null;
 }
 
@@ -318,6 +324,9 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
             >) || {};
           tableView.itemsOnPage = props?.currentItemsOnPage || 10;
           tableView.sort = sort || {};
+          if (props.currentFacetState) {
+            tableView.facets = props.currentFacetState;
+          }
           return Promise.resolve(tableView);
         }}
         onSuccess={async (tableView: TableView) => {

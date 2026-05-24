@@ -141,6 +141,8 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     onResourcesFetched,
     filterBar,
     mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
   } = useResourceOwners<ScheduledMaintenance>({
     ownerUserModelType: ScheduledMaintenanceOwnerUser,
     ownerTeamModelType: ScheduledMaintenanceOwnerTeam,
@@ -373,6 +375,8 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
         }}
         isDeleteable={false}
         topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(props.query)}
         onFetchSuccess={(data: Array<ScheduledMaintenance>) => {
           onResourcesFetched(data);

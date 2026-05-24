@@ -34,6 +34,8 @@ const OnCallDutyPage: FunctionComponent<
     onResourcesFetched,
     filterBar,
     mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
   } = useResourceOwners<OnCallDutyPolicy>({
     ownerUserModelType: OnCallDutyPolicyOwnerUser,
     ownerTeamModelType: OnCallDutyPolicyOwnerTeam,
@@ -48,6 +50,8 @@ const OnCallDutyPage: FunctionComponent<
         id="on-call-duty-table"
         userPreferencesKey="on-call-duty-table"
         topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(undefined)}
         onFetchSuccess={(data: Array<OnCallDutyPolicy>) => {
           onResourcesFetched(data);

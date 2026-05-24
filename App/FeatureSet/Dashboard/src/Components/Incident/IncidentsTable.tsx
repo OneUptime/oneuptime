@@ -23,6 +23,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import Query from "Common/Types/BaseDatabase/Query";
+import Search from "Common/Types/BaseDatabase/Search";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -167,16 +168,50 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
       icon: IconProp.Signal,
       isMultiSelect: true,
       searchPlaceholder: "Search monitors...",
-      fetchOptions: async (
+      loadOptions: async (
         projectId: ObjectID,
+        searchTerm: string,
       ): Promise<Array<FilterChipDropdownOption>> => {
+        const query: Query<Monitor> = {
+          projectId: projectId,
+        } as Query<Monitor>;
+        if (searchTerm.trim()) {
+          (query as unknown as Record<string, unknown>)["name"] = new Search(
+            searchTerm.trim(),
+          );
+        }
         const result: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
           modelType: Monitor,
-          query: { projectId: projectId },
-          limit: LIMIT_PER_PROJECT,
+          query: query,
+          limit: 50,
           skip: 0,
           select: { _id: true, name: true },
           sort: { name: SortOrder.Ascending },
+        });
+        return result.data.map((m: Monitor) => {
+          return {
+            value: m.id?.toString() || "",
+            label: m.name?.toString() || "",
+          };
+        });
+      },
+      resolveOptions: async (
+        projectId: ObjectID,
+        values: Array<string>,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        if (values.length === 0) {
+          return [];
+        }
+        const result: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
+          modelType: Monitor,
+          query: {
+            projectId: projectId,
+            _id: new Includes(values),
+          } as Query<Monitor>,
+          limit: values.length,
+          skip: 0,
+          select: { _id: true, name: true },
+          sort: {},
         });
         return result.data.map((m: Monitor) => {
           return {
@@ -201,6 +236,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
     onResourcesFetched,
     filterBar,
     mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
   } = useResourceOwners<Incident>({
     ownerUserModelType: IncidentOwnerUser,
     ownerTeamModelType: IncidentOwnerTeam,
@@ -433,6 +470,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         isDeleteable={false}
         showCreateForm={false}
         topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(props.query)}
         onFetchSuccess={(data: Array<Incident>) => {
           onResourcesFetched(data);

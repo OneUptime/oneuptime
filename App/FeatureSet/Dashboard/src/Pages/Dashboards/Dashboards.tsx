@@ -52,6 +52,8 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
     onResourcesFetched,
     filterBar,
     mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
   } = useResourceOwners<Dashboard>({
     ownerUserModelType: DashboardOwnerUser,
     ownerTeamModelType: DashboardOwnerTeam,
@@ -104,6 +106,8 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="dashboard-table"
         userPreferencesKey="dashboards-table"
         topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(undefined)}
         onFetchSuccess={(data: Array<Dashboard>) => {
           onResourcesFetched(data);

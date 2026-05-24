@@ -70,6 +70,8 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     onResourcesFetched,
     filterBar,
     mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
   } = useResourceOwners<DockerHost>({
     ownerUserModelType: DockerHostOwnerUser,
     ownerTeamModelType: DockerHostOwnerTeam,
@@ -124,6 +126,8 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="docker-hosts-table"
         userPreferencesKey="docker-hosts-table"
         topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(undefined)}
         onFetchSuccess={(data: Array<DockerHost>) => {
           onResourcesFetched(data);
