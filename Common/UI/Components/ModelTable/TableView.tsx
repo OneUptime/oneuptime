@@ -89,6 +89,7 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
           itemsOnPage: true,
           query: true,
           name: true,
+          facets: true,
         },
         sort: {
           name: SortOrder.Ascending,
