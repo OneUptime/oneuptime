@@ -24,6 +24,7 @@ const UseTimezoneInitElement: FunctionComponent = (): ReactElement => {
   ): Promise<void> => {
     try {
       User.setSavedUserTimezone(timezone);
+      User.clearDismissedTimezonePrompt();
 
       await ModelAPI.updateById({
         id: User.getUserId(),
@@ -48,16 +49,27 @@ const UseTimezoneInitElement: FunctionComponent = (): ReactElement => {
       const guessTimezone: Timezone = OneUptimeDate.getCurrentTimezone();
       const userTimezone: Timezone | null = User.getSavedUserTimezone();
 
-      if (userTimezone === null || userTimezone !== guessTimezone) {
-        if (userTimezone !== null) {
-          // show confirm dialog to the usert to update the timezone
-          setShowConfirmModal(true);
-          setTimezoneToSave(guessTimezone);
-        } else {
-          // update user timezone to the server and save it to the local storage as well.
-          await updateUserTimezone(guessTimezone);
-        }
+      if (userTimezone === null) {
+        // first time — silently save the browser timezone
+        await updateUserTimezone(guessTimezone);
+        return;
       }
+
+      if (userTimezone === guessTimezone) {
+        return;
+      }
+
+      // Suppress the prompt if the user has already dismissed it for this
+      // exact browser timezone. We will re-prompt only if the browser
+      // timezone changes again.
+      const dismissedTimezone: Timezone | null =
+        User.getDismissedTimezonePrompt();
+      if (dismissedTimezone === guessTimezone) {
+        return;
+      }
+
+      setShowConfirmModal(true);
+      setTimezoneToSave(guessTimezone);
     }
   }, []);
 
@@ -76,6 +88,9 @@ const UseTimezoneInitElement: FunctionComponent = (): ReactElement => {
         }
         onClose={() => {
           setShowConfirmModal(false);
+          if (timezoneToSave) {
+            User.setDismissedTimezonePrompt(timezoneToSave);
+          }
         }}
         submitButtonText={"Update Timezone"}
         onSubmit={async () => {
