@@ -30,23 +30,26 @@ LABEL org.opencontainers.image.licenses="Apache-2.0"
 LABEL org.opencontainers.image.revision="${GIT_SHA}"
 LABEL org.opencontainers.image.version="${APP_VERSION}"
 
-## Add Intermediate Certs
+# Install runtime tools (bash, curl, ca-certificates) in a single layer with
+# cache cleanup. ca-certificates is required by `update-ca-certificates` below.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        bash \
+        curl \
+    && rm -rf /var/lib/apt/lists/*
+
+## Add Intermediate Certs (ca-certificates is now installed above)
 COPY ./SslCertificates /usr/local/share/ca-certificates
 RUN update-ca-certificates
 
-
-
-
-RUN apt-get update
-
-# Install bash.
-RUN apt-get install bash -y && apt-get install curl -y
-
-# Install OpenCode AI coding assistant
-RUN curl -fsSL https://opencode.ai/install | bash
-
-# Add OpenCode to PATH (installed to $HOME/.opencode/bin by default)
-ENV PATH="/root/.opencode/bin:${PATH}"
+# Install OpenCode AI coding assistant. The installer defaults to
+# $HOME/.opencode (i.e. /root/.opencode), which is unreachable from non-root
+# users because /root is mode 700. Relocate to /usr/local/opencode so the
+# `node` user can read+execute the CLI when we drop privileges below.
+RUN curl -fsSL https://opencode.ai/install | bash \
+    && mv /root/.opencode /usr/local/opencode \
+    && chmod -R a+rx /usr/local/opencode
+ENV PATH="/usr/local/opencode/bin:${PATH}"
 
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
@@ -79,8 +82,10 @@ CMD [ "npm", "run", "dev" ]
 COPY ./AIAgent /usr/src/app
 # Bundle app source
 RUN npm run compile
-# Set permission to write logs and cache in case container run as non root
-RUN chown -R 1000:1000 "/tmp/npm" && chmod -R 2777 "/tmp/npm"
+# Ensure runtime dirs are owned by the non-root `node` user (UID 1000) so the
+# container can run as non-root.
+RUN chown -R 1000:1000 /usr/src /tmp/npm && chmod -R 2777 /tmp/npm
+USER node
 #Run the app
 CMD [ "npm", "start" ]
 {{ end }}

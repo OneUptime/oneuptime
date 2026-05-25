@@ -33,15 +33,23 @@ LABEL org.opencontainers.image.revision="${GIT_SHA}"
 LABEL org.opencontainers.image.version="${APP_VERSION}"
 
 
-# Install bash. 
-RUN apt-get install bash -y && apt-get install curl -y
-
-# Install python
-RUN apt-get update && apt-get install -y .gyp python3 make g++
-
-# Install playwright dependencies
-RUN apt-get install -y libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libgtk-3-0 libpango-1.0-0 libcairo2 libgdk-pixbuf2.0-0 libasound2 libatspi2.0-0
-
+# Install OS packages in a single layer:
+#   - Runtime tools: bash, curl
+#   - Build toolchain: python3, make, g++ (removed later, after npm install)
+#   - Playwright/Chromium system libs
+# `--no-install-recommends` keeps the surface small. apt cache is cleaned in
+# the same RUN so package metadata doesn't persist in the layer.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        bash \
+        curl \
+        python3 \
+        make \
+        g++ \
+        libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+        libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+        libgbm1 libgtk-3-0 libpango-1.0-0 libcairo2 libgdk-pixbuf2.0-0 \
+        libasound2 libatspi2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
 
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
@@ -66,7 +74,16 @@ RUN npm install
 COPY ./E2E /usr/src/app
 
 RUN npm run compile
-# Set permission to write logs and cache in case container run as non root
-RUN chown -R 1000:1000 "/tmp/npm" && chmod -R 2777 "/tmp/npm"
+
+# Remove the build toolchain (python3/make/g++) now that all native npm
+# modules have been compiled. This keeps build-time CVEs out of the runtime image.
+RUN apt-get purge -y --auto-remove python3 make g++ \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+
+# Ensure runtime dirs are owned by the non-root `node` user (UID 1000) so the
+# container can run as non-root.
+RUN chown -R 1000:1000 /usr/src /tmp/npm && chmod -R 2777 /tmp/npm
+USER node
 #Run the app
 CMD [ "npm", "test" ]

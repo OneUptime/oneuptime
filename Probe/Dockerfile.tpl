@@ -88,9 +88,16 @@ WORKDIR /usr/src/app
 COPY ./Probe/package*.json /usr/src/app/
 RUN npm install
 
-# Install browsers to a fixed path accessible by any runtime user (root or non-root)
+# Install browsers to a fixed path accessible by any runtime user (root or non-root).
+# We drop `--with-deps` because Playwright's system dependencies were already
+# installed manually above; otherwise --with-deps re-runs apt-get update and
+# re-populates /var/lib/apt/lists.
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright-browsers
-RUN npx playwright install --with-deps && chmod -R 755 /ms-playwright-browsers
+RUN npx playwright install \
+    && chmod -R 755 /ms-playwright-browsers \
+    && apt-get purge -y --auto-remove python3 make g++ \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 # Use tini as init to properly reap zombie processes (like Chrome/Chromium)
 ENTRYPOINT ["/usr/bin/tini", "--"]
@@ -103,8 +110,11 @@ CMD [ "bash", "/usr/src/app/Start.dev.sh" ]
 COPY ./Probe /usr/src/app
 # Bundle app source
 RUN npm run compile
-# Set permission to write logs and cache in case container run as non root
-RUN chown -R 1000:1000 "/tmp/npm" && chmod -R 2777 "/tmp/npm"
+# Ensure runtime dirs are owned by the non-root `node` user (UID 1000) so the
+# container can run as non-root. /ms-playwright-browsers stays root-owned but
+# was already chmod'd 755 so `node` can read+execute the Chromium binaries.
+RUN chown -R 1000:1000 /usr/src /tmp/npm && chmod -R 2777 /tmp/npm
+USER node
 #Run the app
 CMD [ "npm", "start" ]
 {{ end }}

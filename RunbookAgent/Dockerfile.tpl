@@ -49,7 +49,10 @@ ENV PRODUCTION=true
 
 WORKDIR /usr/src/app
 COPY ./RunbookAgent/package*.json /usr/src/app/
-RUN npm install
+RUN npm install \
+    && apt-get purge -y --auto-remove python3 make g++ \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 # Reap zombie children (e.g. `bash -c` processes the agent spawns).
 ENTRYPOINT ["/usr/bin/tini", "--"]
@@ -60,8 +63,10 @@ CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
 COPY ./RunbookAgent /usr/src/app
-# Set permission to write logs and cache in case container run as non root
-RUN chown -R 1000:1000 "/tmp/npm" && chmod -R 2777 "/tmp/npm"
+# Ensure runtime dirs are owned by the non-root `node` user (UID 1000) so the
+# container can run as non-root.
+RUN chown -R 1000:1000 /usr/src /tmp/npm && chmod -R 2777 /tmp/npm
+USER node
 #Run the app
 CMD [ "npm", "start" ]
 {{ end }}
