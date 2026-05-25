@@ -65,7 +65,7 @@
       "exceptionsTitle": "Ausnahmen",
       "exceptionsDescription": "Bugs über Ihre Dienste hinweg verfolgen und beheben.",
       "servicesTitle": "Dienste",
-      "servicesDescription": "Dienst-Abhängigkeiten verwalten.",
+      "servicesDescription": "Katalogisieren Sie jeden Dienst, den Sie betreiben.",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Kubernetes-Cluster überwachen.",
       "dockerTitle": "Docker",

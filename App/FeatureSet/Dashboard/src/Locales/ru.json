@@ -65,7 +65,7 @@
       "exceptionsTitle": "Исключения",
       "exceptionsDescription": "Отслеживайте и устраняйте баги во всех ваших сервисах.",
       "servicesTitle": "Сервисы",
-      "servicesDescription": "Управление зависимостями сервисов.",
+      "servicesDescription": "Каталогизируйте каждый сервис, который вы запускаете.",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Мониторинг кластеров Kubernetes.",
       "dockerTitle": "Docker",

@@ -65,7 +65,7 @@
       "exceptionsTitle": "Exceptions",
       "exceptionsDescription": "Track and resolve bugs across your services.",
       "servicesTitle": "Services",
-      "servicesDescription": "Manage service dependencies.",
+      "servicesDescription": "Catalog every service you run.",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Monitor Kubernetes clusters.",
       "dockerTitle": "Docker",

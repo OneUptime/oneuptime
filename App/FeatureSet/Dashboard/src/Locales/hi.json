@@ -65,7 +65,7 @@
       "exceptionsTitle": "अपवाद",
       "exceptionsDescription": "अपनी सेवाओं में बग्स को ट्रैक करें और हल करें।",
       "servicesTitle": "सेवाएं",
-      "servicesDescription": "सेवा निर्भरताओं का प्रबंधन करें।",
+      "servicesDescription": "अपनी हर सेवा को कैटलॉग करें।",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Kubernetes क्लस्टर्स की निगरानी करें।",
       "dockerTitle": "Docker",

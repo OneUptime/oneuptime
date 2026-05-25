@@ -65,7 +65,7 @@
       "exceptionsTitle": "Uitzonderingen",
       "exceptionsDescription": "Volg en los bugs op in uw services.",
       "servicesTitle": "Services",
-      "servicesDescription": "Beheer service-afhankelijkheden.",
+      "servicesDescription": "Catalogiseer elke service die je draait.",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Bewaak Kubernetes-clusters.",
       "dockerTitle": "Docker",

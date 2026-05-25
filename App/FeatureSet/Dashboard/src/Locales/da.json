@@ -65,7 +65,7 @@
       "exceptionsTitle": "Undtagelser",
       "exceptionsDescription": "Spor og løs fejl på tværs af dine tjenester.",
       "servicesTitle": "Tjenester",
-      "servicesDescription": "Administrer tjenesteafhængigheder.",
+      "servicesDescription": "Katalogiser hver tjeneste du kører.",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Overvåg Kubernetes-klynger.",
       "dockerTitle": "Docker",

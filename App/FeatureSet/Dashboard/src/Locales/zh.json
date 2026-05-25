@@ -65,7 +65,7 @@
       "exceptionsTitle": "异常",
       "exceptionsDescription": "跨服务跟踪和解决错误。",
       "servicesTitle": "服务",
-      "servicesDescription": "管理服务依赖关系。",
+      "servicesDescription": "为运行的每个服务建立目录。",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "监控 Kubernetes 集群。",
       "dockerTitle": "Docker",

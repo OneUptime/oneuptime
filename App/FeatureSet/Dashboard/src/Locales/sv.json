@@ -65,7 +65,7 @@
       "exceptionsTitle": "Undantag",
       "exceptionsDescription": "Spåra och lös buggar över dina tjänster.",
       "servicesTitle": "Tjänster",
-      "servicesDescription": "Hantera tjänsteberoenden.",
+      "servicesDescription": "Katalogisera varje tjänst du kör.",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Övervaka Kubernetes-kluster.",
       "dockerTitle": "Docker",
