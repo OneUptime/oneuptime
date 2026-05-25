@@ -43,6 +43,74 @@ The comparison column is the best-in-class behavior available today across the A
 | Third-party Improvement agent marketplace | None | None (closed platforms) | **P3** |
 | Provenance / audit trail per AI-authored line | None | Limited (commit author only) | **P0** (non-negotiable) |
 | Reproducer-required gate (no patch without repro) | None | None enforced | **P0** (non-negotiable) |
+| Open-weight models + open-source harness | None | Closed (all current AI-fix products are proprietary stacks) | **P0** (non-negotiable) |
+
+---
+
+## Signal → Fix Catalog
+
+What OneUptime observes (left column) and what an `Improvement` typically proposes (right column). Each row maps to a data source we already ingest or are landing on the broader roadmap. The **Confidence** column is the *starting bias* before per-Improvement scoring: `High` = we expect to earn unattended auto-merge here by Phase 3; `Medium` = open-PR for review by default; `Low` = review-required forever, the AI is a suggester not a deployer. **Phase** is when the agent for that signal first ships.
+
+### Application Telemetry
+
+| Signal | What we see | What we patch | Confidence | Phase |
+|---|---|---|---|---|
+| **Unhandled exception** | `ExceptionInstance` recurring, ≥1 stack frame in owned repo | Null/undefined guard; type narrowing; missing `try/catch`; input validation; off-by-one; race-condition fix | High | 1 |
+| **5xx rate spike on endpoint** | HTTP server span `status=ERROR` rising on a specific operation | Fix the actual 5xx cause traced from spans; or add retry / circuit breaker / timeout fix when the cause is downstream | Medium | 1 |
+| **Error-class spike** | Log `severity=ERROR` matching a message template rising | Same patterns as exceptions; plus error-handling redirects (return vs throw); message-template fix | Medium | 1 |
+| **p95 / p99 latency regression** | Operation latency up ≥X% vs 7-day baseline | N+1 query → batch; missing index (emits a registered migration per `AGENTS.md`); missing cache; payload pagination; sequential awaits → parallel | Medium | 2 |
+| **SLO burn ≥ 2x sustained** | Error budget burn elevated | Composite — routes to the appropriate latency or error fix above | Medium | 2 |
+| **Memory monotonically rising** | RSS growing without GC recovery | Unclosed handle / connection; `removeListener` fix; cache with TTL / LRU eviction; `clearTimeout` / `clearInterval` | Medium | 2 |
+| **CPU sustained high** | Host CPU stuck high on a service process | Memoize; replace expensive regex / `JSON.parse` in hot loop; sync I/O → async; batch | Medium | 2 |
+| **Crash loop** | Kubernetes events show `CrashLoopBackOff`; logs show fatal startup error | Env-var default + clear error message; fix startup ordering; pin transitive dep | High | 2 |
+| **Flaky operation** | High error rate that disappears on retry | Idempotency key; race-condition fix (mutex, atomic compare); timeout-too-short fix | Medium | 2 |
+
+### Infrastructure & Probe Telemetry
+
+| Signal | What we see | What we patch | Confidence | Phase |
+|---|---|---|---|---|
+| **Synthetic HTTP probe failing** | `Probe` reports failure on monitored endpoint | Revert offending config change; fix broken redirect; fix CORS / CSRF config; fix SSL renewal automation | High | 2 |
+| **TLS cert expiring** | Probe surfaces expiry within N days | Fix `cert-manager` config; renew via runbook automation | High | 2 |
+| **Disk filling** | Host disk trending toward full | Add `logrotate`; raise rotation cadence; suppress noisy log line; lower retention | Medium | 2 |
+| **DNS probe failing** | Probe DNS resolution failure | IaC DNS record fix (when Terraform / Pulumi repo linked); flagged for manual otherwise | Low | 2 |
+
+### Dependency & Supply Chain
+
+| Signal | What we see | What we patch | Confidence | Phase |
+|---|---|---|---|---|
+| **CVE in dependency** | OSV.dev advisory matches lockfile | Upgrade + adapt breaking call sites + run tests; pin to safe version; remove unused dep | High (when reachability is proven via telemetry) | 2 |
+| **Deprecated API in use** | Deprecation log emitted at runtime | Migrate call sites to the recommended replacement | Medium | 2 |
+| **Outdated dep, no CVE** | Major version behind current | Upgrade + adapt (opt-in only) | Low | 4 |
+
+### Database & Query
+
+| Signal | What we see | What we patch | Confidence | Phase |
+|---|---|---|---|---|
+| **Slow query** | DB span duration outlier; query text captured | Index migration (registered per `AGENTS.md` postgres convention); query rewrite; `LIMIT` cap | High | 2 |
+| **Connection pool exhaustion** | DB connection errors in logs | `finally { release() }`; convert to pool transaction helper | High | 2 |
+
+### Security & Privacy
+
+| Signal | What we see | What we patch | Confidence | Phase |
+|---|---|---|---|---|
+| **Credentials in logs / URLs** | `LogScrubRule` fires repeatedly on outbound URL | Move secret to header; apply redaction helper; rotate + remove | High | 2 |
+| **Stack trace returned to client** | 5xx response body contains stack-trace pattern | Wrap in generic error handler; log internally, return safe message | High | 2 |
+| **SSRF / open-redirect pattern** | Outbound HTTP from server to user-supplied URL, no allowlist | URL allowlist; reject internal IPs | Medium (review-required) | 3 |
+
+### Cost & Efficiency
+
+| Signal | What we see | What we patch | Confidence | Phase |
+|---|---|---|---|---|
+| **Egress spike** | Outbound bandwidth jump on a service | Cache layer; field projection (select only needed); compression | Medium | 4 |
+| **Storage-class waste** | (Once cloud-cost ingest lands) cold data on hot storage | Lifecycle policy (IaC change) | Low | 4 |
+
+### Code & Usage (Proactive)
+
+| Signal | What we see | What we patch | Confidence | Phase |
+|---|---|---|---|---|
+| **Cold path** | Zero executions in 90 days (span / log absence) | Delete code + tests + downstream usages; or mark deprecated first | Low (review-required) | 4 |
+| **Dead config** | Env var never read; feature flag always-off | Remove from code, config, IaC | Medium | 4 |
+| **Log noise** | One template accounts for > X% of log volume | Lower severity; remove; sample | High | 4 |
 
 ---
 
@@ -55,6 +123,7 @@ These constraints apply to every phase. They exist before features because the f
 3. **Sandbox isolation per customer.** Code execution containers are ephemeral, network-egress-restricted, and never shared across customers. Exceptions carry PII; treat the sandbox as a privacy boundary.
 4. **Provenance on every line.** Every AI-authored change is signed and traceable to `Improvement ID + Agent ID + Model + Prompt hash + Telemetry inputs`. Required for audit, rollback, and post-incident review.
 5. **Close the loop or close the Improvement.** An `Improvement` is not complete when the PR merges — it is complete when the metric it was opened against has moved (error rate, p95, SLO burn). If post-deploy the metric does not move, the Improvement reopens automatically.
+6. **Open weights, open harness.** Every agent in the loop runs on **open-weight models** (Qwen3-Coder, DeepSeek-Coder, GLM, Kimi K2, Llama, Codestral, etc.) routed through an **OpenAI-compatible Model Gateway**, and wraps an **open-source coding harness** ([sst/opencode](https://github.com/sst/opencode) by default; [Goose](https://github.com/block/goose) and [Aider](https://github.com/Aider-AI/aider) as alternatives). Customers can run the full pipeline on their own GPUs — code, telemetry, and prompts never leave their boundary in self-hosted mode. OneUptime ships a hosted default, but never depends on a proprietary model API as the single path. This is why: customer sovereignty (regulated industries cannot ship production code or PII-bearing telemetry to a third-party LLM), predictable cost as the loop scales, and the freedom to swap models as the open-weight frontier moves quarter-to-quarter.
 
 ---
 
@@ -126,6 +195,31 @@ The sandbox is the privacy boundary. Customer code, customer secrets (when neede
 
 **Target**: Keep the existing per-repo model — it is already the right granularity for the autonomy boundary. Add: scoped tokens with minimum permissions (`contents:write`, `pull_requests:write` only — never `admin`), token rotation surfacing, and a "test connection" probe that posts a no-op branch to verify write access before `AutofixPolicy.autonomyLevel` can be raised above `SuggestOnly`.
 
+### 0.6 Open-Source Patch Harness + Model Gateway
+
+**Current**: Old `AIAgent` was wired to a single proprietary model with no abstraction layer — no way to self-host, no role separation, no harness choice.
+
+**Target**: Two new components, both fully open-source and self-hostable. This is the unblocker for Phase 1.2 and 1.3; nothing in Phase 1 lands until 0.6 lands.
+
+**Model Gateway** — an OpenAI-compatible proxy (built on [LiteLLM](https://github.com/BerriAI/litellm), MIT) configured per project. Requests are routed by **role**, not by model name, so the model behind each role can swap without touching agent code:
+
+- `classify_model` — Detect-stage rule firing (does this signal warrant an Improvement?). Cheap and fast. Default: 7B-class open-weight coder.
+- `diagnose_model` — Diagnose-stage reasoning. Default: 30B-class open-weight coder (Qwen3-Coder-30B or DeepSeek-V2.5 class).
+- `patch_model` — Patch-stage code generation. Default: top open-weight coder (Qwen3-Coder-480B MoE, DeepSeek-V3, or Kimi K2).
+- `embed_model` — Repo embeddings for context retrieval. Default: `nomic-embed-code` or `jina-code-v2` (both open-weight).
+
+Each role independently swappable per project to: (a) OneUptime-hosted vLLM / SGLang cluster, (b) the customer's own self-hosted endpoint, (c) a hosted open-source provider (Together AI, Fireworks, OpenRouter, DeepInfra), or (d) for non-OSS-strict customers who explicitly opt in, a commercial API. The default ships pointing at OneUptime-hosted open-weight models. **Specific model names are not load-bearing** — the gateway abstracts them so the frontier can move without re-architecting.
+
+**Patch Harness** — wraps the per-job agentic loop (read repo, edit files, run tests, iterate). Pluggable via a `PatchHarness` interface implemented in `ImprovementRuntime`:
+
+- `OpenCodePatchHarness` (default) — wraps [sst/opencode](https://github.com/sst/opencode); MIT-licensed; TypeScript; runs headless inside the sandbox container (Phase 0.3); consumes the Model Gateway via the OpenAI-compatible base URL.
+- `GoosePatchHarness` — wraps Block's [Goose](https://github.com/block/goose); Apache 2.0; alternative for customers preferring its extension model.
+- `AiderPatchHarness` — wraps [Aider](https://github.com/Aider-AI/aider); Apache 2.0; alternative when diff-precise git-aware editing matters most (smaller, more conservative edits).
+
+Each `Improvement` records `patchHarnessId` + `patchHarnessVersion` + `patchModelId` + `patchModelVersion`. This feeds the Provenance principle and lets us A/B harnesses on the same Improvement queue. The harness choice is per-`AutofixPolicy`, so customers can run a different harness on different services if needed.
+
+**Self-hosted reference deployment.** Ship a Helm chart that brings up the full stack — Improvement Runtime + Sandbox Executor + LiteLLM Gateway + a vLLM-served open-weight `patch_model` — on customer GPUs. This is the proof that "open weights, open harness" isn't a marketing claim: a regulated customer can run the entire AI-fix loop in their own VPC, with zero outbound calls to OneUptime or any LLM provider.
+
 ---
 
 ## Phase 1: Exception → Pull Request, Done Excellently
@@ -148,7 +242,7 @@ Emits one `Improvement` per exception group (not per occurrence). The grouping k
 
 **Current**: None.
 
-**Target**: Diagnose agent (Claude Sonnet via Agent SDK) runs in-process in the new `ImprovementRuntime` worker. Inputs:
+**Target**: Diagnose agent runs in the `ImprovementRuntime` worker, invoking the `diagnose_model` role through the Model Gateway (Phase 0.6, open-weight by default). It does not edit code; it reads via MCP tools (`oneuptime_fetchTelemetrySlice`, `oneuptime_getImprovementContext`) and sandbox commands. Inputs:
 - Full stack trace + resolved source ranges from the linked repo (clone via sandbox)
 - Recent commits to files in the stack trace (last 30 days)
 - Captured request body / env / headers from the `ExceptionInstance` (sanitized through existing `LogScrubRule` PII patterns before entering the prompt)
@@ -162,7 +256,7 @@ Output written to `Improvement.reproducer`: a sandbox script that, when run agai
 
 **Current**: Old `AIAgent` generated a fix but no test, no iterative verification.
 
-**Target**: Patch agent (Claude Opus via Agent SDK) given:
+**Target**: Patch agent runs through the configured `PatchHarness` (Phase 0.6, default `OpenCodePatchHarness`) inside the sandbox container, invoking the `patch_model` role through the Model Gateway. Given:
 - The repo (cloned in sandbox)
 - The reproducer script
 - `package.json` / lint config / test framework detected from the repo

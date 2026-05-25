@@ -1519,7 +1519,10 @@ export class PermissionHelper {
     userPermissions: Array<UserPermission>,
   ): Array<UserPermission> {
     return userPermissions.filter((i: UserPermission) => {
-      if (i.scope === PermissionScope.All || i.scope === PermissionScope.Owned) {
+      if (
+        i.scope === PermissionScope.All ||
+        i.scope === PermissionScope.Owned
+      ) {
         return false;
       }
       return i.labelIds.length > 0;

@@ -15,7 +15,11 @@ describe("Permission", () => {
   });
 });
 
-const makeRow = (
+const makeRow: (
+  permission: Permission,
+  scope: PermissionScope | undefined,
+  labelIds?: Array<ObjectID>,
+) => UserPermission = (
   permission: Permission,
   scope: PermissionScope | undefined,
   labelIds: Array<ObjectID> = [],
