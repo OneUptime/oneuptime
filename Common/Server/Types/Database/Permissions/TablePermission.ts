@@ -56,8 +56,10 @@ export default class TablePermission {
     // 2nd CHECK: Is user project in active state?
     BillingPermissions.checkBillingPermissions(modelType, props, type);
 
-    // 3rd CHECK: Is this an enterprise-only feature being accessed on the
-    // community self-hosted build?
+    /*
+     * 3rd CHECK: Is this an enterprise-only feature being accessed on the
+     * community self-hosted build?
+     */
     EditionPermissions.checkEditionPermissions(modelType, props);
 
     // 4th CHECK: Does user have access to CRUD data on this model.

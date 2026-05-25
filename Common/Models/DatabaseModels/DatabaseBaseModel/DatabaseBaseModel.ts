@@ -119,9 +119,11 @@ export default class DatabaseBaseModel extends BaseEntity {
   public updateBillingPlan!: PlanType | null;
   public deleteBillingPlan!: PlanType | null;
 
-  // Edition gating. When true, the model is only available on the
-  // Enterprise self-hosted edition or on the cloud Enterprise plan.
-  // Set by the @TableEditionAccessControl decorator.
+  /*
+   * Edition gating. When true, the model is only available on the
+   * Enterprise self-hosted edition or on the cloud Enterprise plan.
+   * Set by the @TableEditionAccessControl decorator.
+   */
   public requiresEnterprise!: boolean;
 
   public allowAccessIfSubscriptionIsUnpaid!: boolean;
