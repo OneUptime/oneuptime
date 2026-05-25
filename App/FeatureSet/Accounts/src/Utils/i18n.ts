@@ -31,7 +31,7 @@ export const SUPPORTED_LANGUAGES: Array<SupportedLanguage> =
   SUPPORTED_ACCOUNTS_LANGUAGES;
 
 export const DEFAULT_LANGUAGE: string = DEFAULT_ACCOUNTS_LANGUAGE;
-export const LANGUAGE_STORAGE_KEY: string = "accountsLang";
+export const LANGUAGE_STORAGE_KEY: string = "oneuptimeLang";
 
 i18n
   .use(LanguageDetector)
