@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class AddAgentVersionToKubernetesDockerHost1779392865146
   implements MigrationInterface
 {
-  name = "AddAgentVersionToKubernetesDockerHost1779392865146";
+  public name = "AddAgentVersionToKubernetesDockerHost1779392865146";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

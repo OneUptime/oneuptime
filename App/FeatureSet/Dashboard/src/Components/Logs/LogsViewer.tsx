@@ -99,6 +99,8 @@ interface InitialUrlState {
   pageSize: number;
 }
 
+const POSITIVE_INT_REGEX: RegExp = /^\d+$/;
+
 /*
  * Parse filter state from `window.location.search` on first mount so refresh
  * + back-from-log-detail restore the view. Only invoked when the consumer
@@ -164,10 +166,12 @@ function readInitialUrlState(defaultPageSize: number): InitialUrlState {
 
   const pageRaw: string | null = params.get("page");
   const page: number =
-    pageRaw && (/^\d+$/).test(pageRaw) ? Math.max(1, parseInt(pageRaw, 10)) : 1;
+    pageRaw && POSITIVE_INT_REGEX.test(pageRaw)
+      ? Math.max(1, parseInt(pageRaw, 10))
+      : 1;
   const pageSizeRaw: string | null = params.get("pageSize");
   const pageSize: number =
-    pageSizeRaw && (/^\d+$/).test(pageSizeRaw)
+    pageSizeRaw && POSITIVE_INT_REGEX.test(pageSizeRaw)
       ? Math.max(1, parseInt(pageSizeRaw, 10))
       : defaultPageSize;
 

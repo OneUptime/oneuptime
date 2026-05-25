@@ -105,7 +105,9 @@ export default class OtelPayloadDecoder {
      * downstream code already consumes (resourceSpans / resourceLogs
      * / resourceMetrics / resourceProfiles).
      */
-    const message: protobuf.Message<{}> = protoType.decode(new Uint8Array(raw));
+    const message: protobuf.Message<Record<string, unknown>> = protoType.decode(
+      new Uint8Array(raw),
+    );
     return message.toJSON() as JSONObject;
   }
 

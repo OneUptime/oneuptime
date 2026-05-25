@@ -1560,7 +1560,7 @@ export default class OneUptimeDate {
        */
       try {
         return moment(trimmedDate).toDate();
-      } catch (_err: unknown) {
+      } catch {
         return new Date(trimmedDate);
       }
     }
