@@ -319,6 +319,25 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
   const [selectedLabelIds, setSelectedLabelIds] = useState<Array<string>>([]);
   const [isApplyingLabels, setIsApplyingLabels] = useState<boolean>(false);
   const [labelError, setLabelError] = useState<string>("");
+  /*
+   * Per-label preview cache. The user can twist open any label row to see
+   * which resources it covers before committing to "Add". Each label's
+   * preview is fetched lazily on first expand, then kept warm for the
+   * lifetime of the picker so re-expanding is instant. Errors are scoped
+   * per label so one failure doesn't blank out the rest of the list.
+   */
+  const [expandedLabelIds, setExpandedLabelIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [resourcesByLabel, setResourcesByLabel] = useState<
+    Record<string, Array<AffectedResourceItem>>
+  >({});
+  const [loadingLabelIds, setLoadingLabelIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [labelLoadErrors, setLabelLoadErrors] = useState<
+    Record<string, string>
+  >({});
   const containerRef: React.MutableRefObject<HTMLDivElement | null> =
     useRef<HTMLDivElement | null>(null);
   const inputRef: React.MutableRefObject<HTMLInputElement | null> =
@@ -651,6 +670,88 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
         });
       }
       return [...prev, id];
+    });
+  };
+
+  /*
+   * Preview is capped per type so a label tagging thousands of monitors
+   * doesn't drown the popover. The actual Add to Selection (in
+   * applyLabelSelection) uses LIMIT_PER_PROJECT, so the preview can show
+   * fewer rows than will eventually be added — the "+" suffix flags that.
+   */
+  const LABEL_PREVIEW_LIMIT_PER_TYPE: number = 50;
+
+  const fetchResourcesForLabel: (labelId: string) => Promise<void> = async (
+    labelId: string,
+  ): Promise<void> => {
+    setLoadingLabelIds((prev: Set<string>): Set<string> => {
+      const next: Set<string> = new Set(prev);
+      next.add(labelId);
+      return next;
+    });
+    setLabelLoadErrors(
+      (prev: Record<string, string>): Record<string, string> => {
+        const next: Record<string, string> = { ...prev };
+        delete next[labelId];
+        return next;
+      },
+    );
+    try {
+      const requests: Array<Promise<Array<AffectedResourceItem>>> = [];
+      for (const type of resourceTypes) {
+        requests.push(
+          fetchByQuery(
+            type,
+            { labels: new Includes([labelId]) },
+            LABEL_PREVIEW_LIMIT_PER_TYPE,
+          ),
+        );
+      }
+      const buckets: Array<Array<AffectedResourceItem>> =
+        await Promise.all(requests);
+      const merged: Array<AffectedResourceItem> = [];
+      for (const bucket of buckets) {
+        for (const item of bucket) {
+          merged.push(item);
+          nameCacheRef.current.set(`${item.type}:${item._id}`, item.name);
+        }
+      }
+      setResourcesByLabel(
+        (
+          prev: Record<string, Array<AffectedResourceItem>>,
+        ): Record<string, Array<AffectedResourceItem>> => {
+          return { ...prev, [labelId]: merged };
+        },
+      );
+    } catch {
+      setLabelLoadErrors(
+        (prev: Record<string, string>): Record<string, string> => {
+          return { ...prev, [labelId]: "Failed to load resources." };
+        },
+      );
+    } finally {
+      setLoadingLabelIds((prev: Set<string>): Set<string> => {
+        const next: Set<string> = new Set(prev);
+        next.delete(labelId);
+        return next;
+      });
+    }
+  };
+
+  const toggleLabelExpansion: (labelId: string) => void = (
+    labelId: string,
+  ): void => {
+    setExpandedLabelIds((prev: Set<string>): Set<string> => {
+      const next: Set<string> = new Set(prev);
+      if (next.has(labelId)) {
+        next.delete(labelId);
+      } else {
+        next.add(labelId);
+        if (resourcesByLabel[labelId] === undefined) {
+          void fetchResourcesForLabel(labelId);
+        }
+      }
+      return next;
     });
   };
 
@@ -1182,73 +1283,227 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                     const isChecked: boolean =
                       selectedLabelIds.includes(labelId);
                     const isHighlighted: boolean = idx === highlightedIndex;
+                    const isExpanded: boolean = expandedLabelIds.has(labelId);
+                    const isLoadingResources: boolean =
+                      loadingLabelIds.has(labelId);
+                    const previewResources:
+                      | Array<AffectedResourceItem>
+                      | undefined = resourcesByLabel[labelId];
+                    const previewError: string | undefined =
+                      labelLoadErrors[labelId];
                     const labelColor: string | undefined = label.color
                       ? typeof (label.color as { toString?: unknown })
                           .toString === "function"
                         ? label.color.toString()
                         : (label.color as unknown as string)
                       : undefined;
+                    const previewCapTotal: number =
+                      LABEL_PREVIEW_LIMIT_PER_TYPE * resourceTypes.length;
 
                     return (
-                      <button
+                      <div
                         key={labelId}
-                        type="button"
-                        role="option"
-                        aria-selected={isChecked}
                         onMouseEnter={(): void => {
                           setHighlightedIndex(idx);
                         }}
-                        onMouseDown={(
-                          event: React.MouseEvent<HTMLButtonElement>,
-                        ): void => {
-                          /*
-                           * Keep focus on the input so subsequent keystrokes
-                           * still hit the combobox keyDown handler.
-                           */
-                          event.preventDefault();
-                        }}
-                        onClick={(): void => {
-                          toggleLabelId(labelId);
-                        }}
-                        className={`flex w-full items-center gap-2 px-3 py-2 text-left ${
-                          isHighlighted
-                            ? "bg-indigo-50 text-gray-900"
-                            : "text-gray-700 hover:bg-indigo-50"
+                        className={`border-b border-gray-100 last:border-b-0 ${
+                          isHighlighted ? "bg-indigo-50" : ""
                         }`}
                       >
-                        <span
-                          aria-hidden="true"
-                          className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border ${
-                            isChecked
-                              ? "border-indigo-600 bg-indigo-600 text-white"
-                              : "border-gray-300 bg-white"
-                          }`}
-                        >
-                          {isChecked && (
-                            <svg
-                              className="h-3 w-3"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
+                        <div className="flex w-full items-center gap-2 px-2 py-1.5">
+                          {/*
+                           * Twist-down chevron lives on its own button so a
+                           * click on it doesn't toggle the checkbox. Lazy-
+                           * fetches the preview on first open.
+                           */}
+                          <button
+                            type="button"
+                            aria-label={
+                              isExpanded
+                                ? "Collapse resources"
+                                : "Expand resources"
+                            }
+                            aria-expanded={isExpanded}
+                            onMouseDown={(
+                              event: React.MouseEvent<HTMLButtonElement>,
+                            ): void => {
+                              event.preventDefault();
+                            }}
+                            onClick={(): void => {
+                              toggleLabelExpansion(labelId);
+                            }}
+                            className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          >
+                            <Icon
+                              icon={IconProp.ChevronRight}
+                              className={`h-3.5 w-3.5 transition-transform duration-150 ${
+                                isExpanded ? "rotate-90" : ""
+                              }`}
+                            />
+                          </button>
+                          {/*
+                           * The rest of the row is the select-toggle button.
+                           * Splitting expand and select keeps each interaction
+                           * unambiguous and avoids "did my click toggle or
+                           * expand?" surprises.
+                           */}
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected={isChecked}
+                            onMouseDown={(
+                              event: React.MouseEvent<HTMLButtonElement>,
+                            ): void => {
+                              event.preventDefault();
+                            }}
+                            onClick={(): void => {
+                              toggleLabelId(labelId);
+                            }}
+                            className={`flex flex-1 items-center gap-2 rounded px-1 py-1 text-left ${
+                              isHighlighted
+                                ? "text-gray-900"
+                                : "text-gray-700 hover:bg-indigo-100/50"
+                            }`}
+                          >
+                            <span
+                              aria-hidden="true"
+                              className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border ${
+                                isChecked
+                                  ? "border-indigo-600 bg-indigo-600 text-white"
+                                  : "border-gray-300 bg-white"
+                              }`}
                             >
-                              <path
-                                fillRule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clipRule="evenodd"
+                              {isChecked && (
+                                <svg
+                                  className="h-3 w-3"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              )}
+                            </span>
+                            {labelColor && (
+                              <span
+                                className="inline-block h-3 w-3 flex-shrink-0 rounded-full"
+                                style={{ backgroundColor: labelColor }}
+                                aria-hidden="true"
                               />
-                            </svg>
+                            )}
+                            <span className="truncate">
+                              {label.name || "Unnamed Label"}
+                            </span>
+                          </button>
+                          {previewResources !== undefined && (
+                            <span className="flex-shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">
+                              {previewResources.length}
+                              {previewResources.length >= previewCapTotal
+                                ? "+"
+                                : ""}
+                            </span>
                           )}
-                        </span>
-                        {labelColor && (
-                          <span
-                            className="inline-block h-3 w-3 flex-shrink-0 rounded-full"
-                            style={{ backgroundColor: labelColor }}
-                            aria-hidden="true"
-                          />
+                        </div>
+
+                        {isExpanded && (
+                          <div className="border-t border-gray-100 bg-gray-50 px-3 py-2 pl-10">
+                            {isLoadingResources ? (
+                              <div className="flex items-center gap-2 py-1 text-xs text-gray-500">
+                                <svg
+                                  className="h-3.5 w-3.5 animate-spin text-indigo-500"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  aria-hidden="true"
+                                >
+                                  <circle
+                                    className="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                    stroke="currentColor"
+                                    strokeWidth="4"
+                                  />
+                                  <path
+                                    className="opacity-75"
+                                    fill="currentColor"
+                                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                                  />
+                                </svg>
+                                <span>Loading resources...</span>
+                              </div>
+                            ) : previewError ? (
+                              <div className="py-1 text-xs text-red-600">
+                                {previewError}
+                              </div>
+                            ) : !previewResources ||
+                              previewResources.length === 0 ? (
+                              <div className="py-1 text-xs italic text-gray-500">
+                                No resources tagged with this label.
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                {resourceTypes.map(
+                                  (
+                                    type: AffectedResourceType,
+                                  ): ReactElement | null => {
+                                    const items: Array<AffectedResourceItem> =
+                                      previewResources.filter(
+                                        (r: AffectedResourceItem): boolean => {
+                                          return r.type === type;
+                                        },
+                                      );
+                                    if (items.length === 0) {
+                                      return null;
+                                    }
+                                    const cfg: ResourceConfig =
+                                      RESOURCE_CONFIG[type];
+                                    return (
+                                      <div key={type}>
+                                        <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                                          <Icon
+                                            icon={cfg.icon}
+                                            className="h-3 w-3 text-gray-400"
+                                          />
+                                          <span>
+                                            {cfg.label}s ({items.length}
+                                            {items.length >=
+                                            LABEL_PREVIEW_LIMIT_PER_TYPE
+                                              ? "+"
+                                              : ""}
+                                            )
+                                          </span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1">
+                                          {items.map(
+                                            (
+                                              item: AffectedResourceItem,
+                                            ): ReactElement => {
+                                              return (
+                                                <span
+                                                  key={`${item.type}-${item._id}`}
+                                                  className="inline-flex items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] text-gray-700"
+                                                >
+                                                  <span className="max-w-[10rem] truncate">
+                                                    {item.name}
+                                                  </span>
+                                                </span>
+                                              );
+                                            },
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  },
+                                )}
+                              </div>
+                            )}
+                          </div>
                         )}
-                        <span className="truncate">
-                          {label.name || "Unnamed Label"}
-                        </span>
-                      </button>
+                      </div>
                     );
                   },
                 )}
