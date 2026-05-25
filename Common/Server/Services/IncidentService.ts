@@ -28,6 +28,9 @@ import Typeof from "../../Types/Typeof";
 import { applyIncidentSelfPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import DockerHost from "../../Models/DatabaseModels/DockerHost";
+import Host from "../../Models/DatabaseModels/Host";
+import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import Model from "../../Models/DatabaseModels/Incident";
 import IncidentOwnerTeam from "../../Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "../../Models/DatabaseModels/IncidentOwnerUser";
@@ -541,7 +544,16 @@ export class Service extends DatabaseService<Model> {
         );
       }
     } else if (createBy.data.createdIncidentTemplateId) {
-      // If created from a template, check if template has a custom initial state
+      /*
+       * Created from a template — pull every field we may want to
+       * inherit and apply each one only if the caller didn't already
+       * provide it. The dashboard pre-fills these on the client, so in
+       * the UI flow this is a no-op; the gain is for API consumers
+       * that just send `createdIncidentTemplateId` and expect the
+       * server to materialize the rest. `undefined` means "not set by
+       * the caller" — an explicit empty array or empty string is
+       * treated as an intentional override and we leave it alone.
+       */
       const incidentTemplate: IncidentTemplate | null =
         await IncidentTemplateService.findOneBy({
           query: {
@@ -550,6 +562,16 @@ export class Service extends DatabaseService<Model> {
           },
           select: {
             initialIncidentStateId: true,
+            incidentSeverityId: true,
+            changeMonitorStatusToId: true,
+            title: true,
+            description: true,
+            monitors: { _id: true },
+            hosts: { _id: true },
+            kubernetesClusters: { _id: true },
+            dockerHosts: { _id: true },
+            onCallDutyPolicies: { _id: true },
+            labels: { _id: true },
           },
           props: {
             isRoot: true,
@@ -577,6 +599,111 @@ export class Service extends DatabaseService<Model> {
         if (!templateState) {
           // Fall back to default if template state is invalid
           initialIncidentStateId = undefined;
+        }
+      }
+
+      if (incidentTemplate) {
+        if (
+          createBy.data.incidentSeverityId === undefined &&
+          incidentTemplate.incidentSeverityId
+        ) {
+          createBy.data.incidentSeverityId =
+            incidentTemplate.incidentSeverityId;
+        }
+        if (
+          createBy.data.changeMonitorStatusToId === undefined &&
+          incidentTemplate.changeMonitorStatusToId
+        ) {
+          createBy.data.changeMonitorStatusToId =
+            incidentTemplate.changeMonitorStatusToId;
+        }
+        if (
+          createBy.data.title === undefined &&
+          typeof incidentTemplate.title === "string"
+        ) {
+          createBy.data.title = incidentTemplate.title;
+        }
+        if (
+          createBy.data.description === undefined &&
+          typeof incidentTemplate.description === "string"
+        ) {
+          createBy.data.description = incidentTemplate.description;
+        }
+
+        const stubBy: <T extends { _id?: string | undefined }>(
+          ctor: new () => T,
+          rows: Array<{ _id?: string | undefined }> | undefined,
+        ) => Array<T> | undefined = <T extends { _id?: string | undefined }>(
+          ctor: new () => T,
+          rows: Array<{ _id?: string | undefined }> | undefined,
+        ): Array<T> | undefined => {
+          if (!rows) {
+            return undefined;
+          }
+          return rows
+            .filter((row: { _id?: string | undefined }): boolean => {
+              return Boolean(row._id);
+            })
+            .map((row: { _id?: string | undefined }): T => {
+              const stub: T = new ctor();
+              stub._id = String(row._id);
+              return stub;
+            });
+        };
+
+        if (createBy.data.monitors === undefined) {
+          const stubs: Array<Monitor> | undefined = stubBy(
+            Monitor,
+            incidentTemplate.monitors,
+          );
+          if (stubs && stubs.length > 0) {
+            createBy.data.monitors = stubs;
+          }
+        }
+        if (createBy.data.hosts === undefined) {
+          const stubs: Array<Host> | undefined = stubBy(
+            Host,
+            incidentTemplate.hosts,
+          );
+          if (stubs && stubs.length > 0) {
+            createBy.data.hosts = stubs;
+          }
+        }
+        if (createBy.data.kubernetesClusters === undefined) {
+          const stubs: Array<KubernetesCluster> | undefined = stubBy(
+            KubernetesCluster,
+            incidentTemplate.kubernetesClusters,
+          );
+          if (stubs && stubs.length > 0) {
+            createBy.data.kubernetesClusters = stubs;
+          }
+        }
+        if (createBy.data.dockerHosts === undefined) {
+          const stubs: Array<DockerHost> | undefined = stubBy(
+            DockerHost,
+            incidentTemplate.dockerHosts,
+          );
+          if (stubs && stubs.length > 0) {
+            createBy.data.dockerHosts = stubs;
+          }
+        }
+        if (createBy.data.onCallDutyPolicies === undefined) {
+          const stubs: Array<OnCallDutyPolicy> | undefined = stubBy(
+            OnCallDutyPolicy,
+            incidentTemplate.onCallDutyPolicies,
+          );
+          if (stubs && stubs.length > 0) {
+            createBy.data.onCallDutyPolicies = stubs;
+          }
+        }
+        if (createBy.data.labels === undefined) {
+          const stubs: Array<Label> | undefined = stubBy(
+            Label,
+            incidentTemplate.labels,
+          );
+          if (stubs && stubs.length > 0) {
+            createBy.data.labels = stubs;
+          }
         }
       }
     }

@@ -1,11 +1,14 @@
+import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import Host from "../../../Models/DatabaseModels/Host";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
 import IncidentMember from "../../../Models/DatabaseModels/IncidentMember";
+import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import Dictionary from "../../../Types/Dictionary";
@@ -16,8 +19,10 @@ import ObjectID from "../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import { DisableAutomaticIncidentCreation } from "../../EnvironmentConfig";
+import DockerHostService from "../../Services/DockerHostService";
 import HostService from "../../Services/HostService";
 import IncidentService from "../../Services/IncidentService";
+import KubernetesClusterService from "../../Services/KubernetesClusterService";
 import IncidentSeverityService from "../../Services/IncidentSeverityService";
 import IncidentStateTimelineService from "../../Services/IncidentStateTimelineService";
 import IncidentMemberService from "../../Services/IncidentMemberService";
@@ -316,40 +321,11 @@ export default class MonitorIncident {
         if (seriesLabels && Object.keys(seriesLabels).length > 0) {
           incident.seriesLabels = seriesLabels;
 
-          /*
-           * Link the incident to the Host that emitted this series, if
-           * the metric carried a `host.name` resource attribute. The
-           * Host record was auto-discovered during OTel ingestion.
-           * Metric attributes are stored with the `resource.` prefix in
-           * ClickHouse, so the group-by dropdown surfaces
-           * `resource.host.name` — but accept the bare `host.name` too
-           * for any non-OTel ingest paths.
-           */
-          const hostName: string | undefined =
-            typeof seriesLabels["resource.host.name"] === "string"
-              ? (seriesLabels["resource.host.name"] as string)
-              : typeof seriesLabels["host.name"] === "string"
-                ? (seriesLabels["host.name"] as string)
-                : undefined;
-
-          if (hostName) {
-            const host: Host | null = await HostService.findOneBy({
-              query: {
-                projectId: input.monitor.projectId!,
-                hostIdentifier: hostName,
-              },
-              select: {
-                _id: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-            if (host) {
-              incident.hosts = [host];
-            }
-          }
+          await this.linkResourceContextFromSeries({
+            incident,
+            seriesLabels,
+            projectId: input.monitor.projectId!,
+          });
         }
 
         incident.onCallDutyPolicies =
@@ -492,6 +468,206 @@ export default class MonitorIncident {
         });
       }
     }
+  }
+
+  /*
+   * Pull every host / docker-host / k8s-cluster identifier out of the
+   * series labels and attach the matching project-scoped records to
+   * the incident. Series labels carry both raw OTel resource
+   * attributes (`host.name`, `k8s.cluster.name`) and the OneUptime
+   * stamps added at ingest (`oneuptime.host.id`,
+   * `oneuptime.docker.host.id`, `oneuptime.kubernetes.cluster.id` and
+   * their `.name` twins). OTel resource attributes are stored under
+   * the `resource.` prefix in ClickHouse, so prefixed and unprefixed
+   * forms are both accepted — whichever the group-by query surfaced,
+   * we'll find it. Multi-value labels are flattened, so a series that
+   * groups by a multi-valued attribute attaches every matching
+   * record. Lookups are always project-scoped so a stale or hostile
+   * stamp can't pull in a record from another tenant.
+   *
+   * For Docker hosts we deliberately ignore raw `host.name`/
+   * `oneuptime.host.name`: those are the Host's territory, and the
+   * ingest pipeline stamps `oneuptime.docker.host.*` independently
+   * when the source is a docker host.
+   */
+  private static async linkResourceContextFromSeries(input: {
+    incident: Incident;
+    seriesLabels: JSONObject;
+    projectId: ObjectID;
+  }): Promise<void> {
+    const collect: (keys: ReadonlyArray<string>) => Array<string> = (
+      keys: ReadonlyArray<string>,
+    ): Array<string> => {
+      const found: Set<string> = new Set<string>();
+      for (const key of keys) {
+        const value: unknown = input.seriesLabels[key];
+        if (typeof value === "string" && value.length > 0) {
+          found.add(value);
+          continue;
+        }
+        if (Array.isArray(value)) {
+          for (const item of value) {
+            if (typeof item === "string" && item.length > 0) {
+              found.add(item);
+            }
+          }
+        }
+      }
+      return Array.from(found);
+    };
+
+    const hostIds: Array<string> = collect([
+      "resource.oneuptime.host.id",
+      "oneuptime.host.id",
+    ]);
+    const hostNames: Array<string> = collect([
+      "resource.oneuptime.host.name",
+      "oneuptime.host.name",
+      "resource.host.name",
+      "host.name",
+    ]);
+
+    const dockerHostIds: Array<string> = collect([
+      "resource.oneuptime.docker.host.id",
+      "oneuptime.docker.host.id",
+    ]);
+    const dockerHostNames: Array<string> = collect([
+      "resource.oneuptime.docker.host.name",
+      "oneuptime.docker.host.name",
+    ]);
+
+    const clusterIds: Array<string> = collect([
+      "resource.oneuptime.kubernetes.cluster.id",
+      "oneuptime.kubernetes.cluster.id",
+    ]);
+    const clusterNames: Array<string> = collect([
+      "resource.oneuptime.kubernetes.cluster.name",
+      "oneuptime.kubernetes.cluster.name",
+      "resource.k8s.cluster.name",
+      "k8s.cluster.name",
+    ]);
+
+    const [resolvedHosts, resolvedDockerHosts, resolvedClusters] =
+      await Promise.all([
+        this.resolveResourceIds({
+          ids: hostIds,
+          names: hostNames,
+          nameColumn: "hostIdentifier",
+          projectId: input.projectId,
+          findBy: HostService.findBy.bind(HostService),
+        }),
+        this.resolveResourceIds({
+          ids: dockerHostIds,
+          names: dockerHostNames,
+          nameColumn: "hostIdentifier",
+          projectId: input.projectId,
+          findBy: DockerHostService.findBy.bind(DockerHostService),
+        }),
+        this.resolveResourceIds({
+          ids: clusterIds,
+          names: clusterNames,
+          nameColumn: "clusterIdentifier",
+          projectId: input.projectId,
+          findBy: KubernetesClusterService.findBy.bind(
+            KubernetesClusterService,
+          ),
+        }),
+      ]);
+
+    if (resolvedHosts.length > 0) {
+      input.incident.hosts = resolvedHosts.map((id: string): Host => {
+        const host: Host = new Host();
+        host._id = id;
+        return host;
+      });
+    }
+    if (resolvedDockerHosts.length > 0) {
+      input.incident.dockerHosts = resolvedDockerHosts.map(
+        (id: string): DockerHost => {
+          const dockerHost: DockerHost = new DockerHost();
+          dockerHost._id = id;
+          return dockerHost;
+        },
+      );
+    }
+    if (resolvedClusters.length > 0) {
+      input.incident.kubernetesClusters = resolvedClusters.map(
+        (id: string): KubernetesCluster => {
+          const cluster: KubernetesCluster = new KubernetesCluster();
+          cluster._id = id;
+          return cluster;
+        },
+      );
+    }
+  }
+
+  /*
+   * Resolve a mix of ids and names to a deduped set of database ids
+   * for one resource type, project-scoped. Either or both lists may
+   * be empty; if both are empty the method short-circuits with no DB
+   * round-trip.
+   */
+  private static async resolveResourceIds(input: {
+    ids: Array<string>;
+    names: Array<string>;
+    nameColumn: string;
+    projectId: ObjectID;
+    /*
+     * Loosely typed because the three resource services (Host,
+     * DockerHost, KubernetesCluster) each have their own
+     * `Query<TBaseModel>` shape and we deliberately abstract over
+     * them. We only need the row's `_id` back, which every model
+     * exposes via `DatabaseBaseModel`.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    findBy: (args: any) => Promise<Array<{ _id?: string | undefined }>>;
+  }): Promise<Array<string>> {
+    if (input.ids.length === 0 && input.names.length === 0) {
+      return [];
+    }
+
+    const resolved: Set<string> = new Set<string>();
+
+    const lookups: Array<Promise<Array<{ _id?: string | undefined }>>> = [];
+    if (input.ids.length > 0) {
+      lookups.push(
+        input.findBy({
+          query: {
+            projectId: input.projectId,
+            _id: new Includes(input.ids),
+          },
+          select: { _id: true },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: { isRoot: true },
+        }),
+      );
+    }
+    if (input.names.length > 0) {
+      lookups.push(
+        input.findBy({
+          query: {
+            projectId: input.projectId,
+            [input.nameColumn]: new Includes(input.names),
+          },
+          select: { _id: true },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: { isRoot: true },
+        }),
+      );
+    }
+
+    const buckets: Array<Array<{ _id?: string | undefined }>> =
+      await Promise.all(lookups);
+    for (const bucket of buckets) {
+      for (const row of bucket) {
+        if (row._id) {
+          resolved.add(String(row._id));
+        }
+      }
+    }
+    return Array.from(resolved);
   }
 
   private static async resolveOpenIncident(input: {
