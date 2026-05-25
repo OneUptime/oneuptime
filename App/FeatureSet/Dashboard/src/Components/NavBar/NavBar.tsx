@@ -25,7 +25,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
 
   const essentialsCategory: string = t("navbar.categories.essentials");
   const observabilityCategory: string = t("navbar.categories.observability");
-  const infrastructureCategory: string = t("navbar.categories.infrastructure");
+  const resourcesCategory: string = t("navbar.categories.resources");
   const analyticsAutomationCategory: string = t(
     "navbar.categories.analyticsAutomation",
   );
@@ -162,7 +162,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       activeRoute: RouteMap[PageMap.SERVICES],
       icon: IconProp.SquareStack,
       iconColor: "indigo",
-      category: observabilityCategory,
+      category: resourcesCategory,
     },
     {
       title: t("navbar.items.kubernetesTitle"),
@@ -173,7 +173,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       activeRoute: RouteMap[PageMap.KUBERNETES_CLUSTERS],
       icon: IconProp.Kubernetes,
       iconColor: "blue",
-      category: infrastructureCategory,
+      category: resourcesCategory,
     },
     {
       title: t("navbar.items.dockerTitle"),
@@ -184,7 +184,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       activeRoute: RouteMap[PageMap.DOCKER_HOSTS],
       icon: IconProp.Docker,
       iconColor: "blue",
-      category: infrastructureCategory,
+      category: resourcesCategory,
     },
     {
       title: t("navbar.items.hostsTitle"),
@@ -193,7 +193,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       activeRoute: RouteMap[PageMap.HOSTS],
       icon: IconProp.Server,
       iconColor: "slate",
-      category: infrastructureCategory,
+      category: resourcesCategory,
     },
     // Automation & Analytics
     {

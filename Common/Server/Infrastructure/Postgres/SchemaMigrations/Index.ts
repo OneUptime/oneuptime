@@ -349,6 +349,7 @@ import { AddIsMemberNotifiedIndex1779540427366 } from "./1779540427366-AddIsMemb
 import { AddDropdownOptionsToCustomFields1779619108628 } from "./1779619108628-AddDropdownOptionsToCustomFields";
 import { AddLabelInheritanceAndScheduledMaintenanceResources1779653508434 } from "./1779653508434-AddLabelInheritanceAndScheduledMaintenanceResources";
 import { AddAffectedResourcesToTemplates1779708719656 } from "./1779708719656-AddAffectedResourcesToTemplates";
+import { MigrationName1779739410559 } from "./1779739410559-MigrationName";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -701,4 +702,5 @@ export default [
   AddDropdownOptionsToCustomFields1779619108628,
   AddLabelInheritanceAndScheduledMaintenanceResources1779653508434,
   AddAffectedResourcesToTemplates1779708719656,
+  MigrationName1779739410559,
 ];
