@@ -1,6 +1,7 @@
 import TelemetryIngest, {
   TelemetryRequest,
 } from "Common/Server/Middleware/TelemetryIngest";
+import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import Express, {
   ExpressRequest,
@@ -24,6 +25,7 @@ const setFluentProductType: RequestHandler = (
 
 router.post(
   "/fluentd/v1/logs",
+  TelemetryIngestionDisabled.middleware,
   setFluentProductType,
   TelemetryIngest.isAuthorizedServiceMiddleware,
   async (

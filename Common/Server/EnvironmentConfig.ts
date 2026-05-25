@@ -315,6 +315,9 @@ export const DisableAutomaticIncidentCreation: boolean =
 export const DisableAutomaticAlertCreation: boolean =
   process.env["DISABLE_AUTOMATIC_ALERT_CREATION"] === "true";
 
+export const DisableTelemetryIngestion: boolean =
+  process.env["DISABLE_TELEMETRY_INGESTION"] === "true";
+
 export const ClickhouseHost: Hostname = Hostname.fromString(
   process.env["CLICKHOUSE_HOST"] || "clickhouse",
 );
