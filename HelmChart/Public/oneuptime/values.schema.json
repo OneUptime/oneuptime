@@ -996,6 +996,15 @@
             },
             "additionalProperties": false
         },
+        "telemetry": {
+            "type": "object",
+            "properties": {
+                "disableIngestion": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false
+        },
         "queueDashboard": {
             "type": "object",
             "properties": {
