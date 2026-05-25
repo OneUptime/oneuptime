@@ -1,0 +1,108 @@
+{
+  "common": {
+    "save": "保存",
+    "cancel": "取消",
+    "submit": "提交",
+    "close": "關閉",
+    "loading": "加載中...",
+    "email": "電郵",
+    "password": "密碼",
+    "fullName": "全名",
+    "companyName": "公司名稱",
+    "phoneNumber": "電話號碼",
+    "confirmPassword": "確認密碼",
+    "newPassword": "新密碼",
+    "code": "代碼",
+    "yourCompany": "您的公司"
+  },
+  "language": {
+    "label": "語言",
+    "switchLanguage": "切換語言"
+  },
+  "footer": {
+    "copyright": "OneUptime",
+    "contact": "聯繫方式",
+    "privacyAndTerms": "隱私和條款"
+  },
+  "captcha": {
+    "title": "人機驗證",
+    "description": "完成人機驗證挑戰，以便我們知道您不是機器人。",
+    "errorOnSignIn": "登錄前請完成人機驗證挑戰。",
+    "errorOnSignUp": "註冊前請完成人機驗證挑戰。"
+  },
+  "login": {
+    "title": "登錄您的賬戶",
+    "subtitle": "加入數千家使用 OneUptime 保持隨時在線的企業。",
+    "submitButton": "登錄",
+    "forgotPassword": "忘記密碼？",
+    "useSso": "改用單點登錄（SSO）",
+    "noAccountPrompt": "沒有賬戶？",
+    "registerLink": "註冊。",
+    "twoFactor": {
+      "title": "雙因素身份驗證",
+      "subtitle": "選擇雙因素身份驗證方法。系統將要求您輸入所選方法的代碼。",
+      "authenticatorApp": "身份驗證器應用",
+      "securityKey": "安全密鑰",
+      "authenticatingWithSecurityKey": "正在使用安全密鑰進行身份驗證",
+      "securityKeyInstructions": "請按照安全密鑰設備上的說明操作。",
+      "codeFieldDescription": "請輸入身份驗證器應用中的代碼",
+      "selectDifferentMethod": "選擇不同的雙因素身份驗證方法"
+    }
+  },
+  "register": {
+    "title": "創建您的 OneUptime 賬戶",
+    "subtitle": "加入數千家使用 OneUptime 保持隨時在線的企業。",
+    "noCreditCard": "無需信用卡。",
+    "submitButton": "註冊",
+    "haveAccountPrompt": "已經有賬戶？",
+    "loginLink": "登錄。",
+    "notifySelfHosted": "通知我有關安全補丁和新版本"
+  },
+  "forgotPassword": {
+    "title": "忘記密碼",
+    "subtitle": "請輸入您的電郵，密碼重置鏈接將發送給您。",
+    "successMessage": "我們已通過電郵向您發送了密碼重置鏈接。請不要忘記檢查垃圾郵件文件夾。",
+    "submitButton": "發送密碼重置鏈接",
+    "returnToSignIn": "返回登錄。",
+    "rememberPasswordPrompt": "記得您的密碼？",
+    "loginLink": "登錄。"
+  },
+  "resetPassword": {
+    "title": "重置您的密碼",
+    "subtitle": "請輸入您的新密碼，我們將更新它。",
+    "successMessage": "您的密碼已更新。請登錄。",
+    "submitButton": "重置密碼",
+    "knowPasswordPrompt": "知道您的密碼？",
+    "loginLink": "登錄。"
+  },
+  "sso": {
+    "title": "使用 SSO 登錄",
+    "subtitle": "使用您的 SSO 提供商登錄以訪問您的賬戶。",
+    "submitButton": "使用 SSO 登錄",
+    "useUsernameInstead": "改用用戶名和密碼。",
+    "noAccountPrompt": "沒有賬戶？",
+    "registerLink": "註冊。",
+    "selectProjectTitle": "選擇項目",
+    "selectProjectSubtitle": "選擇您要登錄的項目。",
+    "noConfigForEmail": "未找到電郵的 SSO 配置：{{email}}",
+    "emailRequired": "需要電郵才能執行此操作",
+    "defaultProjectName": "項目"
+  },
+  "verifyEmail": {
+    "successTitle": "您的電郵已驗證。",
+    "successDescription": "感謝您驗證您的電郵。您現在可以登錄 OneUptime。",
+    "errorTitle": "抱歉，出錯了！",
+    "returnToSignIn": "返回登錄？",
+    "loginLink": "登錄。"
+  },
+  "errors": {
+    "forbidden": {
+      "title": "禁止訪問",
+      "description": "您沒有權限訪問此頁面。"
+    },
+    "notFound": {
+      "title": "頁面未找到",
+      "description": "您正在查找的頁面不存在。"
+    }
+  }
+}

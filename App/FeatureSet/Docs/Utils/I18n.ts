@@ -1,4 +1,4 @@
-import {
+﻿import {
   DEFAULT_DOCS_LANGUAGE,
   SUPPORTED_DOCS_LANGUAGES,
   SUPPORTED_DOCS_LANGUAGE_CODES,
@@ -19,7 +19,8 @@ import sv from "../Locales/sv.json";
 import ru from "../Locales/ru.json";
 import ja from "../Locales/ja.json";
 import ko from "../Locales/ko.json";
-import zh from "../Locales/zh.json";
+import zh_Hans from "../Locales/zh-Hans.json";
+import zh_Hant from "../Locales/zh-Hant.json";
 import hi from "../Locales/hi.json";
 
 import DocsNav, {
@@ -49,7 +50,8 @@ const Locales: { [code: string]: LocaleStrings } = {
   ru: ru as LocaleStrings,
   ja: ja as LocaleStrings,
   ko: ko as LocaleStrings,
-  zh: zh as LocaleStrings,
+  "zh-Hans": zh_Hans as LocaleStrings,
+  "zh-Hant": zh_Hant as LocaleStrings,
   hi: hi as LocaleStrings,
 };
 
