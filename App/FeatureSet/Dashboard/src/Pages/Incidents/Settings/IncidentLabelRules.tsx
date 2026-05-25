@@ -289,6 +289,15 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
           description:
             "Copy every label of the incident's affected Docker hosts onto the incident.",
         },
+        {
+          field: { inheritLabelsFromServices: true },
+          title: "Inherit Labels From Services",
+          stepId: "labels",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          description:
+            "Copy every label of the incident's affected services onto the incident.",
+        },
       ]}
       showRefreshButton={true}
     />

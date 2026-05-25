@@ -289,6 +289,15 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
           description:
             "Copy every label of the alert's affected Docker hosts onto the alert.",
         },
+        {
+          field: { inheritLabelsFromServices: true },
+          title: "Inherit Labels From Services",
+          stepId: "labels",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          description:
+            "Copy every label of the alert's affected services onto the alert.",
+        },
       ]}
       showRefreshButton={true}
     />

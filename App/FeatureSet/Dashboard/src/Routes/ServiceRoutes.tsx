@@ -29,6 +29,12 @@ import ServiceViewOwners from "../Pages/Service/View/Owners";
 
 import ServiceViewCodeRepositories from "../Pages/Service/View/CodeRepositories";
 
+import ServiceViewIncidents from "../Pages/Service/View/Incidents";
+
+import ServiceViewAlerts from "../Pages/Service/View/Alerts";
+
+import ServiceViewScheduledMaintenance from "../Pages/Service/View/ScheduledMaintenance";
+
 import ServiceSettingsOwnerRules from "../Pages/Service/Settings/OwnerRules";
 
 import ServiceSettingsLabelRules from "../Pages/Service/Settings/LabelRules";
@@ -175,6 +181,40 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.SERVICE_VIEW_CODE_REPOSITORIES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_INCIDENTS)}
+          element={
+            <ServiceViewIncidents
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_INCIDENTS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_ALERTS)}
+          element={
+            <ServiceViewAlerts
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_ALERTS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE,
+          )}
+          element={
+            <ServiceViewScheduledMaintenance
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE] as Route
               }
             />
           }

@@ -259,6 +259,15 @@ const ScheduledMaintenanceLabelRulesPage: FunctionComponent<
             description:
               "Copy every label of the event's affected Docker hosts onto the event.",
           },
+          {
+            field: { inheritLabelsFromServices: true },
+            title: "Inherit Labels From Services",
+            stepId: "labels",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "Copy every label of the event's affected services onto the event.",
+          },
         ]}
         showRefreshButton={true}
       />

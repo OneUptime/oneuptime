@@ -55,6 +55,9 @@ export const ServiceRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
   [PageMap.SERVICE_VIEW_EXCEPTIONS]: `${RouteParams.ModelID}/exceptions`,
   [PageMap.SERVICE_VIEW_CODE_REPOSITORIES]: `${RouteParams.ModelID}/code-repositories`,
+  [PageMap.SERVICE_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.SERVICE_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
   [PageMap.SERVICE_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.SERVICE_SETTINGS_LABEL_RULES]: `settings/label-rules`,
 };
@@ -1743,6 +1746,24 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SERVICE_VIEW_CODE_REPOSITORIES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
       ServiceRoutePath[PageMap.SERVICE_VIEW_CODE_REPOSITORIES]
+    }`,
+  ),
+
+  [PageMap.SERVICE_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.SERVICE_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE]
     }`,
   ),
 
