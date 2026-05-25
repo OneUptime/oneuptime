@@ -37,7 +37,7 @@
     "categories": {
       "essentials": "필수",
       "observability": "관측 가능성",
-      "infrastructure": "인프라",
+      "resources": "리소스",
       "analyticsAutomation": "분석 및 자동화",
       "settings": "설정"
     },

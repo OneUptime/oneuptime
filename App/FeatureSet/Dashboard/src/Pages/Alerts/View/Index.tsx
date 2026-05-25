@@ -47,6 +47,7 @@ import AffectedResourcesPicker, {
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import Service from "Common/Models/DatabaseModels/Service";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import AlertEpisodeElement from "../../../Components/AlertEpisode/AlertEpisode";
@@ -346,7 +347,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Affected Resources",
             stepId: "affected-resources",
             description:
-              "Search and attach hosts, Kubernetes clusters, or Docker hosts affected by this alert.",
+              "Search and attach hosts, Kubernetes clusters, Docker hosts, or services affected by this alert.",
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
             getCustomElement: (
@@ -360,7 +361,13 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     values.kubernetesClusters as Array<KubernetesCluster>
                   }
                   dockerHosts={values.dockerHosts as Array<DockerHost>}
-                  resourceTypes={["Host", "KubernetesCluster", "DockerHost"]}
+                  services={values.services as Array<Service>}
+                  resourceTypes={[
+                    "Host",
+                    "KubernetesCluster",
+                    "DockerHost",
+                    "Service",
+                  ]}
                   onChange={(payload: unknown) => {
                     elementProps.onChange?.(payload);
                   }}
@@ -380,6 +387,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     hosts: payload.hosts,
                     kubernetesClusters: payload.kubernetesClusters,
                     dockerHosts: payload.dockerHosts,
+                    services: payload.services,
                   } as FormValues<Alert>);
                 });
               }
@@ -387,7 +395,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
           /*
            * Hidden registrations so ModelForm.getSelectFields includes
-           * kubernetesClusters/dockerHosts.
+           * kubernetesClusters/dockerHosts/services.
            */
           {
             field: { kubernetesClusters: true },
@@ -401,6 +409,16 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
           {
             field: { dockerHosts: true },
+            stepId: "affected-resources",
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { services: true },
             stepId: "affected-resources",
             title: "",
             fieldType: FormFieldSchemaType.Text,
@@ -601,6 +619,11 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   name: true,
                   _id: true,
                 },
+                services: {
+                  name: true,
+                  _id: true,
+                  serviceColor: true,
+                },
               },
               title: "Affected Resources",
               fieldType: FieldType.Element,
@@ -609,7 +632,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   (item.hosts && item.hosts.length > 0) ||
                     (item.kubernetesClusters &&
                       item.kubernetesClusters.length > 0) ||
-                    (item.dockerHosts && item.dockerHosts.length > 0),
+                    (item.dockerHosts && item.dockerHosts.length > 0) ||
+                    (item.services && item.services.length > 0),
                 );
               },
               getElement: (item: Alert): ReactElement => {
@@ -618,6 +642,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     hosts={item.hosts || []}
                     kubernetesClusters={item.kubernetesClusters || []}
                     dockerHosts={item.dockerHosts || []}
+                    services={item.services || []}
                     hideMonitors={true}
                   />
                 );

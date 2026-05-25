@@ -619,6 +619,12 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                 _id: true,
                 projectId: true,
               },
+              services: {
+                name: true,
+                _id: true,
+                projectId: true,
+                serviceColor: true,
+              },
             },
             title: "Resources Affected",
             type: FieldType.EntityArray,
@@ -631,6 +637,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                   hosts={item.hosts || []}
                   kubernetesClusters={item.kubernetesClusters || []}
                   dockerHosts={item.dockerHosts || []}
+                  services={item.services || []}
                 />
               );
             },

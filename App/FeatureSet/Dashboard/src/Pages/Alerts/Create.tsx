@@ -19,6 +19,7 @@ import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Service from "Common/Models/DatabaseModels/Service";
 import AffectedResourcesPicker, {
   isAffectedResourcesPayload,
 } from "../../Components/AffectedResources/AffectedResourcesPicker";
@@ -252,7 +253,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 title: "Other Affected Resources",
                 stepId: "on-call",
                 description:
-                  "Search and attach hosts, Kubernetes clusters, or Docker hosts affected by this alert.",
+                  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services affected by this alert.",
                 fieldType: FormFieldSchemaType.CustomComponent,
                 required: false,
                 getCustomElement: (
@@ -266,10 +267,12 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         values.kubernetesClusters as Array<KubernetesCluster>
                       }
                       dockerHosts={values.dockerHosts as Array<DockerHost>}
+                      services={values.services as Array<Service>}
                       resourceTypes={[
                         "Host",
                         "KubernetesCluster",
                         "DockerHost",
+                        "Service",
                       ]}
                       onChange={(payload: unknown) => {
                         elementProps.onChange?.(payload);
@@ -290,6 +293,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         hosts: payload.hosts,
                         kubernetesClusters: payload.kubernetesClusters,
                         dockerHosts: payload.dockerHosts,
+                        services: payload.services,
                       } as FormValues<Alert>);
                     });
                   }
@@ -297,8 +301,9 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               /*
                * Hidden registrations so ModelForm.getSelectFields includes
-               * kubernetesClusters/dockerHosts. (hosts is already the picker's
-               * anchor field above so it doesn't need an extra registration.)
+               * kubernetesClusters/dockerHosts/services. (hosts is already the
+               * picker's anchor field above so it doesn't need an extra
+               * registration.)
                */
               {
                 field: { kubernetesClusters: true },
@@ -312,6 +317,16 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               {
                 field: { dockerHosts: true },
+                stepId: "on-call",
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { services: true },
                 stepId: "on-call",
                 title: "",
                 fieldType: FormFieldSchemaType.Text,

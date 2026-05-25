@@ -3,6 +3,7 @@ import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Service from "Common/Models/DatabaseModels/Service";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -33,7 +34,8 @@ export type AffectedResourceType =
   | "Monitor"
   | "Host"
   | "KubernetesCluster"
-  | "DockerHost";
+  | "DockerHost"
+  | "Service";
 
 export interface AffectedResourceItem {
   _id: string;
@@ -52,6 +54,7 @@ export interface AffectedResourcesPayload {
   hosts: Array<string>;
   kubernetesClusters: Array<string>;
   dockerHosts: Array<string>;
+  services: Array<string>;
 }
 
 export interface ComponentProps {
@@ -59,6 +62,7 @@ export interface ComponentProps {
   hosts?: Array<Host> | undefined;
   kubernetesClusters?: Array<KubernetesCluster> | undefined;
   dockerHosts?: Array<DockerHost> | undefined;
+  services?: Array<Service> | undefined;
   resourceTypes?: Array<AffectedResourceType> | undefined;
   onChange: (payload: AffectedResourcesPayload) => void;
   placeholder?: string | undefined;
@@ -92,6 +96,11 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
     icon: IconProp.Docker,
     modelType: DockerHost,
   },
+  Service: {
+    label: "Service",
+    icon: IconProp.SquareStack,
+    modelType: Service,
+  },
 };
 
 const ALL_TYPES: Array<AffectedResourceType> = [
@@ -99,6 +108,7 @@ const ALL_TYPES: Array<AffectedResourceType> = [
   "Host",
   "KubernetesCluster",
   "DockerHost",
+  "Service",
 ];
 
 const SEARCH_DEBOUNCE_MS: number = 250;
@@ -247,7 +257,8 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
   /*
    * Selected items derived from props each render. The parent owns the truth;
    * we never mirror it into local state to avoid drift after setNewFormValues
-   * rewrites the form's monitors/hosts/kubernetesClusters/dockerHosts arrays.
+   * rewrites the form's monitors/hosts/kubernetesClusters/dockerHosts/services
+   * arrays.
    */
   const selected: Array<AffectedResourceItem> = useMemo(() => {
     const cache: Map<string, string> = nameCacheRef.current;
@@ -266,12 +277,16 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     if (resourceTypes.includes("DockerHost")) {
       items.push(...toItems(props.dockerHosts, "DockerHost", cache));
     }
+    if (resourceTypes.includes("Service")) {
+      items.push(...toItems(props.services, "Service", cache));
+    }
     return items;
   }, [
     props.monitors,
     props.hosts,
     props.kubernetesClusters,
     props.dockerHosts,
+    props.services,
     resourceTypes,
   ]);
 
@@ -581,6 +596,13 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
         .map((i: AffectedResourceItem): string => {
           return i._id;
         }),
+      services: next
+        .filter((i: AffectedResourceItem): boolean => {
+          return i.type === "Service";
+        })
+        .map((i: AffectedResourceItem): string => {
+          return i._id;
+        }),
     });
   };
 
@@ -811,7 +833,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
   const placeholder: string =
     props.placeholder ||
     (resourceTypes.length === ALL_TYPES.length
-      ? "Search monitors, hosts, Kubernetes clusters, or Docker hosts..."
+      ? "Search monitors, hosts, Kubernetes clusters, Docker hosts, or services..."
       : `Search ${resourceTypes
           .map((t: AffectedResourceType): string => {
             return RESOURCE_CONFIG[t].label.toLowerCase();
@@ -1094,7 +1116,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
           title="Select Resources by Labels"
           description={`Pick one or more labels — every ${
             resourceTypes.length === ALL_TYPES.length
-              ? "monitor, host, Kubernetes cluster, or Docker host"
+              ? "monitor, host, Kubernetes cluster, Docker host, or service"
               : resourceTypes
                   .map((t: AffectedResourceType): string => {
                     return RESOURCE_CONFIG[t].label.toLowerCase();

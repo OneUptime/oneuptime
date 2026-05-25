@@ -2,20 +2,22 @@ import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Service from "Common/Models/DatabaseModels/Service";
 import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
 import React, { FunctionComponent, ReactElement } from "react";
 import DockerHostElement from "../DockerHost/DockerHost";
 import HostElement from "../Host/Host";
 import KubernetesClusterElement from "../KubernetesCluster/KubernetesCluster";
 import MonitorElement from "../Monitor/Monitor";
+import ServiceElement from "../Service/ServiceElement";
 
 /*
  * Compact table-cell version of AffectedResourcesDisplay. Flattens
- * monitors/hosts/k8s/docker into a single list rendered through
+ * monitors/hosts/k8s/docker/services into a single list rendered through
  * TableColumnListComponent (first 3 visible, rest behind a "N more
  * resources" button) so list-page rows stay short. Each row shows the
- * resource's type icon (Server / Globe / Kubernetes / Docker) so the user
- * can still tell types apart at a glance.
+ * resource's type icon (Server / Globe / Kubernetes / Docker / Service)
+ * so the user can still tell types apart at a glance.
  *
  * Keep this in sync with AffectedResourcesPicker: if a new resource type is
  * added there, mirror it here so the picker, detail display, and table
@@ -26,13 +28,15 @@ type ResourceItem =
   | { _key: string; type: "Monitor"; model: Monitor }
   | { _key: string; type: "Host"; model: Host }
   | { _key: string; type: "KubernetesCluster"; model: KubernetesCluster }
-  | { _key: string; type: "DockerHost"; model: DockerHost };
+  | { _key: string; type: "DockerHost"; model: DockerHost }
+  | { _key: string; type: "Service"; model: Service };
 
 export interface ComponentProps {
   monitors?: Array<Monitor> | undefined;
   hosts?: Array<Host> | undefined;
   kubernetesClusters?: Array<KubernetesCluster> | undefined;
   dockerHosts?: Array<DockerHost> | undefined;
+  services?: Array<Service> | undefined;
   noItemsMessage?: string | undefined;
   onNavigateComplete?: (() => void) | undefined;
 }
@@ -74,6 +78,13 @@ const AffectedResourcesCell: FunctionComponent<ComponentProps> = (
       model: dockerHost,
     });
   }
+  for (const service of props.services || []) {
+    items.push({
+      _key: `Service:${service._id ? String(service._id) : Math.random()}`,
+      type: "Service",
+      model: service,
+    });
+  }
 
   return (
     <TableColumnListComponent<ResourceItem>
@@ -108,10 +119,18 @@ const AffectedResourcesCell: FunctionComponent<ComponentProps> = (
             />
           );
         }
+        if (item.type === "DockerHost") {
+          return (
+            <DockerHostElement
+              dockerHost={item.model}
+              showIcon={true}
+              onNavigateComplete={props.onNavigateComplete}
+            />
+          );
+        }
         return (
-          <DockerHostElement
-            dockerHost={item.model}
-            showIcon={true}
+          <ServiceElement
+            service={item.model}
             onNavigateComplete={props.onNavigateComplete}
           />
         );

@@ -14,6 +14,7 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import Service from "Common/Models/DatabaseModels/Service";
 import AffectedResourcesPicker, {
   isAffectedResourcesPayload,
 } from "../../../Components/AffectedResources/AffectedResourcesPicker";
@@ -254,7 +255,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             title: "Resources Affected",
             stepId: "resources-affected",
             description:
-              "Search and attach monitors, hosts, Kubernetes clusters, or Docker hosts that incidents created from this template should pre-populate.",
+              "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.",
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
             getCustomElement: (
@@ -269,6 +270,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
                     values.kubernetesClusters as Array<KubernetesCluster>
                   }
                   dockerHosts={values.dockerHosts as Array<DockerHost>}
+                  services={values.services as Array<Service>}
                   onChange={(payload: unknown) => {
                     elementProps.onChange?.(payload);
                   }}
@@ -289,6 +291,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
                     hosts: payload.hosts,
                     kubernetesClusters: payload.kubernetesClusters,
                     dockerHosts: payload.dockerHosts,
+                    services: payload.services,
                   } as FormValues<IncidentTemplate>);
                 });
               }
@@ -296,7 +299,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
           },
           /*
            * Hidden registrations so ModelForm.getSelectFields includes
-           * hosts/kubernetesClusters/dockerHosts on load and submit.
+           * hosts/kubernetesClusters/dockerHosts/services on load and submit.
            */
           {
             field: { hosts: true },
@@ -320,6 +323,16 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
           },
           {
             field: { dockerHosts: true },
+            stepId: "resources-affected",
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { services: true },
             stepId: "resources-affected",
             title: "",
             fieldType: FormFieldSchemaType.Text,

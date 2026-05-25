@@ -10,6 +10,7 @@ import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import Service from "Common/Models/DatabaseModels/Service";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import AffectedResourcesPicker, {
@@ -95,7 +96,7 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
       title: "Resources Affected",
       stepId: "resources-affected",
       description:
-        "Search and attach monitors, hosts, Kubernetes clusters, or Docker hosts that events created from this template should pre-populate.",
+        "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.",
       fieldType: FormFieldSchemaType.CustomComponent,
       required: false,
       getCustomElement: (
@@ -110,6 +111,7 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
               values.kubernetesClusters as Array<KubernetesCluster>
             }
             dockerHosts={values.dockerHosts as Array<DockerHost>}
+            services={values.services as Array<Service>}
             onChange={(payload: unknown) => {
               elementProps.onChange?.(payload);
             }}
@@ -132,6 +134,7 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
               hosts: payload.hosts,
               kubernetesClusters: payload.kubernetesClusters,
               dockerHosts: payload.dockerHosts,
+              services: payload.services,
             } as FormValues<ScheduledMaintenanceTemplate>);
           });
         }
@@ -139,7 +142,7 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
     },
     /*
      * Hidden registrations so ModelForm.getSelectFields includes
-     * hosts/kubernetesClusters/dockerHosts on load and submit.
+     * hosts/kubernetesClusters/dockerHosts/services on load and submit.
      */
     {
       field: { hosts: true },
@@ -163,6 +166,16 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
     },
     {
       field: { dockerHosts: true },
+      stepId: "resources-affected",
+      title: "",
+      fieldType: FormFieldSchemaType.Text,
+      required: false,
+      showIf: () => {
+        return false;
+      },
+    },
+    {
+      field: { services: true },
       stepId: "resources-affected",
       title: "",
       fieldType: FormFieldSchemaType.Text,

@@ -8,6 +8,7 @@ import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster"
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
+import Service from "../../../Models/DatabaseModels/Service";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
@@ -23,6 +24,7 @@ import DockerHostService from "../../Services/DockerHostService";
 import HostService from "../../Services/HostService";
 import IncidentService from "../../Services/IncidentService";
 import KubernetesClusterService from "../../Services/KubernetesClusterService";
+import ServiceService from "../../Services/ServiceService";
 import IncidentSeverityService from "../../Services/IncidentSeverityService";
 import IncidentStateTimelineService from "../../Services/IncidentStateTimelineService";
 import IncidentMemberService from "../../Services/IncidentMemberService";
@@ -547,32 +549,57 @@ export default class MonitorIncident {
       "k8s.cluster.name",
     ]);
 
-    const [resolvedHosts, resolvedDockerHosts, resolvedClusters] =
-      await Promise.all([
-        this.resolveResourceIds({
-          ids: hostIds,
-          names: hostNames,
-          nameColumn: "hostIdentifier",
-          projectId: input.projectId,
-          findBy: HostService.findBy.bind(HostService),
-        }),
-        this.resolveResourceIds({
-          ids: dockerHostIds,
-          names: dockerHostNames,
-          nameColumn: "hostIdentifier",
-          projectId: input.projectId,
-          findBy: DockerHostService.findBy.bind(DockerHostService),
-        }),
-        this.resolveResourceIds({
-          ids: clusterIds,
-          names: clusterNames,
-          nameColumn: "clusterIdentifier",
-          projectId: input.projectId,
-          findBy: KubernetesClusterService.findBy.bind(
-            KubernetesClusterService,
-          ),
-        }),
-      ]);
+    /*
+     * Services come from OTel-ingested telemetry. The ingest pipeline
+     * auto-creates a Service row keyed by `service.name`, so any series
+     * label that carries that attribute (raw or prefixed) tells us the
+     * emitting service. We also accept the `oneuptime.service.id`
+     * stamp for callers that already resolved the ID upstream.
+     */
+    const serviceIds: Array<string> = collect([
+      "resource.oneuptime.service.id",
+      "oneuptime.service.id",
+    ]);
+    const serviceNames: Array<string> = collect([
+      "resource.service.name",
+      "service.name",
+    ]);
+
+    const [
+      resolvedHosts,
+      resolvedDockerHosts,
+      resolvedClusters,
+      resolvedServices,
+    ] = await Promise.all([
+      this.resolveResourceIds({
+        ids: hostIds,
+        names: hostNames,
+        nameColumn: "hostIdentifier",
+        projectId: input.projectId,
+        findBy: HostService.findBy.bind(HostService),
+      }),
+      this.resolveResourceIds({
+        ids: dockerHostIds,
+        names: dockerHostNames,
+        nameColumn: "hostIdentifier",
+        projectId: input.projectId,
+        findBy: DockerHostService.findBy.bind(DockerHostService),
+      }),
+      this.resolveResourceIds({
+        ids: clusterIds,
+        names: clusterNames,
+        nameColumn: "clusterIdentifier",
+        projectId: input.projectId,
+        findBy: KubernetesClusterService.findBy.bind(KubernetesClusterService),
+      }),
+      this.resolveResourceIds({
+        ids: serviceIds,
+        names: serviceNames,
+        nameColumn: "name",
+        projectId: input.projectId,
+        findBy: ServiceService.findBy.bind(ServiceService),
+      }),
+    ]);
 
     if (resolvedHosts.length > 0) {
       input.incident.hosts = resolvedHosts.map((id: string): Host => {
@@ -598,6 +625,13 @@ export default class MonitorIncident {
           return cluster;
         },
       );
+    }
+    if (resolvedServices.length > 0) {
+      input.incident.services = resolvedServices.map((id: string): Service => {
+        const service: Service = new Service();
+        service._id = id;
+        return service;
+      });
     }
   }
 

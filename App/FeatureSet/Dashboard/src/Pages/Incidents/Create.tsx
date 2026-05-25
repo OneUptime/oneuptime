@@ -21,6 +21,7 @@ import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Service from "Common/Models/DatabaseModels/Service";
 import AffectedResourcesPicker, {
   isAffectedResourcesPayload,
 } from "../../Components/AffectedResources/AffectedResourcesPicker";
@@ -146,6 +147,7 @@ const IncidentCreate: FunctionComponent<
             hosts: true,
             kubernetesClusters: true,
             dockerHosts: true,
+            services: true,
             onCallDutyPolicies: true,
             labels: true,
             changeMonitorStatusToId: true,
@@ -204,6 +206,9 @@ const IncidentCreate: FunctionComponent<
               return dockerHost.id!.toString();
             },
           ),
+          services: incidentTemplate.services?.map((service: Service) => {
+            return service.id!.toString();
+          }),
           labels: incidentTemplate.labels?.map((label: Label) => {
             return label.id!.toString();
           }),
@@ -395,7 +400,7 @@ const IncidentCreate: FunctionComponent<
                   title: "Resources Affected",
                   stepId: "resources-affected",
                   description:
-                    "Search and attach monitors, hosts, Kubernetes clusters, or Docker hosts affected by this incident.",
+                    "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services affected by this incident.",
                   fieldType: FormFieldSchemaType.CustomComponent,
                   required: false,
                   getCustomElement: (
@@ -410,6 +415,7 @@ const IncidentCreate: FunctionComponent<
                           values.kubernetesClusters as Array<KubernetesCluster>
                         }
                         dockerHosts={values.dockerHosts as Array<DockerHost>}
+                        services={values.services as Array<Service>}
                         onChange={(payload: unknown) => {
                           elementProps.onChange?.(payload);
                         }}
@@ -434,6 +440,7 @@ const IncidentCreate: FunctionComponent<
                           hosts: payload.hosts,
                           kubernetesClusters: payload.kubernetesClusters,
                           dockerHosts: payload.dockerHosts,
+                          services: payload.services,
                         } as FormValues<Incident>);
                       });
                     }
@@ -475,13 +482,38 @@ const IncidentCreate: FunctionComponent<
                     const dockerCount: number = Array.isArray(item.dockerHosts)
                       ? item.dockerHosts.length
                       : 0;
+                    const servicesCount: number = Array.isArray(item.services)
+                      ? item.services.length
+                      : 0;
                     const totalCount: number =
                       monitorIds.length +
                       hostsCount +
                       clustersCount +
-                      dockerCount;
+                      dockerCount +
+                      servicesCount;
                     if (totalCount === 0) {
                       return <p>No resources affected by this incident.</p>;
+                    }
+                    const otherCounts: Array<string> = [];
+                    if (hostsCount > 0) {
+                      otherCounts.push(
+                        `${hostsCount} host${hostsCount === 1 ? "" : "s"}`,
+                      );
+                    }
+                    if (clustersCount > 0) {
+                      otherCounts.push(
+                        `${clustersCount} Kubernetes cluster${clustersCount === 1 ? "" : "s"}`,
+                      );
+                    }
+                    if (dockerCount > 0) {
+                      otherCounts.push(
+                        `${dockerCount} Docker host${dockerCount === 1 ? "" : "s"}`,
+                      );
+                    }
+                    if (servicesCount > 0) {
+                      otherCounts.push(
+                        `${servicesCount} service${servicesCount === 1 ? "" : "s"}`,
+                      );
                     }
                     return (
                       <div className="space-y-2">
@@ -493,32 +525,9 @@ const IncidentCreate: FunctionComponent<
                             <FetchMonitors monitorIds={monitorIds} />
                           </div>
                         )}
-                        {hostsCount + clustersCount + dockerCount > 0 && (
+                        {otherCounts.length > 0 && (
                           <div className="text-sm text-gray-600">
-                            {hostsCount > 0 && (
-                              <span>
-                                {hostsCount} host{hostsCount === 1 ? "" : "s"}
-                              </span>
-                            )}
-                            {hostsCount > 0 &&
-                              (clustersCount > 0 || dockerCount > 0) && (
-                                <span>, </span>
-                              )}
-                            {clustersCount > 0 && (
-                              <span>
-                                {clustersCount} Kubernetes cluster
-                                {clustersCount === 1 ? "" : "s"}
-                              </span>
-                            )}
-                            {clustersCount > 0 && dockerCount > 0 && (
-                              <span>, </span>
-                            )}
-                            {dockerCount > 0 && (
-                              <span>
-                                {dockerCount} Docker host
-                                {dockerCount === 1 ? "" : "s"}
-                              </span>
-                            )}
+                            {otherCounts.join(", ")}
                           </div>
                         )}
                       </div>
@@ -551,6 +560,16 @@ const IncidentCreate: FunctionComponent<
                 },
                 {
                   field: { dockerHosts: true },
+                  stepId: "resources-affected",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { services: true },
                   stepId: "resources-affected",
                   title: "",
                   fieldType: FormFieldSchemaType.Text,

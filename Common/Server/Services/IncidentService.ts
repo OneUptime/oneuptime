@@ -31,6 +31,7 @@ import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/Statu
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import Host from "../../Models/DatabaseModels/Host";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
+import ServiceModel from "../../Models/DatabaseModels/Service";
 import Model from "../../Models/DatabaseModels/Incident";
 import IncidentOwnerTeam from "../../Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "../../Models/DatabaseModels/IncidentOwnerUser";
@@ -570,6 +571,7 @@ export class Service extends DatabaseService<Model> {
             hosts: { _id: true },
             kubernetesClusters: { _id: true },
             dockerHosts: { _id: true },
+            services: { _id: true },
             onCallDutyPolicies: { _id: true },
             labels: { _id: true },
           },
@@ -685,6 +687,15 @@ export class Service extends DatabaseService<Model> {
           );
           if (stubs && stubs.length > 0) {
             createBy.data.dockerHosts = stubs;
+          }
+        }
+        if (createBy.data.services === undefined) {
+          const stubs: Array<ServiceModel> | undefined = stubBy(
+            ServiceModel,
+            incidentTemplate.services,
+          );
+          if (stubs && stubs.length > 0) {
+            createBy.data.services = stubs;
           }
         }
         if (createBy.data.onCallDutyPolicies === undefined) {

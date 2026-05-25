@@ -59,9 +59,11 @@ const UseTimezoneInitElement: FunctionComponent = (): ReactElement => {
         return;
       }
 
-      // Suppress the prompt if the user has already dismissed it for this
-      // exact browser timezone. We will re-prompt only if the browser
-      // timezone changes again.
+      /*
+       * Suppress the prompt if the user has already dismissed it for this
+       * exact browser timezone. We will re-prompt only if the browser
+       * timezone changes again.
+       */
       const dismissedTimezone: Timezone | null =
         User.getDismissedTimezonePrompt();
       if (dismissedTimezone === guessTimezone) {

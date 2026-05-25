@@ -27,6 +27,7 @@ import IncidentTemplateOwnerUser from "Common/Models/DatabaseModels/IncidentTemp
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import Service from "Common/Models/DatabaseModels/Service";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import AffectedResourcesPicker, {
@@ -166,7 +167,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Resources Affected",
             stepId: "resources-affected",
             description:
-              "Search and attach monitors, hosts, Kubernetes clusters, or Docker hosts that incidents created from this template should pre-populate.",
+              "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.",
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
             getCustomElement: (
@@ -181,6 +182,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     values.kubernetesClusters as Array<KubernetesCluster>
                   }
                   dockerHosts={values.dockerHosts as Array<DockerHost>}
+                  services={values.services as Array<Service>}
                   onChange={(payload: unknown) => {
                     elementProps.onChange?.(payload);
                   }}
@@ -201,6 +203,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     hosts: payload.hosts,
                     kubernetesClusters: payload.kubernetesClusters,
                     dockerHosts: payload.dockerHosts,
+                    services: payload.services,
                   } as FormValues<IncidentTemplate>);
                 });
               }
@@ -208,7 +211,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
           /*
            * Hidden registrations so ModelForm.getSelectFields includes
-           * hosts/kubernetesClusters/dockerHosts on load and submit.
+           * hosts/kubernetesClusters/dockerHosts/services on load and submit.
            */
           {
             field: { hosts: true },
@@ -232,6 +235,16 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
           {
             field: { dockerHosts: true },
+            stepId: "resources-affected",
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { services: true },
             stepId: "resources-affected",
             title: "",
             fieldType: FormFieldSchemaType.Text,
