@@ -17,6 +17,7 @@ import DockerHostMetrics from "../Pages/Docker/View/Metrics";
 import DockerHostLogs from "../Pages/Docker/View/Logs";
 import DockerHostIncidents from "../Pages/Docker/View/Incidents";
 import DockerHostAlerts from "../Pages/Docker/View/Alerts";
+import DockerHostScheduledMaintenance from "../Pages/Docker/View/ScheduledMaintenance";
 import DockerHostOwners from "../Pages/Docker/View/Owners";
 import DockerHostSettings from "../Pages/Docker/View/Settings";
 import DockerHostDelete from "../Pages/Docker/View/Delete";
@@ -151,6 +152,23 @@ const DockerRoutes: FunctionComponent<ComponentProps> = (
             <DockerHostAlerts
               {...props}
               pageRoute={RouteMap[PageMap.DOCKER_HOST_VIEW_ALERTS] as Route}
+            />
+          }
+        />
+
+        {/* Scheduled Maintenance */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DOCKER_HOST_VIEW_SCHEDULED_MAINTENANCE,
+          )}
+          element={
+            <DockerHostScheduledMaintenance
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.DOCKER_HOST_VIEW_SCHEDULED_MAINTENANCE
+                ] as Route
+              }
             />
           }
         />

@@ -1,5 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import MonitorsElement from "../../Components/Monitor/Monitors";
+import AffectedResourcesCell from "../AffectedResources/AffectedResourcesCell";
 import ProjectUtil from "Common/UI/Utils/Project";
 import IncidentElement from "./Incident";
 import AppLink from "../AppLink/AppLink";
@@ -712,18 +712,43 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             },
           },
           {
+            // Unified "Resources Affected" cell — mirrors the form's single
+            // picker. Pulls monitors + hosts + k8s + docker in one selection
+            // so the row shows whatever the user actually attached.
             field: {
               monitors: {
                 name: true,
                 _id: true,
                 projectId: true,
               },
+              hosts: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              kubernetesClusters: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              dockerHosts: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
             },
-            title: "Monitors Affected",
+            title: "Resources Affected",
             type: FieldType.EntityArray,
 
             getElement: (item: Incident): ReactElement => {
-              return <MonitorsElement monitors={item["monitors"] || []} />;
+              return (
+                <AffectedResourcesCell
+                  monitors={item.monitors || []}
+                  hosts={item.hosts || []}
+                  kubernetesClusters={item.kubernetesClusters || []}
+                  dockerHosts={item.dockerHosts || []}
+                />
+              );
             },
           },
           {

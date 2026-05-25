@@ -44,7 +44,7 @@ import PageMap from "../../Utils/PageMap";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import Route from "Common/Types/API/Route";
 import Navigation from "Common/UI/Utils/Navigation";
-import MonitorElement from "../Monitor/Monitor";
+import AffectedResourcesCell from "../AffectedResources/AffectedResourcesCell";
 import {
   BulkActionButtonSchema,
   BulkActionFailed,
@@ -670,21 +670,43 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             },
           },
           {
+            // Unified "Resources Affected" cell. Alert.monitor is singular,
+            // so we wrap it in an array; hosts/k8s/docker come from the M2M
+            // relations the picker also writes to.
             field: {
               monitor: {
                 name: true,
                 _id: true,
                 projectId: true,
               },
+              hosts: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              kubernetesClusters: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              dockerHosts: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
             },
-            title: "Monitor Affected",
+            title: "Resources Affected",
             type: FieldType.EntityArray,
 
             getElement: (item: Alert): ReactElement => {
-              if (item["monitor"]) {
-                return <MonitorElement monitor={item["monitor"]!} />;
-              }
-              return <span>-</span>;
+              return (
+                <AffectedResourcesCell
+                  monitors={item.monitor ? [item.monitor] : []}
+                  hosts={item.hosts || []}
+                  kubernetesClusters={item.kubernetesClusters || []}
+                  dockerHosts={item.dockerHosts || []}
+                />
+              );
             },
           },
           {

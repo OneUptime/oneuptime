@@ -98,7 +98,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         /> */}
       </SideMenuSection>
 
-      <SideMenuSection title="Scheduled Maintenance Notes">
+      <SideMenuSection title="Notes">
         <SideMenuItem
           link={{
             title: "Private Notes",

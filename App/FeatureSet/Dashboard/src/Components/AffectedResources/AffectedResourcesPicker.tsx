@@ -1,8 +1,11 @@
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Search from "Common/Types/BaseDatabase/Search";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -12,6 +15,8 @@ import Permission, {
   UserTenantAccessPermission,
 } from "Common/Types/Permission";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import User from "Common/UI/Utils/User";
@@ -282,6 +287,15 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
    * highlighted; Enter is a no-op until the user arrows into the list.
    */
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
+
+  // Select-by-Labels modal state.
+  const [isLabelModalOpen, setIsLabelModalOpen] = useState<boolean>(false);
+  const [allLabels, setAllLabels] = useState<Array<Label>>([]);
+  const [isLoadingLabels, setIsLoadingLabels] = useState<boolean>(false);
+  const [labelsLoaded, setLabelsLoaded] = useState<boolean>(false);
+  const [selectedLabelIds, setSelectedLabelIds] = useState<Array<string>>([]);
+  const [isApplyingLabels, setIsApplyingLabels] = useState<boolean>(false);
+  const [labelError, setLabelError] = useState<string>("");
   const containerRef: React.MutableRefObject<HTMLDivElement | null> =
     useRef<HTMLDivElement | null>(null);
   const inputRef: React.MutableRefObject<HTMLInputElement | null> =
@@ -321,83 +335,110 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
+  /*
+   * Shared fetcher used both for typed searches (name/description filters) and
+   * for the default "suggestions" list shown when the dropdown is open with an
+   * empty query. Failures per type are swallowed so a 403 on one resource type
+   * doesn't blank out results for the others.
+   */
+  const fetchByQuery: (
+    type: AffectedResourceType,
+    query: Record<string, unknown>,
+    limit: number,
+  ) => Promise<Array<AffectedResourceItem>> = async (
+    type: AffectedResourceType,
+    query: Record<string, unknown>,
+    limit: number,
+  ): Promise<Array<AffectedResourceItem>> => {
+    const cfg: ResourceConfig = RESOURCE_CONFIG[type];
+    try {
+      const result: { data: Array<BaseModel> } =
+        await ModelAPI.getList<BaseModel>({
+          modelType: cfg.modelType,
+          query: query as never,
+          limit,
+          skip: 0,
+          select: { _id: true, name: true } as never,
+          sort: { name: SortOrder.Ascending } as never,
+        });
+      return (result.data || [])
+        .map((item: BaseModel): AffectedResourceItem | null => {
+          const id: string | undefined = item._id
+            ? String(item._id)
+            : undefined;
+          const name: string =
+            typeof (item as { name?: unknown }).name === "string"
+              ? ((item as { name?: string }).name as string)
+              : "";
+          if (!id) {
+            return null;
+          }
+          return {
+            _id: id,
+            name: name.length > 0 ? name : `Unnamed ${cfg.label}`,
+            type,
+          };
+        })
+        .filter((i: AffectedResourceItem | null): i is AffectedResourceItem => {
+          return i !== null;
+        });
+    } catch {
+      return [];
+    }
+  };
+
   useEffect(() => {
     if (debounceRef.current !== null) {
       window.clearTimeout(debounceRef.current);
     }
 
-    const trimmed: string = searchQuery.trim();
-    if (trimmed === "") {
-      setSearchResults([]);
-      setIsLoading(false);
+    /*
+     * Skip fetching when the dropdown is closed — there's nothing to render.
+     * Re-opening (or the user typing) re-runs this effect and refills results.
+     */
+    if (!isOpen) {
       return;
     }
 
+    const trimmed: string = searchQuery.trim();
     setIsLoading(true);
     const mySeq: number = ++searchSeqRef.current;
+    /*
+     * Empty queries fire immediately so the user sees suggestions the moment
+     * they focus the input. Typed queries are debounced to spare the API.
+     */
+    const delay: number = trimmed === "" ? 0 : SEARCH_DEBOUNCE_MS;
 
     debounceRef.current = window.setTimeout(async () => {
       try {
-        /*
-         * For each enabled type fire two parallel searches: one against name,
-         * one against description. The backend doesn't expose a single OR
-         * filter across columns, so we union client-side and dedupe by ID.
-         * Per-type/per-field failures are swallowed so a 403 on one resource
-         * doesn't blank out the dropdown for the others.
-         */
-        type SearchField = "name" | "description";
-        const fetchOne: (
-          type: AffectedResourceType,
-          field: SearchField,
-        ) => Promise<Array<AffectedResourceItem>> = async (
-          type: AffectedResourceType,
-          field: SearchField,
-        ): Promise<Array<AffectedResourceItem>> => {
-          const cfg: ResourceConfig = RESOURCE_CONFIG[type];
-          try {
-            const result: { data: Array<BaseModel> } =
-              await ModelAPI.getList<BaseModel>({
-                modelType: cfg.modelType,
-                query: {
-                  [field]: new Search(trimmed),
-                } as never,
-                limit: SEARCH_LIMIT_PER_TYPE,
-                skip: 0,
-                select: { _id: true, name: true } as never,
-                sort: { name: SortOrder.Ascending } as never,
-              });
-            return (result.data || [])
-              .map((item: BaseModel): AffectedResourceItem | null => {
-                const id: string | undefined = item._id
-                  ? String(item._id)
-                  : undefined;
-                const name: string =
-                  typeof (item as { name?: unknown }).name === "string"
-                    ? ((item as { name?: string }).name as string)
-                    : "";
-                if (!id) {
-                  return null;
-                }
-                return {
-                  _id: id,
-                  name: name.length > 0 ? name : `Unnamed ${cfg.label}`,
-                  type,
-                };
-              })
-              .filter(
-                (i: AffectedResourceItem | null): i is AffectedResourceItem => {
-                  return i !== null;
-                },
-              );
-          } catch {
-            return [];
-          }
-        };
-
         const requests: Array<Promise<Array<AffectedResourceItem>>> = [];
-        for (const type of resourceTypes) {
-          requests.push(fetchOne(type, "name"));
-          requests.push(fetchOne(type, "description"));
+        if (trimmed === "") {
+          // Default suggestions: top-N alphabetical per enabled type.
+          for (const type of resourceTypes) {
+            requests.push(fetchByQuery(type, {}, SEARCH_LIMIT_PER_TYPE));
+          }
+        } else {
+          /*
+           * Search mode: fire two parallel queries per type (name + description)
+           * since the backend doesn't expose a cross-column OR. Results are
+           * unioned and deduped by `${type}:${_id}` below.
+           */
+          for (const type of resourceTypes) {
+            requests.push(
+              fetchByQuery(
+                type,
+                { name: new Search(trimmed) },
+                SEARCH_LIMIT_PER_TYPE,
+              ),
+            );
+            requests.push(
+              fetchByQuery(
+                type,
+                { description: new Search(trimmed) },
+                SEARCH_LIMIT_PER_TYPE,
+              ),
+            );
+          }
         }
 
         const buckets: Array<Array<AffectedResourceItem>> =
@@ -405,10 +446,6 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
         if (mySeq !== searchSeqRef.current) {
           return; // stale
         }
-        /*
-         * Dedupe by `${type}:${_id}` so an item matched by both name and
-         * description doesn't render twice.
-         */
         const seen: Set<string> = new Set();
         const merged: Array<AffectedResourceItem> = [];
         for (const bucket of buckets) {
@@ -438,8 +475,8 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
           setIsLoading(false);
         }
       }
-    }, SEARCH_DEBOUNCE_MS);
-  }, [searchQuery, resourceTypes]);
+    }, delay);
+  }, [searchQuery, resourceTypes, isOpen]);
 
   const availableResults: Array<AffectedResourceItem> = useMemo(() => {
     return searchResults.filter((result: AffectedResourceItem) => {
@@ -536,6 +573,112 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     inputRef.current?.focus();
   };
 
+  /*
+   * Lazy-load the label list when the user first opens the label modal. Cached
+   * after the first open so reopening is instant.
+   */
+  const openLabelModal: () => Promise<void> = async (): Promise<void> => {
+    setSelectedLabelIds([]);
+    setLabelError("");
+    setIsLabelModalOpen(true);
+    if (labelsLoaded) {
+      return;
+    }
+    setIsLoadingLabels(true);
+    try {
+      const result: { data: Array<Label> } = await ModelAPI.getList<Label>({
+        modelType: Label,
+        query: {} as never,
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: { _id: true, name: true, color: true } as never,
+        sort: { name: SortOrder.Ascending } as never,
+      });
+      setAllLabels(result.data || []);
+      setLabelsLoaded(true);
+    } catch {
+      setLabelError(
+        "Failed to load labels. You may not have permission to read labels.",
+      );
+    } finally {
+      setIsLoadingLabels(false);
+    }
+  };
+
+  const toggleLabelId: (id: string) => void = (id: string): void => {
+    setSelectedLabelIds((prev: Array<string>): Array<string> => {
+      if (prev.includes(id)) {
+        return prev.filter((x: string): boolean => {
+          return x !== id;
+        });
+      }
+      return [...prev, id];
+    });
+  };
+
+  /*
+   * Pulls every resource (of each enabled type) tagged with any of the chosen
+   * labels and merges them into the current selection. Per-type failures are
+   * swallowed; the cap is generous (LIMIT_PER_PROJECT) since this is an
+   * intentional bulk selection rather than a quick search.
+   */
+  const applyLabelSelection: () => Promise<void> = async (): Promise<void> => {
+    if (selectedLabelIds.length === 0) {
+      setIsLabelModalOpen(false);
+      return;
+    }
+    setIsApplyingLabels(true);
+    setLabelError("");
+    try {
+      const requests: Array<Promise<Array<AffectedResourceItem>>> = [];
+      for (const type of resourceTypes) {
+        requests.push(
+          fetchByQuery(
+            type,
+            { labels: new Includes(selectedLabelIds) },
+            LIMIT_PER_PROJECT,
+          ),
+        );
+      }
+      const buckets: Array<Array<AffectedResourceItem>> =
+        await Promise.all(requests);
+
+      // Merge new items into the existing selection, deduping by type+id.
+      const existing: Set<string> = new Set(
+        selected.map((s: AffectedResourceItem): string => {
+          return `${s.type}:${s._id}`;
+        }),
+      );
+      const additions: Array<AffectedResourceItem> = [];
+      for (const bucket of buckets) {
+        for (const item of bucket) {
+          const key: string = `${item.type}:${item._id}`;
+          if (existing.has(key)) {
+            continue;
+          }
+          existing.add(key);
+          additions.push(item);
+          nameCacheRef.current.set(key, item.name);
+        }
+      }
+
+      if (additions.length === 0) {
+        setLabelError(
+          "No resources matched the selected labels (or you don't have read access).",
+        );
+        setIsApplyingLabels(false);
+        return;
+      }
+
+      notify([...selected, ...additions]);
+      setIsLabelModalOpen(false);
+    } catch {
+      setLabelError("Failed to fetch resources for the selected labels.");
+    } finally {
+      setIsApplyingLabels(false);
+    }
+  };
+
   const removeItem: (item: AffectedResourceItem) => void = (
     item: AffectedResourceItem,
   ): void => {
@@ -558,6 +701,20 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
 
   return (
     <div ref={containerRef} className="relative mt-1 w-full">
+      {!props.disabled && (
+        <div className="mb-2 flex justify-end">
+          <button
+            type="button"
+            onClick={() => {
+              void openLabelModal();
+            }}
+            className="text-sm text-indigo-600 hover:text-indigo-800 hover:underline focus:outline-none"
+          >
+            Select by Labels
+          </button>
+        </div>
+      )}
+
       {selected.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-2">
           {selected.map((item: AffectedResourceItem) => {
@@ -713,11 +870,13 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
             </div>
           )}
 
-          {!isLoading && searchQuery.trim() === "" && (
-            <div className="px-3 py-2 text-gray-500">
-              Start typing to search resources...
-            </div>
-          )}
+          {!isLoading &&
+            searchQuery.trim() === "" &&
+            groupedAvailable.length === 0 && (
+              <div className="px-3 py-2 text-gray-500">
+                No resources available. Type to search across all resources.
+              </div>
+            )}
 
           {!isLoading &&
             searchQuery.trim() !== "" &&
@@ -809,6 +968,85 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
             </div>
           )}
         </div>
+      )}
+
+      {isLabelModalOpen && (
+        <Modal
+          title="Select Resources by Labels"
+          description={`Pick one or more labels — every ${
+            resourceTypes.length === ALL_TYPES.length
+              ? "monitor, host, Kubernetes cluster, or Docker host"
+              : resourceTypes
+                  .map((t: AffectedResourceType): string => {
+                    return RESOURCE_CONFIG[t].label.toLowerCase();
+                  })
+                  .join(", ")
+          } tagged with any of them will be added to the selection.`}
+          modalWidth={ModalWidth.Normal}
+          submitButtonText={isApplyingLabels ? "Adding..." : "Add to Selection"}
+          submitButtonStyleType={ButtonStyleType.PRIMARY}
+          disableSubmitButton={
+            isApplyingLabels || isLoadingLabels || selectedLabelIds.length === 0
+          }
+          isLoading={isApplyingLabels}
+          isBodyLoading={isLoadingLabels}
+          error={labelError}
+          onClose={() => {
+            if (isApplyingLabels) {
+              return;
+            }
+            setIsLabelModalOpen(false);
+          }}
+          onSubmit={() => {
+            void applyLabelSelection();
+          }}
+        >
+          {!isLoadingLabels && allLabels.length === 0 ? (
+            <div className="py-3 text-sm text-gray-500">
+              No labels found in this project. Create labels first to use this
+              shortcut.
+            </div>
+          ) : (
+            <div className="max-h-72 overflow-auto py-2">
+              {allLabels.map((label: Label): ReactElement => {
+                const labelId: string = label._id ? String(label._id) : "";
+                if (!labelId) {
+                  return <span key={Math.random()} />;
+                }
+                const isChecked: boolean = selectedLabelIds.includes(labelId);
+                return (
+                  <label
+                    key={labelId}
+                    className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 hover:bg-gray-50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => {
+                        toggleLabelId(labelId);
+                      }}
+                      className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    {label.color && (
+                      <span
+                        className="inline-block h-3 w-3 rounded-full"
+                        style={{
+                          backgroundColor: label.color.toString
+                            ? label.color.toString()
+                            : (label.color as unknown as string),
+                        }}
+                        aria-hidden="true"
+                      />
+                    )}
+                    <span className="text-sm text-gray-800">
+                      {label.name || "Unnamed Label"}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </Modal>
       )}
     </div>
   );

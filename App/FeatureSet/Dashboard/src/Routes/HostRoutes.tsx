@@ -18,6 +18,7 @@ import HostProcessView from "../Pages/Host/View/ProcessView";
 import HostLogs from "../Pages/Host/View/Logs";
 import HostIncidents from "../Pages/Host/View/Incidents";
 import HostAlerts from "../Pages/Host/View/Alerts";
+import HostScheduledMaintenance from "../Pages/Host/View/ScheduledMaintenance";
 import HostOwners from "../Pages/Host/View/Owners";
 import HostSettings from "../Pages/Host/View/Settings";
 import HostDelete from "../Pages/Host/View/Delete";
@@ -134,6 +135,20 @@ const HostRoutes: FunctionComponent<ComponentProps> = (
             <HostAlerts
               {...props}
               pageRoute={RouteMap[PageMap.HOST_VIEW_ALERTS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.HOST_VIEW_SCHEDULED_MAINTENANCE,
+          )}
+          element={
+            <HostScheduledMaintenance
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.HOST_VIEW_SCHEDULED_MAINTENANCE] as Route
+              }
             />
           }
         />

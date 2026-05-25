@@ -1,6 +1,6 @@
 import ProjectUtil from "Common/UI/Utils/Project";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import MonitorsElement from "../Monitor/Monitors";
+import AffectedResourcesCell from "../AffectedResources/AffectedResourcesCell";
 import StatusPagesElement from "../StatusPage/StatusPagesElement";
 import AppLink from "../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
@@ -597,19 +597,42 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           },
 
           {
+            // Unified "Resources Affected" cell mirroring the form picker.
             field: {
               monitors: {
                 name: true,
                 _id: true,
                 projectId: true,
               },
+              hosts: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              kubernetesClusters: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              dockerHosts: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
             },
-            title: "Monitors Affected",
+            title: "Resources Affected",
             type: FieldType.EntityArray,
             hideOnMobile: true,
 
             getElement: (item: ScheduledMaintenance): ReactElement => {
-              return <MonitorsElement monitors={item["monitors"] || []} />;
+              return (
+                <AffectedResourcesCell
+                  monitors={item.monitors || []}
+                  hosts={item.hosts || []}
+                  kubernetesClusters={item.kubernetesClusters || []}
+                  dockerHosts={item.dockerHosts || []}
+                />
+              );
             },
           },
           {
