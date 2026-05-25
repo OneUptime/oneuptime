@@ -82,6 +82,10 @@
       "aiAgentDescription": "AI-powered issue resolution.",
       "codeRepositoriesTitle": "Code Repositories",
       "codeRepositoriesDescription": "GitHub and GitLab integrations.",
+      "usersTitle": "Users",
+      "usersDescription": "Manage project users and invites.",
+      "teamsTitle": "Teams",
+      "teamsDescription": "Organize users into teams and assign permissions.",
       "projectSettingsTitle": "Project Settings",
       "projectSettingsDescription": "Configure your project."
     },

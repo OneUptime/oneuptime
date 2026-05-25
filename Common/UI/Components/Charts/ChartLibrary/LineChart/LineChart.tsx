@@ -710,10 +710,12 @@ const LineChart: React.ForwardRefExoticComponent<
                 : () => {} // do nothing
             }
             margin={{
-              // Tick labels are 10px font with a translate(0, 6) — they
-              // need ~20px of bottom space, plus another ~20px for the
-              // optional axis label. 8px (the no-axis case) is only
-              // valid when the axis is hidden entirely.
+              /*
+               * Tick labels are 10px font with a translate(0, 6) — they
+               * need ~20px of bottom space, plus another ~20px for the
+               * optional axis label. 8px (the no-axis case) is only
+               * valid when the axis is hidden entirely.
+               */
               bottom: (xAxisLabel
                 ? 40
                 : showXAxis

@@ -488,11 +488,19 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_TEAMS]: "teams",
   [PageMap.SETTINGS_USERS]: "users",
   [PageMap.SETTINGS_USER_VIEW]: `users/${RouteParams.ModelID}`,
+  [PageMap.SETTINGS_USER_VIEW_TEAMS]: `users/${RouteParams.ModelID}/teams`,
+  [PageMap.SETTINGS_USER_VIEW_CUSTOM_FIELDS]: `users/${RouteParams.ModelID}/custom-fields`,
+  [PageMap.SETTINGS_USER_VIEW_DELETE]: `users/${RouteParams.ModelID}/delete`,
 
   [PageMap.SETTINGS_BILLING]: "billing",
   [PageMap.SETTINGS_BILLING_INVOICES]: "invoices",
   [PageMap.SETTINGS_USAGE_HISTORY]: "usage-history",
   [PageMap.SETTINGS_TEAM_VIEW]: `teams/${RouteParams.ModelID}`,
+  [PageMap.SETTINGS_TEAM_VIEW_MEMBERS]: `teams/${RouteParams.ModelID}/members`,
+  [PageMap.SETTINGS_TEAM_VIEW_PERMISSIONS]: `teams/${RouteParams.ModelID}/permissions`,
+  [PageMap.SETTINGS_TEAM_VIEW_BLOCK_PERMISSIONS]: `teams/${RouteParams.ModelID}/block-permissions`,
+  [PageMap.SETTINGS_TEAM_VIEW_COMPLIANCE]: `teams/${RouteParams.ModelID}/compliance`,
+  [PageMap.SETTINGS_TEAM_VIEW_DELETE]: `teams/${RouteParams.ModelID}/delete`,
   [PageMap.SETTINGS_LABELS]: "labels",
   [PageMap.SETTINGS_AI_AGENTS]: "ai-agents",
   [PageMap.SETTINGS_AI_AGENT_VIEW]: `ai-agents/${RouteParams.ModelID}`,
@@ -3233,6 +3241,24 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SETTINGS_USER_VIEW_TEAMS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_USER_VIEW_TEAMS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_USER_VIEW_CUSTOM_FIELDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_USER_VIEW_CUSTOM_FIELDS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_USER_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_USER_VIEW_DELETE]
+    }`,
+  ),
+
   [PageMap.SETTINGS_BILLING]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_BILLING]
@@ -3254,6 +3280,36 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_TEAM_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_TEAM_VIEW]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_TEAM_VIEW_MEMBERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_TEAM_VIEW_MEMBERS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_TEAM_VIEW_PERMISSIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_TEAM_VIEW_PERMISSIONS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_TEAM_VIEW_BLOCK_PERMISSIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_TEAM_VIEW_BLOCK_PERMISSIONS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_TEAM_VIEW_COMPLIANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_TEAM_VIEW_COMPLIANCE]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_TEAM_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_TEAM_VIEW_DELETE]
     }`,
   ),
 

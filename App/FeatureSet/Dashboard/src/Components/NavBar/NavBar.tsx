@@ -251,6 +251,28 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     },
     // Settings
     {
+      title: t("navbar.items.usersTitle"),
+      description: t("navbar.items.usersDescription"),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SETTINGS_USERS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.SETTINGS_USERS],
+      icon: IconProp.User,
+      iconColor: "blue",
+      category: settingsCategory,
+    },
+    {
+      title: t("navbar.items.teamsTitle"),
+      description: t("navbar.items.teamsDescription"),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SETTINGS_TEAMS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.SETTINGS_TEAMS],
+      icon: IconProp.Team,
+      iconColor: "emerald",
+      category: settingsCategory,
+    },
+    {
       title: t("navbar.items.projectSettingsTitle"),
       description: t("navbar.items.projectSettingsDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS] as Route),

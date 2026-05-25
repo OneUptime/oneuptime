@@ -545,13 +545,6 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     return flat;
   }, [groupedAvailable]);
 
-  // Clamp the highlight whenever the result set shrinks under our cursor.
-  useEffect(() => {
-    if (highlightedIndex >= flatAvailable.length) {
-      setHighlightedIndex(flatAvailable.length - 1);
-    }
-  }, [flatAvailable, highlightedIndex]);
-
   const notify: (next: Array<AffectedResourceItem>) => void = (
     next: Array<AffectedResourceItem>,
   ): void => {
@@ -677,6 +670,19 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
       return name.includes(q);
     });
   }, [allLabels, searchQuery]);
+
+  /*
+   * Clamp the keyboard cursor when the active list shrinks under it (e.g.
+   * the user typed and narrowed the results). Both tabs share the cursor —
+   * which list it indexes into depends on activeTab.
+   */
+  useEffect(() => {
+    const len: number =
+      activeTab === "labels" ? filteredLabels.length : flatAvailable.length;
+    if (highlightedIndex >= len) {
+      setHighlightedIndex(len - 1);
+    }
+  }, [flatAvailable, filteredLabels, highlightedIndex, activeTab]);
 
   /*
    * Pulls every resource (of each enabled type) tagged with any of the chosen
@@ -831,44 +837,60 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
           setIsOpen(true);
         }}
         onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
+          /*
+           * The cursor walks whichever list the active tab is showing —
+           * resources or labels. Length is checked against the active list
+           * so ArrowUp/Down become no-ops when there's nothing to move to.
+           */
+          const activeLen: number =
+            activeTab === "labels"
+              ? filteredLabels.length
+              : flatAvailable.length;
+
           if (event.key === "ArrowDown") {
-            if (flatAvailable.length === 0) {
+            if (activeLen === 0) {
               return;
             }
             event.preventDefault();
             setIsOpen(true);
             setHighlightedIndex((prev: number): number => {
               const next: number = prev + 1;
-              return next >= flatAvailable.length ? 0 : next;
+              return next >= activeLen ? 0 : next;
             });
             return;
           }
           if (event.key === "ArrowUp") {
-            if (flatAvailable.length === 0) {
+            if (activeLen === 0) {
               return;
             }
             event.preventDefault();
             setIsOpen(true);
             setHighlightedIndex((prev: number): number => {
               if (prev <= 0) {
-                return flatAvailable.length - 1;
+                return activeLen - 1;
               }
               return prev - 1;
             });
             return;
           }
           if (event.key === "Enter") {
-            if (
-              highlightedIndex >= 0 &&
-              highlightedIndex < flatAvailable.length
-            ) {
-              event.preventDefault();
-              const target: AffectedResourceItem | undefined =
-                flatAvailable[highlightedIndex];
-              if (target) {
-                addItem(target);
-                setHighlightedIndex(-1);
+            if (highlightedIndex < 0 || highlightedIndex >= activeLen) {
+              return;
+            }
+            event.preventDefault();
+            if (activeTab === "labels") {
+              const label: Label | undefined = filteredLabels[highlightedIndex];
+              const labelId: string = label?._id ? String(label._id) : "";
+              if (labelId) {
+                toggleLabelId(labelId);
               }
+              return;
+            }
+            const target: AffectedResourceItem | undefined =
+              flatAvailable[highlightedIndex];
+            if (target) {
+              addItem(target);
+              setHighlightedIndex(-1);
             }
             return;
           }
@@ -880,11 +902,14 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
           if (
             event.key === "Backspace" &&
             searchQuery === "" &&
-            selected.length > 0
+            selected.length > 0 &&
+            activeTab === "resources"
           ) {
             /*
              * Backspace on empty input removes the last selected chip — same
-             * convention as react-select and most tag inputs.
+             * convention as react-select and most tag inputs. Gated to the
+             * resources tab so labels-tab backspace doesn't accidentally
+             * delete a resource chip the user is no longer looking at.
              */
             event.preventDefault();
             removeItem(selected[selected.length - 1] as AffectedResourceItem);
@@ -994,8 +1019,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                 searchQuery.trim() === "" &&
                 groupedAvailable.length === 0 && (
                   <div className="px-3 py-2 text-gray-500">
-                    No resources available. Type to search across all
-                    resources.
+                    No resources available. Type to search across all resources.
                   </div>
                 )}
 
@@ -1133,8 +1157,8 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                 labelsLoaded &&
                 allLabels.length === 0 && (
                   <div className="px-3 py-2 text-gray-500">
-                    No labels found in this project. Create labels first to
-                    use this shortcut.
+                    No labels found in this project. Create labels first to use
+                    this shortcut.
                   </div>
                 )}
 

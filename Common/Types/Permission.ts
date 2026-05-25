@@ -1470,29 +1470,59 @@ export class PermissionHelper {
     );
   }
 
+  /*
+   * Returns permissions that grant access WITHOUT a label restriction.
+   * A permission row grants unrestricted access when:
+   *   - scope === All, OR
+   *   - scope is unset/undefined AND labelIds is empty (legacy: empty
+   *     labels meant no restriction regardless of the permission type).
+   *
+   * Owned-scoped rows are NOT unrestricted — they restrict to owned
+   * resources via OwnedScopePermission — but they also don't contribute
+   * a label filter, so they are excluded here. AccessControlPermission's
+   * early return treats "any unrestricted row" as a broader grant; Owned
+   * rows must not trigger that path.
+   *
+   * We intentionally do NOT consult `isAccessControlPermission` here.
+   * The UI allows attaching labels to role permissions like
+   * IncidentViewer via the role-based form (with scope=Labels); honoring
+   * that requires the filter to look at `scope` + `labelIds`, not the
+   * legacy per-permission flag.
+   */
   public static getNonAccessControlPermissions(
     userPermissions: Array<UserPermission>,
   ): Array<Permission> {
     return userPermissions
       .filter((i: UserPermission) => {
-        return (
-          i.labelIds.length === 0 ||
-          !PermissionHelper.isAccessControlPermission(i.permission)
-        );
+        if (i.scope === PermissionScope.All) {
+          return true;
+        }
+        if (i.scope === PermissionScope.Owned) {
+          return false;
+        }
+        // scope === Labels OR scope === undefined (legacy default)
+        return i.labelIds.length === 0;
       })
       .map((i: UserPermission) => {
         return i.permission;
       });
   }
 
+  /*
+   * Returns permission rows that apply a label-based restriction. Rows
+   * count as label-restricting when they have at least one labelId AND
+   * the scope is `Labels` (explicitly) or unset (legacy default).
+   * All/Owned scopes are excluded — All grants unconditionally and Owned
+   * is handled separately by OwnedScopePermission.
+   */
   public static getAccessControlPermissions(
     userPermissions: Array<UserPermission>,
   ): Array<UserPermission> {
     return userPermissions.filter((i: UserPermission) => {
-      return (
-        i.labelIds.length > 0 &&
-        PermissionHelper.isAccessControlPermission(i.permission)
-      );
+      if (i.scope === PermissionScope.All || i.scope === PermissionScope.Owned) {
+        return false;
+      }
+      return i.labelIds.length > 0;
     });
   }
 
