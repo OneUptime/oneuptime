@@ -29,7 +29,6 @@ LABEL org.opencontainers.image.version="${APP_VERSION}"
 COPY ./SslCertificates /usr/local/share/ca-certificates
 RUN update-ca-certificates
 
-RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=1.0.0; fi
 
 # bash + tini for process control; python3/make/g++ to compile `isolated-vm`
 # (the sandbox used to run JavaScript runbook steps).
@@ -43,7 +42,6 @@ RUN mkdir -p /usr/src
 
 WORKDIR /usr/src/Common
 COPY ./Common/package*.json /usr/src/Common/
-RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/Common/package.json
 RUN npm install
 COPY ./Common /usr/src/Common
 
@@ -51,7 +49,6 @@ ENV PRODUCTION=true
 
 WORKDIR /usr/src/app
 COPY ./RunbookAgent/package*.json /usr/src/app/
-RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/app/package.json
 RUN npm install
 
 # Reap zombie children (e.g. `bash -c` processes the agent spawns).

@@ -1,13 +1,17 @@
+import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import Host from "../../Models/DatabaseModels/Host";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentLabelRule from "../../Models/DatabaseModels/IncidentLabelRule";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
+import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
+import DockerHostService from "./DockerHostService";
 import HostService from "./HostService";
 import IncidentFeedService from "./IncidentFeedService";
 import IncidentLabelRuleService from "./IncidentLabelRuleService";
 import IncidentService from "./IncidentService";
+import KubernetesClusterService from "./KubernetesClusterService";
 import LabelService from "./LabelService";
 import MonitorService from "./MonitorService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
@@ -25,6 +29,8 @@ class IncidentLabelRuleEngineServiceClass {
    *   - labels listed on `labelsToAdd`
    *   - all labels of the incident's monitors when `inheritLabelsFromMonitors`
    *   - all labels of the incident's hosts when `inheritLabelsFromHosts`
+   *   - all labels of the incident's Kubernetes clusters when `inheritLabelsFromKubernetesClusters`
+   *   - all labels of the incident's Docker hosts when `inheritLabelsFromDockerHosts`
    * The union is deduped against labels already on the incident before insert
    * to avoid PK conflicts on the IncidentLabel join table.
    */
@@ -56,6 +62,8 @@ class IncidentLabelRuleEngineServiceClass {
             labelsToAdd: { _id: true },
             inheritLabelsFromMonitors: true,
             inheritLabelsFromHosts: true,
+            inheritLabelsFromKubernetesClusters: true,
+            inheritLabelsFromDockerHosts: true,
           },
           limit: 100,
           skip: 0,
@@ -68,6 +76,8 @@ class IncidentLabelRuleEngineServiceClass {
       const labelIdsToAdd: Set<string> = new Set();
       let inheritFromMonitors: boolean = false;
       let inheritFromHosts: boolean = false;
+      let inheritFromKubernetesClusters: boolean = false;
+      let inheritFromDockerHosts: boolean = false;
       const matchedRules: Array<IncidentLabelRule> = [];
 
       for (const rule of rules) {
@@ -89,6 +99,12 @@ class IncidentLabelRuleEngineServiceClass {
         }
         if (rule.inheritLabelsFromHosts) {
           inheritFromHosts = true;
+        }
+        if (rule.inheritLabelsFromKubernetesClusters) {
+          inheritFromKubernetesClusters = true;
+        }
+        if (rule.inheritLabelsFromDockerHosts) {
+          inheritFromDockerHosts = true;
         }
       }
 
@@ -121,6 +137,47 @@ class IncidentLabelRuleEngineServiceClass {
             props: { isRoot: true },
           });
           for (const label of host?.labels || []) {
+            if (label.id) {
+              labelIdsToAdd.add(label.id.toString());
+            }
+          }
+        }
+      }
+
+      if (
+        inheritFromKubernetesClusters &&
+        incident.kubernetesClusters?.length
+      ) {
+        for (const incidentCluster of incident.kubernetesClusters) {
+          if (!incidentCluster.id) {
+            continue;
+          }
+          const cluster: KubernetesCluster | null =
+            await KubernetesClusterService.findOneById({
+              id: incidentCluster.id,
+              select: { labels: { _id: true } },
+              props: { isRoot: true },
+            });
+          for (const label of cluster?.labels || []) {
+            if (label.id) {
+              labelIdsToAdd.add(label.id.toString());
+            }
+          }
+        }
+      }
+
+      if (inheritFromDockerHosts && incident.dockerHosts?.length) {
+        for (const incidentDockerHost of incident.dockerHosts) {
+          if (!incidentDockerHost.id) {
+            continue;
+          }
+          const dockerHost: DockerHost | null =
+            await DockerHostService.findOneById({
+              id: incidentDockerHost.id,
+              select: { labels: { _id: true } },
+              props: { isRoot: true },
+            });
+          for (const label of dockerHost?.labels || []) {
             if (label.id) {
               labelIdsToAdd.add(label.id.toString());
             }

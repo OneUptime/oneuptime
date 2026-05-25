@@ -32,8 +32,6 @@ LABEL org.opencontainers.image.revision="${GIT_SHA}"
 LABEL org.opencontainers.image.version="${APP_VERSION}"
 
 
-# IF APP_VERSION is not set, set it to 1.0.0
-RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=1.0.0; fi
 
 
 # Install bash. 
@@ -51,8 +49,6 @@ RUN mkdir /usr/src
 
 WORKDIR /usr/src/Common
 COPY ./Common/package*.json /usr/src/Common/
-# Set version in ./Common/package.json to the APP_VERSION
-RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/Common/package.json
 RUN npm install
 COPY ./Common /usr/src/Common
 
@@ -62,8 +58,6 @@ WORKDIR /usr/src/app
 
 # Install app dependencies
 COPY ./App/package*.json /usr/src/app/
-# Set version in ./App/package.json to the APP_VERSION
-RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/app/package.json
 RUN npm install
 
 WORKDIR /usr/src/app/FeatureSet/Accounts

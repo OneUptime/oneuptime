@@ -35,8 +35,6 @@ COPY ./SslCertificates /usr/local/share/ca-certificates
 RUN update-ca-certificates
 
 
-# IF APP_VERSION is not set, set it to 1.0.0
-RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=1.0.0; fi
 
 
 RUN apt-get update
@@ -63,8 +61,6 @@ RUN mkdir -p /usr/src
 
 WORKDIR /usr/src/Common
 COPY ./Common/package*.json /usr/src/Common/
-# Set version in ./Common/package.json to the APP_VERSION
-RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/Common/package.json
 RUN npm install
 COPY ./Common /usr/src/Common
 

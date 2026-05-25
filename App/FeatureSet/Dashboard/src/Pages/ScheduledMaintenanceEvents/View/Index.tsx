@@ -1,5 +1,4 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import MonitorsElement from "../../../Components/Monitor/Monitors";
 import ChangeScheduledMaintenanceState from "../../../Components/ScheduledMaintenance/ChangeState";
 import StatusPagesElement from "../../../Components/StatusPage/StatusPagesElement";
 import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
@@ -15,9 +14,16 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import Host from "Common/Models/DatabaseModels/Host";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import AffectedResourcesPicker, {
+  isAffectedResourcesPayload,
+} from "../../../Components/AffectedResources/AffectedResourcesPicker";
+import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
@@ -136,18 +142,90 @@ const ScheduledMaintenanceView: FunctionComponent<
             field: {
               monitors: true,
             },
-            title: "Monitors affected ",
+            title: "Resources Affected",
             stepId: "resources-affected",
             description:
-              "Select monitors affected by this scheduled maintenance.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Monitor,
-              labelField: "name",
-              valueField: "_id",
-            },
+              "Search and attach monitors, hosts, Kubernetes clusters, or Docker hosts affected by this scheduled maintenance.",
+            fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
-            placeholder: "Monitors affected",
+            getCustomElement: (
+              values: FormValues<ScheduledMaintenance>,
+              elementProps: CustomElementProps,
+            ) => {
+              return (
+                <AffectedResourcesPicker
+                  monitors={values.monitors as Array<Monitor>}
+                  hosts={values.hosts as Array<Host>}
+                  kubernetesClusters={
+                    values.kubernetesClusters as Array<KubernetesCluster>
+                  }
+                  dockerHosts={values.dockerHosts as Array<DockerHost>}
+                  onChange={(payload: unknown) => {
+                    elementProps.onChange?.(payload);
+                  }}
+                />
+              );
+            },
+            onChange: (
+              value: unknown,
+              currentValues: FormValues<ScheduledMaintenance>,
+              setNewFormValues: (
+                values: FormValues<ScheduledMaintenance>,
+              ) => void,
+            ) => {
+              /*
+               * Defer the split so it runs after FormField's setFieldValue —
+               * see the matching comment in Create.tsx for full context.
+               */
+              if (isAffectedResourcesPayload(value)) {
+                const payload: typeof value = value;
+                queueMicrotask(() => {
+                  setNewFormValues({
+                    ...currentValues,
+                    monitors: payload.monitors,
+                    hosts: payload.hosts,
+                    kubernetesClusters: payload.kubernetesClusters,
+                    dockerHosts: payload.dockerHosts,
+                  } as FormValues<ScheduledMaintenance>);
+                });
+              }
+            },
+          },
+          /*
+           * The picker writes to monitors/hosts/kubernetesClusters/dockerHosts
+           * but ModelForm.getSelectFields only reads the first key of each
+           * field declaration. These hidden entries register the three extra
+           * relations so they're fetched on edit-load and included in submit.
+           */
+          {
+            field: { hosts: true },
+            stepId: "resources-affected",
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { kubernetesClusters: true },
+            stepId: "resources-affected",
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { dockerHosts: true },
+            stepId: "resources-affected",
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
           },
           {
             field: {
@@ -372,16 +450,40 @@ const ScheduledMaintenanceView: FunctionComponent<
               },
             },
             {
+              /*
+               * Single consolidated section mirroring the edit form's
+               * "Resources Affected" picker. The display component groups the
+               * four ManyToMany relations and collapses empty categories.
+               */
               field: {
                 monitors: {
                   name: true,
                   _id: true,
                 },
+                hosts: {
+                  name: true,
+                  _id: true,
+                },
+                kubernetesClusters: {
+                  name: true,
+                  _id: true,
+                },
+                dockerHosts: {
+                  name: true,
+                  _id: true,
+                },
               },
-              title: "Monitors Affected",
+              title: "Resources Affected",
               fieldType: FieldType.Element,
               getElement: (item: ScheduledMaintenance): ReactElement => {
-                return <MonitorsElement monitors={item.monitors || []} />;
+                return (
+                  <AffectedResourcesDisplay
+                    monitors={item.monitors || []}
+                    hosts={item.hosts || []}
+                    kubernetesClusters={item.kubernetesClusters || []}
+                    dockerHosts={item.dockerHosts || []}
+                  />
+                );
               },
             },
             {
