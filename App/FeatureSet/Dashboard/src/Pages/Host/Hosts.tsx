@@ -59,6 +59,116 @@ const formatMemory: (bytes: number | undefined) => string = (
   return `${v.toFixed(v < 10 ? 1 : 0)} ${units[i]}`;
 };
 
+const isIPv4: (ip: string) => boolean = (ip: string): boolean => {
+  return ip.includes(".") && !ip.includes(":");
+};
+
+const isLoopback: (ip: string) => boolean = (ip: string): boolean => {
+  const lower: string = ip.toLowerCase();
+  return lower === "::1" || lower.startsWith("127.");
+};
+
+const isLinkLocal: (ip: string) => boolean = (ip: string): boolean => {
+  const lower: string = ip.toLowerCase();
+  return lower.startsWith("fe80:") || lower.startsWith("169.254.");
+};
+
+const ipDisplayScore: (ip: string) => number = (ip: string): number => {
+  let score: number = 0;
+  if (isIPv4(ip)) {
+    score += 100;
+  }
+  if (!isLoopback(ip)) {
+    score += 10;
+  }
+  if (!isLinkLocal(ip)) {
+    score += 1;
+  }
+  return score;
+};
+
+const parseIpString: (ipString: string) => Array<string> = (
+  ipString: string,
+): Array<string> => {
+  const seen: Set<string> = new Set<string>();
+  const ips: Array<string> = [];
+  for (const raw of ipString.split(",")) {
+    const trimmed: string = raw.trim();
+    if (!trimmed) {
+      continue;
+    }
+    const key: string = trimmed.toLowerCase();
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    ips.push(trimmed);
+  }
+  return ips;
+};
+
+const IpAddressCell: FunctionComponent<{ ipString: string }> = (props: {
+  ipString: string;
+}): ReactElement => {
+  const [isExpanded, setIsExpanded] = useState<boolean>(false);
+
+  if (!props.ipString) {
+    return <span className="text-sm text-gray-400">—</span>;
+  }
+
+  const ips: Array<string> = parseIpString(props.ipString);
+  if (ips.length === 0) {
+    return <span className="text-sm text-gray-400">—</span>;
+  }
+
+  const sorted: Array<string> = [...ips].sort(
+    (a: string, b: string): number => {
+      return ipDisplayScore(b) - ipDisplayScore(a);
+    },
+  );
+  const primary: string = sorted[0]!;
+  const rest: Array<string> = sorted.slice(1);
+
+  return (
+    <div className="text-sm text-gray-700">
+      <div className="font-mono">{primary}</div>
+      {rest.length > 0 && !isExpanded && (
+        <button
+          type="button"
+          onClick={(e: React.MouseEvent<HTMLButtonElement>): void => {
+            e.stopPropagation();
+            setIsExpanded(true);
+          }}
+          className="text-xs text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer"
+        >
+          +{rest.length} more
+        </button>
+      )}
+      {rest.length > 0 && isExpanded && (
+        <div className="mt-1 flex flex-col gap-0.5">
+          {rest.map((ip: string): ReactElement => {
+            return (
+              <div key={ip} className="font-mono text-xs text-gray-600">
+                {ip}
+              </div>
+            );
+          })}
+          <button
+            type="button"
+            onClick={(e: React.MouseEvent<HTMLButtonElement>): void => {
+              e.stopPropagation();
+              setIsExpanded(false);
+            }}
+            className="mt-0.5 self-start text-xs text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer"
+          >
+            Show less
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [hostCount, setHostCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -377,30 +487,10 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: Host): ReactElement => {
-              const ipString: string = (item.hostIpAddresses as string) || "";
-              if (!ipString) {
-                return <span className="text-sm text-gray-400">—</span>;
-              }
-              const ips: Array<string> = ipString
-                .split(",")
-                .map((s: string) => {
-                  return s.trim();
-                })
-                .filter((s: string) => {
-                  return s.length > 0;
-                });
-              if (ips.length === 0) {
-                return <span className="text-sm text-gray-400">—</span>;
-              }
-              const primary: string = ips[0]!;
-              const rest: number = ips.length - 1;
               return (
-                <div className="text-sm text-gray-700">
-                  <div className="font-mono">{primary}</div>
-                  {rest > 0 && (
-                    <div className="text-xs text-gray-500">+{rest} more</div>
-                  )}
-                </div>
+                <IpAddressCell
+                  ipString={(item.hostIpAddresses as string) || ""}
+                />
               );
             },
           },
