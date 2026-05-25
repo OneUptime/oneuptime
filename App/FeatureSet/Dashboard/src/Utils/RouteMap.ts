@@ -49,9 +49,6 @@ export const ServiceRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.SERVICE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.SERVICE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
-  [PageMap.SERVICE_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
-  [PageMap.SERVICE_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
-  [PageMap.SERVICE_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.SERVICE_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.SERVICE_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
   [PageMap.SERVICE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
@@ -1710,24 +1707,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SERVICE_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
       ServiceRoutePath[PageMap.SERVICE_VIEW_SETTINGS]
-    }`,
-  ),
-
-  [PageMap.SERVICE_VIEW_MONITORS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service/${
-      ServiceRoutePath[PageMap.SERVICE_VIEW_MONITORS]
-    }`,
-  ),
-
-  [PageMap.SERVICE_VIEW_INCIDENTS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service/${
-      ServiceRoutePath[PageMap.SERVICE_VIEW_INCIDENTS]
-    }`,
-  ),
-
-  [PageMap.SERVICE_VIEW_ALERTS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service/${
-      ServiceRoutePath[PageMap.SERVICE_VIEW_ALERTS]
     }`,
   ),
 

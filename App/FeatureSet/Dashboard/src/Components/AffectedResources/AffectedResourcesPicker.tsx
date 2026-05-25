@@ -1100,9 +1100,17 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                     return RESOURCE_CONFIG[t].label.toLowerCase();
                   })
                   .join(", ")
-          } tagged with any of them will be added to the selection.`}
-          modalWidth={ModalWidth.Normal}
-          submitButtonText={isApplyingLabels ? "Adding..." : "Add to Selection"}
+          } tagged with any of them will be added to the selection. Expand a label to preview the resources it covers.`}
+          modalWidth={ModalWidth.Medium}
+          submitButtonText={
+            isApplyingLabels
+              ? "Adding..."
+              : selectedLabelIds.length > 0
+                ? `Add ${selectedLabelIds.length} label${
+                    selectedLabelIds.length === 1 ? "" : "s"
+                  } to Selection`
+                : "Add to Selection"
+          }
           submitButtonStyleType={ButtonStyleType.PRIMARY}
           disableSubmitButton={
             isApplyingLabels || isLoadingLabels || selectedLabelIds.length === 0
@@ -1126,43 +1134,241 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
               shortcut.
             </div>
           ) : (
-            <div className="max-h-72 overflow-auto py-2">
-              {allLabels.map((label: Label): ReactElement => {
-                const labelId: string = label._id ? String(label._id) : "";
-                if (!labelId) {
-                  return <span key={Math.random()} />;
-                }
-                const isChecked: boolean = selectedLabelIds.includes(labelId);
-                return (
-                  <label
-                    key={labelId}
-                    className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 hover:bg-gray-50"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => {
-                        toggleLabelId(labelId);
-                      }}
-                      className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            <div className="flex flex-col">
+              <div className="sticky top-0 z-10 -mx-1 mb-2 bg-white px-1 pb-2">
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <Icon
+                      icon={IconProp.Search}
+                      className="h-4 w-4 text-gray-400"
                     />
-                    {label.color && (
-                      <span
-                        className="inline-block h-3 w-3 rounded-full"
-                        style={{
-                          backgroundColor: label.color.toString
-                            ? label.color.toString()
-                            : (label.color as unknown as string),
-                        }}
-                        aria-hidden="true"
-                      />
-                    )}
-                    <span className="text-sm text-gray-800">
-                      {label.name || "Unnamed Label"}
-                    </span>
-                  </label>
-                );
-              })}
+                  </div>
+                  <input
+                    type="text"
+                    value={labelSearchQuery}
+                    onChange={(
+                      event: React.ChangeEvent<HTMLInputElement>,
+                    ): void => {
+                      setLabelSearchQuery(event.target.value);
+                    }}
+                    placeholder="Search labels..."
+                    className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
+                <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
+                  <span>
+                    {filteredLabels.length}{" "}
+                    {filteredLabels.length === 1 ? "label" : "labels"}
+                    {labelSearchQuery.trim() !== ""
+                      ? ` matching "${labelSearchQuery.trim()}"`
+                      : ""}
+                  </span>
+                  {selectedLabelIds.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={(): void => {
+                        setSelectedLabelIds([]);
+                      }}
+                      className="text-indigo-600 hover:text-indigo-800 hover:underline focus:outline-none"
+                    >
+                      Clear selection ({selectedLabelIds.length})
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {filteredLabels.length === 0 ? (
+                <div className="py-8 text-center text-sm text-gray-500">
+                  No labels match &ldquo;{labelSearchQuery.trim()}&rdquo;.
+                </div>
+              ) : (
+                <div className="max-h-96 overflow-auto rounded-md border border-gray-200">
+                  {filteredLabels.map((label: Label): ReactElement => {
+                    const labelId: string = label._id ? String(label._id) : "";
+                    if (!labelId) {
+                      return <span key={Math.random()} />;
+                    }
+                    const isChecked: boolean =
+                      selectedLabelIds.includes(labelId);
+                    const isExpanded: boolean = expandedLabelIds.has(labelId);
+                    const isLoadingResources: boolean =
+                      loadingLabelIds.has(labelId);
+                    const resources: Array<AffectedResourceItem> | undefined =
+                      resourcesByLabel[labelId];
+                    const loadError: string | undefined =
+                      labelLoadErrors[labelId];
+                    const labelColor: string | undefined = label.color
+                      ? typeof (label.color as { toString?: unknown })
+                          .toString === "function"
+                        ? label.color.toString()
+                        : (label.color as unknown as string)
+                      : undefined;
+
+                    return (
+                      <div
+                        key={labelId}
+                        className="border-b border-gray-100 last:border-b-0"
+                      >
+                        <div
+                          className={`flex items-center gap-2 px-2 py-2 ${
+                            isChecked ? "bg-indigo-50" : "hover:bg-gray-50"
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            aria-label={
+                              isExpanded
+                                ? "Collapse resources"
+                                : "Expand resources"
+                            }
+                            aria-expanded={isExpanded}
+                            onClick={(): void => {
+                              toggleLabelExpansion(labelId);
+                            }}
+                            className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          >
+                            <Icon
+                              icon={IconProp.ChevronRight}
+                              className={`h-3.5 w-3.5 transition-transform duration-150 ${
+                                isExpanded ? "rotate-90" : ""
+                              }`}
+                            />
+                          </button>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(): void => {
+                              toggleLabelId(labelId);
+                            }}
+                            className="h-4 w-4 flex-shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          {labelColor && (
+                            <span
+                              className="inline-block h-3 w-3 flex-shrink-0 rounded-full"
+                              style={{ backgroundColor: labelColor }}
+                              aria-hidden="true"
+                            />
+                          )}
+                          <button
+                            type="button"
+                            onClick={(): void => {
+                              toggleLabelId(labelId);
+                            }}
+                            className="flex-1 truncate text-left text-sm text-gray-800 focus:outline-none"
+                          >
+                            {label.name || "Unnamed Label"}
+                          </button>
+                          {resources !== undefined && (
+                            <span className="flex-shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                              {resources.length}
+                              {resources.length >=
+                              LABEL_PREVIEW_LIMIT_PER_TYPE *
+                                resourceTypes.length
+                                ? "+"
+                                : ""}
+                            </span>
+                          )}
+                        </div>
+
+                        {isExpanded && (
+                          <div className="border-t border-gray-100 bg-gray-50 px-3 py-2 pl-10">
+                            {isLoadingResources ? (
+                              <div className="flex items-center gap-2 py-1 text-xs text-gray-500">
+                                <svg
+                                  className="h-3.5 w-3.5 animate-spin text-indigo-500"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  aria-hidden="true"
+                                >
+                                  <circle
+                                    className="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                    stroke="currentColor"
+                                    strokeWidth="4"
+                                  />
+                                  <path
+                                    className="opacity-75"
+                                    fill="currentColor"
+                                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                                  />
+                                </svg>
+                                <span>Loading resources...</span>
+                              </div>
+                            ) : loadError ? (
+                              <div className="py-1 text-xs text-red-600">
+                                {loadError}
+                              </div>
+                            ) : !resources || resources.length === 0 ? (
+                              <div className="py-1 text-xs italic text-gray-500">
+                                No resources tagged with this label.
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                {resourceTypes.map(
+                                  (
+                                    type: AffectedResourceType,
+                                  ): ReactElement | null => {
+                                    const items: Array<AffectedResourceItem> =
+                                      resources.filter(
+                                        (r: AffectedResourceItem): boolean => {
+                                          return r.type === type;
+                                        },
+                                      );
+                                    if (items.length === 0) {
+                                      return null;
+                                    }
+                                    const cfg: ResourceConfig =
+                                      RESOURCE_CONFIG[type];
+                                    return (
+                                      <div key={type}>
+                                        <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                                          <Icon
+                                            icon={cfg.icon}
+                                            className="h-3 w-3 text-gray-400"
+                                          />
+                                          <span>
+                                            {cfg.label}s ({items.length}
+                                            {items.length >=
+                                            LABEL_PREVIEW_LIMIT_PER_TYPE
+                                              ? "+"
+                                              : ""}
+                                            )
+                                          </span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1.5">
+                                          {items.map(
+                                            (
+                                              item: AffectedResourceItem,
+                                            ): ReactElement => {
+                                              return (
+                                                <span
+                                                  key={`${item.type}-${item._id}`}
+                                                  className="inline-flex items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-xs text-gray-700"
+                                                >
+                                                  <span className="truncate max-w-[12rem]">
+                                                    {item.name}
+                                                  </span>
+                                                </span>
+                                              );
+                                            },
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  },
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </Modal>

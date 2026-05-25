@@ -712,9 +712,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             },
           },
           {
-            // Unified "Resources Affected" cell — mirrors the form's single
-            // picker. Pulls monitors + hosts + k8s + docker in one selection
-            // so the row shows whatever the user actually attached.
+            /*
+             * Unified "Resources Affected" cell — mirrors the form's single
+             * picker. Pulls monitors + hosts + k8s + docker in one selection
+             * so the row shows whatever the user actually attached.
+             */
             field: {
               monitors: {
                 name: true,

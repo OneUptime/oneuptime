@@ -11,12 +11,6 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 import Services from "../Pages/Service/Services";
 import ServiceView from "../Pages/Service/View/Index";
 
-import ServiceViewMonitors from "../Pages/Service/View/Monitors";
-
-import ServiceViewIncidents from "../Pages/Service/View/Incidents";
-
-import ServiceViewAlerts from "../Pages/Service/View/Alerts";
-
 import ServiceViewLogs from "../Pages/Service/View/Logs";
 
 import ServiceViewTraces from "../Pages/Service/View/Traces";
@@ -108,36 +102,6 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
             <ServiceViewSettings
               {...props}
               pageRoute={RouteMap[PageMap.SERVICE_VIEW_SETTINGS] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_MONITORS)}
-          element={
-            <ServiceViewMonitors
-              {...props}
-              pageRoute={RouteMap[PageMap.SERVICE_VIEW_MONITORS] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_ALERTS)}
-          element={
-            <ServiceViewAlerts
-              {...props}
-              pageRoute={RouteMap[PageMap.SERVICE_VIEW_ALERTS] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_INCIDENTS)}
-          element={
-            <ServiceViewIncidents
-              {...props}
-              pageRoute={RouteMap[PageMap.SERVICE_VIEW_INCIDENTS] as Route}
             />
           }
         />

@@ -84,12 +84,9 @@ flowchart LR
 
 | Option | When Enabled | When Disabled |
 |--------|-------------|---------------|
-| **Group By Service** | Alerts from monitors in different services → separate episodes | Alerts can be grouped regardless of service |
 | **Group By Monitor** | Alerts from different monitors → separate episodes | Alerts from any monitor can be grouped together |
 | **Group By Severity** | Alerts with different severities → separate episodes | Alerts of any severity can be grouped together |
 | **Group By Alert Title** | Alerts with different titles → separate episodes | Alerts with any title can be grouped together |
-
-> **Note:** Monitors can be attached to Services. A Service can have multiple monitors. Group By Service is useful when you want to group all alerts from a service together regardless of which specific monitor triggered them.
 
 #### Default Behavior
 
@@ -422,17 +419,6 @@ const AlertGroupingRulesPage: FunctionComponent<
             placeholder: "production|critical",
           },
           // Group By Fields
-          {
-            field: {
-              groupByService: true,
-            },
-            title: "Group By Service",
-            stepId: "group-by",
-            fieldType: FormFieldSchemaType.Checkbox,
-            required: false,
-            description:
-              "When enabled, alerts from monitors belonging to different services will be grouped into separate episodes. Monitors can be attached to services, and a service can have multiple monitors.",
-          },
           {
             field: {
               groupByMonitor: true,

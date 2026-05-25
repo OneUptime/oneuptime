@@ -1124,11 +1124,6 @@ enum Permission {
   EditService = "EditService",
   ReadService = "ReadService",
 
-  CreateServiceMonitor = "CreateServiceMonitor",
-  DeleteServiceMonitor = "DeleteServiceMonitor",
-  EditServiceMonitor = "EditServiceMonitor",
-  ReadServiceMonitor = "ReadServiceMonitor",
-
   CreateServiceTelemetryService = "CreateServiceTelemetryService",
   DeleteServiceTelemetryService = "DeleteServiceTelemetryService",
   EditServiceTelemetryService = "EditServiceTelemetryService",
@@ -7519,47 +7514,6 @@ export class PermissionHelper {
         description: "This permission can read Service of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
-        isRolePermission: false,
-        group: PermissionGroup.ServiceCatalog,
-      },
-
-      {
-        permission: Permission.CreateServiceMonitor,
-        title: "Create Service Monitor",
-        description:
-          "This permission can create Service Monitor in this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.ServiceCatalog,
-      },
-      {
-        permission: Permission.DeleteServiceMonitor,
-        title: "Delete Service Monitor",
-        description:
-          "This permission can delete Service Monitor of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.ServiceCatalog,
-      },
-      {
-        permission: Permission.EditServiceMonitor,
-        title: "Edit Service Monitor",
-        description:
-          "This permission can edit Service Monitor of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.ServiceCatalog,
-      },
-      {
-        permission: Permission.ReadServiceMonitor,
-        title: "Read Service Monitor",
-        description:
-          "This permission can read Service Monitor of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.ServiceCatalog,
       },

@@ -670,9 +670,11 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             },
           },
           {
-            // Unified "Resources Affected" cell. Alert.monitor is singular,
-            // so we wrap it in an array; hosts/k8s/docker come from the M2M
-            // relations the picker also writes to.
+            /*
+             * Unified "Resources Affected" cell. Alert.monitor is singular,
+             * so we wrap it in an array; hosts/k8s/docker come from the M2M
+             * relations the picker also writes to.
+             */
             field: {
               monitor: {
                 name: true,

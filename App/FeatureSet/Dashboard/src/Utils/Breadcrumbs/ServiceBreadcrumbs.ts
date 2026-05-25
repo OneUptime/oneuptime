@@ -29,24 +29,6 @@ export function getServiceBreadcrumbs(path: string): Array<Link> | undefined {
       "View Service",
       "Settings",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_MONITORS, [
-      "Project",
-      "Services",
-      "View Service",
-      "Monitors",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_ALERTS, [
-      "Project",
-      "Services",
-      "View Service",
-      "Alerts",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_INCIDENTS, [
-      "Project",
-      "Services",
-      "View Service",
-      "Incidents",
-    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_LOGS, [
       "Project",
       "Services",
