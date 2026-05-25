@@ -26,8 +26,6 @@ import {
   DashboardTemplate,
 } from "Common/Types/Dashboard/DashboardTemplates";
 import { JSONObject } from "Common/Types/JSON";
-import IconProp from "Common/Types/Icon/IconProp";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -115,6 +113,12 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
+        onCreateClick={() => {
+          setShowTemplateModal(true);
+        }}
+        onCreateEditModalClose={() => {
+          setShowCreateForm(false);
+        }}
         bulkActions={{
           buttons: [...labelBulkActions, ...ownerBulkActions],
         }}
@@ -124,16 +128,6 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         cardProps={{
           title: "Dashboards",
           description: "Here is a list of dashboards for this project.",
-          buttons: [
-            {
-              title: "Create from Template",
-              buttonStyle: ButtonStyleType.OUTLINE,
-              onClick: () => {
-                setShowTemplateModal(true);
-              },
-              icon: IconProp.Add,
-            },
-          ],
         }}
         showViewIdButton={true}
         noItemsMessage={"No dashboards found."}
