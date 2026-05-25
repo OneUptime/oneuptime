@@ -19,6 +19,7 @@ import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/Schedule
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import OwnersCell from "../ResourceOwners/OwnersCell";
+import buildAffectedResourcesFacet from "../AffectedResources/buildAffectedResourcesFacet";
 import useResourceOwners, {
   ResourceFacet,
   buildEntityFacetQuery,
@@ -175,6 +176,9 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
         return buildEntityFacetQuery(values, operator, true);
       },
     },
+    buildAffectedResourcesFacet<ScheduledMaintenance>({
+      parentModelType: ScheduledMaintenance,
+    }),
   ];
 
   const {

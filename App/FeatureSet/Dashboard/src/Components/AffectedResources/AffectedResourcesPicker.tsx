@@ -16,8 +16,6 @@ import Permission, {
   UserTenantAccessPermission,
 } from "Common/Types/Permission";
 import Icon from "Common/UI/Components/Icon/Icon";
-import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import User from "Common/UI/Utils/User";
@@ -303,34 +301,24 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
    */
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
 
-  // Select-by-Labels modal state.
-  const [isLabelModalOpen, setIsLabelModalOpen] = useState<boolean>(false);
+  /*
+   * Two-mode dropdown: "resources" runs the existing name/description
+   * search; "labels" turns the same popover into a multi-select label
+   * picker that bulk-adds every resource tagged with the chosen labels.
+   * The label flow used to live in a separate modal triggered by a
+   * "Select by Labels" link — folding it into the dropdown removes the
+   * modal entirely and surfaces label-based selection at the same level
+   * of discoverability as the search.
+   */
+  const [activeTab, setActiveTab] = useState<"resources" | "labels">(
+    "resources",
+  );
   const [allLabels, setAllLabels] = useState<Array<Label>>([]);
   const [isLoadingLabels, setIsLoadingLabels] = useState<boolean>(false);
   const [labelsLoaded, setLabelsLoaded] = useState<boolean>(false);
   const [selectedLabelIds, setSelectedLabelIds] = useState<Array<string>>([]);
   const [isApplyingLabels, setIsApplyingLabels] = useState<boolean>(false);
   const [labelError, setLabelError] = useState<string>("");
-  const [labelSearchQuery, setLabelSearchQuery] = useState<string>("");
-  const [expandedLabelIds, setExpandedLabelIds] = useState<Set<string>>(
-    new Set(),
-  );
-  /*
-   * resourcesByLabel caches the preview list (resources tagged with each
-   * expanded label) so re-expanding the same label is instant. Lives across
-   * modal opens for the lifetime of the picker — invalidated only by
-   * remount. Errors are tracked per label so one failure doesn't break
-   * the rest of the list.
-   */
-  const [resourcesByLabel, setResourcesByLabel] = useState<
-    Record<string, Array<AffectedResourceItem>>
-  >({});
-  const [loadingLabelIds, setLoadingLabelIds] = useState<Set<string>>(
-    new Set(),
-  );
-  const [labelLoadErrors, setLabelLoadErrors] = useState<
-    Record<string, string>
-  >({});
   const containerRef: React.MutableRefObject<HTMLDivElement | null> =
     useRef<HTMLDivElement | null>(null);
   const inputRef: React.MutableRefObject<HTMLInputElement | null> =
@@ -428,10 +416,11 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     }
 
     /*
-     * Skip fetching when the dropdown is closed — there's nothing to render.
-     * Re-opening (or the user typing) re-runs this effect and refills results.
+     * Skip fetching when the dropdown is closed or the user is on the
+     * Labels tab — there's nothing to render. Re-opening (or the user
+     * typing) re-runs this effect and refills results.
      */
-    if (!isOpen) {
+    if (!isOpen || activeTab !== "resources") {
       return;
     }
 
@@ -511,7 +500,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
         }
       }
     }, delay);
-  }, [searchQuery, resourceTypes, isOpen]);
+  }, [searchQuery, resourceTypes, isOpen, activeTab]);
 
   const availableResults: Array<AffectedResourceItem> = useMemo(() => {
     return searchResults.filter((result: AffectedResourceItem) => {
@@ -616,41 +605,50 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * Lazy-load the label list when the user first opens the label modal. Cached
-   * after the first open so reopening is instant. Transient UI state
-   * (search query, expansion, per-label errors) is cleared on every open so
-   * the user sees a clean modal; the resource cache is intentionally kept.
+   * Lazy-load labels the first time the user switches to the Labels tab.
+   * The list is cached for the picker's lifetime — switching back and
+   * forth between tabs is instant.
    */
-  const openLabelModal: () => Promise<void> = async (): Promise<void> => {
-    setSelectedLabelIds([]);
-    setLabelError("");
-    setLabelSearchQuery("");
-    setExpandedLabelIds(new Set());
-    setLabelLoadErrors({});
-    setIsLabelModalOpen(true);
-    if (labelsLoaded) {
+  useEffect(() => {
+    if (activeTab !== "labels" || labelsLoaded || isLoadingLabels) {
       return;
     }
-    setIsLoadingLabels(true);
-    try {
-      const result: { data: Array<Label> } = await ModelAPI.getList<Label>({
-        modelType: Label,
-        query: {} as never,
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: { _id: true, name: true, color: true } as never,
-        sort: { name: SortOrder.Ascending } as never,
-      });
-      setAllLabels(result.data || []);
-      setLabelsLoaded(true);
-    } catch {
-      setLabelError(
-        "Failed to load labels. You may not have permission to read labels.",
-      );
-    } finally {
-      setIsLoadingLabels(false);
-    }
-  };
+    let cancelled: boolean = false;
+    const loadLabels: () => Promise<void> = async (): Promise<void> => {
+      setIsLoadingLabels(true);
+      setLabelError("");
+      try {
+        const result: { data: Array<Label> } = await ModelAPI.getList<Label>({
+          modelType: Label,
+          query: {} as never,
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: { _id: true, name: true, color: true } as never,
+          sort: { name: SortOrder.Ascending } as never,
+        });
+        if (cancelled) {
+          return;
+        }
+        setAllLabels(result.data || []);
+        setLabelsLoaded(true);
+      } catch {
+        if (cancelled) {
+          return;
+        }
+        setLabelError(
+          "Failed to load labels. You may not have permission to read labels.",
+        );
+      } finally {
+        if (!cancelled) {
+          setIsLoadingLabels(false);
+        }
+      }
+    };
+    void loadLabels();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, labelsLoaded, isLoadingLabels]);
 
   const toggleLabelId: (id: string) => void = (id: string): void => {
     setSelectedLabelIds((prev: Array<string>): Array<string> => {
@@ -664,90 +662,13 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * Fetches the preview list for a single label across every enabled resource
-   * type. Stored in resourcesByLabel keyed by labelId so the next expand of
-   * the same label renders instantly. Preview is capped per type — the actual
-   * Add to Selection uses LIMIT_PER_PROJECT, so for very large labels the
-   * preview may show fewer rows than will eventually be added.
+   * On the Labels tab the same input filters the label list client-side
+   * (we already have all labels in memory). Keeping a single searchQuery
+   * for both tabs keeps the input behavior intuitive — the user types,
+   * the visible list narrows, regardless of which tab they're on.
    */
-  const LABEL_PREVIEW_LIMIT_PER_TYPE: number = 100;
-
-  const fetchResourcesForLabel: (labelId: string) => Promise<void> = async (
-    labelId: string,
-  ): Promise<void> => {
-    setLoadingLabelIds((prev: Set<string>): Set<string> => {
-      const next: Set<string> = new Set(prev);
-      next.add(labelId);
-      return next;
-    });
-    setLabelLoadErrors(
-      (prev: Record<string, string>): Record<string, string> => {
-        const next: Record<string, string> = { ...prev };
-        delete next[labelId];
-        return next;
-      },
-    );
-    try {
-      const requests: Array<Promise<Array<AffectedResourceItem>>> = [];
-      for (const type of resourceTypes) {
-        requests.push(
-          fetchByQuery(
-            type,
-            { labels: new Includes([labelId]) },
-            LABEL_PREVIEW_LIMIT_PER_TYPE,
-          ),
-        );
-      }
-      const buckets: Array<Array<AffectedResourceItem>> =
-        await Promise.all(requests);
-      const merged: Array<AffectedResourceItem> = [];
-      for (const bucket of buckets) {
-        for (const item of bucket) {
-          merged.push(item);
-          nameCacheRef.current.set(`${item.type}:${item._id}`, item.name);
-        }
-      }
-      setResourcesByLabel(
-        (
-          prev: Record<string, Array<AffectedResourceItem>>,
-        ): Record<string, Array<AffectedResourceItem>> => {
-          return { ...prev, [labelId]: merged };
-        },
-      );
-    } catch {
-      setLabelLoadErrors(
-        (prev: Record<string, string>): Record<string, string> => {
-          return { ...prev, [labelId]: "Failed to load resources." };
-        },
-      );
-    } finally {
-      setLoadingLabelIds((prev: Set<string>): Set<string> => {
-        const next: Set<string> = new Set(prev);
-        next.delete(labelId);
-        return next;
-      });
-    }
-  };
-
-  const toggleLabelExpansion: (labelId: string) => void = (
-    labelId: string,
-  ): void => {
-    setExpandedLabelIds((prev: Set<string>): Set<string> => {
-      const next: Set<string> = new Set(prev);
-      if (next.has(labelId)) {
-        next.delete(labelId);
-      } else {
-        next.add(labelId);
-        if (resourcesByLabel[labelId] === undefined) {
-          void fetchResourcesForLabel(labelId);
-        }
-      }
-      return next;
-    });
-  };
-
   const filteredLabels: Array<Label> = useMemo(() => {
-    const q: string = labelSearchQuery.trim().toLowerCase();
+    const q: string = searchQuery.trim().toLowerCase();
     if (q === "") {
       return allLabels;
     }
@@ -755,7 +676,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
       const name: string = (label.name || "").toLowerCase();
       return name.includes(q);
     });
-  }, [allLabels, labelSearchQuery]);
+  }, [allLabels, searchQuery]);
 
   /*
    * Pulls every resource (of each enabled type) tagged with any of the chosen
@@ -765,7 +686,6 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
    */
   const applyLabelSelection: () => Promise<void> = async (): Promise<void> => {
     if (selectedLabelIds.length === 0) {
-      setIsLabelModalOpen(false);
       return;
     }
     setIsApplyingLabels(true);
@@ -805,14 +725,21 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
 
       if (additions.length === 0) {
         setLabelError(
-          "No resources matched the selected labels (or you don't have read access).",
+          "No new resources matched the selected labels (or you don't have read access).",
         );
         setIsApplyingLabels(false);
         return;
       }
 
       notify([...selected, ...additions]);
-      setIsLabelModalOpen(false);
+      /*
+       * Bounce back to the resources view, drop the label selection, and
+       * close the popover so the user sees the resulting chips appear.
+       */
+      setSelectedLabelIds([]);
+      setSearchQuery("");
+      setActiveTab("resources");
+      setIsOpen(false);
     } catch {
       setLabelError("Failed to fetch resources for the selected labels.");
     } finally {
@@ -830,7 +757,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const placeholder: string =
+  const resourcesPlaceholder: string =
     props.placeholder ||
     (resourceTypes.length === ALL_TYPES.length
       ? "Search monitors, hosts, Kubernetes clusters, Docker hosts, or services..."
@@ -839,23 +766,11 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
             return RESOURCE_CONFIG[t].label.toLowerCase();
           })
           .join(", ")}...`);
+  const placeholder: string =
+    activeTab === "labels" ? "Search labels..." : resourcesPlaceholder;
 
   return (
     <div ref={containerRef} className="relative mt-1 w-full">
-      {!props.disabled && (
-        <div className="mb-2 flex justify-end">
-          <button
-            type="button"
-            onClick={() => {
-              void openLabelModal();
-            }}
-            className="text-sm text-indigo-600 hover:text-indigo-800 hover:underline focus:outline-none"
-          >
-            Select by Labels
-          </button>
-        </div>
-      )}
-
       {selected.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-2">
           {selected.map((item: AffectedResourceItem) => {
@@ -981,244 +896,268 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
 
       {isOpen && !props.disabled && (
         <div
-          className="absolute z-10 mt-1 max-h-72 w-full overflow-auto rounded-md border border-gray-200 bg-white py-1 text-sm shadow-lg"
+          className="absolute z-10 mt-1 flex max-h-96 w-full flex-col overflow-hidden rounded-md border border-gray-200 bg-white text-sm shadow-lg"
           role="listbox"
         >
-          {isLoading && (
-            <div className="flex w-full items-center px-3 py-2 text-left text-gray-500">
-              <svg
-                className="animate-spin -ml-0.5 mr-2 h-4 w-4 text-indigo-500"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                ></path>
-              </svg>
-              <span>Searching...</span>
-            </div>
-          )}
+          {/*
+           * Tab strip. Two modes share the same input above: "Resources"
+           * runs the live name/description search; "Labels" lets the user
+           * bulk-add every resource tagged with the chosen labels.
+           */}
+          <div className="flex flex-shrink-0 items-center gap-1 border-b border-gray-100 bg-gray-50 px-1.5 py-1">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "resources"}
+              onMouseDown={(
+                event: React.MouseEvent<HTMLButtonElement>,
+              ): void => {
+                event.preventDefault();
+              }}
+              onClick={(): void => {
+                setActiveTab("resources");
+                setHighlightedIndex(-1);
+              }}
+              className={`rounded px-2.5 py-1 text-xs font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
+                activeTab === "resources"
+                  ? "bg-white text-indigo-700 shadow-sm ring-1 ring-gray-200"
+                  : "text-gray-600 hover:bg-white/60 hover:text-gray-800"
+              }`}
+            >
+              Resources
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "labels"}
+              onMouseDown={(
+                event: React.MouseEvent<HTMLButtonElement>,
+              ): void => {
+                event.preventDefault();
+              }}
+              onClick={(): void => {
+                setActiveTab("labels");
+                setHighlightedIndex(-1);
+              }}
+              className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
+                activeTab === "labels"
+                  ? "bg-white text-indigo-700 shadow-sm ring-1 ring-gray-200"
+                  : "text-gray-600 hover:bg-white/60 hover:text-gray-800"
+              }`}
+            >
+              <Icon icon={IconProp.Tag} className="h-3.5 w-3.5" />
+              Labels
+              {selectedLabelIds.length > 0 && (
+                <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-indigo-100 px-1 text-[10px] font-semibold text-indigo-700">
+                  {selectedLabelIds.length}
+                </span>
+              )}
+            </button>
+            <span className="ml-auto pr-1 text-[11px] text-gray-400">
+              {activeTab === "resources"
+                ? "Search and add individually"
+                : "Bulk-add by tag"}
+            </span>
+          </div>
 
-          {!isLoading &&
-            searchQuery.trim() === "" &&
-            groupedAvailable.length === 0 && (
-              <div className="px-3 py-2 text-gray-500">
-                No resources available. Type to search across all resources.
-              </div>
-            )}
+          {/* Resources tab body. */}
+          {activeTab === "resources" && (
+            <div className="flex-1 overflow-auto py-1">
+              {isLoading && (
+                <div className="flex w-full items-center px-3 py-2 text-left text-gray-500">
+                  <svg
+                    className="animate-spin -ml-0.5 mr-2 h-4 w-4 text-indigo-500"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    ></path>
+                  </svg>
+                  <span>Searching...</span>
+                </div>
+              )}
 
-          {!isLoading &&
-            searchQuery.trim() !== "" &&
-            groupedAvailable.length === 0 && (
-              <div className="px-3 py-2 text-gray-500">
-                No matching resources.
-              </div>
-            )}
-
-          {!isLoading &&
-            (() => {
-              /*
-               * Track the running flat index alongside the visual render so
-               * the highlight class matches the keyboard cursor exactly.
-               */
-              let flatIdx: number = -1;
-              return groupedAvailable.map(
-                (group: {
-                  type: AffectedResourceType;
-                  items: Array<AffectedResourceItem>;
-                }) => {
-                  const cfg: ResourceConfig = RESOURCE_CONFIG[group.type];
-                  return (
-                    <div key={group.type}>
-                      <div className="bg-gray-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        {cfg.label}s
-                      </div>
-                      {group.items.map((item: AffectedResourceItem) => {
-                        flatIdx += 1;
-                        const isHighlighted: boolean =
-                          flatIdx === highlightedIndex;
-                        return (
-                          <button
-                            key={`${item.type}-${item._id}`}
-                            type="button"
-                            role="option"
-                            aria-selected={isHighlighted}
-                            onMouseEnter={() => {
-                              /*
-                               * Sync the highlight to the mouse so keyboard
-                               * and mouse never disagree on which row is
-                               * about to be picked.
-                               */
-                              setHighlightedIndex(flatIdx);
-                            }}
-                            onMouseDown={(
-                              event: React.MouseEvent<HTMLButtonElement>,
-                            ) => {
-                              /*
-                               * Prevent the input blur from firing before
-                               * onClick resolves the selection.
-                               */
-                              event.preventDefault();
-                            }}
-                            onClick={() => {
-                              addItem(item);
-                            }}
-                            className={`flex w-full items-center gap-2 px-3 py-2 text-left ${
-                              isHighlighted
-                                ? "bg-indigo-600 text-white"
-                                : "text-gray-700 hover:bg-indigo-50"
-                            }`}
-                          >
-                            <Icon
-                              icon={cfg.icon}
-                              className={`h-4 w-4 ${
-                                isHighlighted ? "text-white" : "text-gray-400"
-                              }`}
-                            />
-                            <span>{item.name}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  );
-                },
-              );
-            })()}
-
-          {deniedTypes.length > 0 && (
-            <div className="border-t border-gray-100 px-3 py-2 text-xs text-gray-500">
-              You don&apos;t have permission to read:{" "}
-              {deniedTypes
-                .map((t: AffectedResourceType): string => {
-                  return RESOURCE_CONFIG[t].label;
-                })
-                .join(", ")}
-              .
-            </div>
-          )}
-        </div>
-      )}
-
-      {isLabelModalOpen && (
-        <Modal
-          title="Select Resources by Labels"
-          description={`Pick one or more labels — every ${
-            resourceTypes.length === ALL_TYPES.length
-              ? "monitor, host, Kubernetes cluster, Docker host, or service"
-              : resourceTypes
-                  .map((t: AffectedResourceType): string => {
-                    return RESOURCE_CONFIG[t].label.toLowerCase();
-                  })
-                  .join(", ")
-          } tagged with any of them will be added to the selection. Expand a label to preview the resources it covers.`}
-          modalWidth={ModalWidth.Medium}
-          submitButtonText={
-            isApplyingLabels
-              ? "Adding..."
-              : selectedLabelIds.length > 0
-                ? `Add ${selectedLabelIds.length} label${
-                    selectedLabelIds.length === 1 ? "" : "s"
-                  } to Selection`
-                : "Add to Selection"
-          }
-          submitButtonStyleType={ButtonStyleType.PRIMARY}
-          disableSubmitButton={
-            isApplyingLabels || isLoadingLabels || selectedLabelIds.length === 0
-          }
-          isLoading={isApplyingLabels}
-          isBodyLoading={isLoadingLabels}
-          error={labelError}
-          onClose={() => {
-            if (isApplyingLabels) {
-              return;
-            }
-            setIsLabelModalOpen(false);
-          }}
-          onSubmit={() => {
-            void applyLabelSelection();
-          }}
-        >
-          {!isLoadingLabels && allLabels.length === 0 ? (
-            <div className="py-3 text-sm text-gray-500">
-              No labels found in this project. Create labels first to use this
-              shortcut.
-            </div>
-          ) : (
-            <div className="flex flex-col">
-              <div className="sticky top-0 z-10 -mx-1 mb-2 bg-white px-1 pb-2">
-                <div className="relative">
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                    <Icon
-                      icon={IconProp.Search}
-                      className="h-4 w-4 text-gray-400"
-                    />
+              {!isLoading &&
+                searchQuery.trim() === "" &&
+                groupedAvailable.length === 0 && (
+                  <div className="px-3 py-2 text-gray-500">
+                    No resources available. Type to search across all
+                    resources.
                   </div>
-                  <input
-                    type="text"
-                    value={labelSearchQuery}
-                    onChange={(
-                      event: React.ChangeEvent<HTMLInputElement>,
-                    ): void => {
-                      setLabelSearchQuery(event.target.value);
-                    }}
-                    placeholder="Search labels..."
-                    className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
-                </div>
-                <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
-                  <span>
-                    {filteredLabels.length}{" "}
-                    {filteredLabels.length === 1 ? "label" : "labels"}
-                    {labelSearchQuery.trim() !== ""
-                      ? ` matching "${labelSearchQuery.trim()}"`
-                      : ""}
-                  </span>
-                  {selectedLabelIds.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={(): void => {
-                        setSelectedLabelIds([]);
-                      }}
-                      className="text-indigo-600 hover:text-indigo-800 hover:underline focus:outline-none"
-                    >
-                      Clear selection ({selectedLabelIds.length})
-                    </button>
-                  )}
-                </div>
-              </div>
+                )}
 
-              {filteredLabels.length === 0 ? (
-                <div className="py-8 text-center text-sm text-gray-500">
-                  No labels match &ldquo;{labelSearchQuery.trim()}&rdquo;.
+              {!isLoading &&
+                searchQuery.trim() !== "" &&
+                groupedAvailable.length === 0 && (
+                  <div className="px-3 py-2 text-gray-500">
+                    No matching resources.
+                  </div>
+                )}
+
+              {!isLoading &&
+                (() => {
+                  /*
+                   * Track the running flat index alongside the visual render
+                   * so the highlight class matches the keyboard cursor
+                   * exactly.
+                   */
+                  let flatIdx: number = -1;
+                  return groupedAvailable.map(
+                    (group: {
+                      type: AffectedResourceType;
+                      items: Array<AffectedResourceItem>;
+                    }) => {
+                      const cfg: ResourceConfig = RESOURCE_CONFIG[group.type];
+                      return (
+                        <div key={group.type}>
+                          <div className="bg-gray-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            {cfg.label}s
+                          </div>
+                          {group.items.map((item: AffectedResourceItem) => {
+                            flatIdx += 1;
+                            const isHighlighted: boolean =
+                              flatIdx === highlightedIndex;
+                            return (
+                              <button
+                                key={`${item.type}-${item._id}`}
+                                type="button"
+                                role="option"
+                                aria-selected={isHighlighted}
+                                onMouseEnter={() => {
+                                  /*
+                                   * Sync the highlight to the mouse so keyboard
+                                   * and mouse never disagree on which row is
+                                   * about to be picked.
+                                   */
+                                  setHighlightedIndex(flatIdx);
+                                }}
+                                onMouseDown={(
+                                  event: React.MouseEvent<HTMLButtonElement>,
+                                ) => {
+                                  /*
+                                   * Prevent the input blur from firing before
+                                   * onClick resolves the selection.
+                                   */
+                                  event.preventDefault();
+                                }}
+                                onClick={() => {
+                                  addItem(item);
+                                }}
+                                className={`flex w-full items-center gap-2 px-3 py-2 text-left ${
+                                  isHighlighted
+                                    ? "bg-indigo-600 text-white"
+                                    : "text-gray-700 hover:bg-indigo-50"
+                                }`}
+                              >
+                                <Icon
+                                  icon={cfg.icon}
+                                  className={`h-4 w-4 ${
+                                    isHighlighted
+                                      ? "text-white"
+                                      : "text-gray-400"
+                                  }`}
+                                />
+                                <span>{item.name}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      );
+                    },
+                  );
+                })()}
+
+              {deniedTypes.length > 0 && (
+                <div className="border-t border-gray-100 px-3 py-2 text-xs text-gray-500">
+                  You don&apos;t have permission to read:{" "}
+                  {deniedTypes
+                    .map((t: AffectedResourceType): string => {
+                      return RESOURCE_CONFIG[t].label;
+                    })
+                    .join(", ")}
+                  .
                 </div>
-              ) : (
-                <div className="max-h-96 overflow-auto rounded-md border border-gray-200">
-                  {filteredLabels.map((label: Label): ReactElement => {
+              )}
+            </div>
+          )}
+
+          {/* Labels tab body. */}
+          {activeTab === "labels" && (
+            <div className="flex-1 overflow-auto py-1">
+              {isLoadingLabels && (
+                <div className="flex w-full items-center px-3 py-2 text-left text-gray-500">
+                  <svg
+                    className="animate-spin -ml-0.5 mr-2 h-4 w-4 text-indigo-500"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    ></path>
+                  </svg>
+                  <span>Loading labels...</span>
+                </div>
+              )}
+
+              {!isLoadingLabels && labelError !== "" && (
+                <div className="px-3 py-2 text-red-600">{labelError}</div>
+              )}
+
+              {!isLoadingLabels &&
+                labelError === "" &&
+                labelsLoaded &&
+                allLabels.length === 0 && (
+                  <div className="px-3 py-2 text-gray-500">
+                    No labels found in this project. Create labels first to
+                    use this shortcut.
+                  </div>
+                )}
+
+              {!isLoadingLabels &&
+                labelError === "" &&
+                labelsLoaded &&
+                allLabels.length > 0 &&
+                filteredLabels.length === 0 && (
+                  <div className="px-3 py-2 text-gray-500">
+                    No labels match &ldquo;{searchQuery.trim()}&rdquo;.
+                  </div>
+                )}
+
+              {!isLoadingLabels &&
+                filteredLabels.map(
+                  (label: Label, idx: number): ReactElement => {
                     const labelId: string = label._id ? String(label._id) : "";
                     if (!labelId) {
-                      return <span key={Math.random()} />;
+                      return <span key={`empty-${idx}`} />;
                     }
                     const isChecked: boolean =
                       selectedLabelIds.includes(labelId);
-                    const isExpanded: boolean = expandedLabelIds.has(labelId);
-                    const isLoadingResources: boolean =
-                      loadingLabelIds.has(labelId);
-                    const resources: Array<AffectedResourceItem> | undefined =
-                      resourcesByLabel[labelId];
-                    const loadError: string | undefined =
-                      labelLoadErrors[labelId];
+                    const isHighlighted: boolean = idx === highlightedIndex;
                     const labelColor: string | undefined = label.color
                       ? typeof (label.color as { toString?: unknown })
                           .toString === "function"
@@ -1227,173 +1166,138 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                       : undefined;
 
                     return (
-                      <div
+                      <button
                         key={labelId}
-                        className="border-b border-gray-100 last:border-b-0"
+                        type="button"
+                        role="option"
+                        aria-selected={isChecked}
+                        onMouseEnter={(): void => {
+                          setHighlightedIndex(idx);
+                        }}
+                        onMouseDown={(
+                          event: React.MouseEvent<HTMLButtonElement>,
+                        ): void => {
+                          /*
+                           * Keep focus on the input so subsequent keystrokes
+                           * still hit the combobox keyDown handler.
+                           */
+                          event.preventDefault();
+                        }}
+                        onClick={(): void => {
+                          toggleLabelId(labelId);
+                        }}
+                        className={`flex w-full items-center gap-2 px-3 py-2 text-left ${
+                          isHighlighted
+                            ? "bg-indigo-50 text-gray-900"
+                            : "text-gray-700 hover:bg-indigo-50"
+                        }`}
                       >
-                        <div
-                          className={`flex items-center gap-2 px-2 py-2 ${
-                            isChecked ? "bg-indigo-50" : "hover:bg-gray-50"
+                        <span
+                          aria-hidden="true"
+                          className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border ${
+                            isChecked
+                              ? "border-indigo-600 bg-indigo-600 text-white"
+                              : "border-gray-300 bg-white"
                           }`}
                         >
-                          <button
-                            type="button"
-                            aria-label={
-                              isExpanded
-                                ? "Collapse resources"
-                                : "Expand resources"
-                            }
-                            aria-expanded={isExpanded}
-                            onClick={(): void => {
-                              toggleLabelExpansion(labelId);
-                            }}
-                            className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                          >
-                            <Icon
-                              icon={IconProp.ChevronRight}
-                              className={`h-3.5 w-3.5 transition-transform duration-150 ${
-                                isExpanded ? "rotate-90" : ""
-                              }`}
-                            />
-                          </button>
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={(): void => {
-                              toggleLabelId(labelId);
-                            }}
-                            className="h-4 w-4 flex-shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                          {isChecked && (
+                            <svg
+                              className="h-3 w-3"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          )}
+                        </span>
+                        {labelColor && (
+                          <span
+                            className="inline-block h-3 w-3 flex-shrink-0 rounded-full"
+                            style={{ backgroundColor: labelColor }}
+                            aria-hidden="true"
                           />
-                          {labelColor && (
-                            <span
-                              className="inline-block h-3 w-3 flex-shrink-0 rounded-full"
-                              style={{ backgroundColor: labelColor }}
-                              aria-hidden="true"
-                            />
-                          )}
-                          <button
-                            type="button"
-                            onClick={(): void => {
-                              toggleLabelId(labelId);
-                            }}
-                            className="flex-1 truncate text-left text-sm text-gray-800 focus:outline-none"
-                          >
-                            {label.name || "Unnamed Label"}
-                          </button>
-                          {resources !== undefined && (
-                            <span className="flex-shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-                              {resources.length}
-                              {resources.length >=
-                              LABEL_PREVIEW_LIMIT_PER_TYPE *
-                                resourceTypes.length
-                                ? "+"
-                                : ""}
-                            </span>
-                          )}
-                        </div>
-
-                        {isExpanded && (
-                          <div className="border-t border-gray-100 bg-gray-50 px-3 py-2 pl-10">
-                            {isLoadingResources ? (
-                              <div className="flex items-center gap-2 py-1 text-xs text-gray-500">
-                                <svg
-                                  className="h-3.5 w-3.5 animate-spin text-indigo-500"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  aria-hidden="true"
-                                >
-                                  <circle
-                                    className="opacity-25"
-                                    cx="12"
-                                    cy="12"
-                                    r="10"
-                                    stroke="currentColor"
-                                    strokeWidth="4"
-                                  />
-                                  <path
-                                    className="opacity-75"
-                                    fill="currentColor"
-                                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                                  />
-                                </svg>
-                                <span>Loading resources...</span>
-                              </div>
-                            ) : loadError ? (
-                              <div className="py-1 text-xs text-red-600">
-                                {loadError}
-                              </div>
-                            ) : !resources || resources.length === 0 ? (
-                              <div className="py-1 text-xs italic text-gray-500">
-                                No resources tagged with this label.
-                              </div>
-                            ) : (
-                              <div className="space-y-2">
-                                {resourceTypes.map(
-                                  (
-                                    type: AffectedResourceType,
-                                  ): ReactElement | null => {
-                                    const items: Array<AffectedResourceItem> =
-                                      resources.filter(
-                                        (r: AffectedResourceItem): boolean => {
-                                          return r.type === type;
-                                        },
-                                      );
-                                    if (items.length === 0) {
-                                      return null;
-                                    }
-                                    const cfg: ResourceConfig =
-                                      RESOURCE_CONFIG[type];
-                                    return (
-                                      <div key={type}>
-                                        <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-                                          <Icon
-                                            icon={cfg.icon}
-                                            className="h-3 w-3 text-gray-400"
-                                          />
-                                          <span>
-                                            {cfg.label}s ({items.length}
-                                            {items.length >=
-                                            LABEL_PREVIEW_LIMIT_PER_TYPE
-                                              ? "+"
-                                              : ""}
-                                            )
-                                          </span>
-                                        </div>
-                                        <div className="flex flex-wrap gap-1.5">
-                                          {items.map(
-                                            (
-                                              item: AffectedResourceItem,
-                                            ): ReactElement => {
-                                              return (
-                                                <span
-                                                  key={`${item.type}-${item._id}`}
-                                                  className="inline-flex items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-xs text-gray-700"
-                                                >
-                                                  <span className="truncate max-w-[12rem]">
-                                                    {item.name}
-                                                  </span>
-                                                </span>
-                                              );
-                                            },
-                                          )}
-                                        </div>
-                                      </div>
-                                    );
-                                  },
-                                )}
-                              </div>
-                            )}
-                          </div>
                         )}
-                      </div>
+                        <span className="truncate">
+                          {label.name || "Unnamed Label"}
+                        </span>
+                      </button>
                     );
-                  })}
-                </div>
-              )}
+                  },
+                )}
             </div>
           )}
-        </Modal>
+
+          {/*
+           * Sticky footer on the Labels tab. Shows the apply action and a
+           * Clear shortcut once the user has picked something — keeps the
+           * primary action visible no matter how far they scrolled.
+           */}
+          {activeTab === "labels" && selectedLabelIds.length > 0 && (
+            <div className="flex flex-shrink-0 items-center justify-between gap-2 border-t border-gray-100 bg-gray-50 px-2 py-1.5">
+              <button
+                type="button"
+                onMouseDown={(
+                  event: React.MouseEvent<HTMLButtonElement>,
+                ): void => {
+                  event.preventDefault();
+                }}
+                onClick={(): void => {
+                  setSelectedLabelIds([]);
+                }}
+                disabled={isApplyingLabels}
+                className="rounded px-2 py-1 text-xs font-medium text-gray-600 hover:bg-white hover:text-gray-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onMouseDown={(
+                  event: React.MouseEvent<HTMLButtonElement>,
+                ): void => {
+                  event.preventDefault();
+                }}
+                onClick={(): void => {
+                  void applyLabelSelection();
+                }}
+                disabled={isApplyingLabels}
+                className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:opacity-60"
+              >
+                {isApplyingLabels && (
+                  <svg
+                    className="h-3.5 w-3.5 animate-spin"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    />
+                  </svg>
+                )}
+                {isApplyingLabels
+                  ? "Adding..."
+                  : `Add resources from ${selectedLabelIds.length} label${
+                      selectedLabelIds.length === 1 ? "" : "s"
+                    }`}
+              </button>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

@@ -704,7 +704,11 @@ const AreaChart: React.ForwardRefExoticComponent<
                 : () => {}
             }
             margin={{
-              bottom: (xAxisLabel ? 30 : 8) as unknown as number,
+              bottom: (xAxisLabel
+                ? 40
+                : showXAxis
+                  ? 24
+                  : 8) as unknown as number,
               left: (yAxisLabel ? 20 : 0) as unknown as number,
               right: (yAxisLabel ? 5 : 8) as unknown as number,
               top: 5,
