@@ -296,6 +296,26 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
   const [selectedLabelIds, setSelectedLabelIds] = useState<Array<string>>([]);
   const [isApplyingLabels, setIsApplyingLabels] = useState<boolean>(false);
   const [labelError, setLabelError] = useState<string>("");
+  const [labelSearchQuery, setLabelSearchQuery] = useState<string>("");
+  const [expandedLabelIds, setExpandedLabelIds] = useState<Set<string>>(
+    new Set(),
+  );
+  /*
+   * resourcesByLabel caches the preview list (resources tagged with each
+   * expanded label) so re-expanding the same label is instant. Lives across
+   * modal opens for the lifetime of the picker — invalidated only by
+   * remount. Errors are tracked per label so one failure doesn't break
+   * the rest of the list.
+   */
+  const [resourcesByLabel, setResourcesByLabel] = useState<
+    Record<string, Array<AffectedResourceItem>>
+  >({});
+  const [loadingLabelIds, setLoadingLabelIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [labelLoadErrors, setLabelLoadErrors] = useState<
+    Record<string, string>
+  >({});
   const containerRef: React.MutableRefObject<HTMLDivElement | null> =
     useRef<HTMLDivElement | null>(null);
   const inputRef: React.MutableRefObject<HTMLInputElement | null> =
@@ -575,11 +595,16 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
 
   /*
    * Lazy-load the label list when the user first opens the label modal. Cached
-   * after the first open so reopening is instant.
+   * after the first open so reopening is instant. Transient UI state
+   * (search query, expansion, per-label errors) is cleared on every open so
+   * the user sees a clean modal; the resource cache is intentionally kept.
    */
   const openLabelModal: () => Promise<void> = async (): Promise<void> => {
     setSelectedLabelIds([]);
     setLabelError("");
+    setLabelSearchQuery("");
+    setExpandedLabelIds(new Set());
+    setLabelLoadErrors({});
     setIsLabelModalOpen(true);
     if (labelsLoaded) {
       return;
@@ -615,6 +640,100 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
       return [...prev, id];
     });
   };
+
+  /*
+   * Fetches the preview list for a single label across every enabled resource
+   * type. Stored in resourcesByLabel keyed by labelId so the next expand of
+   * the same label renders instantly. Preview is capped per type — the actual
+   * Add to Selection uses LIMIT_PER_PROJECT, so for very large labels the
+   * preview may show fewer rows than will eventually be added.
+   */
+  const LABEL_PREVIEW_LIMIT_PER_TYPE: number = 100;
+
+  const fetchResourcesForLabel: (labelId: string) => Promise<void> = async (
+    labelId: string,
+  ): Promise<void> => {
+    setLoadingLabelIds((prev: Set<string>): Set<string> => {
+      const next: Set<string> = new Set(prev);
+      next.add(labelId);
+      return next;
+    });
+    setLabelLoadErrors(
+      (prev: Record<string, string>): Record<string, string> => {
+        const next: Record<string, string> = { ...prev };
+        delete next[labelId];
+        return next;
+      },
+    );
+    try {
+      const requests: Array<Promise<Array<AffectedResourceItem>>> = [];
+      for (const type of resourceTypes) {
+        requests.push(
+          fetchByQuery(
+            type,
+            { labels: new Includes([labelId]) },
+            LABEL_PREVIEW_LIMIT_PER_TYPE,
+          ),
+        );
+      }
+      const buckets: Array<Array<AffectedResourceItem>> =
+        await Promise.all(requests);
+      const merged: Array<AffectedResourceItem> = [];
+      for (const bucket of buckets) {
+        for (const item of bucket) {
+          merged.push(item);
+          nameCacheRef.current.set(`${item.type}:${item._id}`, item.name);
+        }
+      }
+      setResourcesByLabel(
+        (
+          prev: Record<string, Array<AffectedResourceItem>>,
+        ): Record<string, Array<AffectedResourceItem>> => {
+          return { ...prev, [labelId]: merged };
+        },
+      );
+    } catch {
+      setLabelLoadErrors(
+        (prev: Record<string, string>): Record<string, string> => {
+          return { ...prev, [labelId]: "Failed to load resources." };
+        },
+      );
+    } finally {
+      setLoadingLabelIds((prev: Set<string>): Set<string> => {
+        const next: Set<string> = new Set(prev);
+        next.delete(labelId);
+        return next;
+      });
+    }
+  };
+
+  const toggleLabelExpansion: (labelId: string) => void = (
+    labelId: string,
+  ): void => {
+    setExpandedLabelIds((prev: Set<string>): Set<string> => {
+      const next: Set<string> = new Set(prev);
+      if (next.has(labelId)) {
+        next.delete(labelId);
+      } else {
+        next.add(labelId);
+        if (resourcesByLabel[labelId] === undefined) {
+          void fetchResourcesForLabel(labelId);
+        }
+      }
+      return next;
+    });
+  };
+
+  const filteredLabels: Array<Label> = useMemo(() => {
+    const q: string = labelSearchQuery.trim().toLowerCase();
+    if (q === "") {
+      return allLabels;
+    }
+    return allLabels.filter((label: Label): boolean => {
+      const name: string = (label.name || "").toLowerCase();
+      return name.includes(q);
+    });
+  }, [allLabels, labelSearchQuery]);
 
   /*
    * Pulls every resource (of each enabled type) tagged with any of the chosen
