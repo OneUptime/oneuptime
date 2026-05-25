@@ -1,4 +1,4 @@
-﻿export interface AdminDashboardLanguage {
+export interface AdminDashboardLanguage {
   code: string;
   nativeName: string;
   englishName: string;
@@ -21,8 +21,16 @@ export const SUPPORTED_ADMIN_DASHBOARD_LANGUAGES: Array<AdminDashboardLanguage> 
     { code: "ru", nativeName: "Русский", englishName: "Russian" },
     { code: "ja", nativeName: "日本語", englishName: "Japanese" },
     { code: "ko", nativeName: "한국어", englishName: "Korean" },
-    { code: "zh-Hans", nativeName: "中文 (简体)", englishName: "Chinese (Simplified)" },
-    { code: "zh-Hant", nativeName: "中文 (繁體)", englishName: "Chinese (Traditional)" },
+    {
+      code: "zh-Hans",
+      nativeName: "中文 (简体)",
+      englishName: "Chinese (Simplified)",
+    },
+    {
+      code: "zh-Hant",
+      nativeName: "中文 (繁體)",
+      englishName: "Chinese (Traditional)",
+    },
     { code: "hi", nativeName: "हिन्दी", englishName: "Hindi" },
   ];
 
