@@ -1,5 +1,6 @@
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import BillingPermissions from "./BillingPermission";
+import EditionPermissions from "./EditionPermission";
 import PublicPermission from "./PublicPermission";
 import BaseModel, {
   DatabaseBaseModelType,
@@ -55,7 +56,11 @@ export default class TablePermission {
     // 2nd CHECK: Is user project in active state?
     BillingPermissions.checkBillingPermissions(modelType, props, type);
 
-    // 2nd CHECK: Does user have access to CRUD data on this model.
+    // 3rd CHECK: Is this an enterprise-only feature being accessed on the
+    // community self-hosted build?
+    EditionPermissions.checkEditionPermissions(modelType, props);
+
+    // 4th CHECK: Does user have access to CRUD data on this model.
     const userPermissions: Array<UserPermission> =
       DatabaseCommonInteractionPropsUtil.getUserPermissions(
         props,
