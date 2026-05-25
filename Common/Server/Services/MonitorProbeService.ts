@@ -18,6 +18,62 @@ export class Service extends DatabaseService<MonitorProbe> {
     super(MonitorProbe);
   }
 
+  public async pruneStaleLastMonitoringLogEntries(data: {
+    monitorId: ObjectID;
+    validMonitorStepIds: Array<string>;
+  }): Promise<void> {
+    const validIdSet: Set<string> = new Set(data.validMonitorStepIds);
+
+    const monitorProbes: Array<MonitorProbe> = await this.findBy({
+      query: {
+        monitorId: data.monitorId,
+      },
+      select: {
+        _id: true,
+        lastMonitoringLog: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const monitorProbe of monitorProbes) {
+      if (!monitorProbe.id || !monitorProbe.lastMonitoringLog) {
+        continue;
+      }
+
+      const existingLog: Record<string, unknown> =
+        monitorProbe.lastMonitoringLog as unknown as Record<string, unknown>;
+      const existingKeys: Array<string> = Object.keys(existingLog);
+      const prunedLog: Record<string, unknown> = {};
+      let removedAny: boolean = false;
+
+      for (const key of existingKeys) {
+        if (validIdSet.has(key)) {
+          prunedLog[key] = existingLog[key];
+        } else {
+          removedAny = true;
+        }
+      }
+
+      if (!removedAny) {
+        continue;
+      }
+
+      await this.updateOneById({
+        id: monitorProbe.id,
+        data: {
+          lastMonitoringLog: prunedLog as any,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+  }
+
   public async updateNextPingAtForMonitor(data: {
     monitorId: ObjectID;
   }): Promise<void> {

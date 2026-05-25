@@ -3,7 +3,11 @@
 #
 
 # Pull base image nodejs image.
-FROM public.ecr.aws/docker/library/node:24.9
+# Switched from `node:24.9` (full Debian, ~1GB, large CVE surface) to
+# `node:24-bookworm-slim` which keeps glibc (required for Playwright Chromium)
+# while dropping the unneeded ~700MB of default packages. Floating on the
+# 24.x patch so each rebuild picks up Node security patches.
+FROM public.ecr.aws/docker/library/node:24-bookworm-slim
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
 
 RUN npm config set fetch-retries 5
@@ -30,32 +34,35 @@ LABEL org.opencontainers.image.licenses="Apache-2.0"
 LABEL org.opencontainers.image.revision="${GIT_SHA}"
 LABEL org.opencontainers.image.version="${APP_VERSION}"
 
-## Add Intermediate Certs 
+# Install OS packages in a single layer:
+#   - Runtime tools: bash, curl, iputils-ping, tini, net-tools, dnsutils, ca-certificates
+#   - Build toolchain: python3, make, g++  (removed later, after npm install)
+#   - Playwright/Chromium system libs
+# `--no-install-recommends` keeps the surface small. apt cache is cleaned in the
+# same RUN so package metadata doesn't persist in the layer.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        bash \
+        curl \
+        iputils-ping \
+        tini \
+        net-tools \
+        dnsutils \
+        python3 \
+        make \
+        g++ \
+        libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+        libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+        libgbm1 libgtk-3-0 libpango-1.0-0 libcairo2 libgdk-pixbuf2.0-0 \
+        libasound2 libatspi2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+## Add Intermediate Certs (ca-certificates is now installed above)
 COPY ./SslCertificates /usr/local/share/ca-certificates
 RUN update-ca-certificates
 
-
-
-
-RUN apt-get update
-
-# Install bash. 
-RUN apt-get install bash -y && apt-get install curl -y && apt-get install iputils-ping -y
-
-# Install tini - a tiny init for containers to properly reap zombie processes
-RUN apt-get install -y tini
-
-# Install python
-RUN apt-get update && apt-get install -y .gyp python3 make g++
-
-# Install playwright dependencies
-RUN apt-get install -y libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libgtk-3-0 libpango-1.0-0 libcairo2 libgdk-pixbuf2.0-0 libasound2 libatspi2.0-0
-
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
-
-# Install iputils and dnsutils (for dig, used in DNSSEC validation)
-RUN apt-get install net-tools dnsutils -y
 
 RUN mkdir -p /usr/src
 
