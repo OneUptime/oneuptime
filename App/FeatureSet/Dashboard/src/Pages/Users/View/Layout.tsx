@@ -34,7 +34,12 @@ const UserViewLayout: FunctionComponent = (): ReactElement => {
     try {
       setIsLoading(true);
       setError("");
-      const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+      if (!projectId) {
+        setError("Project not loaded.");
+        return;
+      }
 
       const teamMembers: ListResult<TeamMember> =
         await ModelAPI.getList<TeamMember>({
