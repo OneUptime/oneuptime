@@ -5,6 +5,7 @@ import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -21,6 +22,7 @@ import DatabaseBaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Service from "./Service";
 
 @EnableDocumentation()
+@CanAccessIfCanReadOn("service")
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [
