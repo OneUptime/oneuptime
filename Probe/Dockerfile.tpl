@@ -3,22 +3,12 @@
 #
 
 # Pull base image nodejs image.
-# Use full Debian (`node:24-bookworm`) rather than `bookworm-slim`: in CI,
-# `npx playwright install` reliably hangs on slim after the first browser
-# downloads to 100% (no output emitted for the extract/move phase, jobs
-# get killed by concurrency cancel ~40 min later). The full image's extra
-# tools fix this empirically; the size cost is ~700 MB which is acceptable
-# for the probe (Chromium + browsers already dwarf the base layer).
-FROM public.ecr.aws/docker/library/node:24-bookworm
+FROM public.ecr.aws/docker/library/node:24.9
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
 
 RUN npm config set fetch-retries 5
 RUN npm config set fetch-retry-mintimeout 20000
 RUN npm config set fetch-retry-maxtimeout 60000
-# Serialize npm lifecycle scripts so esbuild's postinstall doesn't race against
-# concurrent package extractions on BuildKit's overlayfs (ETXTBSY on
-# /Common/node_modules/esbuild/bin/esbuild). See esbuild#1711, #2785.
-RUN npm config set foreground-scripts true
 
 
 ARG GIT_SHA
@@ -40,40 +30,41 @@ LABEL org.opencontainers.image.licenses="Apache-2.0"
 LABEL org.opencontainers.image.revision="${GIT_SHA}"
 LABEL org.opencontainers.image.version="${APP_VERSION}"
 
-# Install OS packages in a single layer:
-#   - Runtime tools: bash, curl, iputils-ping, tini, net-tools, dnsutils, ca-certificates
-#   - Build toolchain: python3, make, g++  (removed later, after npm install)
-#   - Playwright/Chromium system libs
-# `--no-install-recommends` keeps the surface small. apt cache is cleaned in the
-# same RUN so package metadata doesn't persist in the layer.
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        ca-certificates \
-        bash \
-        curl \
-        iputils-ping \
-        tini \
-        net-tools \
-        dnsutils \
-        python3 \
-        make \
-        g++ \
-        libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
-        libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
-        libgbm1 libgtk-3-0 libpango-1.0-0 libcairo2 libgdk-pixbuf2.0-0 \
-        libasound2 libatspi2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
-
-## Add Intermediate Certs (ca-certificates is now installed above)
+## Add Intermediate Certs 
 COPY ./SslCertificates /usr/local/share/ca-certificates
 RUN update-ca-certificates
 
+
+# IF APP_VERSION is not set, set it to 1.0.0
+RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=1.0.0; fi
+
+
+RUN apt-get update
+
+# Install bash. 
+RUN apt-get install bash -y && apt-get install curl -y && apt-get install iputils-ping -y
+
+# Install tini - a tiny init for containers to properly reap zombie processes
+RUN apt-get install -y tini
+
+# Install python
+RUN apt-get update && apt-get install -y .gyp python3 make g++
+
+# Install playwright dependencies
+RUN apt-get install -y libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libgtk-3-0 libpango-1.0-0 libcairo2 libgdk-pixbuf2.0-0 libasound2 libatspi2.0-0
+
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
+
+# Install iputils and dnsutils (for dig, used in DNSSEC validation)
+RUN apt-get install net-tools dnsutils -y
 
 RUN mkdir -p /usr/src
 
 WORKDIR /usr/src/Common
 COPY ./Common/package*.json /usr/src/Common/
+# Set version in ./Common/package.json to the APP_VERSION
+RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/Common/package.json
 RUN npm install
 COPY ./Common /usr/src/Common
 
@@ -94,11 +85,7 @@ WORKDIR /usr/src/app
 COPY ./Probe/package*.json /usr/src/app/
 RUN npm install
 
-# Install browsers to a fixed path accessible by any runtime user (root or non-root).
-# This matches the last known-working pattern (pre-847aa8b6): full Debian
-# base + `--with-deps` + chmod only. We don't apt-get purge build tools
-# here — `--auto-remove` against a full Debian image risks tearing out
-# reverse-deps of python3 that runtime tools rely on.
+# Install browsers to a fixed path accessible by any runtime user (root or non-root)
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright-browsers
 RUN npx playwright install --with-deps && chmod -R 755 /ms-playwright-browsers
 
@@ -113,11 +100,8 @@ CMD [ "bash", "/usr/src/app/Start.dev.sh" ]
 COPY ./Probe /usr/src/app
 # Bundle app source
 RUN npm run compile
-# Ensure runtime dirs are owned by the non-root `node` user (UID 1000) so the
-# container can run as non-root. /ms-playwright-browsers stays root-owned but
-# was already chmod'd 755 so `node` can read+execute the Chromium binaries.
-RUN chown -R 1000:1000 /usr/src /tmp/npm && chmod -R 2777 /tmp/npm
-USER node
+# Set permission to write logs and cache in case container run as non root
+RUN chown -R 1000:1000 "/tmp/npm" && chmod -R 2777 "/tmp/npm"
 #Run the app
 CMD [ "npm", "start" ]
 {{ end }}
