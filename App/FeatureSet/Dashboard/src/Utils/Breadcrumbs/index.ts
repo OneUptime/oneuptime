@@ -18,3 +18,5 @@ export * from "./DashboardBreadCrumbs";
 export * from "./AIAgentTasksBreadcrumbs";
 export * from "./ExceptionsBreadcrumbs";
 export * from "./ProfilesBreadcrumbs";
+export * from "./UsersBreadcrumbs";
+export * from "./TeamsBreadcrumbs";

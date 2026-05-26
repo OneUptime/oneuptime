@@ -253,10 +253,8 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     {
       title: t("navbar.items.usersTitle"),
       description: t("navbar.items.usersDescription"),
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SETTINGS_USERS] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.SETTINGS_USERS],
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.USERS] as Route),
+      activeRoute: RouteMap[PageMap.USERS],
       icon: IconProp.User,
       iconColor: "blue",
       category: settingsCategory,
@@ -264,10 +262,8 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     {
       title: t("navbar.items.teamsTitle"),
       description: t("navbar.items.teamsDescription"),
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SETTINGS_TEAMS] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.SETTINGS_TEAMS],
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.TEAMS] as Route),
+      activeRoute: RouteMap[PageMap.TEAMS],
       icon: IconProp.Team,
       iconColor: "emerald",
       category: settingsCategory,

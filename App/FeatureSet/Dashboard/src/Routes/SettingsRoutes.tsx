@@ -11,8 +11,6 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 import ProjectSettings from "../Pages/Settings/ProjectSettings";
 import SettingsApiKeys from "../Pages/Settings/APIKeys";
 
-import SettingsUsers from "../Pages/Settings/Users";
-
 import SettingsApiKeyView from "../Pages/Settings/APIKeyView";
 
 import SettingsIngestionKeys from "../Pages/Settings/TelemetryIngestionKeys";
@@ -34,21 +32,6 @@ import SettingsLlmProviderView from "../Pages/Settings/LlmProviderView";
 import SettingsAIBilling from "../Pages/Settings/AIBillingSettings";
 
 import SettingFeatureFlags from "../Pages/Settings/FeatureFlags";
-import SettingsTeams from "../Pages/Settings/Teams";
-
-import SettingsTeamViewLayout from "../Pages/Settings/TeamView/Layout";
-import SettingsTeamViewIndex from "../Pages/Settings/TeamView/Index";
-import SettingsTeamViewMembers from "../Pages/Settings/TeamView/Members";
-import SettingsTeamViewPermissions from "../Pages/Settings/TeamView/Permissions";
-import SettingsTeamViewBlockPermissions from "../Pages/Settings/TeamView/BlockPermissions";
-import SettingsTeamViewCompliance from "../Pages/Settings/TeamView/Compliance";
-import SettingsTeamViewDelete from "../Pages/Settings/TeamView/Delete";
-
-import SettingsUserViewLayout from "../Pages/Settings/UserView/Layout";
-import SettingsUserViewIndex from "../Pages/Settings/UserView/Index";
-import SettingsUserViewTeams from "../Pages/Settings/UserView/Teams";
-import SettingsUserViewCustomFields from "../Pages/Settings/UserView/CustomFields";
-import SettingsUserViewDelete from "../Pages/Settings/UserView/Delete";
 
 import SettingsDomains from "../Pages/Settings/Domains";
 
@@ -73,8 +56,6 @@ import SettingsMobileApps from "../Pages/Settings/MobileApps";
 
 import SettingsAuditLogs from "../Pages/Settings/AuditLogs";
 import SettingsAuditLogsSettings from "../Pages/Settings/AuditLogsSettings";
-
-import SettingsTeamMemberCustomFields from "../Pages/Settings/TeamMemberCustomFields";
 
 const SettingsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

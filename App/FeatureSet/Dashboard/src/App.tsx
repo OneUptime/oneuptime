@@ -260,6 +260,24 @@ const UserSettingsRoutes: React.LazyExoticComponent<
     };
   });
 });
+const UsersRoutes: React.LazyExoticComponent<
+  AllRoutesModule["UsersRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+    return {
+      default: m.UsersRoutes,
+    };
+  });
+});
+const TeamsRoutes: React.LazyExoticComponent<
+  AllRoutesModule["TeamsRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+    return {
+      default: m.TeamsRoutes,
+    };
+  });
+});
 
 const App: () => JSX.Element = () => {
   Navigation.setNavigateHook(useNavigate());
@@ -627,6 +645,18 @@ const App: () => JSX.Element = () => {
               ""
             }
             element={<ScheduledMaintenanceEventsRoutes {...commonPageProps} />}
+          />
+
+          {/* Users Routes (top-level) */}
+          <PageRoute
+            path={RouteMap[PageMap.USERS_ROOT]?.toString() || ""}
+            element={<UsersRoutes {...commonPageProps} />}
+          />
+
+          {/* Teams Routes (top-level) */}
+          <PageRoute
+            path={RouteMap[PageMap.TEAMS_ROOT]?.toString() || ""}
+            element={<TeamsRoutes {...commonPageProps} />}
           />
 
           {/* Settings Routes */}

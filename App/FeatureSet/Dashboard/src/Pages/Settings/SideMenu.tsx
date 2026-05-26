@@ -80,38 +80,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       ],
     },
     {
-      title: "Users and Teams",
-      items: [
-        {
-          link: {
-            title: "Users",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_USERS] as Route,
-            ),
-          },
-          icon: IconProp.User,
-        },
-        {
-          link: {
-            title: "Teams",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_TEAMS] as Route,
-            ),
-          },
-          icon: IconProp.Team,
-        },
-        {
-          link: {
-            title: "User Custom Fields",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_USER_CUSTOM_FIELDS] as Route,
-            ),
-          },
-          icon: IconProp.TableCells,
-        },
-      ],
-    },
-    {
       title: "Notifications",
       items: [
         {

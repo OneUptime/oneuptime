@@ -19,7 +19,7 @@ const TeamViewLayout: FunctionComponent = (): ReactElement => {
       modelType={Team}
       modelId={modelId}
       modelNameField="name"
-      breadcrumbLinks={getSettingsBreadcrumbs(path)}
+      breadcrumbLinks={getTeamsBreadcrumbs(path)}
       sideMenu={<TeamViewSideMenu modelId={modelId} />}
     >
       <Outlet />
