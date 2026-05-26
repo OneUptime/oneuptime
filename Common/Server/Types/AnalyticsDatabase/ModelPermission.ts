@@ -37,6 +37,41 @@ export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
   select: Select<TBaseModel> | null;
 }
 
+/*
+ * Per-request cache for scope resolution. Keyed by the `props` object —
+ * one HTTP request reuses the same `props` for every analytics query it
+ * issues (a dashboard with 20 panels = up to 80 Postgres lookups without
+ * this; ~4 with it). The WeakMap entry is released automatically when
+ * `props` goes out of scope at request end, so there's no stale data
+ * between requests.
+ *
+ * Caches two things:
+ *   - `ownedIds`: Service IDs the user owns (one set per request — the
+ *     inputs are userId + teamIds + tenantId, all stable for one props).
+ *   - `labeledIds`: a map keyed by the sorted-label-IDs string, since
+ *     different model permission rows may carry different label sets.
+ */
+interface ScopeResolveCacheEntry {
+  ownedIds?: Set<string>;
+  labeledIds: Map<string, Set<string>>;
+}
+
+const scopeResolveCache: WeakMap<
+  DatabaseCommonInteractionProps,
+  ScopeResolveCacheEntry
+> = new WeakMap();
+
+function getScopeCacheBucket(
+  props: DatabaseCommonInteractionProps,
+): ScopeResolveCacheEntry {
+  let bucket: ScopeResolveCacheEntry | undefined = scopeResolveCache.get(props);
+  if (!bucket) {
+    bucket = { labeledIds: new Map() };
+    scopeResolveCache.set(props, bucket);
+  }
+  return bucket;
+}
+
 export default class ModelPermission {
   @CaptureSpan()
   public static async checkDeletePermission<TBaseModel extends BaseModel>(
@@ -789,10 +824,19 @@ export default class ModelPermission {
    * ServiceOwnerTeam in Postgres. Lazy-required to avoid circular deps
    * with services that extend DatabaseService. Returns string IDs to
    * make set-union with other resolvers straightforward.
+   *
+   * Cached per request via the WeakMap on `props` — the inputs (userId,
+   * teamIds, tenantId) are stable for the lifetime of one props object,
+   * so repeated calls within the same request reuse the first result.
    */
   private static async resolveOwnedParentIds(
     props: DatabaseCommonInteractionProps,
   ): Promise<Set<string>> {
+    const cache: ScopeResolveCacheEntry = getScopeCacheBucket(props);
+    if (cache.ownedIds) {
+      return cache.ownedIds;
+    }
+
     const result: Set<string> = new Set<string>();
 
     const ownerTableRegistry: Map<
@@ -813,6 +857,7 @@ export default class ModelPermission {
         }
       | undefined = ownerTableRegistry.get("Service");
     if (!serviceEntry) {
+      cache.ownedIds = result;
       return result;
     }
 
@@ -858,6 +903,7 @@ export default class ModelPermission {
       }
     }
 
+    cache.ownedIds = result;
     return result;
   }
 
@@ -868,6 +914,11 @@ export default class ModelPermission {
    * Postgres findBy passes labels through QueryUtil, which turns the
    * EntityArray filter into a many-to-many subquery against the join
    * table — see QueryUtil.ts ~line 528.
+   *
+   * Cached per request via the WeakMap on `props`, keyed by the sorted
+   * label IDs joined into a string. Different model permission rows can
+   * carry different label sets, so we key by the actual labelIds rather
+   * than a single per-request slot.
    */
   private static async resolveLabeledParentIds(
     labelIds: Array<ObjectID>,
@@ -877,6 +928,18 @@ export default class ModelPermission {
 
     if (labelIds.length === 0) {
       return result;
+    }
+
+    const cacheKey: string = labelIds
+      .map((id: ObjectID) => {
+        return id.toString();
+      })
+      .sort()
+      .join(",");
+    const cache: ScopeResolveCacheEntry = getScopeCacheBucket(props);
+    const cached: Set<string> | undefined = cache.labeledIds.get(cacheKey);
+    if (cached) {
+      return cached;
     }
 
     const ServiceService: any =
@@ -926,6 +989,7 @@ export default class ModelPermission {
       }
     }
 
+    cache.labeledIds.set(cacheKey, result);
     return result;
   }
 
