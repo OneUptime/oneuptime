@@ -124,19 +124,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Resources">
-        <SideMenuItem
-          link={{
-            title: "Code Repositories",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SERVICE_VIEW_CODE_REPOSITORIES] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Code}
-        />
-      </SideMenuSection>
-
       <SideMenuSection title="Telemetry">
         <SideMenuItem
           link={{
@@ -263,6 +250,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">
+        <SideMenuItem
+          link={{
+            title: "Code Repositories",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVICE_VIEW_CODE_REPOSITORIES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Code}
+        />
         <SideMenuItem
           link={{
             title: "Settings",
