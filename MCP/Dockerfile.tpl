@@ -9,6 +9,10 @@ RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm co
 RUN npm config set fetch-retries 5
 RUN npm config set fetch-retry-mintimeout 20000
 RUN npm config set fetch-retry-maxtimeout 60000
+# Serialize npm lifecycle scripts so esbuild's postinstall doesn't race against
+# concurrent package extractions on BuildKit's overlayfs (ETXTBSY on
+# /Common/node_modules/esbuild/bin/esbuild). See esbuild#1711, #2785.
+RUN npm config set foreground-scripts true
 
 ARG GIT_SHA
 ARG APP_VERSION

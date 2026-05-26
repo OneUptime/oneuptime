@@ -39,6 +39,11 @@ COPY ./Nginx/nginx.conf /etc/nginx/nginx.conf
 
 RUN apk add nodejs npm
 
+# Serialize npm lifecycle scripts so esbuild's postinstall doesn't race against
+# concurrent package extractions on BuildKit's overlayfs (ETXTBSY on
+# /Common/node_modules/esbuild/bin/esbuild). See esbuild#1711, #2785.
+RUN npm config set foreground-scripts true
+
 RUN mkdir /usr/src
 
 WORKDIR /usr/src/Common
