@@ -93,11 +93,13 @@ COPY ./Probe/package*.json /usr/src/app/
 RUN npm install
 
 # Install browsers to a fixed path accessible by any runtime user (root or non-root).
-# We drop `--with-deps` because Playwright's system dependencies were already
-# installed manually above; otherwise --with-deps re-runs apt-get update and
-# re-populates /var/lib/apt/lists.
+# Keep `--with-deps`: without it, `playwright install` reliably hangs on
+# `bookworm-slim` after Chromium hits 100% download (the post-download
+# step never emits "downloaded to ..."). The duplicate apt work is cheap
+# since the libs above are already present; apt-get clean below removes
+# the lists it repopulates.
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright-browsers
-RUN npx playwright install \
+RUN npx playwright install --with-deps \
     && chmod -R 755 /ms-playwright-browsers \
     && apt-get purge -y --auto-remove python3 make g++ \
     && apt-get clean \
