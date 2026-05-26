@@ -3,11 +3,13 @@
 #
 
 # Pull base image nodejs image.
-# Switched from `node:24.9` (full Debian, ~1GB, large CVE surface) to
-# `node:24-bookworm-slim` which keeps glibc (required for Playwright Chromium)
-# while dropping the unneeded ~700MB of default packages. Floating on the
-# 24.x patch so each rebuild picks up Node security patches.
-FROM public.ecr.aws/docker/library/node:24-bookworm-slim
+# Use full Debian (`node:24-bookworm`) rather than `bookworm-slim`: in CI,
+# `npx playwright install` reliably hangs on slim after the first browser
+# downloads to 100% (no output emitted for the extract/move phase, jobs
+# get killed by concurrency cancel ~40 min later). The full image's extra
+# tools fix this empirically; the size cost is ~700 MB which is acceptable
+# for the probe (Chromium + browsers already dwarf the base layer).
+FROM public.ecr.aws/docker/library/node:24-bookworm
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
 
 RUN npm config set fetch-retries 5
@@ -93,17 +95,12 @@ COPY ./Probe/package*.json /usr/src/app/
 RUN npm install
 
 # Install browsers to a fixed path accessible by any runtime user (root or non-root).
-# Keep `--with-deps`: without it, `playwright install` reliably hangs on
-# `bookworm-slim` after Chromium hits 100% download (the post-download
-# step never emits "downloaded to ..."). The duplicate apt work is cheap
-# since the libs above are already present; apt-get clean below removes
-# the lists it repopulates.
+# This matches the last known-working pattern (pre-847aa8b6): full Debian
+# base + `--with-deps` + chmod only. We don't apt-get purge build tools
+# here — `--auto-remove` against a full Debian image risks tearing out
+# reverse-deps of python3 that runtime tools rely on.
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright-browsers
-RUN npx playwright install --with-deps \
-    && chmod -R 755 /ms-playwright-browsers \
-    && apt-get purge -y --auto-remove python3 make g++ \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+RUN npx playwright install --with-deps && chmod -R 755 /ms-playwright-browsers
 
 # Use tini as init to properly reap zombie processes (like Chrome/Chromium)
 ENTRYPOINT ["/usr/bin/tini", "--"]
