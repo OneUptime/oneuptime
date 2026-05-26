@@ -17,9 +17,7 @@ const TeamViewDelete: FunctionComponent<
         modelId={Navigation.getLastParamAsObjectID(1)}
         onDeleteSuccess={() => {
           Navigation.navigate(
-            RouteUtil.populateRouteParams(
-              RouteMap[PageMap.TEAMS] as Route,
-            ),
+            RouteUtil.populateRouteParams(RouteMap[PageMap.TEAMS] as Route),
           );
         }}
       />

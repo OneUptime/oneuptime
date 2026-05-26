@@ -119,7 +119,7 @@ const RESOURCE_META: { [key: string]: ResourceMeta } = {
     icon: IconProp.Team,
     color: "text-cyan-700",
     bgColor: "bg-cyan-50 border-cyan-100",
-    viewRoute: PageMap.SETTINGS_TEAM_VIEW,
+    viewRoute: PageMap.TEAM_VIEW,
   },
   Probe: {
     icon: IconProp.Signal,

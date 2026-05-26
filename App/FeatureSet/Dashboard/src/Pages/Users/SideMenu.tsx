@@ -15,9 +15,7 @@ const UsersSideMenu: FunctionComponent = (): ReactElement => {
         {
           link: {
             title: "All Users",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.USERS] as Route,
-            ),
+            to: RouteUtil.populateRouteParams(RouteMap[PageMap.USERS] as Route),
           },
           icon: IconProp.User,
         },

@@ -260,24 +260,22 @@ const UserSettingsRoutes: React.LazyExoticComponent<
     };
   });
 });
-const UsersRoutes: React.LazyExoticComponent<
-  AllRoutesModule["UsersRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.UsersRoutes,
-    };
+const UsersRoutes: React.LazyExoticComponent<AllRoutesModule["UsersRoutes"]> =
+  lazy(() => {
+    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+      return {
+        default: m.UsersRoutes,
+      };
+    });
   });
-});
-const TeamsRoutes: React.LazyExoticComponent<
-  AllRoutesModule["TeamsRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.TeamsRoutes,
-    };
+const TeamsRoutes: React.LazyExoticComponent<AllRoutesModule["TeamsRoutes"]> =
+  lazy(() => {
+    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+      return {
+        default: m.TeamsRoutes,
+      };
+    });
   });
-});
 
 const App: () => JSX.Element = () => {
   Navigation.setNavigateHook(useNavigate());
