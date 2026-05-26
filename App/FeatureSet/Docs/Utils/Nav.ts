@@ -441,6 +441,18 @@ const DocsNav: NavGroup[] = [
       { title: "FluentBit", url: "/docs/telemetry/fluentbit" },
       { title: "Fluentd", url: "/docs/telemetry/fluentd" },
       { title: "Syslog", url: "/docs/telemetry/syslog" },
+      {
+        title: "Host OpenTelemetry Collector",
+        url: "/docs/telemetry/host-otel-collector",
+      },
+      {
+        title: "Kubernetes Agent",
+        url: "/docs/telemetry/kubernetes-agent",
+      },
+      {
+        title: "Docker Agent",
+        url: "/docs/telemetry/docker-host",
+      },
     ],
   },
   {
