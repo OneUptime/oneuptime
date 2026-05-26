@@ -527,22 +527,6 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
               return <p>All resources in project</p>;
             }
 
-            if (
-              item["permission"] &&
-              !PermissionHelper.isAccessControlPermission(
-                item["permission"] as Permission,
-              )
-            ) {
-              return (
-                <p>
-                  All resources{" "}
-                  <span className="text-gray-400">
-                    (labels don&apos;t apply to this permission)
-                  </span>
-                </p>
-              );
-            }
-
             const labels: Array<Label> = (item["labels"] || []) as Array<Label>;
             if (labels.length === 0) {
               return (
