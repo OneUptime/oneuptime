@@ -281,6 +281,11 @@ enum Permission {
   EditMonitorCustomField = "EditMonitorCustomField",
   ReadMonitorCustomField = "ReadMonitorCustomField",
 
+  CreateTeamCustomField = "CreateTeamCustomField",
+  DeleteTeamCustomField = "DeleteTeamCustomField",
+  EditTeamCustomField = "EditTeamCustomField",
+  ReadTeamCustomField = "ReadTeamCustomField",
+
   CreateOnCallDutyPolicyCustomField = "CreateOnCallDutyPolicyCustomField",
   DeleteOnCallDutyPolicyCustomField = "DeleteOnCallDutyPolicyCustomField",
   EditOnCallDutyPolicyCustomField = "EditOnCallDutyPolicyCustomField",
@@ -6135,6 +6140,47 @@ export class PermissionHelper {
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Monitor,
+      },
+
+      {
+        permission: Permission.CreateTeamCustomField,
+        title: "Create Team Custom Field",
+        description:
+          "This permission can create Team Custom Field this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Team,
+      },
+      {
+        permission: Permission.DeleteTeamCustomField,
+        title: "Delete Team Custom Field",
+        description:
+          "This permission can delete Team Custom Field of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Team,
+      },
+      {
+        permission: Permission.EditTeamCustomField,
+        title: "Edit Team Custom Field",
+        description:
+          "This permission can edit Team Custom Field of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Team,
+      },
+      {
+        permission: Permission.ReadTeamCustomField,
+        title: "Read Team Custom Field",
+        description:
+          "This permission can read Team Custom Field of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Team,
       },
 
       {

@@ -92,8 +92,18 @@ const TeamViewSideMenu: FunctionComponent<ComponentProps> = (
   }
 
   sections.push({
-    title: "Danger Zone",
+    title: "Settings",
     items: [
+      {
+        link: {
+          title: "Custom Fields",
+          to: RouteUtil.populateRouteParams(
+            RouteMap[PageMap.TEAM_VIEW_CUSTOM_FIELDS] as Route,
+            { modelId: props.modelId },
+          ),
+        },
+        icon: IconProp.TableCells,
+      },
       {
         link: {
           title: "Delete Team",

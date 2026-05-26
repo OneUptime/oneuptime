@@ -437,6 +437,9 @@ import MetricAPI from "Common/Server/API/MetricAPI";
 import MonitorCustomFieldService, {
   Service as MonitorCustomFieldServiceType,
 } from "Common/Server/Services/MonitorCustomFieldService";
+import TeamCustomFieldService, {
+  Service as TeamCustomFieldServiceType,
+} from "Common/Server/Services/TeamCustomFieldService";
 import MonitorGroupOwnerTeamService, {
   Service as MonitorGroupOwnerTeamServiceType,
 } from "Common/Server/Services/MonitorGroupOwnerTeamService";
@@ -819,6 +822,7 @@ import HostOwnerTeam from "Common/Models/DatabaseModels/HostOwnerTeam";
 import HostOwnerUser from "Common/Models/DatabaseModels/HostOwnerUser";
 import Label from "Common/Models/DatabaseModels/Label";
 import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField";
+import TeamCustomField from "Common/Models/DatabaseModels/TeamCustomField";
 import MonitorGroupOwnerTeam from "Common/Models/DatabaseModels/MonitorGroupOwnerTeam";
 import MonitorGroupOwnerUser from "Common/Models/DatabaseModels/MonitorGroupOwnerUser";
 import MonitorGroupResource from "Common/Models/DatabaseModels/MonitorGroupResource";
@@ -3315,6 +3319,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<MonitorCustomField, MonitorCustomFieldServiceType>(
         MonitorCustomField,
         MonitorCustomFieldService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TeamCustomField, TeamCustomFieldServiceType>(
+        TeamCustomField,
+        TeamCustomFieldService,
       ).getRouter(),
     );
 

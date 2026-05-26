@@ -22,7 +22,7 @@ const UsersRoutes: FunctionComponent<ComponentProps> = (
     <Routes>
       {/* User View - own layout with sidemenu (more specific path first) */}
       <PageRoute
-        path={`${UsersRoutePath[PageMap.USER_VIEW]}/*`}
+        path={UsersRoutePath[PageMap.USER_VIEW] || ""}
         element={<UsersViewLayout />}
       >
         <PageRoute

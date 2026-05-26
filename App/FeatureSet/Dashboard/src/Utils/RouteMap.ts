@@ -506,11 +506,14 @@ export const UsersRoutePath: Dictionary<string> = {
 };
 
 export const TeamsRoutePath: Dictionary<string> = {
+  [PageMap.TEAM_CUSTOM_FIELDS]: "custom-fields",
+
   [PageMap.TEAM_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.TEAM_VIEW_MEMBERS]: `${RouteParams.ModelID}/members`,
   [PageMap.TEAM_VIEW_PERMISSIONS]: `${RouteParams.ModelID}/permissions`,
   [PageMap.TEAM_VIEW_BLOCK_PERMISSIONS]: `${RouteParams.ModelID}/block-permissions`,
   [PageMap.TEAM_VIEW_COMPLIANCE]: `${RouteParams.ModelID}/compliance`,
+  [PageMap.TEAM_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
   [PageMap.TEAM_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
 };
 
@@ -3150,6 +3153,12 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.TEAMS]: new Route(`/dashboard/${RouteParams.ProjectID}/teams`),
 
+  [PageMap.TEAM_CUSTOM_FIELDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/teams/${
+      TeamsRoutePath[PageMap.TEAM_CUSTOM_FIELDS]
+    }`,
+  ),
+
   [PageMap.TEAM_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/teams/${
       TeamsRoutePath[PageMap.TEAM_VIEW]
@@ -3177,6 +3186,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.TEAM_VIEW_COMPLIANCE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/teams/${
       TeamsRoutePath[PageMap.TEAM_VIEW_COMPLIANCE]
+    }`,
+  ),
+
+  [PageMap.TEAM_VIEW_CUSTOM_FIELDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/teams/${
+      TeamsRoutePath[PageMap.TEAM_VIEW_CUSTOM_FIELDS]
     }`,
   ),
 

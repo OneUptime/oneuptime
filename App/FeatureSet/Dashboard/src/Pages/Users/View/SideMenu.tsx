@@ -49,39 +49,40 @@ const UserViewSideMenu: FunctionComponent<ComponentProps> = (
     },
   ];
 
+  const settingsItems: Array<{
+    link: { title: string; to: Route };
+    icon: IconProp;
+    className?: string;
+  }> = [];
+
   if (props.hasCustomFields) {
-    sections.push({
-      title: "Configuration",
-      items: [
-        {
-          link: {
-            title: "Custom Fields",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.USER_VIEW_CUSTOM_FIELDS] as Route,
-              { modelId: props.modelId },
-            ),
-          },
-          icon: IconProp.TableCells,
-        },
-      ],
+    settingsItems.push({
+      link: {
+        title: "Custom Fields",
+        to: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.USER_VIEW_CUSTOM_FIELDS] as Route,
+          { modelId: props.modelId },
+        ),
+      },
+      icon: IconProp.TableCells,
     });
   }
 
+  settingsItems.push({
+    link: {
+      title: "Remove from Project",
+      to: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.USER_VIEW_DELETE] as Route,
+        { modelId: props.modelId },
+      ),
+    },
+    icon: IconProp.Trash,
+    className: "danger-on-hover",
+  });
+
   sections.push({
-    title: "Danger Zone",
-    items: [
-      {
-        link: {
-          title: "Remove from Project",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.USER_VIEW_DELETE] as Route,
-            { modelId: props.modelId },
-          ),
-        },
-        icon: IconProp.Trash,
-        className: "danger-on-hover",
-      },
-    ],
+    title: "Settings",
+    items: settingsItems,
   });
 
   return <SideMenu sections={sections} />;

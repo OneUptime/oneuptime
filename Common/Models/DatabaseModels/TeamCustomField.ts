@@ -3,6 +3,7 @@ import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
+import CustomFieldType from "../../Types/CustomField/CustomFieldType";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
@@ -10,37 +11,29 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
-import EnableMCP from "../../Types/Database/EnableMCP";
-import EnableAuditLog from "../../Types/Database/EnableAuditLog";
-import EnableWorkflow from "../../Types/Database/EnableWorkflow";
-import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import IconProp from "../../Types/Icon/IconProp";
-import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
-@TableBillingAccessControl({
-  create: PlanType.Scale,
-  read: PlanType.Free,
-  update: PlanType.Growth,
-  delete: PlanType.Free,
-})
 @EnableDocumentation()
-@EnableMCP()
+@TableBillingAccessControl({
+  create: PlanType.Growth,
+  read: PlanType.Growth,
+  update: PlanType.Growth,
+  delete: PlanType.Growth,
+})
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.SettingsAdmin,
-    Permission.SettingsMember,
-    Permission.CreateProjectTeam,
+    Permission.CreateTeamCustomField,
   ],
   read: [
     Permission.ProjectOwner,
@@ -50,47 +43,36 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.SettingsAdmin,
     Permission.SettingsMember,
     Permission.SettingsViewer,
-    Permission.ReadProjectTeam,
+    Permission.ReadTeamCustomField,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.DeleteProjectTeam,
+    Permission.DeleteTeamCustomField,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.InviteProjectTeamMembers,
-    Permission.EditProjectTeamPermissions,
-    Permission.EditProjectTeam,
+    Permission.EditTeamCustomField,
   ],
 })
-@CrudApiEndpoint(new Route("/team"))
-@SlugifyColumn("name", "slug")
-@Entity({
-  name: "Team",
-})
-@EnableWorkflow({
-  create: true,
-  delete: true,
-  update: true,
-  read: true,
-})
-@EnableAuditLog()
+@CrudApiEndpoint(new Route("/team-custom-field"))
 @TableMetadata({
-  tableName: "Team",
-  singularName: "Team",
-  pluralName: "Teams",
-  icon: IconProp.Team,
-  tableDescription:
-    "Teams lets your organize users of your project into groups and lets you assign different level of permissions.",
+  tableName: "TeamCustomField",
+  singularName: "Team Custom Field",
+  pluralName: "Team Custom Fields",
+  icon: IconProp.TableCells,
+  tableDescription: "Manage custom fields for your teams",
 })
-export default class Team extends BaseModel {
+@Entity({
+  name: "TeamCustomField",
+})
+export default class TeamCustomField extends BaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
+      Permission.CreateTeamCustomField,
     ],
     read: [
       Permission.ProjectOwner,
@@ -100,7 +82,7 @@ export default class Team extends BaseModel {
       Permission.SettingsAdmin,
       Permission.SettingsMember,
       Permission.SettingsViewer,
-      Permission.ReadProjectTeam,
+      Permission.ReadTeamCustomField,
     ],
     update: [],
   })
@@ -129,7 +111,7 @@ export default class Team extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
+      Permission.CreateTeamCustomField,
     ],
     read: [
       Permission.ProjectOwner,
@@ -139,7 +121,7 @@ export default class Team extends BaseModel {
       Permission.SettingsAdmin,
       Permission.SettingsMember,
       Permission.SettingsViewer,
-      Permission.ReadProjectTeam,
+      Permission.ReadTeamCustomField,
     ],
     update: [],
   })
@@ -163,7 +145,7 @@ export default class Team extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
+      Permission.CreateTeamCustomField,
     ],
     read: [
       Permission.ProjectOwner,
@@ -173,35 +155,35 @@ export default class Team extends BaseModel {
       Permission.SettingsAdmin,
       Permission.SettingsMember,
       Permission.SettingsViewer,
-      Permission.ReadProjectTeam,
+      Permission.ReadTeamCustomField,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.EditProjectTeam,
+      Permission.EditTeamCustomField,
     ],
   })
-  @Index()
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
     title: "Name",
     description: "Any friendly name of this object",
-    canReadOnRelationQuery: true,
-    example: "Engineering Team",
+    example: "Department",
   })
   @Column({
     nullable: false,
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
   })
+  @UniqueColumnBy("projectId")
   public name?: string = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
+      Permission.CreateTeamCustomField,
     ],
     read: [
       Permission.ProjectOwner,
@@ -211,21 +193,21 @@ export default class Team extends BaseModel {
       Permission.SettingsAdmin,
       Permission.SettingsMember,
       Permission.SettingsViewer,
-      Permission.ReadProjectTeam,
+      Permission.ReadTeamCustomField,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.EditProjectTeam,
+      Permission.EditTeamCustomField,
     ],
   })
   @TableColumn({
     required: false,
     type: TableColumnType.LongText,
     title: "Description",
-    description: "Friendly description that will help you remember",
-    example:
-      "Team responsible for backend services and infrastructure management",
+    description:
+      "Friendly description of this custom field that will help you remember",
+    example: "The department or business unit this team belongs to.",
   })
   @Column({
     nullable: true,
@@ -234,9 +216,12 @@ export default class Team extends BaseModel {
   })
   public description?: string = undefined;
 
-  @Index()
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateTeamCustomField,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -245,31 +230,29 @@ export default class Team extends BaseModel {
       Permission.SettingsAdmin,
       Permission.SettingsMember,
       Permission.SettingsViewer,
-      Permission.ReadProjectTeam,
+      Permission.ReadTeamCustomField,
     ],
     update: [],
   })
   @TableColumn({
-    required: true,
-    unique: true,
-    type: TableColumnType.Slug,
-    computed: true,
-    title: "Slug",
-    description: "Friendly globally unique name for your object",
+    required: false,
+    type: TableColumnType.CustomFieldType,
+    title: "Custom Field Type",
+    description: "Is this field Text, Number, Boolean or Dropdown?",
+    example: "Text",
   })
   @Column({
-    nullable: false,
-    type: ColumnType.Slug,
-    length: ColumnLength.Slug,
-    unique: true,
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
   })
-  public slug?: string = undefined;
+  public customFieldType?: CustomFieldType = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
+      Permission.CreateTeamCustomField,
     ],
     read: [
       Permission.ProjectOwner,
@@ -279,7 +262,44 @@ export default class Team extends BaseModel {
       Permission.SettingsAdmin,
       Permission.SettingsMember,
       Permission.SettingsViewer,
-      Permission.ReadProjectTeam,
+      Permission.ReadTeamCustomField,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTeamCustomField,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Dropdown Options",
+    description:
+      "Options for the dropdown field, one per line. Only used when Custom Field Type is Dropdown.",
+    example: "Engineering\nSales\nSupport",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public dropdownOptions?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateTeamCustomField,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadTeamCustomField,
     ],
     update: [],
   })
@@ -309,7 +329,7 @@ export default class Team extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
+      Permission.CreateTeamCustomField,
     ],
     read: [
       Permission.ProjectOwner,
@@ -319,7 +339,7 @@ export default class Team extends BaseModel {
       Permission.SettingsAdmin,
       Permission.SettingsMember,
       Permission.SettingsViewer,
-      Permission.ReadProjectTeam,
+      Permission.ReadTeamCustomField,
     ],
     update: [],
   })
@@ -328,7 +348,7 @@ export default class Team extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
-    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    example: "a3f2b1c0-d9e8-4f5a-8b7c-6d5e4f3a2b1c",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -339,7 +359,16 @@ export default class Team extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadTeamCustomField,
+    ],
     update: [],
   })
   @TableColumn({
@@ -367,7 +396,16 @@ export default class Team extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadTeamCustomField,
+    ],
     update: [],
   })
   @TableColumn({
@@ -375,7 +413,7 @@ export default class Team extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
-    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+    example: "b5c4d3e2-f1a0-4b5c-9d8e-7f6a5b4c3d2e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -383,160 +421,4 @@ export default class Team extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public deletedByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.EditProjectTeam,
-      Permission.EditProjectTeamPermissions,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    title: "Permissions Editable",
-    description:
-      "Can you edit team permissions? Teams auto-created for you are uneditable but you should be able to edit permissions on the team you create",
-    example: true,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: true,
-  })
-  public isPermissionsEditable?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.EditProjectTeam,
-      Permission.EditProjectTeamPermissions,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    title: "Team Deleteable",
-    description:
-      "Can you delete this team? Teams auto-created for you are not deleteable but you should be able to delete permissions on the team you create",
-    example: true,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: true,
-  })
-  public isTeamDeleteable?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.EditProjectTeam,
-      Permission.EditProjectTeamPermissions,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    title: "Should have one member?",
-    description:
-      "Can this team have no members? Owner team should have at least 1 member, other teams can have no members",
-    example: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public shouldHaveAtLeastOneMember?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.EditProjectTeam,
-      Permission.EditProjectTeamPermissions,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    title: "Team Editable",
-    description:
-      "Can you edit team? Teams auto-created for you are uneditable but you should be able to edit on the team you create",
-    example: true,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: true,
-  })
-  public isTeamEditable?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.CreateProjectTeam,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadProjectTeam,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.EditProjectTeam,
-    ],
-  })
-  @TableColumn({
-    isDefaultValueColumn: false,
-    required: false,
-    type: TableColumnType.JSON,
-    title: "Custom Fields",
-    description: "Custom Fields on this resource.",
-  })
-  @Column({
-    type: ColumnType.JSON,
-    nullable: true,
-  })
-  public customFields?: JSONObject = undefined;
 }

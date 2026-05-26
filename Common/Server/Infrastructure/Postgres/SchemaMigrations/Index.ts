@@ -351,6 +351,7 @@ import { AddLabelInheritanceAndScheduledMaintenanceResources1779653508434 } from
 import { AddAffectedResourcesToTemplates1779708719656 } from "./1779708719656-AddAffectedResourcesToTemplates";
 import { MigrationName1779739410559 } from "./1779739410559-MigrationName";
 import { AttachServiceToScheduledMaintenanceTemplatesAndLabelRules1779742211961 } from "./1779742211961-AttachServiceToScheduledMaintenanceTemplatesAndLabelRules";
+import { MigrationName1779790539196 } from "./1779790539196-MigrationName";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -705,4 +706,5 @@ export default [
   AddAffectedResourcesToTemplates1779708719656,
   MigrationName1779739410559,
   AttachServiceToScheduledMaintenanceTemplatesAndLabelRules1779742211961,
+  MigrationName1779790539196,
 ];

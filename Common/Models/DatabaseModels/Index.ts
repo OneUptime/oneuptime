@@ -188,6 +188,7 @@ import StatusPageSubscriberNotificationTemplate from "./StatusPageSubscriberNoti
 import StatusPageSubscriberNotificationTemplateStatusPage from "./StatusPageSubscriberNotificationTemplateStatusPage";
 // Team
 import Team from "./Team";
+import TeamCustomField from "./TeamCustomField";
 import TeamMember from "./TeamMember";
 import TeamMemberCustomField from "./TeamMemberCustomField";
 import TeamPermission from "./TeamPermission";
@@ -340,6 +341,7 @@ const AllModelTypes: Array<{
   Project,
   EmailVerificationToken,
   Team,
+  TeamCustomField,
   TeamMember,
   TeamMemberCustomField,
   TeamPermission,

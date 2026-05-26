@@ -8,9 +8,9 @@ import SideMenu, {
 } from "Common/UI/Components/SideMenu/SideMenu";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const UsersSideMenu: FunctionComponent = (): ReactElement => {
+const TeamsSideMenu: FunctionComponent = (): ReactElement => {
   const customFieldsRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.USER_CUSTOM_FIELDS] as Route,
+    RouteMap[PageMap.TEAM_CUSTOM_FIELDS] as Route,
   );
 
   // Auto-expand Settings when the user is on a page inside it; otherwise collapsed.
@@ -18,14 +18,14 @@ const UsersSideMenu: FunctionComponent = (): ReactElement => {
 
   const sections: SideMenuSectionProps[] = [
     {
-      title: "Users",
+      title: "Teams",
       items: [
         {
           link: {
-            title: "All Users",
-            to: RouteUtil.populateRouteParams(RouteMap[PageMap.USERS] as Route),
+            title: "All Teams",
+            to: RouteUtil.populateRouteParams(RouteMap[PageMap.TEAMS] as Route),
           },
-          icon: IconProp.User,
+          icon: IconProp.Team,
         },
       ],
     },
@@ -47,4 +47,4 @@ const UsersSideMenu: FunctionComponent = (): ReactElement => {
   return <SideMenu sections={sections} />;
 };
 
-export default UsersSideMenu;
+export default TeamsSideMenu;

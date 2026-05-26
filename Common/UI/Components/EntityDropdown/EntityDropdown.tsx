@@ -68,38 +68,40 @@ export interface EntityDropdownProps {
    * Static options (enum-like). Used as initial cache when modelType is set;
    * sole source of options when it isn't.
    */
-  options?: Array<DropdownOption | DropdownOptionGroup>;
+  options?: Array<DropdownOption | DropdownOptionGroup> | undefined;
 
   // Drop-in compatibility with `Dropdown`.
-  initialValue?: EntityDropdownValue;
-  value?: EntityDropdownValue;
-  onChange?: (value: DropdownValue | Array<DropdownValue> | null) => void;
-  onClick?: () => void;
-  onFocus?: () => void;
-  onBlur?: () => void;
-  placeholder?: string;
-  className?: string;
-  isMultiSelect?: boolean;
-  tabIndex?: number;
-  error?: string;
-  id?: string;
-  dataTestId?: string;
-  ariaLabel?: string;
-  disabled?: boolean;
+  initialValue?: EntityDropdownValue | undefined;
+  value?: EntityDropdownValue | undefined;
+  onChange?:
+    | ((value: DropdownValue | Array<DropdownValue> | null) => void)
+    | undefined;
+  onClick?: (() => void) | undefined;
+  onFocus?: (() => void) | undefined;
+  onBlur?: (() => void) | undefined;
+  placeholder?: string | undefined;
+  className?: string | undefined;
+  isMultiSelect?: boolean | undefined;
+  tabIndex?: number | undefined;
+  error?: string | undefined;
+  id?: string | undefined;
+  dataTestId?: string | undefined;
+  ariaLabel?: string | undefined;
+  disabled?: boolean | undefined;
 
   /*
    * Entity backing. When set, the popover fetches options server-side and
    * (for multi-select on labeled entities) exposes a Labels tab.
    */
-  modelType?: { new (): BaseModel };
-  labelField?: string;
-  valueField?: string;
-  colorField?: string;
+  modelType?: { new (): BaseModel } | undefined;
+  labelField?: string | undefined;
+  valueField?: string | undefined;
+  colorField?: string | undefined;
   /*
    * Override the auto-detection — explicitly hide the Labels tab even on a
    * labeled entity, or force-show it.
    */
-  enableLabelsTab?: boolean;
+  enableLabelsTab?: boolean | undefined;
 }
 
 const SEARCH_DEBOUNCE_MS: number = 250;
@@ -505,7 +507,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       if (colorField) {
         const colorRaw: unknown = raw[colorField];
         if (colorRaw) {
-          option.color = colorRaw as unknown as DropdownOption["color"];
+          option.color = colorRaw as NonNullable<DropdownOption["color"]>;
         }
       }
       return option;

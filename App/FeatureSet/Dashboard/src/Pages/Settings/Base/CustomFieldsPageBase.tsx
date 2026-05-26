@@ -12,6 +12,7 @@ import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField"
 import OnCallDutyPolicyCustomField from "Common/Models/DatabaseModels/OnCallDutyPolicyCustomField";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
 import StatusPageCustomField from "Common/Models/DatabaseModels/StatusPageCustomField";
+import TeamCustomField from "Common/Models/DatabaseModels/TeamCustomField";
 import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
 import React, { Fragment, ReactElement } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";

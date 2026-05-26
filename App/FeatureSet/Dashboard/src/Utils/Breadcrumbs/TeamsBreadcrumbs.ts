@@ -6,6 +6,11 @@ import Link from "Common/Types/Link";
 export function getTeamsBreadcrumbs(path: string): Array<Link> | undefined {
   const breadcrumpLinksMap: Dictionary<Link[]> = {
     ...BuildBreadcrumbLinksByTitles(PageMap.TEAMS, ["Project", "Teams"]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.TEAM_CUSTOM_FIELDS, [
+      "Project",
+      "Teams",
+      "Custom Fields",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.TEAM_VIEW, [
       "Project",
       "Teams",
@@ -34,6 +39,12 @@ export function getTeamsBreadcrumbs(path: string): Array<Link> | undefined {
       "Teams",
       "View Team",
       "Compliance",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.TEAM_VIEW_CUSTOM_FIELDS, [
+      "Project",
+      "Teams",
+      "View Team",
+      "Custom Fields",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.TEAM_VIEW_DELETE, [
       "Project",
