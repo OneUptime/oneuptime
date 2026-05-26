@@ -620,9 +620,16 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
    * Lazy-load labels the first time the user switches to the Labels tab.
    * The list is cached for the picker's lifetime — switching back and
    * forth between tabs is instant.
+   *
+   * IMPORTANT: do *not* add `isLoadingLabels` to the dep array. The first
+   * thing the loader does is setIsLoadingLabels(true); if that re-fires
+   * this effect, its cleanup sets `cancelled = true` and the in-flight
+   * request is silently dropped, leaving the popover stuck on
+   * "Loading labels...". `activeTab` + `labelsLoaded` are enough to gate
+   * re-entry.
    */
   useEffect(() => {
-    if (activeTab !== "labels" || labelsLoaded || isLoadingLabels) {
+    if (activeTab !== "labels" || labelsLoaded) {
       return;
     }
     let cancelled: boolean = false;
@@ -660,7 +667,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     return () => {
       cancelled = true;
     };
-  }, [activeTab, labelsLoaded, isLoadingLabels]);
+  }, [activeTab, labelsLoaded]);
 
   const toggleLabelId: (id: string) => void = (id: string): void => {
     setSelectedLabelIds((prev: Array<string>): Array<string> => {
