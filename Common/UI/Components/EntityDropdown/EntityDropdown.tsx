@@ -253,7 +253,32 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
   const modelType: { new (): BaseModel } | undefined = props.modelType;
   const labelField: string = props.labelField || "name";
   const valueField: string = props.valueField || "_id";
-  const colorField: string | undefined = props.colorField;
+  /*
+   * Color column auto-detection mirrors ModelForm.fetchDropdownOptions —
+   * BaseModel exposes getFirstColorColumn() which returns the first column
+   * decorated as a color (Severity.color, Status.color, etc.). When set,
+   * we include it in the server-side SELECT so our supplemental searches
+   * carry the same color metadata as the form's pre-fetch.
+   */
+  const detectedColorField: string | undefined = useMemo(() => {
+    if (!modelType) {
+      return undefined;
+    }
+    try {
+      type WithColorProbe = {
+        getFirstColorColumn?: () => string | null | undefined;
+      };
+      const probe: WithColorProbe = new modelType() as unknown as WithColorProbe;
+      if (typeof probe.getFirstColorColumn === "function") {
+        return probe.getFirstColorColumn() || undefined;
+      }
+    } catch {
+      // Model can't be instantiated for inspection; fall back to no color.
+    }
+    return undefined;
+  }, [modelType]);
+  const colorField: string | undefined =
+    props.colorField || detectedColorField;
   const hasLabelsAutoDetected: boolean = useMemo(() => {
     return detectLabelsField(modelType);
   }, [modelType]);
@@ -282,12 +307,19 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
   const optionsCacheRef: React.MutableRefObject<Map<string, DropdownOption>> =
     useRef<Map<string, DropdownOption>>(new Map());
 
-  // Seed / refresh the cache whenever the parent hands us new options.
-  useEffect(() => {
-    for (const opt of initialFlat) {
-      optionsCacheRef.current.set(valueKey(opt.value), opt);
-    }
-  }, [initialFlat]);
+  /*
+   * Seed the cache *during render* rather than in a useEffect. A pure-effect
+   * seed only fires after first paint, which means the first render's
+   * `selectedOptions` lookup misses, the chip falls back to "label = raw
+   * UUID", and the user sees an ID flash by before the next render swaps
+   * in the real label. Mutating a ref during render is safe because we
+   * don't read derived state from it within the same render — we read it
+   * via `selectedOptions` below, whose useMemo deps already include the
+   * inputs that change the cache.
+   */
+  for (const opt of initialFlat) {
+    optionsCacheRef.current.set(valueKey(opt.value), opt);
+  }
 
   /*
    * selectedKeys is the source of truth for what the user has picked. We
@@ -347,11 +379,11 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     return collected;
   }, [props.value, props.initialValue]);
 
-  useEffect(() => {
-    for (const opt of inboundOptions) {
-      optionsCacheRef.current.set(valueKey(opt.value), opt);
-    }
-  }, [inboundOptions]);
+  // Same reasoning as initialFlat — seed at render time so the first paint
+  // has the labels.
+  for (const opt of inboundOptions) {
+    optionsCacheRef.current.set(valueKey(opt.value), opt);
+  }
 
   const [selectedKeys, setSelectedKeys] = useState<Array<string>>(externalKeys);
 
@@ -685,30 +717,61 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
   }, [allLabels, searchQuery]);
 
   /*
-   * Available results = search-tab options (whichever path is feeding them)
-   * minus anything already selected. For static dropdowns we filter the
-   * seeded options by the search query client-side; for entity-backed ones
-   * the API has already done the filtering for us.
+   * Available results = initialFlat (the form's pre-fetched set, which has
+   * the color/labels metadata we want to preserve) UNIONed with searchResults
+   * (the supplemental server-side hits for big lists), filtered by the
+   * current query. Even for entity-backed dropdowns we keep initialFlat in
+   * the mix so colors and any other rich fields the pre-fetch carried
+   * survive — our supplemental fetch only requests the minimum SELECT.
    */
   const optionsList: Array<DropdownOption> = useMemo(() => {
-    if (modelType) {
-      return searchResults;
-    }
     const q: string = searchQuery.trim().toLowerCase();
-    if (q === "") {
-      return initialFlat;
-    }
-    return initialFlat.filter((opt: DropdownOption): boolean => {
+    const matches: (opt: DropdownOption) => boolean = (
+      opt: DropdownOption,
+    ): boolean => {
+      if (q === "") {
+        return true;
+      }
       return opt.label.toLowerCase().includes(q);
-    });
+    };
+    const seen: Set<string> = new Set();
+    const out: Array<DropdownOption> = [];
+    for (const opt of initialFlat) {
+      const key: string = valueKey(opt.value);
+      if (seen.has(key) || !matches(opt)) {
+        continue;
+      }
+      seen.add(key);
+      out.push(opt);
+    }
+    if (modelType) {
+      for (const opt of searchResults) {
+        const key: string = valueKey(opt.value);
+        if (seen.has(key) || !matches(opt)) {
+          continue;
+        }
+        seen.add(key);
+        out.push(opt);
+      }
+    }
+    return out;
   }, [modelType, searchResults, searchQuery, initialFlat]);
 
+  /*
+   * Filter out the currently-selected key(s) ONLY in multi-select. For
+   * single-select the user needs to see the current value too so they can
+   * compare and switch — react-select keeps the selected option visible
+   * (just highlights it), so we match that.
+   */
   const availableOptions: Array<DropdownOption> = useMemo(() => {
+    if (!isMulti) {
+      return optionsList;
+    }
     const selectedSet: Set<string> = new Set(selectedKeys);
     return optionsList.filter((opt: DropdownOption): boolean => {
       return !selectedSet.has(valueKey(opt.value));
     });
-  }, [optionsList, selectedKeys]);
+  }, [optionsList, selectedKeys, isMulti]);
 
   // Clamp the keyboard cursor when the visible list shrinks.
   useEffect(() => {
@@ -934,8 +997,13 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       }
       return { value: key, label: key };
     });
-    // optionsCacheRef is a ref; we depend on selectedKeys to refresh.
-  }, [selectedKeys]);
+    /*
+     * Cache is mutated during render based on initialFlat / inboundOptions
+     * (see seed loops above), so include them here to make the dependency
+     * graph honest — when the parent hands us new options, this memo
+     * recomputes against the freshly-seeded cache.
+     */
+  }, [selectedKeys, initialFlat, inboundOptions]);
 
   /*
    * Visual label color extracted from option.color (which can be either a
@@ -1358,13 +1426,15 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                   (opt: DropdownOption, idx: number): ReactElement => {
                     const key: string = valueKey(opt.value);
                     const isHighlighted: boolean = idx === highlightedIndex;
+                    const isCurrentSelection: boolean =
+                      !isMulti && selectedKeys[0] === key;
                     const colorStr: string | undefined = optionColorString(opt);
                     return (
                       <button
                         key={key}
                         type="button"
                         role="option"
-                        aria-selected={isHighlighted}
+                        aria-selected={isCurrentSelection || isHighlighted}
                         onMouseEnter={(): void => {
                           setHighlightedIndex(idx);
                         }}
@@ -1379,7 +1449,9 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                         className={`flex w-full items-center gap-2 px-3 py-2 text-left ${
                           isHighlighted
                             ? "bg-indigo-600 text-white"
-                            : "text-gray-700 hover:bg-indigo-50"
+                            : isCurrentSelection
+                              ? "bg-indigo-50 text-indigo-900"
+                              : "text-gray-700 hover:bg-indigo-50"
                         }`}
                       >
                         {colorStr && (
@@ -1400,6 +1472,27 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                           >
                             {opt.description}
                           </span>
+                        )}
+                        {/*
+                         * Trailing check for the current single-select value
+                         * — same visual cue react-select uses to flag the
+                         * active option without taking it out of the list.
+                         */}
+                        {isCurrentSelection && (
+                          <svg
+                            className={`ml-auto h-4 w-4 flex-shrink-0 ${
+                              isHighlighted ? "text-white" : "text-indigo-600"
+                            }`}
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            aria-hidden="true"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
                         )}
                       </button>
                     );
