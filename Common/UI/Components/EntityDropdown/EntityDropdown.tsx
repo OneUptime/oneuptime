@@ -76,7 +76,6 @@ export interface EntityDropdownProps {
   onChange?:
     | ((value: DropdownValue | Array<DropdownValue> | null) => void)
     | undefined;
-  onClick?: (() => void) | undefined;
   onFocus?: (() => void) | undefined;
   onBlur?: (() => void) | undefined;
   placeholder?: string | undefined;
@@ -270,7 +269,8 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       type WithColorProbe = {
         getFirstColorColumn?: () => string | null | undefined;
       };
-      const probe: WithColorProbe = new modelType() as unknown as WithColorProbe;
+      const probe: WithColorProbe =
+        new modelType() as unknown as WithColorProbe;
       if (typeof probe.getFirstColorColumn === "function") {
         return probe.getFirstColorColumn() || undefined;
       }
@@ -279,8 +279,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     }
     return undefined;
   }, [modelType]);
-  const colorField: string | undefined =
-    props.colorField || detectedColorField;
+  const colorField: string | undefined = props.colorField || detectedColorField;
   const hasLabelsAutoDetected: boolean = useMemo(() => {
     return detectLabelsField(modelType);
   }, [modelType]);
@@ -381,8 +380,10 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     return collected;
   }, [props.value, props.initialValue]);
 
-  // Same reasoning as initialFlat — seed at render time so the first paint
-  // has the labels.
+  /*
+   * Same reasoning as initialFlat — seed at render time so the first paint
+   * has the labels.
+   */
   for (const opt of inboundOptions) {
     optionsCacheRef.current.set(valueKey(opt.value), opt);
   }
@@ -408,7 +409,6 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     for (const opt of initialFlat) {
       optionsCacheRef.current.set(valueKey(opt.value), opt);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [externalKeys.join("|")]);
 
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -651,7 +651,6 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     selectedKeys.join("|"),
     modelType,
