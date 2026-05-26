@@ -575,6 +575,28 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
         selectMoreFields={{
           alertNumberWithPrefix: true,
           isPrivate: true,
+          /*
+           * The Affected Resources column lists several M2M relations under one
+           * `field` block, but BaseModelTable only auto-selects the FIRST key
+           * of each column.field. Include the remaining relations explicitly
+           * so all attached resources actually load.
+           */
+          kubernetesClusters: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
+          dockerHosts: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
+          services: {
+            name: true,
+            _id: true,
+            projectId: true,
+            serviceColor: true,
+          },
         }}
         columns={[
           {

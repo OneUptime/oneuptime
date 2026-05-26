@@ -9,7 +9,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet, useParams } from "react-router-dom";
 
 const TeamViewLayout: FunctionComponent = (): ReactElement => {
-  const { modelId: idParam } = useParams();
+  const { id: idParam } = useParams();
   const modelId: ObjectID = new ObjectID(idParam || "");
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
 

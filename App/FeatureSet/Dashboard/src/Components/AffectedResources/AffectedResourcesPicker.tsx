@@ -111,6 +111,15 @@ const ALL_TYPES: Array<AffectedResourceType> = [
 
 const SEARCH_DEBOUNCE_MS: number = 250;
 const SEARCH_LIMIT_PER_TYPE: number = 15;
+/*
+ * Cap on rendered selected-chip nodes. Bulk label selection can attach
+ * thousands of resources to one incident/alert; rendering every chip in a
+ * flex-wrap above the input jank-locks the tab. Past this cap we show the
+ * first MAX_VISIBLE_CHIPS and an overflow badge ("+N more selected") that
+ * reveals the rest on demand. Selection state is unaffected — only the
+ * DOM render is capped.
+ */
+const MAX_VISIBLE_CHIPS: number = 50;
 
 /*
  * Translate the resource arrays already attached to the parent entity into a
@@ -294,6 +303,12 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
   >([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isOpen, setIsOpen] = useState<boolean>(false);
+  /*
+   * Reveal the chips past MAX_VISIBLE_CHIPS only when the user opts in.
+   * Revealing thousands at once is intentionally a button-press, not the
+   * default, because the resulting flex-wrap can hang the tab.
+   */
+  const [showAllChips, setShowAllChips] = useState<boolean>(false);
   /*
    * highlightedIndex tracks the keyboard cursor across the *flat* order of
    * availableResults (group order matches resourceTypes). -1 means nothing
@@ -879,6 +894,11 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     );
   };
 
+  const clearAll: () => void = (): void => {
+    notify([]);
+    setShowAllChips(false);
+  };
+
   const resourcesPlaceholder: string =
     props.placeholder ||
     (resourceTypes.length === ALL_TYPES.length
@@ -891,48 +911,87 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
   const placeholder: string =
     activeTab === "labels" ? "Search labels..." : resourcesPlaceholder;
 
+  const chipOverflow: number = Math.max(0, selected.length - MAX_VISIBLE_CHIPS);
+  const visibleChips: Array<AffectedResourceItem> =
+    showAllChips || chipOverflow === 0
+      ? selected
+      : selected.slice(0, MAX_VISIBLE_CHIPS);
+
   return (
     <div ref={containerRef} className="relative mt-1 w-full">
       {selected.length > 0 && (
-        <div className="mb-2 flex flex-wrap gap-2">
-          {selected.map((item: AffectedResourceItem) => {
-            const cfg: ResourceConfig = RESOURCE_CONFIG[item.type];
-            return (
-              <span
-                key={`${item.type}-${item._id}`}
-                className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-sm text-gray-700"
-              >
-                <Icon icon={cfg.icon} className="h-3.5 w-3.5 text-gray-500" />
-                <span className="text-xs uppercase tracking-wide text-gray-500">
-                  {cfg.label}
+        <div className="mb-2 space-y-2">
+          {(chipOverflow > 0 || selected.length >= MAX_VISIBLE_CHIPS) &&
+            !props.disabled && (
+              <div className="flex items-center justify-between rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs">
+                <span className="text-gray-600">
+                  <span className="font-semibold text-gray-800">
+                    {selected.length.toLocaleString()}
+                  </span>{" "}
+                  resources selected
                 </span>
-                <span className="text-gray-800">{item.name}</span>
-                {!props.disabled && (
-                  <button
-                    type="button"
-                    aria-label={`Remove ${item.name}`}
-                    onClick={() => {
-                      removeItem(item);
-                    }}
-                    className="ml-1 rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  >
-                    <svg
-                      className="h-3.5 w-3.5"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                      aria-hidden="true"
+                <button
+                  type="button"
+                  onClick={clearAll}
+                  className="font-medium text-red-600 hover:text-red-700 focus:outline-none focus:ring-1 focus:ring-red-500"
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
+          <div className="flex flex-wrap gap-2">
+            {visibleChips.map((item: AffectedResourceItem) => {
+              const cfg: ResourceConfig = RESOURCE_CONFIG[item.type];
+              return (
+                <span
+                  key={`${item.type}-${item._id}`}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-sm text-gray-700"
+                >
+                  <Icon icon={cfg.icon} className="h-3.5 w-3.5 text-gray-500" />
+                  <span className="text-xs uppercase tracking-wide text-gray-500">
+                    {cfg.label}
+                  </span>
+                  <span className="text-gray-800">{item.name}</span>
+                  {!props.disabled && (
+                    <button
+                      type="button"
+                      aria-label={`Remove ${item.name}`}
+                      onClick={() => {
+                        removeItem(item);
+                      }}
+                      className="ml-1 rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     >
-                      <path
-                        fillRule="evenodd"
-                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </button>
-                )}
-              </span>
-            );
-          })}
+                      <svg
+                        className="h-3.5 w-3.5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </button>
+                  )}
+                </span>
+              );
+            })}
+            {chipOverflow > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  return setShowAllChips(!showAllChips);
+                }}
+                className="inline-flex items-center gap-1 rounded-md border border-dashed border-gray-300 bg-white px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              >
+                {showAllChips
+                  ? "Show fewer"
+                  : `+ ${chipOverflow.toLocaleString()} more`}
+              </button>
+            )}
+          </div>
         </div>
       )}
 

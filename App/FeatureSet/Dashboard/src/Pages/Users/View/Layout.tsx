@@ -21,7 +21,7 @@ import React, {
 import { Outlet, useParams } from "react-router-dom";
 
 const UserViewLayout: FunctionComponent = (): ReactElement => {
-  const { modelId: idParam } = useParams();
+  const { id: idParam } = useParams();
   const userId: ObjectID = new ObjectID(idParam || "");
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
 

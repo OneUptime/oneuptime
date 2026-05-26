@@ -31,6 +31,14 @@ export interface ComponentProps {
 }
 
 const PREVIEW_COUNT: number = 4;
+/*
+ * Hard cap on rendered DOM nodes per category. Without this, an incident
+ * attached to thousands of resources would render every item in one go when
+ * the user clicks "Show more" — enough to lock the tab. Past this cap we
+ * still render the first MAX_RENDER_PER_CATEGORY rows and surface the
+ * remaining count in a footer note so the user knows the data isn't lost.
+ */
+const MAX_RENDER_PER_CATEGORY: number = 100;
 
 interface CategoryCardProps<T> {
   icon: IconProp;
@@ -43,11 +51,15 @@ interface CategoryCardProps<T> {
 
 function CategoryCard<T>(props: CategoryCardProps<T>): ReactElement {
   const [showAll, setShowAll] = useState<boolean>(false);
+  const total: number = props.items.length;
+  const expandedCap: number = Math.min(total, MAX_RENDER_PER_CATEGORY);
   const visibleItems: Array<T> = showAll
-    ? props.items
+    ? props.items.slice(0, expandedCap)
     : props.items.slice(0, PREVIEW_COUNT);
-  const remaining: number = props.items.length - PREVIEW_COUNT;
-  const hasMore: boolean = remaining > 0;
+  const collapsedRemaining: number = total - PREVIEW_COUNT;
+  const truncatedCount: number = total - MAX_RENDER_PER_CATEGORY;
+  const hasMore: boolean = collapsedRemaining > 0;
+  const isTruncated: boolean = showAll && truncatedCount > 0;
 
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow">
@@ -66,7 +78,7 @@ function CategoryCard<T>(props: CategoryCardProps<T>): ReactElement {
           </span>
         </div>
         <span className="inline-flex h-5 min-w-[1.5rem] items-center justify-center rounded-full bg-white px-2 text-xs font-semibold text-gray-600 ring-1 ring-inset ring-gray-200">
-          {props.items.length}
+          {total.toLocaleString()}
         </span>
       </div>
       <ul className="divide-y divide-gray-100">
@@ -81,6 +93,13 @@ function CategoryCard<T>(props: CategoryCardProps<T>): ReactElement {
           );
         })}
       </ul>
+      {isTruncated && (
+        <div className="border-t border-gray-100 bg-amber-50 px-4 py-2 text-xs text-amber-800">
+          Showing the first {MAX_RENDER_PER_CATEGORY.toLocaleString()} of{" "}
+          {total.toLocaleString()}. {truncatedCount.toLocaleString()} more
+          attached — edit affected resources to manage the full list.
+        </div>
+      )}
       {hasMore && (
         <button
           type="button"
@@ -98,7 +117,18 @@ function CategoryCard<T>(props: CategoryCardProps<T>): ReactElement {
             <>
               <Icon icon={IconProp.ChevronDown} className="h-3 w-3" />
               <span>
-                Show {remaining} more {remaining === 1 ? "item" : "items"}
+                Show{" "}
+                {Math.min(
+                  collapsedRemaining,
+                  MAX_RENDER_PER_CATEGORY - PREVIEW_COUNT,
+                ).toLocaleString()}{" "}
+                more{" "}
+                {Math.min(
+                  collapsedRemaining,
+                  MAX_RENDER_PER_CATEGORY - PREVIEW_COUNT,
+                ) === 1
+                  ? "item"
+                  : "items"}
               </span>
             </>
           )}
