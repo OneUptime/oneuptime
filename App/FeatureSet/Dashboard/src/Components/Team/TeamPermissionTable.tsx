@@ -228,6 +228,13 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
         projectId: ProjectUtil.getCurrentProjectId()!,
         isBlockPermission: permissionType === PermissionType.BlockPermissions,
       }}
+      selectMoreFields={{
+        labels: {
+          _id: true,
+          name: true,
+          color: true,
+        },
+      }}
       onBeforeCreate={(item: TeamPermission): Promise<TeamPermission> => {
         if (!currentProject || !currentProject._id) {
           throw new BadDataException("Project ID cannot be null");
@@ -508,10 +515,6 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
         {
           field: {
             scope: true,
-            labels: {
-              name: true,
-              color: true,
-            },
           },
           title: "Scope",
           type: FieldType.Text,
