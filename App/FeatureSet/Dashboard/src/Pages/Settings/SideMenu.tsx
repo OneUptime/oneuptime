@@ -100,6 +100,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Team,
         },
+        {
+          link: {
+            title: "User Custom Fields",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_USER_CUSTOM_FIELDS] as Route,
+            ),
+          },
+          icon: IconProp.TableCells,
+        },
       ],
     },
     {

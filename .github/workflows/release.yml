@@ -102,6 +102,9 @@ jobs:
           echo "patch=${patch}" >> "$GITHUB_OUTPUT"
           echo "Using version: ${VERSION_RAW}"
 
+      - name: Verify package.json versions match VERSION
+        run: node ./Scripts/Install/SyncPackageVersions.js --check
+
 
 
   helm-chart-deploy:

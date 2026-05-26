@@ -91,6 +91,9 @@ jobs:
           echo "patch=${target_patch}" >> "$GITHUB_OUTPUT"
           echo "Using version base: ${new_version}"
 
+      - name: Verify package.json versions match VERSION
+        run: node ./Scripts/Install/SyncPackageVersions.js --check
+
   # ─── Docker image build jobs (per-arch matrix) ───────────────────────
 
   nginx-docker-image-build:

@@ -155,6 +155,50 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
+  public extractMonitorStepIds(
+    monitorSteps: MonitorSteps | JSONObject,
+  ): Array<string> {
+    const stepIds: Array<string> = [];
+
+    let stepsArray: Array<MonitorStep | JSONObject> = [];
+
+    if (monitorSteps instanceof MonitorSteps) {
+      stepsArray = monitorSteps.data?.monitorStepsInstanceArray || [];
+    } else if (monitorSteps && typeof monitorSteps === "object") {
+      const value: JSONObject | undefined = (monitorSteps as JSONObject)[
+        "value"
+      ] as JSONObject | undefined;
+      const rawArray: unknown = value
+        ? value["monitorStepsInstanceArray"]
+        : (monitorSteps as JSONObject)["monitorStepsInstanceArray"];
+
+      if (Array.isArray(rawArray)) {
+        stepsArray = rawArray as Array<JSONObject>;
+      }
+    }
+
+    for (const step of stepsArray) {
+      let stepId: string | undefined;
+
+      if (step instanceof MonitorStep) {
+        stepId = step.data?.id;
+      } else if (step && typeof step === "object") {
+        const wrappedValue: JSONObject | undefined = (step as JSONObject)[
+          "value"
+        ] as JSONObject | undefined;
+        stepId = (wrappedValue?.["id"] || (step as JSONObject)["id"]) as
+          | string
+          | undefined;
+      }
+
+      if (stepId) {
+        stepIds.push(stepId.toString());
+      }
+    }
+
+    return stepIds;
+  }
+
   public async refreshMonitorCurrentStatus(monitorId: ObjectID): Promise<void> {
     const monitor: Model | null = await this.findOneById({
       id: monitorId,
@@ -360,6 +404,17 @@ export class Service extends DatabaseService<Model> {
         if (onUpdate.updateBy.data.monitoringInterval) {
           await MonitorProbeService.updateNextPingAtForMonitor({
             monitorId: monitorId,
+          });
+        }
+
+        if (onUpdate.updateBy.data.monitorSteps) {
+          const validMonitorStepIds: Array<string> = this.extractMonitorStepIds(
+            onUpdate.updateBy.data.monitorSteps as MonitorSteps | JSONObject,
+          );
+
+          await MonitorProbeService.pruneStaleLastMonitoringLogEntries({
+            monitorId: monitorId,
+            validMonitorStepIds: validMonitorStepIds,
           });
         }
 

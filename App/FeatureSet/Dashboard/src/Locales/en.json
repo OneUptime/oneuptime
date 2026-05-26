@@ -37,7 +37,7 @@
     "categories": {
       "essentials": "Essentials",
       "observability": "Observability",
-      "infrastructure": "Infrastructure",
+      "resources": "Resources",
       "analyticsAutomation": "Analytics & Automation",
       "settings": "Settings"
     },
@@ -65,7 +65,7 @@
       "exceptionsTitle": "Exceptions",
       "exceptionsDescription": "Track and resolve bugs across your services.",
       "servicesTitle": "Services",
-      "servicesDescription": "Manage service dependencies.",
+      "servicesDescription": "Catalog every service you run.",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Monitor Kubernetes clusters.",
       "dockerTitle": "Docker",
@@ -82,6 +82,10 @@
       "aiAgentDescription": "AI-powered issue resolution.",
       "codeRepositoriesTitle": "Code Repositories",
       "codeRepositoriesDescription": "GitHub and GitLab integrations.",
+      "usersTitle": "Users",
+      "usersDescription": "Manage project users and invites.",
+      "teamsTitle": "Teams",
+      "teamsDescription": "Organize users into teams and assign permissions.",
       "projectSettingsTitle": "Project Settings",
       "projectSettingsDescription": "Configure your project."
     },

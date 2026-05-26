@@ -5,6 +5,7 @@ import Host from "../../../Models/DatabaseModels/Host";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
+import Service from "../../../Models/DatabaseModels/Service";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import Dictionary from "../../../Types/Dictionary";
@@ -19,6 +20,7 @@ import AlertService from "../../Services/AlertService";
 import AlertSeverityService from "../../Services/AlertSeverityService";
 import AlertStateTimelineService from "../../Services/AlertStateTimelineService";
 import HostService from "../../Services/HostService";
+import ServiceService from "../../Services/ServiceService";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
@@ -303,6 +305,39 @@ export default class MonitorAlert {
 
             if (host) {
               alert.hosts = [host];
+            }
+          }
+
+          /*
+           * Same idea for Service — OTel ingest stamps `service.name` and
+           * auto-creates a Service row keyed by that name (see
+           * OpenTelemetryIngestService.telemetryServiceFromName). When the
+           * breaching series carries that attribute, link the alert to the
+           * emitting service so the on-call/labels pipeline can fan out.
+           */
+          const serviceName: string | undefined =
+            typeof seriesLabels["resource.service.name"] === "string"
+              ? (seriesLabels["resource.service.name"] as string)
+              : typeof seriesLabels["service.name"] === "string"
+                ? (seriesLabels["service.name"] as string)
+                : undefined;
+
+          if (serviceName) {
+            const service: Service | null = await ServiceService.findOneBy({
+              query: {
+                projectId: input.monitor.projectId!,
+                name: serviceName,
+              },
+              select: {
+                _id: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+            if (service) {
+              alert.services = [service];
             }
           }
         }

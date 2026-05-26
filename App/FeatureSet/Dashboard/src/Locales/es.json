@@ -37,7 +37,7 @@
     "categories": {
       "essentials": "Esenciales",
       "observability": "Observabilidad",
-      "infrastructure": "Infraestructura",
+      "resources": "Recursos",
       "analyticsAutomation": "Análisis y automatización",
       "settings": "Ajustes"
     },
@@ -65,7 +65,7 @@
       "exceptionsTitle": "Excepciones",
       "exceptionsDescription": "Rastree y resuelva errores en sus servicios.",
       "servicesTitle": "Servicios",
-      "servicesDescription": "Gestione las dependencias de servicio.",
+      "servicesDescription": "Cataloga cada servicio que ejecutas.",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Supervise clústeres de Kubernetes.",
       "dockerTitle": "Docker",

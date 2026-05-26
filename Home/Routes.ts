@@ -1263,6 +1263,20 @@ const HomeFeatureSet: FeatureSet = {
     });
 
     app.get(
+      "/product/services",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/services",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/services`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
       "/product/profiles",
       (_req: ExpressRequest, res: ExpressResponse) => {
         const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(

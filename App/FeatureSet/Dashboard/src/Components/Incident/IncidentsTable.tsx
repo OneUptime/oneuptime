@@ -1,5 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import MonitorsElement from "../../Components/Monitor/Monitors";
+import AffectedResourcesCell from "../AffectedResources/AffectedResourcesCell";
 import ProjectUtil from "Common/UI/Utils/Project";
 import IncidentElement from "./Incident";
 import AppLink from "../AppLink/AppLink";
@@ -43,7 +43,7 @@ import {
   FilterOperator,
 } from "../ResourceOwners/FilterChipDropdown";
 import Includes from "Common/Types/BaseDatabase/Includes";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
+import buildAffectedResourcesFacet from "../AffectedResources/buildAffectedResourcesFacet";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -239,71 +239,9 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         return buildEntityFacetQuery(values, operator, true);
       },
     },
-    {
-      key: "monitors",
-      label: "Monitor",
-      icon: IconProp.Signal,
-      isMultiSelect: true,
-      searchPlaceholder: "Search monitors...",
-      loadOptions: async (
-        projectId: ObjectID,
-        searchTerm: string,
-      ): Promise<Array<FilterChipDropdownOption>> => {
-        const query: Query<Monitor> = {
-          projectId: projectId,
-        } as Query<Monitor>;
-        if (searchTerm.trim()) {
-          (query as unknown as Record<string, unknown>)["name"] = new Search(
-            searchTerm.trim(),
-          );
-        }
-        const result: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
-          modelType: Monitor,
-          query: query,
-          limit: 50,
-          skip: 0,
-          select: { _id: true, name: true },
-          sort: { name: SortOrder.Ascending },
-        });
-        return result.data.map((m: Monitor) => {
-          return {
-            value: m.id?.toString() || "",
-            label: m.name?.toString() || "",
-          };
-        });
-      },
-      resolveOptions: async (
-        projectId: ObjectID,
-        values: Array<string>,
-      ): Promise<Array<FilterChipDropdownOption>> => {
-        if (values.length === 0) {
-          return [];
-        }
-        const result: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
-          modelType: Monitor,
-          query: {
-            projectId: projectId,
-            _id: new Includes(values),
-          } as Query<Monitor>,
-          limit: values.length,
-          skip: 0,
-          select: { _id: true, name: true },
-          sort: {},
-        });
-        return result.data.map((m: Monitor) => {
-          return {
-            value: m.id?.toString() || "",
-            label: m.name?.toString() || "",
-          };
-        });
-      },
-      toQueryValue: (
-        values: Array<string>,
-        operator: FilterOperator,
-      ): unknown => {
-        return buildEntityFacetQuery(values, operator, true);
-      },
-    },
+    buildAffectedResourcesFacet<Incident>({
+      parentModelType: Incident,
+    }),
   ];
 
   const {
@@ -712,18 +650,52 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             },
           },
           {
+            /*
+             * Unified "Resources Affected" cell — mirrors the form's single
+             * picker. Pulls monitors + hosts + k8s + docker in one selection
+             * so the row shows whatever the user actually attached.
+             */
             field: {
               monitors: {
                 name: true,
                 _id: true,
                 projectId: true,
               },
+              hosts: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              kubernetesClusters: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              dockerHosts: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              services: {
+                name: true,
+                _id: true,
+                projectId: true,
+                serviceColor: true,
+              },
             },
-            title: "Monitors Affected",
+            title: "Resources Affected",
             type: FieldType.EntityArray,
 
             getElement: (item: Incident): ReactElement => {
-              return <MonitorsElement monitors={item["monitors"] || []} />;
+              return (
+                <AffectedResourcesCell
+                  monitors={item.monitors || []}
+                  hosts={item.hosts || []}
+                  kubernetesClusters={item.kubernetesClusters || []}
+                  dockerHosts={item.dockerHosts || []}
+                  services={item.services || []}
+                />
+              );
             },
           },
           {

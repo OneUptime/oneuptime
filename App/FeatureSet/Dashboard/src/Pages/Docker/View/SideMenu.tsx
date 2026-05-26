@@ -2,6 +2,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import IncidentStateUtil from "../../../Utils/IncidentState";
 import AlertStateUtil from "../../../Utils/AlertState";
+import ScheduledMaintenanceStateUtil from "../../../Utils/ScheduledMaintenanceState";
 import Route from "Common/Types/API/Route";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -17,6 +18,8 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -39,6 +42,10 @@ const DockerHostSideMenu: FunctionComponent<ComponentProps> = (
   const [unresolvedAlertStates, setUnresolvedAlertStates] = useState<
     Array<AlertState>
   >([]);
+  const [
+    activeScheduledMaintenanceStates,
+    setActiveScheduledMaintenanceStates,
+  ] = useState<Array<ScheduledMaintenanceState>>([]);
 
   const fetchIncidentStates: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -64,11 +71,29 @@ const DockerHostSideMenu: FunctionComponent<ComponentProps> = (
     }
   };
 
+  const fetchScheduledMaintenanceStates: PromiseVoidFunction =
+    async (): Promise<void> => {
+      try {
+        if (projectId) {
+          const states: Array<ScheduledMaintenanceState> =
+            await ScheduledMaintenanceStateUtil.getActiveScheduledMaintenanceStates(
+              projectId,
+            );
+          setActiveScheduledMaintenanceStates(states);
+        }
+      } catch {
+        // ignore — badge simply won't show a count
+      }
+    };
+
   useEffect(() => {
     fetchIncidentStates().catch(() => {
       // do nothing
     });
     fetchAlertStates().catch(() => {
+      // do nothing
+    });
+    fetchScheduledMaintenanceStates().catch(() => {
       // do nothing
     });
   }, []);
@@ -174,6 +199,29 @@ const DockerHostSideMenu: FunctionComponent<ComponentProps> = (
               unresolvedAlertStates.map((state: AlertState) => {
                 return state.id!;
               }),
+            ),
+          }}
+        />
+        <CountModelSideMenuItem<ScheduledMaintenance>
+          link={{
+            title: "Scheduled Maintenance",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DOCKER_HOST_VIEW_SCHEDULED_MAINTENANCE] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Clock}
+          badgeType={BadgeType.WARNING}
+          modelType={ScheduledMaintenance}
+          countQuery={{
+            projectId: projectId!,
+            dockerHosts: new Includes([props.modelId]),
+            currentScheduledMaintenanceStateId: new Includes(
+              activeScheduledMaintenanceStates.map(
+                (state: ScheduledMaintenanceState) => {
+                  return state.id!;
+                },
+              ),
             ),
           }}
         />

@@ -37,7 +37,7 @@
     "categories": {
       "essentials": "基本",
       "observability": "オブザーバビリティ",
-      "infrastructure": "インフラストラクチャ",
+      "resources": "リソース",
       "analyticsAutomation": "分析と自動化",
       "settings": "設定"
     },
@@ -65,7 +65,7 @@
       "exceptionsTitle": "例外",
       "exceptionsDescription": "サービス全体のバグを追跡・解決。",
       "servicesTitle": "サービス",
-      "servicesDescription": "サービスの依存関係を管理。",
+      "servicesDescription": "実行中のすべてのサービスをカタログ化。",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Kubernetesクラスターを監視。",
       "dockerTitle": "Docker",

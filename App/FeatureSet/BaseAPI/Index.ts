@@ -559,10 +559,6 @@ import ServiceOwnerUserService, {
 import ServiceService, {
   Service as ServiceServiceType,
 } from "Common/Server/Services/ServiceService";
-import ServiceMonitor from "Common/Models/DatabaseModels/ServiceMonitor";
-import ServiceMonitorService, {
-  Service as ServiceMonitorServiceType,
-} from "Common/Server/Services/ServiceMonitorService";
 
 import ServiceCodeRepository from "Common/Models/DatabaseModels/ServiceCodeRepository";
 import ServiceCodeRepositoryService, {
@@ -2066,14 +2062,6 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         StatusPageHistoryChartBarColorRule,
         StatusPageHistoryChartBarColorRuleService,
-      ).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ServiceMonitor, ServiceMonitorServiceType>(
-        ServiceMonitor,
-        ServiceMonitorService,
       ).getRouter(),
     );
 

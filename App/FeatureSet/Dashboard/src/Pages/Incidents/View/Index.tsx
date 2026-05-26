@@ -1,7 +1,6 @@
+import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
 import ChangeIncidentState from "../../../Components/Incident/ChangeState";
-import HostsElement from "../../../Components/Host/Hosts";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import MonitorsElement from "../../../Components/Monitor/Monitors";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import PageComponentProps from "../../PageComponentProps";
@@ -56,6 +55,15 @@ import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import IncidentAffectedResources from "./AffectedResources";
 import IncidentMemberRoleAssignment from "../../../Components/Incident/IncidentMemberRoleAssignment";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import Host from "Common/Models/DatabaseModels/Host";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import Service from "Common/Models/DatabaseModels/Service";
+import AffectedResourcesPicker, {
+  isAffectedResourcesPayload,
+} from "../../../Components/AffectedResources/AffectedResourcesPicker";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import ExceptionInstanceTable from "../../../Components/Exceptions/ExceptionInstanceTable";
@@ -364,17 +372,94 @@ const IncidentView: FunctionComponent<
             field: {
               monitors: true,
             },
-            title: "Monitors affected",
+            title: "Resources Affected",
             stepId: "resources-affected",
-            description: "Select monitors affected by this incident.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Monitor,
-              labelField: "name",
-              valueField: "_id",
-            },
+            description:
+              "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services affected by this incident.",
+            fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
-            placeholder: "Monitors affected",
+            getCustomElement: (
+              values: FormValues<Incident>,
+              elementProps: CustomElementProps,
+            ) => {
+              return (
+                <AffectedResourcesPicker
+                  monitors={values.monitors as Array<Monitor>}
+                  hosts={values.hosts as Array<Host>}
+                  kubernetesClusters={
+                    values.kubernetesClusters as Array<KubernetesCluster>
+                  }
+                  dockerHosts={values.dockerHosts as Array<DockerHost>}
+                  services={values.services as Array<Service>}
+                  onChange={(payload: unknown) => {
+                    elementProps.onChange?.(payload);
+                  }}
+                />
+              );
+            },
+            onChange: (
+              value: unknown,
+              currentValues: FormValues<Incident>,
+              setNewFormValues: (values: FormValues<Incident>) => void,
+            ) => {
+              if (isAffectedResourcesPayload(value)) {
+                const payload: typeof value = value;
+                queueMicrotask(() => {
+                  setNewFormValues({
+                    ...currentValues,
+                    monitors: payload.monitors,
+                    hosts: payload.hosts,
+                    kubernetesClusters: payload.kubernetesClusters,
+                    dockerHosts: payload.dockerHosts,
+                    services: payload.services,
+                  } as FormValues<Incident>);
+                });
+              }
+            },
+          },
+          /*
+           * Hidden registrations so ModelForm.getSelectFields includes
+           * hosts/kubernetesClusters/dockerHosts on load and submit.
+           */
+          {
+            field: { hosts: true },
+            stepId: "resources-affected",
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { kubernetesClusters: true },
+            stepId: "resources-affected",
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { dockerHosts: true },
+            stepId: "resources-affected",
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { services: true },
+            stepId: "resources-affected",
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
           },
           {
             field: {
@@ -568,32 +653,47 @@ const IncidentView: FunctionComponent<
               },
             },
             {
+              /*
+               * One consolidated section mirroring the edit form's single
+               * "Resources Affected" picker. The display component groups
+               * monitors/hosts/k8s/docker under sub-headers and collapses
+               * categories with nothing attached.
+               */
               field: {
                 monitors: {
                   name: true,
                   _id: true,
                 },
-              },
-              title: "Monitors Affected",
-              fieldType: FieldType.Element,
-              getElement: (item: Incident): ReactElement => {
-                return <MonitorsElement monitors={item["monitors"] || []} />;
-              },
-            },
-            {
-              field: {
                 hosts: {
                   name: true,
                   _id: true,
                 },
+                kubernetesClusters: {
+                  name: true,
+                  _id: true,
+                },
+                dockerHosts: {
+                  name: true,
+                  _id: true,
+                },
+                services: {
+                  name: true,
+                  _id: true,
+                  serviceColor: true,
+                },
               },
-              title: "Hosts Affected",
+              title: "Resources Affected",
               fieldType: FieldType.Element,
-              showIf: (item: Incident): boolean => {
-                return Boolean(item["hosts"] && item["hosts"].length > 0);
-              },
               getElement: (item: Incident): ReactElement => {
-                return <HostsElement hosts={item["hosts"] || []} />;
+                return (
+                  <AffectedResourcesDisplay
+                    monitors={item.monitors || []}
+                    hosts={item.hosts || []}
+                    kubernetesClusters={item.kubernetesClusters || []}
+                    dockerHosts={item.dockerHosts || []}
+                    services={item.services || []}
+                  />
+                );
               },
             },
             {

@@ -1,6 +1,7 @@
 import TelemetryIngest, {
   TelemetryRequest,
 } from "Common/Server/Middleware/TelemetryIngest";
+import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import Express, {
   ExpressRequest,
@@ -46,6 +47,7 @@ const mapBearerTokenMiddleware: RequestHandler = (
 
 router.post(
   "/pyroscope/ingest",
+  TelemetryIngestionDisabled.middleware,
   MultipartFormDataMiddleware,
   mapBearerTokenMiddleware,
   setProfilesProductType,
@@ -65,6 +67,7 @@ router.post(
  */
 router.post(
   "/pyroscope/push.v1.PusherService/Push",
+  TelemetryIngestionDisabled.middleware,
   mapBearerTokenMiddleware,
   setProfilesProductType,
   TelemetryIngest.isAuthorizedServiceMiddleware,

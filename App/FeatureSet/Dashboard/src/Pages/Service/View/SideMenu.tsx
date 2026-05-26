@@ -2,9 +2,9 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import IncidentStateUtil from "../../../Utils/IncidentState";
 import AlertStateUtil from "../../../Utils/AlertState";
+import ScheduledMaintenanceStateUtil from "../../../Utils/ScheduledMaintenanceState";
 import Route from "Common/Types/API/Route";
 import Includes from "Common/Types/BaseDatabase/Includes";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -13,14 +13,13 @@ import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import CountModelSideMenuItem from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import Alert from "Common/Models/DatabaseModels/Alert";
-import AlertState from "Common/Models/DatabaseModels/AlertState";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
-import ServiceMonitor from "Common/Models/DatabaseModels/ServiceMonitor";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
+import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertState from "Common/Models/DatabaseModels/AlertState";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -37,36 +36,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
-  const [monitorIds, setMonitorIds] = useState<Array<ObjectID>>([]);
   const [unresolvedIncidentStates, setUnresolvedIncidentStates] = useState<
     Array<IncidentState>
   >([]);
   const [unresolvedAlertStates, setUnresolvedAlertStates] = useState<
     Array<AlertState>
   >([]);
-
-  const fetchMonitorIds: PromiseVoidFunction = async (): Promise<void> => {
-    try {
-      const list: ListResult<ServiceMonitor> =
-        await ModelAPI.getList<ServiceMonitor>({
-          modelType: ServiceMonitor,
-          query: { serviceId: props.modelId },
-          select: { monitorId: true },
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
-          sort: {},
-        });
-      setMonitorIds(
-        list.data
-          .map((sm: ServiceMonitor) => {
-            return sm.monitorId!;
-          })
-          .filter(Boolean),
-      );
-    } catch {
-      // ignore — badge will simply not show a count
-    }
-  };
+  const [
+    activeScheduledMaintenanceStates,
+    setActiveScheduledMaintenanceStates,
+  ] = useState<Array<ScheduledMaintenanceState>>([]);
 
   const fetchIncidentStates: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -76,7 +55,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         setUnresolvedIncidentStates(states);
       }
     } catch {
-      // ignore
+      // ignore — badge will simply not show a count
     }
   };
 
@@ -88,18 +67,33 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         setUnresolvedAlertStates(states);
       }
     } catch {
-      // ignore
+      // ignore — badge will simply not show a count
     }
   };
 
+  const fetchScheduledMaintenanceStates: PromiseVoidFunction =
+    async (): Promise<void> => {
+      try {
+        if (projectId) {
+          const states: Array<ScheduledMaintenanceState> =
+            await ScheduledMaintenanceStateUtil.getActiveScheduledMaintenanceStates(
+              projectId,
+            );
+          setActiveScheduledMaintenanceStates(states);
+        }
+      } catch {
+        // ignore — badge will simply not show a count
+      }
+    };
+
   useEffect(() => {
-    fetchMonitorIds().catch(() => {
-      // do nothing
-    });
     fetchIncidentStates().catch(() => {
       // do nothing
     });
     fetchAlertStates().catch(() => {
+      // do nothing
+    });
+    fetchScheduledMaintenanceStates().catch(() => {
       // do nothing
     });
   }, []);
@@ -133,17 +127,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       <SideMenuSection title="Resources">
         <SideMenuItem
           link={{
-            title: "Monitors",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SERVICE_VIEW_MONITORS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.AltGlobe}
-        />
-
-        <SideMenuItem
-          link={{
             title: "Code Repositories",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SERVICE_VIEW_CODE_REPOSITORIES] as Route,
@@ -151,52 +134,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Code}
-        />
-      </SideMenuSection>
-
-      <SideMenuSection title="Operations">
-        <CountModelSideMenuItem<Alert>
-          link={{
-            title: "Alerts",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SERVICE_VIEW_ALERTS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.BellRinging}
-          badgeType={BadgeType.DANGER}
-          modelType={Alert}
-          countQuery={{
-            projectId: projectId!,
-            monitorId: new Includes(monitorIds),
-            currentAlertStateId: new Includes(
-              unresolvedAlertStates.map((state: AlertState) => {
-                return state.id!;
-              }),
-            ),
-          }}
-        />
-
-        <CountModelSideMenuItem<Incident>
-          link={{
-            title: "Incidents",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SERVICE_VIEW_INCIDENTS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Alert}
-          badgeType={BadgeType.DANGER}
-          modelType={Incident}
-          countQuery={{
-            projectId: projectId!,
-            monitors: new Includes(monitorIds),
-            currentIncidentStateId: new Includes(
-              unresolvedIncidentStates.map((state: IncidentState) => {
-                return state.id!;
-              }),
-            ),
-          }}
         />
       </SideMenuSection>
 
@@ -254,6 +191,74 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Error}
+        />
+      </SideMenuSection>
+
+      <SideMenuSection title="Activity">
+        <CountModelSideMenuItem<Incident>
+          link={{
+            title: "Incidents",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVICE_VIEW_INCIDENTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Alert}
+          badgeType={BadgeType.DANGER}
+          modelType={Incident}
+          countQuery={{
+            projectId: projectId!,
+            services: new Includes([props.modelId]),
+            currentIncidentStateId: new Includes(
+              unresolvedIncidentStates.map((state: IncidentState) => {
+                return state.id!;
+              }),
+            ),
+          }}
+        />
+        <CountModelSideMenuItem<Alert>
+          link={{
+            title: "Alerts",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVICE_VIEW_ALERTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.ExclaimationCircle}
+          badgeType={BadgeType.DANGER}
+          modelType={Alert}
+          countQuery={{
+            projectId: projectId!,
+            services: new Includes([props.modelId]),
+            currentAlertStateId: new Includes(
+              unresolvedAlertStates.map((state: AlertState) => {
+                return state.id!;
+              }),
+            ),
+          }}
+        />
+        <CountModelSideMenuItem<ScheduledMaintenance>
+          link={{
+            title: "Scheduled Maintenance",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Clock}
+          badgeType={BadgeType.WARNING}
+          modelType={ScheduledMaintenance}
+          countQuery={{
+            projectId: projectId!,
+            services: new Includes([props.modelId]),
+            currentScheduledMaintenanceStateId: new Includes(
+              activeScheduledMaintenanceStates.map(
+                (state: ScheduledMaintenanceState) => {
+                  return state.id!;
+                },
+              ),
+            ),
+          }}
         />
       </SideMenuSection>
 

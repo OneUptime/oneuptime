@@ -37,7 +37,7 @@
     "categories": {
       "essentials": "Grunnleggende",
       "observability": "Observability",
-      "infrastructure": "Infrastruktur",
+      "resources": "Ressurser",
       "analyticsAutomation": "Analyse og automatisering",
       "settings": "Innstillinger"
     },
@@ -65,7 +65,7 @@
       "exceptionsTitle": "Unntak",
       "exceptionsDescription": "Spor og løs feil på tvers av tjenestene dine.",
       "servicesTitle": "Tjenester",
-      "servicesDescription": "Administrer tjenesteavhengigheter.",
+      "servicesDescription": "Katalogiser hver tjeneste du kjører.",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Overvåk Kubernetes-klynger.",
       "dockerTitle": "Docker",

@@ -42,6 +42,7 @@ import KubernetesClusterViewControlPlane from "../Pages/Kubernetes/View/ControlP
 import KubernetesClusterViewServiceMesh from "../Pages/Kubernetes/View/ServiceMesh";
 import KubernetesClusterViewIncidents from "../Pages/Kubernetes/View/Incidents";
 import KubernetesClusterViewAlerts from "../Pages/Kubernetes/View/Alerts";
+import KubernetesClusterViewScheduledMaintenance from "../Pages/Kubernetes/View/ScheduledMaintenance";
 import KubernetesClusterViewOwners from "../Pages/Kubernetes/View/Owners";
 import KubernetesClusterViewDelete from "../Pages/Kubernetes/View/Delete";
 import KubernetesClusterViewSettings from "../Pages/Kubernetes/View/Settings";
@@ -601,6 +602,23 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_ALERTS] as Route
+              }
+            />
+          }
+        />
+
+        {/* Scheduled Maintenance */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_SCHEDULED_MAINTENANCE,
+          )}
+          element={
+            <KubernetesClusterViewScheduledMaintenance
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.KUBERNETES_CLUSTER_VIEW_SCHEDULED_MAINTENANCE
+                ] as Route
               }
             />
           }

@@ -840,44 +840,6 @@ export default class IncidentGroupingRule extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.Boolean,
-    title: "Group By Service",
-    description:
-      "When enabled, incidents from monitors belonging to different services will be grouped into separate episodes. When disabled, incidents can be grouped together regardless of which service the monitor belongs to.",
-    defaultValue: false,
-    isDefaultValueColumn: true,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    nullable: false,
-    default: false,
-  })
-  public groupByService?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateIncidentGroupingRule,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.IncidentAdmin,
-      Permission.IncidentMember,
-      Permission.IncidentViewer,
-      Permission.ReadIncidentGroupingRule,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditIncidentGroupingRule,
-    ],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.Boolean,
     title: "Enable Time Window",
     description:
       "Enable time-based grouping. When enabled, incidents are grouped within the specified time window. When disabled, all matching incidents are grouped into a single ongoing episode regardless of time.",

@@ -775,14 +775,23 @@ export class ProjectService extends DatabaseService<Model> {
       }
     }
 
-    createdItem = await this.addDefaultIncidentSeverity(createdItem);
-    createdItem = await this.addDefaultAlertSeverity(createdItem);
-    createdItem = await this.addDefaultProjectTeams(createdItem);
-    createdItem = await this.addDefaultMonitorStatus(createdItem);
-    createdItem = await this.addDefaultIncidentState(createdItem);
-    createdItem = await this.addDefaultScheduledMaintenanceState(createdItem);
-    createdItem = await this.addDefaultAlertState(createdItem);
-    createdItem = await this.addDefaultIncidentRoles(createdItem);
+    /*
+     * Each addDefault* method only reads `createdItem.id` and writes rows to a
+     * distinct table; none of them mutate `createdItem`. Running them in
+     * parallel cuts the onCreate hook latency from sum-of-8 sequential DB
+     * round-trips to max-of-8, which removes ~hundreds of ms on project
+     * create.
+     */
+    await Promise.all([
+      this.addDefaultIncidentSeverity(createdItem),
+      this.addDefaultAlertSeverity(createdItem),
+      this.addDefaultProjectTeams(createdItem),
+      this.addDefaultMonitorStatus(createdItem),
+      this.addDefaultIncidentState(createdItem),
+      this.addDefaultScheduledMaintenanceState(createdItem),
+      this.addDefaultAlertState(createdItem),
+      this.addDefaultIncidentRoles(createdItem),
+    ]);
 
     if (NotificationSlackWebhookOnCreateProject) {
       // fetch project again.

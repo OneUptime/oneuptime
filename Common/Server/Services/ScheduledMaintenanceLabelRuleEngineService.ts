@@ -1,9 +1,17 @@
+import DockerHost from "../../Models/DatabaseModels/DockerHost";
+import Host from "../../Models/DatabaseModels/Host";
+import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceLabelRule from "../../Models/DatabaseModels/ScheduledMaintenanceLabelRule";
+import Service from "../../Models/DatabaseModels/Service";
+import DockerHostService from "./DockerHostService";
+import HostService from "./HostService";
+import KubernetesClusterService from "./KubernetesClusterService";
 import LabelService from "./LabelService";
 import MonitorService from "./MonitorService";
+import ServiceService from "./ServiceService";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import ScheduledMaintenanceLabelRuleService from "./ScheduledMaintenanceLabelRuleService";
 import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
@@ -21,6 +29,10 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass {
    * attaches matched labels to the event. Each matched rule contributes:
    *   - labels listed on `labelsToAdd`
    *   - all labels of the event's monitors when `inheritLabelsFromMonitors`
+   *   - all labels of the event's hosts when `inheritLabelsFromHosts`
+   *   - all labels of the event's Kubernetes clusters when `inheritLabelsFromKubernetesClusters`
+   *   - all labels of the event's Docker hosts when `inheritLabelsFromDockerHosts`
+   *   - all labels of the event's services when `inheritLabelsFromServices`
    * The union is deduped against labels already on the event before insert
    * to avoid PK conflicts on the ScheduledMaintenanceLabel join table.
    */
@@ -52,6 +64,10 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass {
             monitorDescriptionPattern: true,
             labelsToAdd: { _id: true },
             inheritLabelsFromMonitors: true,
+            inheritLabelsFromHosts: true,
+            inheritLabelsFromKubernetesClusters: true,
+            inheritLabelsFromDockerHosts: true,
+            inheritLabelsFromServices: true,
           },
           limit: 100,
           skip: 0,
@@ -63,6 +79,10 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass {
 
       const labelIdsToAdd: Set<string> = new Set();
       let inheritFromMonitors: boolean = false;
+      let inheritFromHosts: boolean = false;
+      let inheritFromKubernetesClusters: boolean = false;
+      let inheritFromDockerHosts: boolean = false;
+      let inheritFromServices: boolean = false;
       const matchedRules: Array<ScheduledMaintenanceLabelRule> = [];
 
       for (const rule of rules) {
@@ -82,6 +102,38 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass {
         if (rule.inheritLabelsFromMonitors) {
           inheritFromMonitors = true;
         }
+        if (rule.inheritLabelsFromHosts) {
+          inheritFromHosts = true;
+        }
+        if (rule.inheritLabelsFromKubernetesClusters) {
+          inheritFromKubernetesClusters = true;
+        }
+        if (rule.inheritLabelsFromDockerHosts) {
+          inheritFromDockerHosts = true;
+        }
+        if (rule.inheritLabelsFromServices) {
+          inheritFromServices = true;
+        }
+      }
+
+      const needsRelatedResources: boolean =
+        inheritFromHosts ||
+        inheritFromKubernetesClusters ||
+        inheritFromDockerHosts ||
+        inheritFromServices;
+
+      let eventWithResources: ScheduledMaintenance | null = null;
+      if (needsRelatedResources) {
+        eventWithResources = await ScheduledMaintenanceService.findOneById({
+          id: scheduledMaintenance.id,
+          select: {
+            hosts: { _id: true },
+            kubernetesClusters: { _id: true },
+            dockerHosts: { _id: true },
+            services: { _id: true },
+          },
+          props: { isRoot: true },
+        });
       }
 
       if (inheritFromMonitors && scheduledMaintenance.monitors?.length) {
@@ -95,6 +147,83 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass {
             props: { isRoot: true },
           });
           for (const label of monitor?.labels || []) {
+            if (label.id) {
+              labelIdsToAdd.add(label.id.toString());
+            }
+          }
+        }
+      }
+
+      if (inheritFromHosts && eventWithResources?.hosts?.length) {
+        for (const eventHost of eventWithResources.hosts) {
+          if (!eventHost.id) {
+            continue;
+          }
+          const host: Host | null = await HostService.findOneById({
+            id: eventHost.id,
+            select: { labels: { _id: true } },
+            props: { isRoot: true },
+          });
+          for (const label of host?.labels || []) {
+            if (label.id) {
+              labelIdsToAdd.add(label.id.toString());
+            }
+          }
+        }
+      }
+
+      if (
+        inheritFromKubernetesClusters &&
+        eventWithResources?.kubernetesClusters?.length
+      ) {
+        for (const eventCluster of eventWithResources.kubernetesClusters) {
+          if (!eventCluster.id) {
+            continue;
+          }
+          const cluster: KubernetesCluster | null =
+            await KubernetesClusterService.findOneById({
+              id: eventCluster.id,
+              select: { labels: { _id: true } },
+              props: { isRoot: true },
+            });
+          for (const label of cluster?.labels || []) {
+            if (label.id) {
+              labelIdsToAdd.add(label.id.toString());
+            }
+          }
+        }
+      }
+
+      if (inheritFromDockerHosts && eventWithResources?.dockerHosts?.length) {
+        for (const eventDockerHost of eventWithResources.dockerHosts) {
+          if (!eventDockerHost.id) {
+            continue;
+          }
+          const dockerHost: DockerHost | null =
+            await DockerHostService.findOneById({
+              id: eventDockerHost.id,
+              select: { labels: { _id: true } },
+              props: { isRoot: true },
+            });
+          for (const label of dockerHost?.labels || []) {
+            if (label.id) {
+              labelIdsToAdd.add(label.id.toString());
+            }
+          }
+        }
+      }
+
+      if (inheritFromServices && eventWithResources?.services?.length) {
+        for (const eventService of eventWithResources.services) {
+          if (!eventService.id) {
+            continue;
+          }
+          const service: Service | null = await ServiceService.findOneById({
+            id: eventService.id,
+            select: { labels: { _id: true } },
+            props: { isRoot: true },
+          });
+          for (const label of service?.labels || []) {
             if (label.id) {
               labelIdsToAdd.add(label.id.toString());
             }

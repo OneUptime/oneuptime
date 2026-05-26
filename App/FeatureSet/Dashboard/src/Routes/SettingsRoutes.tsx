@@ -13,8 +13,6 @@ import SettingsApiKeys from "../Pages/Settings/APIKeys";
 
 import SettingsUsers from "../Pages/Settings/Users";
 
-import SettingsUserView from "../Pages/Settings/UserView";
-
 import SettingsApiKeyView from "../Pages/Settings/APIKeyView";
 
 import SettingsIngestionKeys from "../Pages/Settings/TelemetryIngestionKeys";
@@ -37,7 +35,20 @@ import SettingsAIBilling from "../Pages/Settings/AIBillingSettings";
 
 import SettingFeatureFlags from "../Pages/Settings/FeatureFlags";
 import SettingsTeams from "../Pages/Settings/Teams";
-import SettingsTeamView from "../Pages/Settings/TeamView";
+
+import SettingsTeamViewLayout from "../Pages/Settings/TeamView/Layout";
+import SettingsTeamViewIndex from "../Pages/Settings/TeamView/Index";
+import SettingsTeamViewMembers from "../Pages/Settings/TeamView/Members";
+import SettingsTeamViewPermissions from "../Pages/Settings/TeamView/Permissions";
+import SettingsTeamViewBlockPermissions from "../Pages/Settings/TeamView/BlockPermissions";
+import SettingsTeamViewCompliance from "../Pages/Settings/TeamView/Compliance";
+import SettingsTeamViewDelete from "../Pages/Settings/TeamView/Delete";
+
+import SettingsUserViewLayout from "../Pages/Settings/UserView/Layout";
+import SettingsUserViewIndex from "../Pages/Settings/UserView/Index";
+import SettingsUserViewTeams from "../Pages/Settings/UserView/Teams";
+import SettingsUserViewCustomFields from "../Pages/Settings/UserView/CustomFields";
+import SettingsUserViewDelete from "../Pages/Settings/UserView/Delete";
 
 import SettingsDomains from "../Pages/Settings/Domains";
 
@@ -63,11 +74,133 @@ import SettingsMobileApps from "../Pages/Settings/MobileApps";
 import SettingsAuditLogs from "../Pages/Settings/AuditLogs";
 import SettingsAuditLogsSettings from "../Pages/Settings/AuditLogsSettings";
 
+import SettingsTeamMemberCustomFields from "../Pages/Settings/TeamMemberCustomFields";
+
 const SettingsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
     <Routes>
+      {/* Team View - own layout with sidemenu (must come before SettingsLayout catch-all) */}
+      <PageRoute
+        path={`${SettingsRoutePath[PageMap.SETTINGS_TEAM_VIEW]}/*`}
+        element={<SettingsTeamViewLayout />}
+      >
+        <PageRoute
+          index
+          element={
+            <SettingsTeamViewIndex
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_TEAM_VIEW] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_TEAM_VIEW_MEMBERS)}
+          element={
+            <SettingsTeamViewMembers
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_TEAM_VIEW_MEMBERS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_TEAM_VIEW_PERMISSIONS,
+          )}
+          element={
+            <SettingsTeamViewPermissions
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_TEAM_VIEW_PERMISSIONS] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_TEAM_VIEW_BLOCK_PERMISSIONS,
+          )}
+          element={
+            <SettingsTeamViewBlockPermissions
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_TEAM_VIEW_BLOCK_PERMISSIONS] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_TEAM_VIEW_COMPLIANCE,
+          )}
+          element={
+            <SettingsTeamViewCompliance
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_TEAM_VIEW_COMPLIANCE] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_TEAM_VIEW_DELETE)}
+          element={
+            <SettingsTeamViewDelete
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_TEAM_VIEW_DELETE] as Route}
+            />
+          }
+        />
+      </PageRoute>
+
+      {/* User View - own layout with sidemenu (must come before SettingsLayout catch-all) */}
+      <PageRoute
+        path={`${SettingsRoutePath[PageMap.SETTINGS_USER_VIEW]}/*`}
+        element={<SettingsUserViewLayout />}
+      >
+        <PageRoute
+          index
+          element={
+            <SettingsUserViewIndex
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_USER_VIEW] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_USER_VIEW_TEAMS)}
+          element={
+            <SettingsUserViewTeams
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_USER_VIEW_TEAMS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_USER_VIEW_CUSTOM_FIELDS,
+          )}
+          element={
+            <SettingsUserViewCustomFields
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_USER_VIEW_CUSTOM_FIELDS] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_USER_VIEW_DELETE)}
+          element={
+            <SettingsUserViewDelete
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_USER_VIEW_DELETE] as Route}
+            />
+          }
+        />
+      </PageRoute>
+
       <PageRoute
         path={SettingsRoutePath[PageMap.SETTINGS] || ""}
         element={<SettingsLayout {...props} />}
@@ -372,21 +505,13 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_TEAM_VIEW, 2)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_USER_CUSTOM_FIELDS,
+          )}
           element={
-            <SettingsTeamView
+            <SettingsTeamMemberCustomFields
               {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_TEAM_VIEW] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_USER_VIEW, 2)}
-          element={
-            <SettingsUserView
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_USER_VIEW] as Route}
+              pageRoute={RouteMap[PageMap.SETTINGS_USER_CUSTOM_FIELDS] as Route}
             />
           }
         />

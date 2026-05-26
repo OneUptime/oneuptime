@@ -18,7 +18,7 @@ import Label from "Common/Models/DatabaseModels/Label";
 const incidentLabelDocumentation: string = `
 ### How Incident Label Rules Work
 
-Incident Label Rules attach labels to an incident automatically when it matches your criteria — including labels copied from the incident's monitors and hosts.
+Incident Label Rules attach labels to an incident automatically when it matches your criteria — including labels copied from the incident's monitors, hosts, Kubernetes clusters, and Docker hosts.
 
 ### Match Criteria
 
@@ -34,6 +34,8 @@ When a rule matches:
 - Every label listed under \`Labels to Add\` is attached to the incident.
 - If \`Inherit Labels From Monitors\` is on, every label of the incident's monitors is also attached.
 - If \`Inherit Labels From Hosts\` is on, every label of the incident's affected hosts is also attached.
+- If \`Inherit Labels From Kubernetes Clusters\` is on, every label of the incident's affected Kubernetes clusters is also attached.
+- If \`Inherit Labels From Docker Hosts\` is on, every label of the incident's affected Docker hosts is also attached.
 
 Labels already on the incident are not duplicated. Multiple matching rules contribute the union of their labels.
 `;
@@ -72,7 +74,7 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
       cardProps={{
         title: "Incident Label Rules",
         description:
-          "Auto-attach labels to incidents — including labels inherited from the incident's monitors and hosts — when matching incidents are created.",
+          "Auto-attach labels to incidents — including labels inherited from the incident's monitors, hosts, Kubernetes clusters, and Docker hosts — when matching incidents are created.",
       }}
       helpContent={{
         title: "How Incident Label Rules Work",
@@ -268,6 +270,33 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
           required: false,
           description:
             "Copy every label of the incident's affected hosts onto the incident.",
+        },
+        {
+          field: { inheritLabelsFromKubernetesClusters: true },
+          title: "Inherit Labels From Kubernetes Clusters",
+          stepId: "labels",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          description:
+            "Copy every label of the incident's affected Kubernetes clusters onto the incident.",
+        },
+        {
+          field: { inheritLabelsFromDockerHosts: true },
+          title: "Inherit Labels From Docker Hosts",
+          stepId: "labels",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          description:
+            "Copy every label of the incident's affected Docker hosts onto the incident.",
+        },
+        {
+          field: { inheritLabelsFromServices: true },
+          title: "Inherit Labels From Services",
+          stepId: "labels",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          description:
+            "Copy every label of the incident's affected services onto the incident.",
         },
       ]}
       showRefreshButton={true}

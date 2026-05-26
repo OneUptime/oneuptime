@@ -17,8 +17,7 @@
                         "null"
                     ]
                 }
-            },
-            "additionalProperties": false
+            }
         },
         "host": {
             "type": "string",
@@ -991,6 +990,15 @@
             "type": "object",
             "properties": {
                 "disableAutomaticCreation": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false
+        },
+        "telemetry": {
+            "type": "object",
+            "properties": {
+                "disableIngestion": {
                     "type": "boolean"
                 }
             },

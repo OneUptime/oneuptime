@@ -31,7 +31,7 @@ export const SUPPORTED_LANGUAGES: Array<SupportedLanguage> =
   SUPPORTED_DASHBOARD_LANGUAGES;
 
 export const DEFAULT_LANGUAGE: string = DEFAULT_DASHBOARD_LANGUAGE;
-export const LANGUAGE_STORAGE_KEY: string = "dashboardLang";
+export const LANGUAGE_STORAGE_KEY: string = "oneuptimeLang";
 
 i18n
   .use(LanguageDetector)

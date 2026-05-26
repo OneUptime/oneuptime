@@ -347,6 +347,10 @@ import { AddPerformanceIndexes1779392970424 } from "./1779392970424-AddPerforman
 import { AddFacetsToTableView1779536271671 } from "./1779536271671-AddFacetsToTableView";
 import { AddIsMemberNotifiedIndex1779540427366 } from "./1779540427366-AddIsMemberNotifiedIndex";
 import { AddDropdownOptionsToCustomFields1779619108628 } from "./1779619108628-AddDropdownOptionsToCustomFields";
+import { AddLabelInheritanceAndScheduledMaintenanceResources1779653508434 } from "./1779653508434-AddLabelInheritanceAndScheduledMaintenanceResources";
+import { AddAffectedResourcesToTemplates1779708719656 } from "./1779708719656-AddAffectedResourcesToTemplates";
+import { MigrationName1779739410559 } from "./1779739410559-MigrationName";
+import { AttachServiceToScheduledMaintenanceTemplatesAndLabelRules1779742211961 } from "./1779742211961-AttachServiceToScheduledMaintenanceTemplatesAndLabelRules";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -697,4 +701,8 @@ export default [
   AddFacetsToTableView1779536271671,
   AddIsMemberNotifiedIndex1779540427366,
   AddDropdownOptionsToCustomFields1779619108628,
+  AddLabelInheritanceAndScheduledMaintenanceResources1779653508434,
+  AddAffectedResourcesToTemplates1779708719656,
+  MigrationName1779739410559,
+  AttachServiceToScheduledMaintenanceTemplatesAndLabelRules1779742211961,
 ];

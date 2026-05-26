@@ -15,8 +15,15 @@ import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Navigation from "Common/UI/Utils/Navigation";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Card from "Common/UI/Components/Card/Card";
+import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import Host from "Common/Models/DatabaseModels/Host";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Service from "Common/Models/DatabaseModels/Service";
 import Team from "Common/Models/DatabaseModels/Team";
+import AffectedResourcesPicker, {
+  isAffectedResourcesPayload,
+} from "../../Components/AffectedResources/AffectedResourcesPicker";
 import ProjectUser from "../../Utils/ProjectUser";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -88,6 +95,10 @@ const ScheduledMaintenanceCreate: FunctionComponent<
             title: true,
             description: true,
             monitors: true,
+            hosts: true,
+            kubernetesClusters: true,
+            dockerHosts: true,
+            services: true,
             statusPages: true,
             labels: true,
             changeMonitorStatusToId: true,
@@ -138,6 +149,25 @@ const ScheduledMaintenanceCreate: FunctionComponent<
           monitors: scheduledMaintenanceTemplate.monitors?.map(
             (monitor: Monitor) => {
               return monitor.id!.toString();
+            },
+          ),
+          hosts: scheduledMaintenanceTemplate.hosts?.map((host: Host) => {
+            return host.id!.toString();
+          }),
+          kubernetesClusters:
+            scheduledMaintenanceTemplate.kubernetesClusters?.map(
+              (cluster: KubernetesCluster) => {
+                return cluster.id!.toString();
+              },
+            ),
+          dockerHosts: scheduledMaintenanceTemplate.dockerHosts?.map(
+            (dockerHost: DockerHost) => {
+              return dockerHost.id!.toString();
+            },
+          ),
+          services: scheduledMaintenanceTemplate.services?.map(
+            (service: Service) => {
+              return service.id!.toString();
             },
           ),
           statusPages: scheduledMaintenanceTemplate.statusPages?.map(
@@ -269,56 +299,204 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   field: {
                     monitors: true,
                   },
-                  title: "Monitors affected ",
+                  title: "Resources Affected",
                   stepId: "resources-affected",
                   description:
-                    "Select monitors affected by this scheduled maintenance.",
-                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                  dropdownModal: {
-                    type: Monitor,
-                    labelField: "name",
-                    valueField: "_id",
-                  },
+                    "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services affected by this scheduled maintenance.",
+                  fieldType: FormFieldSchemaType.CustomComponent,
                   required: false,
-                  placeholder: "Monitors affected",
+                  getCustomElement: (
+                    values: FormValues<ScheduledMaintenance>,
+                    elementProps: CustomElementProps,
+                  ) => {
+                    return (
+                      <AffectedResourcesPicker
+                        monitors={values.monitors as Array<Monitor>}
+                        hosts={values.hosts as Array<Host>}
+                        kubernetesClusters={
+                          values.kubernetesClusters as Array<KubernetesCluster>
+                        }
+                        dockerHosts={values.dockerHosts as Array<DockerHost>}
+                        services={values.services as Array<Service>}
+                        onChange={(payload: unknown) => {
+                          /*
+                           * Field.onChange below handles the split; we still
+                           * forward to elementProps.onChange so FormField's
+                           * internal pipeline triggers it.
+                           */
+                          elementProps.onChange?.(payload);
+                        }}
+                      />
+                    );
+                  },
+                  onChange: (
+                    value: unknown,
+                    currentValues: FormValues<ScheduledMaintenance>,
+                    setNewFormValues: (
+                      values: FormValues<ScheduledMaintenance>,
+                    ) => void,
+                  ) => {
+                    /*
+                     * FormField's CustomComponent path calls our onChange
+                     * first and then setFieldValue(fieldName, value). The
+                     * latter would otherwise stuff our payload object into
+                     * the `monitors` slot. Defer the split via microtask so
+                     * it runs after setFieldValue lands and our writes win.
+                     */
+                    if (isAffectedResourcesPayload(value)) {
+                      const payload: typeof value = value;
+                      queueMicrotask(() => {
+                        setNewFormValues({
+                          ...currentValues,
+                          monitors: payload.monitors,
+                          hosts: payload.hosts,
+                          kubernetesClusters: payload.kubernetesClusters,
+                          dockerHosts: payload.dockerHosts,
+                          services: payload.services,
+                        } as FormValues<ScheduledMaintenance>);
+                      });
+                    }
+                  },
                   getSummaryElement: (
                     item: FormValues<ScheduledMaintenance>,
                   ) => {
-                    if (!item.monitors || !Array.isArray(item.monitors)) {
+                    const monitorIds: Array<ObjectID> = [];
+                    if (Array.isArray(item.monitors)) {
+                      for (const monitor of item.monitors) {
+                        if (typeof monitor === "string") {
+                          monitorIds.push(new ObjectID(monitor));
+                          continue;
+                        }
+                        if (monitor instanceof ObjectID) {
+                          monitorIds.push(monitor);
+                          continue;
+                        }
+                        if (monitor instanceof Monitor) {
+                          monitorIds.push(
+                            new ObjectID(monitor._id?.toString() || ""),
+                          );
+                          continue;
+                        }
+                        const anyMonitor: { _id?: unknown } = monitor as {
+                          _id?: unknown;
+                        };
+                        if (anyMonitor._id) {
+                          monitorIds.push(new ObjectID(String(anyMonitor._id)));
+                        }
+                      }
+                    }
+                    const hostsCount: number = Array.isArray(item.hosts)
+                      ? item.hosts.length
+                      : 0;
+                    const clustersCount: number = Array.isArray(
+                      item.kubernetesClusters,
+                    )
+                      ? item.kubernetesClusters.length
+                      : 0;
+                    const dockerCount: number = Array.isArray(item.dockerHosts)
+                      ? item.dockerHosts.length
+                      : 0;
+                    const servicesCount: number = Array.isArray(item.services)
+                      ? item.services.length
+                      : 0;
+                    const totalCount: number =
+                      monitorIds.length +
+                      hostsCount +
+                      clustersCount +
+                      dockerCount +
+                      servicesCount;
+                    if (totalCount === 0) {
                       return (
                         <p>
-                          No monitors affected by this scheduled maintenance
+                          No resources affected by this scheduled maintenance
                           event.
                         </p>
                       );
                     }
-
-                    const monitorIds: Array<ObjectID> = [];
-
-                    for (const monitor of item.monitors) {
-                      if (typeof monitor === "string") {
-                        monitorIds.push(new ObjectID(monitor));
-                        continue;
-                      }
-
-                      if (monitor instanceof ObjectID) {
-                        monitorIds.push(monitor);
-                        continue;
-                      }
-
-                      if (monitor instanceof Monitor) {
-                        monitorIds.push(
-                          new ObjectID(monitor._id?.toString() || ""),
-                        );
-                        continue;
-                      }
+                    const otherCounts: Array<string> = [];
+                    if (hostsCount > 0) {
+                      otherCounts.push(
+                        `${hostsCount} host${hostsCount === 1 ? "" : "s"}`,
+                      );
                     }
-
+                    if (clustersCount > 0) {
+                      otherCounts.push(
+                        `${clustersCount} Kubernetes cluster${clustersCount === 1 ? "" : "s"}`,
+                      );
+                    }
+                    if (dockerCount > 0) {
+                      otherCounts.push(
+                        `${dockerCount} Docker host${dockerCount === 1 ? "" : "s"}`,
+                      );
+                    }
+                    if (servicesCount > 0) {
+                      otherCounts.push(
+                        `${servicesCount} service${servicesCount === 1 ? "" : "s"}`,
+                      );
+                    }
                     return (
-                      <div>
-                        <FetchMonitors monitorIds={monitorIds} />
+                      <div className="space-y-2">
+                        {monitorIds.length > 0 && (
+                          <div>
+                            <div className="text-xs uppercase tracking-wide text-gray-500">
+                              Monitors
+                            </div>
+                            <FetchMonitors monitorIds={monitorIds} />
+                          </div>
+                        )}
+                        {otherCounts.length > 0 && (
+                          <div className="text-sm text-gray-600">
+                            {otherCounts.join(", ")}
+                          </div>
+                        )}
                       </div>
                     );
+                  },
+                },
+                /*
+                 * Hidden registrations so ModelForm.getSelectFields includes
+                 * hosts/kubernetesClusters/dockerHosts on load and submit. The
+                 * picker writes to all four relations, but only the anchor's
+                 * first key is otherwise captured.
+                 */
+                {
+                  field: { hosts: true },
+                  stepId: "resources-affected",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { kubernetesClusters: true },
+                  stepId: "resources-affected",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { dockerHosts: true },
+                  stepId: "resources-affected",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { services: true },
+                  stepId: "resources-affected",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
                   },
                 },
                 {

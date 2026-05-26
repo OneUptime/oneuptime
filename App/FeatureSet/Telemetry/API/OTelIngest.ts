@@ -1,4 +1,5 @@
 import TelemetryIngest from "Common/Server/Middleware/TelemetryIngest";
+import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -94,6 +95,7 @@ const ingestMetricsMiddleware: (
 
 router.post(
   "/otlp/v1/traces",
+  TelemetryIngestionDisabled.middleware,
   OpenTelemetryRequestMiddleware.parseBody,
   ingestMetricsMiddleware("traces"),
   OpenTelemetryRequestMiddleware.getProductType,
@@ -109,6 +111,7 @@ router.post(
 
 router.post(
   "/otlp/v1/metrics",
+  TelemetryIngestionDisabled.middleware,
   OpenTelemetryRequestMiddleware.parseBody,
   ingestMetricsMiddleware("metrics"),
   OpenTelemetryRequestMiddleware.getProductType,
@@ -124,6 +127,7 @@ router.post(
 
 router.post(
   "/otlp/v1/logs",
+  TelemetryIngestionDisabled.middleware,
   OpenTelemetryRequestMiddleware.parseBody,
   ingestMetricsMiddleware("logs"),
   OpenTelemetryRequestMiddleware.getProductType,
@@ -139,6 +143,7 @@ router.post(
 
 router.post(
   "/otlp/v1/profiles",
+  TelemetryIngestionDisabled.middleware,
   OpenTelemetryRequestMiddleware.parseBody,
   ingestMetricsMiddleware("profiles"),
   OpenTelemetryRequestMiddleware.getProductType,

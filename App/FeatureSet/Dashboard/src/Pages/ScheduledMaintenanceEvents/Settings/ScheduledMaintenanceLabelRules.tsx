@@ -15,7 +15,7 @@ import Label from "Common/Models/DatabaseModels/Label";
 const scheduledMaintenanceLabelDocumentation: string = `
 ### How Scheduled Maintenance Label Rules Work
 
-Scheduled Maintenance Label Rules attach labels to a scheduled maintenance event automatically when it matches your criteria — including labels copied from the event's monitors.
+Scheduled Maintenance Label Rules attach labels to a scheduled maintenance event automatically when it matches your criteria — including labels copied from the event's monitors, hosts, Kubernetes clusters, and Docker hosts.
 
 ### Match Criteria
 
@@ -30,6 +30,9 @@ When a rule matches:
 
 - Every label listed under \`Labels to Add\` is attached to the event.
 - If \`Inherit Labels From Monitors\` is on, every label of the event's monitors is also attached.
+- If \`Inherit Labels From Hosts\` is on, every label of the event's affected hosts is also attached.
+- If \`Inherit Labels From Kubernetes Clusters\` is on, every label of the event's affected Kubernetes clusters is also attached.
+- If \`Inherit Labels From Docker Hosts\` is on, every label of the event's affected Docker hosts is also attached.
 
 Labels already on the event are not duplicated. Multiple matching rules contribute the union of their labels.
 `;
@@ -54,7 +57,7 @@ const ScheduledMaintenanceLabelRulesPage: FunctionComponent<
         cardProps={{
           title: "Scheduled Maintenance Label Rules",
           description:
-            "Auto-attach labels to scheduled maintenance events — including labels inherited from the event's monitors — when matching events are created.",
+            "Auto-attach labels to scheduled maintenance events — including labels inherited from the event's monitors, hosts, Kubernetes clusters, and Docker hosts — when matching events are created.",
         }}
         helpContent={{
           title: "How Scheduled Maintenance Label Rules Work",
@@ -228,6 +231,42 @@ const ScheduledMaintenanceLabelRulesPage: FunctionComponent<
             required: false,
             description:
               "Copy every label of the event's monitors onto the event.",
+          },
+          {
+            field: { inheritLabelsFromHosts: true },
+            title: "Inherit Labels From Hosts",
+            stepId: "labels",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "Copy every label of the event's affected hosts onto the event.",
+          },
+          {
+            field: { inheritLabelsFromKubernetesClusters: true },
+            title: "Inherit Labels From Kubernetes Clusters",
+            stepId: "labels",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "Copy every label of the event's affected Kubernetes clusters onto the event.",
+          },
+          {
+            field: { inheritLabelsFromDockerHosts: true },
+            title: "Inherit Labels From Docker Hosts",
+            stepId: "labels",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "Copy every label of the event's affected Docker hosts onto the event.",
+          },
+          {
+            field: { inheritLabelsFromServices: true },
+            title: "Inherit Labels From Services",
+            stepId: "labels",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "Copy every label of the event's affected services onto the event.",
           },
         ]}
         showRefreshButton={true}

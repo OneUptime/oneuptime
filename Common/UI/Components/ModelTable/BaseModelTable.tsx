@@ -184,6 +184,7 @@ export interface BaseTableProps<
   isDeleteable: boolean;
   isEditable?: boolean | undefined;
   isCreateable: boolean;
+  onCreateClick?: (() => void) | undefined;
   disablePagination?: undefined | boolean;
   formFields?: undefined | Array<ModelField<TBaseModel>>;
   formSteps?: undefined | Array<FormStep<TBaseModel>>;
@@ -1426,6 +1427,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         buttonSize: ButtonSize.Normal,
         className: "",
         onClick: () => {
+          if (props.onCreateClick) {
+            props.onCreateClick();
+            return;
+          }
           setModalType(ModalType.Create);
           setShowModal(true);
         },
