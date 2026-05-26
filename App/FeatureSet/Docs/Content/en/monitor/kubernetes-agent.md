@@ -163,20 +163,67 @@ OBI also propagates trace context across service boundaries by default. When pod
 | `ebpf.contextPropagation` | on | Inject W3C `traceparent` into outbound traffic (HTTP headers + custom TCP option). Set to `false` to keep each service's spans local. |
 | `ebpf.trackRequestHeaders` | on | Kernel-side request-header tracking so propagation also works on plain HTTP servers (non-Go, non-TLS). Only takes effect when `contextPropagation` is true. |
 
-### Log ↔ trace correlation
+### Log ↔ trace correlation (opt-in)
 
-Also on by default. OBI's log enricher intercepts pod stdout writes from instrumented processes and:
+**Off by default.** When enabled, OBI's log enricher attaches a uprobe to the `write()` syscall in every instrumented process and:
 
 - For **JSON-format logs**: injects `trace_id` and `span_id` fields into the line (any existing values in the log are preserved). The filelog DaemonSet then lifts those fields onto the LogRecord's native trace_id/span_id slots, so clicking a span in the trace view jumps to its logs in OneUptime — and clicking a log line jumps to its parent trace.
 - For **non-JSON logs**: the line is preserved unchanged — still collected, just not auto-linked.
 
+Enable with:
+
+```bash
+helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
+  --set ebpf.logToTraceCorrelation=true
+```
+
 | Option | Default | Description |
 | --- | --- | --- |
-| `ebpf.logToTraceCorrelation` | on | Enable the OBI log enricher and the filelog pipeline's trace_id lift. Set to `false` to skip both. |
+| `ebpf.logToTraceCorrelation` | `false` | Enable the OBI log enricher and the filelog pipeline's trace_id lift. Off by default — see the compatibility warning below. |
+| `ebpf.logEnricher.services` | `[{service: [{exe_path: "*"}]}]` | Process selector for the log enricher. Each entry is an OBI [GlobAttributes](https://opentelemetry.io/docs/zero-code/obi/configure/options/#service-discovery) selector — fields include `exe_path`, `languages`, `k8s_pod_labels`, `k8s_pod_annotations`, `open_ports`, `cmd_args`. Narrow this when scoping log enrichment to a subset of workloads. |
 
-Caveats:
+#### Why it's off by default — APM agent compatibility
 
-- **Logs must be JSON for trace_id to appear.** Switch your logger to a JSON formatter — `structlog`, `pino`, `winston`, `serilog`, `logback-json`, klog `--logging-format=json`, etc.
+The log enricher rewrites the application's stdout buffer **in-process**: when a matched process calls `write()`, OBI's eBPF probe zeroes the original buffer bytes (filtered out downstream) and re-emits an enriched copy through a separate path. That in-process buffer rewrite is incompatible with APM agents that inject themselves via `LD_PRELOAD` and wrap libc `write()`:
+
+| APM agent | Library | Effect when both are present |
+| --- | --- | --- |
+| Dynatrace OneAgent | `liboneagentproc.so` | Application SIGSEGV (exit 139). Dynatrace watchdog liveness probe fails (its own `write()` to the PID file stalls past the 10s threshold) and the OneAgent enters a restart loop. |
+| New Relic | `libnewrelic*.so` | Same class of crash. |
+| AppDynamics | `libappdynamics*.so` | Same class of crash. |
+| Datadog | `libdd*.so` | Same class of crash. |
+| Instana | `libinstana*.so` | Same class of crash. |
+
+**.NET workloads are the most exposed** — Dynatrace's .NET agent always injects via `LD_PRELOAD`, and the Microsoft.Extensions.Logging console sink is unbuffered, so every log line crosses the racing `write()` path. Python and Go workloads are usually unaffected because their I/O models don't sit on the same code path.
+
+**If you need log↔trace correlation alongside one of these APM agents**, scope `logEnricher.services` so the enricher skips the pods running the APM. OBI's log_enricher selector has no `exclude_services` field (only positive selectors), so you have to list the workloads you DO want enriched:
+
+```yaml
+ebpf:
+  logToTraceCorrelation: true
+  logEnricher:
+    services:
+      # Enrich only pods with the apm-agent=none label
+      - service:
+          - k8s_pod_labels:
+              apm-agent: "none"
+```
+
+Or scope by runtime — Dynatrace's `LD_PRELOAD` injection is .NET-targeted, so enriching only Python/Go avoids the conflict:
+
+```yaml
+ebpf:
+  logToTraceCorrelation: true
+  logEnricher:
+    services:
+      - service:
+          - languages: "python,go,ruby,nodejs"
+```
+
+#### Other caveats
+
+- **Logs must be JSON for `trace_id` to appear.** Switch your logger to a JSON formatter — `structlog`, `pino`, `winston`, `serilog`, `logback-json`, klog `--logging-format=json`, etc.
 - **Buffered stdout breaks the correlation** because the `write()` syscall fires on a different thread than the one that handled the request. Common fixes:
   - **Python**: set `PYTHONUNBUFFERED=1` (the runtime block-buffers stdout when not a TTY).
   - **.NET**: at startup, `Console.SetOut(new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true })`. Microsoft.Extensions.Logging `AddConsole()` and Serilog's async sinks won't work either — switch to a synchronous console writer (Serilog's default `WriteTo.Console()` is fine).

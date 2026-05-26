@@ -386,25 +386,106 @@ ebpf:
   # `contextPropagation` is true.
   trackRequestHeaders: true
 
-  # Log ↔ trace correlation. OBI's log enricher intercepts pod stdout
-  # writes, looks up the active trace/span for the writing thread, and:
+  # Log ↔ trace correlation. OBI's log enricher attaches a uprobe to
+  # the `write()` syscall in every instrumented process, looks up the
+  # active trace/span for the writing thread, and:
   #   - For JSON-format logs: re-emits the line with `trace_id` and
   #     `span_id` fields injected (existing fields are preserved).
   #   - For non-JSON logs: passes the line through unchanged.
   #
   # The filelog DaemonSet then lifts those fields onto the standard
-  # OpenTelemetry LogRecord TraceId/SpanId slots, so clicking a span in
-  # the trace view jumps to the logs from that request and vice versa.
+  # OpenTelemetry LogRecord TraceId/SpanId slots, so clicking a span
+  # in the trace view jumps to the logs from that request and vice
+  # versa.
   #
-  # **JSON logs work out of the box; for trace_id to appear, your app
-  # must log in JSON.** Plain-text logs are still collected, just not
-  # auto-linked. Apps with buffered stdout (Python, .NET) need
-  # `PYTHONUNBUFFERED=1` / `Console.Out.AutoFlush = true`.
+  # **Off by default — opt in.** The feature is highly invasive
+  # (uprobe on every `write()`, in-process buffer rewriting) and
+  # incompatible with a small but common set of APM agents. Two
+  # reasons to leave it off:
   #
-  # Set to false to skip the OBI log enricher entirely (no kernel
-  # write-buffer interception, no NUL placeholder filter, no trace_id
-  # lift). The other eBPF features keep working.
-  logToTraceCorrelation: true
+  #   1. **LD_PRELOAD-based APM agents** — Dynatrace OneAgent
+  #      (`liboneagentproc.so`), New Relic, AppDynamics, Datadog
+  #      (`libdd*.so`), Instana. These wrap libc `write()` and hold
+  #      pointers into the caller's stdout buffer. OBI's log
+  #      enricher zeroes the original buffer with NULs (then
+  #      re-emits the enriched line separately) — that buffer
+  #      rewrite races with the APM agent's write wrapper and
+  #      crashes the application process (typically SIGSEGV / exit
+  #      139 in .NET workloads). It also stalls the APM agent's own
+  #      watchdog `write()` calls past their liveness threshold,
+  #      sending the agent into a restart loop.
+  #
+  #   2. **JSON logs are required** for `trace_id` to actually
+  #      appear, and buffered-stdout runtimes need extra setup
+  #      (`PYTHONUNBUFFERED=1` for Python,
+  #      `Console.Out.AutoFlush = true` for .NET). Plain-text or
+  #      buffered logs pass through unchanged, so the feature is
+  #      silently useless for many apps.
+  #
+  # Enable explicitly when you've confirmed (a) no LD_PRELOAD APM
+  # agent runs in the same pods (or you've scoped `logEnricher`
+  # below to skip those pods), and (b) your apps emit JSON to
+  # stdout. The other eBPF features (RED metrics, span metrics,
+  # service graph, network metrics, context propagation) keep
+  # working regardless of this setting.
+  logToTraceCorrelation: false
+
+  # Log enricher process selector. Only consulted when
+  # `logToTraceCorrelation` is true. Each entry under `services`
+  # matches one or more processes; OBI enables the log enricher
+  # (and the `write()` uprobe + buffer rewrite) on every matched
+  # process.
+  #
+  # Default `exe_path: "*"` matches every process OBI auto-discovers
+  # — the broadest possible scope. Narrow it when you opt the
+  # feature in, especially if any pods in the cluster run an
+  # LD_PRELOAD-based APM agent (see the warning on
+  # `logToTraceCorrelation` above).
+  #
+  # Each entry under `service:` is an OBI GlobAttributes selector
+  # and accepts any of:
+  #   - exe_path:            glob over the process executable path
+  #   - languages:           comma-separated runtimes (go, java,
+  #                          python, dotnet, ruby, nodejs, rust)
+  #   - k8s_pod_labels:      map of pod-label glob matchers
+  #   - k8s_pod_annotations: map of pod-annotation glob matchers
+  #   - open_ports:          comma-separated ports / ranges
+  #   - cmd_args:            glob over the process command line
+  #
+  # OBI ORs entries together (a process is enriched if it matches
+  # ANY entry). Combine selectors inside a single `service:` block
+  # to AND them.
+  #
+  # OBI does NOT support `exclude_services` on the log_enricher
+  # block (only on `discovery`) — so you cannot express
+  # "everything except X" directly. Instead, list positive
+  # selectors that include only the workloads you want enriched.
+  # Example scoping recipes:
+  #
+  #   # Enrich only pods labeled apm-agent=none
+  #   logEnricher:
+  #     services:
+  #       - service:
+  #           - k8s_pod_labels:
+  #               apm-agent: "none"
+  #
+  #   # Enrich only Python and Go services (skip .NET where
+  #   # Dynatrace LD_PRELOAD typically lives)
+  #   logEnricher:
+  #     services:
+  #       - service:
+  #           - languages: "python,go"
+  #
+  #   # Enrich everything in the 'analytics' namespace
+  #   logEnricher:
+  #     services:
+  #       - service:
+  #           - k8s_pod_labels:
+  #               "kubernetes.io/metadata.name": "analytics"
+  logEnricher:
+    services:
+      - service:
+          - exe_path: "*"
 
 # Continuous profiling via the OpenTelemetry eBPF Profiler.
 #

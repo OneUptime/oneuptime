@@ -431,7 +431,8 @@ Useful knobs:
 | `ebpf.contextPropagation` | `true` | OBI injects W3C `traceparent` into outbound traffic so requests crossing service boundaries link into a single trace, no SDK required. |
 | `ebpf.contextPropagationMode` | `headers` | How OBI injects the `traceparent`. `headers` (default) only modifies HTTP/1.1 request headers — safe alongside service meshes (Linkerd, Istio), mTLS, and eBPF CNIs (Cilium, Calico). `ip` injects an IPv4/IPv6 option for propagation over raw TCP; can be dropped by middleboxes. `all` does both — most coverage but the IP-option half can break service-mesh proxies (linkerd2-proxy, envoy) by corrupting bytes those proxies validate. |
 | `ebpf.trackRequestHeaders` | `true` | Kernel-side header tracking so propagation works for plain HTTP servers (non-Go, non-TLS). Only effective when `contextPropagation` is true. |
-| `ebpf.logToTraceCorrelation` | `true` | OBI injects `trace_id` / `span_id` into **JSON-formatted** log lines from instrumented processes (existing fields preserved); the filelog DaemonSet lifts them onto the LogRecord so clicking a span in the trace view jumps to its logs. Plain-text logs pass through unchanged — to get trace_id, your app must log in JSON, and buffered runtimes need `PYTHONUNBUFFERED=1` (Python) or `Console.Out.AutoFlush = true` (.NET). |
+| `ebpf.logToTraceCorrelation` | `false` | **Off by default — opt in.** OBI injects `trace_id` / `span_id` into **JSON-formatted** log lines from instrumented processes (existing fields preserved); the filelog DaemonSet lifts them onto the LogRecord so clicking a span in the trace view jumps to its logs. Plain-text logs pass through unchanged. **Do NOT enable** in clusters running LD_PRELOAD-based APM agents (Dynatrace OneAgent, New Relic, AppDynamics, Datadog, Instana) — the log enricher's in-process buffer rewrite races with those agents' `write()` wrappers and crashes the application (typically SIGSEGV / exit 139 in .NET). See [APM agent compatibility](#application-pods-crash-with-sigsegv-after-enabling-log-trace-correlation) below. |
+| `ebpf.logEnricher.services` | `[{service: [{exe_path: "*"}]}]` | OBI GlobAttributes selector for which processes get the log enricher (only consulted when `logToTraceCorrelation: true`). Each entry can match by `exe_path`, `languages`, `k8s_pod_labels`, `k8s_pod_annotations`, `open_ports`, or `cmd_args`. Narrow this when enabling log enrichment alongside an APM agent — list only the workloads you want enriched (OBI's log_enricher does not support `exclude_services`). |
 
 ### API-mode log tailer (only when `logs.mode: api`)
 
@@ -489,6 +490,54 @@ kubectl delete namespace oneuptime-kubernetes-agent
 ## Troubleshooting
 
 See the [Install the Kubernetes Agent](https://oneuptime.com/docs/monitor/kubernetes-agent) guide — it covers the "hostPath blocked" error, missing logs, and horizontal sharding for large clusters.
+
+### Application pods crash with SIGSEGV after enabling log ↔ trace correlation
+
+If you enabled `ebpf.logToTraceCorrelation` (off by default) and **.NET application pods start crashing with `Exit Code: 139`** (SIGSEGV) within seconds of the eBPF DaemonSet starting, the cause is almost always a conflict with an `LD_PRELOAD`-based APM agent in the same pods.
+
+Affected APM agents:
+
+- **Dynatrace OneAgent** (`liboneagentproc.so`)
+- **New Relic** (`libnewrelic*.so`)
+- **AppDynamics** (`libappdynamics*.so`)
+- **Datadog** (`libdd*.so`)
+- **Instana** (`libinstana*.so`)
+
+These agents wrap libc `write()` and hold pointers into the caller's stdout buffer. OBI's log enricher zeroes the original buffer with NULs before re-emitting the enriched line — that buffer rewrite races with the APM agent's write wrapper and crashes the host process. On Dynatrace specifically, the OneAgent's watchdog `write()` to its PID file also stalls past the 10s liveness threshold, sending Dynatrace itself into a restart loop on every node.
+
+**Immediate mitigation** — disable the log enricher (keeps the rest of eBPF working):
+
+```bash
+helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent --reuse-values \
+  --set ebpf.logToTraceCorrelation=false
+```
+
+Then `kubectl rollout restart` the affected deployments (stagger one at a time — a simultaneous cluster-wide restart concentrates the failure).
+
+**If you need log ↔ trace correlation alongside an APM agent**, scope `ebpf.logEnricher.services` so the enricher skips the pods running the APM. OBI's `log_enricher` only accepts positive selectors (no `exclude_services`) — list only the workloads you want enriched. Two common recipes:
+
+```yaml
+# Enrich only pods you've explicitly opted in (label them apm-agent=none).
+ebpf:
+  logToTraceCorrelation: true
+  logEnricher:
+    services:
+      - service:
+          - k8s_pod_labels:
+              apm-agent: "none"
+```
+
+```yaml
+# Enrich only runtimes where LD_PRELOAD-based APMs typically aren't injected.
+# Dynatrace's .NET agent uses LD_PRELOAD; the Python/Go/Node/Ruby paths don't.
+ebpf:
+  logToTraceCorrelation: true
+  logEnricher:
+    services:
+      - service:
+          - languages: "python,go,nodejs,ruby"
+```
 
 ### Application pods fail or restart after enabling the agent (service mesh)
 
