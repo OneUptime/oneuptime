@@ -33,6 +33,10 @@ When a rule matches:
 
 - Every user and team listed on the rule is added as an owner.
 - If \`Inherit Owners From Monitors\` is on, every owner of the event's monitors is also added.
+- If \`Inherit Owners From Hosts\` is on, every owner of the event's affected hosts is also added.
+- If \`Inherit Owners From Kubernetes Clusters\` is on, every owner of the event's affected Kubernetes clusters is also added.
+- If \`Inherit Owners From Docker Hosts\` is on, every owner of the event's affected Docker hosts is also added.
+- If \`Inherit Owners From Services\` is on, every owner of the event's affected services is also added.
 
 Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified. Multiple matching rules all fire — the union of their owners ends up assigned.
 `;
@@ -253,6 +257,42 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
             required: false,
             description:
               "Assign every owner of the event's monitors as an owner of the event.",
+          },
+          {
+            field: { inheritOwnersFromHosts: true },
+            title: "Inherit Owners From Hosts",
+            stepId: "owners",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "Assign every owner of the event's affected hosts as an owner of the event.",
+          },
+          {
+            field: { inheritOwnersFromKubernetesClusters: true },
+            title: "Inherit Owners From Kubernetes Clusters",
+            stepId: "owners",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "Assign every owner of the event's affected Kubernetes clusters as an owner of the event.",
+          },
+          {
+            field: { inheritOwnersFromDockerHosts: true },
+            title: "Inherit Owners From Docker Hosts",
+            stepId: "owners",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "Assign every owner of the event's affected Docker hosts as an owner of the event.",
+          },
+          {
+            field: { inheritOwnersFromServices: true },
+            title: "Inherit Owners From Services",
+            stepId: "owners",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "Assign every owner of the event's affected services as an owner of the event.",
           },
         ]}
         showRefreshButton={true}

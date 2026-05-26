@@ -1,17 +1,37 @@
+import DockerHost from "../../Models/DatabaseModels/DockerHost";
+import DockerHostOwnerTeam from "../../Models/DatabaseModels/DockerHostOwnerTeam";
+import DockerHostOwnerUser from "../../Models/DatabaseModels/DockerHostOwnerUser";
+import Host from "../../Models/DatabaseModels/Host";
+import HostOwnerTeam from "../../Models/DatabaseModels/HostOwnerTeam";
+import HostOwnerUser from "../../Models/DatabaseModels/HostOwnerUser";
+import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
+import KubernetesClusterOwnerTeam from "../../Models/DatabaseModels/KubernetesClusterOwnerTeam";
+import KubernetesClusterOwnerUser from "../../Models/DatabaseModels/KubernetesClusterOwnerUser";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorOwnerTeam from "../../Models/DatabaseModels/MonitorOwnerTeam";
 import MonitorOwnerUser from "../../Models/DatabaseModels/MonitorOwnerUser";
 import ScheduledMaintenance from "../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceOwnerRule from "../../Models/DatabaseModels/ScheduledMaintenanceOwnerRule";
+import Service from "../../Models/DatabaseModels/Service";
+import ServiceOwnerTeam from "../../Models/DatabaseModels/ServiceOwnerTeam";
+import ServiceOwnerUser from "../../Models/DatabaseModels/ServiceOwnerUser";
 import Team from "../../Models/DatabaseModels/Team";
 import User from "../../Models/DatabaseModels/User";
+import DockerHostOwnerTeamService from "./DockerHostOwnerTeamService";
+import DockerHostOwnerUserService from "./DockerHostOwnerUserService";
+import HostOwnerTeamService from "./HostOwnerTeamService";
+import HostOwnerUserService from "./HostOwnerUserService";
+import KubernetesClusterOwnerTeamService from "./KubernetesClusterOwnerTeamService";
+import KubernetesClusterOwnerUserService from "./KubernetesClusterOwnerUserService";
 import MonitorOwnerTeamService from "./MonitorOwnerTeamService";
 import MonitorOwnerUserService from "./MonitorOwnerUserService";
 import MonitorService from "./MonitorService";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import ScheduledMaintenanceOwnerRuleService from "./ScheduledMaintenanceOwnerRuleService";
 import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
+import ServiceOwnerTeamService from "./ServiceOwnerTeamService";
+import ServiceOwnerUserService from "./ServiceOwnerUserService";
 import TeamService from "./TeamService";
 import UserService from "./UserService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
@@ -59,6 +79,10 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass {
             ownerUsers: { _id: true },
             ownerTeams: { _id: true },
             inheritOwnersFromMonitors: true,
+            inheritOwnersFromHosts: true,
+            inheritOwnersFromKubernetesClusters: true,
+            inheritOwnersFromDockerHosts: true,
+            inheritOwnersFromServices: true,
           },
           limit: 100,
           skip: 0,
@@ -81,6 +105,10 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass {
       const allUserIds: Set<string> = new Set();
       const allTeamIds: Set<string> = new Set();
       let inheritFromMonitors: boolean = false;
+      let inheritFromHosts: boolean = false;
+      let inheritFromKubernetesClusters: boolean = false;
+      let inheritFromDockerHosts: boolean = false;
+      let inheritFromServices: boolean = false;
       const inheritNotifyMode: { value: boolean | null } = { value: null };
 
       for (const rule of rules) {
@@ -113,6 +141,30 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass {
           inheritNotifyMode.value =
             inheritNotifyMode.value === true ? true : notify;
         }
+        if (rule.inheritOwnersFromHosts) {
+          inheritFromHosts = true;
+          ruleAddedAny = true;
+          inheritNotifyMode.value =
+            inheritNotifyMode.value === true ? true : notify;
+        }
+        if (rule.inheritOwnersFromKubernetesClusters) {
+          inheritFromKubernetesClusters = true;
+          ruleAddedAny = true;
+          inheritNotifyMode.value =
+            inheritNotifyMode.value === true ? true : notify;
+        }
+        if (rule.inheritOwnersFromDockerHosts) {
+          inheritFromDockerHosts = true;
+          ruleAddedAny = true;
+          inheritNotifyMode.value =
+            inheritNotifyMode.value === true ? true : notify;
+        }
+        if (rule.inheritOwnersFromServices) {
+          inheritFromServices = true;
+          ruleAddedAny = true;
+          inheritNotifyMode.value =
+            inheritNotifyMode.value === true ? true : notify;
+        }
         if (ruleAddedAny) {
           matchedRules.push(rule);
         }
@@ -120,6 +172,14 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass {
 
       const inheritedFromMonitorUserIds: Set<string> = new Set();
       const inheritedFromMonitorTeamIds: Set<string> = new Set();
+      const inheritedFromHostUserIds: Set<string> = new Set();
+      const inheritedFromHostTeamIds: Set<string> = new Set();
+      const inheritedFromKubernetesClusterUserIds: Set<string> = new Set();
+      const inheritedFromKubernetesClusterTeamIds: Set<string> = new Set();
+      const inheritedFromDockerHostUserIds: Set<string> = new Set();
+      const inheritedFromDockerHostTeamIds: Set<string> = new Set();
+      const inheritedFromServiceUserIds: Set<string> = new Set();
+      const inheritedFromServiceTeamIds: Set<string> = new Set();
 
       if (inheritFromMonitors && scheduledMaintenance.monitors?.length) {
         const monitorIds: Array<ObjectID> = scheduledMaintenance.monitors
@@ -162,16 +222,203 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass {
         }
       }
 
+      if (inheritFromHosts && scheduledMaintenance.hosts?.length) {
+        const hostIds: Array<ObjectID> = scheduledMaintenance.hosts
+          .map((h: Host) => {
+            return h.id;
+          })
+          .filter((id: ObjectID | null | undefined): id is ObjectID => {
+            return Boolean(id);
+          });
+        if (hostIds.length > 0) {
+          const [hostOwnerUsers, hostOwnerTeams]: [
+            Array<HostOwnerUser>,
+            Array<HostOwnerTeam>,
+          ] = await Promise.all([
+            HostOwnerUserService.findBy({
+              query: { hostId: QueryHelper.any(hostIds) },
+              select: { userId: true },
+              props: { isRoot: true },
+              limit: LIMIT_MAX,
+              skip: 0,
+            }),
+            HostOwnerTeamService.findBy({
+              query: { hostId: QueryHelper.any(hostIds) },
+              select: { teamId: true },
+              props: { isRoot: true },
+              limit: LIMIT_MAX,
+              skip: 0,
+            }),
+          ]);
+          for (const ownerUser of hostOwnerUsers) {
+            if (ownerUser.userId) {
+              inheritedFromHostUserIds.add(ownerUser.userId.toString());
+            }
+          }
+          for (const ownerTeam of hostOwnerTeams) {
+            if (ownerTeam.teamId) {
+              inheritedFromHostTeamIds.add(ownerTeam.teamId.toString());
+            }
+          }
+        }
+      }
+
       if (
-        inheritedFromMonitorUserIds.size > 0 ||
-        inheritedFromMonitorTeamIds.size > 0
+        inheritFromKubernetesClusters &&
+        scheduledMaintenance.kubernetesClusters?.length
       ) {
+        const clusterIds: Array<ObjectID> =
+          scheduledMaintenance.kubernetesClusters
+            .map((c: KubernetesCluster) => {
+              return c.id;
+            })
+            .filter((id: ObjectID | null | undefined): id is ObjectID => {
+              return Boolean(id);
+            });
+        if (clusterIds.length > 0) {
+          const [clusterOwnerUsers, clusterOwnerTeams]: [
+            Array<KubernetesClusterOwnerUser>,
+            Array<KubernetesClusterOwnerTeam>,
+          ] = await Promise.all([
+            KubernetesClusterOwnerUserService.findBy({
+              query: { kubernetesClusterId: QueryHelper.any(clusterIds) },
+              select: { userId: true },
+              props: { isRoot: true },
+              limit: LIMIT_MAX,
+              skip: 0,
+            }),
+            KubernetesClusterOwnerTeamService.findBy({
+              query: { kubernetesClusterId: QueryHelper.any(clusterIds) },
+              select: { teamId: true },
+              props: { isRoot: true },
+              limit: LIMIT_MAX,
+              skip: 0,
+            }),
+          ]);
+          for (const ownerUser of clusterOwnerUsers) {
+            if (ownerUser.userId) {
+              inheritedFromKubernetesClusterUserIds.add(
+                ownerUser.userId.toString(),
+              );
+            }
+          }
+          for (const ownerTeam of clusterOwnerTeams) {
+            if (ownerTeam.teamId) {
+              inheritedFromKubernetesClusterTeamIds.add(
+                ownerTeam.teamId.toString(),
+              );
+            }
+          }
+        }
+      }
+
+      if (
+        inheritFromDockerHosts &&
+        scheduledMaintenance.dockerHosts?.length
+      ) {
+        const dockerHostIds: Array<ObjectID> = scheduledMaintenance.dockerHosts
+          .map((d: DockerHost) => {
+            return d.id;
+          })
+          .filter((id: ObjectID | null | undefined): id is ObjectID => {
+            return Boolean(id);
+          });
+        if (dockerHostIds.length > 0) {
+          const [dockerHostOwnerUsers, dockerHostOwnerTeams]: [
+            Array<DockerHostOwnerUser>,
+            Array<DockerHostOwnerTeam>,
+          ] = await Promise.all([
+            DockerHostOwnerUserService.findBy({
+              query: { dockerHostId: QueryHelper.any(dockerHostIds) },
+              select: { userId: true },
+              props: { isRoot: true },
+              limit: LIMIT_MAX,
+              skip: 0,
+            }),
+            DockerHostOwnerTeamService.findBy({
+              query: { dockerHostId: QueryHelper.any(dockerHostIds) },
+              select: { teamId: true },
+              props: { isRoot: true },
+              limit: LIMIT_MAX,
+              skip: 0,
+            }),
+          ]);
+          for (const ownerUser of dockerHostOwnerUsers) {
+            if (ownerUser.userId) {
+              inheritedFromDockerHostUserIds.add(ownerUser.userId.toString());
+            }
+          }
+          for (const ownerTeam of dockerHostOwnerTeams) {
+            if (ownerTeam.teamId) {
+              inheritedFromDockerHostTeamIds.add(ownerTeam.teamId.toString());
+            }
+          }
+        }
+      }
+
+      if (inheritFromServices && scheduledMaintenance.services?.length) {
+        const serviceIds: Array<ObjectID> = scheduledMaintenance.services
+          .map((s: Service) => {
+            return s.id;
+          })
+          .filter((id: ObjectID | null | undefined): id is ObjectID => {
+            return Boolean(id);
+          });
+        if (serviceIds.length > 0) {
+          const [serviceOwnerUsers, serviceOwnerTeams]: [
+            Array<ServiceOwnerUser>,
+            Array<ServiceOwnerTeam>,
+          ] = await Promise.all([
+            ServiceOwnerUserService.findBy({
+              query: { serviceId: QueryHelper.any(serviceIds) },
+              select: { userId: true },
+              props: { isRoot: true },
+              limit: LIMIT_MAX,
+              skip: 0,
+            }),
+            ServiceOwnerTeamService.findBy({
+              query: { serviceId: QueryHelper.any(serviceIds) },
+              select: { teamId: true },
+              props: { isRoot: true },
+              limit: LIMIT_MAX,
+              skip: 0,
+            }),
+          ]);
+          for (const ownerUser of serviceOwnerUsers) {
+            if (ownerUser.userId) {
+              inheritedFromServiceUserIds.add(ownerUser.userId.toString());
+            }
+          }
+          for (const ownerTeam of serviceOwnerTeams) {
+            if (ownerTeam.teamId) {
+              inheritedFromServiceTeamIds.add(ownerTeam.teamId.toString());
+            }
+          }
+        }
+      }
+
+      const inheritedUserIds: Set<string> = new Set([
+        ...inheritedFromMonitorUserIds,
+        ...inheritedFromHostUserIds,
+        ...inheritedFromKubernetesClusterUserIds,
+        ...inheritedFromDockerHostUserIds,
+        ...inheritedFromServiceUserIds,
+      ]);
+      const inheritedTeamIds: Set<string> = new Set([
+        ...inheritedFromMonitorTeamIds,
+        ...inheritedFromHostTeamIds,
+        ...inheritedFromKubernetesClusterTeamIds,
+        ...inheritedFromDockerHostTeamIds,
+        ...inheritedFromServiceTeamIds,
+      ]);
+
+      if (inheritedUserIds.size > 0 || inheritedTeamIds.size > 0) {
         const inheritNotify: boolean = inheritNotifyMode.value === true;
-        for (const id of inheritedFromMonitorUserIds) {
+        for (const id of inheritedUserIds) {
           usersByNotify.get(inheritNotify)!.add(id);
           allUserIds.add(id);
         }
-        for (const id of inheritedFromMonitorTeamIds) {
+        for (const id of inheritedTeamIds) {
           teamsByNotify.get(inheritNotify)!.add(id);
           allTeamIds.add(id);
         }
@@ -226,6 +473,20 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass {
         inheritedFromMonitors:
           inheritedFromMonitorUserIds.size + inheritedFromMonitorTeamIds.size >
           0,
+        inheritedFromHosts:
+          inheritedFromHostUserIds.size + inheritedFromHostTeamIds.size > 0,
+        inheritedFromKubernetesClusters:
+          inheritedFromKubernetesClusterUserIds.size +
+            inheritedFromKubernetesClusterTeamIds.size >
+          0,
+        inheritedFromDockerHosts:
+          inheritedFromDockerHostUserIds.size +
+            inheritedFromDockerHostTeamIds.size >
+          0,
+        inheritedFromServices:
+          inheritedFromServiceUserIds.size +
+            inheritedFromServiceTeamIds.size >
+          0,
       });
     } catch (error) {
       logger.error(
@@ -245,6 +506,10 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass {
     userIds: Array<string>;
     teamIds: Array<string>;
     inheritedFromMonitors: boolean;
+    inheritedFromHosts: boolean;
+    inheritedFromKubernetesClusters: boolean;
+    inheritedFromDockerHosts: boolean;
+    inheritedFromServices: boolean;
   }): Promise<void> {
     const {
       scheduledMaintenance,
@@ -252,6 +517,10 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass {
       userIds,
       teamIds,
       inheritedFromMonitors,
+      inheritedFromHosts,
+      inheritedFromKubernetesClusters,
+      inheritedFromDockerHosts,
+      inheritedFromServices,
     } = data;
     if (
       !scheduledMaintenance.id ||
@@ -322,9 +591,26 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass {
           ? userLines.concat(teamLines).join("")
           : "\n- (no named owners)";
 
-      const inheritedNote: string = inheritedFromMonitors
-        ? `\n\n_Some owners were inherited from the event's monitors._`
-        : "";
+      const inheritedSources: Array<string> = [];
+      if (inheritedFromMonitors) {
+        inheritedSources.push("monitors");
+      }
+      if (inheritedFromHosts) {
+        inheritedSources.push("hosts");
+      }
+      if (inheritedFromKubernetesClusters) {
+        inheritedSources.push("Kubernetes clusters");
+      }
+      if (inheritedFromDockerHosts) {
+        inheritedSources.push("Docker hosts");
+      }
+      if (inheritedFromServices) {
+        inheritedSources.push("services");
+      }
+      const inheritedNote: string =
+        inheritedSources.length > 0
+          ? `\n\n_Some owners were inherited from the event's ${inheritedSources.join(", ")}._`
+          : "";
 
       const feedInfoInMarkdown: string = `🛡️ **Scheduled Maintenance Owner Rule${
         matchedRules.length > 1 ? "s" : ""

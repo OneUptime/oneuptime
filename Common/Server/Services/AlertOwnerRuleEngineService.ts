@@ -1,23 +1,38 @@
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertOwnerRule from "../../Models/DatabaseModels/AlertOwnerRule";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
+import DockerHost from "../../Models/DatabaseModels/DockerHost";
+import DockerHostOwnerTeam from "../../Models/DatabaseModels/DockerHostOwnerTeam";
+import DockerHostOwnerUser from "../../Models/DatabaseModels/DockerHostOwnerUser";
 import Host from "../../Models/DatabaseModels/Host";
 import HostOwnerTeam from "../../Models/DatabaseModels/HostOwnerTeam";
 import HostOwnerUser from "../../Models/DatabaseModels/HostOwnerUser";
+import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
+import KubernetesClusterOwnerTeam from "../../Models/DatabaseModels/KubernetesClusterOwnerTeam";
+import KubernetesClusterOwnerUser from "../../Models/DatabaseModels/KubernetesClusterOwnerUser";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorOwnerTeam from "../../Models/DatabaseModels/MonitorOwnerTeam";
 import MonitorOwnerUser from "../../Models/DatabaseModels/MonitorOwnerUser";
+import Service from "../../Models/DatabaseModels/Service";
+import ServiceOwnerTeam from "../../Models/DatabaseModels/ServiceOwnerTeam";
+import ServiceOwnerUser from "../../Models/DatabaseModels/ServiceOwnerUser";
 import Team from "../../Models/DatabaseModels/Team";
 import User from "../../Models/DatabaseModels/User";
 import AlertFeedService from "./AlertFeedService";
 import AlertOwnerRuleService from "./AlertOwnerRuleService";
 import AlertService from "./AlertService";
+import DockerHostOwnerTeamService from "./DockerHostOwnerTeamService";
+import DockerHostOwnerUserService from "./DockerHostOwnerUserService";
 import HostOwnerTeamService from "./HostOwnerTeamService";
 import HostOwnerUserService from "./HostOwnerUserService";
+import KubernetesClusterOwnerTeamService from "./KubernetesClusterOwnerTeamService";
+import KubernetesClusterOwnerUserService from "./KubernetesClusterOwnerUserService";
 import MonitorOwnerTeamService from "./MonitorOwnerTeamService";
 import MonitorOwnerUserService from "./MonitorOwnerUserService";
 import MonitorService from "./MonitorService";
+import ServiceOwnerTeamService from "./ServiceOwnerTeamService";
+import ServiceOwnerUserService from "./ServiceOwnerUserService";
 import TeamService from "./TeamService";
 import UserService from "./UserService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
@@ -62,6 +77,9 @@ class AlertOwnerRuleEngineServiceClass {
           ownerTeams: { _id: true },
           inheritOwnersFromMonitors: true,
           inheritOwnersFromHosts: true,
+          inheritOwnersFromKubernetesClusters: true,
+          inheritOwnersFromDockerHosts: true,
+          inheritOwnersFromServices: true,
         },
         limit: 100,
         skip: 0,
@@ -85,6 +103,9 @@ class AlertOwnerRuleEngineServiceClass {
       const allTeamIds: Set<string> = new Set();
       let inheritFromMonitors: boolean = false;
       let inheritFromHosts: boolean = false;
+      let inheritFromKubernetesClusters: boolean = false;
+      let inheritFromDockerHosts: boolean = false;
+      let inheritFromServices: boolean = false;
       const inheritNotifyMode: { value: boolean | null } = { value: null };
 
       for (const rule of rules) {
@@ -120,6 +141,24 @@ class AlertOwnerRuleEngineServiceClass {
           inheritNotifyMode.value =
             inheritNotifyMode.value === true ? true : notify;
         }
+        if (rule.inheritOwnersFromKubernetesClusters) {
+          inheritFromKubernetesClusters = true;
+          ruleAddedAny = true;
+          inheritNotifyMode.value =
+            inheritNotifyMode.value === true ? true : notify;
+        }
+        if (rule.inheritOwnersFromDockerHosts) {
+          inheritFromDockerHosts = true;
+          ruleAddedAny = true;
+          inheritNotifyMode.value =
+            inheritNotifyMode.value === true ? true : notify;
+        }
+        if (rule.inheritOwnersFromServices) {
+          inheritFromServices = true;
+          ruleAddedAny = true;
+          inheritNotifyMode.value =
+            inheritNotifyMode.value === true ? true : notify;
+        }
         if (ruleAddedAny) {
           matchedRules.push(rule);
         }
@@ -129,6 +168,12 @@ class AlertOwnerRuleEngineServiceClass {
       const inheritedFromMonitorTeamIds: Set<string> = new Set();
       const inheritedFromHostUserIds: Set<string> = new Set();
       const inheritedFromHostTeamIds: Set<string> = new Set();
+      const inheritedFromKubernetesClusterUserIds: Set<string> = new Set();
+      const inheritedFromKubernetesClusterTeamIds: Set<string> = new Set();
+      const inheritedFromDockerHostUserIds: Set<string> = new Set();
+      const inheritedFromDockerHostTeamIds: Set<string> = new Set();
+      const inheritedFromServiceUserIds: Set<string> = new Set();
+      const inheritedFromServiceTeamIds: Set<string> = new Set();
 
       if (inheritFromMonitors && alert.monitorId) {
         const [monitorOwnerUsers, monitorOwnerTeams]: [
@@ -203,13 +248,146 @@ class AlertOwnerRuleEngineServiceClass {
         }
       }
 
+      if (inheritFromKubernetesClusters && alert.kubernetesClusters?.length) {
+        const clusterIds: Array<ObjectID> = alert.kubernetesClusters
+          .map((c: KubernetesCluster) => {
+            return c.id;
+          })
+          .filter((id: ObjectID | null | undefined): id is ObjectID => {
+            return Boolean(id);
+          });
+        if (clusterIds.length > 0) {
+          const [clusterOwnerUsers, clusterOwnerTeams]: [
+            Array<KubernetesClusterOwnerUser>,
+            Array<KubernetesClusterOwnerTeam>,
+          ] = await Promise.all([
+            KubernetesClusterOwnerUserService.findBy({
+              query: { kubernetesClusterId: QueryHelper.any(clusterIds) },
+              select: { userId: true },
+              props: { isRoot: true },
+              limit: LIMIT_MAX,
+              skip: 0,
+            }),
+            KubernetesClusterOwnerTeamService.findBy({
+              query: { kubernetesClusterId: QueryHelper.any(clusterIds) },
+              select: { teamId: true },
+              props: { isRoot: true },
+              limit: LIMIT_MAX,
+              skip: 0,
+            }),
+          ]);
+          for (const ownerUser of clusterOwnerUsers) {
+            if (ownerUser.userId) {
+              inheritedFromKubernetesClusterUserIds.add(
+                ownerUser.userId.toString(),
+              );
+            }
+          }
+          for (const ownerTeam of clusterOwnerTeams) {
+            if (ownerTeam.teamId) {
+              inheritedFromKubernetesClusterTeamIds.add(
+                ownerTeam.teamId.toString(),
+              );
+            }
+          }
+        }
+      }
+
+      if (inheritFromDockerHosts && alert.dockerHosts?.length) {
+        const dockerHostIds: Array<ObjectID> = alert.dockerHosts
+          .map((d: DockerHost) => {
+            return d.id;
+          })
+          .filter((id: ObjectID | null | undefined): id is ObjectID => {
+            return Boolean(id);
+          });
+        if (dockerHostIds.length > 0) {
+          const [dockerHostOwnerUsers, dockerHostOwnerTeams]: [
+            Array<DockerHostOwnerUser>,
+            Array<DockerHostOwnerTeam>,
+          ] = await Promise.all([
+            DockerHostOwnerUserService.findBy({
+              query: { dockerHostId: QueryHelper.any(dockerHostIds) },
+              select: { userId: true },
+              props: { isRoot: true },
+              limit: LIMIT_MAX,
+              skip: 0,
+            }),
+            DockerHostOwnerTeamService.findBy({
+              query: { dockerHostId: QueryHelper.any(dockerHostIds) },
+              select: { teamId: true },
+              props: { isRoot: true },
+              limit: LIMIT_MAX,
+              skip: 0,
+            }),
+          ]);
+          for (const ownerUser of dockerHostOwnerUsers) {
+            if (ownerUser.userId) {
+              inheritedFromDockerHostUserIds.add(ownerUser.userId.toString());
+            }
+          }
+          for (const ownerTeam of dockerHostOwnerTeams) {
+            if (ownerTeam.teamId) {
+              inheritedFromDockerHostTeamIds.add(ownerTeam.teamId.toString());
+            }
+          }
+        }
+      }
+
+      if (inheritFromServices && alert.services?.length) {
+        const serviceIds: Array<ObjectID> = alert.services
+          .map((s: Service) => {
+            return s.id;
+          })
+          .filter((id: ObjectID | null | undefined): id is ObjectID => {
+            return Boolean(id);
+          });
+        if (serviceIds.length > 0) {
+          const [serviceOwnerUsers, serviceOwnerTeams]: [
+            Array<ServiceOwnerUser>,
+            Array<ServiceOwnerTeam>,
+          ] = await Promise.all([
+            ServiceOwnerUserService.findBy({
+              query: { serviceId: QueryHelper.any(serviceIds) },
+              select: { userId: true },
+              props: { isRoot: true },
+              limit: LIMIT_MAX,
+              skip: 0,
+            }),
+            ServiceOwnerTeamService.findBy({
+              query: { serviceId: QueryHelper.any(serviceIds) },
+              select: { teamId: true },
+              props: { isRoot: true },
+              limit: LIMIT_MAX,
+              skip: 0,
+            }),
+          ]);
+          for (const ownerUser of serviceOwnerUsers) {
+            if (ownerUser.userId) {
+              inheritedFromServiceUserIds.add(ownerUser.userId.toString());
+            }
+          }
+          for (const ownerTeam of serviceOwnerTeams) {
+            if (ownerTeam.teamId) {
+              inheritedFromServiceTeamIds.add(ownerTeam.teamId.toString());
+            }
+          }
+        }
+      }
+
       const inheritedUserIds: Set<string> = new Set([
         ...inheritedFromMonitorUserIds,
         ...inheritedFromHostUserIds,
+        ...inheritedFromKubernetesClusterUserIds,
+        ...inheritedFromDockerHostUserIds,
+        ...inheritedFromServiceUserIds,
       ]);
       const inheritedTeamIds: Set<string> = new Set([
         ...inheritedFromMonitorTeamIds,
         ...inheritedFromHostTeamIds,
+        ...inheritedFromKubernetesClusterTeamIds,
+        ...inheritedFromDockerHostTeamIds,
+        ...inheritedFromServiceTeamIds,
       ]);
 
       if (inheritedUserIds.size > 0 || inheritedTeamIds.size > 0) {
@@ -272,6 +450,18 @@ class AlertOwnerRuleEngineServiceClass {
           0,
         inheritedFromHosts:
           inheritedFromHostUserIds.size + inheritedFromHostTeamIds.size > 0,
+        inheritedFromKubernetesClusters:
+          inheritedFromKubernetesClusterUserIds.size +
+            inheritedFromKubernetesClusterTeamIds.size >
+          0,
+        inheritedFromDockerHosts:
+          inheritedFromDockerHostUserIds.size +
+            inheritedFromDockerHostTeamIds.size >
+          0,
+        inheritedFromServices:
+          inheritedFromServiceUserIds.size +
+            inheritedFromServiceTeamIds.size >
+          0,
       });
     } catch (error) {
       logger.error(`Error applying alert owner rules: ${error}`, {
@@ -289,6 +479,9 @@ class AlertOwnerRuleEngineServiceClass {
     teamIds: Array<string>;
     inheritedFromMonitors: boolean;
     inheritedFromHosts: boolean;
+    inheritedFromKubernetesClusters: boolean;
+    inheritedFromDockerHosts: boolean;
+    inheritedFromServices: boolean;
   }): Promise<void> {
     const {
       alert,
@@ -297,6 +490,9 @@ class AlertOwnerRuleEngineServiceClass {
       teamIds,
       inheritedFromMonitors,
       inheritedFromHosts,
+      inheritedFromKubernetesClusters,
+      inheritedFromDockerHosts,
+      inheritedFromServices,
     } = data;
     if (
       !alert.id ||
@@ -374,9 +570,18 @@ class AlertOwnerRuleEngineServiceClass {
       if (inheritedFromHosts) {
         inheritedSources.push("hosts");
       }
+      if (inheritedFromKubernetesClusters) {
+        inheritedSources.push("Kubernetes clusters");
+      }
+      if (inheritedFromDockerHosts) {
+        inheritedSources.push("Docker hosts");
+      }
+      if (inheritedFromServices) {
+        inheritedSources.push("services");
+      }
       const inheritedNote: string =
         inheritedSources.length > 0
-          ? `\n\n_Some owners were inherited from the alert's ${inheritedSources.join(" and ")}._`
+          ? `\n\n_Some owners were inherited from the alert's ${inheritedSources.join(", ")}._`
           : "";
 
       const feedInfoInMarkdown: string = `🛡️ **Alert Owner Rule${

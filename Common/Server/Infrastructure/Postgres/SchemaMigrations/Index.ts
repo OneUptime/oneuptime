@@ -352,6 +352,7 @@ import { AddAffectedResourcesToTemplates1779708719656 } from "./1779708719656-Ad
 import { MigrationName1779739410559 } from "./1779739410559-MigrationName";
 import { AttachServiceToScheduledMaintenanceTemplatesAndLabelRules1779742211961 } from "./1779742211961-AttachServiceToScheduledMaintenanceTemplatesAndLabelRules";
 import { MigrationName1779790539196 } from "./1779790539196-MigrationName";
+import { ExpandOwnerRuleInheritFlags1779823516881 } from "./1779823516881-ExpandOwnerRuleInheritFlags";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -707,4 +708,5 @@ export default [
   MigrationName1779739410559,
   AttachServiceToScheduledMaintenanceTemplatesAndLabelRules1779742211961,
   MigrationName1779790539196,
+  ExpandOwnerRuleInheritFlags1779823516881,
 ];
