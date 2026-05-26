@@ -85,11 +85,6 @@ const ScheduledMaintenanceView: FunctionComponent<
             title: "Event Info",
             id: "event-info",
           },
-
-          {
-            title: "Resources Affected",
-            id: "resources-affected",
-          },
           {
             title: "Status Pages",
             id: "status-pages",
@@ -138,107 +133,6 @@ const ScheduledMaintenanceView: FunctionComponent<
             fieldType: FormFieldSchemaType.DateTime,
             required: true,
             placeholder: "Pick Date and Time",
-          },
-          {
-            field: {
-              monitors: true,
-            },
-            title: "Resources Affected",
-            stepId: "resources-affected",
-            description:
-              "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services affected by this scheduled maintenance.",
-            fieldType: FormFieldSchemaType.CustomComponent,
-            required: false,
-            getCustomElement: (
-              values: FormValues<ScheduledMaintenance>,
-              elementProps: CustomElementProps,
-            ) => {
-              return (
-                <AffectedResourcesPicker
-                  monitors={values.monitors as Array<Monitor>}
-                  hosts={values.hosts as Array<Host>}
-                  kubernetesClusters={
-                    values.kubernetesClusters as Array<KubernetesCluster>
-                  }
-                  dockerHosts={values.dockerHosts as Array<DockerHost>}
-                  services={values.services as Array<Service>}
-                  onChange={(payload: unknown) => {
-                    elementProps.onChange?.(payload);
-                  }}
-                />
-              );
-            },
-            onChange: (
-              value: unknown,
-              currentValues: FormValues<ScheduledMaintenance>,
-              setNewFormValues: (
-                values: FormValues<ScheduledMaintenance>,
-              ) => void,
-            ) => {
-              /*
-               * Defer the split so it runs after FormField's setFieldValue —
-               * see the matching comment in Create.tsx for full context.
-               */
-              if (isAffectedResourcesPayload(value)) {
-                const payload: typeof value = value;
-                queueMicrotask(() => {
-                  setNewFormValues({
-                    ...currentValues,
-                    monitors: payload.monitors,
-                    hosts: payload.hosts,
-                    kubernetesClusters: payload.kubernetesClusters,
-                    dockerHosts: payload.dockerHosts,
-                    services: payload.services,
-                  } as FormValues<ScheduledMaintenance>);
-                });
-              }
-            },
-          },
-          /*
-           * The picker writes to monitors/hosts/kubernetesClusters/dockerHosts
-           * but ModelForm.getSelectFields only reads the first key of each
-           * field declaration. These hidden entries register the three extra
-           * relations so they're fetched on edit-load and included in submit.
-           */
-          {
-            field: { hosts: true },
-            stepId: "resources-affected",
-            title: "",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            showIf: () => {
-              return false;
-            },
-          },
-          {
-            field: { kubernetesClusters: true },
-            stepId: "resources-affected",
-            title: "",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            showIf: () => {
-              return false;
-            },
-          },
-          {
-            field: { dockerHosts: true },
-            stepId: "resources-affected",
-            title: "",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            showIf: () => {
-              return false;
-            },
-          },
-          {
-            field: { services: true },
-            stepId: "resources-affected",
-            title: "",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            showIf: () => {
-              return false;
-            },
           },
           {
             field: {
@@ -463,49 +357,6 @@ const ScheduledMaintenanceView: FunctionComponent<
               },
             },
             {
-              /*
-               * Single consolidated section mirroring the edit form's
-               * "Resources Affected" picker. The display component groups the
-               * four ManyToMany relations and collapses empty categories.
-               */
-              field: {
-                monitors: {
-                  name: true,
-                  _id: true,
-                },
-                hosts: {
-                  name: true,
-                  _id: true,
-                },
-                kubernetesClusters: {
-                  name: true,
-                  _id: true,
-                },
-                dockerHosts: {
-                  name: true,
-                  _id: true,
-                },
-                services: {
-                  name: true,
-                  _id: true,
-                  serviceColor: true,
-                },
-              },
-              title: "Resources Affected",
-              fieldType: FieldType.Element,
-              getElement: (item: ScheduledMaintenance): ReactElement => {
-                return (
-                  <AffectedResourcesDisplay
-                    monitors={item.monitors || []}
-                    hosts={item.hosts || []}
-                    kubernetesClusters={item.kubernetesClusters || []}
-                    dockerHosts={item.dockerHosts || []}
-                    services={item.services || []}
-                  />
-                );
-              },
-            },
-            {
               field: {
                 statusPages: {
                   name: true,
@@ -599,6 +450,154 @@ const ScheduledMaintenanceView: FunctionComponent<
               fieldType: FieldType.Element,
               getElement: (item: ScheduledMaintenance): ReactElement => {
                 return <LabelsElement labels={item["labels"] || []} />;
+              },
+            },
+          ],
+          modelId: modelId,
+        }}
+      />
+
+      <CardModelDetail<ScheduledMaintenance>
+        name="Affected Resources"
+        cardProps={{
+          title: "Affected Resources",
+          description:
+            "Monitors, hosts, Kubernetes clusters, Docker hosts, and services affected by this scheduled maintenance.",
+        }}
+        isEditable={true}
+        formFields={[
+          {
+            field: {
+              monitors: true,
+            },
+            title: "",
+            description:
+              "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services affected by this scheduled maintenance.",
+            fieldType: FormFieldSchemaType.CustomComponent,
+            required: false,
+            getCustomElement: (
+              values: FormValues<ScheduledMaintenance>,
+              elementProps: CustomElementProps,
+            ) => {
+              return (
+                <AffectedResourcesPicker
+                  monitors={values.monitors as Array<Monitor>}
+                  hosts={values.hosts as Array<Host>}
+                  kubernetesClusters={
+                    values.kubernetesClusters as Array<KubernetesCluster>
+                  }
+                  dockerHosts={values.dockerHosts as Array<DockerHost>}
+                  services={values.services as Array<Service>}
+                  onChange={(payload: unknown) => {
+                    elementProps.onChange?.(payload);
+                  }}
+                />
+              );
+            },
+            onChange: (
+              value: unknown,
+              currentValues: FormValues<ScheduledMaintenance>,
+              setNewFormValues: (
+                values: FormValues<ScheduledMaintenance>,
+              ) => void,
+            ) => {
+              if (isAffectedResourcesPayload(value)) {
+                const payload: typeof value = value;
+                queueMicrotask(() => {
+                  setNewFormValues({
+                    ...currentValues,
+                    monitors: payload.monitors,
+                    hosts: payload.hosts,
+                    kubernetesClusters: payload.kubernetesClusters,
+                    dockerHosts: payload.dockerHosts,
+                    services: payload.services,
+                  } as FormValues<ScheduledMaintenance>);
+                });
+              }
+            },
+          },
+          /*
+           * Hidden registrations so ModelForm.getSelectFields includes
+           * hosts/kubernetesClusters/dockerHosts/services on load and submit.
+           */
+          {
+            field: { hosts: true },
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { kubernetesClusters: true },
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { dockerHosts: true },
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { services: true },
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: ScheduledMaintenance,
+          id: "model-detail-scheduled-maintenance-affected-resources",
+          fields: [
+            {
+              field: {
+                monitors: {
+                  name: true,
+                  _id: true,
+                },
+                hosts: {
+                  name: true,
+                  _id: true,
+                },
+                kubernetesClusters: {
+                  name: true,
+                  _id: true,
+                },
+                dockerHosts: {
+                  name: true,
+                  _id: true,
+                },
+                services: {
+                  name: true,
+                  _id: true,
+                  serviceColor: true,
+                },
+              },
+              title: "",
+              fieldType: FieldType.Element,
+              getElement: (item: ScheduledMaintenance): ReactElement => {
+                return (
+                  <AffectedResourcesDisplay
+                    monitors={item.monitors || []}
+                    hosts={item.hosts || []}
+                    kubernetesClusters={item.kubernetesClusters || []}
+                    dockerHosts={item.dockerHosts || []}
+                    services={item.services || []}
+                  />
+                );
               },
             },
           ],
