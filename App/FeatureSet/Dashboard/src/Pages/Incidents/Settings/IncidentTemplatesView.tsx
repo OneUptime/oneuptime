@@ -1,5 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import MonitorsElement from "../../../Components/Monitor/Monitors";
+import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import TeamElement from "../../../Components/Team/Team";
 import UserElement from "../../../Components/User/User";
@@ -390,11 +390,36 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   name: true,
                   _id: true,
                 },
+                hosts: {
+                  name: true,
+                  _id: true,
+                },
+                kubernetesClusters: {
+                  name: true,
+                  _id: true,
+                },
+                dockerHosts: {
+                  name: true,
+                  _id: true,
+                },
+                services: {
+                  name: true,
+                  _id: true,
+                  serviceColor: true,
+                },
               },
-              title: "Monitors Affected",
+              title: "Resources Affected",
               fieldType: FieldType.Element,
               getElement: (item: IncidentTemplate): ReactElement => {
-                return <MonitorsElement monitors={item["monitors"] || []} />;
+                return (
+                  <AffectedResourcesDisplay
+                    monitors={item.monitors || []}
+                    hosts={item.hosts || []}
+                    kubernetesClusters={item.kubernetesClusters || []}
+                    dockerHosts={item.dockerHosts || []}
+                    services={item.services || []}
+                  />
+                );
               },
             },
             {

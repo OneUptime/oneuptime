@@ -22,6 +22,8 @@ import AlertOwnerTeam from "Common/Models/DatabaseModels/AlertOwnerTeam";
 import AlertOwnerUser from "Common/Models/DatabaseModels/AlertOwnerUser";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorElement from "../Monitor/Monitor";
 import buildAffectedResourcesFacet from "../AffectedResources/buildAffectedResourcesFacet";
 import OwnersCell from "../ResourceOwners/OwnersCell";
 import useResourceOwners, {
@@ -234,10 +236,81 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
         return buildEntityFacetQuery(values, operator, true);
       },
     },
+    {
+      key: "monitor",
+      // Alert.monitor is M2O — filter against the FK column directly.
+      queryField: "monitorId",
+      label: "Monitor",
+      icon: IconProp.AltGlobe,
+      isMultiSelect: true,
+      searchPlaceholder: "Search monitors...",
+      loadOptions: async (
+        projectId: ObjectID,
+        searchTerm: string,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        const query: Query<Monitor> = {
+          projectId: projectId,
+        } as Query<Monitor>;
+        if (searchTerm.trim()) {
+          (query as unknown as Record<string, unknown>)["name"] = new Search(
+            searchTerm.trim(),
+          );
+        }
+        const result: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
+          modelType: Monitor,
+          query: query,
+          limit: 50,
+          skip: 0,
+          select: { _id: true, name: true },
+          sort: { name: SortOrder.Ascending },
+        });
+        return result.data.map((m: Monitor): FilterChipDropdownOption => {
+          return {
+            value: m.id?.toString() || "",
+            label: m.name?.toString() || "",
+            icon: IconProp.AltGlobe,
+          };
+        });
+      },
+      resolveOptions: async (
+        projectId: ObjectID,
+        values: Array<string>,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        if (values.length === 0) {
+          return [];
+        }
+        const result: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
+          modelType: Monitor,
+          query: {
+            projectId: projectId,
+            _id: new Includes(values),
+          } as Query<Monitor>,
+          limit: values.length,
+          skip: 0,
+          select: { _id: true, name: true },
+          sort: {},
+        });
+        return result.data.map((m: Monitor): FilterChipDropdownOption => {
+          return {
+            value: m.id?.toString() || "",
+            label: m.name?.toString() || "",
+            icon: IconProp.AltGlobe,
+          };
+        });
+      },
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildEntityFacetQuery(values, operator, true);
+      },
+    },
     buildAffectedResourcesFacet<Alert>({
       parentModelType: Alert,
       // Alert's monitor relation is M2O — query against the FK column.
       monitorQueryField: "monitorId",
+      // Monitor has its own dedicated facet above; keep it out of this one.
+      excludeMonitor: true,
     }),
   ];
 
@@ -610,17 +683,24 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             },
           },
           {
-            /*
-             * Unified "Resources Affected" cell. Alert.monitor is singular,
-             * so we wrap it in an array; hosts/k8s/docker come from the M2M
-             * relations the picker also writes to.
-             */
             field: {
               monitor: {
                 name: true,
                 _id: true,
                 projectId: true,
               },
+            },
+            title: "Monitor",
+            type: FieldType.Entity,
+            getElement: (item: Alert): ReactElement => {
+              if (!item.monitor) {
+                return <></>;
+              }
+              return <MonitorElement monitor={item.monitor} showIcon={true} />;
+            },
+          },
+          {
+            field: {
               hosts: {
                 name: true,
                 _id: true,
@@ -643,13 +723,12 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 serviceColor: true,
               },
             },
-            title: "Resources Affected",
+            title: "Affected Resources",
             type: FieldType.EntityArray,
 
             getElement: (item: Alert): ReactElement => {
               return (
                 <AffectedResourcesCell
-                  monitors={item.monitor ? [item.monitor] : []}
                   hosts={item.hosts || []}
                   kubernetesClusters={item.kubernetesClusters || []}
                   dockerHosts={item.dockerHosts || []}

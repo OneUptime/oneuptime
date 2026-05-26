@@ -17,6 +17,7 @@ import Email from "../../../Types/Email";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import SsoAuthorizationException from "../../../Types/Exception/SsoAuthorizationException";
+import TenantNotFoundException from "../../../Types/Exception/TenantNotFoundException";
 import HashedString from "../../../Types/HashedString";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
@@ -585,9 +586,9 @@ describe("UserMiddleware", () => {
   describe("getUserTenantAccessPermissionWithTenantId", () => {
     const req: ExpressRequest = {} as ExpressRequest;
 
-    const spyFindOneById: jest.SpyInstance = getJestSpyOn(
+    const spyGetRequireSsoForLogin: jest.SpyInstance = getJestSpyOn(
       ProjectService,
-      "findOneById",
+      "getRequireSsoForLogin",
     );
     const spyDoesSsoTokenForProjectExist: jest.SpyInstance = getJestSpyOn(
       UserMiddleware,
@@ -599,7 +600,9 @@ describe("UserMiddleware", () => {
     });
 
     test("should throw 'Invalid tenantId' error, when project is not found for the tenantId", async () => {
-      spyFindOneById.mockResolvedValueOnce(null);
+      spyGetRequireSsoForLogin.mockRejectedValueOnce(
+        new BadDataException("Project not found"),
+      );
 
       await expect(
         UserMiddleware.getUserTenantAccessPermissionWithTenantId({
@@ -607,23 +610,12 @@ describe("UserMiddleware", () => {
           tenantId: projectId,
           userId,
         }),
-      ).rejects.toThrowError(new BadDataException("Invalid tenantId"));
-      expect(spyFindOneById).toHaveBeenCalledWith({
-        id: projectId,
-        select: {
-          requireSsoForLogin: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      ).rejects.toThrowError(new TenantNotFoundException("Invalid tenantId"));
+      expect(spyGetRequireSsoForLogin).toHaveBeenCalledWith(projectId);
     });
 
     test("should throw SsoAuthorizationException error, when sso login is required but sso token for the projectId does not exist", async () => {
-      spyFindOneById.mockResolvedValueOnce({
-        ...mockedProject,
-        requireSsoForLogin: true,
-      });
+      spyGetRequireSsoForLogin.mockResolvedValueOnce(true);
 
       spyDoesSsoTokenForProjectExist.mockReturnValueOnce(false);
 
@@ -642,7 +634,7 @@ describe("UserMiddleware", () => {
     });
 
     test("should return null when getUserTenantAccessPermission returns null", async () => {
-      spyFindOneById.mockResolvedValueOnce(mockedProject);
+      spyGetRequireSsoForLogin.mockResolvedValueOnce(false);
 
       const spyGetUserTenantAccessPermission: jest.SpyInstance = getJestSpyOn(
         AccessTokenService,
@@ -668,7 +660,7 @@ describe("UserMiddleware", () => {
         projectId,
       } as UserTenantAccessPermission;
 
-      spyFindOneById.mockResolvedValueOnce(mockedProject);
+      spyGetRequireSsoForLogin.mockResolvedValueOnce(false);
 
       const spyGetUserTenantAccessPermission: jest.SpyInstance = getJestSpyOn(
         AccessTokenService,

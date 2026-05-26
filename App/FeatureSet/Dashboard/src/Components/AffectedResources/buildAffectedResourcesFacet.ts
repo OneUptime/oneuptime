@@ -262,6 +262,12 @@ export interface AffectedResourcesFacetOptions<T extends BaseModel> {
    * single-valued (ManyToOne → use the FK column directly with Includes()).
    */
   monitorQueryField?: "monitors" | "monitorId" | undefined;
+  /**
+   * When true, omit the Monitor type from this facet. Used by tables that
+   * expose a separate dedicated Monitor facet (e.g. Alerts) so monitors
+   * don't appear twice in the filter bar.
+   */
+  excludeMonitor?: boolean | undefined;
 }
 
 const buildAffectedResourcesFacet: <T extends BaseModel>(
@@ -271,6 +277,12 @@ const buildAffectedResourcesFacet: <T extends BaseModel>(
 ): ResourceFacet => {
   const monitorField: "monitors" | "monitorId" =
     options.monitorQueryField || "monitors";
+
+  const includedTypes: Array<AffectedResourceType> = options.excludeMonitor
+    ? RESOURCE_ORDER.filter((t: AffectedResourceType): boolean => {
+        return t !== "monitor";
+      })
+    : RESOURCE_ORDER;
 
   return {
     key: "affectedResources",
@@ -288,9 +300,9 @@ const buildAffectedResourcesFacet: <T extends BaseModel>(
       projectId: ObjectID,
       searchTerm: string,
     ): Promise<Array<FilterChipDropdownOption>> => {
-      // Fan out across all 5 types in parallel and group in the dropdown.
+      // Fan out across the included types in parallel and group in the dropdown.
       const results: Array<Array<FilterChipDropdownOption>> = await Promise.all(
-        RESOURCE_ORDER.map(
+        includedTypes.map(
           async (
             type: AffectedResourceType,
           ): Promise<Array<FilterChipDropdownOption>> => {
@@ -332,7 +344,7 @@ const buildAffectedResourcesFacet: <T extends BaseModel>(
         groupSelectionsByType(values);
 
       const results: Array<Array<FilterChipDropdownOption>> = await Promise.all(
-        RESOURCE_ORDER.map(
+        includedTypes.map(
           async (
             type: AffectedResourceType,
           ): Promise<Array<FilterChipDropdownOption>> => {
@@ -383,7 +395,7 @@ const buildAffectedResourcesFacet: <T extends BaseModel>(
        */
       const queries: Array<Promise<Array<string>>> = [];
 
-      for (const type of RESOURCE_ORDER) {
+      for (const type of includedTypes) {
         const ids: Array<string> | undefined = grouped[type];
         if (!ids || ids.length === 0) {
           continue;
