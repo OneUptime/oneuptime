@@ -312,10 +312,7 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass {
         }
       }
 
-      if (
-        inheritFromDockerHosts &&
-        scheduledMaintenance.dockerHosts?.length
-      ) {
+      if (inheritFromDockerHosts && scheduledMaintenance.dockerHosts?.length) {
         const dockerHostIds: Array<ObjectID> = scheduledMaintenance.dockerHosts
           .map((d: DockerHost) => {
             return d.id;
@@ -484,8 +481,7 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass {
             inheritedFromDockerHostTeamIds.size >
           0,
         inheritedFromServices:
-          inheritedFromServiceUserIds.size +
-            inheritedFromServiceTeamIds.size >
+          inheritedFromServiceUserIds.size + inheritedFromServiceTeamIds.size >
           0,
       });
     } catch (error) {

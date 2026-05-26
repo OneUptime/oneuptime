@@ -459,8 +459,7 @@ class AlertOwnerRuleEngineServiceClass {
             inheritedFromDockerHostTeamIds.size >
           0,
         inheritedFromServices:
-          inheritedFromServiceUserIds.size +
-            inheritedFromServiceTeamIds.size >
+          inheritedFromServiceUserIds.size + inheritedFromServiceTeamIds.size >
           0,
       });
     } catch (error) {
