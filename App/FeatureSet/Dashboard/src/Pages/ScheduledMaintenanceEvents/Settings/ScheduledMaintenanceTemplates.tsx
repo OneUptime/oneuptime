@@ -31,10 +31,12 @@ import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArr
 
 type GetTemplateFormFieldsFunction = (data: {
   isViewPage: boolean;
+  excludeAffectedResources?: boolean;
 }) => ModelField<ScheduledMaintenanceTemplate>[];
 
 export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
   isViewPage: boolean;
+  excludeAffectedResources?: boolean;
 }): ModelField<ScheduledMaintenanceTemplate>[] => {
   /*
    * if its the view page then ignore the owner fields
@@ -90,118 +92,126 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
       fieldType: FormFieldSchemaType.Markdown,
       required: true,
     },
-    {
-      field: {
-        monitors: true,
-      },
-      title: "Resources Affected",
-      stepId: "resources-affected",
-      description:
-        "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.",
-      fieldType: FormFieldSchemaType.CustomComponent,
-      required: false,
-      getCustomElement: (
-        values: FormValues<ScheduledMaintenanceTemplate>,
-        elementProps: CustomElementProps,
-      ) => {
-        return (
-          <AffectedResourcesPicker
-            monitors={values.monitors as Array<Monitor>}
-            hosts={values.hosts as Array<Host>}
-            kubernetesClusters={
-              values.kubernetesClusters as Array<KubernetesCluster>
-            }
-            dockerHosts={values.dockerHosts as Array<DockerHost>}
-            services={values.services as Array<Service>}
-            onChange={(payload: unknown) => {
-              elementProps.onChange?.(payload);
-            }}
-          />
-        );
-      },
-      onChange: (
-        value: unknown,
-        currentValues: FormValues<ScheduledMaintenanceTemplate>,
-        setNewFormValues: (
+  ];
+
+  if (!data.excludeAffectedResources) {
+    fields = fields.concat([
+      {
+        field: {
+          monitors: true,
+        },
+        title: "Resources Affected",
+        stepId: "resources-affected",
+        description:
+          "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.",
+        fieldType: FormFieldSchemaType.CustomComponent,
+        required: false,
+        getCustomElement: (
           values: FormValues<ScheduledMaintenanceTemplate>,
-        ) => void,
-      ) => {
-        if (isAffectedResourcesPayload(value)) {
-          const payload: typeof value = value;
-          queueMicrotask(() => {
-            setNewFormValues({
-              ...currentValues,
-              monitors: payload.monitors,
-              hosts: payload.hosts,
-              kubernetesClusters: payload.kubernetesClusters,
-              dockerHosts: payload.dockerHosts,
-              services: payload.services,
-            } as FormValues<ScheduledMaintenanceTemplate>);
-          });
-        }
+          elementProps: CustomElementProps,
+        ) => {
+          return (
+            <AffectedResourcesPicker
+              monitors={values.monitors as Array<Monitor>}
+              hosts={values.hosts as Array<Host>}
+              kubernetesClusters={
+                values.kubernetesClusters as Array<KubernetesCluster>
+              }
+              dockerHosts={values.dockerHosts as Array<DockerHost>}
+              services={values.services as Array<Service>}
+              onChange={(payload: unknown) => {
+                elementProps.onChange?.(payload);
+              }}
+            />
+          );
+        },
+        onChange: (
+          value: unknown,
+          currentValues: FormValues<ScheduledMaintenanceTemplate>,
+          setNewFormValues: (
+            values: FormValues<ScheduledMaintenanceTemplate>,
+          ) => void,
+        ) => {
+          if (isAffectedResourcesPayload(value)) {
+            const payload: typeof value = value;
+            queueMicrotask(() => {
+              setNewFormValues({
+                ...currentValues,
+                monitors: payload.monitors,
+                hosts: payload.hosts,
+                kubernetesClusters: payload.kubernetesClusters,
+                dockerHosts: payload.dockerHosts,
+                services: payload.services,
+              } as FormValues<ScheduledMaintenanceTemplate>);
+            });
+          }
+        },
       },
-    },
-    /*
-     * Hidden registrations so ModelForm.getSelectFields includes
-     * hosts/kubernetesClusters/dockerHosts/services on load and submit.
-     */
-    {
-      field: { hosts: true },
-      stepId: "resources-affected",
-      title: "",
-      fieldType: FormFieldSchemaType.Text,
-      required: false,
-      showIf: () => {
-        return false;
+      /*
+       * Hidden registrations so ModelForm.getSelectFields includes
+       * hosts/kubernetesClusters/dockerHosts/services on load and submit.
+       */
+      {
+        field: { hosts: true },
+        stepId: "resources-affected",
+        title: "",
+        fieldType: FormFieldSchemaType.Text,
+        required: false,
+        showIf: () => {
+          return false;
+        },
       },
-    },
-    {
-      field: { kubernetesClusters: true },
-      stepId: "resources-affected",
-      title: "",
-      fieldType: FormFieldSchemaType.Text,
-      required: false,
-      showIf: () => {
-        return false;
+      {
+        field: { kubernetesClusters: true },
+        stepId: "resources-affected",
+        title: "",
+        fieldType: FormFieldSchemaType.Text,
+        required: false,
+        showIf: () => {
+          return false;
+        },
       },
-    },
-    {
-      field: { dockerHosts: true },
-      stepId: "resources-affected",
-      title: "",
-      fieldType: FormFieldSchemaType.Text,
-      required: false,
-      showIf: () => {
-        return false;
+      {
+        field: { dockerHosts: true },
+        stepId: "resources-affected",
+        title: "",
+        fieldType: FormFieldSchemaType.Text,
+        required: false,
+        showIf: () => {
+          return false;
+        },
       },
-    },
-    {
-      field: { services: true },
-      stepId: "resources-affected",
-      title: "",
-      fieldType: FormFieldSchemaType.Text,
-      required: false,
-      showIf: () => {
-        return false;
+      {
+        field: { services: true },
+        stepId: "resources-affected",
+        title: "",
+        fieldType: FormFieldSchemaType.Text,
+        required: false,
+        showIf: () => {
+          return false;
+        },
       },
-    },
-    {
-      field: {
-        changeMonitorStatusTo: true,
+      {
+        field: {
+          changeMonitorStatusTo: true,
+        },
+        title: "Change Monitor Status to ",
+        stepId: "resources-affected",
+        description:
+          "This will change the status of all the monitors attached when the event starts.",
+        fieldType: FormFieldSchemaType.Dropdown,
+        dropdownModal: {
+          type: MonitorStatus,
+          labelField: "name",
+          valueField: "_id",
+        },
+        required: false,
+        placeholder: "Monitor Status",
       },
-      title: "Change Monitor Status to ",
-      stepId: "resources-affected",
-      description:
-        "This will change the status of all the monitors attached when the event starts.",
-      fieldType: FormFieldSchemaType.Dropdown,
-      dropdownModal: {
-        type: MonitorStatus,
-        labelField: "name",
-        valueField: "_id",
-      },
-      required: false,
-      placeholder: "Monitor Status",
-    },
+    ]);
+  }
+
+  fields = fields.concat([
     {
       field: {
         statusPages: true,
@@ -218,7 +228,7 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
       required: false,
       placeholder: "Select Status Pages",
     },
-  ];
+  ]);
 
   if (!data.isViewPage) {
     fields = fields.concat([
@@ -429,10 +439,12 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
 
 type GetFormStepsFunction = (data: {
   isViewPage: boolean;
+  excludeAffectedResources?: boolean;
 }) => Array<FormStep<ScheduledMaintenanceTemplate>>;
 
 export const getFormSteps: GetFormStepsFunction = (data: {
   isViewPage: boolean;
+  excludeAffectedResources?: boolean;
 }): Array<FormStep<ScheduledMaintenanceTemplate>> => {
   /*
    * if its the view page then ignore the owner fields
@@ -448,15 +460,19 @@ export const getFormSteps: GetFormStepsFunction = (data: {
       title: "Event Details",
       id: "event-info",
     },
-    {
+  ];
+
+  if (!data.excludeAffectedResources) {
+    steps.push({
       title: "Resources Affected",
       id: "resources-affected",
-    },
-    {
-      title: "Status Pages",
-      id: "status-pages",
-    },
-  ];
+    });
+  }
+
+  steps.push({
+    title: "Status Pages",
+    id: "status-pages",
+  });
 
   if (!data.isViewPage) {
     steps.push({

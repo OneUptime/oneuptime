@@ -57,6 +57,261 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 
 If you try the default `standard` preset on a cluster that blocks hostPath, the install fails with a Pod Security error. Re-install with `--set preset=gke-autopilot` (or `eks-fargate`) and it works.
 
+## Tuning resources (CPU & memory)
+
+Every component the agent ships has its own `resources` block in [`values.yaml`](./values.yaml) with conservative defaults — small enough to fit on a modest node, large enough to handle a few hundred pods. Tune them up for larger clusters or heavier workloads.
+
+### Defaults
+
+| Component | values key | Requests (cpu / mem) | Limits (cpu / mem) | Enabled |
+| --- | --- | --- | --- | --- |
+| Metrics & events collector (Deployment) | `deployment.resources` | `200m` / `1Gi` | `1000m` / `4Gi` | always on |
+| Pod log collector — DaemonSet | `logs.resources` | `50m` / `128Mi` | `200m` / `256Mi` | when `logs.mode: daemonset` |
+| Pod log tailer — API mode | `logs.api.resources` | `100m` / `256Mi` | `1000m` / `1Gi` | when `logs.mode: api` |
+| eBPF auto-instrumentation (DaemonSet) | `ebpf.resources` | `100m` / `256Mi` | `1000m` / `1Gi` | on by default |
+| Continuous profiler (DaemonSet) | `profiling.resources` | `200m` / `512Mi` | `2000m` / `2Gi` | opt-in (`profiling.enabled=true`) |
+| Bundled kube-state-metrics (Deployment) | `kubeStateMetrics.resources` | `50m` / `128Mi` | `200m` / `256Mi` | opt-in (`kubeStateMetrics.enabled=true`) |
+
+CPU is in cores (`500m` = half a core). Memory is in bytes (`Mi` = mebibytes, `Gi` = gibibytes). These map straight to the standard Kubernetes [resource requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) on the underlying pods.
+
+### Override with `--set`
+
+For one or two changes at install or upgrade time:
+
+```bash
+helm install oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=<NAME> \
+  --set deployment.resources.requests.cpu=500m \
+  --set deployment.resources.requests.memory=2Gi \
+  --set deployment.resources.limits.cpu=2000m \
+  --set deployment.resources.limits.memory=8Gi \
+  --set ebpf.resources.limits.memory=2Gi
+```
+
+### Override with a values file (recommended for many overrides)
+
+Create a `my-values.yaml` containing only the keys you want to change:
+
+```yaml
+# my-values.yaml
+deployment:
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      cpu: 2000m
+      memory: 8Gi
+
+ebpf:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1500m
+      memory: 2Gi
+
+logs:
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+```
+
+Apply it with `-f`:
+
+```bash
+helm install oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=<NAME> \
+  -f my-values.yaml
+```
+
+> **Already installed?** Use `helm upgrade oneuptime-agent oneuptime/kubernetes-agent --namespace oneuptime-kubernetes-agent --reset-then-reuse-values -f my-values.yaml` to apply new resource values without losing your existing settings. Don't use plain `--reuse-values` — see [Upgrading](#upgrading) for why.
+
+### Recommended sizing
+
+Pick the tier closest to your cluster as a starting point, then watch `kubectl top pod -n oneuptime-kubernetes-agent` and adjust.
+
+| Tier | Cluster size | Notes |
+| --- | --- | --- |
+| **Small** | ≤ 10 nodes, ≤ 200 pods | Dev, staging, homelab. Tighten defaults to free node capacity. |
+| **Medium** | 10–50 nodes, 200–1 000 pods | Chart defaults already target this tier — no override file needed. |
+| **Large** | 50–200 nodes, 1 000–5 000 pods | Add headroom for the metrics collector and per-node DaemonSets. |
+| **Extra-large** | 200+ nodes, 5 000+ pods | Scale the metrics collector and shard the API-mode log tailer. |
+
+#### Small (≤ 10 nodes)
+
+```yaml
+# small.yaml
+deployment:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 2Gi
+
+ebpf:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+logs:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+```
+
+#### Medium (10–50 nodes)
+
+Chart defaults are sized for this tier — no override file needed. See the [defaults table](#defaults).
+
+#### Large (50–200 nodes)
+
+```yaml
+# large.yaml
+deployment:
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      cpu: 2000m
+      memory: 8Gi
+
+ebpf:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1500m
+      memory: 2Gi
+
+logs:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# Only if you've enabled kube-state-metrics
+kubeStateMetrics:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# Only if you've enabled continuous profiling
+profiling:
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 3000m
+      memory: 3Gi
+```
+
+#### Extra-large (200+ nodes)
+
+```yaml
+# xl.yaml
+deployment:
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 4Gi
+    limits:
+      cpu: 4000m
+      memory: 16Gi
+
+ebpf:
+  resources:
+    requests:
+      cpu: 300m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 3Gi
+
+logs:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  # Only relevant in API mode — shard the tailer across replicas
+  api:
+    replicas: 4
+
+# Only if you've enabled kube-state-metrics
+kubeStateMetrics:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+# Only if you've enabled continuous profiling
+profiling:
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 4000m
+      memory: 4Gi
+```
+
+Apply any of these with `-f`:
+
+```bash
+helm install oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=<NAME> \
+  -f large.yaml
+```
+
+> These are conservative starting points. Real usage depends on pod density per node, request volume (for eBPF), and how many distinct process types are running. After install, watch `kubectl top pod -n oneuptime-kubernetes-agent` for ~24 hours and set limits to roughly 1.5× observed peak.
+
+### When to tune
+
+- **Large clusters (1000+ pods):** raise `deployment.resources.limits.memory` first — the metrics collector batches every series in memory, and an OOM there leaves gaps in your dashboards. `2–8Gi` is typical for production.
+- **eBPF DaemonSet restarting or throttled:** raise `ebpf.resources.limits`. Confirm with `kubectl top pod -n oneuptime-kubernetes-agent` and check the OBI pod's restart count.
+- **API-mode log tailer falling behind:** shard first with `--set logs.api.replicas=2` (or more) — one replica handles a few thousand containers. Only raise per-pod limits if a single replica is still saturated after sharding.
+- **Profiling on dense nodes:** raise `profiling.resources.limits`. Flame-graph stack unwinding is the heaviest workload the agent runs.
+- **Bundled kube-state-metrics on large clusters:** scale `kubeStateMetrics.resources` with object count — KSM holds the whole cluster state in memory.
+
+After installing or upgrading, run `kubectl top pod -n oneuptime-kubernetes-agent` to see actual CPU/memory usage versus your limits and adjust from there.
+
 ## Configuration reference
 
 ### Required

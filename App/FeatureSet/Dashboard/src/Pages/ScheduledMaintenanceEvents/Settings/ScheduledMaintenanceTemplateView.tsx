@@ -1,5 +1,8 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
+import AffectedResourcesPicker, {
+  isAffectedResourcesPayload,
+} from "../../../Components/AffectedResources/AffectedResourcesPicker";
 import TeamElement from "../../../Components/Team/Team";
 import UserElement from "../../../Components/User/User";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -11,6 +14,8 @@ import Route from "Common/Types/API/Route";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -19,6 +24,12 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ScheduledMaintenanceTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplate";
 import ScheduledMaintenanceTemplateOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerTeam";
 import ScheduledMaintenanceTemplateOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerUser";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import Host from "Common/Models/DatabaseModels/Host";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import Service from "Common/Models/DatabaseModels/Service";
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
@@ -48,9 +59,11 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isEditable={true}
         formSteps={getFormSteps({
           isViewPage: true,
+          excludeAffectedResources: true,
         })}
         formFields={getTemplateFormFields({
           isViewPage: true,
+          excludeAffectedResources: true,
         })}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
@@ -96,46 +109,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               title: "Scheduled Maintenance Description",
               fieldType: FieldType.Markdown,
-            },
-            {
-              field: {
-                monitors: {
-                  name: true,
-                  _id: true,
-                },
-                hosts: {
-                  name: true,
-                  _id: true,
-                },
-                kubernetesClusters: {
-                  name: true,
-                  _id: true,
-                },
-                dockerHosts: {
-                  name: true,
-                  _id: true,
-                },
-                services: {
-                  name: true,
-                  _id: true,
-                  serviceColor: true,
-                },
-              },
-              title: "Resources Affected",
-              fieldType: FieldType.Element,
-              getElement: (
-                item: ScheduledMaintenanceTemplate,
-              ): ReactElement => {
-                return (
-                  <AffectedResourcesDisplay
-                    monitors={item.monitors || []}
-                    hosts={item.hosts || []}
-                    kubernetesClusters={item.kubernetesClusters || []}
-                    dockerHosts={item.dockerHosts || []}
-                    services={item.services || []}
-                  />
-                );
-              },
             },
             {
               field: {
@@ -297,6 +270,172 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 item: ScheduledMaintenanceTemplate,
               ): ReactElement => {
                 return <LabelsElement labels={item["labels"] || []} />;
+              },
+            },
+          ],
+          modelId: modelId,
+        }}
+      />
+
+      <CardModelDetail<ScheduledMaintenanceTemplate>
+        name="Affected Resources"
+        cardProps={{
+          title: "Affected Resources",
+          description:
+            "Monitors, hosts, Kubernetes clusters, Docker hosts, and services that events created from this template should pre-populate.",
+        }}
+        isEditable={true}
+        formFields={[
+          {
+            field: {
+              monitors: true,
+            },
+            title: "",
+            description:
+              "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.",
+            fieldType: FormFieldSchemaType.CustomComponent,
+            required: false,
+            getCustomElement: (
+              values: FormValues<ScheduledMaintenanceTemplate>,
+              elementProps: CustomElementProps,
+            ) => {
+              return (
+                <AffectedResourcesPicker
+                  monitors={values.monitors as Array<Monitor>}
+                  hosts={values.hosts as Array<Host>}
+                  kubernetesClusters={
+                    values.kubernetesClusters as Array<KubernetesCluster>
+                  }
+                  dockerHosts={values.dockerHosts as Array<DockerHost>}
+                  services={values.services as Array<Service>}
+                  onChange={(payload: unknown) => {
+                    elementProps.onChange?.(payload);
+                  }}
+                />
+              );
+            },
+            onChange: (
+              value: unknown,
+              currentValues: FormValues<ScheduledMaintenanceTemplate>,
+              setNewFormValues: (
+                values: FormValues<ScheduledMaintenanceTemplate>,
+              ) => void,
+            ) => {
+              if (isAffectedResourcesPayload(value)) {
+                const payload: typeof value = value;
+                queueMicrotask(() => {
+                  setNewFormValues({
+                    ...currentValues,
+                    monitors: payload.monitors,
+                    hosts: payload.hosts,
+                    kubernetesClusters: payload.kubernetesClusters,
+                    dockerHosts: payload.dockerHosts,
+                    services: payload.services,
+                  } as FormValues<ScheduledMaintenanceTemplate>);
+                });
+              }
+            },
+          },
+          /*
+           * Hidden registrations so ModelForm.getSelectFields includes
+           * hosts/kubernetesClusters/dockerHosts/services on load and submit.
+           */
+          {
+            field: { hosts: true },
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { kubernetesClusters: true },
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { dockerHosts: true },
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { services: true },
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: {
+              changeMonitorStatusTo: true,
+            },
+            title: "Change Monitor Status to ",
+            description:
+              "This will change the status of all the monitors attached when the event starts.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: MonitorStatus,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Monitor Status",
+          },
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: ScheduledMaintenanceTemplate,
+          id: "model-detail-scheduled-maintenance-template-affected-resources",
+          fields: [
+            {
+              field: {
+                monitors: {
+                  name: true,
+                  _id: true,
+                },
+                hosts: {
+                  name: true,
+                  _id: true,
+                },
+                kubernetesClusters: {
+                  name: true,
+                  _id: true,
+                },
+                dockerHosts: {
+                  name: true,
+                  _id: true,
+                },
+                services: {
+                  name: true,
+                  _id: true,
+                  serviceColor: true,
+                },
+              },
+              title: "",
+              fieldType: FieldType.Element,
+              getElement: (
+                item: ScheduledMaintenanceTemplate,
+              ): ReactElement => {
+                return (
+                  <AffectedResourcesDisplay
+                    monitors={item.monitors || []}
+                    hosts={item.hosts || []}
+                    kubernetesClusters={item.kubernetesClusters || []}
+                    dockerHosts={item.dockerHosts || []}
+                    services={item.services || []}
+                  />
+                );
               },
             },
           ],
