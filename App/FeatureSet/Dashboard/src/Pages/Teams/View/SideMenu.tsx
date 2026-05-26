@@ -28,7 +28,7 @@ const TeamViewSideMenu: FunctionComponent<ComponentProps> = (
           link: {
             title: "Team Details",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_TEAM_VIEW] as Route,
+              RouteMap[PageMap.TEAM_VIEW] as Route,
               { modelId: props.modelId },
             ),
           },
@@ -43,7 +43,7 @@ const TeamViewSideMenu: FunctionComponent<ComponentProps> = (
           link: {
             title: "Members",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_TEAM_VIEW_MEMBERS] as Route,
+              RouteMap[PageMap.TEAM_VIEW_MEMBERS] as Route,
               { modelId: props.modelId },
             ),
           },
@@ -53,7 +53,7 @@ const TeamViewSideMenu: FunctionComponent<ComponentProps> = (
           link: {
             title: "Permissions",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_TEAM_VIEW_PERMISSIONS] as Route,
+              RouteMap[PageMap.TEAM_VIEW_PERMISSIONS] as Route,
               { modelId: props.modelId },
             ),
           },
@@ -63,7 +63,7 @@ const TeamViewSideMenu: FunctionComponent<ComponentProps> = (
           link: {
             title: "Block Permissions",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_TEAM_VIEW_BLOCK_PERMISSIONS] as Route,
+              RouteMap[PageMap.TEAM_VIEW_BLOCK_PERMISSIONS] as Route,
               { modelId: props.modelId },
             ),
           },
@@ -81,7 +81,7 @@ const TeamViewSideMenu: FunctionComponent<ComponentProps> = (
           link: {
             title: "Compliance",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_TEAM_VIEW_COMPLIANCE] as Route,
+              RouteMap[PageMap.TEAM_VIEW_COMPLIANCE] as Route,
               { modelId: props.modelId },
             ),
           },
@@ -98,7 +98,7 @@ const TeamViewSideMenu: FunctionComponent<ComponentProps> = (
         link: {
           title: "Delete Team",
           to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.SETTINGS_TEAM_VIEW_DELETE] as Route,
+            RouteMap[PageMap.TEAM_VIEW_DELETE] as Route,
             { modelId: props.modelId },
           ),
         },

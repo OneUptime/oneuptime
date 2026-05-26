@@ -485,29 +485,33 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_SSO]: "sso",
   [PageMap.SETTINGS_OIDC]: "oidc",
   [PageMap.SETTINGS_SCIM]: "scim",
-  [PageMap.SETTINGS_TEAMS]: "teams",
-  [PageMap.SETTINGS_USERS]: "users",
-  [PageMap.SETTINGS_USER_CUSTOM_FIELDS]: "user-custom-fields",
-  [PageMap.SETTINGS_USER_VIEW]: `users/${RouteParams.ModelID}`,
-  [PageMap.SETTINGS_USER_VIEW_TEAMS]: `users/${RouteParams.ModelID}/teams`,
-  [PageMap.SETTINGS_USER_VIEW_CUSTOM_FIELDS]: `users/${RouteParams.ModelID}/custom-fields`,
-  [PageMap.SETTINGS_USER_VIEW_DELETE]: `users/${RouteParams.ModelID}/delete`,
-
   [PageMap.SETTINGS_BILLING]: "billing",
   [PageMap.SETTINGS_BILLING_INVOICES]: "invoices",
   [PageMap.SETTINGS_USAGE_HISTORY]: "usage-history",
-  [PageMap.SETTINGS_TEAM_VIEW]: `teams/${RouteParams.ModelID}`,
-  [PageMap.SETTINGS_TEAM_VIEW_MEMBERS]: `teams/${RouteParams.ModelID}/members`,
-  [PageMap.SETTINGS_TEAM_VIEW_PERMISSIONS]: `teams/${RouteParams.ModelID}/permissions`,
-  [PageMap.SETTINGS_TEAM_VIEW_BLOCK_PERMISSIONS]: `teams/${RouteParams.ModelID}/block-permissions`,
-  [PageMap.SETTINGS_TEAM_VIEW_COMPLIANCE]: `teams/${RouteParams.ModelID}/compliance`,
-  [PageMap.SETTINGS_TEAM_VIEW_DELETE]: `teams/${RouteParams.ModelID}/delete`,
   [PageMap.SETTINGS_LABELS]: "labels",
   [PageMap.SETTINGS_AI_AGENTS]: "ai-agents",
   [PageMap.SETTINGS_AI_AGENT_VIEW]: `ai-agents/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_LLM_PROVIDERS]: "llm-provider",
   [PageMap.SETTINGS_LLM_PROVIDER_VIEW]: `llm-provider/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_AI_BILLING]: "ai-credits",
+};
+
+export const UsersRoutePath: Dictionary<string> = {
+  [PageMap.USER_CUSTOM_FIELDS]: "custom-fields",
+
+  [PageMap.USER_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.USER_VIEW_TEAMS]: `${RouteParams.ModelID}/teams`,
+  [PageMap.USER_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
+  [PageMap.USER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+};
+
+export const TeamsRoutePath: Dictionary<string> = {
+  [PageMap.TEAM_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.TEAM_VIEW_MEMBERS]: `${RouteParams.ModelID}/members`,
+  [PageMap.TEAM_VIEW_PERMISSIONS]: `${RouteParams.ModelID}/permissions`,
+  [PageMap.TEAM_VIEW_BLOCK_PERMISSIONS]: `${RouteParams.ModelID}/block-permissions`,
+  [PageMap.TEAM_VIEW_COMPLIANCE]: `${RouteParams.ModelID}/compliance`,
+  [PageMap.TEAM_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
 };
 
 export const OnCallDutyRoutePath: Dictionary<string> = {
@@ -3102,6 +3106,86 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  // Users Routes (top-level)
+  [PageMap.USERS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/users/*`,
+  ),
+
+  [PageMap.USERS]: new Route(`/dashboard/${RouteParams.ProjectID}/users`),
+
+  [PageMap.USER_CUSTOM_FIELDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/users/${
+      UsersRoutePath[PageMap.USER_CUSTOM_FIELDS]
+    }`,
+  ),
+
+  [PageMap.USER_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/users/${
+      UsersRoutePath[PageMap.USER_VIEW]
+    }`,
+  ),
+
+  [PageMap.USER_VIEW_TEAMS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/users/${
+      UsersRoutePath[PageMap.USER_VIEW_TEAMS]
+    }`,
+  ),
+
+  [PageMap.USER_VIEW_CUSTOM_FIELDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/users/${
+      UsersRoutePath[PageMap.USER_VIEW_CUSTOM_FIELDS]
+    }`,
+  ),
+
+  [PageMap.USER_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/users/${
+      UsersRoutePath[PageMap.USER_VIEW_DELETE]
+    }`,
+  ),
+
+  // Teams Routes (top-level)
+  [PageMap.TEAMS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/teams/*`,
+  ),
+
+  [PageMap.TEAMS]: new Route(`/dashboard/${RouteParams.ProjectID}/teams`),
+
+  [PageMap.TEAM_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/teams/${
+      TeamsRoutePath[PageMap.TEAM_VIEW]
+    }`,
+  ),
+
+  [PageMap.TEAM_VIEW_MEMBERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/teams/${
+      TeamsRoutePath[PageMap.TEAM_VIEW_MEMBERS]
+    }`,
+  ),
+
+  [PageMap.TEAM_VIEW_PERMISSIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/teams/${
+      TeamsRoutePath[PageMap.TEAM_VIEW_PERMISSIONS]
+    }`,
+  ),
+
+  [PageMap.TEAM_VIEW_BLOCK_PERMISSIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/teams/${
+      TeamsRoutePath[PageMap.TEAM_VIEW_BLOCK_PERMISSIONS]
+    }`,
+  ),
+
+  [PageMap.TEAM_VIEW_COMPLIANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/teams/${
+      TeamsRoutePath[PageMap.TEAM_VIEW_COMPLIANCE]
+    }`,
+  ),
+
+  [PageMap.TEAM_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/teams/${
+      TeamsRoutePath[PageMap.TEAM_VIEW_DELETE]
+    }`,
+  ),
+
   // Settings Routes
   [PageMap.SETTINGS_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/*`,
@@ -3224,48 +3308,6 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.SETTINGS_TEAMS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_TEAMS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_USERS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_USERS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_USER_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_USER_VIEW]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_USER_CUSTOM_FIELDS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_USER_CUSTOM_FIELDS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_USER_VIEW_TEAMS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_USER_VIEW_TEAMS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_USER_VIEW_CUSTOM_FIELDS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_USER_VIEW_CUSTOM_FIELDS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_USER_VIEW_DELETE]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_USER_VIEW_DELETE]
-    }`,
-  ),
-
   [PageMap.SETTINGS_BILLING]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_BILLING]
@@ -3281,42 +3323,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_USAGE_HISTORY]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_USAGE_HISTORY]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_TEAM_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_TEAM_VIEW]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_TEAM_VIEW_MEMBERS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_TEAM_VIEW_MEMBERS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_TEAM_VIEW_PERMISSIONS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_TEAM_VIEW_PERMISSIONS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_TEAM_VIEW_BLOCK_PERMISSIONS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_TEAM_VIEW_BLOCK_PERMISSIONS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_TEAM_VIEW_COMPLIANCE]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_TEAM_VIEW_COMPLIANCE]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_TEAM_VIEW_DELETE]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_TEAM_VIEW_DELETE]
     }`,
   ),
 

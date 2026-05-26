@@ -22,7 +22,7 @@ const UserViewDelete: FunctionComponent<
         }}
         onActionComplete={() => {
           Navigation.navigate(
-            RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS_USERS]!),
+            RouteUtil.populateRouteParams(RouteMap[PageMap.USERS]!),
           );
         }}
       />

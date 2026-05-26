@@ -611,8 +611,16 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     item: AffectedResourceItem,
   ): void => {
     notify([...selected, item]);
+    /*
+     * Clear the query so the popover snaps back to the empty-search
+     * suggestion list. We intentionally DO NOT clear searchResults — when
+     * searchQuery was already empty, the fetch effect's deps don't fire
+     * again, and an empty searchResults leaves the popover stuck showing
+     * "No resources available" even though the project has plenty more
+     * to offer. availableResults filters out the just-picked item, so the
+     * UI updates correctly without an extra round-trip.
+     */
     setSearchQuery("");
-    setSearchResults([]);
     inputRef.current?.focus();
   };
 

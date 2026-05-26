@@ -1,4 +1,4 @@
-import { getSettingsBreadcrumbs } from "../../../Utils/Breadcrumbs/SettingsBreadcrumbs";
+import { getTeamsBreadcrumbs } from "../../../Utils/Breadcrumbs/TeamsBreadcrumbs";
 import { RouteUtil } from "../../../Utils/RouteMap";
 import TeamViewSideMenu from "./SideMenu";
 import ObjectID from "Common/Types/ObjectID";

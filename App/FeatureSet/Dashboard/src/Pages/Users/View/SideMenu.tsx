@@ -24,7 +24,7 @@ const UserViewSideMenu: FunctionComponent<ComponentProps> = (
           link: {
             title: "Profile",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_USER_VIEW] as Route,
+              RouteMap[PageMap.USER_VIEW] as Route,
               { modelId: props.modelId },
             ),
           },
@@ -39,7 +39,7 @@ const UserViewSideMenu: FunctionComponent<ComponentProps> = (
           link: {
             title: "Teams",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_USER_VIEW_TEAMS] as Route,
+              RouteMap[PageMap.USER_VIEW_TEAMS] as Route,
               { modelId: props.modelId },
             ),
           },
@@ -57,7 +57,7 @@ const UserViewSideMenu: FunctionComponent<ComponentProps> = (
           link: {
             title: "Custom Fields",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_USER_VIEW_CUSTOM_FIELDS] as Route,
+              RouteMap[PageMap.USER_VIEW_CUSTOM_FIELDS] as Route,
               { modelId: props.modelId },
             ),
           },
@@ -74,7 +74,7 @@ const UserViewSideMenu: FunctionComponent<ComponentProps> = (
         link: {
           title: "Remove from Project",
           to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.SETTINGS_USER_VIEW_DELETE] as Route,
+            RouteMap[PageMap.USER_VIEW_DELETE] as Route,
             { modelId: props.modelId },
           ),
         },

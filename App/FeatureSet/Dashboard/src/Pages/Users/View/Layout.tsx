@@ -1,4 +1,4 @@
-import { getSettingsBreadcrumbs } from "../../../Utils/Breadcrumbs/SettingsBreadcrumbs";
+import { getUsersBreadcrumbs } from "../../../Utils/Breadcrumbs/UsersBreadcrumbs";
 import { RouteUtil } from "../../../Utils/RouteMap";
 import UserViewSideMenu from "./SideMenu";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -96,7 +96,7 @@ const UserViewLayout: FunctionComponent = (): ReactElement => {
   return (
     <Page
       title={title}
-      breadcrumbLinks={getSettingsBreadcrumbs(path)}
+      breadcrumbLinks={getUsersBreadcrumbs(path)}
       sideMenu={
         <UserViewSideMenu modelId={userId} hasCustomFields={hasCustomFields} />
       }
