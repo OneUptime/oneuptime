@@ -5,6 +5,7 @@ import PageComponentProps from "../../PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ScheduledMaintenanceTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplate";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -499,6 +500,7 @@ const ScheduledMaintenanceTemplates: FunctionComponent<PageComponentProps> = (
         isEditable={false}
         isCreateable={true}
         isViewable={true}
+        createEditModalWidth={ModalWidth.Large}
         cardProps={{
           title: "Scheduled Maintenance Templates",
           description:

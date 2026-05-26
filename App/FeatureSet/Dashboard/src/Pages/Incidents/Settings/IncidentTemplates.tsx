@@ -5,6 +5,7 @@ import PageComponentProps from "../../PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
@@ -93,6 +94,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
         isEditable={false}
         isCreateable={true}
         isViewable={true}
+        createEditModalWidth={ModalWidth.Large}
         cardProps={{
           title: "Incident Templates",
           description:
