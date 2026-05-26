@@ -143,11 +143,17 @@ const IncidentCreate: FunctionComponent<
             description: true,
             incidentSeverityId: true,
             initialIncidentStateId: true,
-            monitors: true,
-            hosts: true,
-            kubernetesClusters: true,
-            dockerHosts: true,
-            services: true,
+            /*
+             * Pull `name` alongside `_id` for every affected-resource
+             * relation. `relation: true` on the server collapses to
+             * `{ _id: true }` for security, which leaves the picker with
+             * IDs only and forces its "Unnamed Monitor" fallback.
+             */
+            monitors: { _id: true, name: true },
+            hosts: { _id: true, name: true },
+            kubernetesClusters: { _id: true, name: true },
+            dockerHosts: { _id: true, name: true },
+            services: { _id: true, name: true },
             onCallDutyPolicies: true,
             labels: true,
             changeMonitorStatusToId: true,
@@ -190,24 +196,44 @@ const IncidentCreate: FunctionComponent<
           incidentSeverity: incidentTemplate.incidentSeverityId?.toString(),
           currentIncidentState:
             incidentTemplate.initialIncidentStateId?.toString(),
+          /*
+           * Keep `{_id, name}` shape (not bare ID strings) so the picker can
+           * render the resource's real name on first paint and seed its
+           * name cache for subsequent picker writes.
+           */
           monitors: incidentTemplate.monitors?.map((monitor: Monitor) => {
-            return monitor.id!.toString();
+            return {
+              _id: monitor.id!.toString(),
+              name: monitor.name || "",
+            };
           }),
           hosts: incidentTemplate.hosts?.map((host: Host) => {
-            return host.id!.toString();
+            return {
+              _id: host.id!.toString(),
+              name: host.name || "",
+            };
           }),
           kubernetesClusters: incidentTemplate.kubernetesClusters?.map(
             (cluster: KubernetesCluster) => {
-              return cluster.id!.toString();
+              return {
+                _id: cluster.id!.toString(),
+                name: cluster.name || "",
+              };
             },
           ),
           dockerHosts: incidentTemplate.dockerHosts?.map(
             (dockerHost: DockerHost) => {
-              return dockerHost.id!.toString();
+              return {
+                _id: dockerHost.id!.toString(),
+                name: dockerHost.name || "",
+              };
             },
           ),
           services: incidentTemplate.services?.map((service: Service) => {
-            return service.id!.toString();
+            return {
+              _id: service.id!.toString(),
+              name: service.name || "",
+            };
           }),
           labels: incidentTemplate.labels?.map((label: Label) => {
             return label.id!.toString();
