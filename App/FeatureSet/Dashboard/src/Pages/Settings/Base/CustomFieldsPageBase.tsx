@@ -40,6 +40,7 @@ export type CustomFieldsBaseModels =
   | IncidentCustomField
   | ScheduledMaintenanceCustomField
   | OnCallDutyPolicyCustomField
+  | TeamCustomField
   | TeamMemberCustomField;
 
 export interface ComponentProps<CustomFieldsBaseModels>
