@@ -86,6 +86,26 @@ const DocsFeatureSet: FeatureSet = {
       res.redirect(`/docs/${lang}/introduction/getting-started`);
     });
 
+    /*
+     * Backward-compat: the legacy Chinese code "zh" was renamed to "zh-CN"
+     * when Traditional Chinese ("zh-TW") was added. Permanently redirect old
+     * URLs so existing search-indexed and bookmarked links keep working.
+     */
+    app.get("/docs/zh", (_req: ExpressRequest, res: ExpressResponse) => {
+      return res.redirect(301, "/docs/zh-CN");
+    });
+    app.get("/docs/zh/*", (req: ExpressRequest, res: ExpressResponse) => {
+      const rest: string = req.path.slice("/docs/zh/".length);
+      return res.redirect(301, `/docs/zh-CN/${rest}`);
+    });
+    app.get(
+      "/docs/as-markdown/zh/*",
+      (req: ExpressRequest, res: ExpressResponse) => {
+        const rest: string = req.path.slice("/docs/as-markdown/zh/".length);
+        return res.redirect(301, `/docs/as-markdown/zh-CN/${rest}`);
+      },
+    );
+
     // /docs/:lang — redirect to that language's getting-started page.
     app.get(
       "/docs/:lang",

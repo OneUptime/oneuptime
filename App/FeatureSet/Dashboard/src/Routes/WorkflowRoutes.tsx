@@ -16,6 +16,7 @@ import WorkflowDelete from "../Pages/Workflow/View/Delete";
 import WorkflowBuilder from "../Pages/Workflow/View/Builder";
 import WorkflowOverview from "../Pages/Workflow/View/Index";
 import WorkflowOwners from "../Pages/Workflow/View/Owners";
+import WorkflowAuditLogs from "../Pages/Workflow/View/AuditLogs";
 import WorkflowVariables from "../Pages/Workflow/View/Variable";
 import WorkflowSettings from "../Pages/Workflow/View/Settings";
 import WorkflowSettingsOwnerRules from "../Pages/Workflow/Settings/OwnerRules";
@@ -141,6 +142,16 @@ const WorkflowRoutes: FunctionComponent<ComponentProps> = (
             <WorkflowOwners
               {...props}
               pageRoute={RouteMap[PageMap.WORKFLOW_VIEW_OWNERS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.WORKFLOW_VIEW_AUDIT_LOGS)}
+          element={
+            <WorkflowAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.WORKFLOW_VIEW_AUDIT_LOGS] as Route}
             />
           }
         />

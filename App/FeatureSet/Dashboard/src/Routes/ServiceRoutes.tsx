@@ -27,6 +27,8 @@ import ServiceViewSettings from "../Pages/Service/View/Settings";
 
 import ServiceViewOwners from "../Pages/Service/View/Owners";
 
+import ServiceViewAuditLogs from "../Pages/Service/View/AuditLogs";
+
 import ServiceViewCodeRepositories from "../Pages/Service/View/CodeRepositories";
 
 import ServiceViewIncidents from "../Pages/Service/View/Incidents";
@@ -216,6 +218,16 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE] as Route
               }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_AUDIT_LOGS)}
+          element={
+            <ServiceViewAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_AUDIT_LOGS] as Route}
             />
           }
         />

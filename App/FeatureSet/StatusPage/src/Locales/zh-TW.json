@@ -1,0 +1,256 @@
+{
+  "common": {
+    "save": "儲存",
+    "cancel": "取消",
+    "submit": "送出",
+    "close": "關閉",
+    "back": "返回",
+    "next": "下一步",
+    "loading": "載入中...",
+    "search": "搜尋",
+    "edit": "編輯",
+    "delete": "刪除",
+    "yes": "是",
+    "no": "否",
+    "statusPage": "狀態頁"
+  },
+  "language": {
+    "label": "語言",
+    "switchLanguage": "切換語言"
+  },
+  "nav": {
+    "overview": "總覽",
+    "incidents": "事件",
+    "announcements": "公告",
+    "scheduledEvents": "排定事件",
+    "subscribe": "訂閱",
+    "login": "登入",
+    "logout": "登出"
+  },
+  "overview": {
+    "uptimeSuffix": "% 正常運作時間",
+    "operational": "運作中",
+    "noResourcesInGroup": "此群組中未新增任何資源。",
+    "activeIncidents": "進行中事件",
+    "scheduledMaintenanceEvents": "排定維護事件",
+    "allClearTitle": "一切正常",
+    "allClearDescription": "此狀態頁尚未新增任何資源。請從控制台新增一些資源。",
+    "allResourcesAre": "所有資源{{status}}",
+    "someResourcesAre": "部分資源{{status}}",
+    "someResourcesAreUnder": "部分資源處於{{status}}狀態"
+  },
+  "eventItem": {
+    "affectedResources": "受影響的資源",
+    "stateChangedTo": "狀態已變更為",
+    "view": "檢視{{eventType}}",
+    "updateTo": "此{{eventType}}的更新",
+    "postedOn": "發佈於"
+  },
+  "monitorOverview": {
+    "daysAgo": "{{days}} 天前",
+    "today": "今天",
+    "notAvailable": "無法使用"
+  },
+  "incidents": {
+    "title": "事件",
+    "singular": "事件",
+    "active": "進行中事件",
+    "resolved": "已解決事件",
+    "none": "無事件",
+    "noneDescription": "此狀態頁未發佈任何事件。",
+    "postmortem": "事件事後分析",
+    "declaredAt": "宣告於 ",
+    "report": "事件報告",
+    "notFound": "在此狀態頁上找不到此事件。"
+  },
+  "episodes": {
+    "report": "事件片段報告",
+    "none": "無事件片段",
+    "notFound": "在此狀態頁上找不到事件片段。"
+  },
+  "announcements": {
+    "title": "公告",
+    "singular": "公告",
+    "active": "進行中公告",
+    "past": "過往公告",
+    "none": "無公告",
+    "noneDescription": "此頁面尚未發佈任何公告。",
+    "announcedAt": "公告於 ",
+    "notFound": "在此狀態頁上找不到此公告。"
+  },
+  "scheduledEvents": {
+    "title": "排定事件",
+    "singular": "排定事件",
+    "scheduledMaintenance": "排定維護",
+    "ongoing": "進行中的事件",
+    "upcoming": "排定事件",
+    "completed": "已完成的事件",
+    "none": "無排定事件",
+    "noneDescription": "此狀態頁未發佈任何排定事件。",
+    "scheduledAt": "排定於 ",
+    "report": "排定事件報告",
+    "notFound": "在此狀態頁上找不到排定事件。"
+  },
+  "subscribe": {
+    "title": "訂閱",
+    "submit": "訂閱",
+    "newSubscription": "新訂閱",
+    "manageExisting": "管理現有訂閱",
+    "sendManagementLink": "傳送管理連結",
+    "subscribedSuccessfully": "您已成功訂閱。",
+    "emailSentCheckSpam": "一封包含連結的電子郵件已傳送到您的信箱。如果您看不到該郵件，請檢查您的垃圾郵件資料夾。",
+    "menu": {
+      "email": "電子郵件",
+      "sms": "簡訊",
+      "slack": "Slack",
+      "microsoftTeams": "MS Teams",
+      "webhooks": "Webhook"
+    },
+    "email": {
+      "title": "透過電子郵件訂閱",
+      "description": "我們所有的更新都將傳送到此電子郵件地址。",
+      "yourEmail": "您的電子郵件",
+      "placeholder": "subscriber@company.cn",
+      "managePrompt": "請輸入您訂閱時使用的電子郵件",
+      "manageDescription": "我們將把訂閱管理連結傳送到此電子郵件。",
+      "managePlaceholder": "email@yourcompany.cn"
+    },
+    "sms": {
+      "title": "透過簡訊訂閱",
+      "description": "我們所有的更新都將傳送到此電話號碼。",
+      "yourPhoneNumber": "您的電話號碼",
+      "placeholder": "+8613800138000",
+      "managePrompt": "請輸入您訂閱時使用的電話號碼",
+      "manageDescription": "我們將把訂閱管理連結傳送到此電話號碼。"
+    },
+    "slack": {
+      "title": "透過 Slack 訂閱",
+      "description": "我們所有的更新都將傳送到此 Slack Webhook。",
+      "workspaceName": "Slack 工作區名稱",
+      "workspaceNameDescription": "輸入您的 Slack 工作區名稱以進行驗證。",
+      "workspaceNamePlaceholder": "my-company-workspace",
+      "webhookUrl": "Slack Incoming Webhook URL",
+      "webhookUrlDescription": "狀態頁更新將傳送到此 Slack Webhook。",
+      "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
+      "managePrompt": "請輸入您訂閱時使用的 Slack 工作區名稱",
+      "manageDescription": "我們將把訂閱管理連結傳送到此工作區。"
+    },
+    "microsoftTeams": {
+      "title": "透過 Microsoft Teams 訂閱",
+      "description": "我們所有的更新都將傳送到此 Teams Webhook。",
+      "workspaceName": "Microsoft Teams 工作區名稱",
+      "workspaceNameDescription": "輸入您的 Microsoft Teams 工作區名稱以進行驗證。",
+      "workspaceNamePlaceholder": "my-company-workspace",
+      "webhookUrl": "Microsoft Teams Incoming Webhook URL",
+      "webhookUrlDescription": "狀態頁更新將傳送到此 Teams Webhook。",
+      "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
+      "managePrompt": "請輸入您訂閱時使用的 Microsoft Teams 工作區名稱",
+      "manageDescription": "我們將把訂閱管理連結傳送到此工作區。"
+    },
+    "webhook": {
+      "title": "透過 Webhook 訂閱",
+      "description": "我們所有的更新都將作為 JSON POST 請求傳送到此 Webhook URL。",
+      "webhookUrl": "Webhook URL",
+      "webhookUrlDescription": "每次狀態頁事件發生時，都會向此 URL 傳送 JSON POST 請求。",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
+    },
+    "resources": {
+      "all": "訂閱所有資源",
+      "allDescription": "如果您希望訂閱所有資源，請選擇此選項。",
+      "select": "選擇要訂閱的資源",
+      "selectDescription": "請選擇您想訂閱的資源。"
+    },
+    "eventTypes": {
+      "all": "訂閱所有事件類型",
+      "allDescription": "如果您希望訂閱所有事件類型，請選擇此選項。",
+      "select": "選擇要訂閱的事件類型",
+      "selectDescription": "請選擇您想訂閱的事件類型。"
+    },
+    "update": {
+      "title": "更新訂閱",
+      "description": "您可以在此更新訂閱偏好或取消訂閱。",
+      "saved": "您的變更已儲存。",
+      "submit": "更新訂閱",
+      "unsubscribe": "取消訂閱",
+      "unsubscribeDescription": "如果您想取消訂閱所有資源，請選擇此選項。"
+    },
+    "confirm": {
+      "title": "確認訂閱",
+      "success": "訂閱確認成功"
+    }
+  },
+  "accounts": {
+    "shared": {
+      "email": "電子郵件",
+      "password": "密碼",
+      "newPassword": "新密碼",
+      "confirmPassword": "確認密碼",
+      "login": "登入"
+    },
+    "login": {
+      "welcomeBack": "歡迎回來！",
+      "loginPrompt": "請登入以檢視 {{statusPageName}}",
+      "forgotPassword": "忘記密碼？",
+      "submit": "登入",
+      "useSSO": "改用單一登入（SSO）"
+    },
+    "sso": {
+      "title": "透過 SSO 登入",
+      "loginPrompt": "請登入以檢視 {{statusPageName}}",
+      "noProviders": "未設定或啟用 SSO 提供者"
+    },
+    "forgotPassword": {
+      "title": "忘記密碼",
+      "description": "如果您忘記了 {{statusPageName}} 的密碼，請輸入您的電子郵件，我們將向您傳送密碼重設連結。",
+      "success": "我們已透過電子郵件向您傳送密碼重設連結。請別忘了檢查垃圾郵件資料夾。",
+      "sendLink": "傳送密碼重設連結",
+      "rememberPassword": "記得您的密碼嗎？"
+    },
+    "resetPassword": {
+      "description": "為您的 {{statusPageName}} 帳號建立新密碼。",
+      "instructions": "請輸入您的新密碼，我們將進行更新。",
+      "success": "您的密碼已更新。請登入。",
+      "submit": "重設密碼",
+      "knowPassword": "知道您的密碼？"
+    },
+    "masterPassword": {
+      "enterWithName": "輸入 {{statusPageName}} 密碼",
+      "enterGeneric": "輸入密碼",
+      "prompt": "請輸入密碼以繼續。",
+      "passwordRequired": "密碼為必填。",
+      "passwordLabel": "密碼",
+      "passwordDescription": "輸入密碼以解鎖此頁面。",
+      "passwordPlaceholder": "輸入密碼",
+      "submit": "解鎖狀態頁"
+    }
+  },
+  "errors": {
+    "notFound": {
+      "title": "找不到頁面。",
+      "description": "您要尋找的頁面不存在。"
+    },
+    "forbidden": {
+      "title": "禁止存取",
+      "description": "您沒有權限存取此頁面。"
+    },
+    "generic": "發生錯誤，請重試。"
+  },
+  "footer": {
+    "poweredBy": "由 OneUptime 提供"
+  },
+  "statusNames": {
+    "identified": "已識別",
+    "acknowledged": "已確認",
+    "resolved": "已解決",
+    "criticalIncident": "嚴重事件",
+    "majorIncident": "重大事件",
+    "minorIncident": "輕微事件",
+    "operational": "運作中",
+    "degraded": "效能下降",
+    "offline": "離線",
+    "scheduled": "已排定",
+    "ongoing": "進行中",
+    "ended": "已結束",
+    "completed": "已完成"
+  }
+}

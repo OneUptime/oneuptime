@@ -353,6 +353,7 @@ import { MigrationName1779739410559 } from "./1779739410559-MigrationName";
 import { AttachServiceToScheduledMaintenanceTemplatesAndLabelRules1779742211961 } from "./1779742211961-AttachServiceToScheduledMaintenanceTemplatesAndLabelRules";
 import { MigrationName1779790539196 } from "./1779790539196-MigrationName";
 import { ExpandOwnerRuleInheritFlags1779823516881 } from "./1779823516881-ExpandOwnerRuleInheritFlags";
+import { RenameStatusPageZhToZhCN1779827700000 } from "./1779827700000-RenameStatusPageZhToZhCN";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -709,4 +710,5 @@ export default [
   AttachServiceToScheduledMaintenanceTemplatesAndLabelRules1779742211961,
   MigrationName1779790539196,
   ExpandOwnerRuleInheritFlags1779823516881,
+  RenameStatusPageZhToZhCN1779827700000,
 ];

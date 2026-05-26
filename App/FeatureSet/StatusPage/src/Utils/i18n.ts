@@ -22,7 +22,8 @@ import sv from "../Locales/sv.json";
 import ru from "../Locales/ru.json";
 import ja from "../Locales/ja.json";
 import ko from "../Locales/ko.json";
-import zh from "../Locales/zh.json";
+import zhCN from "../Locales/zh-CN.json";
+import zhTW from "../Locales/zh-TW.json";
 import hi from "../Locales/hi.json";
 
 export type SupportedLanguage = StatusPageLanguage;
@@ -39,6 +40,19 @@ export const LANGUAGE_STORAGE_KEY: string = "statusPageLang";
  * status page's configured default would be ignored after the first visit.
  */
 export const LANGUAGE_USER_CHOICE_KEY: string = "statusPageLangUserChoice";
+
+/*
+ * Backward-compat: the language code "zh" was renamed to "zh-CN" when
+ * Traditional Chinese ("zh-TW") was added. Rewrite any legacy stored value so
+ * existing users keep their Simplified Chinese setting.
+ */
+if (
+  typeof window !== "undefined" &&
+  window.localStorage &&
+  window.localStorage.getItem(LANGUAGE_STORAGE_KEY) === "zh"
+) {
+  window.localStorage.setItem(LANGUAGE_STORAGE_KEY, "zh-CN");
+}
 
 i18n
   .use(LanguageDetector)
@@ -58,12 +72,13 @@ i18n
       ru: { translation: ru },
       ja: { translation: ja },
       ko: { translation: ko },
-      zh: { translation: zh },
+      "zh-CN": { translation: zhCN },
+      "zh-TW": { translation: zhTW },
       hi: { translation: hi },
     },
     fallbackLng: DEFAULT_LANGUAGE,
     supportedLngs: SUPPORTED_STATUS_PAGE_LANGUAGE_CODES,
-    load: "languageOnly",
+    load: "currentOnly",
     nonExplicitSupportedLngs: true,
     interpolation: {
       escapeValue: false,

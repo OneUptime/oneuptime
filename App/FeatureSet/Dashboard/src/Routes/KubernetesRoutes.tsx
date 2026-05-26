@@ -44,6 +44,7 @@ import KubernetesClusterViewIncidents from "../Pages/Kubernetes/View/Incidents";
 import KubernetesClusterViewAlerts from "../Pages/Kubernetes/View/Alerts";
 import KubernetesClusterViewScheduledMaintenance from "../Pages/Kubernetes/View/ScheduledMaintenance";
 import KubernetesClusterViewOwners from "../Pages/Kubernetes/View/Owners";
+import KubernetesClusterViewAuditLogs from "../Pages/Kubernetes/View/AuditLogs";
 import KubernetesClusterViewDelete from "../Pages/Kubernetes/View/Delete";
 import KubernetesClusterViewSettings from "../Pages/Kubernetes/View/Settings";
 import KubernetesClusterViewDocumentation from "../Pages/Kubernetes/View/Documentation";
@@ -634,6 +635,21 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_OWNERS] as Route
+              }
+            />
+          }
+        />
+
+        {/* Audit Logs */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <KubernetesClusterViewAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AUDIT_LOGS] as Route
               }
             />
           }

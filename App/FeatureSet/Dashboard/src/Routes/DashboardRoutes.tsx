@@ -25,6 +25,8 @@ import DashboardViewCustomDomains from "../Pages/Dashboards/View/CustomDomains";
 
 import DashboardViewOwners from "../Pages/Dashboards/View/Owners";
 
+import DashboardViewAuditLogs from "../Pages/Dashboards/View/AuditLogs";
+
 import DashboardSettingsOwnerRules from "../Pages/Dashboards/Settings/OwnerRules";
 
 import DashboardSettingsLabelRules from "../Pages/Dashboards/Settings/LabelRules";
@@ -164,6 +166,16 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
             <DashboardViewOwners
               {...props}
               pageRoute={RouteMap[PageMap.DASHBOARD_VIEW_OWNERS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.DASHBOARD_VIEW_AUDIT_LOGS)}
+          element={
+            <DashboardViewAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.DASHBOARD_VIEW_AUDIT_LOGS] as Route}
             />
           }
         />

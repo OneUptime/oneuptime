@@ -33,6 +33,7 @@ import UnresolvedAlerts from "../Pages/Alerts/Unresolved";
 import AlertViewCustomFields from "../Pages/Alerts/View/CustomFields";
 import AlertViewOwner from "../Pages/Alerts/View/Owners";
 import AlertViewRunbooks from "../Pages/Alerts/View/Runbooks";
+import AlertViewAuditLogs from "../Pages/Alerts/View/AuditLogs";
 
 import AlertViewRootCause from "../Pages/Alerts/View/RootCause";
 
@@ -91,6 +92,8 @@ import EpisodeViewInternalNote from "../Pages/Alerts/EpisodeView/InternalNote";
 import EpisodeViewRemediation from "../Pages/Alerts/EpisodeView/Remediation";
 
 import EpisodeViewDelete from "../Pages/Alerts/EpisodeView/Delete";
+
+import EpisodeViewAuditLogs from "../Pages/Alerts/EpisodeView/AuditLogs";
 
 import AlertEpisodeDocs from "../Pages/Alerts/EpisodeDocs";
 
@@ -482,6 +485,16 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_AUDIT_LOGS)}
+          element={
+            <AlertViewAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERT_VIEW_AUDIT_LOGS] as Route}
+            />
+          }
+        />
       </PageRoute>
 
       {/* Episode View Routes */}
@@ -587,6 +600,19 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             <EpisodeViewDelete
               {...props}
               pageRoute={RouteMap[PageMap.ALERT_EPISODE_VIEW_DELETE] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ALERT_EPISODE_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <EpisodeViewAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERT_EPISODE_VIEW_AUDIT_LOGS] as Route
+              }
             />
           }
         />
