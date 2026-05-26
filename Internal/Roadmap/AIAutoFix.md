@@ -8,12 +8,25 @@ The mission for the next phase: OneUptime should not stop at observing productio
 
 This plan defines the data model, the agent runtime, the safety boundaries, and the phased rollout. It assumes the existing `AIAgent` service is retired (see "Deprecated" below) and the new platform is built from scratch on top of the existing telemetry, service catalog, MCP, and workflow primitives.
 
+**OneUptime's unfair advantage.** Every other AI-coding tool — Devin, Cursor, Copilot, Sweep, Codex — starts from a developer's prompt or a ticket. OneUptime can start from the *actual exception*, the *actual stack trace*, the *actual user impact*, on the actual service the customer owns, with the metric to verify the fix worked already wired in. The bet of this plan is that the durable moat is **not code-generation quality** (converging across products, getting cheaper every quarter on open weights) but **the closed loop**: signal → diagnose → patch → ship → verify the metric actually moved → learn. No other product owns all five hops today.
+
 ## Deprecated
 
 The following will be removed before Phase 0 work begins. Keep frozen in-repo (no deletes) until Phase 1 ships, so we can mine it for migration learnings.
 
 - **`/AIAgent` service** — single-task (`FixException` only), tightly coupled to one Git/PR flow, no policy layer, no sandbox isolation, no verification loop. Will be replaced by the `Improvement Runtime` defined in Phase 0.
-- **`FixExceptionTaskHandler`** and the `CodeAgentFactory` registry in `/AIAgent/CodeAgents` — superseded by the pluggable `PatchAgent` interface in Phase 1.
+- **`FixExceptionTaskHandler`** and the `CodeAgentFactory` registry in `/AIAgent/CodeAgents` — superseded by the pluggable `PatchHarness` interface in Phase 0.6.
+
+## Architecture: The Improvement Loop
+
+Every `Improvement` flows through four stages, each owned by a specialized agent. Stages are persisted as `Improvement.stage` (Phase 0.1) and emit lifecycle events on the existing `Workflow` engine so customers can hook into any transition.
+
+1. **Detect** — Triggered by an inbound telemetry signal. Classifies it, deduplicates against open Improvements, applies the per-service `AutofixPolicy` gate (Phase 0.2), creates the `Improvement` record. Uses the `classify_model` role — cheap, fast, open-weight.
+2. **Diagnose** — Reproduces the signal inside the sandbox (Phase 0.3) using captured telemetry inputs; attributes the failure to a specific file + commit + blast radius; produces a runnable reproducer script. Uses the `diagnose_model` role through the Model Gateway (Phase 0.6). **Hard gate**: no reproducer, no patch.
+3. **Patch** — Runs the configured `PatchHarness` (default OpenCode, Phase 0.6) inside the sandbox with the `patch_model` role. Iterates until the reproducer fails and existing tests pass. Always emits a new test that locks in the fix. Opens the pull request — or auto-merges if `AutofixPolicy` allows (Phase 3.2).
+4. **Verify** — Watches the metric the Improvement was opened against (`Improvement.verificationMetric`). Closes the Improvement on metric movement, or reverts + reopens on regression. **Rule-based, no LLM in this stage** — the production metric is the source of truth, not the agent's confidence score.
+
+The same four-stage loop runs for every signal class in the Signal → Fix Catalog. What changes per signal class is the **Detect rule** and the **Diagnose specialization**; Patch and Verify are shared infrastructure. This is what makes the catalog tractable — adding a new signal class is one new Detect rule and one new Diagnose prompt, not a new pipeline.
 
 ## Completed
 
@@ -385,6 +398,20 @@ Stop waiting for failures. Use the telemetry already in ClickHouse to propose im
 
 **Target**: Depends on ingestion of customer cloud-cost data (separate roadmap item — out of scope for this plan). Once available, detect cost regressions tied to specific operations (suddenly 10x DB read volume) and open Improvements.
 
+### 4.4 Customer-Specific Patch Model Fine-Tuning
+
+**Current**: Out-of-the-box open-weight models with no customer-specific bias. Every customer gets the same `patch_model` regardless of their codebase conventions.
+
+**Target**: For each customer with sufficient Improvement history (heuristic: ≥ 50 merged AI-authored PRs), fine-tune a per-customer adapter (LoRA) on top of the base `patch_model` using:
+- **Accepted PRs** (positive signal) — what the agent should produce
+- **Rejected / abandoned PRs** (negative signal) — what the agent should avoid
+- **Reviewer edits** between agent-proposed commit and merged commit (highest-signal data — tells us exactly what the agent got *almost* right and how the human corrected it)
+- **Project conventions** extracted from a sample of recent human-authored merged PRs (style, naming, error-handling idioms, test patterns)
+
+Adapter training runs inside the same sandbox infrastructure (Phase 0.3). In self-hosted mode, customer code and PR history never leave the customer's data boundary. Adapters are stored customer-scoped and loaded **only** when serving that customer's Improvements. Refreshed monthly. Lives behind a per-customer opt-in toggle on `AutofixPolicy`.
+
+**This is the long-term moat.** IDE-resident tools (Cursor, Copilot) cannot do this — they don't see the merge / revert / reviewer-edit outcome. OneUptime sees every PR's full lifecycle, including which lines a reviewer changed before merging. Every fix the agent ships becomes training data for the next one.
+
 ---
 
 ## Phase 5: Open the Improvement Agent Platform
@@ -408,6 +435,40 @@ Make the Improvement runtime extensible. Third-party agents — and customers' o
 **Current**: None.
 
 **Target**: Browse, install, configure third-party agents per project. Security-focused agents (e.g., a vendor specializing in OWASP-class fixes), performance agents, compliance agents.
+
+---
+
+## First 90 Days — Concrete Bootstrap
+
+Independent of phase numbering, the first 90 days have a small set of unambiguous deliverables. Listed here so the team can start tomorrow without re-reading the full document.
+
+1. **Weeks 1–2 — Freeze the existing `/AIAgent` service.** No deletes; keep the code in-repo to mine for migration learnings. Disable it from active routing. Document its known failure modes in the Deprecated section above.
+2. **Weeks 2–5 — Land `Improvement` + `AutofixPolicy` data models** (Phase 0.1, 0.2). Generate migrations via `npm run generate-postgres-migration` and register them in `Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts` per `AGENTS.md`. Ship a read-only Improvements dashboard at `/dashboard/{projectId}/ai/improvements`.
+3. **Weeks 4–8 — Build the Sandbox Executor service** (Phase 0.3) as a deployable sibling to `Worker` and `Probe`. Start with Node 20/22 and Python 3.11/3.12 language profiles. Land the negative-path tests (timeout, OOM, egress block, sandbox escape attempt) **before** the positive-path tests — getting the privacy boundary right is harder to retrofit than getting the happy path working.
+4. **Weeks 6–10 — Land the Model Gateway + OpenCode Patch Harness** (Phase 0.6). Default-route all four roles (`classify`, `diagnose`, `patch`, `embed`) to an internal vLLM cluster serving Qwen3-Coder-class open-weight models. Prove the harness produces a deterministic diff against a fixture repo end-to-end.
+5. **Weeks 8–12 — Run the Phase 1 golden path with 3 design-partner customers.** Production exception → sandbox repro → OpenCode-generated patch → PR opened to the customer's repo. Instrument the loop end-to-end so by day 90 the team can quote real numbers, not demo numbers.
+
+**Day-90 deliverable**: a written report quoting `merge rate`, `regression rate`, and `reproducer success rate` from real customer usage on real production services. Not a demo — production data. If the numbers miss the Phase 1.6 targets, extend Phase 1 before starting Phase 2.
+
+---
+
+## Risks & Mitigations
+
+The known failure modes of AI-fix products. Each is countered by a specific mechanism elsewhere in the plan; this table exists so the team can audit that nothing slipped through and so customer-facing materials can answer the obvious objections directly.
+
+| Risk | Failure mode | Mitigation in this plan |
+|---|---|---|
+| **Plausible-but-wrong patches erode trust** | Agent ships code that looks right but doesn't fix the issue, or introduces a regression the metric catches only after deploy | Reproducer-required gate (Phase 1.2); honest-verification principle (Guiding Principle 2); metric-watching Verify stage (Architecture: Improvement Loop step 4); auto-rollback on metric regression (Phase 3.3) |
+| **PII leakage through agent prompts** | Captured request bodies feed an LLM and expose customer end-user data | `LogScrubRule` PII scrubbing before any telemetry enters an agent prompt (Phase 1.2); open-weight + self-host option (Guiding Principle 6); sandbox network egress allow-list (Phase 0.3) |
+| **Sandbox escape / cross-customer contamination** | Pathological or malicious customer repo executes code that reaches another tenant's data | Ephemeral containers per job, no persistent storage, per-customer egress allow-list, resource caps (Phase 0.3); negative-path tests prioritized before positive-path (First 90 Days step 3) |
+| **Runaway agent cost** | A pathological Improvement loops the patch agent without convergence; token + GPU bill explodes | `AutofixPolicy.dailySpendCap` per service (Phase 0.2); max-rounds cap in patch loop (Phase 1.3); sandbox wall-clock timeout (Phase 0.3); open-weight default keeps the per-Improvement cost floor predictable (Guiding Principle 6) |
+| **Over-autonomy ships a catastrophic change** | Auto-merge enabled too broadly; agent merges something that takes production down | Explicit autonomy ladder, default `Off` (Guiding Principle 1); trust score gates AutoMerge promotion (Phase 3.1, 3.2); canary deploy + auto-rollback (Phase 3.3) |
+| **Liability when an AI patch causes an outage** | Legal / customer-trust exposure when auto-merged code causes harm | Provenance principle — every line traceable to `Improvement + Agent + Model + Prompt hash` (Guiding Principle 4); audit log on every policy change; per-service customer opt-in explicit and recorded |
+| **Vendor lock-in to a single model API** | Provider deprecates, raises prices, or goes down; product breaks | Open-weight default; Model Gateway abstraction makes swapping models a config change (Phase 0.6); customer self-host option via the Helm chart (Phase 0.6) |
+| **Language matrix never converges** | New customers want Rust / Ruby / Elixir / Kotlin and the toolchain explosion becomes intractable | Phase 0.3 ships Node + Python + Go + Java to start; expand on customer-demand basis; `AutofixPolicy` rejects unsupported languages with a clear error rather than silently failing |
+| **Fine-tuning leaks one customer's code into another's prompts** | Multi-tenant LoRAs from customer A surface in inferences for customer B | Per-customer adapters loaded only when serving that customer's Improvements (Phase 4.4); training data never crosses the tenant boundary; in self-hosted mode, training and inference both happen entirely in customer VPC |
+| **Agents fight humans on style** | AI-authored code conflicts with house style; reviewers spend more time fixing the AI than writing fixes themselves would have taken | Customer-specific fine-tuning on reviewer edits (Phase 4.4); project-convention extraction from recent PRs (Phase 1.3); explicit `AutofixPolicy.requiredReviewers` so humans gate the merge until trust is earned |
+| **False-positive Detect noise** | Detect agents open Improvements for issues that don't warrant one; the dashboard becomes a backlog nobody reads | Detect-stage thresholds tunable per service (Phase 1.1: minimum occurrence count, frame-in-repo requirement, no-duplicate rule); customer can mark Improvements as false-positive and Detect rules learn from it |
 
 ---
 

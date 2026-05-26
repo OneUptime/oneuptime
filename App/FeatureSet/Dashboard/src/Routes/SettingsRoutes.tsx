@@ -74,6 +74,8 @@ import SettingsMobileApps from "../Pages/Settings/MobileApps";
 import SettingsAuditLogs from "../Pages/Settings/AuditLogs";
 import SettingsAuditLogsSettings from "../Pages/Settings/AuditLogsSettings";
 
+import SettingsTeamMemberCustomFields from "../Pages/Settings/TeamMemberCustomFields";
+
 const SettingsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -498,6 +500,18 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingsUsers
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_USERS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_USER_CUSTOM_FIELDS,
+          )}
+          element={
+            <SettingsTeamMemberCustomFields
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_USER_CUSTOM_FIELDS] as Route}
             />
           }
         />

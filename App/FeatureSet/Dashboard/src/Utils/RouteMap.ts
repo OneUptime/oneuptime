@@ -487,6 +487,7 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_SCIM]: "scim",
   [PageMap.SETTINGS_TEAMS]: "teams",
   [PageMap.SETTINGS_USERS]: "users",
+  [PageMap.SETTINGS_USER_CUSTOM_FIELDS]: "user-custom-fields",
   [PageMap.SETTINGS_USER_VIEW]: `users/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_USER_VIEW_TEAMS]: `users/${RouteParams.ModelID}/teams`,
   [PageMap.SETTINGS_USER_VIEW_CUSTOM_FIELDS]: `users/${RouteParams.ModelID}/custom-fields`,
@@ -3238,6 +3239,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_USER_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_USER_VIEW]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_USER_CUSTOM_FIELDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_USER_CUSTOM_FIELDS]
     }`,
   ),
 

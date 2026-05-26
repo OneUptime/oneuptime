@@ -71,6 +71,11 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Users",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_USER_CUSTOM_FIELDS, [
+      "Project",
+      "Settings",
+      "User Custom Fields",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_USER_VIEW, [
       "Project",
       "Settings",

@@ -7,7 +7,9 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Team from "Common/Models/DatabaseModels/Team";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const TeamViewIndex: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const TeamViewIndex: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   return (
     <Fragment>
       <CardModelDetail

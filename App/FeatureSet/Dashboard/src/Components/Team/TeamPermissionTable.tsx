@@ -163,26 +163,25 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
     }
   }
 
-  const roleCardSelectOptions: Array<
-    CardSelectOption | CardSelectOptionGroup
-  > = [
-    {
-      label: "Owner",
-      options: ownerRoles,
-    },
-    {
-      label: "Project Roles",
-      options: projectRoles,
-    },
-    {
-      label: "Administration",
-      options: administrationRoles,
-    },
-    {
-      label: "Domain Roles",
-      options: domainRoles,
-    },
-  ];
+  const roleCardSelectOptions: Array<CardSelectOption | CardSelectOptionGroup> =
+    [
+      {
+        label: "Owner",
+        options: ownerRoles,
+      },
+      {
+        label: "Project Roles",
+        options: projectRoles,
+      },
+      {
+        label: "Administration",
+        options: administrationRoles,
+      },
+      {
+        label: "Domain Roles",
+        options: domainRoles,
+      },
+    ];
 
   const createButtons: Array<CardButtonSchema> = [
     {
@@ -323,9 +322,9 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
                   if (!values["permission"]) {
                     return false;
                   }
-                  const scope: PermissionScope | undefined = values[
-                    "scope"
-                  ] as PermissionScope | undefined;
+                  const scope: PermissionScope | undefined = values["scope"] as
+                    | PermissionScope
+                    | undefined;
                   return scope === PermissionScope.Labels;
                 },
                 required: false,
@@ -448,9 +447,9 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
                     return false;
                   }
 
-                  const scope: PermissionScope | undefined = values[
-                    "scope"
-                  ] as PermissionScope | undefined;
+                  const scope: PermissionScope | undefined = values["scope"] as
+                    | PermissionScope
+                    | undefined;
                   if (scope && scope !== PermissionScope.Labels) {
                     return false;
                   }
@@ -544,8 +543,7 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
               );
             }
 
-            const labels: Array<Label> = (item["labels"] ||
-              []) as Array<Label>;
+            const labels: Array<Label> = (item["labels"] || []) as Array<Label>;
             if (labels.length === 0) {
               return (
                 <p>
