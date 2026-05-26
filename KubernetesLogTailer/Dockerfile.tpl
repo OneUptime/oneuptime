@@ -5,7 +5,7 @@
 # hostPath volumes, no host access) and forwards them to OneUptime via OTLP.
 #
 
-FROM public.ecr.aws/docker/library/node:24.9-slim
+FROM public.ecr.aws/docker/library/node:26-slim
 
 ARG GIT_SHA
 ARG APP_VERSION

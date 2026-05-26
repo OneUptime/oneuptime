@@ -3,11 +3,12 @@
 #
 
 # Pull base image nodejs image.
-# Switched from `node:24.9` (full Debian, ~1GB, large CVE surface) to
-# `node:24-bookworm-slim` which keeps glibc (required for Playwright Chromium)
-# while dropping the unneeded ~700MB of default packages. Floating on the
-# 24.x patch so each rebuild picks up Node security patches.
-FROM public.ecr.aws/docker/library/node:24-bookworm-slim
+# Use `node:26-bookworm-slim` (Node 26 LTS on Debian Bookworm slim).
+# We need Debian (glibc) rather than Alpine (musl) because Playwright's
+# Chromium ships glibc-linked binaries. Slim drops the ~700MB of default
+# packages from full Debian. Floating on the 26.x patch so each rebuild
+# picks up Node security patches.
+FROM public.ecr.aws/docker/library/node:26-bookworm-slim
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
 
 RUN npm config set fetch-retries 5
