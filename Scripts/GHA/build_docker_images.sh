@@ -6,6 +6,12 @@ usage() {
 	cat <<'EOF'
 Usage: build_docker_images.sh --image <name> --version <version> --dockerfile <path> [options]
 
+Runs a SINGLE docker buildx build per call and pushes the resulting image
+digest under both the community and enterprise tag sets. IS_ENTERPRISE_EDITION
+is read at runtime (process.env / window.process.env, set by docker-compose
+and the Helm chart), so the two variants would produce byte-identical images
+— we just tag the same digest twice and skip the duplicate build.
+
 Required flags:
 	--image <name>        Image name without registry prefix (example: mcp)
 	--version <version>   Version/tag string appended to the generated tags
@@ -17,8 +23,8 @@ Optional flags:
 	                      When a single platform is given, tags are suffixed with the arch
 	                      (e.g. -amd64 or -arm64) so parallel builds don't overwrite each other.
 	--git-sha <sha>       Commit SHA used for the GIT_SHA build arg (default: detected via git)
-	--extra-tags <tag>    Additional tags for the community image (can be repeated)
-	--extra-enterprise-tags <tag>  Additional tags for the enterprise image (can be repeated)
+	--extra-tags <tag>    Additional tag (no version) for the community image (can be repeated)
+	--extra-enterprise-tags <tag>  Additional tag (no version) for the enterprise image (can be repeated)
 EOF
 }
 
@@ -99,47 +105,42 @@ if [[ "$PLATFORMS" != *","* ]]; then
 	ARCH_SUFFIX="-${PLATFORMS#*/}"
 fi
 
-build_variant() {
-	local variant_prefix="$1"       # "" or "enterprise-"
-	local enterprise_flag="$2"      # false/true
-	local -n extra_tags_ref="$3"    # Array reference with extra tag suffixes
-	local sanitized_version
-	sanitized_version="${VERSION//+/-}"
+SANITIZED_VERSION="${VERSION//+/-}"
 
-	local cache_scope="${IMAGE}-${variant_prefix:-community}"
+# Both variants share the same cache scope so a rebuild on the enterprise tag
+# path is a pure cache hit (and historically they had separate scopes that
+# never shared work despite producing identical layers).
+CACHE_REF="ghcr.io/oneuptime/${IMAGE}:cache-${IMAGE}"
 
-	local -a args
-	args=(
-		docker buildx build
-		--file "$DOCKERFILE"
-		--platform "$PLATFORMS"
-		--push
-		--cache-from "type=registry,ref=ghcr.io/oneuptime/${IMAGE}:cache-${cache_scope}"
-		--cache-to "type=registry,ref=ghcr.io/oneuptime/${IMAGE}:cache-${cache_scope},mode=max"
-	)
-
-	args+=(
-		--tag "oneuptime/${IMAGE}:${variant_prefix}${sanitized_version}${ARCH_SUFFIX}"
-		--tag "ghcr.io/oneuptime/${IMAGE}:${variant_prefix}${sanitized_version}${ARCH_SUFFIX}"
-	)
-
-	for tag_suffix in "${extra_tags_ref[@]}"; do
-		args+=(--tag "oneuptime/${IMAGE}:${tag_suffix}${ARCH_SUFFIX}")
-		args+=(--tag "ghcr.io/oneuptime/${IMAGE}:${tag_suffix}${ARCH_SUFFIX}")
-	done
-
-	args+=(
-		--build-arg "GIT_SHA=${GIT_SHA}"
-		--build-arg "APP_VERSION=${VERSION}"
-		--build-arg "IS_ENTERPRISE_EDITION=${enterprise_flag}"
-		"$CONTEXT"
-	)
-
-	"${args[@]}"
+push_tag() {
+	local tag_suffix="$1"
+	TAG_ARGS+=(--tag "oneuptime/${IMAGE}:${tag_suffix}${ARCH_SUFFIX}")
+	TAG_ARGS+=(--tag "ghcr.io/oneuptime/${IMAGE}:${tag_suffix}${ARCH_SUFFIX}")
 }
 
-echo "🚀 Building docker images for ${IMAGE} (${VERSION}) [${PLATFORMS}]"
-build_variant "" false EXTRA_TAGS
-echo "✅ Pushed community image for ${IMAGE}:${VERSION}${ARCH_SUFFIX}"
-build_variant "enterprise-" true EXTRA_ENTERPRISE_TAGS
-echo "✅ Pushed enterprise image for ${IMAGE}:enterprise-${VERSION}${ARCH_SUFFIX}"
+TAG_ARGS=()
+# Community tags
+push_tag "${SANITIZED_VERSION}"
+for tag_suffix in "${EXTRA_TAGS[@]+"${EXTRA_TAGS[@]}"}"; do
+	push_tag "${tag_suffix}"
+done
+# Enterprise tags (same digest, different name — runtime env decides behavior)
+push_tag "enterprise-${SANITIZED_VERSION}"
+for tag_suffix in "${EXTRA_ENTERPRISE_TAGS[@]+"${EXTRA_ENTERPRISE_TAGS[@]}"}"; do
+	push_tag "${tag_suffix}"
+done
+
+echo "🚀 Building ${IMAGE} (${VERSION}) [${PLATFORMS}] — single build, tagged as both community and enterprise"
+docker buildx build \
+	--file "$DOCKERFILE" \
+	--platform "$PLATFORMS" \
+	--push \
+	--cache-from "type=registry,ref=${CACHE_REF}" \
+	--cache-to "type=registry,ref=${CACHE_REF},mode=max" \
+	"${TAG_ARGS[@]}" \
+	--build-arg "GIT_SHA=${GIT_SHA}" \
+	--build-arg "APP_VERSION=${VERSION}" \
+	--build-arg "IS_ENTERPRISE_EDITION=false" \
+	"$CONTEXT"
+
+echo "✅ Pushed ${IMAGE}:${SANITIZED_VERSION}${ARCH_SUFFIX} and ${IMAGE}:enterprise-${SANITIZED_VERSION}${ARCH_SUFFIX} (same digest)"
