@@ -13,10 +13,12 @@ export class MigrationName1779879993421 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "restrictionTimes" SET DEFAULT '{"_type":"RestrictionTimes","value":{"restictionType":"None","dayRestrictionTimes":null,"weeklyRestrictionTimes":[]}}'`,
     );
-    // Remove pre-existing duplicates so the unique index below can be created.
-    // Done as: one cheap GROUP BY to find duplicate keys, then a small DELETE
-    // per key — keeps every individual statement well under the 30s
-    // statement/query timeout that applies to the migration connection.
+    /*
+     * Remove pre-existing duplicates so the unique index below can be created.
+     * Done as: one cheap GROUP BY to find duplicate keys, then a small DELETE
+     * per key — keeps every individual statement well under the 30s
+     * statement/query timeout that applies to the migration connection.
+     */
     const duplicateKeys: Array<{
       projectId: string;
       serviceId: string;
