@@ -34,7 +34,7 @@ Drop filters let you **discard or sample spans before they are stored**, reducin
 
 ### Examples
 
-- **Drop healthcheck spans:** \`name LIKE '%healthcheck%'\` (action: Drop)
+- **Drop healthcheck spans:** \`name LIKE 'healthcheck'\` (action: Drop)
 - **Sample successful CRUD:** \`kind = 'SPAN_KIND_CLIENT' AND statusCode = 1\` (action: Sample, 10%)
 `;
 
