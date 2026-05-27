@@ -3,6 +3,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -14,6 +15,7 @@ import DropdownUtil from "Common/UI/Utils/Dropdown";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ProjectUtil from "Common/UI/Utils/Project";
 import MarkdownUtil from "Common/UI/Utils/Markdown";
+import AxisValuesInput from "../../../Components/StatusPage/AxisValuesInput";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -139,14 +141,28 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             },
             title: "Row Axis Values",
             description:
-              "Comma-separated row labels in display order (e.g. 'Auth, API, Database'). Each resource in this group is assigned to one row.",
-            fieldType: FormFieldSchemaType.LongText,
+              "One label per row, in the order you want them displayed. Each resource in this group is then assigned to one of these rows.",
+            fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
-            placeholder: "Auth, API, Database",
             showIf: (item: FormValues<StatusPageGroup>): boolean => {
               return item.viewMode === StatusPageGroupViewMode.Grid;
             },
             stepId: "layout",
+            getCustomElement: (
+              _values: FormValues<StatusPageGroup>,
+              fieldProps: CustomElementProps,
+            ): ReactElement => {
+              return (
+                <AxisValuesInput
+                  initialValue={fieldProps.initialValue}
+                  onChange={fieldProps.onChange}
+                  onBlur={fieldProps.onBlur}
+                  placeholder="e.g. Auth"
+                  addButtonLabel="Add Row"
+                  error={fieldProps.error}
+                />
+              );
+            },
           },
           {
             field: {
@@ -169,14 +185,28 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             },
             title: "Column Axis Values",
             description:
-              "Comma-separated column labels in display order (e.g. 'US-East, EU-West, Asia'). Each resource in this group is assigned to one column.",
-            fieldType: FormFieldSchemaType.LongText,
+              "One label per column, in the order you want them displayed. Each resource in this group is then assigned to one of these columns.",
+            fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
-            placeholder: "US-East, EU-West, Asia",
             showIf: (item: FormValues<StatusPageGroup>): boolean => {
               return item.viewMode === StatusPageGroupViewMode.Grid;
             },
             stepId: "layout",
+            getCustomElement: (
+              _values: FormValues<StatusPageGroup>,
+              fieldProps: CustomElementProps,
+            ): ReactElement => {
+              return (
+                <AxisValuesInput
+                  initialValue={fieldProps.initialValue}
+                  onChange={fieldProps.onChange}
+                  onBlur={fieldProps.onBlur}
+                  placeholder="e.g. US-East"
+                  addButtonLabel="Add Column"
+                  error={fieldProps.error}
+                />
+              );
+            },
           },
           {
             field: {
