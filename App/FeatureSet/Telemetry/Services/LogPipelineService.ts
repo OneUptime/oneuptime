@@ -277,9 +277,11 @@ export class LogPipelineService {
       !config._compiledCategoryFilters ||
       config._compiledCategoryFilters.length !== categories.length
     ) {
-      config._compiledCategoryFilters = categories.map((category) => {
-        return compileFilter(category.filterQuery || "");
-      });
+      config._compiledCategoryFilters = categories.map(
+        (category: CategoryProcessorConfig["categories"][number]) => {
+          return compileFilter(category.filterQuery || "");
+        },
+      );
     }
 
     for (let i: number = 0; i < categories.length; i++) {

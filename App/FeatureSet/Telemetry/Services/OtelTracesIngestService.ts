@@ -33,12 +33,13 @@ import Text from "Common/Types/Text";
 import TracesQueueService from "./Queue/TracesQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
-import TraceDropFilterService from "./TraceDropFilterService";
+import TraceDropFilterService, {
+  LoadedTraceDropFilter,
+} from "./TraceDropFilterService";
 import TraceScrubRuleService from "./TraceScrubRuleService";
 import TracePipelineService, {
   LoadedTracePipeline,
 } from "./TracePipelineService";
-import { LoadedTraceDropFilter } from "./TraceDropFilterService";
 import TraceScrubRule from "Common/Models/DatabaseModels/TraceScrubRule";
 import {
   TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE,
@@ -407,8 +408,15 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                     }
                   }
 
+                  /*
+                   * Stored as a ClickHouse Array column and only read
+                   * back as an unordered set. Skip the sort the shared
+                   * TelemetryUtil.getAttributeKeys helper does — it's
+                   * an O(N log N) cost per record that the downstream
+                   * consumers do not depend on.
+                   */
                   const attributeKeys: Array<string> =
-                    TelemetryUtil.getAttributeKeys(spanAttributes);
+                    Object.keys(spanAttributes);
 
                   const serviceId: ObjectID =
                     serviceDictionary[serviceName]!.serviceId!;

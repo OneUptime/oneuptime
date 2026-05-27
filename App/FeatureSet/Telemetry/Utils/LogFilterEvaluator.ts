@@ -454,9 +454,11 @@ function evaluateExpr(logRow: JSONObject, expr: FilterExpression): boolean {
         case "!=":
           return fieldVal !== comp.value;
         case "LIKE": {
-          // Pre-compiled at filter-load time; both fields are set
-          // by compileExpr above. likeRegex === null means the
-          // pattern had no `%` and we should substring-match.
+          /*
+           * Pre-compiled at filter-load time; both fields are set
+           * by compileExpr above. likeRegex === null means the
+           * pattern had no `%` and we should substring-match.
+           */
           if (comp.likeRegex) {
             return comp.likeRegex.test(fieldVal);
           }
