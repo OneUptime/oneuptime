@@ -47,6 +47,42 @@ if (
   window.localStorage.setItem(LANGUAGE_STORAGE_KEY, "zh-CN");
 }
 
+/*
+ * Browsers report Chinese in many forms (zh, zh-CN, zh-SG, zh-Hans-CN,
+ * zh-TW, zh-HK, zh-MO, zh-Hant-HK, ...). Map them onto our two supported
+ * variants so detection actually resolves to a loaded resource instead of
+ * falling back to English. Also collapse regional variants of other
+ * languages (e.g. "es-ES" -> "es") whose resources we ship under the bare
+ * language code.
+ */
+const convertDetectedLanguage: (lng: string) => string = (
+  lng: string,
+): string => {
+  if (!lng) {
+    return lng;
+  }
+  const lower: string = lng.toLowerCase();
+  if (
+    lower === "zh-tw" ||
+    lower === "zh-hk" ||
+    lower === "zh-mo" ||
+    lower === "zh-hant" ||
+    lower.startsWith("zh-hant-")
+  ) {
+    return "zh-TW";
+  }
+  if (lower === "zh" || lower.startsWith("zh-") || lower.startsWith("zh_")) {
+    return "zh-CN";
+  }
+  if (lng.includes("-") || lng.includes("_")) {
+    const langPart: string = lng.split(/[-_]/)[0]!.toLowerCase();
+    if (SUPPORTED_ACCOUNTS_LANGUAGE_CODES.includes(langPart)) {
+      return langPart;
+    }
+  }
+  return lng;
+};
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
@@ -72,7 +108,6 @@ i18n
     fallbackLng: DEFAULT_LANGUAGE,
     supportedLngs: SUPPORTED_ACCOUNTS_LANGUAGE_CODES,
     load: "currentOnly",
-    nonExplicitSupportedLngs: true,
     interpolation: {
       escapeValue: false,
     },
@@ -80,6 +115,7 @@ i18n
       order: ["localStorage", "navigator", "htmlTag"],
       lookupLocalStorage: LANGUAGE_STORAGE_KEY,
       caches: ["localStorage"],
+      convertDetectedLanguage,
     },
   });
 
