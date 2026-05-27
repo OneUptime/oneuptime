@@ -714,5 +714,5 @@ export default [
   ExpandOwnerRuleInheritFlags1779823516881,
   RenameStatusPageZhToZhCN1779827700000,
   DedupeTelemetryExceptionsAndAddUniqueIndex1779900000000,
-  MigrationName1779879993421
+  MigrationName1779879993421,
 ];
