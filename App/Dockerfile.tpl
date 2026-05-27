@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 #
 # OneUptime-App Dockerfile
 #
@@ -56,7 +57,7 @@ RUN mkdir /usr/src
 
 WORKDIR /usr/src/Common
 COPY ./Common/package*.json /usr/src/Common/
-RUN npm install
+RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 COPY ./Common /usr/src/Common
 
 ENV PRODUCTION=true
@@ -65,27 +66,27 @@ WORKDIR /usr/src/app
 
 # Install app dependencies
 COPY ./App/package*.json /usr/src/app/
-RUN npm install
+RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 
 WORKDIR /usr/src/app/FeatureSet/Accounts
 COPY ./App/FeatureSet/Accounts/package*.json /usr/src/app/FeatureSet/Accounts/
-RUN npm install
+RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 
 WORKDIR /usr/src/app/FeatureSet/Dashboard
 COPY ./App/FeatureSet/Dashboard/package*.json /usr/src/app/FeatureSet/Dashboard/
-RUN npm install
+RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 
 WORKDIR /usr/src/app/FeatureSet/AdminDashboard
 COPY ./App/FeatureSet/AdminDashboard/package*.json /usr/src/app/FeatureSet/AdminDashboard/
-RUN npm install
+RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 
 WORKDIR /usr/src/app/FeatureSet/StatusPage
 COPY ./App/FeatureSet/StatusPage/package*.json /usr/src/app/FeatureSet/StatusPage/
-RUN npm install
+RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 
 WORKDIR /usr/src/app/FeatureSet/PublicDashboard
 COPY ./App/FeatureSet/PublicDashboard/package*.json /usr/src/app/FeatureSet/PublicDashboard/
-RUN npm install
+RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 
 # Remove the build toolchain (python3/make/g++) now that all native npm modules
 # have been compiled. This keeps build-time CVEs out of the runtime image.

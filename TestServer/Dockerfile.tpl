@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 #
 # OneUptime-test-server-api Dockerfile
 #
@@ -52,7 +53,7 @@ RUN mkdir /usr/src
 
 WORKDIR /usr/src/Common
 COPY ./Common/package*.json /usr/src/Common/
-RUN npm install
+RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 COPY ./Common /usr/src/Common
 
 
@@ -71,7 +72,7 @@ WORKDIR /usr/src/app
 
 # Install app dependencies
 COPY ./TestServer/package*.json /usr/src/app/
-RUN npm install
+RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 
 # Remove the build toolchain (python3/make/g++) now that all native npm modules
 # have been compiled. This keeps build-time CVEs out of the runtime image.

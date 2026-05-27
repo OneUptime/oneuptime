@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 #
 # OneUptime Kubernetes Log Tailer Dockerfile
 #
@@ -37,7 +38,9 @@ ENV PRODUCTION=true
 
 WORKDIR /usr/src/app
 COPY ./KubernetesLogTailer/package*.json /usr/src/app/
-RUN npm install --omit=dev
+# Uses node:*-slim default cache path (~/.npm) rather than the /tmp/npm
+# convention the other images set — npm config was never customized here.
+RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev --prefer-offline
 
 # The node:*-slim base image already ships a non-root `node` user at UID/GID
 # 1000. Reuse it rather than creating our own (creating a second user with

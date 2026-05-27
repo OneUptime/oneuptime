@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 #
 # OneUptime Runbook Agent Dockerfile
 #
@@ -46,14 +47,14 @@ RUN mkdir -p /usr/src
 
 WORKDIR /usr/src/Common
 COPY ./Common/package*.json /usr/src/Common/
-RUN npm install
+RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 COPY ./Common /usr/src/Common
 
 ENV PRODUCTION=true
 
 WORKDIR /usr/src/app
 COPY ./RunbookAgent/package*.json /usr/src/app/
-RUN npm install \
+RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline \
     && apt-get purge -y --auto-remove python3 make g++ \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*

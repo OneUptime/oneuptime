@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 #
 # OneUptime-E2E Dockerfile
 # This file is used to build the E2E docker image which is used to run the E2E tests.
@@ -60,7 +61,7 @@ SHELL ["/bin/bash", "-c"]
 
 WORKDIR /usr/src/Common
 COPY ./Common/package*.json /usr/src/Common/
-RUN npm install
+RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 COPY ./Common /usr/src/Common
 
 ENV PRODUCTION=true
@@ -72,7 +73,7 @@ WORKDIR /usr/src/app
 
 # Install app dependencies
 COPY ./E2E/package*.json /usr/src/app/
-RUN npm install
+RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 
 # Copy app source
 COPY ./E2E /usr/src/app

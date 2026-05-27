@@ -107,10 +107,16 @@ fi
 
 SANITIZED_VERSION="${VERSION//+/-}"
 
-# Both variants share the same cache scope so a rebuild on the enterprise tag
-# path is a pure cache hit (and historically they had separate scopes that
-# never shared work despite producing identical layers).
-CACHE_REF="ghcr.io/oneuptime/${IMAGE}:cache-${IMAGE}"
+# Cache scope is per (image, arch). Both editions share it because we build
+# once and tag twice. We use GitHub Actions cache (type=gha) — backed by
+# Azure blob storage adjacent to the runners and noticeably faster than
+# round-tripping registry-cache manifests through GHCR.
+#
+# Requires ACTIONS_RUNTIME_TOKEN + ACTIONS_CACHE_URL to be exposed to the
+# step running this script. The workflow accomplishes that with
+# `crazy-max/ghaction-github-runtime@v3` immediately after
+# `docker/setup-buildx-action`.
+CACHE_SCOPE="${IMAGE}${ARCH_SUFFIX}"
 
 push_tag() {
 	local tag_suffix="$1"
@@ -135,8 +141,8 @@ docker buildx build \
 	--file "$DOCKERFILE" \
 	--platform "$PLATFORMS" \
 	--push \
-	--cache-from "type=registry,ref=${CACHE_REF}" \
-	--cache-to "type=registry,ref=${CACHE_REF},mode=max" \
+	--cache-from "type=gha,scope=${CACHE_SCOPE}" \
+	--cache-to "type=gha,mode=max,scope=${CACHE_SCOPE}" \
 	"${TAG_ARGS[@]}" \
 	--build-arg "GIT_SHA=${GIT_SHA}" \
 	--build-arg "APP_VERSION=${VERSION}" \
