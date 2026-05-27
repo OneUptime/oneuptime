@@ -10,17 +10,38 @@ import LogPipelineProcessorType, {
   SeverityRemapperConfig,
   CategoryProcessorConfig,
 } from "Common/Types/Log/LogPipelineProcessorType";
-import { evaluateFilter } from "../Utils/LogFilterEvaluator";
+import {
+  compileFilter,
+  CompiledFilter,
+  evaluateCompiledFilter,
+} from "../Utils/LogFilterEvaluator";
 import logger from "Common/Server/Utils/Logger";
 
 export interface LoadedPipeline {
   pipeline: LogPipeline;
+  /*
+   * Pre-compiled at cache load time so per-record evaluation
+   * doesn't re-tokenize / re-parse the filterQuery string on
+   * every log. See LogFilterEvaluator.compileFilter.
+   */
+  compiledFilter: CompiledFilter;
   processors: Array<LogPipelineProcessor>;
 }
 
 interface CacheEntry {
   pipelines: Array<LoadedPipeline>;
   loadedAt: number;
+}
+
+/*
+ * Cached category-filter compilation lives on the processor's
+ * configuration object directly (we mutate `_compiledCategoryFilters`
+ * into the JSONB blob). The cache holds the same processor object
+ * for 60s so the compile cost is paid once per category per
+ * pipeline-reload window, not once per record.
+ */
+interface CompiledCategoryConfig extends CategoryProcessorConfig {
+  _compiledCategoryFilters?: Array<CompiledFilter>;
 }
 
 const CACHE_TTL_MS: number = 60 * 1000; // 60 seconds
@@ -91,7 +112,11 @@ export class LogPipelineService {
           },
         });
 
-      loaded.push({ pipeline, processors });
+      loaded.push({
+        pipeline,
+        compiledFilter: compileFilter((pipeline.filterQuery as string) || ""),
+        processors,
+      });
     }
 
     pipelineCache.set(cacheKey, { pipelines: loaded, loadedAt: Date.now() });
@@ -104,10 +129,9 @@ export class LogPipelineService {
   ): JSONObject {
     let result: JSONObject = { ...logRow };
 
-    for (const { pipeline, processors } of pipelines) {
+    for (const { pipeline, compiledFilter, processors } of pipelines) {
       // Check if this pipeline's filter matches the log
-      const filterQuery: string = (pipeline.filterQuery as string) || "";
-      if (!evaluateFilter(result, filterQuery)) {
+      if (!evaluateCompiledFilter(result, compiledFilter)) {
         continue;
       }
 
@@ -170,7 +194,7 @@ export class LogPipelineService {
       case LogPipelineProcessorType.CategoryProcessor:
         return LogPipelineService.applyCategoryProcessor(
           logRow,
-          config as unknown as CategoryProcessorConfig,
+          config as unknown as CompiledCategoryConfig,
         );
       default:
         return logRow;
@@ -235,10 +259,38 @@ export class LogPipelineService {
 
   private static applyCategoryProcessor(
     logRow: JSONObject,
-    config: CategoryProcessorConfig,
+    config: CompiledCategoryConfig,
   ): JSONObject {
-    for (const category of config.categories || []) {
-      if (evaluateFilter(logRow, category.filterQuery)) {
+    const categories: CategoryProcessorConfig["categories"] =
+      config.categories || [];
+    if (categories.length === 0) {
+      return logRow;
+    }
+
+    /*
+     * Lazy-compile category filters on first hit. We mutate the
+     * (cached, in-memory) config object so subsequent records
+     * skip the compile entirely. The pipeline cache holds this
+     * object for the 60s TTL window.
+     */
+    if (
+      !config._compiledCategoryFilters ||
+      config._compiledCategoryFilters.length !== categories.length
+    ) {
+      config._compiledCategoryFilters = categories.map((category) => {
+        return compileFilter(category.filterQuery || "");
+      });
+    }
+
+    for (let i: number = 0; i < categories.length; i++) {
+      const category: CategoryProcessorConfig["categories"][number] =
+        categories[i]!;
+      const compiled: CompiledFilter | undefined =
+        config._compiledCategoryFilters[i];
+      if (!compiled) {
+        continue;
+      }
+      if (evaluateCompiledFilter(logRow, compiled)) {
         const attrs: Record<string, unknown> = {
           ...((logRow["attributes"] as Record<string, unknown>) || {}),
         };

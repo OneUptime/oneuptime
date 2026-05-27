@@ -1,6 +1,8 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  useEffect,
+  useRef,
   useState,
   useMemo,
 } from "react";
@@ -20,10 +22,20 @@ export interface TelemetryFacetSectionProps {
   valueColorMap?: Record<string, string> | undefined;
   activeValues?: Set<string> | undefined;
   defaultExpanded?: boolean;
+  /*
+   * When set, the search box also emits typed text to the parent (debounced)
+   * so it can refetch values from the backend. Client-side filtering still
+   * runs as defense-in-depth — the server response replaces props.values
+   * which then flows through the local filter.
+   */
+  onSearchChange?: ((text: string) => void) | undefined;
+  // Force the search input to render even when below the local item threshold.
+  alwaysShowSearch?: boolean;
 }
 
 const DEFAULT_VISIBLE_COUNT: number = 5;
 const SEARCH_THRESHOLD: number = 6;
+const SEARCH_DEBOUNCE_MS: number = 300;
 
 const TelemetryFacetSection: FunctionComponent<TelemetryFacetSectionProps> = (
   props: TelemetryFacetSectionProps,
@@ -34,7 +46,37 @@ const TelemetryFacetSection: FunctionComponent<TelemetryFacetSectionProps> = (
   const [showAll, setShowAll] = useState<boolean>(false);
   const [searchText, setSearchText] = useState<string>("");
 
-  const showSearch: boolean = props.values.length >= SEARCH_THRESHOLD;
+  const showSearch: boolean =
+    props.alwaysShowSearch === true ||
+    props.onSearchChange !== undefined ||
+    props.values.length >= SEARCH_THRESHOLD;
+
+  /*
+   * Debounce the upward search emit so each keystroke doesn't fire a
+   * round-trip. Local filter still applies immediately for fast feedback
+   * against the currently loaded set.
+   */
+  const onSearchChange: TelemetryFacetSectionProps["onSearchChange"] =
+    props.onSearchChange;
+  const lastEmittedRef: React.MutableRefObject<string | null> = useRef<
+    string | null
+  >(null);
+  useEffect(() => {
+    if (!onSearchChange) {
+      return;
+    }
+    const trimmed: string = searchText.trim();
+    if (lastEmittedRef.current === trimmed) {
+      return;
+    }
+    const handle: ReturnType<typeof setTimeout> = setTimeout(() => {
+      lastEmittedRef.current = trimmed;
+      onSearchChange(trimmed);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      clearTimeout(handle);
+    };
+  }, [searchText, onSearchChange]);
 
   const filteredValues: Array<FacetValue> = useMemo(() => {
     if (!searchText.trim()) {
@@ -43,7 +85,9 @@ const TelemetryFacetSection: FunctionComponent<TelemetryFacetSectionProps> = (
     const query: string = searchText.toLowerCase().trim();
     return props.values.filter((facet: FacetValue) => {
       const displayName: string =
-        props.valueDisplayMap?.[facet.value] ?? facet.value;
+        facet.displayName ??
+        props.valueDisplayMap?.[facet.value] ??
+        facet.value;
       return displayName.toLowerCase().includes(query);
     });
   }, [props.values, props.valueDisplayMap, searchText]);
@@ -117,7 +161,9 @@ const TelemetryFacetSection: FunctionComponent<TelemetryFacetSectionProps> = (
               <TelemetryFacetValueRow
                 key={facet.value}
                 value={facet.value}
-                displayValue={props.valueDisplayMap?.[facet.value]}
+                displayValue={
+                  facet.displayName ?? props.valueDisplayMap?.[facet.value]
+                }
                 count={facet.count}
                 maxCount={maxCount}
                 color={props.valueColorMap?.[facet.value]}

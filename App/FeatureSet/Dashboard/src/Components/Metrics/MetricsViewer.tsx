@@ -12,7 +12,6 @@ import {
   ActiveFilter,
   FacetConfig,
   FacetData,
-  FacetValue,
   SearchHelpRow,
 } from "Common/UI/Components/TelemetryViewer/types";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
@@ -49,6 +48,29 @@ import MetricRow from "./MetricRow";
 import { SparklinePoint } from "./MetricSparkline";
 import MetricUtil from "./Utils/Metrics";
 import Search from "Common/Types/BaseDatabase/Search";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import { JSONObject } from "Common/Types/JSON";
+import { APP_API_URL } from "Common/UI/Config";
+
+async function postApi(
+  path: string,
+  data: JSONObject,
+): Promise<HTTPResponse<JSONObject>> {
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
+    {
+      url: URL.fromString(APP_API_URL.toString()).addRoute(path),
+      data,
+      headers: ModelAPI.getCommonHeaders(),
+    },
+  );
+
+  if (response instanceof HTTPErrorResponse) {
+    throw response;
+  }
+
+  return response;
+}
 
 const DEFAULT_PAGE_SIZE: number = 50;
 
@@ -197,6 +219,17 @@ const MetricsViewer: FunctionComponent<Props> = (
   const [error, setError] = useState<string>("");
 
   const [services, setServices] = useState<Array<Service>>([]);
+
+  const [facetData, setFacetData] = useState<FacetData>({});
+  const [facetLoading, setFacetLoading] = useState<boolean>(false);
+  /*
+   * Per-facet search text for resource facets (serviceId / etc.). Updates
+   * trigger a backend refetch so the sidebar can show services beyond the
+   * loaded subset.
+   */
+  const [facetSearchText, setFacetSearchText] = useState<
+    Record<string, string>
+  >({});
 
   const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>(
     initialUrlState.timeRange,
@@ -815,27 +848,63 @@ const MetricsViewer: FunctionComponent<Props> = (
         valueDisplayMap: serviceNameMap,
         valueColorMap: serviceColorMap,
         priority: 1,
+        serverSearchable: true,
       },
     ];
   }, [services, isScoped]);
 
   /*
-   * Compute facets from loaded services (and distribution isn't known without
-   * a backend aggregation, so show equal weights for v1)
+   * Fetch facets from the backend. Counts come from a ClickHouse GROUP BY
+   * over the current time window; values are resolved from the Postgres
+   * source-of-truth so every service in the project appears in the sidebar
+   * regardless of recent metric activity.
    */
-  const facetData: FacetData = useMemo(() => {
+  const fetchFacets: () => Promise<void> = useCallback(async () => {
     if (isScoped) {
-      return {};
+      setFacetData({});
+      return;
     }
-    const values: Array<FacetValue> = services
-      .filter((s: Service): boolean => {
-        return Boolean(s.id && s.name);
-      })
-      .map((s: Service): FacetValue => {
-        return { value: s.id!.toString(), count: 0 };
-      });
-    return { serviceId: values };
-  }, [services, isScoped]);
+
+    setFacetLoading(true);
+
+    const dateRange: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+
+    const payload: JSONObject = {
+      startTime: dateRange.startValue.toISOString(),
+      endTime: dateRange.endValue.toISOString(),
+      facetKeys: ["serviceId"],
+    };
+
+    const facetSearchTextActive: Record<string, string> = {};
+    for (const [key, val] of Object.entries(facetSearchText)) {
+      if (val && val.trim().length > 0) {
+        facetSearchTextActive[key] = val.trim();
+      }
+    }
+    if (Object.keys(facetSearchTextActive).length > 0) {
+      payload["facetSearchText"] = facetSearchTextActive;
+    }
+
+    try {
+      const response: HTTPResponse<JSONObject> = await postApi(
+        "/telemetry/metrics/facets",
+        payload,
+      );
+      const facets: FacetData = (response.data["facets"] ||
+        {}) as unknown as FacetData;
+      setFacetData(facets);
+    } catch {
+      // Facets are non-critical; silently degrade
+      setFacetData({});
+    } finally {
+      setFacetLoading(false);
+    }
+  }, [isScoped, timeRange, facetSearchText]);
+
+  useEffect(() => {
+    void fetchFacets();
+  }, [fetchFacets]);
 
   // Facet interaction
   const handleFacetInclude: (facetKey: string, value: string) => void =
@@ -1063,8 +1132,24 @@ const MetricsViewer: FunctionComponent<Props> = (
       showFacetSidebar={!isScoped}
       facetData={facetData}
       facetConfigs={facetConfigs}
-      facetLoading={false}
+      facetLoading={facetLoading}
       onFacetInclude={handleFacetInclude}
+      onFacetSearchChange={(facetKey: string, text: string) => {
+        setFacetSearchText(
+          (prev: Record<string, string>): Record<string, string> => {
+            if ((prev[facetKey] || "") === text) {
+              return prev;
+            }
+            const next: Record<string, string> = { ...prev };
+            if (text.length === 0) {
+              delete next[facetKey];
+            } else {
+              next[facetKey] = text;
+            }
+            return next;
+          },
+        );
+      }}
       // Active filters
       activeFilters={mergedActiveFilters}
       onRemoveFilter={handleRemoveFilter}

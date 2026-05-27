@@ -38,6 +38,7 @@ export interface HistogramRequest extends TraceFilters {
 export interface FacetValue {
   value: string;
   count: number;
+  displayName?: string | undefined;
 }
 
 export interface FacetRequest extends TraceFilters {

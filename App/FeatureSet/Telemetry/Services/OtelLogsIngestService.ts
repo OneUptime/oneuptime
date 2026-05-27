@@ -28,8 +28,9 @@ import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { TELEMETRY_LOG_FLUSH_BATCH_SIZE } from "../Config";
 import LogService from "Common/Server/Services/LogService";
 import LogPipelineService, { LoadedPipeline } from "./LogPipelineService";
-import LogDropFilterService from "./LogDropFilterService";
-import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
+import LogDropFilterService, {
+  LoadedLogDropFilter,
+} from "./LogDropFilterService";
 import LogScrubRuleService from "./LogScrubRuleService";
 import KubernetesResourceService from "Common/Server/Services/KubernetesResourceService";
 import KubernetesContainerService from "Common/Server/Services/KubernetesContainerService";
@@ -162,7 +163,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       // Load pipelines, drop filters, and scrub rules once per batch
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
       let loadedPipelines: Array<LoadedPipeline> = [];
-      let loadedDropFilters: Array<LogDropFilter> = [];
+      let loadedDropFilters: Array<LoadedLogDropFilter> = [];
       let loadedScrubRules: Awaited<
         ReturnType<typeof LogScrubRuleService.loadScrubRules>
       > = [];
@@ -347,8 +348,18 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     }
                   }
 
+                  /*
+                   * `attributeKeys` is stored as a ClickHouse Array column
+                   * and used downstream only as an unordered set (for
+                   * "has this attribute?" checks). Skip the sort the
+                   * shared TelemetryUtil.getAttributeKeys helper does:
+                   * for a ~100-attr log row a single Object.keys is
+                   * O(N), the sort is O(N log N), and with thousands
+                   * of records per batch that sort cost was visible
+                   * on flamegraphs.
+                   */
                   const attributeKeys: Array<string> =
-                    TelemetryUtil.getAttributeKeys(attributesObject);
+                    Object.keys(attributesObject);
 
                   const projectId: ObjectID = (req as TelemetryRequest)
                     .projectId;

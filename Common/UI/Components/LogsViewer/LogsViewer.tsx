@@ -89,6 +89,15 @@ export interface ComponentProps {
   facetLoading?: boolean;
   onFacetInclude?: (facetKey: string, value: string) => void;
   onFacetExclude?: (facetKey: string, value: string) => void;
+  /*
+   * Debounced search emit for resource facets (serviceId / hostId / etc.).
+   * Parent updates state and re-fetches facets so the result includes
+   * matching resources from the Postgres source-of-truth, not just those
+   * already loaded into the sidebar.
+   */
+  onFacetSearchChange?:
+    | ((facetKey: string, searchText: string) => void)
+    | undefined;
   showFacetSidebar?: boolean;
   activeFilters?: Array<ActiveFilter> | undefined;
   baseActiveFilters?: Array<ActiveFilter> | undefined;
@@ -1063,6 +1072,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               savedViews={props.savedViews}
               selectedSavedViewId={props.selectedSavedViewId}
               onSavedViewSelect={props.onSavedViewSelect}
+              onFacetSearchChange={props.onFacetSearchChange}
             />
           )}
 

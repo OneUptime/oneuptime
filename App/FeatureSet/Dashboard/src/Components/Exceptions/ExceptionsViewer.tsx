@@ -12,7 +12,6 @@ import {
   ActiveFilter,
   FacetConfig,
   FacetData,
-  FacetValue,
   HistogramBucket,
   HistogramSeriesOption,
   SearchHelpRow,
@@ -295,6 +294,16 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     Array<HistogramBucket>
   >([]);
   const [histogramLoading, setHistogramLoading] = useState<boolean>(false);
+  const [facetData, setFacetData] = useState<FacetData>({});
+  const [facetLoading, setFacetLoading] = useState<boolean>(false);
+  /*
+   * Per-facet search text for resource facets (serviceId / hostId / etc.).
+   * Updates trigger a backend refetch so the result includes resources from
+   * the full Postgres source-of-truth, not just the loaded subset.
+   */
+  const [facetSearchText, setFacetSearchText] = useState<
+    Record<string, string>
+  >({});
 
   /*
    * Mirror filter state to the URL so refresh and back-from-exception-detail
@@ -826,37 +835,6 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       setPage(1);
     }, []);
 
-  // Lookup maps for resource-type classification
-  const hostIdSet: Set<string> = useMemo(() => {
-    const set: Set<string> = new Set<string>();
-    for (const host of hosts) {
-      if (host.id) {
-        set.add(host.id.toString());
-      }
-    }
-    return set;
-  }, [hosts]);
-
-  const dockerHostIdSet: Set<string> = useMemo(() => {
-    const set: Set<string> = new Set<string>();
-    for (const dockerHost of dockerHosts) {
-      if (dockerHost.id) {
-        set.add(dockerHost.id.toString());
-      }
-    }
-    return set;
-  }, [dockerHosts]);
-
-  const kubernetesClusterIdSet: Set<string> = useMemo(() => {
-    const set: Set<string> = new Set<string>();
-    for (const cluster of kubernetesClusters) {
-      if (cluster.id) {
-        set.add(cluster.id.toString());
-      }
-    }
-    return set;
-  }, [kubernetesClusters]);
-
   // Facet configs
   const facetConfigs: Array<FacetConfig> = useMemo(() => {
     const serviceNameMap: Record<string, string> = {};
@@ -902,24 +880,28 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         valueDisplayMap: serviceNameMap,
         valueColorMap: serviceColorMap,
         priority: 1,
+        serverSearchable: true,
       },
       {
         key: "hostId",
         title: "Host",
         valueDisplayMap: hostNameMap,
         priority: 2,
+        serverSearchable: true,
       },
       {
         key: "dockerHostId",
         title: "Docker Host",
         valueDisplayMap: dockerHostNameMap,
         priority: 3,
+        serverSearchable: true,
       },
       {
         key: "kubernetesClusterId",
         title: "Kubernetes Cluster",
         valueDisplayMap: clusterNameMap,
         priority: 4,
+        serverSearchable: true,
       },
       {
         key: "exceptionType",
@@ -934,62 +916,120 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     ];
   }, [services, hosts, dockerHosts, kubernetesClusters]);
 
-  const facetData: FacetData = useMemo(() => {
+  /*
+   * Fetch facets from the backend. Counts come from ClickHouse aggregation
+   * over the current time window; resource facet values are resolved from
+   * the Postgres source-of-truth so every project resource appears in the
+   * sidebar (and search hits the full list, not just the loaded subset).
+   */
+  const fetchFacets: () => Promise<void> = useCallback(async () => {
+    setFacetLoading(true);
+
+    const dateRange: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+
+    const payload: JSONObject = {
+      startTime: dateRange.startValue.toISOString(),
+      endTime: dateRange.endValue.toISOString(),
+      facetKeys: [
+        "serviceId",
+        "hostId",
+        "dockerHostId",
+        "kubernetesClusterId",
+        "exceptionType",
+        "environment",
+      ],
+    };
+
     /*
-     * `serviceId` on the exception row is a polymorphic resource id
-     * (Service / Host / DockerHost / KubernetesCluster — disambiguated
-     * server-side by the `serviceType` ClickHouse column). The Postgres
-     * TelemetryException projection doesn't expose serviceType, so we
-     * classify each id client-side by looking it up in the project's
-     * resource maps.
+     * Collect filter values from active facets + parsed search (same shape
+     * as the histogram payload above — keeps facet counts aligned with the
+     * list scope).
      */
-    const byService: Record<string, number> = {};
-    const byHost: Record<string, number> = {};
-    const byDockerHost: Record<string, number> = {};
-    const byCluster: Record<string, number> = {};
-    const byType: Record<string, number> = {};
-    const byEnv: Record<string, number> = {};
-    for (const e of exceptions) {
-      if (e.serviceId) {
-        const k: string = e.serviceId.toString();
-        if (hostIdSet.has(k)) {
-          byHost[k] = (byHost[k] || 0) + 1;
-        } else if (dockerHostIdSet.has(k)) {
-          byDockerHost[k] = (byDockerHost[k] || 0) + 1;
-        } else if (kubernetesClusterIdSet.has(k)) {
-          byCluster[k] = (byCluster[k] || 0) + 1;
-        } else {
-          byService[k] = (byService[k] || 0) + 1;
+    const groups: Record<string, Array<string>> = {};
+    for (const f of activeFilters) {
+      if (!groups[f.facetKey]) {
+        groups[f.facetKey] = [];
+      }
+      groups[f.facetKey]!.push(f.value);
+    }
+    const { fieldFilters, freeText } = parseSearch(submittedSearch);
+    for (const key of Object.keys(fieldFilters)) {
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      groups[key]!.push(...fieldFilters[key]!);
+    }
+    if (props.serviceId) {
+      if (!groups["serviceId"]) {
+        groups["serviceId"] = [];
+      }
+      groups["serviceId"]!.push(props.serviceId.toString());
+    }
+
+    const resourceIds: Set<string> = new Set<string>();
+    for (const k of [
+      "serviceId",
+      "hostId",
+      "dockerHostId",
+      "kubernetesClusterId",
+    ]) {
+      const values: Array<string> | undefined = groups[k];
+      if (values) {
+        for (const v of values) {
+          resourceIds.add(v);
         }
       }
-      if (e.exceptionType) {
-        byType[e.exceptionType] = (byType[e.exceptionType] || 0) + 1;
-      }
-      if (e.environment) {
-        byEnv[e.environment] = (byEnv[e.environment] || 0) + 1;
+    }
+    if (resourceIds.size > 0) {
+      payload["serviceIds"] = Array.from(resourceIds);
+    }
+    if (groups["exceptionType"] && groups["exceptionType"].length > 0) {
+      payload["exceptionTypes"] = groups["exceptionType"];
+    }
+    if (groups["environment"] && groups["environment"].length > 0) {
+      payload["environments"] = groups["environment"];
+    }
+    if (freeText && freeText.length > 0) {
+      payload["messageSearchText"] = freeText;
+    }
+
+    const facetSearchTextActive: Record<string, string> = {};
+    for (const [key, val] of Object.entries(facetSearchText)) {
+      if (val && val.trim().length > 0) {
+        facetSearchTextActive[key] = val.trim();
       }
     }
-    const toFacet: (m: Record<string, number>) => Array<FacetValue> = (
-      m: Record<string, number>,
-    ) => {
-      return Object.entries(m)
-        .map(([value, count]: [string, number]): FacetValue => {
-          return { value, count };
-        })
-        .sort((a: FacetValue, b: FacetValue): number => {
-          return b.count - a.count;
-        })
-        .slice(0, 20);
-    };
-    return {
-      serviceId: toFacet(byService),
-      hostId: toFacet(byHost),
-      dockerHostId: toFacet(byDockerHost),
-      kubernetesClusterId: toFacet(byCluster),
-      exceptionType: toFacet(byType),
-      environment: toFacet(byEnv),
-    };
-  }, [exceptions, hostIdSet, dockerHostIdSet, kubernetesClusterIdSet]);
+    if (Object.keys(facetSearchTextActive).length > 0) {
+      payload["facetSearchText"] = facetSearchTextActive;
+    }
+
+    try {
+      const response: HTTPResponse<JSONObject> = await postApi(
+        "/telemetry/exceptions/facets",
+        payload,
+      );
+      const facets: FacetData = (response.data["facets"] ||
+        {}) as unknown as FacetData;
+      setFacetData(facets);
+    } catch {
+      // Facets are non-critical; silently degrade
+      setFacetData({});
+    } finally {
+      setFacetLoading(false);
+    }
+  }, [
+    timeRange,
+    activeFilters,
+    submittedSearch,
+    parseSearch,
+    props.serviceId,
+    facetSearchText,
+  ]);
+
+  useEffect(() => {
+    void fetchFacets();
+  }, [fetchFacets]);
 
   const handleFacetInclude: (facetKey: string, value: string) => void =
     useCallback(
@@ -1267,8 +1307,24 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       showFacetSidebar={true}
       facetData={facetData}
       facetConfigs={facetConfigs}
-      facetLoading={false}
+      facetLoading={facetLoading}
       onFacetInclude={handleFacetInclude}
+      onFacetSearchChange={(facetKey: string, text: string) => {
+        setFacetSearchText(
+          (prev: Record<string, string>): Record<string, string> => {
+            if ((prev[facetKey] || "") === text) {
+              return prev;
+            }
+            const next: Record<string, string> = { ...prev };
+            if (text.length === 0) {
+              delete next[facetKey];
+            } else {
+              next[facetKey] = text;
+            }
+            return next;
+          },
+        );
+      }}
       activeFilters={mergedActiveFilters}
       onRemoveFilter={handleRemoveFilter}
       onClearAllFilters={handleClearAllFilters}

@@ -28,7 +28,22 @@ export interface LogsFacetSidebarProps {
   savedViews?: Array<LogsSavedViewOption> | undefined;
   selectedSavedViewId?: string | null | undefined;
   onSavedViewSelect?: ((viewId: string) => void) | undefined;
+  /*
+   * Called (debounced) when typing in a resource facet's search box. Lets
+   * the parent re-issue the facets request with the typed text scoped to
+   * that facet, so the result includes resources beyond the loaded subset.
+   */
+  onFacetSearchChange?:
+    | ((facetKey: string, searchText: string) => void)
+    | undefined;
 }
+
+const RESOURCE_FACET_KEYS: ReadonlySet<string> = new Set([
+  "serviceId",
+  "hostId",
+  "dockerHostId",
+  "kubernetesClusterId",
+]);
 
 const SEVERITY_ORDER: Array<string> = [
   LogSeverity.Fatal,
@@ -278,6 +293,13 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
             valueColorMap = severityColorMap;
           }
 
+          const onSearchChange: ((text: string) => void) | undefined =
+            RESOURCE_FACET_KEYS.has(key) && props.onFacetSearchChange
+              ? (text: string) => {
+                  props.onFacetSearchChange!(key, text);
+                }
+              : undefined;
+
           return (
             <FacetSection
               key={key}
@@ -289,6 +311,7 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
               valueDisplayMap={valueDisplayMap}
               valueColorMap={valueColorMap}
               activeValues={activeValuesByKey[key]}
+              onSearchChange={onSearchChange}
             />
           );
         })}

@@ -1,9 +1,26 @@
 import { JSONObject } from "Common/Types/JSON";
 
 /*
- * Simple filter evaluator for log rows used by pipelines and drop filters.
- * Supports: =, !=, LIKE, IN, AND, OR, NOT, parentheses
- * Field paths: severityText, body, serviceId, attributes.<key>
+ * Filter evaluator for log / span rows used by pipelines, drop
+ * filters, and category processors. Two-stage by design:
+ *
+ *   compileFilter(query): tokenize -> parse -> pre-compile
+ *      (build LIKE RegExp, build IN Set, mark always-true /
+ *      always-false). Called once per filter rule at cache-load
+ *      time (every 60s) for the project's small set of rules.
+ *
+ *   evaluateCompiledFilter(row, compiled): walks the AST against
+ *      the row. Called once per record per rule on the ingest hot
+ *      path. Zero allocation, zero string parsing, zero RegExp
+ *      construction in this loop.
+ *
+ * The legacy evaluateFilter(row, query) is kept for places that
+ * only have the raw query string (mostly tests). Per-record ingest
+ * paths must call compileFilter first and reuse the result.
+ *
+ * Supports: =, !=, LIKE, IN, AND, OR, NOT, parentheses.
+ * Field paths: top-level row fields, attributes.<key>, or bare
+ * <key> resolved as attribute (with optional resource. prefix).
  */
 
 interface Token {
@@ -37,12 +54,20 @@ function getAttrValue(
   return undefined;
 }
 
+/*
+ * Coerce a raw attribute / row value to a string for comparison.
+ * Object-typed values are returned as "" rather than JSON.stringify'd:
+ * meaningfully matching against the stringified form of a nested
+ * attribute is a rare power-user case, and the per-record stringify
+ * cost dominated bursty ingest. Users who need nested matching
+ * should reach for a structured query at read time.
+ */
 function stringifyAttrValue(val: unknown): string {
   if (val === undefined || val === null) {
     return "";
   }
   if (typeof val === "object") {
-    return JSON.stringify(val);
+    return "";
   }
   return String(val);
 }
@@ -57,7 +82,7 @@ function getFieldValue(logRow: JSONObject, fieldPath: string): string {
 
   const topLevel: unknown = logRow[fieldPath];
   if (topLevel !== undefined && topLevel !== null) {
-    return String(topLevel);
+    return stringifyAttrValue(topLevel);
   }
 
   /*
@@ -171,6 +196,14 @@ function tokenize(query: string): Array<Token> {
   return tokens;
 }
 
+/*
+ * AST nodes. ComparisonExpr carries pre-compiled auxiliary state
+ * (likeRegex, likeSubstring, inSet) that is populated once in
+ * compileExpr below and reused on every record evaluation. This is
+ * the core of the 2.1b optimisation: a LIKE filter never builds a
+ * RegExp at evaluation time and an IN filter never does an
+ * Array.includes scan.
+ */
 interface FilterExpression {
   type: "comparison" | "and" | "or" | "not";
 }
@@ -180,6 +213,20 @@ interface ComparisonExpr extends FilterExpression {
   field: string;
   operator: string;
   value: string | Array<string>;
+  /*
+   * Populated when operator === "LIKE" and the pattern uses
+   * SQL wildcards (`%`, `_`). null otherwise.
+   */
+  likeRegex?: RegExp | null;
+  /*
+   * Populated when operator === "LIKE" and the pattern contains
+   * no `%`. Lowercase form for case-insensitive substring match.
+   */
+  likeSubstring?: string;
+  /*
+   * Populated when operator === "IN". O(1) membership lookup.
+   */
+  inSet?: Set<string>;
 }
 
 interface AndExpr extends FilterExpression {
@@ -339,6 +386,62 @@ class Parser {
   }
 }
 
+/*
+ * Walk the parsed AST once and attach pre-compiled forms to each
+ * ComparisonExpr node. This runs at filter-load time (60s cache)
+ * so every record evaluation in the next window pays only the
+ * comparison cost, not the LIKE-regex-build or IN-set-build cost.
+ */
+function compileExpr(expr: FilterExpression): void {
+  switch (expr.type) {
+    case "comparison": {
+      const comp: ComparisonExpr = expr as ComparisonExpr;
+      if (comp.operator === "LIKE") {
+        const raw: string = String(comp.value);
+        /*
+         * Mirrors the runtime LIKE semantics: no `%` means
+         * substring match (the UI labels this operator
+         * "contains"); presence of `%` switches to SQL-style
+         * wildcard regex. `_` keeps single-char-wildcard.
+         */
+        if (!raw.includes("%")) {
+          comp.likeSubstring = raw.toLowerCase();
+          comp.likeRegex = null;
+        } else {
+          const pattern: string = raw
+            .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+            .replace(/%/g, ".*")
+            .replace(/_/g, ".");
+          comp.likeRegex = new RegExp(`^${pattern}$`, "i");
+        }
+      } else if (comp.operator === "IN") {
+        const values: Array<string> = comp.value as Array<string>;
+        comp.inSet = new Set(values);
+      }
+      return;
+    }
+    case "and": {
+      const andExpr: AndExpr = expr as AndExpr;
+      compileExpr(andExpr.left);
+      compileExpr(andExpr.right);
+      return;
+    }
+    case "or": {
+      const orExpr: OrExpr = expr as OrExpr;
+      compileExpr(orExpr.left);
+      compileExpr(orExpr.right);
+      return;
+    }
+    case "not": {
+      const notExpr: NotExpr = expr as NotExpr;
+      compileExpr(notExpr.expr);
+      return;
+    }
+    default:
+      return;
+  }
+}
+
 function evaluateExpr(logRow: JSONObject, expr: FilterExpression): boolean {
   switch (expr.type) {
     case "comparison": {
@@ -351,23 +454,20 @@ function evaluateExpr(logRow: JSONObject, expr: FilterExpression): boolean {
         case "!=":
           return fieldVal !== comp.value;
         case "LIKE": {
-          const raw: string = String(comp.value);
-          /*
-           * The UI labels this operator "contains", so a value without any
-           * `%` wildcard means substring match — not exact match. Only honor
-           * SQL LIKE semantics (`%` -> .*, `_` -> .) when the user explicitly
-           * uses `%` in the pattern.
-           */
-          if (!raw.includes("%")) {
-            return fieldVal.toLowerCase().includes(raw.toLowerCase());
+          // Pre-compiled at filter-load time; both fields are set
+          // by compileExpr above. likeRegex === null means the
+          // pattern had no `%` and we should substring-match.
+          if (comp.likeRegex) {
+            return comp.likeRegex.test(fieldVal);
           }
-          const pattern: string = raw
-            .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-            .replace(/%/g, ".*")
-            .replace(/_/g, ".");
-          return new RegExp(`^${pattern}$`, "i").test(fieldVal);
+          const needle: string = comp.likeSubstring ?? "";
+          return fieldVal.toLowerCase().includes(needle);
         }
         case "IN": {
+          // Pre-compiled Set lookup. O(1) vs the old Array.includes.
+          if (comp.inSet) {
+            return comp.inSet.has(fieldVal);
+          }
           const values: Array<string> = comp.value as Array<string>;
           return values.includes(fieldVal);
         }
@@ -397,26 +497,69 @@ function evaluateExpr(logRow: JSONObject, expr: FilterExpression): boolean {
   }
 }
 
-export function evaluateFilter(
-  logRow: JSONObject,
-  filterQuery: string,
-): boolean {
+/*
+ * Public compiled-filter representation. Three states so the
+ * caller doesn't have to retain the raw query string and re-parse
+ * on every record:
+ *
+ *   kind: "always-true"   — empty / whitespace-only query.
+ *   kind: "always-false"  — query failed to parse. Matches the
+ *                           legacy "unparsable filter does not
+ *                           match" safe default.
+ *   kind: "expr"          — normal compiled AST with pre-built
+ *                           LIKE/IN auxiliary state.
+ */
+export type CompiledFilter =
+  | { kind: "always-true" }
+  | { kind: "always-false" }
+  | { kind: "expr"; expr: FilterExpression };
+
+export function compileFilter(filterQuery: string): CompiledFilter {
   if (!filterQuery || filterQuery.trim().length === 0) {
-    return true; // empty filter matches everything
+    return { kind: "always-true" };
   }
 
   try {
     const tokens: Array<Token> = tokenize(filterQuery);
     if (tokens.length === 0) {
-      return true;
+      return { kind: "always-true" };
     }
     const parser: Parser = new Parser(tokens);
     const expr: FilterExpression = parser.parse();
-    return evaluateExpr(logRow, expr);
+    compileExpr(expr);
+    return { kind: "expr", expr };
   } catch {
-    // If filter can't be parsed, don't match (safe default)
-    return false;
+    // Match the legacy safe default: an unparsable filter never matches.
+    return { kind: "always-false" };
   }
+}
+
+export function evaluateCompiledFilter(
+  logRow: JSONObject,
+  compiled: CompiledFilter,
+): boolean {
+  switch (compiled.kind) {
+    case "always-true":
+      return true;
+    case "always-false":
+      return false;
+    case "expr":
+      return evaluateExpr(logRow, compiled.expr);
+    default:
+      return false;
+  }
+}
+
+/*
+ * Legacy entry point retained for code paths that only have the
+ * raw filter query (mostly tests). Production ingest paths must
+ * call compileFilter once at cache-load time and reuse the result.
+ */
+export function evaluateFilter(
+  logRow: JSONObject,
+  filterQuery: string,
+): boolean {
+  return evaluateCompiledFilter(logRow, compileFilter(filterQuery));
 }
 
 export default evaluateFilter;

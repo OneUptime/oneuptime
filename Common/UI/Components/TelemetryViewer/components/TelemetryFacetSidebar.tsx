@@ -12,6 +12,14 @@ export interface TelemetryFacetSidebarProps {
   onExcludeFilter: (facetKey: string, value: string) => void;
   activeFilters?: Array<ActiveFilter> | undefined;
   headerLabel?: string | undefined;
+  /*
+   * Called (debounced) when a search input changes for a facet whose config
+   * has serverSearchable=true. Lets the parent re-issue a facets request
+   * with the typed text scoped to that facet.
+   */
+  onFacetSearchChange?:
+    | ((facetKey: string, searchText: string) => void)
+    | undefined;
 }
 
 const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
@@ -63,6 +71,13 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
         {orderedConfigs.map((config: FacetConfig) => {
           const values: Array<FacetValue> = props.facetData[config.key] || [];
 
+          const onSearchChange: ((text: string) => void) | undefined =
+            config.serverSearchable && props.onFacetSearchChange
+              ? (text: string) => {
+                  props.onFacetSearchChange!(config.key, text);
+                }
+              : undefined;
+
           return (
             <TelemetryFacetSection
               key={config.key}
@@ -74,6 +89,7 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
               valueDisplayMap={config.valueDisplayMap}
               valueColorMap={config.valueColorMap}
               activeValues={activeValuesByKey[config.key]}
+              onSearchChange={onSearchChange}
             />
           );
         })}

@@ -32,6 +32,7 @@ export interface HistogramRequest {
 export interface FacetValue {
   value: string;
   count: number;
+  displayName?: string | undefined;
 }
 
 export interface FacetRequest {

@@ -384,6 +384,16 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
   // Facet state
   const [facetData, setFacetData] = useState<FacetData>({});
+  /*
+   * Per-facet search text for resource facets (serviceId / hostId / etc.).
+   * When the user types into a facet's search box, this updates and triggers
+   * fetchFacets, which forwards the text to /telemetry/logs/facets so the
+   * backend can scan the full Postgres source-of-truth, not just the loaded
+   * subset.
+   */
+  const [facetSearchText, setFacetSearchText] = useState<
+    Record<string, string>
+  >({});
   const [facetLoading, setFacetLoading] = useState<boolean>(false);
 
   // Track user-applied facet filters: Map<facetKey, Set<value>>
@@ -835,6 +845,21 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           (requestData as any)["attributes"] = logQueryAttributes;
         }
 
+        /*
+         * Only forward non-empty entries — an empty string would still match
+         * everything but adds noise to the request, and the backend treats
+         * a missing key the same as an empty value.
+         */
+        const facetSearchTextActive: Record<string, string> = {};
+        for (const [key, val] of Object.entries(facetSearchText)) {
+          if (val && val.trim().length > 0) {
+            facetSearchTextActive[key] = val.trim();
+          }
+        }
+        if (Object.keys(facetSearchTextActive).length > 0) {
+          (requestData as any)["facetSearchText"] = facetSearchTextActive;
+        }
+
         const response: HTTPResponse<JSONObject> = await postApi(
           "/telemetry/logs/facets",
           requestData,
@@ -856,6 +881,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       spanIdStrings,
       timeRange,
       logQueryAttributes,
+      facetSearchText,
     ]);
 
   // --- Handlers (defined before effects that reference them) ---
@@ -1661,6 +1687,22 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           facetLoading={facetLoading}
           onFacetInclude={handleFacetInclude}
           onFacetExclude={handleFacetExclude}
+          onFacetSearchChange={(facetKey: string, text: string) => {
+            setFacetSearchText(
+              (prev: Record<string, string>): Record<string, string> => {
+                if ((prev[facetKey] || "") === text) {
+                  return prev;
+                }
+                const next: Record<string, string> = { ...prev };
+                if (text.length === 0) {
+                  delete next[facetKey];
+                } else {
+                  next[facetKey] = text;
+                }
+                return next;
+              },
+            );
+          }}
           showFacetSidebar={true}
           activeFilters={activeFilters}
           baseActiveFilters={baseActiveFilters}

@@ -344,6 +344,16 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   const [histogramLoading, setHistogramLoading] = useState<boolean>(false);
   const [facetData, setFacetData] = useState<FacetData>({});
   const [facetLoading, setFacetLoading] = useState<boolean>(false);
+  /*
+   * Per-facet search text for resource facets (serviceId / hostId / etc.).
+   * When the user types into a facet's search box, this updates and triggers
+   * the facets fetch, which forwards the text to /telemetry/traces/facets so
+   * the backend can scan the full Postgres source-of-truth, not just the
+   * loaded subset.
+   */
+  const [facetSearchText, setFacetSearchText] = useState<
+    Record<string, string>
+  >({});
 
   const [isLive, setIsLive] = useState<boolean>(false);
   const livePollRef: React.MutableRefObject<ReturnType<
@@ -1045,6 +1055,18 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       bucketSizeInMinutes,
     };
 
+    /*
+     * Forward only non-empty per-facet search entries — saves bandwidth and
+     * matches backend semantics where a missing key is the same as an empty
+     * value (no filter).
+     */
+    const facetSearchTextActive: Record<string, string> = {};
+    for (const [key, val] of Object.entries(facetSearchText)) {
+      if (val && val.trim().length > 0) {
+        facetSearchTextActive[key] = val.trim();
+      }
+    }
+
     const facetsPayload: JSONObject = {
       ...aggregationRequest,
       facetKeys: [
@@ -1055,8 +1077,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         "statusCode",
         "kind",
       ],
-      limit: 20,
     };
+
+    if (Object.keys(facetSearchTextActive).length > 0) {
+      facetsPayload["facetSearchText"] = facetSearchTextActive;
+    }
 
     const [histogramResult, facetsResult] = await Promise.allSettled([
       postApi("/telemetry/traces/histogram", histogramPayload),
@@ -1096,7 +1121,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
     setHistogramLoading(false);
     setFacetLoading(false);
-  }, [aggregationRequest, timeRange]);
+  }, [aggregationRequest, timeRange, facetSearchText]);
 
   useEffect(() => {
     void fetchSpans();
@@ -1193,24 +1218,28 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         valueDisplayMap: serviceNameMap,
         valueColorMap: serviceColorMap,
         priority: 1,
+        serverSearchable: true,
       },
       {
         key: "hostId",
         title: "Host",
         valueDisplayMap: hostNameMap,
         priority: 2,
+        serverSearchable: true,
       },
       {
         key: "dockerHostId",
         title: "Docker Host",
         valueDisplayMap: dockerHostNameMap,
         priority: 3,
+        serverSearchable: true,
       },
       {
         key: "kubernetesClusterId",
         title: "Kubernetes Cluster",
         valueDisplayMap: clusterNameMap,
         priority: 4,
+        serverSearchable: true,
       },
       {
         key: "statusCode",
@@ -1451,6 +1480,22 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       facetConfigs={facetConfigs}
       facetLoading={facetLoading}
       onFacetInclude={handleFacetInclude}
+      onFacetSearchChange={(facetKey: string, text: string) => {
+        setFacetSearchText(
+          (prev: Record<string, string>): Record<string, string> => {
+            if ((prev[facetKey] || "") === text) {
+              return prev;
+            }
+            const next: Record<string, string> = { ...prev };
+            if (text.length === 0) {
+              delete next[facetKey];
+            } else {
+              next[facetKey] = text;
+            }
+            return next;
+          },
+        );
+      }}
       // Active filters
       activeFilters={mergedActiveFilters}
       onRemoveFilter={handleRemoveFilter}

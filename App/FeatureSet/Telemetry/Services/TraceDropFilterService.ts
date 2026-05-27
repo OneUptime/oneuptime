@@ -5,10 +5,24 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import TraceDropFilterAction from "Common/Types/Trace/TraceDropFilterAction";
-import { evaluateFilter } from "../Utils/LogFilterEvaluator";
+import {
+  compileFilter,
+  CompiledFilter,
+  evaluateCompiledFilter,
+} from "../Utils/LogFilterEvaluator";
+
+export interface LoadedTraceDropFilter {
+  filter: TraceDropFilter;
+  /*
+   * Pre-compiled at cache load time so the per-span evaluation
+   * loop never re-tokenizes / re-parses the filterQuery string.
+   * See LogFilterEvaluator.compileFilter.
+   */
+  compiledFilter: CompiledFilter;
+}
 
 interface CacheEntry {
-  filters: Array<TraceDropFilter>;
+  filters: Array<LoadedTraceDropFilter>;
   loadedAt: number;
 }
 
@@ -19,7 +33,7 @@ const dropFilterCache: Map<string, CacheEntry> = new Map();
 export class TraceDropFilterService {
   public static async loadDropFilters(
     projectId: ObjectID,
-  ): Promise<Array<TraceDropFilter>> {
+  ): Promise<Array<LoadedTraceDropFilter>> {
     const cacheKey: string = projectId.toString();
     const cached: CacheEntry | undefined = dropFilterCache.get(cacheKey);
 
@@ -53,18 +67,25 @@ export class TraceDropFilterService {
       },
     });
 
-    dropFilterCache.set(cacheKey, { filters, loadedAt: Date.now() });
-    return filters;
+    const loaded: Array<LoadedTraceDropFilter> = filters.map(
+      (filter: TraceDropFilter) => {
+        return {
+          filter,
+          compiledFilter: compileFilter((filter.filterQuery as string) || ""),
+        };
+      },
+    );
+
+    dropFilterCache.set(cacheKey, { filters: loaded, loadedAt: Date.now() });
+    return loaded;
   }
 
   public static shouldDropSpan(
     spanRow: JSONObject,
-    filters: Array<TraceDropFilter>,
+    filters: Array<LoadedTraceDropFilter>,
   ): boolean {
-    for (const filter of filters) {
-      const filterQuery: string = (filter.filterQuery as string) || "";
-
-      if (!evaluateFilter(spanRow, filterQuery)) {
+    for (const { filter, compiledFilter } of filters) {
+      if (!evaluateCompiledFilter(spanRow, compiledFilter)) {
         continue;
       }
 

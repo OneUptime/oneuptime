@@ -38,7 +38,7 @@ import TraceScrubRuleService from "./TraceScrubRuleService";
 import TracePipelineService, {
   LoadedTracePipeline,
 } from "./TracePipelineService";
-import TraceDropFilter from "Common/Models/DatabaseModels/TraceDropFilter";
+import { LoadedTraceDropFilter } from "./TraceDropFilterService";
 import TraceScrubRule from "Common/Models/DatabaseModels/TraceScrubRule";
 import {
   TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE,
@@ -229,7 +229,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
 
       // Load trace pipeline artifacts once per batch (60s cached inside services).
-      let dropFilters: Array<TraceDropFilter> = [];
+      let dropFilters: Array<LoadedTraceDropFilter> = [];
       let scrubRules: Array<CompiledTraceScrubRule> = [];
       let pipelines: Array<LoadedTracePipeline> = [];
       try {
