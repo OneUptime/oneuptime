@@ -4,6 +4,7 @@ import zlib from "zlib";
 import { promisify } from "util";
 import { JSONObject } from "Common/Types/JSON";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
+import TelemetryBodyStore from "./TelemetryBodyStore";
 
 /*
  * Shared OTel protobuf decoders. We previously decoded payloads inside
@@ -70,17 +71,47 @@ export default class OtelPayloadDecoder {
   /*
    * Decode a previously-enqueued raw OTel payload into a plain JS
    * object matching the OTel data model (resourceSpans / resourceLogs
-   * / resourceMetrics / resourceProfiles). `bufferBase64` is the raw
-   * request body — gzipped if `encoding === "gzip"`, protobuf or JSON
-   * depending on `format`.
+   * / resourceMetrics / resourceProfiles).
+   *
+   * Body source resolution, in priority order:
+   *   1. `bodyKey` (new path) — raw binary stashed by
+   *      TelemetryBodyStore at enqueue time. Fetched with a single
+   *      ioredis GETBUFFER. This is what every freshly enqueued
+   *      job uses.
+   *   2. `bufferBase64` (legacy path) — raw bytes base64-encoded
+   *      directly into the BullMQ job payload by the previous
+   *      implementation. Kept so jobs that were already in the
+   *      queue at the time of the migration deploy continue to
+   *      process until the queue drains.
+   *
+   * Returns an empty object if the body is missing (e.g. the
+   * Redis blob expired before the worker got to it). The caller
+   * downstream treats an empty `resourceLogs` / `resourceSpans`
+   * / `resourceMetrics` as "nothing to ingest" and skips the
+   * batch, which is the correct behaviour for a lost body.
    */
   public static async decodeFromQueue(input: {
     productType: ProductType;
     format: OtelPayloadFormat;
     encoding: OtelPayloadEncoding;
-    bufferBase64: string;
+    bodyKey?: string;
+    bufferBase64?: string;
   }): Promise<JSONObject> {
-    let raw: Buffer = Buffer.from(input.bufferBase64, "base64");
+    let raw: Buffer | null = null;
+
+    if (input.bodyKey) {
+      raw = await TelemetryBodyStore.readAndDeleteBody(input.bodyKey);
+      if (!raw) {
+        // Body expired or already consumed — nothing to decode.
+        return {} as JSONObject;
+      }
+    } else if (input.bufferBase64) {
+      raw = Buffer.from(input.bufferBase64, "base64");
+    } else {
+      throw new Error(
+        "OtelPayloadDecoder: neither bodyKey nor bufferBase64 was provided",
+      );
+    }
 
     if (input.encoding === "gzip") {
       raw = await gunzipAsync(new Uint8Array(raw));

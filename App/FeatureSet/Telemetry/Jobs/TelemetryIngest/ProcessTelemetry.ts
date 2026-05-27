@@ -29,15 +29,35 @@ import OtelPayloadDecoder from "../../Utils/OtelPayloadDecoder";
 import { JSONObject } from "Common/Types/JSON";
 
 /*
- * Resolve the parsed JSON body for an OTel job. New jobs ship the raw
- * request bytes (`bodyBase64`) plus format metadata so the heavy
- * gunzip + protobuf decode runs here in the worker, not on the HTTP
- * request thread. Old in-flight jobs still carry a pre-decoded
- * `requestBody` and are passed through unchanged.
+ * Resolve the parsed JSON body for an OTel job. Body source priority:
+ *
+ *   1. `bodyKey` (current path) — the HTTP enqueue stashed the raw
+ *      request buffer in Redis via TelemetryBodyStore and only put a
+ *      key reference in the BullMQ job data. The decoder fetches the
+ *      binary back out, so we avoid the synchronous base64 encode
+ *      that used to run on the Express thread and the ~33 % size
+ *      inflation in the BullMQ job state.
+ *   2. `bodyBase64` (legacy path) — kept so jobs enqueued before the
+ *      bodyKey migration deploy keep flowing while the queue drains.
+ *   3. `requestBody` (pre-deferred-decode path) — even older jobs
+ *      that shipped a parsed JSON body, still supported for the same
+ *      drain reason.
+ *
+ * Heavy gunzip + protobuf decode always runs here in the worker so
+ * the HTTP request thread stays free regardless of which body shape
+ * we get.
  */
 async function resolveOtelBody(
   jobData: TelemetryIngestJobData,
 ): Promise<JSONObject> {
+  if (jobData.bodyKey && jobData.bodyFormat && jobData.productType) {
+    return await OtelPayloadDecoder.decodeFromQueue({
+      productType: jobData.productType,
+      format: jobData.bodyFormat,
+      encoding: jobData.bodyEncoding ?? "none",
+      bodyKey: jobData.bodyKey,
+    });
+  }
   if (jobData.bodyBase64 && jobData.bodyFormat && jobData.productType) {
     return await OtelPayloadDecoder.decodeFromQueue({
       productType: jobData.productType,

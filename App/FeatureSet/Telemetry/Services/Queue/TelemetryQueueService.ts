@@ -10,6 +10,7 @@ import {
   OtelPayloadFormat,
 } from "../../Utils/OtelPayloadDecoder";
 import { headerValueToString } from "Common/Server/Utils/Express";
+import TelemetryBodyStore from "../../Utils/TelemetryBodyStore";
 
 export enum TelemetryType {
   Logs = "logs",
@@ -82,10 +83,20 @@ export interface TelemetryIngestJobData {
    */
   requestBody?: JSONObject;
   /*
-   * New: raw HTTP request body, base64-encoded. The worker decodes
-   * gzip (if `bodyEncoding === "gzip"`) and then protobuf or JSON
-   * (per `bodyFormat`) before invoking the ingest service. Shifts
-   * the CPU-bound decode off the Express event loop.
+   * Redis key for the raw HTTP request body, written out-of-band
+   * by TelemetryBodyStore before the job is enqueued. Replaces
+   * the previous `bodyBase64` field so we no longer pay the
+   * base64 encode/decode cost on the HTTP request thread or
+   * inflate the body by ~33% inside the BullMQ job payload.
+   * The worker fetches the raw buffer via
+   * TelemetryBodyStore.readAndDeleteBody.
+   */
+  bodyKey?: string;
+  /*
+   * Legacy: raw body base64-encoded directly into the job. Kept
+   * as a fallback path in OtelPayloadDecoder so jobs enqueued
+   * before the bodyKey migration deploy keep flowing while the
+   * queue drains. New jobs use `bodyKey` instead.
    */
   bodyBase64?: string;
   bodyFormat?: OtelPayloadFormat;
@@ -161,7 +172,20 @@ export default class TelemetryQueueService {
           contentType.includes("application/x-protobuf") ||
           contentType.includes("application/protobuf");
 
-        jobData.bodyBase64 = buffer.toString("base64");
+        /*
+         * Store the raw bytes out-of-band via TelemetryBodyStore
+         * (binary Redis SET). The worker reads them back through
+         * the same store. We only carry a small key reference in
+         * the BullMQ job payload, which:
+         *   - removes the synchronous base64 encode that used to
+         *     burn ~150 ms on a 50 MB payload on the Express thread,
+         *   - removes the ~33 % inflation from base64 in the BullMQ
+         *     job state stored in Redis,
+         *   - removes the matching base64 decode on the worker side.
+         * The body SET completes before the BullMQ enqueue so a
+         * worker can never pick up a job whose body hasn't landed.
+         */
+        jobData.bodyKey = await TelemetryBodyStore.storeBody(buffer);
         jobData.bodyFormat = isProtobuf
           ? OtelPayloadFormat.Protobuf
           : OtelPayloadFormat.Json;
