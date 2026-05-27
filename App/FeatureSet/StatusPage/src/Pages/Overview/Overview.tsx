@@ -783,19 +783,27 @@ const Overview: FunctionComponent<PageComponentProps> = (
       cellByRowCol[row]![col]!.resources.push(resource);
     }
 
-    type RenderCellFunction = (cell: CellContent) => ReactElement;
+    type CellStats = {
+      isEmpty: boolean;
+      color: string;
+      statusName: string;
+      uptimePercentText: string | null;
+      labels: Array<string>;
+    };
 
-    const renderCell: RenderCellFunction = (
+    type ComputeCellStatsFn = (cell: CellContent) => CellStats;
+
+    const computeCellStats: ComputeCellStatsFn = (
       cell: CellContent,
-    ): ReactElement => {
+    ): CellStats => {
       if (cell.resources.length === 0) {
-        return (
-          <div className="flex items-center justify-center py-4">
-            <span className="text-gray-300 text-lg leading-none select-none">
-              –
-            </span>
-          </div>
-        );
+        return {
+          isEmpty: true,
+          color: Green.toString(),
+          statusName: "",
+          uptimePercentText: null,
+          labels: [],
+        };
       }
 
       const statuses: Array<MonitorStatus> = cell.resources.map(
@@ -851,38 +859,91 @@ const Overview: FunctionComponent<PageComponentProps> = (
         },
       );
 
-      const statusName: string =
-        translateStatusName(worstStatus?.name) || t("overview.operational");
+      return {
+        isEmpty: false,
+        color: cellColor,
+        statusName:
+          translateStatusName(worstStatus?.name) || t("overview.operational"),
+        uptimePercentText,
+        labels,
+      };
+    };
+
+    type RenderCellFunction = (
+      cell: CellContent,
+      rowLabel: string,
+      colLabel: string,
+    ) => ReactElement;
+
+    const renderCell: RenderCellFunction = (
+      cell: CellContent,
+      rowLabel: string,
+      colLabel: string,
+    ): ReactElement => {
+      const stats: CellStats = computeCellStats(cell);
+
+      if (stats.isEmpty) {
+        return (
+          <div
+            className="rounded-xl border border-dashed border-gray-200 bg-gray-50/40 h-full min-h-[92px] flex items-center justify-center px-3 py-4"
+            aria-label={`${rowLabel} / ${colLabel}: no data`}
+          >
+            <span className="text-xs text-gray-400 font-medium select-none">
+              No data
+            </span>
+          </div>
+        );
+      }
+
+      const cellTooltip: string = `${rowLabel} · ${colLabel}${
+        stats.labels.length > 0 ? ` — ${stats.labels.join(", ")}` : ""
+      }`;
 
       return (
         <div
-          className="flex flex-col items-center justify-center gap-1.5 px-3 py-4"
-          title={labels.join(", ")}
+          className="group relative rounded-xl px-4 py-3.5 h-full min-h-[92px] flex flex-col justify-between transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md cursor-default"
+          style={{
+            background: tintFromHex(stats.color, 0.08),
+            boxShadow: `inset 0 0 0 1px ${tintFromHex(stats.color, 0.22)}`,
+          }}
+          title={cellTooltip}
         >
-          <div
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full ring-1"
-            style={{
-              backgroundColor: tintFromHex(cellColor, 0.1),
-              borderColor: tintFromHex(cellColor, 0.25),
-              boxShadow: "none",
-            }}
-          >
+          <div className="flex items-center gap-1.5">
             <span
-              className="w-1.5 h-1.5 rounded-full"
-              style={{ backgroundColor: cellColor }}
+              className="w-1.5 h-1.5 rounded-full shrink-0"
+              style={{ backgroundColor: stats.color }}
+              aria-hidden="true"
             />
             <span
-              className="text-xs font-semibold tracking-tight"
-              style={{ color: cellColor }}
+              className="text-[10px] font-bold tracking-[0.08em] uppercase truncate"
+              style={{ color: stats.color }}
             >
-              {statusName}
+              {stats.statusName}
             </span>
           </div>
-          {uptimePercentText && (
-            <div className="text-[11px] text-gray-500 font-medium">
-              {uptimePercentText}
-            </div>
-          )}
+          <div className="mt-1.5">
+            {stats.uptimePercentText ? (
+              <div
+                className="text-xl font-bold tracking-tight tabular-nums leading-none"
+                style={{ color: stats.color }}
+              >
+                {stats.uptimePercentText}
+              </div>
+            ) : null}
+            {cell.resources.length === 1 && stats.labels[0] ? (
+              <div className="text-[11px] text-gray-500 truncate mt-1.5">
+                {stats.labels[0]}
+              </div>
+            ) : null}
+            {cell.resources.length > 1 ? (
+              <div className="text-[11px] text-gray-500 mt-1.5">
+                {cell.resources.length}{" "}
+                {t("overview.monitorsLabel", {
+                  defaultValue: "monitors",
+                })}
+              </div>
+            ) : null}
+          </div>
         </div>
       );
     };
@@ -893,71 +954,70 @@ const Overview: FunctionComponent<PageComponentProps> = (
         defaultValue: "Resource",
       });
 
+    const gridTemplate: string = `minmax(140px, max-content) repeat(${columnValues.length}, minmax(150px, 1fr))`;
+    const gridMinWidth: string = `${160 + columnValues.length * 160}px`;
+
     return (
-      <div className="pt-1 pb-1">
-        <div className="overflow-x-auto rounded-xl ring-1 ring-gray-200 bg-white">
-          <table className="min-w-full border-separate border-spacing-0">
-            <thead>
-              {group.columnAxisLabel ? (
-                <tr>
-                  <th className="bg-white px-4 pt-3 pb-1 min-w-[160px]" />
-                  <th
-                    colSpan={columnValues.length}
-                    className="bg-white px-4 pt-3 pb-1 text-center text-[10px] uppercase tracking-[0.14em] text-gray-400 font-semibold"
-                  >
-                    {group.columnAxisLabel}
-                  </th>
-                </tr>
-              ) : null}
-              <tr>
-                <th className="sticky left-0 z-10 bg-gray-50/70 px-4 py-3 text-left text-xs font-semibold text-gray-700 border-b border-t border-gray-200 min-w-[160px]">
-                  {rowAxisDisplay}
-                </th>
-                {columnValues.map((col: string, i: number) => {
-                  return (
-                    <th
-                      key={`col-${i}`}
-                      className="bg-gray-50/70 px-3 py-3 text-center text-xs font-semibold text-gray-700 border-b border-t border-gray-200 min-w-[140px]"
-                    >
-                      {col}
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {rowValues.map((row: string, rowIdx: number) => {
-                const isLast: boolean = rowIdx === rowValues.length - 1;
-                return (
-                  <tr
-                    key={`row-${rowIdx}`}
-                    className="hover:bg-gray-50/60 transition-colors"
-                  >
-                    <td
-                      className={`sticky left-0 z-10 bg-white px-4 py-3 text-left text-sm font-medium text-gray-800 min-w-[140px] ${
-                        isLast ? "" : "border-b border-gray-100"
-                      }`}
-                    >
+      <div className="-mx-1 sm:-mx-2 pt-1 pb-2">
+        {/* Column axis label as a centered divider */}
+        {group.columnAxisLabel ? (
+          <div className="flex items-center gap-3 mb-4 px-2">
+            <div className="h-px bg-gradient-to-r from-transparent to-gray-200 flex-1" />
+            <span className="text-[10px] uppercase tracking-[0.2em] text-gray-400 font-bold whitespace-nowrap">
+              {group.columnAxisLabel}
+            </span>
+            <div className="h-px bg-gradient-to-l from-transparent to-gray-200 flex-1" />
+          </div>
+        ) : null}
+
+        <div className="overflow-x-auto -mx-2 px-2 pb-1">
+          <div
+            className="grid gap-2"
+            style={{
+              gridTemplateColumns: gridTemplate,
+              minWidth: gridMinWidth,
+            }}
+          >
+            {/* Header row: corner + column labels */}
+            <div className="sticky left-0 z-20 bg-white flex items-end px-3 pb-2">
+              <span className="text-[10px] uppercase tracking-[0.18em] text-gray-400 font-bold">
+                {rowAxisDisplay}
+              </span>
+            </div>
+            {columnValues.map((col: string, i: number) => {
+              return (
+                <div
+                  key={`col-${i}`}
+                  className="flex items-end justify-center px-2 pb-2"
+                >
+                  <span className="text-sm font-semibold text-gray-800 tracking-tight truncate">
+                    {col}
+                  </span>
+                </div>
+              );
+            })}
+
+            {/* Body rows */}
+            {rowValues.map((row: string, rowIdx: number) => {
+              return (
+                <React.Fragment key={`row-${rowIdx}`}>
+                  <div className="sticky left-0 z-10 bg-white flex items-center px-4 py-3 rounded-xl ring-1 ring-gray-100 shadow-sm">
+                    <span className="text-sm font-semibold text-gray-900 tracking-tight">
                       {row}
-                    </td>
-                    {columnValues.map((col: string, colIdx: number) => {
-                      const cell: CellContent = cellByRowCol[row]![col]!;
-                      return (
-                        <td
-                          key={`cell-${rowIdx}-${colIdx}`}
-                          className={`align-middle text-center ${
-                            isLast ? "" : "border-b border-gray-100"
-                          }`}
-                        >
-                          {renderCell(cell)}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    </span>
+                  </div>
+                  {columnValues.map((col: string, colIdx: number) => {
+                    const cell: CellContent = cellByRowCol[row]![col]!;
+                    return (
+                      <div key={`cell-${rowIdx}-${colIdx}`}>
+                        {renderCell(cell, row, col)}
+                      </div>
+                    );
+                  })}
+                </React.Fragment>
+              );
+            })}
+          </div>
         </div>
       </div>
     );

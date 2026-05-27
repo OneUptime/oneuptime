@@ -442,6 +442,13 @@ probes:
       pollingInterval: 30
       # Cooldown period after scaling (in seconds)
       cooldownPeriod: 300
+      # Fallback used when KEDA cannot read the metrics-api endpoint
+      # (e.g. all pods are down). Prevents HPA from flapping between
+      # min/max when the metric goes <unknown>. Set replicas to 0 to disable.
+      # Note: only applies to the metrics-api trigger, not cpu/memory.
+      fallback:
+        failureThreshold: 3
+        replicas: 1
     resources: {}
     nodeSelector: {}
     podSecurityContext: {}
@@ -482,6 +489,13 @@ probes:
   #   pollingInterval: 30
   #   # Cooldown period after scaling (in seconds)
   #   cooldownPeriod: 300
+  #   # Fallback used when KEDA cannot read the metrics-api endpoint
+  #   # (e.g. all pods are down). Prevents HPA from flapping between
+  #   # min/max when the metric goes <unknown>. Set replicas to 0 to disable.
+  #   # Note: only applies to the metrics-api trigger, not cpu/memory.
+  #   fallback:
+  #     failureThreshold: 3
+  #     replicas: 1
 
 testServer:
   replicaCount: 1
@@ -699,6 +713,14 @@ app:
     pollingInterval: 30
     # Cooldown period after scaling (in seconds)
     cooldownPeriod: 300
+    # Fallback used when KEDA cannot read the metrics-api endpoint
+    # (e.g. all app pods are down). Prevents HPA from flapping between
+    # min/max when the queue-size metric goes <unknown>, which would otherwise
+    # cause a cascading outage. Set replicas to 0 to disable.
+    # Note: only applies to the metrics-api trigger, not cpu/memory.
+    fallback:
+      failureThreshold: 3
+      replicas: 2
 
 # AI Agent Configuration
 # Deploy this to run an AI Agent within your Kubernetes cluster
@@ -731,6 +753,13 @@ aiAgent:
     pollingInterval: 30
     # Cooldown period after scaling (in seconds)
     cooldownPeriod: 300
+    # Fallback used when KEDA cannot read the metrics-api endpoint
+    # (e.g. all pods are down). Prevents HPA from flapping between
+    # min/max when the metric goes <unknown>. Set replicas to 0 to disable.
+    # Note: only applies to the metrics-api trigger, not cpu/memory.
+    fallback:
+      failureThreshold: 3
+      replicas: 1
 
 slackApp:
   clientId:

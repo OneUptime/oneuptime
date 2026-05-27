@@ -11,7 +11,7 @@ KEDA ScaledObjects for various services
 {{- if and $val.ports $val.ports.http }}
 {{- $probePort = $val.ports.http }}
 {{- end }}
-{{- $metricsConfig := dict "enabled" $val.keda.enabled "minReplicas" $val.keda.minReplicas "maxReplicas" $val.keda.maxReplicas "pollingInterval" $val.keda.pollingInterval "cooldownPeriod" $val.keda.cooldownPeriod "triggers" (list (dict "query" "oneuptime_probe_queue_size" "threshold" $val.keda.queueSizeThreshold "port" $probePort)) }}
+{{- $metricsConfig := dict "enabled" $val.keda.enabled "minReplicas" $val.keda.minReplicas "maxReplicas" $val.keda.maxReplicas "pollingInterval" $val.keda.pollingInterval "cooldownPeriod" $val.keda.cooldownPeriod "fallback" $val.keda.fallback "triggers" (list (dict "query" "oneuptime_probe_queue_size" "threshold" $val.keda.queueSizeThreshold "port" $probePort)) }}
 {{- $probeKedaArgs := dict "ServiceName" $serviceName "Release" $.Release "Values" $.Values "MetricsConfig" $metricsConfig "DisableAutoscaler" $val.disableAutoscaler }}
 {{- include "oneuptime.kedaScaledObject" $probeKedaArgs }}
 {{- end }}
@@ -27,14 +27,14 @@ KEDA ScaledObjects for various services
 {{- if and (gt (int (.Values.app.keda.targetMemoryUtilizationPercentage | default 0)) 0) (not (get $appRequests "memory")) }}
 {{- fail "app.keda.targetMemoryUtilizationPercentage requires app.resources.requests.memory to be set" }}
 {{- end }}
-{{- $metricsConfig := dict "enabled" .Values.app.keda.enabled "minReplicas" .Values.app.keda.minReplicas "maxReplicas" .Values.app.keda.maxReplicas "pollingInterval" .Values.app.keda.pollingInterval "cooldownPeriod" .Values.app.keda.cooldownPeriod "targetCPUUtilizationPercentage" .Values.app.keda.targetCPUUtilizationPercentage "targetMemoryUtilizationPercentage" .Values.app.keda.targetMemoryUtilizationPercentage "triggers" (list (dict "query" "oneuptime_app_queue_size" "threshold" .Values.app.keda.queueSizeThreshold "port" .Values.app.ports.http)) }}
+{{- $metricsConfig := dict "enabled" .Values.app.keda.enabled "minReplicas" .Values.app.keda.minReplicas "maxReplicas" .Values.app.keda.maxReplicas "pollingInterval" .Values.app.keda.pollingInterval "cooldownPeriod" .Values.app.keda.cooldownPeriod "fallback" .Values.app.keda.fallback "targetCPUUtilizationPercentage" .Values.app.keda.targetCPUUtilizationPercentage "targetMemoryUtilizationPercentage" .Values.app.keda.targetMemoryUtilizationPercentage "triggers" (list (dict "query" "oneuptime_app_queue_size" "threshold" .Values.app.keda.queueSizeThreshold "port" .Values.app.ports.http)) }}
 {{- $appKedaArgs := dict "ServiceName" "app" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.app.disableAutoscaler }}
 {{- include "oneuptime.kedaScaledObject" $appKedaArgs }}
 {{- end }}
 
 {{/* AI Agent KEDA ScaledObject */}}
 {{- if and .Values.keda.enabled .Values.aiAgent.enabled .Values.aiAgent.keda.enabled (not .Values.aiAgent.disableAutoscaler) (not .Values.deployment.disableDeployments) }}
-{{- $metricsConfig := dict "enabled" .Values.aiAgent.keda.enabled "minReplicas" .Values.aiAgent.keda.minReplicas "maxReplicas" .Values.aiAgent.keda.maxReplicas "pollingInterval" .Values.aiAgent.keda.pollingInterval "cooldownPeriod" .Values.aiAgent.keda.cooldownPeriod "triggers" (list (dict "query" "oneuptime_ai_agent_queue_size" "threshold" .Values.aiAgent.keda.queueSizeThreshold "port" .Values.aiAgent.ports.http)) }}
+{{- $metricsConfig := dict "enabled" .Values.aiAgent.keda.enabled "minReplicas" .Values.aiAgent.keda.minReplicas "maxReplicas" .Values.aiAgent.keda.maxReplicas "pollingInterval" .Values.aiAgent.keda.pollingInterval "cooldownPeriod" .Values.aiAgent.keda.cooldownPeriod "fallback" .Values.aiAgent.keda.fallback "triggers" (list (dict "query" "oneuptime_ai_agent_queue_size" "threshold" .Values.aiAgent.keda.queueSizeThreshold "port" .Values.aiAgent.ports.http)) }}
 {{- $aiAgentKedaArgs := dict "ServiceName" "ai-agent" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.aiAgent.disableAutoscaler }}
 {{- include "oneuptime.kedaScaledObject" $aiAgentKedaArgs }}
 {{- end }}

@@ -66,8 +66,10 @@ const AxisValuesInput: FunctionComponent<ComponentProps> = (
   };
 
   useEffect(() => {
-    // When the parent feeds us a new initial value (e.g. on edit modal opening),
-    // sync local state once if our state is still the default empty row.
+    /*
+     * When the parent feeds us a new initial value (e.g. on edit modal opening),
+     * sync local state once if our state is still the default empty row.
+     */
     if (!props.initialValue) {
       return;
     }
@@ -83,7 +85,6 @@ const AxisValuesInput: FunctionComponent<ComponentProps> = (
       setValues(parsed);
     }
     // We intentionally only depend on props.initialValue.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.initialValue]);
 
   type UpdateAtFn = (index: number, newValue: string) => void;
@@ -96,9 +97,11 @@ const AxisValuesInput: FunctionComponent<ComponentProps> = (
 
   type RemoveAtFn = (index: number) => void;
   const removeAt: RemoveAtFn = (index: number): void => {
-    let next: Array<string> = values.filter((_v: string, i: number): boolean => {
-      return i !== index;
-    });
+    let next: Array<string> = values.filter(
+      (_v: string, i: number): boolean => {
+        return i !== index;
+      },
+    );
     // Always keep at least one input row visible.
     if (next.length === 0) {
       next = [""];
@@ -178,7 +181,10 @@ const AxisValuesInput: FunctionComponent<ComponentProps> = (
         />
       </div>
       {props.error ? (
-        <p className="text-sm text-red-600" data-testid="axis-values-input-error">
+        <p
+          className="text-sm text-red-600"
+          data-testid="axis-values-input-error"
+        >
           {props.error}
         </p>
       ) : null}

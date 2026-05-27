@@ -828,6 +828,11 @@ spec:
   maxReplicaCount: {{ .MetricsConfig.maxReplicas }}
   pollingInterval: {{ .MetricsConfig.pollingInterval }}
   cooldownPeriod: {{ .MetricsConfig.cooldownPeriod }}
+  {{- if and .MetricsConfig.fallback (gt (int .MetricsConfig.fallback.replicas) 0) }}
+  fallback:
+    failureThreshold: {{ .MetricsConfig.fallback.failureThreshold | default 3 }}
+    replicas: {{ .MetricsConfig.fallback.replicas }}
+  {{- end }}
   advanced:
     horizontalPodAutoscalerConfig:
       behavior:
