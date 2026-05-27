@@ -93,7 +93,7 @@ Adds a category label to logs based on filter conditions. Useful for tagging log
 1. Create a pipeline with filter: \`severityText IN ('ERROR', 'FATAL')\`
 2. Add a **Category Processor**:
    - Target Key: \`error_category\`
-   - Categories: "Database Error" for \`body LIKE '%connection%'\`, "Timeout" for \`body LIKE '%timeout%'\`
+   - Categories: "Database Error" for \`body LIKE 'connection'\`, "Timeout" for \`body LIKE 'timeout'\`
 `;
 
 const LogPipelines: FunctionComponent<
