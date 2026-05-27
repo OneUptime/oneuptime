@@ -1,6 +1,5 @@
 import MonitorOverview from "../../Components/Monitor/MonitorOverview";
 import Page from "../../Components/Page/Page";
-import Section from "../../Components/Section/Section";
 import IncidentGroup from "../../Types/IncidentGroup";
 import ScheduledMaintenanceGroup from "../../Types/ScheduledMaintenanceGroup";
 import API from "../../Utils/API";
@@ -21,14 +20,10 @@ import URL from "Common/Types/API/URL";
 import { Green } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
-import Accordion from "Common/UI/Components/Accordion/Accordion";
-import AccordionGroup from "Common/UI/Components/Accordion/AccordionGroup";
-import Alert, { AlertSize } from "Common/UI/Components/Alerts/Alert";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import EventItem from "Common/UI/Components/EventItem/EventItem";
@@ -99,6 +94,116 @@ const tintFromHex: (hex: string, alpha: number) => string = (
     return hex;
   }
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+/*
+ * -------------------------------------------------------------------
+ * GroupCard — a fully custom replacement for the legacy Accordion when
+ * rendering status page groups. Gives complete design control over the
+ * header layout, expand/collapse chevron, and animated content reveal.
+ * -------------------------------------------------------------------
+ */
+interface GroupCardProps {
+  title?: string | undefined;
+  description?: string | undefined;
+  rightElement?: ReactElement | undefined;
+  defaultExpanded?: boolean | undefined;
+  children: ReactElement | Array<ReactElement>;
+}
+
+const renderChildrenWithDividers: (
+  children: ReactElement | Array<ReactElement>,
+) => ReactElement = (
+  children: ReactElement | Array<ReactElement>,
+): ReactElement => {
+  const flat: Array<React.ReactNode> = React.Children.toArray(children);
+  if (flat.length <= 1) {
+    return <div>{children}</div>;
+  }
+  return (
+    <div>
+      {flat.map((child: React.ReactNode, i: number) => {
+        const isFirst: boolean = i === 0;
+        const classes: string = isFirst
+          ? ""
+          : "mt-5 sm:mt-6 pt-5 sm:pt-6 border-t border-gray-100";
+        return (
+          <div key={i} className={classes}>
+            {child}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+const GroupCard: FunctionComponent<GroupCardProps> = (
+  props: GroupCardProps,
+): ReactElement => {
+  const hasTitle: boolean = Boolean(props.title);
+  const [isOpen, setIsOpen] = useState<boolean>(
+    hasTitle ? Boolean(props.defaultExpanded) : true,
+  );
+
+  // No title (ungrouped resources): just a plain card with the content.
+  if (!hasTitle) {
+    return (
+      <div className="rounded-2xl bg-white ring-1 ring-gray-200 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div className="px-5 py-5 sm:px-6 sm:py-6">
+          {renderChildrenWithDividers(props.children)}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl bg-white ring-1 ring-gray-200 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        onClick={() => {
+          setIsOpen(!isOpen);
+        }}
+        className="w-full flex items-center justify-between gap-3 px-5 sm:px-6 py-4 sm:py-5 hover:bg-gray-50/70 active:bg-gray-50 transition-colors text-left group"
+      >
+        <div className="min-w-0 flex-1">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 tracking-tight truncate">
+            {props.title}
+          </h3>
+          {props.description ? (
+            <p className="text-xs sm:text-sm text-gray-500 mt-1 leading-relaxed line-clamp-2 sm:line-clamp-1">
+              {props.description}
+            </p>
+          ) : null}
+        </div>
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {props.rightElement ? (
+            <div className="text-sm">{props.rightElement}</div>
+          ) : null}
+          <svg
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            aria-hidden="true"
+            className={`w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-transform duration-200 ${
+              isOpen ? "rotate-180" : "rotate-0"
+            }`}
+          >
+            <path
+              fillRule="evenodd"
+              d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </div>
+      </button>
+
+      {isOpen ? (
+        <div className="border-t border-gray-100 px-5 py-5 sm:px-6 sm:py-6">
+          {renderChildrenWithDividers(props.children)}
+        </div>
+      ) : null}
+    </div>
+  );
 };
 
 const Overview: FunctionComponent<PageComponentProps> = (
@@ -183,18 +288,25 @@ const Overview: FunctionComponent<PageComponentProps> = (
   const [monitorGroupCurrentStatuses, setMonitorGroupCurrentStatuses] =
     useState<Dictionary<ObjectID>>({});
 
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [lastUpdatedTick, setLastUpdatedTick] = useState<number>(0);
+
   const [timelineIncidents, setTimelineIncidents] = useState<
     Array<UptimeBarTooltipIncident>
   >([]);
 
   StatusPageUtil.checkIfUserHasLoggedIn();
 
-  const loadPage: PromiseVoidFunction = async (): Promise<void> => {
+  const loadPage: (silent?: boolean) => Promise<void> = async (
+    silent?: boolean,
+  ): Promise<void> => {
     try {
       if (!StatusPageUtil.getStatusPageId()) {
         return;
       }
-      setIsLoading(true);
+      if (!silent) {
+        setIsLoading(true);
+      }
 
       const id: ObjectID = LocalStorage.getItem("statusPageId") as ObjectID;
       if (!id) {
@@ -391,6 +503,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
       // Parse Data.
       setCurrentStatus(overallStatus);
+      setLastUpdated(new Date());
 
       setIsLoading(false);
       props.onLoadComplete();
@@ -420,6 +533,38 @@ const Overview: FunctionComponent<PageComponentProps> = (
     StatusPageUtil.isPrivateStatusPage(),
   ]);
 
+  // Re-render the "Updated X ago" label every 30 seconds so it stays accurate.
+  useEffect(() => {
+    if (!lastUpdated) {
+      return undefined;
+    }
+    const intervalId: ReturnType<typeof setInterval> = setInterval(() => {
+      setLastUpdatedTick((tick: number): number => {
+        return tick + 1;
+      });
+    }, 30000);
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [lastUpdated]);
+
+  // Silently refresh page data every 60 seconds so the status stays live.
+  useEffect(() => {
+    if (isLoading || error) {
+      return undefined;
+    }
+    const intervalId: ReturnType<typeof setInterval> = setInterval(() => {
+      loadPage(true).catch((err: Error) => {
+        // Soft-fail on background refresh; keep the existing data on screen.
+        // eslint-disable-next-line no-console
+        console.warn("Background status refresh failed:", err.message);
+      });
+    }, 60000);
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [isLoading, error]);
+
   type GetCurrentGroupStatusElementFunction = (data: {
     group: StatusPageGroup;
   }) => ReactElement;
@@ -434,6 +579,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
           monitorStatuses: monitorStatuses,
           monitorGroupCurrentStatuses: monitorGroupCurrentStatuses,
         });
+
+      const statusColor: string =
+        currentStatus?.color?.toString() || Green.toString();
 
       if (
         !(statusPage?.downtimeMonitorStatuses || []).find(
@@ -465,29 +613,34 @@ const Overview: FunctionComponent<PageComponentProps> = (
         }
 
         return (
-          <div
-            className="font-medium"
-            style={{
-              color: currentStatus?.color?.toString() || Green.toString(),
-            }}
+          <span
+            className="inline-flex items-center font-semibold tabular-nums tracking-tight text-sm"
+            style={{ color: statusColor }}
           >
             {uptimePercent}
             {t("overview.uptimeSuffix")}
-          </div>
+          </span>
         );
       }
 
       if (data.group.showCurrentStatus) {
         return (
-          <div
-            className=""
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase ring-1"
             style={{
-              color: currentStatus?.color?.toString() || Green.toString(),
+              backgroundColor: tintFromHex(statusColor, 0.1),
+              color: statusColor,
+              borderColor: tintFromHex(statusColor, 0.22),
             }}
           >
+            <span
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ backgroundColor: statusColor }}
+              aria-hidden="true"
+            />
             {translateStatusName(currentStatus?.name) ||
               t("overview.operational")}
-          </div>
+          </span>
         );
       }
 
@@ -556,7 +709,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
           elements.push(
             <MonitorOverview
               key={Math.random()}
-              className="mb-3 sm:mb-5"
               monitorName={resource.displayName || resource.monitor?.name || ""}
               statusPageHistoryChartBarColorRules={
                 statusPageHistoryChartBarColorRules
@@ -637,7 +789,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
           elements.push(
             <MonitorOverview
               key={Math.random()}
-              className="mb-3 sm:mb-5"
               monitorName={resource.displayName || resource.monitor?.name || ""}
               showUptimePercent={Boolean(resource.showUptimePercent)}
               uptimePrecision={
@@ -901,10 +1052,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
       return (
         <div
-          className="group relative rounded-xl px-4 py-3.5 h-full min-h-[92px] flex flex-col justify-between transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md cursor-default"
+          className="group relative rounded-xl px-4 py-3.5 h-full min-h-[92px] flex flex-col justify-between transition-shadow duration-200 cursor-default hover:shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
           style={{
-            background: tintFromHex(stats.color, 0.08),
-            boxShadow: `inset 0 0 0 1px ${tintFromHex(stats.color, 0.22)}`,
+            background: tintFromHex(stats.color, 0.07),
+            boxShadow: `inset 0 0 0 1px ${tintFromHex(stats.color, 0.2)}`,
           }}
           title={cellTooltip}
         >
@@ -1155,194 +1306,430 @@ const Overview: FunctionComponent<PageComponentProps> = (
   const activeScheduledMaintenanceEventsInScheduledMaintenanceGroup: Array<ScheduledMaintenanceGroup> =
     getOngoingScheduledEvents();
 
+  // -------- Status hero computations --------
+  type HeroState = {
+    title: string;
+    description: string;
+    color: string;
+    isOperational: boolean;
+    serviceSummary: string;
+  };
+
+  const computeHeroState: () => HeroState | null = (): HeroState | null => {
+    if (!currentStatus || statusPageResources.length === 0) {
+      return null;
+    }
+    const rawStatusName: string = currentStatus.name || "";
+    const statusName: string =
+      translateStatusName(rawStatusName) || rawStatusName;
+    const isMaintenance: boolean =
+      rawStatusName.toLowerCase() === "maintenance";
+    const isOperational: boolean = Boolean(currentStatus.isOperationalState);
+    const color: string = currentStatus.color?.toString() || Green.toString();
+
+    let title: string;
+    let description: string;
+    if (isOperational) {
+      title = t("overview.allResourcesAre", { status: statusName });
+      description = t("overview.allClearDescription", {
+        defaultValue: "All resources are operating normally.",
+      });
+    } else if (isMaintenance) {
+      title = t("overview.someResourcesAreUnder", { status: statusName });
+      description = t("overview.maintenanceDescription", {
+        defaultValue: "Some resources are undergoing maintenance.",
+      });
+    } else {
+      title = t("overview.someResourcesAre", { status: statusName });
+      description = t("overview.degradedDescription", {
+        defaultValue: "Some resources are not operating normally. We're on it.",
+      });
+    }
+
+    // Compute service operational counts.
+    const downtimeStatusIds: Array<string> = (
+      statusPage?.downtimeMonitorStatuses || []
+    ).map((s: MonitorStatus): string => {
+      return s.id?.toString() || "";
+    });
+
+    let operationalCount: number = 0;
+    let totalCount: number = 0;
+    for (const resource of statusPageResources) {
+      let resourceStatusId: string | undefined;
+      if (resource.monitor) {
+        resourceStatusId = resource.monitor.currentMonitorStatusId?.toString();
+      } else if (resource.monitorGroupId) {
+        resourceStatusId =
+          monitorGroupCurrentStatuses[
+            resource.monitorGroupId?.toString() || ""
+          ]?.toString();
+      } else {
+        continue;
+      }
+      totalCount += 1;
+      const isResourceDown: boolean =
+        resourceStatusId !== undefined &&
+        downtimeStatusIds.includes(resourceStatusId);
+      if (!isResourceDown) {
+        operationalCount += 1;
+      }
+    }
+
+    const serviceWord: string =
+      totalCount === 1
+        ? t("overview.serviceWordSingular", { defaultValue: "service" })
+        : t("overview.serviceWordPlural", { defaultValue: "services" });
+    let serviceSummary: string;
+    if (totalCount === 0) {
+      serviceSummary = "";
+    } else if (operationalCount === totalCount) {
+      serviceSummary = `${totalCount} ${serviceWord} operational`;
+    } else {
+      serviceSummary = `${operationalCount} of ${totalCount} ${serviceWord} operational`;
+    }
+
+    return {
+      title,
+      description,
+      color,
+      isOperational,
+      serviceSummary,
+    };
+  };
+
+  const heroState: HeroState | null = computeHeroState();
+
+  // Overall uptime % across all resources, regardless of operational state.
+  const overallUptimeText: string | null = (() => {
+    if (!statusPage?.showOverallUptimePercentOnStatusPage) {
+      return null;
+    }
+    if (statusPageResources.length === 0) {
+      return null;
+    }
+    const value: number | null =
+      StatusPageResourceUptimeUtil.calculateAvgUptimePercentageOfAllResources({
+        monitorStatusTimelines: monitorStatusTimelines,
+        statusPageResources: statusPageResources,
+        downtimeMonitorStatuses: statusPage?.downtimeMonitorStatuses || [],
+        precision:
+          statusPage?.overallUptimePercentPrecision ||
+          UptimePrecision.TWO_DECIMAL,
+        resourceGroups: resourceGroups,
+        monitorsInGroup: monitorsInGroup,
+      });
+    if (value === null || value === undefined) {
+      return null;
+    }
+    return `${value}${t("overview.uptimeSuffix")}`;
+  })();
+
+  // Reference lastUpdatedTick so React re-renders this expression every 30s.
+  const lastUpdatedLabel: string = (() => {
+    void lastUpdatedTick;
+    if (!lastUpdated) {
+      return "";
+    }
+    return OneUptimeDate.fromNow(lastUpdated);
+  })();
+
+  // -------- Section header sub-component --------
+  type SectionHeaderProps = {
+    title: string;
+    subtitle?: string;
+    count?: number;
+    accentColor?: string;
+  };
+
+  const SectionHeader: FunctionComponent<SectionHeaderProps> = (
+    sectionProps: SectionHeaderProps,
+  ): ReactElement => {
+    return (
+      <div className="mt-8 sm:mt-10 mb-3 sm:mb-4 flex items-end justify-between gap-3 px-1">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            {sectionProps.accentColor ? (
+              <span
+                className="inline-block w-1 h-5 rounded-full"
+                style={{ backgroundColor: sectionProps.accentColor }}
+              />
+            ) : null}
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight truncate">
+              {sectionProps.title}
+            </h2>
+            {typeof sectionProps.count === "number" &&
+            sectionProps.count > 0 ? (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs font-semibold">
+                {sectionProps.count}
+              </span>
+            ) : null}
+          </div>
+          {sectionProps.subtitle ? (
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">
+              {sectionProps.subtitle}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Page>
       {isLoading ? <PageLoader isVisible={true} /> : <></>}
       {error ? <ErrorMessage message={error} /> : <></>}
 
       {!isLoading && !error ? (
-        <div data-testid="status-page-overview">
+        <div
+          data-testid="status-page-overview"
+          className="w-full max-w-6xl mx-auto px-1 sm:px-2"
+        >
           {/* Overview Page Description */}
           {statusPage && statusPage.overviewPageDescription && (
             <div
               id="status-page-description"
-              className="bg-white p-5 my-5 rounded-xl shadow"
+              className="bg-white px-5 py-4 sm:px-6 sm:py-5 my-4 sm:my-5 rounded-2xl ring-1 ring-gray-200 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
             >
               <MarkdownViewer text={statusPage.overviewPageDescription} />
             </div>
           )}
 
           {/* Load Active Announcement */}
-          <div id="announcements-list">
-            {activeAnnouncements.map(
-              (announcement: StatusPageAnnouncement, i: number) => {
-                return (
-                  <EventItem
-                    {...getAnnouncementEventItem({
-                      announcement,
-                      statusPageResources,
-                      monitorsInGroup,
-                      isPreviewPage: StatusPageUtil.isPreviewPage(),
-                      isSummary: true,
-                      statusPageId,
-                    })}
-                    isDetailItem={false}
-                    key={i}
-                  />
-                );
-              },
-            )}
-          </div>
+          {activeAnnouncements.length > 0 ? (
+            <div id="announcements-list" className="space-y-3">
+              {activeAnnouncements.map(
+                (announcement: StatusPageAnnouncement, i: number) => {
+                  return (
+                    <EventItem
+                      {...getAnnouncementEventItem({
+                        announcement,
+                        statusPageResources,
+                        monitorsInGroup,
+                        isPreviewPage: StatusPageUtil.isPreviewPage(),
+                        isSummary: true,
+                        statusPageId,
+                      })}
+                      isDetailItem={false}
+                      key={i}
+                    />
+                  );
+                },
+              )}
+            </div>
+          ) : null}
 
-          <div>
-            {currentStatus && statusPageResources.length > 0 && (
-              <Alert
-                size={AlertSize.Large}
-                title={(() => {
-                  const rawStatusName: string = currentStatus.name || "";
-                  const statusName: string =
-                    translateStatusName(rawStatusName) || rawStatusName;
-                  const isMaintenance: boolean =
-                    rawStatusName.toLowerCase() === "maintenance";
-                  if (currentStatus.isOperationalState) {
-                    return t("overview.allResourcesAre", {
-                      status: statusName,
-                    });
-                  }
-                  if (isMaintenance) {
-                    return t("overview.someResourcesAreUnder", {
-                      status: statusName,
-                    });
-                  }
-                  return t("overview.someResourcesAre", {
-                    status: statusName,
-                  });
-                })()}
-                color={currentStatus.color}
-                doNotShowIcon={true}
-                textOnRight={
-                  currentStatus.isOperationalState &&
-                  statusPage?.showOverallUptimePercentOnStatusPage
-                    ? (StatusPageResourceUptimeUtil.calculateAvgUptimePercentageOfAllResources(
-                        {
-                          monitorStatusTimelines: monitorStatusTimelines,
-                          statusPageResources: statusPageResources,
-                          downtimeMonitorStatuses:
-                            statusPage.downtimeMonitorStatuses || [],
-                          precision:
-                            statusPage.overallUptimePercentPrecision ||
-                            UptimePrecision.TWO_DECIMAL,
-                          resourceGroups: resourceGroups,
-                          monitorsInGroup: monitorsInGroup,
-                        },
-                      )?.toString() || "100") + t("overview.uptimeSuffix")
-                    : undefined
-                }
-                textClassName="text-white text-lg flex justify-between w-full"
-                id="overview-alert"
+          {/* Status Hero */}
+          {heroState ? (
+            <div
+              id="overview-status-hero"
+              className="relative overflow-hidden rounded-2xl bg-white ring-1 ring-gray-200 shadow-[0_1px_3px_rgba(0,0,0,0.04)] mt-4 sm:mt-5"
+            >
+              {/* Top status accent strip */}
+              <div
+                aria-hidden="true"
+                className="h-1 w-full"
+                style={{ backgroundColor: heroState.color }}
               />
-            )}
-          </div>
 
-          {statusPageResources.length > 0 && (
-            <div className="bg-white pl-3 pr-3 sm:pl-5 sm:pr-5 mt-5 rounded-xl shadow space-y-3 sm:space-y-5 mb-6">
-              <AccordionGroup>
-                {statusPageResources.filter((resources: StatusPageResource) => {
-                  return !resources.statusPageGroupId;
-                }).length > 0 ? (
-                  <Accordion
-                    key={Math.random()}
-                    title={undefined}
-                    isLastElement={resourceGroups.length === 0}
-                  >
-                    {getMonitorOverviewListInGroup(null)}
-                  </Accordion>
-                ) : (
-                  <></>
-                )}
-                <div
-                  key={Math.random()}
-                  style={{
-                    padding: "0px",
-                  }}
-                >
-                  {resourceGroups.length > 0 &&
-                    resourceGroups.map(
-                      (resourceGroup: StatusPageGroup, i: number) => {
-                        const isGrid: boolean =
-                          resourceGroup.viewMode ===
-                          StatusPageGroupViewMode.Grid;
-                        return (
-                          <Accordion
-                            key={i}
-                            rightElement={getCurrentGroupStatusElement({
-                              group: resourceGroup,
-                            })}
-                            isInitiallyExpanded={
-                              resourceGroup.isExpandedByDefault
-                            }
-                            isLastElement={resourceGroups.length - 1 === i}
-                            title={resourceGroup.name!}
-                            description={resourceGroup.description!}
-                          >
-                            {isGrid
-                              ? getGridForGroup(resourceGroup)
-                              : getMonitorOverviewListInGroup(resourceGroup)}
-                          </Accordion>
-                        );
-                      },
-                    )}
+              <div className="px-5 py-6 sm:px-8 sm:py-8">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-5 sm:gap-8">
+                  {/* Left: live dot + status text */}
+                  <div className="flex items-start gap-3.5 sm:gap-4 min-w-0">
+                    <span
+                      className="relative flex shrink-0 mt-2 sm:mt-2.5"
+                      aria-hidden="true"
+                    >
+                      <span
+                        className="absolute inline-flex w-full h-full rounded-full opacity-60 animate-ping"
+                        style={{ backgroundColor: heroState.color }}
+                      />
+                      <span
+                        className="relative inline-flex w-3 h-3 rounded-full"
+                        style={{ backgroundColor: heroState.color }}
+                      />
+                    </span>
+                    <div className="min-w-0">
+                      <h1 className="text-2xl sm:text-3xl lg:text-[32px] font-bold text-gray-900 tracking-tight leading-[1.15]">
+                        {heroState.title}
+                      </h1>
+                      <p className="text-sm sm:text-base text-gray-500 mt-1.5 sm:mt-2 leading-relaxed">
+                        {heroState.description}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right: Overall uptime metric */}
+                  {overallUptimeText ? (
+                    <div className="flex sm:flex-col items-baseline sm:items-end justify-between sm:justify-start gap-2 sm:gap-0 sm:text-right shrink-0 sm:pl-8 sm:border-l sm:border-gray-100 sm:min-w-[140px]">
+                      <div className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight tabular-nums leading-none">
+                        {overallUptimeText}
+                      </div>
+                      <div className="text-[10px] sm:text-[11px] text-gray-400 uppercase tracking-[0.16em] font-semibold sm:mt-2.5">
+                        {uptimeHistoryDays}-day uptime
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
-              </AccordionGroup>
+
+                {/* Bottom strip: service summary + last updated */}
+                <div className="mt-5 sm:mt-6 pt-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-[11px] sm:text-xs">
+                  <div className="flex items-center gap-4 sm:gap-5 text-gray-400">
+                    <div className="flex items-center gap-1.5 font-medium">
+                      <span className="relative flex shrink-0">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-300" />
+                      </span>
+                      <span className="uppercase tracking-[0.12em]">
+                        {t("overview.live", { defaultValue: "Live" })}
+                      </span>
+                    </div>
+                    {heroState.serviceSummary ? (
+                      <div className="flex items-center gap-1.5">
+                        <span className="hidden sm:inline text-gray-300">
+                          ·
+                        </span>
+                        <span className="text-gray-500 font-medium">
+                          {heroState.serviceSummary}
+                        </span>
+                      </div>
+                    ) : null}
+                  </div>
+                  {lastUpdatedLabel ? (
+                    <div className="text-gray-400">
+                      <span className="hidden sm:inline">
+                        {t("overview.updatedLabel", {
+                          defaultValue: "Updated",
+                        })}{" "}
+                      </span>
+                      <span className="font-semibold text-gray-600">
+                        {lastUpdatedLabel}
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {/* Section label above component cards */}
+          {statusPageResources.length > 0 ? (
+            <div className="mt-7 sm:mt-9 mb-3 sm:mb-4 px-1 flex items-center justify-between gap-3">
+              <h2 className="text-[10px] sm:text-[11px] uppercase tracking-[0.18em] text-gray-400 font-bold">
+                {t("overview.componentsLabel", {
+                  defaultValue: "Components",
+                })}
+              </h2>
+              <span className="text-[10px] sm:text-[11px] uppercase tracking-[0.18em] text-gray-400 font-semibold">
+                {t("overview.componentsSubtitle", {
+                  days: uptimeHistoryDays,
+                  defaultValue: `${uptimeHistoryDays}-day history`,
+                })}
+              </span>
+            </div>
+          ) : null}
+
+          {/* Component cards: ungrouped + per-group */}
+          {statusPageResources.length > 0 && (
+            <div className="space-y-3 sm:space-y-4">
+              {statusPageResources.filter((resources: StatusPageResource) => {
+                return !resources.statusPageGroupId;
+              }).length > 0 ? (
+                <GroupCard key="ungrouped">
+                  {getMonitorOverviewListInGroup(null)}
+                </GroupCard>
+              ) : null}
+
+              {resourceGroups.length > 0 &&
+                resourceGroups.map(
+                  (resourceGroup: StatusPageGroup, i: number) => {
+                    const isGrid: boolean =
+                      resourceGroup.viewMode === StatusPageGroupViewMode.Grid;
+                    // Hide description when it duplicates the title.
+                    const description: string | undefined =
+                      resourceGroup.description &&
+                      resourceGroup.description.trim() !==
+                        (resourceGroup.name || "").trim()
+                        ? resourceGroup.description
+                        : undefined;
+                    return (
+                      <GroupCard
+                        key={`group-${i}`}
+                        title={resourceGroup.name}
+                        description={description}
+                        defaultExpanded={resourceGroup.isExpandedByDefault}
+                        rightElement={getCurrentGroupStatusElement({
+                          group: resourceGroup,
+                        })}
+                      >
+                        {isGrid
+                          ? getGridForGroup(resourceGroup)
+                          : getMonitorOverviewListInGroup(resourceGroup)}
+                      </GroupCard>
+                    );
+                  },
+                )}
             </div>
           )}
 
           {/* Load Active Incidents and Episodes */}
           {(activeIncidentsInIncidentGroup.length > 0 ||
             activeEpisodesInEpisodeGroup.length > 0) && (
-            <div id="incidents-list mt-2">
-              <Section title={t("overview.activeIncidents")} />
-              {activeIncidentsInIncidentGroup.map(
-                (incidentGroup: IncidentGroup, i: number) => {
-                  return (
-                    <EventItem
-                      {...getIncidentEventItem({
-                        incident: incidentGroup.incident,
-                        incidentPublicNotes: incidentGroup.publicNotes || [],
-                        incidentStateTimelines:
-                          incidentGroup.incidentStateTimelines,
-                        statusPageResources: incidentGroup.incidentResources,
-                        monitorsInGroup: incidentGroup.monitorsInGroup,
-                        isPreviewPage: StatusPageUtil.isPreviewPage(),
-                        isSummary: true,
-                      })}
-                      isDetailItem={false}
-                      key={`incident-${i}`}
-                    />
-                  );
-                },
-              )}
-              {activeEpisodesInEpisodeGroup.map(
-                (episodeGroup: EpisodeGroup, i: number) => {
-                  return (
-                    <EventItem
-                      {...getEpisodeEventItem({
-                        episode: episodeGroup.episode,
-                        episodePublicNotes: episodeGroup.publicNotes || [],
-                        episodeStateTimelines:
-                          episodeGroup.episodeStateTimelines,
-                        statusPageResources: episodeGroup.episodeResources,
-                        monitorsInGroup: episodeGroup.monitorsInGroup,
-                        isPreviewPage: StatusPageUtil.isPreviewPage(),
-                        isSummary: true,
-                        statusPageId: statusPageId || undefined,
-                      })}
-                      isDetailItem={false}
-                      key={`episode-${i}`}
-                    />
-                  );
-                },
-              )}
+            <div id="incidents-list">
+              <SectionHeader
+                title={t("overview.activeIncidents")}
+                subtitle={t("overview.activeIncidentsSubtitle", {
+                  defaultValue:
+                    "Ongoing issues that may affect service availability.",
+                })}
+                count={
+                  activeIncidentsInIncidentGroup.length +
+                  activeEpisodesInEpisodeGroup.length
+                }
+                accentColor="#ef4444"
+              />
+              <div className="space-y-3">
+                {activeIncidentsInIncidentGroup.map(
+                  (incidentGroup: IncidentGroup, i: number) => {
+                    return (
+                      <EventItem
+                        {...getIncidentEventItem({
+                          incident: incidentGroup.incident,
+                          incidentPublicNotes: incidentGroup.publicNotes || [],
+                          incidentStateTimelines:
+                            incidentGroup.incidentStateTimelines,
+                          statusPageResources: incidentGroup.incidentResources,
+                          monitorsInGroup: incidentGroup.monitorsInGroup,
+                          isPreviewPage: StatusPageUtil.isPreviewPage(),
+                          isSummary: true,
+                        })}
+                        isDetailItem={false}
+                        key={`incident-${i}`}
+                      />
+                    );
+                  },
+                )}
+                {activeEpisodesInEpisodeGroup.map(
+                  (episodeGroup: EpisodeGroup, i: number) => {
+                    return (
+                      <EventItem
+                        {...getEpisodeEventItem({
+                          episode: episodeGroup.episode,
+                          episodePublicNotes: episodeGroup.publicNotes || [],
+                          episodeStateTimelines:
+                            episodeGroup.episodeStateTimelines,
+                          statusPageResources: episodeGroup.episodeResources,
+                          monitorsInGroup: episodeGroup.monitorsInGroup,
+                          isPreviewPage: StatusPageUtil.isPreviewPage(),
+                          isSummary: true,
+                          statusPageId: statusPageId || undefined,
+                        })}
+                        isDetailItem={false}
+                        key={`episode-${i}`}
+                      />
+                    );
+                  },
+                )}
+              </div>
             </div>
           )}
 
@@ -1350,34 +1737,47 @@ const Overview: FunctionComponent<PageComponentProps> = (
           {activeScheduledMaintenanceEventsInScheduledMaintenanceGroup &&
             activeScheduledMaintenanceEventsInScheduledMaintenanceGroup.length >
               0 && (
-              <div id="scheduled-events-list mt-2">
-                <Section title={t("overview.scheduledMaintenanceEvents")} />
-                {activeScheduledMaintenanceEventsInScheduledMaintenanceGroup.map(
-                  (
-                    scheduledEventGroup: ScheduledMaintenanceGroup,
-                    i: number,
-                  ) => {
-                    return (
-                      <EventItem
-                        key={i}
-                        {...getScheduledEventEventItem({
-                          scheduledMaintenance:
-                            scheduledEventGroup.scheduledMaintenance,
-                          scheduledMaintenanceEventsPublicNotes:
-                            scheduledEventGroup.publicNotes || [],
-                          scheduledMaintenanceStateTimelines:
-                            scheduledEventGroup.scheduledMaintenanceStateTimelines,
-                          statusPageResources:
-                            scheduledEventGroup.scheduledEventResources,
-                          monitorsInGroup: scheduledEventGroup.monitorsInGroup,
-                          isPreviewPage: StatusPageUtil.isPreviewPage(),
-                          isSummary: true,
-                        })}
-                        isDetailItem={false}
-                      />
-                    );
-                  },
-                )}
+              <div id="scheduled-events-list">
+                <SectionHeader
+                  title={t("overview.scheduledMaintenanceEvents")}
+                  subtitle={t("overview.scheduledMaintenanceSubtitle", {
+                    defaultValue:
+                      "Planned maintenance windows that may affect availability.",
+                  })}
+                  count={
+                    activeScheduledMaintenanceEventsInScheduledMaintenanceGroup.length
+                  }
+                  accentColor="#3b82f6"
+                />
+                <div className="space-y-3">
+                  {activeScheduledMaintenanceEventsInScheduledMaintenanceGroup.map(
+                    (
+                      scheduledEventGroup: ScheduledMaintenanceGroup,
+                      i: number,
+                    ) => {
+                      return (
+                        <EventItem
+                          key={i}
+                          {...getScheduledEventEventItem({
+                            scheduledMaintenance:
+                              scheduledEventGroup.scheduledMaintenance,
+                            scheduledMaintenanceEventsPublicNotes:
+                              scheduledEventGroup.publicNotes || [],
+                            scheduledMaintenanceStateTimelines:
+                              scheduledEventGroup.scheduledMaintenanceStateTimelines,
+                            statusPageResources:
+                              scheduledEventGroup.scheduledEventResources,
+                            monitorsInGroup:
+                              scheduledEventGroup.monitorsInGroup,
+                            isPreviewPage: StatusPageUtil.isPreviewPage(),
+                            isSummary: true,
+                          })}
+                          isDetailItem={false}
+                        />
+                      );
+                    },
+                  )}
+                </div>
               </div>
             )}
 
@@ -1389,13 +1789,42 @@ const Overview: FunctionComponent<PageComponentProps> = (
             activeAnnouncements.length === 0 &&
             !isLoading &&
             !error && (
-              <EmptyState
-                id="overview-empty-state"
-                icon={IconProp.CheckCircle}
-                title={t("overview.allClearTitle")}
-                description={t("overview.allClearDescription")}
-              />
+              <div className="mt-5">
+                <EmptyState
+                  id="overview-empty-state"
+                  icon={IconProp.CheckCircle}
+                  title={t("overview.allClearTitle")}
+                  description={t("overview.allClearDescription")}
+                />
+              </div>
             )}
+
+          {/* Subtle page-level metadata footer */}
+          {lastUpdatedLabel ? (
+            <div
+              id="overview-metadata-footer"
+              className="mt-8 sm:mt-10 pt-4 sm:pt-5 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-[11px] sm:text-xs text-gray-400"
+            >
+              <div className="flex items-center gap-1.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-300" />
+                <span>
+                  {t("overview.autoRefreshHint", {
+                    defaultValue: "Status refreshes automatically every minute",
+                  })}
+                </span>
+              </div>
+              <div>
+                <span>
+                  {t("overview.lastUpdatedFooter", {
+                    defaultValue: "Last updated",
+                  })}{" "}
+                </span>
+                <span className="font-semibold text-gray-600">
+                  {lastUpdatedLabel}
+                </span>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : (
         <></>

@@ -48,23 +48,42 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
     Array<UptimeBarTooltipIncident>
   >([]);
 
-  const getCurrentStatus: GetReactElementFunction = (): ReactElement => {
-    // if the current status is operational then show uptime Percent.
+  const hexToRgba: (hex: string, alpha: number) => string = (
+    hex: string,
+    alpha: number,
+  ): string => {
+    const cleaned: string = hex.replace("#", "").trim();
+    if (cleaned.length !== 6) {
+      return hex;
+    }
+    const r: number = parseInt(cleaned.substring(0, 2), 16);
+    const g: number = parseInt(cleaned.substring(2, 4), 16);
+    const b: number = parseInt(cleaned.substring(4, 6), 16);
+    if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) {
+      return hex;
+    }
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
 
+  const getCurrentStatus: GetReactElementFunction = (): ReactElement => {
     let precision: UptimePrecision = UptimePrecision.ONE_DECIMAL;
 
     if (props.uptimePrecision) {
       precision = props.uptimePrecision;
     }
 
-    if (
-      !props.downtimeMonitorStatuses.find((downtimeStatus: MonitorStatus) => {
+    const statusColor: string =
+      props.currentStatus?.color?.toString() || Green.toString();
+
+    const isInDowntime: boolean = Boolean(
+      props.downtimeMonitorStatuses.find((downtimeStatus: MonitorStatus) => {
         return (
           props.currentStatus.id?.toString() === downtimeStatus.id?.toString()
         );
-      }) &&
-      props.showUptimePercent
-    ) {
+      }),
+    );
+
+    if (!isInDowntime && props.showUptimePercent) {
       const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
         props.monitorStatusTimeline,
         precision,
@@ -73,10 +92,8 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
 
       return (
         <div
-          className="font-medium"
-          style={{
-            color: props.currentStatus?.color?.toString() || Green.toString(),
-          }}
+          className="font-semibold tabular-nums text-sm sm:text-base tracking-tight"
+          style={{ color: statusColor }}
         >
           {uptimePercent}
           {t("overview.uptimeSuffix")}
@@ -85,16 +102,26 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
     }
 
     if (props.showCurrentStatus) {
+      const statusName: string =
+        translateStatusName(props.currentStatus?.name) ||
+        t("overview.operational");
+
       return (
-        <div
-          className=""
+        <span
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase ring-1"
           style={{
-            color: props.currentStatus?.color?.toString() || Green.toString(),
+            backgroundColor: hexToRgba(statusColor, 0.1),
+            color: statusColor,
+            borderColor: hexToRgba(statusColor, 0.22),
           }}
         >
-          {translateStatusName(props.currentStatus?.name) ||
-            t("overview.operational")}
-        </div>
+          <span
+            className="w-1.5 h-1.5 rounded-full"
+            style={{ backgroundColor: statusColor }}
+            aria-hidden="true"
+          />
+          {statusName}
+        </span>
       );
     }
 
@@ -105,12 +132,9 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
     <div className={props.className}>
       <div>
         {/* Monitor header: responsive layout for name, tooltip, and status */}
-        <div
-          className="flex flex-col sm:flex-row sm:justify-between sm:items-start"
-          style={{ marginBottom: "3px" }}
-        >
-          <div className="flex items-center mb-2 sm:mb-0">
-            <div className="text-base md:text-lg font-medium">
+        <div className="flex flex-col gap-2 sm:flex-row sm:gap-3 sm:justify-between sm:items-start mb-1.5">
+          <div className="flex items-center min-w-0">
+            <div className="text-base sm:text-lg font-semibold text-gray-900 tracking-tight truncate">
               {props.monitorName}
             </div>
             {props.tooltip && (
@@ -118,27 +142,25 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                 key={1}
                 text={props.tooltip || t("monitorOverview.notAvailable")}
               >
-                <div className="ml-1">
+                <div className="ml-1.5">
                   <Icon
-                    className="cursor-pointer w-4 h-4 mt-1 text-gray-400"
+                    className="cursor-pointer w-4 h-4 text-gray-400 hover:text-gray-600 transition-colors"
                     icon={IconProp.Help}
                   />
                 </div>
               </Tooltip>
             )}
           </div>
-          {/* Status: Stack below name on mobile, inline on larger screens */}
-          <div className="text-sm sm:text-base font-medium">
-            {getCurrentStatus()}
-          </div>
+          {/* Status: stacked below name on mobile, inline on sm+ */}
+          <div className="flex sm:items-start">{getCurrentStatus()}</div>
         </div>
 
-        {/* Description: Responsive text size */}
-        <div className="mb-2 text-xs sm:text-sm">
-          {props.description && (
+        {/* Description: muted body text */}
+        {props.description ? (
+          <div className="mb-2 text-xs sm:text-sm text-gray-500">
             <MarkdownViewer text={props.description || ""} />
-          )}
-        </div>
+          </div>
+        ) : null}
       </div>
 
       {/* Uptime graph: Scrollable on mobile, full width on larger screens */}
@@ -167,9 +189,9 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      {/* Time labels: Visible on all screen sizes */}
+      {/* Time labels */}
       {props.showHistoryChart && (
-        <div className="text-xs sm:text-sm text-gray-400 mt-1 justify-between flex">
+        <div className="text-[11px] sm:text-xs text-gray-400 mt-2 justify-between flex font-medium uppercase tracking-wider">
           <div>
             {t("monitorOverview.daysAgo", {
               days: props.uptimeHistoryDays || 90,
