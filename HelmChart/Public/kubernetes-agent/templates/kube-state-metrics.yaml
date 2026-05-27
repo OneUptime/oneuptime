@@ -1,0 +1,135 @@
+{{- if and .Values.kubeStateMetrics.enabled (eq .Values.kubeStateMetrics.mode "bundled") }}
+# Bundled kube-state-metrics. Deployed only when
+# `kubeStateMetrics.enabled` and `kubeStateMetrics.mode == "bundled"`.
+# Constrained to the resources whose metrics our allowlist actually
+# uses (pods, resourcequotas) to keep KSM's own footprint small.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "kubernetes-agent.fullname" . }}-kube-state-metrics
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: kube-state-metrics
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "kubernetes-agent.fullname" . }}-kube-state-metrics
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: kube-state-metrics
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+      - resourcequotas
+    verbs: ["list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "kubernetes-agent.fullname" . }}-kube-state-metrics
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: kube-state-metrics
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "kubernetes-agent.fullname" . }}-kube-state-metrics
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "kubernetes-agent.fullname" . }}-kube-state-metrics
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "kubernetes-agent.fullname" . }}-kube-state-metrics
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: kube-state-metrics
+spec:
+  clusterIP: None
+  selector:
+    {{- include "kubernetes-agent.selectorLabels" . | nindent 4 }}
+    component: kube-state-metrics
+  ports:
+    - name: http-metrics
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+    - name: telemetry
+      port: 8081
+      targetPort: 8081
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kubernetes-agent.fullname" . }}-kube-state-metrics
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: kube-state-metrics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "kubernetes-agent.selectorLabels" . | nindent 6 }}
+      component: kube-state-metrics
+  template:
+    metadata:
+      labels:
+        {{- include "kubernetes-agent.selectorLabels" . | nindent 8 }}
+        component: kube-state-metrics
+    spec:
+      serviceAccountName: {{ include "kubernetes-agent.fullname" . }}-kube-state-metrics
+      automountServiceAccountToken: true
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: kube-state-metrics
+          image: "{{ .Values.kubeStateMetrics.image.repository }}:{{ .Values.kubeStateMetrics.image.tag }}"
+          imagePullPolicy: {{ .Values.kubeStateMetrics.image.pullPolicy }}
+          args:
+            # Scope to the resources our allowlist needs — keeps KSM's
+            # memory/CPU footprint smaller than its default "all
+            # resources" mode. If you broaden `metricsAllowlist` in
+            # values.yaml, broaden this too.
+            - "--resources=pods,resourcequotas"
+            - "--metric-allowlist={{ join "," .Values.kubeStateMetrics.metricsAllowlist }}.*"
+            - "--port=8080"
+            - "--telemetry-port=8081"
+          ports:
+            - name: http-metrics
+              containerPort: 8080
+              protocol: TCP
+            - name: telemetry
+              containerPort: 8081
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.kubeStateMetrics.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+{{- end }}

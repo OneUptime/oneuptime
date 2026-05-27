@@ -62,6 +62,9 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
           name="Dashboard > Domains"
           userPreferencesKey="dashboard-domains-table"
           id="dashboard-domains-table"
+          saveFilterProps={{
+            tableId: "dashboard-domains-table",
+          }}
           isDeleteable={true}
           isCreateable={true}
           isEditable={true}

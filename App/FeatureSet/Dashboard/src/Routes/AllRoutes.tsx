@@ -30,3 +30,5 @@ export { default as AIAgentTasksRoutes } from "./AIAgentTasksRoutes";
 // Settings
 export { default as SettingsRoutes } from "./SettingsRoutes";
 export { default as UserSettingsRoutes } from "./UserSettingsRoutes";
+export { default as UsersRoutes } from "./UsersRoutes";
+export { default as TeamsRoutes } from "./TeamsRoutes";

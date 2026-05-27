@@ -37,6 +37,9 @@ const StatusPageLabelRulesPage: FunctionComponent<
       id="status-page-label-rules-table"
       name="Settings > Status Page Label Rules"
       userPreferencesKey="status-page-label-rules-table"
+      saveFilterProps={{
+        tableId: "status-page-label-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

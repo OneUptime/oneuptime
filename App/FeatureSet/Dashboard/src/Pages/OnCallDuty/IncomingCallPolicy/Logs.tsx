@@ -52,6 +52,9 @@ const IncomingCallPolicyLogsPage: FunctionComponent<
         modelType={IncomingCallLog}
         id="incoming-call-logs-table"
         userPreferencesKey="incoming-call-logs-table"
+        saveFilterProps={{
+          tableId: "incoming-call-logs-table",
+        }}
         isDeleteable={false}
         name="Incoming Call Policy > Call Logs"
         isEditable={false}

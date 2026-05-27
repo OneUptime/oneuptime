@@ -405,6 +405,57 @@ export default class TemplateVariablesCatalog {
           ],
         };
 
+      case MonitorType.DNSSEC:
+        return {
+          title: "DNSSEC",
+          variables: [
+            {
+              key: "isOnline",
+              description: "True if the DNSSEC check completed.",
+            },
+            { key: "domainName", description: "Zone queried." },
+            {
+              key: "isZoneSigned",
+              description: "True if any DNSKEY records exist for the zone.",
+            },
+            {
+              key: "isParentDsPresent",
+              description: "True if DS records exist at the parent zone.",
+            },
+            {
+              key: "isChainValid",
+              description:
+                "True if DNSKEY, DS, RRSIG, and resolver AD-flag all check out.",
+            },
+            {
+              key: "resolverConsensusAd",
+              description:
+                "True if every configured resolver returned the AD flag.",
+            },
+            {
+              key: "isNameserverConsistent",
+              description:
+                "True if every authoritative nameserver returned the same SOA serial.",
+            },
+            {
+              key: "earliestSignatureExpiration",
+              description: "Earliest RRSIG expiration timestamp (ISO).",
+            },
+            {
+              key: "daysUntilSignatureExpiry",
+              description: "Days until the earliest RRSIG expires.",
+            },
+            { key: "dnskeyCount", description: "Number of DNSKEY records." },
+            {
+              key: "dsRecordCount",
+              description: "Number of DS records at the parent.",
+            },
+            { key: "rrsigCount", description: "Number of RRSIG records seen." },
+            { key: "responseTimeInMs", description: "Total check duration." },
+            { key: "failureCause", description: "Failure reason." },
+          ],
+        };
+
       case MonitorType.ExternalStatusPage:
         return {
           title: "External Status Page",

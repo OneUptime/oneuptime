@@ -59,9 +59,9 @@ const TelemetrySettings: FunctionComponent<PageComponentProps> = (
         }}
       />
       <CardModelDetail
-        name="Per-Pillar Retention Overrides"
+        name="Retention by Telemetry Type"
         cardProps={{
-          title: "Per-Pillar Retention Overrides",
+          title: "Retention by Telemetry Type",
           description:
             "Override retention for specific telemetry types (logs, traces, metrics, profiles), with optional finer-grained rules for log severity and trace status. Any field left blank uses the default retention above.",
         }}

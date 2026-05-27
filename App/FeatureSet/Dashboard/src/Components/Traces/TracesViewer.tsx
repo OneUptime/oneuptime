@@ -8,7 +8,7 @@ import React, {
   useState,
 } from "react";
 import TelemetryViewer from "Common/UI/Components/TelemetryViewer/TelemetryViewer";
-import Navigation from "Common/UI/Utils/Navigation";
+import Route from "Common/Types/API/Route";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import {
@@ -22,6 +22,9 @@ import {
 } from "Common/UI/Components/TelemetryViewer/types";
 import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import Service from "Common/Models/DatabaseModels/Service";
+import Host from "Common/Models/DatabaseModels/Host";
+import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -74,6 +77,8 @@ async function postApi(
   return response;
 }
 
+const POSITIVE_INT_REGEX: RegExp = /^\d+$/;
+
 function computeBucketSizeInMinutes(startTime: Date, endTime: Date): number {
   const totalMs: number = endTime.getTime() - startTime.getTime();
   const targetBuckets: number = 40;
@@ -108,8 +113,9 @@ const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
   },
   {
     syntax: "name:<span name>",
-    description: "Filter by span name (substring match)",
-    example: "name:GET /users",
+    description:
+      'Filter by span name (substring match). Quote values with spaces: name:"SELECT wp_options".',
+    example: 'name:"SELECT wp_options"',
   },
   {
     syntax: "trace:<trace id>",
@@ -181,51 +187,156 @@ const KNOWN_FIELD_KEYS: Set<string> = new Set([
   "duration",
 ]);
 
+interface InitialUrlState {
+  search: string;
+  filters: Array<ActiveFilter>;
+  timeRange: RangeStartAndEndDateTime;
+  page: number;
+  pageSize: number;
+}
+
+/*
+ * Parse the filter state encoded in `window.location.search`. Called once on
+ * mount; refresh + back-from-trace-detail rely on this to restore the view.
+ * Defensive: malformed JSON, unknown enum values, or non-numeric page values
+ * all fall back to defaults rather than throwing.
+ */
+function readInitialUrlState(): InitialUrlState {
+  const params: URLSearchParams = new URLSearchParams(window.location.search);
+
+  const rawSearch: string | null = params.get("search");
+  let search: string = "";
+  if (rawSearch) {
+    try {
+      search = decodeURIComponent(rawSearch);
+    } catch {
+      search = rawSearch;
+    }
+  }
+
+  let filters: Array<ActiveFilter> = [];
+  const filtersRaw: string | null = params.get("filters");
+  if (filtersRaw) {
+    try {
+      const parsed: unknown = JSON.parse(filtersRaw);
+      if (Array.isArray(parsed)) {
+        filters = (parsed as Array<unknown>)
+          .filter((pair: unknown): pair is [string, string] => {
+            return (
+              Array.isArray(pair) &&
+              pair.length === 2 &&
+              typeof pair[0] === "string" &&
+              typeof pair[1] === "string"
+            );
+          })
+          .map(([facetKey, value]: [string, string]): ActiveFilter => {
+            return {
+              facetKey,
+              value,
+              displayKey: facetKey,
+              displayValue: value,
+            };
+          });
+      }
+    } catch {
+      // malformed JSON → ignore
+    }
+  }
+
+  let timeRange: RangeStartAndEndDateTime = { range: TimeRange.PAST_ONE_HOUR };
+  const rangeRaw: string | null = params.get("range");
+  if (rangeRaw) {
+    const knownRanges: Array<string> = Object.values(TimeRange);
+    if (knownRanges.includes(rangeRaw)) {
+      const matched: TimeRange = rangeRaw as TimeRange;
+      if (matched === TimeRange.CUSTOM) {
+        const startStr: string | null = params.get("start");
+        const endStr: string | null = params.get("end");
+        if (startStr && endStr) {
+          const startDate: Date = new Date(startStr);
+          const endDate: Date = new Date(endStr);
+          if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+            timeRange = {
+              range: matched,
+              startAndEndDate: new InBetween<Date>(startDate, endDate),
+            };
+          }
+        }
+      } else {
+        timeRange = { range: matched };
+      }
+    }
+  }
+
+  const pageRaw: string | null = params.get("page");
+  const page: number =
+    pageRaw && POSITIVE_INT_REGEX.test(pageRaw)
+      ? Math.max(1, parseInt(pageRaw, 10))
+      : 1;
+  const pageSizeRaw: string | null = params.get("pageSize");
+  const pageSize: number =
+    pageSizeRaw && POSITIVE_INT_REGEX.test(pageSizeRaw)
+      ? Math.max(1, parseInt(pageSizeRaw, 10))
+      : DEFAULT_PAGE_SIZE;
+
+  return { search, filters, timeRange, page, pageSize };
+}
+
 interface Props {
   serviceId?: ObjectID | undefined;
 }
 
 const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
+  /*
+   * Parse all filter state from the URL once on first mount. SpanViewer's
+   * "filter by" action lands here with `?search=...` so users arrive with
+   * the filter applied; refresh and back-from-trace-detail also rely on
+   * this so the view restores rather than resetting to defaults.
+   */
+  const initialUrlState: InitialUrlState = useMemo(readInitialUrlState, []);
+
   const [spans, setSpans] = useState<Array<Span>>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
-  const [page, setPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
+  const [page, setPage] = useState<number>(initialUrlState.page);
+  const [pageSize, setPageSize] = useState<number>(initialUrlState.pageSize);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
   const [services, setServices] = useState<Array<Service>>([]);
+  const [hosts, setHosts] = useState<Array<Host>>([]);
+  const [dockerHosts, setDockerHosts] = useState<Array<DockerHost>>([]);
+  const [kubernetesClusters, setKubernetesClusters] = useState<
+    Array<KubernetesCluster>
+  >([]);
 
-  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
-    range: TimeRange.PAST_ONE_HOUR,
-  });
-
-  /*
-   * Seed the search from the URL on first mount. SpanViewer's "filter by"
-   * action navigates here with `?search=<encoded @key:value>` so users land
-   * on the listing with the filter already applied. Both states use the
-   * same lazy initialiser so refresh + back-button keep the URL as the
-   * source of truth.
-   */
-  const readInitialSearchFromUrl: () => string = (): string => {
-    const raw: string | null = Navigation.getQueryStringByName("search");
-    if (!raw) {
-      return "";
-    }
-    try {
-      return decodeURIComponent(raw);
-    } catch {
-      return raw;
-    }
-  };
+  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>(
+    initialUrlState.timeRange,
+  );
 
   const [searchValue, setSearchValue] = useState<string>(
-    readInitialSearchFromUrl,
+    initialUrlState.search,
   );
   const [submittedSearch, setSubmittedSearch] = useState<string>(
-    readInitialSearchFromUrl,
+    initialUrlState.search,
   );
 
-  const [activeFilters, setActiveFilters] = useState<Array<ActiveFilter>>([]);
+  const [activeFilters, setActiveFilters] = useState<Array<ActiveFilter>>(
+    initialUrlState.filters,
+  );
+
+  /*
+   * The search bar's X button (and full backspace) only updates `searchValue`
+   * — it doesn't call `onSubmit`. Without this effect, `submittedSearch`
+   * stays at the old value, results stay filtered, and the URL keeps the
+   * stale `?search=...`. Treat an emptied input as an implicit submit so the
+   * displayed input and the applied filter never disagree.
+   */
+  useEffect(() => {
+    if (searchValue === "" && submittedSearch !== "") {
+      setSubmittedSearch("");
+      setPage(1);
+    }
+  }, [searchValue, submittedSearch]);
 
   const [histogramBuckets, setHistogramBuckets] = useState<
     Array<HistogramBucket>
@@ -233,6 +344,16 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   const [histogramLoading, setHistogramLoading] = useState<boolean>(false);
   const [facetData, setFacetData] = useState<FacetData>({});
   const [facetLoading, setFacetLoading] = useState<boolean>(false);
+  /*
+   * Per-facet search text for resource facets (serviceId / hostId / etc.).
+   * When the user types into a facet's search box, this updates and triggers
+   * the facets fetch, which forwards the text to /telemetry/traces/facets so
+   * the backend can scan the full Postgres source-of-truth, not just the
+   * loaded subset.
+   */
+  const [facetSearchText, setFacetSearchText] = useState<
+    Record<string, string>
+  >({});
 
   const [isLive, setIsLive] = useState<boolean>(false);
   const livePollRef: React.MutableRefObject<ReturnType<
@@ -275,24 +396,83 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     const fieldFilters: Record<string, Array<string>> = {};
     const attributes: Record<string, string> = {};
     const freeTextParts: Array<string> = [];
-    const tokens: Array<string> = raw.match(/@\S+:[^\s]+|\S+/g) || [];
+    /*
+     * Tokenizer:
+     *  1. `@?\S+:"[^"]*"` — `field:"value"` or `@attr:"value"` with spaces
+     *     inside double quotes (e.g. `name:"SELECT wp_options"`).
+     *  2. `@\S+:[^\s]+`   — `@attr:value` (no spaces, no quotes).
+     *  3. `\S+`           — bare token (field prefix on its own, free text,
+     *                       or unquoted `field:value` that fits in one word).
+     */
+    const rawTokens: Array<string> =
+      raw.match(/@?\S+:"[^"]*"|@\S+:[^\s]+|\S+/g) || [];
+    /*
+     * Two merges in this loop:
+     *  - `name: POST` → `["name:", "POST"]` → `name:POST` (space after colon).
+     *  - `name: "SELECT wp_options"` → `["name:", "\"SELECT", "wp_options\""]`
+     *    → `name:"SELECT wp_options"` (keep absorbing until closing quote).
+     */
+    const tokens: Array<string> = [];
+    for (let i: number = 0; i < rawTokens.length; i++) {
+      const token: string = rawTokens[i]!;
+      if (token.endsWith(":") && i + 1 < rawTokens.length) {
+        const prefix: string = token.slice(0, -1);
+        const isAttr: boolean = prefix.startsWith("@");
+        const fieldName: string = isAttr
+          ? prefix.slice(1).toLowerCase()
+          : prefix.toLowerCase();
+        if (isAttr || KNOWN_FIELD_KEYS.has(fieldName)) {
+          let merged: string = token + rawTokens[i + 1]!;
+          i++;
+          if (merged.includes(':"') && !merged.endsWith('"')) {
+            while (i + 1 < rawTokens.length && !merged.endsWith('"')) {
+              i++;
+              merged = merged + " " + rawTokens[i]!;
+            }
+          }
+          tokens.push(merged);
+          continue;
+        }
+      }
+      // Standalone token with an unclosed quote — absorb until close.
+      if (token.includes(':"') && !token.endsWith('"')) {
+        let merged: string = token;
+        while (i + 1 < rawTokens.length && !merged.endsWith('"')) {
+          i++;
+          merged = merged + " " + rawTokens[i]!;
+        }
+        tokens.push(merged);
+        continue;
+      }
+      tokens.push(token);
+    }
+    const stripQuotes: (s: string) => string = (s: string): string => {
+      if (s.length >= 2 && s.startsWith('"') && s.endsWith('"')) {
+        return s.slice(1, -1);
+      }
+      return s;
+    };
     for (const token of tokens) {
       // @attribute:value → attribute filter
       const attrMatch: RegExpMatchArray | null = token.match(/^@([^:]+):(.*)$/);
       if (attrMatch) {
-        attributes[attrMatch[1]!] = attrMatch[2]!;
+        const attrValue: string = stripQuotes(attrMatch[2]!);
+        if (attrValue.length > 0) {
+          attributes[attrMatch[1]!] = attrValue;
+        }
         continue;
       }
       // field:value (no @) → known field filter
       const fieldMatch: RegExpMatchArray | null = token.match(/^([^:]+):(.*)$/);
       if (fieldMatch) {
         const fieldName: string = fieldMatch[1]!.toLowerCase();
-        if (KNOWN_FIELD_KEYS.has(fieldName)) {
+        const fieldValue: string = stripQuotes(fieldMatch[2]!);
+        if (KNOWN_FIELD_KEYS.has(fieldName) && fieldValue.length > 0) {
           const backendField: string = FIELD_ALIAS_MAP[fieldName] || fieldName;
           if (!fieldFilters[backendField]) {
             fieldFilters[backendField] = [];
           }
-          fieldFilters[backendField]!.push(fieldMatch[2]!);
+          fieldFilters[backendField]!.push(fieldValue);
           continue;
         }
       }
@@ -346,8 +526,50 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       facetGroups[filter.facetKey]!.push(filter.value);
     }
 
+    /*
+     * The serviceId / hostId / dockerHostId / kubernetesClusterId facets
+     * all filter the same underlying `serviceId` column on Span. Union
+     * the selected values into a single `serviceId IN (...)` predicate.
+     */
+    const resourceFacetKeys: Set<string> = new Set<string>([
+      "serviceId",
+      "hostId",
+      "dockerHostId",
+      "kubernetesClusterId",
+    ]);
+    const resourceIds: Set<string> = new Set<string>();
+    for (const key of resourceFacetKeys) {
+      const values: Array<string> | undefined = facetGroups[key];
+      if (values) {
+        for (const v of values) {
+          resourceIds.add(v);
+        }
+      }
+    }
+    if (resourceIds.size > 0) {
+      (query as Record<string, unknown>)["serviceId"] =
+        resourceIds.size === 1
+          ? Array.from(resourceIds)[0]!
+          : new Includes(Array.from(resourceIds));
+    }
+
+    /*
+     * Text columns need substring matching, not exact equality. The search
+     * bar turns typed `name:GET` into a chip via `onFieldValueSelect`, and
+     * span names are full strings like "GET api/..." — exact-match would
+     * silently return zero rows. Mirror what `parseSearch` does for the same
+     * fields and wrap with `Search`.
+     */
+    const TEXT_CHIP_FIELDS: Set<string> = new Set(["name", "statusMessage"]);
     for (const key of Object.keys(facetGroups)) {
+      if (resourceFacetKeys.has(key)) {
+        continue;
+      }
       const values: Array<string> = facetGroups[key]!;
+      if (TEXT_CHIP_FIELDS.has(key) && values.length === 1) {
+        (query as Record<string, unknown>)[key] = new Search(values[0]!);
+        continue;
+      }
       if (values.length === 1) {
         (query as Record<string, unknown>)[key] = values[0]!;
       } else {
@@ -449,28 +671,108 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     } as Select<Span>;
   }, []);
 
-  // Load services once
+  /*
+   * Mirror filter state to the URL so refresh and back-from-trace-detail
+   * restore the view. Uses `replaceState` so individual filter tweaks don't
+   * push history entries (you'd otherwise have to back-button through every
+   * keystroke). Page/pageSize/range defaults are omitted to keep the URL
+   * minimal — and `?search=` already handles the SpanViewer "filter by" deep
+   * link from before this change.
+   */
   useEffect(() => {
-    const loadServices: () => Promise<void> = async () => {
+    const params: URLSearchParams = new URLSearchParams();
+    if (submittedSearch) {
+      params.set("search", submittedSearch);
+    }
+    if (activeFilters.length > 0) {
+      const tuples: Array<[string, string]> = activeFilters.map(
+        (f: ActiveFilter): [string, string] => {
+          return [f.facetKey, f.value];
+        },
+      );
+      params.set("filters", JSON.stringify(tuples));
+    }
+    if (timeRange.range !== TimeRange.PAST_ONE_HOUR) {
+      params.set("range", timeRange.range);
+    }
+    if (timeRange.range === TimeRange.CUSTOM && timeRange.startAndEndDate) {
+      params.set("start", timeRange.startAndEndDate.startValue.toISOString());
+      params.set("end", timeRange.startAndEndDate.endValue.toISOString());
+    }
+    if (page > 1) {
+      params.set("page", String(page));
+    }
+    if (pageSize !== DEFAULT_PAGE_SIZE) {
+      params.set("pageSize", String(pageSize));
+    }
+
+    const query: string = params.toString();
+    const nextSearch: string = query ? `?${query}` : "";
+    if (nextSearch !== window.location.search) {
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}${nextSearch}${window.location.hash}`,
+      );
+    }
+  }, [submittedSearch, activeFilters, timeRange, page, pageSize]);
+
+  // Load services / hosts / docker hosts / k8s clusters once
+  useEffect(() => {
+    const loadResources: () => Promise<void> = async () => {
       try {
         const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
         if (!projectId) {
           return;
         }
-        const result: ModelListResult<Service> = await ModelAPI.getList({
-          modelType: Service,
-          query: { projectId: projectId },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: { name: true, serviceColor: true },
-          sort: { name: SortOrder.Ascending },
-        });
-        setServices(result.data || []);
+        const [serviceResult, hostResult, dockerHostResult, clusterResult]: [
+          ModelListResult<Service>,
+          ModelListResult<Host>,
+          ModelListResult<DockerHost>,
+          ModelListResult<KubernetesCluster>,
+        ] = await Promise.all([
+          ModelAPI.getList({
+            modelType: Service,
+            query: { projectId: projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { name: true, serviceColor: true },
+            sort: { name: SortOrder.Ascending },
+          }),
+          ModelAPI.getList({
+            modelType: Host,
+            query: { projectId: projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { name: true, hostIdentifier: true },
+            sort: { name: SortOrder.Ascending },
+          }),
+          ModelAPI.getList({
+            modelType: DockerHost,
+            query: { projectId: projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { name: true, hostIdentifier: true },
+            sort: { name: SortOrder.Ascending },
+          }),
+          ModelAPI.getList({
+            modelType: KubernetesCluster,
+            query: { projectId: projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { name: true, clusterIdentifier: true },
+            sort: { name: SortOrder.Ascending },
+          }),
+        ]);
+        setServices(serviceResult.data || []);
+        setHosts(hostResult.data || []);
+        setDockerHosts(dockerHostResult.data || []);
+        setKubernetesClusters(clusterResult.data || []);
       } catch {
         // non-critical
       }
     };
-    void loadServices();
+    void loadResources();
   }, []);
 
   // Load telemetry attributes for search suggestions
@@ -642,8 +944,26 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       groups["serviceId"]!.push(props.serviceId.toString());
     }
 
-    if (groups["serviceId"] && groups["serviceId"].length > 0) {
-      payload["serviceIds"] = groups["serviceId"];
+    /*
+     * serviceId / hostId / dockerHostId / kubernetesClusterId all filter
+     * the underlying `serviceId` column — union them into a single list.
+     */
+    const resourceIdSet: Set<string> = new Set<string>();
+    for (const k of [
+      "serviceId",
+      "hostId",
+      "dockerHostId",
+      "kubernetesClusterId",
+    ]) {
+      const values: Array<string> | undefined = groups[k];
+      if (values) {
+        for (const v of values) {
+          resourceIdSet.add(v);
+        }
+      }
+    }
+    if (resourceIdSet.size > 0) {
+      payload["serviceIds"] = Array.from(resourceIdSet);
     }
 
     if (groups["statusCode"] && groups["statusCode"].length > 0) {
@@ -735,11 +1055,33 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       bucketSizeInMinutes,
     };
 
+    /*
+     * Forward only non-empty per-facet search entries — saves bandwidth and
+     * matches backend semantics where a missing key is the same as an empty
+     * value (no filter).
+     */
+    const facetSearchTextActive: Record<string, string> = {};
+    for (const [key, val] of Object.entries(facetSearchText)) {
+      if (val && val.trim().length > 0) {
+        facetSearchTextActive[key] = val.trim();
+      }
+    }
+
     const facetsPayload: JSONObject = {
       ...aggregationRequest,
-      facetKeys: ["serviceId", "statusCode", "kind"],
-      limit: 20,
+      facetKeys: [
+        "serviceId",
+        "hostId",
+        "dockerHostId",
+        "kubernetesClusterId",
+        "statusCode",
+        "kind",
+      ],
     };
+
+    if (Object.keys(facetSearchTextActive).length > 0) {
+      facetsPayload["facetSearchText"] = facetSearchTextActive;
+    }
 
     const [histogramResult, facetsResult] = await Promise.allSettled([
       postApi("/telemetry/traces/histogram", histogramPayload),
@@ -779,7 +1121,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
     setHistogramLoading(false);
     setFacetLoading(false);
-  }, [aggregationRequest, timeRange]);
+  }, [aggregationRequest, timeRange, facetSearchText]);
 
   useEffect(() => {
     void fetchSpans();
@@ -834,6 +1176,30 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       }
     }
 
+    const hostNameMap: Record<string, string> = {};
+    for (const host of hosts) {
+      if (host.id) {
+        hostNameMap[host.id.toString()] =
+          host.name || host.hostIdentifier || "Unknown";
+      }
+    }
+
+    const dockerHostNameMap: Record<string, string> = {};
+    for (const dockerHost of dockerHosts) {
+      if (dockerHost.id) {
+        dockerHostNameMap[dockerHost.id.toString()] =
+          dockerHost.name || dockerHost.hostIdentifier || "Unknown";
+      }
+    }
+
+    const clusterNameMap: Record<string, string> = {};
+    for (const cluster of kubernetesClusters) {
+      if (cluster.id) {
+        clusterNameMap[cluster.id.toString()] =
+          cluster.name || cluster.clusterIdentifier || "Unknown";
+      }
+    }
+
     const statusLabelMap: Record<string, string> = {
       [SpanStatus.Ok]: "Ok",
       [SpanStatus.Error]: "Error",
@@ -852,22 +1218,44 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         valueDisplayMap: serviceNameMap,
         valueColorMap: serviceColorMap,
         priority: 1,
+        serverSearchable: true,
+      },
+      {
+        key: "hostId",
+        title: "Host",
+        valueDisplayMap: hostNameMap,
+        priority: 2,
+        serverSearchable: true,
+      },
+      {
+        key: "dockerHostId",
+        title: "Docker Host",
+        valueDisplayMap: dockerHostNameMap,
+        priority: 3,
+        serverSearchable: true,
+      },
+      {
+        key: "kubernetesClusterId",
+        title: "Kubernetes Cluster",
+        valueDisplayMap: clusterNameMap,
+        priority: 4,
+        serverSearchable: true,
       },
       {
         key: "statusCode",
         title: "Status",
         valueDisplayMap: statusLabelMap,
         valueColorMap: statusColorMap,
-        priority: 2,
+        priority: 5,
       },
       {
         key: "kind",
         title: "Span Kind",
         valueDisplayMap: SPAN_KIND_LABEL,
-        priority: 3,
+        priority: 6,
       },
     ];
-  }, [services]);
+  }, [services, hosts, dockerHosts, kubernetesClusters]);
 
   // Histogram series
   const histogramSeries: Array<HistogramSeriesOption> = useMemo(() => {
@@ -931,20 +1319,43 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     setPage(1);
   }, []);
 
-  // Read-only chips for prop-level scoping (e.g. service view page)
+  /*
+   * Read-only chips for prop-level scoping (e.g. service view page), merged
+   * with the user-added chips. Display labels are re-derived from
+   * facetConfigs here so URL-restored chips (which only carry facetKey/value)
+   * still show the human-readable label once services/hosts/etc. load.
+   */
   const mergedActiveFilters: Array<ActiveFilter> = useMemo(() => {
+    const resolveDisplay: (chip: ActiveFilter) => ActiveFilter = (
+      chip: ActiveFilter,
+    ) => {
+      const config: FacetConfig | undefined = facetConfigs.find(
+        (c: FacetConfig): boolean => {
+          return c.key === chip.facetKey;
+        },
+      );
+      const displayKey: string = chip.facetKey.startsWith("attributes.")
+        ? chip.facetKey.substring("attributes.".length)
+        : config?.title || chip.facetKey;
+      const displayValue: string =
+        config?.valueDisplayMap?.[chip.value] || chip.value;
+      return { ...chip, displayKey, displayValue };
+    };
+
     const base: Array<ActiveFilter> = [];
     if (props.serviceId) {
-      base.push({
-        facetKey: "serviceId",
-        value: props.serviceId.toString(),
-        displayKey: "Service",
-        displayValue: props.serviceId.toString(),
-        readOnly: true,
-      });
+      base.push(
+        resolveDisplay({
+          facetKey: "serviceId",
+          value: props.serviceId.toString(),
+          displayKey: "Service",
+          displayValue: props.serviceId.toString(),
+          readOnly: true,
+        }),
+      );
     }
-    return [...base, ...activeFilters];
-  }, [props.serviceId, activeFilters]);
+    return [...base, ...activeFilters.map(resolveDisplay)];
+  }, [props.serviceId, activeFilters, facetConfigs]);
 
   // Histogram drag-to-zoom
   const handleHistogramTimeRangeSelect: (start: Date, end: Date) => void =
@@ -956,16 +1367,21 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       setPage(1);
     }, []);
 
-  // Row click → navigate to trace view page
-  const handleRowClick: (span: Span) => void = useCallback((span: Span) => {
-    if (span.traceId) {
-      Navigation.navigate(
-        RouteUtil.populateRouteParams(RouteMap[PageMap.TRACE_VIEW]!, {
-          modelId: span.traceId.toString(),
-        }),
-      );
-    }
-  }, []);
+  /*
+   * Build the route to a trace's detail page so rows can render as real
+   * anchors (cmd/ctrl/middle-click → open in new tab).
+   */
+  const getTraceRoute: (span: Span) => Route | undefined = useCallback(
+    (span: Span) => {
+      if (!span.traceId) {
+        return undefined;
+      }
+      return RouteUtil.populateRouteParams(RouteMap[PageMap.TRACE_VIEW]!, {
+        modelId: span.traceId.toString(),
+      });
+    },
+    [],
+  );
 
   return (
     <TelemetryViewer<Span>
@@ -987,9 +1403,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
             span={span}
             service={service}
             maxDurationNano={maxDurationNano}
-            onClick={() => {
-              handleRowClick(span);
-            }}
+            to={getTraceRoute(span)}
           />
         );
       }}
@@ -1030,13 +1444,21 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
          * case-insensitive so users can type `Service:api`; attribute keys
          * keep their original case because the data is case-sensitive (the
          * backend matches them case-insensitively at query time).
+         *
+         * Surrounding double quotes are stripped: typing `name:"SELECT"`
+         * should store the chip as `SELECT`, otherwise the backend SQL
+         * becomes `name ILIKE '%"SELECT"%'` and matches nothing.
          */
         const lowerFieldKey: string = fieldKey.toLowerCase();
         const isKnownField: boolean = KNOWN_FIELD_KEYS.has(lowerFieldKey);
         const facetKey: string = isKnownField
           ? FIELD_ALIAS_MAP[lowerFieldKey] || lowerFieldKey
           : `attributes.${fieldKey}`;
-        handleFacetInclude(facetKey, value);
+        const cleanValue: string =
+          value.length >= 2 && value.startsWith('"') && value.endsWith('"')
+            ? value.slice(1, -1)
+            : value;
+        handleFacetInclude(facetKey, cleanValue);
       }}
       searchFieldAliasMap={FIELD_ALIAS_MAP}
       searchHelpRows={SEARCH_HELP_ROWS}
@@ -1058,6 +1480,22 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       facetConfigs={facetConfigs}
       facetLoading={facetLoading}
       onFacetInclude={handleFacetInclude}
+      onFacetSearchChange={(facetKey: string, text: string) => {
+        setFacetSearchText(
+          (prev: Record<string, string>): Record<string, string> => {
+            if ((prev[facetKey] || "") === text) {
+              return prev;
+            }
+            const next: Record<string, string> = { ...prev };
+            if (text.length === 0) {
+              delete next[facetKey];
+            } else {
+              next[facetKey] = text;
+            }
+            return next;
+          },
+        );
+      }}
       // Active filters
       activeFilters={mergedActiveFilters}
       onRemoveFilter={handleRemoveFilter}

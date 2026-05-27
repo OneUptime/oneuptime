@@ -726,6 +726,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <Summary
         monitorType={monitorType!}
         probes={probes}
+        monitorSteps={monitor?.monitorSteps}
         incomingMonitorRequest={incomingMonitorRequest}
         incomingRequestMonitorHeartbeatCheckedAt={
           monitor?.incomingRequestMonitorHeartbeatCheckedAt

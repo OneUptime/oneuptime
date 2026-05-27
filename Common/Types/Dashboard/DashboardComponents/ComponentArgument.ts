@@ -11,6 +11,8 @@ export enum ComponentInputType {
   MetricsQueryConfig = "MetricsQueryConfig",
   MetricsQueryConfigs = "MetricsQueryConfigs",
   MetricsFormulaConfigs = "MetricsFormulaConfigs",
+  TableColumns = "TableColumns",
+  TableGroupBy = "TableGroupBy",
   LongText = "Long Text",
   Dropdown = "Dropdown",
   MultiSelectDropdown = "MultiSelectDropdown",

@@ -7,6 +7,7 @@ import ProductType from "Common/Types/MeteredPlan/ProductType";
 import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
+import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
 import TracesQueueService from "./Services/Queue/TracesQueueService";
 import LogsQueueService from "./Services/Queue/LogsQueueService";
 import MetricsQueueService from "./Services/Queue/MetricsQueueService";
@@ -109,6 +110,15 @@ async function handleExport(
   queueFn: (req: TelemetryRequest) => Promise<void>,
 ): Promise<void> {
   try {
+    if (TelemetryIngestionDisabled.isDisabled()) {
+      /*
+       * DISABLE_TELEMETRY_INGESTION is set. Drop the request silently and
+       * return success so the OTel SDK does not retry.
+       */
+      callback(null, {});
+      return;
+    }
+
     const projectId: ObjectID | null = await authenticateRequest(call.metadata);
 
     if (!projectId) {

@@ -19,6 +19,7 @@ import DnsMonitorResponse, {
   DnsRecordResponse,
 } from "../../../Types/Monitor/DnsMonitor/DnsMonitorResponse";
 import DomainMonitorResponse from "../../../Types/Monitor/DomainMonitor/DomainMonitorResponse";
+import DnssecMonitorResponse from "../../../Types/Monitor/DnssecMonitor/DnssecMonitorResponse";
 import ExternalStatusPageMonitorResponse, {
   ExternalStatusPageComponentStatus,
 } from "../../../Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
@@ -329,6 +330,30 @@ export default class MonitorTemplateUtil {
           nameServers: domainResponse?.nameServers,
           domainStatus: domainResponse?.domainStatus,
           dnssec: domainResponse?.dnssec,
+        } as JSONObject;
+      }
+
+      if (data.monitorType === MonitorType.DNSSEC) {
+        const dnssecResponse: DnssecMonitorResponse | undefined = (
+          data.dataToProcess as ProbeMonitorResponse
+        ).dnssecResponse;
+
+        storageMap = {
+          isOnline: (data.dataToProcess as ProbeMonitorResponse).isOnline,
+          responseTimeInMs: dnssecResponse?.responseTimeInMs,
+          failureCause: dnssecResponse?.failureCause,
+          domainName: dnssecResponse?.domainName,
+          isZoneSigned: dnssecResponse?.isZoneSigned,
+          isParentDsPresent: dnssecResponse?.isParentDsPresent,
+          isChainValid: dnssecResponse?.isChainValid,
+          resolverConsensusAd: dnssecResponse?.resolverConsensusAd,
+          isNameserverConsistent: dnssecResponse?.isNameserverConsistent,
+          earliestSignatureExpiration:
+            dnssecResponse?.earliestSignatureExpiration,
+          daysUntilSignatureExpiry: dnssecResponse?.daysUntilSignatureExpiry,
+          dnskeyCount: dnssecResponse?.dnskeys?.length,
+          dsRecordCount: dnssecResponse?.parentDsRecords?.length,
+          rrsigCount: dnssecResponse?.rrsigs?.length,
         } as JSONObject;
       }
 

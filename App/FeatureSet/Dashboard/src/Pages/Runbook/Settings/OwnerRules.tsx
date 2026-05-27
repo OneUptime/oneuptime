@@ -40,6 +40,9 @@ const RunbookOwnerRulesPage: FunctionComponent<
       id="runbook-owner-rules-table"
       name="Settings > Runbook Owner Rules"
       userPreferencesKey="runbook-owner-rules-table"
+      saveFilterProps={{
+        tableId: "runbook-owner-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

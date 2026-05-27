@@ -460,6 +460,7 @@ export class Service extends DatabaseService<Model> {
       const userIdInSchedule: ObjectID | null =
         await OnCallDutyPolicyScheduleService.getCurrentUserIdInSchedule(
           scheduleRule.onCallDutyPolicyScheduleId!,
+          { onCallDutyPolicyId: options.onCallPolicyId },
         );
 
       if (!userIdInSchedule) {

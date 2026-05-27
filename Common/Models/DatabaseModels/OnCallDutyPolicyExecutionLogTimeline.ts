@@ -13,6 +13,7 @@ import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccess
 import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
+import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -38,6 +39,7 @@ import IncidentEpisode from "./IncidentEpisode";
   delete: PlanType.Growth,
 })
 @EnableDocumentation()
+@CanAccessIfCanReadOn("onCallDutyPolicy")
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [],

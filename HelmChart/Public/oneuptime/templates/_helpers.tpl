@@ -530,6 +530,9 @@ Usage:
 - name: DISABLE_AUTOMATIC_ALERT_CREATION
   value: {{ $.Values.alerts.disableAutomaticCreation | squote }}
 
+- name: DISABLE_TELEMETRY_INGESTION
+  value: {{ default false $.Values.telemetry.disableIngestion | squote }}
+
 - name: WORKFLOW_SCRIPT_TIMEOUT_IN_MS
   value: {{ $.Values.script.workflowScriptTimeoutInMs | squote }}
 

@@ -1,10 +1,12 @@
 import OneUptimeDate from "Common/Types/Date";
+import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import ExternalStatusPageMonitorResponse, {
   ExternalStatusPageComponentStatus,
 } from "Common/Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
+import ProbeAttemptsView from "./ProbeAttemptsView";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
@@ -24,6 +26,12 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
   if (responseTimeInMs > 0) {
     responseTimeInMs = Math.round(responseTimeInMs);
   }
+
+  const probeAttempts: Array<ProbeAttempt> =
+    props.probeMonitorResponse.probeAttempts || [];
+  const totalAttempts: number =
+    props.probeMonitorResponse.totalAttempts ?? probeAttempts.length;
+  const hadRetries: boolean = totalAttempts > 1;
 
   return (
     <div className="space-y-5">
@@ -129,6 +137,13 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
             </div>
           </div>
         )}
+
+      {hadRetries && (
+        <ProbeAttemptsView
+          attempts={probeAttempts}
+          totalAttempts={totalAttempts}
+        />
+      )}
     </div>
   );
 };

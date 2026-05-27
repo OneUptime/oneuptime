@@ -51,7 +51,7 @@ Filter queries determine which logs this drop filter applies to.
 |----------|---------|-------------|
 | \`=\` | \`severityText = 'DEBUG'\` | Exact match |
 | \`!=\` | \`severityText != 'ERROR'\` | Not equal |
-| \`LIKE\` | \`body LIKE '%healthcheck%'\` | Pattern match (\`%\` = wildcard) |
+| \`LIKE\` | \`body LIKE 'healthcheck'\` | Substring match (use \`%\` for SQL-style wildcards) |
 | \`IN\` | \`severityText IN ('DEBUG', 'TRACE')\` | Match any value in list |
 | \`AND\` / \`OR\` | \`severityText = 'DEBUG' AND attributes.source = 'loadbalancer'\` | Combine conditions |
 
@@ -67,7 +67,7 @@ Filter queries determine which logs this drop filter applies to.
 - **Result:** All debug-level logs are discarded before storage
 
 #### Example 2: Sample verbose health check logs
-- **Filter Query:** \`body LIKE '%healthcheck%' AND severityText = 'INFO'\`
+- **Filter Query:** \`body LIKE 'healthcheck' AND severityText = 'INFO'\`
 - **Action:** Sample
 - **Sample Percentage:** 5
 - **Result:** Only 5% of health check info logs are kept — enough to spot trends without the noise

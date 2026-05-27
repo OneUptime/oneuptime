@@ -26,6 +26,9 @@ const EpisodeViewStateTimeline: FunctionComponent<PageComponentProps> = (
         id="table-episode-status-timeline"
         name="Episode > State Timeline"
         userPreferencesKey="episode-status-timeline-table"
+        saveFilterProps={{
+          tableId: "incident-episode-status-timeline-table",
+        }}
         isEditable={false}
         isDeleteable={true}
         isCreateable={true}

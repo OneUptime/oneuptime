@@ -287,6 +287,14 @@ export default class AuditLog extends AnalyticsBaseModel {
       primaryKeys: ["projectId", "createdAt"],
       partitionKey: "sipHash64(projectId) % 16",
       ttlExpression: "retentionDate DELETE",
+      /*
+       * `createdAt` already participates in the AuditLog sort key
+       * (position 2 after `projectId`), so the legacy `createdAt
+       * DESC` default was already efficient here. Set it explicitly
+       * so the choice is intentional rather than inherited from the
+       * base class.
+       */
+      defaultSortColumn: "createdAt",
     });
   }
 

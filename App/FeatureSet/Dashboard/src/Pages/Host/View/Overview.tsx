@@ -301,6 +301,7 @@ const HostOverview: FunctionComponent<
           hostArch: true,
           hostType: true,
           hostIpAddresses: true,
+          agentVersion: true,
         },
       });
 
@@ -2031,6 +2032,14 @@ const HostOverview: FunctionComponent<
                         fieldType: FieldType.Text,
                         showIf: (item: Host): boolean => {
                           return Boolean(item.hostType);
+                        },
+                      },
+                      {
+                        key: "agentVersion",
+                        title: "Agent Version",
+                        fieldType: FieldType.Text,
+                        showIf: (item: Host): boolean => {
+                          return Boolean(item.agentVersion);
                         },
                       },
                     ] as Array<DetailField<Host>>

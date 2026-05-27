@@ -104,7 +104,6 @@ import ScheduledMaintenanceStateTimelineService from "./ScheduledMaintenanceStat
 import ServiceOwnerTeamService from "./ServiceOwnerTeamService";
 import ServiceOwnerUserService from "./ServiceOwnerUserService";
 import ServiceService from "./ServiceService";
-import ServiceMonitorService from "./ServiceMonitorService";
 import ServiceCodeRepositoryService from "./ServiceCodeRepositoryService";
 import ShortLinkService from "./ShortLinkService";
 // SMS Log Service
@@ -161,7 +160,6 @@ import WorkflowLogService from "./WorkflowLogService";
 import WorkflowService from "./WorkflowService";
 import WorkflowVariablesService from "./WorkflowVariableService";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import ServiceDependencyService from "./ServiceDependencyService";
 import TelemetryExceptionService from "./TelemetryExceptionService";
 import ExceptionInstanceService from "./ExceptionInstanceService";
 import ScheduledMaintenanceTemplateService from "./ScheduledMaintenanceTemplateService";
@@ -388,8 +386,6 @@ const services: Array<BaseService> = [
   ServiceService,
   ServiceOwnerTeamService,
   ServiceOwnerUserService,
-  ServiceDependencyService,
-  ServiceMonitorService,
   ServiceCodeRepositoryService,
 
   TelemetryExceptionService,

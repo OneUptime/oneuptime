@@ -72,6 +72,9 @@ const OnCallPolicyLabelRulesTable: FunctionComponent = (): ReactElement => {
       id="on-call-policy-label-rules-table"
       name="Settings > On-Call Policy Label Rules"
       userPreferencesKey="on-call-policy-label-rules-table"
+      saveFilterProps={{
+        tableId: "on-call-policy-label-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}
@@ -212,6 +215,9 @@ const OnCallScheduleLabelRulesTable: FunctionComponent = (): ReactElement => {
       id="on-call-schedule-label-rules-table"
       name="Settings > On-Call Schedule Label Rules"
       userPreferencesKey="on-call-schedule-label-rules-table"
+      saveFilterProps={{
+        tableId: "on-call-schedule-label-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}
@@ -355,6 +361,9 @@ const IncomingCallPolicyLabelRulesTable: FunctionComponent =
         id="incoming-call-policy-label-rules-table"
         name="Settings > Incoming Call Policy Label Rules"
         userPreferencesKey="incoming-call-policy-label-rules-table"
+        saveFilterProps={{
+          tableId: "incoming-call-policy-label-rules-table",
+        }}
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}

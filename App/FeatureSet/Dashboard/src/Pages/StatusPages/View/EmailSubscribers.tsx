@@ -438,6 +438,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             id="table-subscriber"
             name="Status Page > Email Subscribers"
             userPreferencesKey="status-page-subscriber-table"
+            saveFilterProps={{
+              tableId: "status-page-email-subscribers-table",
+            }}
             isDeleteable={true}
             showViewIdButton={true}
             isCreateable={true}

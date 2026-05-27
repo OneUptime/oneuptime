@@ -233,6 +233,20 @@ RunCron(
           `Loaded ${statusPages.length} status page(s) for incident ${incident.id}.`,
         );
 
+        /*
+         * Pre-compute markdown conversions for incident.description once per
+         * incident. These values do not vary per status page or per subscriber,
+         * so memoizing here avoids N redundant markdown parses during fan-out.
+         * For a status page with 100k subscribers, this turns 100k markdown
+         * parses into 1.
+         */
+        const incidentDescriptionHtml: string = await Markdown.convertToHTML(
+          incident.description || "",
+          MarkdownContentType.Email,
+        );
+        const incidentDescriptionPlainText: string =
+          Markdown.convertToPlainText(incident.description || "");
+
         let notificationSentToAtLeastOneSubscriber: boolean = false;
 
         for (const statuspage of statusPages) {
@@ -346,12 +360,13 @@ RunCron(
               incidentDescription: incident.description || "",
             };
 
-            // Prepare SMS-specific template variables with plain text (no HTML/Markdown)
+            /*
+             * Prepare SMS-specific template variables with plain text (no HTML/Markdown).
+             * Uses the memoized plain-text conversion computed once per incident above.
+             */
             const smsTemplateVariables: Record<string, string> = {
               ...templateVariables,
-              incidentDescription: Markdown.convertToPlainText(
-                incident.description || "",
-              ),
+              incidentDescription: incidentDescriptionPlainText,
             };
 
             for (const subscriber of subscribers) {
@@ -462,10 +477,7 @@ RunCron(
                           incidentSeverity:
                             incident.incidentSeverity?.name || " - ",
                           incidentTitle: incident.title || "",
-                          incidentDescription: await Markdown.convertToHTML(
-                            incident.description || "",
-                            MarkdownContentType.Email,
-                          ),
+                          incidentDescription: incidentDescriptionHtml,
                           unsubscribeUrl: unsubscribeUrl,
 
                           subscriberEmailNotificationFooterText:

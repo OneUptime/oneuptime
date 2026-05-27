@@ -62,6 +62,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   tableDescription:
     "Logs of all the Email sent out to all users and subscribers for this project.",
 })
+@Index(["projectId", "createdAt"]) // Notification logs table: time-range filter per project
+@Index(["projectId", "status"]) // Notification logs table: status filter per project
 export default class EmailLog extends BaseModel {
   @ColumnAccessControl({
     create: [],

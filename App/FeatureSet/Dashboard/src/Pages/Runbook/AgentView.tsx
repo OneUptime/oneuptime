@@ -197,6 +197,9 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
         id="table-runbook-agent-owner-team"
         userPreferencesKey="runbook-agent-owner-team-table"
         name="Runbook Agent > Owner Team"
+        saveFilterProps={{
+          tableId: "runbook-agent-owner-team-table",
+        }}
         singularName="Team"
         isDeleteable={true}
         createVerb={"Add"}
@@ -285,6 +288,9 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
         id="table-runbook-agent-owner-user"
         userPreferencesKey="runbook-agent-owner-user-table"
         name="Runbook Agent > Owner User"
+        saveFilterProps={{
+          tableId: "runbook-agent-owner-user-table",
+        }}
         singularName="User"
         isDeleteable={true}
         createVerb={"Add"}

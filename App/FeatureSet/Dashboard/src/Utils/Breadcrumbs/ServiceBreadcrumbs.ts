@@ -6,11 +6,6 @@ import Link from "Common/Types/Link";
 export function getServiceBreadcrumbs(path: string): Array<Link> | undefined {
   const breadcrumpLinksMap: Dictionary<Link[]> = {
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVICES, ["Project", "Services"]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_DEPENDENCY_GRAPH, [
-      "Project",
-      "Services",
-      "Dependency Graph",
-    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW, [
       "Project",
       "Services",
@@ -21,12 +16,6 @@ export function getServiceBreadcrumbs(path: string): Array<Link> | undefined {
       "Services",
       "View Service",
       "Owners",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_DEPENDENCIES, [
-      "Project",
-      "Services",
-      "View Service",
-      "Dependencies",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_DELETE, [
       "Project",
@@ -39,24 +28,6 @@ export function getServiceBreadcrumbs(path: string): Array<Link> | undefined {
       "Services",
       "View Service",
       "Settings",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_MONITORS, [
-      "Project",
-      "Services",
-      "View Service",
-      "Monitors",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_ALERTS, [
-      "Project",
-      "Services",
-      "View Service",
-      "Alerts",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_INCIDENTS, [
-      "Project",
-      "Services",
-      "View Service",
-      "Incidents",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_LOGS, [
       "Project",
@@ -81,6 +52,36 @@ export function getServiceBreadcrumbs(path: string): Array<Link> | undefined {
       "Services",
       "View Service",
       "Code Repositories",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_INCIDENTS, [
+      "Project",
+      "Services",
+      "View Service",
+      "Incidents",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_ALERTS, [
+      "Project",
+      "Services",
+      "View Service",
+      "Alerts",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE,
+      ["Project", "Services", "View Service", "Scheduled Maintenance"],
+    ),
+
+    // Service Settings (Product-level)
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_SETTINGS_OWNER_RULES, [
+      "Project",
+      "Services",
+      "Settings",
+      "Owner Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_SETTINGS_LABEL_RULES, [
+      "Project",
+      "Services",
+      "Settings",
+      "Label Rules",
     ]),
   };
   return breadcrumpLinksMap[path];

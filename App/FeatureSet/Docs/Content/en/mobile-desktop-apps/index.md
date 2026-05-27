@@ -1,49 +1,46 @@
 # OneUptime Mobile and Desktop Apps
 
-OneUptime offers native-like mobile and desktop applications through Progressive Web App (PWA) technology. These apps provide a seamless experience across all major platforms without requiring downloads from app stores.
+OneUptime offers two ways to use the platform outside of your browser:
 
-## What is a Progressive Web App (PWA)?
+- **Native mobile apps** for iOS and Android, published to the **Apple App Store** and **Google Play**. These deliver on-call pages, incident alerts, and acknowledgement actions directly to your phone.
+- **Installable desktop apps** for Windows, macOS, and Linux, delivered as a Progressive Web App (PWA) installed directly from your browser. These give the OneUptime dashboard its own window, icon, and notification surface on your computer.
 
-A Progressive Web App is a web application that uses modern web capabilities to deliver an app-like experience to users.
+## Mobile (Native Apps)
 
-## Installation Guides
+The **OneUptime On-Call** app is a native application built with React Native. It is distributed through the official stores so you get automatic updates, push notifications, and biometric unlock.
 
-Choose your platform below for detailed installation instructions:
+- **iOS** — [Download on the App Store](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391). Requires iOS 15.0 or later. See the [iOS Installation Guide](./ios-installation.md).
+- **Android** — [Get it on Google Play](https://play.google.com/store/apps/details?id=com.oneuptime.oncall). Requires Android 8.0 or later. A direct [APK download](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk) is also available for devices without Google Play. See the [Android Installation Guide](./android-installation.md).
 
-- [Android Installation](./android-installation.md)
-- [iOS Installation](./ios-installation.md)
+## Desktop (Progressive Web App)
+
+OneUptime's web dashboard is a Progressive Web App, so you can install it as a desktop application from a modern browser without going through any store.
+
 - [Windows Installation](./windows-installation.md)
 - [macOS Installation](./macos-installation.md)
 - [Linux Installation](./linux-installation.md)
 
+### Desktop Getting Started
 
-## Getting Started
+1. Open your OneUptime instance in a Chromium-based browser (Chrome, Edge) or Safari.
+2. Look for the **Install** button in the address bar or in **File → Add to Dock / Apps → Install this site as an app**.
+3. Launch the installed app from your Start Menu, Launchpad, or applications launcher.
 
-1. Visit your OneUptime instance in a supported browser
-2. Look for the "Install" or "Add to Home Screen" prompt
-3. Follow the platform-specific installation steps
-4. Launch the app from your device's app drawer or desktop
+### Desktop Troubleshooting
 
-## Troubleshooting
-
-### Common Issues
-
-**Installation option not appearing:**
-- Ensure you're using a supported browser
-- Check that your OneUptime instance is served over HTTPS
-- Try refreshing the page or clearing browser cache
+**Install option not appearing:**
+- Make sure you are using a supported browser.
+- Confirm your OneUptime instance is served over HTTPS.
+- Refresh the page or clear your browser cache.
 
 **Push notifications not working:**
-- Grant notification permissions when prompted
-- Check browser notification settings
-- Ensure OneUptime instance has notification configured
-
+- Grant notification permissions when prompted by the browser.
+- Check your operating system's notification settings for the browser.
+- Self-hosted users: confirm push notifications are configured on your OneUptime instance.
 
 ## Support
 
-If you encounter any issues with the OneUptime PWA:
-
-1. Check the troubleshooting section above
-2. Verify your browser meets the minimum requirements
-3. Contact support through your OneUptime dashboard
-4. Report issues on our [GitHub repository](https://github.com/OneUptime/oneuptime)
+- Mobile-specific issues: check the [iOS](./ios-installation.md) or [Android](./android-installation.md) installation guides.
+- Desktop-specific issues: check the [Windows](./windows-installation.md), [macOS](./macos-installation.md), or [Linux](./linux-installation.md) installation guides.
+- General questions: see the [FAQ & Troubleshooting](./faq-troubleshooting.md) page.
+- File bugs or feature requests on our [GitHub repository](https://github.com/OneUptime/oneuptime).

@@ -188,6 +188,7 @@ import StatusPageSubscriberNotificationTemplate from "./StatusPageSubscriberNoti
 import StatusPageSubscriberNotificationTemplateStatusPage from "./StatusPageSubscriberNotificationTemplateStatusPage";
 // Team
 import Team from "./Team";
+import TeamCustomField from "./TeamCustomField";
 import TeamMember from "./TeamMember";
 import TeamMemberCustomField from "./TeamMemberCustomField";
 import TeamPermission from "./TeamPermission";
@@ -226,8 +227,6 @@ import RunbookExecution from "./RunbookExecution";
 import RunbookOwnerTeam from "./RunbookOwnerTeam";
 import RunbookOwnerUser from "./RunbookOwnerUser";
 import RunbookRule from "./RunbookRule";
-import ServiceDependency from "./ServiceDependency";
-import ServiceMonitor from "./ServiceMonitor";
 
 import UserTotpAuth from "./UserTotpAuth";
 import UserWebAuthn from "./UserWebAuthn";
@@ -342,6 +341,7 @@ const AllModelTypes: Array<{
   Project,
   EmailVerificationToken,
   Team,
+  TeamCustomField,
   TeamMember,
   TeamMemberCustomField,
   TeamPermission,
@@ -618,8 +618,6 @@ const AllModelTypes: Array<{
   Service,
   ServiceOwnerTeam,
   ServiceOwnerUser,
-  ServiceDependency,
-  ServiceMonitor,
   ServiceCodeRepository,
 
   // Code Repository

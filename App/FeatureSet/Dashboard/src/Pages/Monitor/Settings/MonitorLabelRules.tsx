@@ -37,6 +37,9 @@ const MonitorLabelRulesPage: FunctionComponent<
       id="monitor-label-rules-table"
       name="Settings > Monitor Label Rules"
       userPreferencesKey="monitor-label-rules-table"
+      saveFilterProps={{
+        tableId: "monitor-label-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

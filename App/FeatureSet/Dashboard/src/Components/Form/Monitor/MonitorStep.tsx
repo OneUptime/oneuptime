@@ -94,6 +94,10 @@ import DomainMonitorStepForm from "./DomainMonitor/DomainMonitorStepForm";
 import MonitorStepDomainMonitor, {
   MonitorStepDomainMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepDomainMonitor";
+import DnssecMonitorStepForm from "./DnssecMonitor/DnssecMonitorStepForm";
+import MonitorStepDnssecMonitor, {
+  MonitorStepDnssecMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepDnssecMonitor";
 import ExternalStatusPageMonitorStepForm from "./ExternalStatusPageMonitor/ExternalStatusPageMonitorStepForm";
 import MonitorStepExternalStatusPageMonitor, {
   MonitorStepExternalStatusPageMonitorUtil,
@@ -1198,6 +1202,24 @@ return {
             }
             onChange={(value: MonitorStepDomainMonitor) => {
               monitorStep.setDomainMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+          />
+        </Card>
+      )}
+
+      {props.monitorType === MonitorType.DNSSEC && (
+        <Card
+          title="DNSSEC Monitor Configuration"
+          description="Configure full DNSSEC validation: DNSKEY/DS/RRSIG, multi-resolver AD-flag/SERVFAIL behavior, and primary/secondary nameserver consistency."
+        >
+          <DnssecMonitorStepForm
+            monitorStepDnssecMonitor={
+              monitorStep.data?.dnssecMonitor ||
+              MonitorStepDnssecMonitorUtil.getDefault()
+            }
+            onChange={(value: MonitorStepDnssecMonitor) => {
+              monitorStep.setDnssecMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
           />

@@ -47,8 +47,8 @@ export default class Validation {
       }
 
       if (field.validation.noSpecialCharacters) {
-        if (!content.match(/^[A-Za-z0-9]*$/)) {
-          return `${field.title || name} should not have special characters.`;
+        if (!content.match(/^[A-Za-z0-9_-]*$/)) {
+          return `${field.title || name} can only contain letters, numbers, hyphens (-), and underscores (_).`;
         }
       }
 

@@ -104,9 +104,9 @@ const ServiceSettings: FunctionComponent<
         }}
       />
       <CardModelDetail<Service>
-        name="Per-Pillar Retention Overrides"
+        name="Retention by Telemetry Type"
         cardProps={{
-          title: "Per-Pillar Retention Overrides",
+          title: "Retention by Telemetry Type",
           description:
             "Override retention for specific telemetry types in this service. Any field left blank falls back to the service default, then the project's settings.",
         }}

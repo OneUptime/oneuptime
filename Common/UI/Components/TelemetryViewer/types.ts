@@ -6,6 +6,12 @@
 export interface FacetValue {
   value: string;
   count: number;
+  /*
+   * Optional server-resolved display name. Set by the backend when the facet
+   * value is resolved against a source-of-truth table (e.g. serviceId →
+   * service name). Falls back to the parent's valueDisplayMap if not present.
+   */
+  displayName?: string | undefined;
 }
 
 export type FacetData = Record<string, Array<FacetValue>>;
@@ -52,6 +58,12 @@ export interface FacetConfig {
   valueColorMap?: Record<string, string> | undefined;
   // Ordering priority: lower = shown first.
   priority?: number | undefined;
+  /*
+   * When true, the section's search box also emits typed text to the
+   * sidebar's `onFacetSearchChange` callback so the parent can refetch
+   * values from the backend (used for resource facets backed by Postgres).
+   */
+  serverSearchable?: boolean | undefined;
 }
 
 export interface SearchHelpRow {

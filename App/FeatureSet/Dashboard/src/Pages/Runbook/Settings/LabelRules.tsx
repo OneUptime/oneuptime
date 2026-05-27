@@ -37,6 +37,9 @@ const RunbookLabelRulesPage: FunctionComponent<
       id="runbook-label-rules-table"
       name="Settings > Runbook Label Rules"
       userPreferencesKey="runbook-label-rules-table"
+      saveFilterProps={{
+        tableId: "runbook-label-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

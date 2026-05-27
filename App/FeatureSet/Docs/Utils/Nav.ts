@@ -209,6 +209,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/dns-monitor",
       },
       {
+        title: "DNSSEC Monitor",
+        url: "/docs/monitor/dnssec-monitor",
+      },
+      {
         title: "SSL Certificate Monitor",
         url: "/docs/monitor/ssl-certificate-monitor",
       },
@@ -337,6 +341,68 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "Workflows",
+    links: [
+      {
+        title: "Workflows Overview",
+        url: "/docs/workflows/index",
+      },
+      {
+        title: "Authoring a Workflow",
+        url: "/docs/workflows/authoring",
+      },
+      {
+        title: "Workflow Triggers",
+        url: "/docs/workflows/triggers",
+      },
+      {
+        title: "Workflow Components",
+        url: "/docs/workflows/components",
+      },
+      {
+        title: "Workflow Variables",
+        url: "/docs/workflows/variables",
+      },
+      {
+        title: "Workflow Runs & Logs",
+        url: "/docs/workflows/runs-and-logs",
+      },
+      {
+        title: "Workflow Configuration & Safety",
+        url: "/docs/workflows/configuration",
+      },
+    ],
+  },
+  {
+    title: "Dashboards",
+    links: [
+      {
+        title: "Dashboards Overview",
+        url: "/docs/dashboards/index",
+      },
+      {
+        title: "Authoring a Dashboard",
+        url: "/docs/dashboards/authoring",
+      },
+      {
+        title: "Dashboard Widgets",
+        url: "/docs/dashboards/widgets",
+      },
+      {
+        title: "Dashboard Variables & Filters",
+        url: "/docs/dashboards/variables",
+      },
+      {
+        title: "Sharing & Public Dashboards",
+        url: "/docs/dashboards/sharing",
+      },
+      {
+        title: "Dashboard Configuration & Permissions",
+        url: "/docs/dashboards/configuration",
+      },
+    ],
+  },
+  {
     title: "Status Pages",
     links: [
       {
@@ -375,6 +441,18 @@ const DocsNav: NavGroup[] = [
       { title: "FluentBit", url: "/docs/telemetry/fluentbit" },
       { title: "Fluentd", url: "/docs/telemetry/fluentd" },
       { title: "Syslog", url: "/docs/telemetry/syslog" },
+      {
+        title: "Host OpenTelemetry Collector",
+        url: "/docs/telemetry/host-otel-collector",
+      },
+      {
+        title: "Kubernetes Agent",
+        url: "/docs/telemetry/kubernetes-agent",
+      },
+      {
+        title: "Docker Agent",
+        url: "/docs/telemetry/docker-host",
+      },
     ],
   },
   {

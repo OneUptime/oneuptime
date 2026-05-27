@@ -1,10 +1,12 @@
 import OneUptimeDate from "Common/Types/Date";
 import SslMonitorResponse from "Common/Types/Monitor/SSLMonitor/SslMonitorResponse";
+import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
+import ProbeAttemptsView from "./ProbeAttemptsView";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
@@ -24,6 +26,12 @@ const SSLCertificateMonitorView: FunctionComponent<ComponentProps> = (
     props.probeMonitorResponse.sslResponse;
 
   const [showMoreDetails, setShowMoreDetails] = React.useState<boolean>(false);
+
+  const probeAttempts: Array<ProbeAttempt> =
+    props.probeMonitorResponse.probeAttempts || [];
+  const totalAttempts: number =
+    props.probeMonitorResponse.totalAttempts ?? probeAttempts.length;
+  const hadRetries: boolean = totalAttempts > 1;
 
   return (
     <div className="space-y-5">
@@ -73,6 +81,13 @@ const SSLCertificateMonitorView: FunctionComponent<ComponentProps> = (
             }
           />
         </div>
+
+        {showMoreDetails && hadRetries && (
+          <ProbeAttemptsView
+            attempts={probeAttempts}
+            totalAttempts={totalAttempts}
+          />
+        )}
 
         {showMoreDetails && (
           <div className="space-y-5">

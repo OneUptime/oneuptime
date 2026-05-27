@@ -57,6 +57,261 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 
 If you try the default `standard` preset on a cluster that blocks hostPath, the install fails with a Pod Security error. Re-install with `--set preset=gke-autopilot` (or `eks-fargate`) and it works.
 
+## Tuning resources (CPU & memory)
+
+Every component the agent ships has its own `resources` block in [`values.yaml`](./values.yaml) with conservative defaults — small enough to fit on a modest node, large enough to handle a few hundred pods. Tune them up for larger clusters or heavier workloads.
+
+### Defaults
+
+| Component | values key | Requests (cpu / mem) | Limits (cpu / mem) | Enabled |
+| --- | --- | --- | --- | --- |
+| Metrics & events collector (Deployment) | `deployment.resources` | `200m` / `1Gi` | `1000m` / `4Gi` | always on |
+| Pod log collector — DaemonSet | `logs.resources` | `50m` / `128Mi` | `200m` / `256Mi` | when `logs.mode: daemonset` |
+| Pod log tailer — API mode | `logs.api.resources` | `100m` / `256Mi` | `1000m` / `1Gi` | when `logs.mode: api` |
+| eBPF auto-instrumentation (DaemonSet) | `ebpf.resources` | `100m` / `256Mi` | `1000m` / `1Gi` | on by default |
+| Continuous profiler (DaemonSet) | `profiling.resources` | `200m` / `512Mi` | `2000m` / `2Gi` | opt-in (`profiling.enabled=true`) |
+| Bundled kube-state-metrics (Deployment) | `kubeStateMetrics.resources` | `50m` / `128Mi` | `200m` / `256Mi` | opt-in (`kubeStateMetrics.enabled=true`) |
+
+CPU is in cores (`500m` = half a core). Memory is in bytes (`Mi` = mebibytes, `Gi` = gibibytes). These map straight to the standard Kubernetes [resource requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) on the underlying pods.
+
+### Override with `--set`
+
+For one or two changes at install or upgrade time:
+
+```bash
+helm install oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=<NAME> \
+  --set deployment.resources.requests.cpu=500m \
+  --set deployment.resources.requests.memory=2Gi \
+  --set deployment.resources.limits.cpu=2000m \
+  --set deployment.resources.limits.memory=8Gi \
+  --set ebpf.resources.limits.memory=2Gi
+```
+
+### Override with a values file (recommended for many overrides)
+
+Create a `my-values.yaml` containing only the keys you want to change:
+
+```yaml
+# my-values.yaml
+deployment:
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      cpu: 2000m
+      memory: 8Gi
+
+ebpf:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1500m
+      memory: 2Gi
+
+logs:
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+```
+
+Apply it with `-f`:
+
+```bash
+helm install oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=<NAME> \
+  -f my-values.yaml
+```
+
+> **Already installed?** Use `helm upgrade oneuptime-agent oneuptime/kubernetes-agent --namespace oneuptime-kubernetes-agent --reset-then-reuse-values -f my-values.yaml` to apply new resource values without losing your existing settings. Don't use plain `--reuse-values` — see [Upgrading](#upgrading) for why.
+
+### Recommended sizing
+
+Pick the tier closest to your cluster as a starting point, then watch `kubectl top pod -n oneuptime-kubernetes-agent` and adjust.
+
+| Tier | Cluster size | Notes |
+| --- | --- | --- |
+| **Small** | ≤ 10 nodes, ≤ 200 pods | Dev, staging, homelab. Tighten defaults to free node capacity. |
+| **Medium** | 10–50 nodes, 200–1 000 pods | Chart defaults already target this tier — no override file needed. |
+| **Large** | 50–200 nodes, 1 000–5 000 pods | Add headroom for the metrics collector and per-node DaemonSets. |
+| **Extra-large** | 200+ nodes, 5 000+ pods | Scale the metrics collector and shard the API-mode log tailer. |
+
+#### Small (≤ 10 nodes)
+
+```yaml
+# small.yaml
+deployment:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 2Gi
+
+ebpf:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+logs:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+```
+
+#### Medium (10–50 nodes)
+
+Chart defaults are sized for this tier — no override file needed. See the [defaults table](#defaults).
+
+#### Large (50–200 nodes)
+
+```yaml
+# large.yaml
+deployment:
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      cpu: 2000m
+      memory: 8Gi
+
+ebpf:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1500m
+      memory: 2Gi
+
+logs:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# Only if you've enabled kube-state-metrics
+kubeStateMetrics:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# Only if you've enabled continuous profiling
+profiling:
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 3000m
+      memory: 3Gi
+```
+
+#### Extra-large (200+ nodes)
+
+```yaml
+# xl.yaml
+deployment:
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 4Gi
+    limits:
+      cpu: 4000m
+      memory: 16Gi
+
+ebpf:
+  resources:
+    requests:
+      cpu: 300m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 3Gi
+
+logs:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  # Only relevant in API mode — shard the tailer across replicas
+  api:
+    replicas: 4
+
+# Only if you've enabled kube-state-metrics
+kubeStateMetrics:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+# Only if you've enabled continuous profiling
+profiling:
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 4000m
+      memory: 4Gi
+```
+
+Apply any of these with `-f`:
+
+```bash
+helm install oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=<NAME> \
+  -f large.yaml
+```
+
+> These are conservative starting points. Real usage depends on pod density per node, request volume (for eBPF), and how many distinct process types are running. After install, watch `kubectl top pod -n oneuptime-kubernetes-agent` for ~24 hours and set limits to roughly 1.5× observed peak.
+
+### When to tune
+
+- **Large clusters (1000+ pods):** raise `deployment.resources.limits.memory` first — the metrics collector batches every series in memory, and an OOM there leaves gaps in your dashboards. `2–8Gi` is typical for production.
+- **eBPF DaemonSet restarting or throttled:** raise `ebpf.resources.limits`. Confirm with `kubectl top pod -n oneuptime-kubernetes-agent` and check the OBI pod's restart count.
+- **API-mode log tailer falling behind:** shard first with `--set logs.api.replicas=2` (or more) — one replica handles a few thousand containers. Only raise per-pod limits if a single replica is still saturated after sharding.
+- **Profiling on dense nodes:** raise `profiling.resources.limits`. Flame-graph stack unwinding is the heaviest workload the agent runs.
+- **Bundled kube-state-metrics on large clusters:** scale `kubeStateMetrics.resources` with object count — KSM holds the whole cluster state in memory.
+
+After installing or upgrading, run `kubectl top pod -n oneuptime-kubernetes-agent` to see actual CPU/memory usage versus your limits and adjust from there.
+
 ## Configuration reference
 
 ### Required
@@ -84,6 +339,10 @@ If you try the default `standard` preset on a cluster that blocks hostPath, the 
 | `coreDns.enabled` | `false` | Scrape Prometheus metrics from CoreDNS (`kube-dns` Service by default). |
 | `resourceSpecs.enabled` | `true` | Pull full K8s object specs (labels, env vars, status) for the dashboard. |
 | `controlPlane.enabled` | `false` | Scrape etcd / api-server / scheduler / controller-manager. Self-managed clusters only — managed offerings typically don't expose these endpoints. |
+| `kubeletstats.utilizationMetrics.enabled` | `true` | Saturation metrics — container & pod CPU/memory as a percentage of request and limit. No extra scrape; derived from data the kubelet already returns. Always 0 when pods have no request/limit set. |
+| `kubeletstats.volumeMetrics.enabled` | `true` | Per-PVC disk usage (`k8s.volume.available`, `k8s.volume.capacity`). One series per PVC per pod — bounded for most clusters, heavier on stateful workloads with thousands of PVCs. |
+| `cadvisor.enabled` | `true` | Scrape this node's kubelet `/metrics/cadvisor` endpoint for CFS throttling and OOM kill counters that `kubeletstats` doesn't translate. An allowlist drops everything except 3 metrics at the receiver. |
+| `kubeStateMetrics.enabled` | `false` | Pull cluster-state metrics (pod phases, container waiting reasons, resource quotas) from kube-state-metrics. `mode: bundled` (default) deploys a small KSM Deployment for you; `mode: external` scrapes an existing KSM via `endpoint`. |
 
 ### Continuous profiling (`profiling.*`) — off by default
 
@@ -114,6 +373,9 @@ When `ebpf.enabled` is also true (the default), the profiler correlates samples 
 ### Other data collection knobs
 
 - **`hostMetrics.*`** — host-level OS metrics from the OTel `hostmetrics` receiver, scraped inside the log-collector DaemonSet (no extra pods). Fills the gaps that `kubeletstats` doesn't cover.
+- **`kubeletstats.utilizationMetrics.*`** / **`kubeletstats.volumeMetrics.*`** — opt-in metric groups in the existing `kubeletstats` receiver. The first enables 8 derived saturation series (CPU/memory as % of request & limit) for containers and pods; the second adds per-PVC disk usage. Both run inside the existing DaemonSet — no extra pods, no extra scrapes.
+- **`cadvisor.*`** — scrapes the kubelet's `/metrics/cadvisor` endpoint from each node's DaemonSet pod for the container metrics `kubeletstats` doesn't translate: CFS throttling counters (`container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total`) and OOM kill events (`container_oom_events_total`). A relabel allowlist keeps only those three series so cardinality stays bounded.
+- **`kubeStateMetrics.*`** — pulls cluster-state metrics from kube-state-metrics: pod phases (Pending / Terminating), container waiting reasons (CrashLoopBackOff, ImagePullBackOff), and resource quota usage. Off by default because the `bundled` mode adds a small KSM Deployment to the chart's footprint. If you already run KSM in the cluster, set `kubeStateMetrics.mode: external` and `kubeStateMetrics.endpoint: <url>` to scrape that instead. A relabel allowlist forwards only the metric families that power monitors (KSM exports ~100 by default).
 - **`auditLogs.*`** — Kubernetes API audit logs. Off by default because most managed K8s platforms don't expose them as files. Enable on self-managed clusters where you set `--audit-log-path`.
 - **`csi.*`** — auto-discovers pods labeled `app=csi-driver` (or `app.kubernetes.io/component=csi-driver`) and scrapes their `metrics` port. Most cloud-provider CSI drivers fit this convention.
 - **`coreDns.*`** — scrapes the cluster's CoreDNS service on `:9153/metrics`. Surfaces DNS query rate, latency, cache hit rate, and error counts — a common P99 latency culprit.
@@ -166,9 +428,11 @@ Useful knobs:
 
 | Key | Default | Description |
 | --- | --- | --- |
-| `ebpf.contextPropagation` | `true` | OBI injects W3C `traceparent` into outbound HTTP/TCP so requests crossing service boundaries link into a single trace, no SDK required. |
+| `ebpf.contextPropagation` | `true` | OBI injects W3C `traceparent` into outbound traffic so requests crossing service boundaries link into a single trace, no SDK required. |
+| `ebpf.contextPropagationMode` | `headers` | How OBI injects the `traceparent`. `headers` (default) only modifies HTTP/1.1 request headers — safe alongside service meshes (Linkerd, Istio), mTLS, and eBPF CNIs (Cilium, Calico). `ip` injects an IPv4/IPv6 option for propagation over raw TCP; can be dropped by middleboxes. `all` does both — most coverage but the IP-option half can break service-mesh proxies (linkerd2-proxy, envoy) by corrupting bytes those proxies validate. |
 | `ebpf.trackRequestHeaders` | `true` | Kernel-side header tracking so propagation works for plain HTTP servers (non-Go, non-TLS). Only effective when `contextPropagation` is true. |
-| `ebpf.logToTraceCorrelation` | `true` | OBI injects `trace_id` / `span_id` into **JSON-formatted** log lines from instrumented processes (existing fields preserved); the filelog DaemonSet lifts them onto the LogRecord so clicking a span in the trace view jumps to its logs. Plain-text logs pass through unchanged — to get trace_id, your app must log in JSON, and buffered runtimes need `PYTHONUNBUFFERED=1` (Python) or `Console.Out.AutoFlush = true` (.NET). |
+| `ebpf.logToTraceCorrelation` | `false` | **Off by default — opt in.** OBI injects `trace_id` / `span_id` into **JSON-formatted** log lines from instrumented processes (existing fields preserved); the filelog DaemonSet lifts them onto the LogRecord so clicking a span in the trace view jumps to its logs. Plain-text logs pass through unchanged. **Do NOT enable** in clusters running LD_PRELOAD-based APM agents (Dynatrace OneAgent, New Relic, AppDynamics, Datadog, Instana) — the log enricher's in-process buffer rewrite races with those agents' `write()` wrappers and crashes the application (typically SIGSEGV / exit 139 in .NET). See [APM agent compatibility](#application-pods-crash-with-sigsegv-after-enabling-log-trace-correlation) below. |
+| `ebpf.logEnricher.services` | `[{service: [{exe_path: "*"}]}]` | OBI GlobAttributes selector for which processes get the log enricher (only consulted when `logToTraceCorrelation: true`). Each entry can match by `exe_path`, `languages`, `k8s_pod_labels`, `k8s_pod_annotations`, `open_ports`, or `cmd_args`. Narrow this when enabling log enrichment alongside an APM agent — list only the workloads you want enriched (OBI's log_enricher does not support `exclude_services`). |
 
 ### API-mode log tailer (only when `logs.mode: api`)
 
@@ -226,6 +490,87 @@ kubectl delete namespace oneuptime-kubernetes-agent
 ## Troubleshooting
 
 See the [Install the Kubernetes Agent](https://oneuptime.com/docs/monitor/kubernetes-agent) guide — it covers the "hostPath blocked" error, missing logs, and horizontal sharding for large clusters.
+
+### Application pods crash with SIGSEGV after enabling log ↔ trace correlation
+
+If you enabled `ebpf.logToTraceCorrelation` (off by default) and **.NET application pods start crashing with `Exit Code: 139`** (SIGSEGV) within seconds of the eBPF DaemonSet starting, the cause is almost always a conflict with an `LD_PRELOAD`-based APM agent in the same pods.
+
+Affected APM agents:
+
+- **Dynatrace OneAgent** (`liboneagentproc.so`)
+- **New Relic** (`libnewrelic*.so`)
+- **AppDynamics** (`libappdynamics*.so`)
+- **Datadog** (`libdd*.so`)
+- **Instana** (`libinstana*.so`)
+
+These agents wrap libc `write()` and hold pointers into the caller's stdout buffer. OBI's log enricher zeroes the original buffer with NULs before re-emitting the enriched line — that buffer rewrite races with the APM agent's write wrapper and crashes the host process. On Dynatrace specifically, the OneAgent's watchdog `write()` to its PID file also stalls past the 10s liveness threshold, sending Dynatrace itself into a restart loop on every node.
+
+**Immediate mitigation** — disable the log enricher (keeps the rest of eBPF working):
+
+```bash
+helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent --reuse-values \
+  --set ebpf.logToTraceCorrelation=false
+```
+
+Then `kubectl rollout restart` the affected deployments (stagger one at a time — a simultaneous cluster-wide restart concentrates the failure).
+
+**If you need log ↔ trace correlation alongside an APM agent**, scope `ebpf.logEnricher.services` so the enricher skips the pods running the APM. OBI's `log_enricher` only accepts positive selectors (no `exclude_services`) — list only the workloads you want enriched. Two common recipes:
+
+```yaml
+# Enrich only pods you've explicitly opted in (label them apm-agent=none).
+ebpf:
+  logToTraceCorrelation: true
+  logEnricher:
+    services:
+      - service:
+          - k8s_pod_labels:
+              apm-agent: "none"
+```
+
+```yaml
+# Enrich only runtimes where LD_PRELOAD-based APMs typically aren't injected.
+# Dynatrace's .NET agent uses LD_PRELOAD; the Python/Go/Node/Ruby paths don't.
+ebpf:
+  logToTraceCorrelation: true
+  logEnricher:
+    services:
+      - service:
+          - languages: "python,go,nodejs,ruby"
+```
+
+### Application pods fail or restart after enabling the agent (service mesh)
+
+If you run a service mesh (Linkerd, Istio, Consul Connect) or an eBPF-based CNI (Cilium, Calico-eBPF) and application pods start failing, timing out, or restarting after the agent installs, there are two interactions to be aware of:
+
+1. **OBI's IP-option trace propagation modifies packet headers.** Service-mesh proxies and eBPF CNIs validate the bytes they receive — an extra IP option from OBI can fail mTLS, get dropped by the CNI, or confuse the proxy. The chart defaults to `ebpf.contextPropagationMode: headers` (HTTP/1.1 headers only, no packet modification) for exactly this reason. If you upgraded from an older release with `--reuse-values`, you may still be on the old `all` behavior — re-apply explicitly:
+
+    ```bash
+    helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+      --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
+      --set ebpf.contextPropagationMode=headers
+    ```
+
+2. **OBI attaches uprobes to executables — including sidecars.** Attaching to `linkerd2-proxy`, `envoy`, or a CNI agent can stall the binary. The default `ebpf.excludeExePaths` already lists the common ones (`linkerd2-proxy`, `envoy`, `istio-pilot-agent`, `pilot-agent`, `cilium-*`, `calico-node`, `kube-router`). If you maintain your own exclude list, make sure these basenames are present.
+
+**Do NOT add broad globs like `*/proxy` to `excludeExePaths`** — `*/proxy` will also match *your* binaries (`auth-proxy`, `oauth2-proxy`, ...) and silently drop their traces. List the specific sidecar basename instead.
+
+### No traces appear even though OBI pods are running
+
+Three things to check, in order:
+
+1. **`ebpf.autoTargetExe`** — defaults to `*` (everything OBI can recognize). If you've narrowed it, your services may not match.
+2. **`ebpf.excludeExePaths`** — make sure your service's binary basename isn't in here, and that you haven't added a broad glob like `*/proxy` or `*/app` that matches it accidentally. Run `helm get values <release>` to see the effective list.
+3. **Service mesh** — if all your traffic flows through `linkerd2-proxy` or `envoy` and those are excluded (correctly — see above), OBI still sees the application's local connection to the sidecar on `127.0.0.1`. If you see no traces at all, also check that `ebpf.printTraces=true` shows spans in the OBI pod's stdout:
+
+    ```bash
+    helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+      --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
+      --set ebpf.printTraces=true
+    kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
+    ```
+
+    No spans there means OBI isn't capturing traffic on that node. Spans there but nothing in OneUptime means the OTLP export path is broken — check the metrics-collector Deployment logs.
 
 ## Source
 

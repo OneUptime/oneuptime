@@ -265,6 +265,43 @@ export default class AlertCustomField extends BaseModel {
       Permission.AlertViewer,
       Permission.ReadAlertCustomField,
     ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAlertCustomField,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Dropdown Options",
+    description:
+      "Options for the dropdown field, one per line. Only used when Custom Field Type is Dropdown.",
+    example: "Option 1\nOption 2\nOption 3",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public dropdownOptions?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAlertCustomField,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlertCustomField,
+    ],
     update: [],
   })
   @TableColumn({

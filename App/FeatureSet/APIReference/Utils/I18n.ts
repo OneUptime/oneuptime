@@ -19,7 +19,8 @@ import sv from "../Locales/sv.json";
 import ru from "../Locales/ru.json";
 import ja from "../Locales/ja.json";
 import ko from "../Locales/ko.json";
-import zh from "../Locales/zh.json";
+import zhCN from "../Locales/zh-CN.json";
+import zhTW from "../Locales/zh-TW.json";
 import hi from "../Locales/hi.json";
 
 export interface LocaleStrings {
@@ -41,7 +42,8 @@ const Locales: { [code: string]: LocaleStrings } = {
   ru: ru as LocaleStrings,
   ja: ja as LocaleStrings,
   ko: ko as LocaleStrings,
-  zh: zh as LocaleStrings,
+  "zh-CN": zhCN as LocaleStrings,
+  "zh-TW": zhTW as LocaleStrings,
   hi: hi as LocaleStrings,
 };
 

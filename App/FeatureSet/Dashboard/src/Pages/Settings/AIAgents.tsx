@@ -6,22 +6,49 @@ import URL from "Common/Types/API/URL";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import AIAgentElement from "Common/UI/Components/AIAgent/AIAgent";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { APP_API_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import AIAgent from "Common/Models/DatabaseModels/AIAgent";
+import AIAgentOwnerTeam from "Common/Models/DatabaseModels/AIAgentOwnerTeam";
+import AIAgentOwnerUser from "Common/Models/DatabaseModels/AIAgentOwnerUser";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green } from "Common/Types/BrandColors";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 
 const AIAgentsPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<AIAgent>({ modelType: AIAgent });
+
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<AIAgent>({
+      ownerUserModelType: AIAgentOwnerUser,
+      ownerTeamModelType: AIAgentOwnerTeam,
+      resourceIdField: "aiAgentId",
+    });
+
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<AIAgent>({
+    ownerUserModelType: AIAgentOwnerUser,
+    ownerTeamModelType: AIAgentOwnerTeam,
+    resourceIdField: "aiAgentId",
+    showLabelsFacet: true,
+  });
 
   return (
     <Fragment>
@@ -31,6 +58,9 @@ const AIAgentsPage: FunctionComponent<
           id="ai-agents-table"
           name="Settings > Global AI Agents"
           userPreferencesKey={"admin-ai-agents-table"}
+          saveFilterProps={{
+            tableId: "settings-global-ai-agents-table",
+          }}
           isDeleteable={false}
           isEditable={false}
           isCreateable={false}
@@ -98,18 +128,27 @@ const AIAgentsPage: FunctionComponent<
 
         <ModelTable<AIAgent>
           modelType={AIAgent}
-          query={{
+          topContent={filterBar}
+          currentFacetState={facetSaveState}
+          onFacetStateRestored={restoreFacetState}
+          query={mergeFiltersIntoQuery({
             projectId: ProjectUtil.getCurrentProjectId()!,
+          })}
+          onFetchSuccess={(data: Array<AIAgent>) => {
+            onResourcesFetched(data);
           }}
           id="ai-agents-table"
           userPreferencesKey={"ai-agents-table"}
           name="Settings > AI Agents"
+          saveFilterProps={{
+            tableId: "settings-project-ai-agents-table",
+          }}
           isDeleteable={false}
           isEditable={false}
           isViewable={true}
           isCreateable={true}
           bulkActions={{
-            buttons: [...labelBulkActions],
+            buttons: [...labelBulkActions, ...ownerBulkActions],
           }}
           cardProps={{
             title: "Self-Hosted AI Agents",
@@ -223,24 +262,6 @@ const AIAgentsPage: FunctionComponent<
               title: "Default",
               type: FieldType.Boolean,
             },
-            {
-              title: "Labels",
-              type: FieldType.EntityArray,
-              field: {
-                labels: {
-                  name: true,
-                  color: true,
-                },
-              },
-              filterEntityType: Label,
-              filterQuery: {
-                projectId: ProjectUtil.getCurrentProjectId()!,
-              },
-              filterDropdownField: {
-                label: "name",
-                value: "_id",
-              },
-            },
           ]}
           columns={[
             {
@@ -299,9 +320,26 @@ const AIAgentsPage: FunctionComponent<
                 return <LabelsElement labels={item["labels"] || []} />;
               },
             },
+            {
+              field: {
+                _id: true,
+              },
+              title: "Owners",
+              type: FieldType.Element,
+              hideOnMobile: true,
+              getElement: (item: AIAgent): ReactElement => {
+                return (
+                  <OwnersCell
+                    owners={getOwnersForResource(item)}
+                    isLoading={isLoadingOwners}
+                  />
+                );
+              },
+            },
           ]}
         />
         {labelBulkActionModals}
+        {ownerBulkActionModals}
       </>
     </Fragment>
   );

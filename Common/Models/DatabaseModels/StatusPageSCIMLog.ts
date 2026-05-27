@@ -7,6 +7,7 @@ import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -22,6 +23,7 @@ import SCIMLogStatus from "../../Types/SCIM/SCIMLogStatus";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @EnableDocumentation()
+@CanAccessIfCanReadOn("statusPage")
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [],

@@ -794,7 +794,7 @@ const BarChart: React.ForwardRefExoticComponent<
                 }
               : {})}
             margin={{
-              bottom: xAxisLabel ? 30 : 8,
+              bottom: xAxisLabel ? 40 : showXAxis ? 24 : 8,
               left: yAxisLabel ? 20 : 0,
               right: yAxisLabel ? 5 : 8,
               top: 5,

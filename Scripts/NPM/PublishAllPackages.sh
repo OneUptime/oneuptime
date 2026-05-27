@@ -43,7 +43,11 @@ publish_to_npm() {
     echo "Publishing $npm_package_name@$package_version to npm"
     cd $directory_name
 
-    npm version $package_version
+    # `--allow-same-version` because Scripts/Install/SyncPackageVersions.js
+    # (run via the workflow's `npm run prerun`) has already pinned every
+    # internal package.json to VERSION. Without this flag, `npm version`
+    # exits 1 with "Version not changed" and aborts the publish step.
+    npm version --allow-same-version $package_version
 
     # Replace any Common dependency with the pinned version being published
     sed -i "s/\"Common\": \"file:..\/Common\"/\"Common\": \"npm:@oneuptime\/common@$package_version\"/g" package.json

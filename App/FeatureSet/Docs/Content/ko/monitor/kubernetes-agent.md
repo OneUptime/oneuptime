@@ -185,13 +185,17 @@ eBPF 자동 계측도 활성화되어 있는 경우(`ebpf.enabled: true`, 기본
 | `profiling.tracers` | `""` *(모든 런타임)* | 로드할 언어 트레이서 목록(쉼표로 구분). |
 | `profiling.obiProcessContext` | `true` | 트레이스 ↔ 프로파일 연결을 위해 OBI의 트레이스 컨텍스트와 샘플을 상관시킵니다. |
 
-## 기타 데이터 수집 (호스트 메트릭, 감사 로그, CSI, CoreDNS)
+## 기타 데이터 수집 (호스트 메트릭, 포화도, cAdvisor, KSM, 감사 로그, CSI, CoreDNS)
 
 차트는 다음도 수집할 수 있습니다:
 
 | `<key>.enabled` | 기본값 | 추가되는 내용 |
 | --- | --- | --- |
 | `hostMetrics` | on | `/proc`와 `/sys`에서 가져온 노드별 OS 메트릭 — 디스크 I/O 큐 깊이, 파일시스템 inode 사용량, NIC 오류 카운터, 페이징 통계, 부하 평균. 로그 콜렉터 DaemonSet 내부에 존재합니다(추가 파드 없음). |
+| `kubeletstats.utilizationMetrics` | on | 포화도 메트릭 — 요청 및 제한에 대한 백분율로 표현된 컨테이너 및 파드 CPU/메모리. "CPU/Memory vs Request" 및 "CPU/Memory vs Limit" 모니터를 구동하는 8개의 파생 메트릭 패밀리. 기존 `kubeletstats` 리시버와 동일한 스크랩이며, 추가 파드가 필요 없습니다. 파드에 요청/제한이 설정되지 않은 경우 항상 0입니다. |
+| `kubeletstats.volumeMetrics` | on | PVC별 디스크 사용량(`k8s.volume.available`, `k8s.volume.capacity`). "PVC Low Disk Space" 모니터를 구동합니다. 파드별 PVC당 하나의 시리즈 — 대부분의 클러스터에서는 제한적이지만, 수천 개의 PVC가 있는 스테이트풀 워크로드에서는 더 무거워집니다. |
+| `cadvisor` | on | 각 노드의 DaemonSet 파드에서 kubelet의 `/metrics/cadvisor` 엔드포인트를 스크랩하여 `kubeletstats`가 변환하지 않는 컨테이너 메트릭을 가져옵니다: CFS 스로틀링(`container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total`) 및 OOM kill 이벤트(`container_oom_events_total`). 리라벨 허용 목록이 리시버에서 나머지를 모두 삭제하므로 카디널리티가 제한된 상태로 유지됩니다. |
+| `kubeStateMetrics` | off | kube-state-metrics에서 클러스터 상태 메트릭을 가져옵니다: 파드 단계(Pending / Terminating), 컨테이너 대기 원인(CrashLoopBackOff, ImagePullBackOff), 리소스 쿼터 사용량. `mode: bundled`(기본값)는 작은 KSM Deployment를 배포합니다; `mode: external`은 `endpoint`를 통해 기존 KSM을 스크랩합니다. 번들된 모드가 차트의 풋프린트에 Deployment를 추가하기 때문에 기본적으로 비활성화되어 있습니다. |
 | `auditLogs` | off | 호스트에서 `/var/log/kubernetes/audit.log`를 추적합니다. 모든 Kubernetes API 요청을 캡처합니다 — 누가 어떤 리소스에 무엇을 했는지. 자체 관리형 클러스터 전용 — 관리형 K8s(EKS, GKE, AKS, DOKS)는 감사 로그를 클라우드 제공업체의 싱크로 라우팅합니다. |
 | `csi` | off | `app=csi-driver`(또는 `app.kubernetes.io/component=csi-driver`) 레이블이 붙은 파드를 자동으로 발견하고 Prometheus `metrics` 포트를 스크랩합니다 — 볼륨 연결/분리 지연, 프로비저닝 실패, IOPS. |
 | `coreDns` | off | 클러스터 CoreDNS 서비스를 `:9153/metrics`에서 스크랩합니다. 쿼리율, 지연, 캐시 히트율, 오류 카운트를 표시합니다 — 일반적인 P99 지연 원인입니다. |
@@ -212,6 +216,10 @@ eBPF 자동 계측도 활성화되어 있는 경우(`ebpf.enabled: true`, 기본
 | `ebpf.enabled` | `true` | OpenTelemetry eBPF Instrumentation을 통해 모든 파드에서 HTTP/gRPC 트레이스를 자동으로 캡처합니다. 위의 섹션을 참조하십시오. |
 | `profiling.enabled` | `false` | OpenTelemetry eBPF Profiler를 통한 연속 CPU 플레임 그래프. 기본적으로 비활성화; 더 많은 텔레메트리를 위해 옵트인하십시오. 위의 섹션을 참조하십시오. |
 | `hostMetrics.enabled` | `true` | 노드별 OS 메트릭. |
+| `kubeletstats.utilizationMetrics.enabled` | `true` | 컨테이너 및 파드 CPU/메모리 포화도(요청 및 제한의 %). 추가 스크랩 없음 — kubeletstats 데이터에서 파생됩니다. |
+| `kubeletstats.volumeMetrics.enabled` | `true` | PVC별 디스크 사용량(`k8s.volume.available`, `k8s.volume.capacity`). |
+| `cadvisor.enabled` | `true` | 이 노드의 kubelet `/metrics/cadvisor`를 스크랩하여 CFS 스로틀링 + OOM kill 카운터를 가져옵니다. 3개의 메트릭으로 허용 목록 처리됩니다. |
+| `kubeStateMetrics.enabled` | `false` | kube-state-metrics에서 파드 단계, 컨테이너 대기 원인(CrashLoopBackOff / ImagePullBackOff), ResourceQuota 사용량을 가져옵니다. 번들 vs 외부에 대해서는 `kubeStateMetrics.mode`를 참조하십시오. |
 | `auditLogs.enabled` | `false` | Kubernetes 감사 로그 수집(자체 관리형 클러스터). |
 | `csi.enabled` | `false` | CSI 드라이버 Prometheus 메트릭. |
 | `coreDns.enabled` | `false` | CoreDNS Prometheus 메트릭. |

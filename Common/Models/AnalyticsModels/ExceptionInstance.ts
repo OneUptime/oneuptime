@@ -6,10 +6,16 @@ import AnalyticsTableColumn, {
   SkipIndexType,
 } from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
+import OperationalResource from "../../Types/Database/AccessControl/OperationalResource";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import Service from "../DatabaseModels/Service";
 import { SpanStatus } from "./Span";
+import ServiceType from "../../Types/Telemetry/ServiceType";
 
+@OperationalResource()
+@OwnedThrough("serviceId", Service)
 export default class ExceptionInstance extends AnalyticsBaseModel {
   public constructor() {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
@@ -24,6 +30,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -44,7 +51,8 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
     const serviceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "serviceId",
       title: "Service ID",
-      description: "ID of the Service which created the log",
+      description:
+        "ID of the resource the exception belongs to (Service / Host / DockerHost / KubernetesCluster / Monitor — disambiguated by serviceType)",
       required: true,
       type: TableColumnType.ObjectID,
       accessControl: {
@@ -52,6 +60,43 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
+          Permission.ReadTelemetryException,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.CreateTelemetryException,
+        ],
+        update: [],
+      },
+    });
+
+    const serviceTypeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "serviceType",
+      title: "Service Type",
+      description:
+        "Discriminator for serviceId — tells the read side which resource table to dispatch to",
+      required: false,
+      type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_service_type",
+        type: SkipIndexType.Set,
+        params: [10],
+        granularity: 4,
+      },
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -80,6 +125,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -108,6 +154,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -142,6 +189,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -174,6 +222,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -206,6 +255,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -235,6 +285,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.Viewer,
             Permission.TelemetryAdmin,
             Permission.TelemetryMember,
             Permission.TelemetryViewer,
@@ -264,6 +315,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -298,6 +350,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -332,6 +385,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -366,6 +420,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -400,6 +455,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -435,6 +491,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -470,6 +527,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -498,6 +556,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -527,6 +586,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -567,6 +627,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -601,6 +662,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
       tableColumns: [
         projectIdColumn,
         serviceIdColumn,
+        serviceTypeColumn,
         timeColumn,
         timeUnixNanoColumn,
         exceptionTypeColumn,
@@ -629,6 +691,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
       primaryKeys: ["projectId", "time", "serviceId", "fingerprint"],
       partitionKey: "sipHash64(projectId) % 16",
       ttlExpression: "retentionDate DELETE",
+      defaultSortColumn: "time",
     });
   }
 
@@ -646,6 +709,14 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
 
   public set serviceId(v: ObjectID | undefined) {
     this.setColumnValue("serviceId", v);
+  }
+
+  public get serviceType(): ServiceType | undefined {
+    return this.getColumnValue("serviceType") as ServiceType | undefined;
+  }
+
+  public set serviceType(v: ServiceType | undefined) {
+    this.setColumnValue("serviceType", v);
   }
 
   public get time(): Date | undefined {

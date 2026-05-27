@@ -7,7 +7,7 @@ export default class DahboardUserUtil {
     const projectId: ObjectID = ProjectUtil.getCurrentProjectId() as ObjectID;
 
     return new Route(
-      `/dashboard/${projectId.toString()}/settings/users/${userId.toString()}`,
+      `/dashboard/${projectId.toString()}/users/${userId.toString()}`,
     );
   }
 }

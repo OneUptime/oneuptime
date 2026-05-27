@@ -42,6 +42,9 @@ const AlertViewStateTimeline: FunctionComponent<PageComponentProps> = (
         id="table-alert-status-timeline"
         name="Monitor > State Timeline"
         userPreferencesKey="alert-status-timeline-table"
+        saveFilterProps={{
+          tableId: "alert-status-timeline-table",
+        }}
         isEditable={false}
         isDeleteable={true}
         isCreateable={true}

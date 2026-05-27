@@ -91,6 +91,9 @@ jobs:
           echo "patch=${target_patch}" >> "$GITHUB_OUTPUT"
           echo "Using version base: ${new_version}"
 
+      - name: Verify package.json versions match VERSION
+        run: node ./Scripts/Install/SyncPackageVersions.js --check
+
   # ─── Docker image build jobs (per-arch matrix) ───────────────────────
 
   nginx-docker-image-build:
@@ -104,18 +107,6 @@ jobs:
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
-      - name: Free Disk Space (Ubuntu)
-        if: matrix.platform == 'linux/amd64'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
@@ -126,6 +117,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Expose GHA runtime tokens to buildx
+        uses: crazy-max/ghaction-github-runtime@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
@@ -189,18 +183,6 @@ jobs:
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
-      - name: Free Disk Space (Ubuntu)
-        if: matrix.platform == 'linux/amd64'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
@@ -211,6 +193,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Expose GHA runtime tokens to buildx
+        uses: crazy-max/ghaction-github-runtime@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
@@ -273,18 +258,6 @@ jobs:
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
-      - name: Free Disk Space (Ubuntu)
-        if: matrix.platform == 'linux/amd64'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
@@ -295,6 +268,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Expose GHA runtime tokens to buildx
+        uses: crazy-max/ghaction-github-runtime@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
@@ -357,18 +333,6 @@ jobs:
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
-      - name: Free Disk Space (Ubuntu)
-        if: matrix.platform == 'linux/amd64'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
@@ -379,6 +343,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Expose GHA runtime tokens to buildx
+        uses: crazy-max/ghaction-github-runtime@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
@@ -441,18 +408,6 @@ jobs:
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
-      - name: Free Disk Space (Ubuntu)
-        if: matrix.platform == 'linux/amd64'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
@@ -463,6 +418,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Expose GHA runtime tokens to buildx
+        uses: crazy-max/ghaction-github-runtime@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
@@ -525,18 +483,6 @@ jobs:
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
-      - name: Free Disk Space (Ubuntu)
-        if: matrix.platform == 'linux/amd64'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
@@ -547,6 +493,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Expose GHA runtime tokens to buildx
+        uses: crazy-max/ghaction-github-runtime@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
@@ -609,18 +558,6 @@ jobs:
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
-      - name: Free Disk Space (Ubuntu)
-        if: matrix.platform == 'linux/amd64'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
@@ -631,6 +568,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Expose GHA runtime tokens to buildx
+        uses: crazy-max/ghaction-github-runtime@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
@@ -693,18 +633,6 @@ jobs:
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
-      - name: Free Disk Space (Ubuntu)
-        if: matrix.platform == 'linux/amd64'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
@@ -715,6 +643,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Expose GHA runtime tokens to buildx
+        uses: crazy-max/ghaction-github-runtime@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
@@ -777,18 +708,6 @@ jobs:
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
-      - name: Free Disk Space (Ubuntu)
-        if: matrix.platform == 'linux/amd64'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
@@ -799,6 +718,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Expose GHA runtime tokens to buildx
+        uses: crazy-max/ghaction-github-runtime@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun

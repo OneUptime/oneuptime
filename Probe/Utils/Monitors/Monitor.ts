@@ -19,6 +19,9 @@ import MonitorStepDnsMonitor from "Common/Types/Monitor/MonitorStepDnsMonitor";
 import DomainMonitorUtil from "./MonitorTypes/DomainMonitor";
 import DomainMonitorResponse from "Common/Types/Monitor/DomainMonitor/DomainMonitorResponse";
 import MonitorStepDomainMonitor from "Common/Types/Monitor/MonitorStepDomainMonitor";
+import DnssecMonitorUtil from "./MonitorTypes/DnssecMonitor";
+import DnssecMonitorResponse from "Common/Types/Monitor/DnssecMonitor/DnssecMonitorResponse";
+import MonitorStepDnssecMonitor from "Common/Types/Monitor/MonitorStepDnssecMonitor";
 import ExternalStatusPageMonitorUtil from "./MonitorTypes/ExternalStatusPageMonitor";
 import ExternalStatusPageMonitorResponse from "Common/Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
 import MonitorStepExternalStatusPageMonitor from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
@@ -316,6 +319,8 @@ export default class MonitorUtil {
         result.isTimeout = response.isTimeout;
         result.responseTimeInMs = response.responseTimeInMS?.toNumber();
         result.failureCause = response.failureCause;
+        result.probeAttempts = response.probeAttempts;
+        result.totalAttempts = response.totalAttempts;
       } else {
         const response: PingResponse | null = await PingMonitor.ping(
           monitorStep.data?.monitorDestination,
@@ -334,6 +339,8 @@ export default class MonitorUtil {
         result.isTimeout = response.isTimeout;
         result.responseTimeInMs = response.responseTimeInMS?.toNumber();
         result.failureCause = response.failureCause;
+        result.probeAttempts = response.probeAttempts;
+        result.totalAttempts = response.totalAttempts;
       }
     }
 
@@ -372,6 +379,8 @@ export default class MonitorUtil {
       result.responseTimeInMs = response.responseTimeInMS?.toNumber();
       result.failureCause = response.failureCause;
       result.isTimeout = response.isTimeout;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
     }
 
     if (monitorType === MonitorType.SyntheticMonitor) {
@@ -452,6 +461,8 @@ export default class MonitorUtil {
       result.sslResponse = {
         ...response,
       };
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
     }
 
     if (monitorType === MonitorType.Website) {
@@ -495,6 +506,8 @@ export default class MonitorUtil {
       result.failureCause = response.failureCause;
       result.isTimeout = response.isTimeout;
       result.requestFailedDetails = response.requestFailedDetails;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
     }
 
     if (monitorType === MonitorType.API) {
@@ -547,6 +560,8 @@ export default class MonitorUtil {
       result.responseCode = response.statusCode;
       result.failureCause = response.failureCause;
       result.requestFailedDetails = response.requestFailedDetails;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
     }
 
     if (monitorType === MonitorType.SNMP) {
@@ -585,6 +600,8 @@ export default class MonitorUtil {
       result.responseTimeInMs = response.responseTimeInMs;
       result.failureCause = response.failureCause;
       result.snmpResponse = response;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
     }
 
     if (monitorType === MonitorType.DNS) {
@@ -618,6 +635,8 @@ export default class MonitorUtil {
       result.responseTimeInMs = response.responseTimeInMs;
       result.failureCause = response.failureCause;
       result.dnsResponse = response;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
     }
 
     if (monitorType === MonitorType.Domain) {
@@ -650,6 +669,42 @@ export default class MonitorUtil {
       result.responseTimeInMs = response.responseTimeInMs;
       result.failureCause = response.failureCause;
       result.domainResponse = response;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
+    }
+
+    if (monitorType === MonitorType.DNSSEC) {
+      if (!monitorStep.data?.dnssecMonitor) {
+        result.failureCause = "DNSSEC configuration not specified";
+        return result;
+      }
+
+      const dnssecConfig: MonitorStepDnssecMonitor =
+        monitorStep.data.dnssecMonitor;
+
+      if (!dnssecConfig.domainName) {
+        result.failureCause = "DNSSEC domain name not specified";
+        return result;
+      }
+
+      const response: DnssecMonitorResponse | null =
+        await DnssecMonitorUtil.query(dnssecConfig, {
+          retry: PROBE_MONITOR_RETRY_LIMIT,
+          monitorId: monitorId,
+          timeout: dnssecConfig.timeout || 10000,
+        });
+
+      if (!response) {
+        return null;
+      }
+
+      result.isOnline = response.isOnline;
+      result.isTimeout = response.isTimeout;
+      result.responseTimeInMs = response.responseTimeInMs;
+      result.failureCause = response.failureCause;
+      result.dnssecResponse = response;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
     }
 
     if (monitorType === MonitorType.ExternalStatusPage) {
@@ -683,6 +738,8 @@ export default class MonitorUtil {
       result.responseTimeInMs = response.responseTimeInMs;
       result.failureCause = response.failureCause;
       result.externalStatusPageResponse = response;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
     }
 
     // update the monitoredAt time to the current time.

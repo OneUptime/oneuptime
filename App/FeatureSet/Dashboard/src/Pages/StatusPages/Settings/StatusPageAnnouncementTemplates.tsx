@@ -20,6 +20,9 @@ const StatusPageAnnouncementTemplates: FunctionComponent<PageComponentProps> = (
         modelType={StatusPageAnnouncementTemplate}
         id="status-page-announcement-templates-table"
         userPreferencesKey="status-page-announcement-templates-table"
+        saveFilterProps={{
+          tableId: "status-page-announcement-templates-table",
+        }}
         name="Settings > Status Page Announcement Templates"
         isDeleteable={false}
         viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}

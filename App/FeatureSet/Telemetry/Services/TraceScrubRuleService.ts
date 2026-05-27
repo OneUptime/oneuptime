@@ -233,16 +233,21 @@ export class TraceScrubRuleService {
       return spanRow;
     }
 
-    for (const { rule } of compiledRules) {
-      const fieldsToScrub: string =
-        (rule.fieldsToScrub as string) || TraceScrubField.All;
-      const scrubAll: boolean = fieldsToScrub === TraceScrubField.All;
+    /*
+     * Each rule's `fieldsToScrub` is per-rule (name vs attributes
+     * vs events vs all), so we still have to dispatch per rule.
+     * The old implementation did
+     * `compiledRules.filter(cr => cr.rule === rule)` inside the
+     * outer loop, which made the loop O(N^2) over the rule count.
+     * Reuse a one-element scratch array instead.
+     */
+    const singleRule: Array<CompiledRule> = new Array<CompiledRule>(1);
 
-      const singleRule: Array<CompiledRule> = compiledRules.filter(
-        (cr: CompiledRule) => {
-          return cr.rule === rule;
-        },
-      );
+    for (const compiled of compiledRules) {
+      singleRule[0] = compiled;
+      const fieldsToScrub: string =
+        (compiled.rule.fieldsToScrub as string) || TraceScrubField.All;
+      const scrubAll: boolean = fieldsToScrub === TraceScrubField.All;
 
       // Span name.
       if (

@@ -260,6 +260,43 @@ export default class OnCallDutyPolicyCustomField extends BaseModel {
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyCustomField,
     ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditOnCallDutyPolicyCustomField,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Dropdown Options",
+    description:
+      "Options for the dropdown field, one per line. Only used when Custom Field Type is Dropdown.",
+    example: "Option 1\nOption 2\nOption 3",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public dropdownOptions?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateOnCallDutyPolicyCustomField,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadOnCallDutyPolicyCustomField,
+    ],
     update: [],
   })
   @TableColumn({

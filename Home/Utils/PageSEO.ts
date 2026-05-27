@@ -507,6 +507,39 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/product/services": {
+    title: "Service Catalog | Map, Own & Monitor Every Service | OneUptime",
+    description:
+      "A single catalog of every service you run. Assign owners, group by labels, and connect each service to its logs, traces, metrics, and incidents. Open source.",
+    canonicalPath: "/product/services",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Services", url: "/product/services" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Service Catalog",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "A single catalog of every service you run. Map ownership, group with labels, and link each service to its logs, traces, metrics, and incidents.",
+      features: [
+        "Centralized service catalog",
+        "Owner teams and users",
+        "Label-based grouping",
+        "Linked logs, traces, and metrics",
+        "Linked incidents and alerts",
+        "Bulk owner and label updates",
+        "Searchable across the project",
+        "Color-coded for fast scanning",
+        "API and dashboard creatable",
+        "Open source",
+      ],
+    },
+  },
+
   "/product/profiles": {
     title:
       "Continuous Profiling | CPU, Memory & Allocation Profiling | OneUptime",

@@ -1,178 +1,99 @@
 # Installationsguide för Android
 
-Installera OneUptime som en inbyggd app på din Android-enhet för den bästa övervakningsupplevelsen.
+Installera den inbyggda Android-appen **OneUptime On-Call** från Google Play Store, eller sidoladda APK:n direkt på enheter utan Google Play.
 
-## Installationsmetoder
+## Krav
 
-### Metod 1: Chrome-webbläsare (rekommenderas)
+- Android-telefon eller surfplatta som kör **Android 8.0 (Oreo) eller senare**
+- Ett aktivt OneUptime-konto (eller URL:en till din egendrivna OneUptime-instans)
+- Internetanslutning för inloggning och för att ta emot push-aviseringar
 
-1. **Öppna OneUptime i Chrome**
-   - Starta Google Chrome på din Android-enhet
-   - Navigera till URL:en för din OneUptime-instans
-   - Vänta tills sidan laddas helt
+## Alternativ 1: Installera från Google Play (rekommenderas)
 
-2. **Installationsprompt**
-   - Leta efter bannern "Lägg till på startskärmen" längst ner
-   - Tryck på "Installera" eller "Lägg till på startskärmen"
-   - Om prompten inte syns, tryck på tredubbelpunktsmenyn (⋮) i det övre högra hörnet
+1. Öppna **Google Play Store** på din enhet.
+2. Sök efter **"OneUptime On-Call"**, eller öppna den här länken på din enhet:
+   [https://play.google.com/store/apps/details?id=com.oneuptime.oncall](https://play.google.com/store/apps/details?id=com.oneuptime.oncall)
+3. Tryck på **Installera**.
+4. När installationen är klar trycker du på **Öppna** eller startar **OneUptime On-Call** från applådan.
 
-3. **Manuell installation via menyn**
-   - Tryck på Chrome-menyn (tre punkter)
-   - Välj "Lägg till på startskärmen" eller "Installera app"
-   - Anpassa appnamnet om du vill
-   - Tryck på "Lägg till" för att bekräfta
+## Alternativ 2: Installera APK:n direkt
 
-4. **Starta appen**
-   - Hitta OneUptime-ikonen på din startskärm eller i applådan
-   - Tryck för att starta appen i helskärmsläge
+För enheter utan Google Play (till exempel GrapheneOS, /e/OS eller Huawei-enheter) installerar du den officiella APK:n från GitHub Releases:
 
-### Metod 2: Samsung Internet
+1. Öppna den här länken på din Android-enhet:
+   [https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk)
+2. När du uppmanas, tillåt din webbläsare att installera okända appar:
+   **Inställningar → Appar → \[Din webbläsare\] → Installera okända appar → Tillåt från den här källan**.
+3. Öppna den nedladdade APK:n och tryck på **Installera**.
+4. Starta **OneUptime On-Call** från applådan.
 
-1. **Öppna OneUptime**
-   - Starta Samsung Internet-webbläsaren
-   - Gå till din OneUptime-instans
-   - Vänta tills sidan laddas helt
+APK:n byggs och signeras av OneUptime från samma källkod som Play Store-versionen. Appuppdateringar sker inte automatiskt vid sidoladdning — ladda ner den senaste APK:n från länken ovan när en ny version släpps.
 
-2. **Lägg till på startskärmen**
-   - Tryck på menyknappen (tre linjer)
-   - Välj "Lägg till sida i" → "Startskärm"
-   - Ange appnamnet och tryck på "Lägg till"
+## Första start och inloggning
 
-3. **Starta**
-   - Hitta appikonen på din startskärm
-   - Tryck för att öppna OneUptime i appläge
+1. **Server-URL**
+   - Om du använder OneUptime Cloud, behåll standardvärdet `https://oneuptime.com`.
+   - Om du har egen drift anger du URL:en till din OneUptime-instans (t.ex. `https://oneuptime.example.com`).
+   - Appen verifierar att servern är nåbar innan den fortsätter.
+2. **Logga in**
+   - Ange e-postadressen och lösenordet för ditt OneUptime-konto.
+   - Aktivera valfritt **biometrisk upplåsning** (fingeravtryck) för snabbare upplåsning vid senare starter.
+3. **Tillåt aviseringar**
+   - När du tillfrågas trycker du på **Tillåt** så att appen kan leverera jourutkallelser, incidentvarningar och bekräftelser.
 
-### Metod 3: Firefox
+## Push-aviseringar
 
-1. **Öppna OneUptime**
-   - Starta Firefox-webbläsaren
-   - Navigera till din OneUptime-URL
-   - Låt sidan laddas helt
+Push-aviseringar levereras via Firebase Cloud Messaging (FCM) genom Expo Push. För att säkerställa att utkallelser når dig pålitligt under jour:
 
-2. **Installera**
-   - Tryck på tredubbelpunktsmenyn
-   - Välj "Installera" (om tillgängligt)
-   - Eller välj "Lägg till på startskärmen"
-   - Bekräfta installationen
-
-### Anpassningsalternativ
-
-### Appnamn
-- Under installationen kan du anpassa appnamnet
-- Standard: "OneUptime"
-- Rekommenderat: Behåll som "OneUptime" eller lägg till ditt företagsnamn
-
-### Aviseringsinställningar
-1. **Bevilja behörigheter**
-   - Tillåt aviseringar när du uppmanas
-   - Gå till Inställningar → Appar → OneUptime → Aviseringar
-   - Aktivera alla aviserings kategorier för bästa upplevelse
-
-2. **Anpassa varningar**
-   - Konfigurera vilka incidenter som utlöser aviseringar
-   - Ange aviserings prioritetsnivåer
-   - Välj ljud- och vibrationsinställningar
-
-## Felsökning
-
-### Installationsproblem
-
-**"Lägg till på startskärmen" visas inte:**
-```
-1. Rensa webbläsarens cache och cookies
-2. Se till att du är på HTTPS (säker anslutning)
-3. Vänta 2-3 minuter på sidan innan du letar efter prompten
-4. Kontrollera om PWA-kraven uppfylls på din OneUptime-instans
-```
-
-**Installationen misslyckas:**
-```
-1. Frigör lagringsutrymme (behöver minst 50 MB)
-2. Uppdatera din webbläsare till den senaste versionen
-3. Starta om din webbläsare och försök igen
-4. Prova en annan webbläsare (Chrome rekommenderas)
-```
-
-**App-ikonen visas inte:**
-```
-1. Kontrollera startskärmen och applådan
-2. Titta i avsnittet "Nyligen tillagda" appar
-3. Sök efter "OneUptime" i applådan
-4. Installera om vid behov
-```
-
-### Aviseringsproblem
-
-**Tar inte emot aviseringar:**
-```
-1. Kontrollera aviserings behörigheter:
-   - Inställningar → Appar → OneUptime → Behörigheter → Aviseringar
-2. Se till att aviseringar är aktiverade i OneUptime-instrumentpanelen
-3. Kontrollera inställningarna för Stör ej
-4. Verifiera att batterioptimerингsinställningar inte blockerar OneUptime
-```
-
-**Aviseringar är försenade:**
-```
-1. Inaktivera batterioptimering för OneUptime:
-   - Inställningar → Appar → OneUptime → Batteri → Optimera batterianvändning
-2. Tillåt bakgrundsaktivitet
-3. Kontrollera inställningar för datasparläge
-```
-
-## Avinstallation
-
-### Ta bort appen
-1. **Håll ned** OneUptime-ikonen på startskärmen
-2. Välj **"Avinstallera"** eller dra till papperskorgen
-3. Bekräfta borttagningen
-
-### Alternativ metod
-1. Gå till **Inställningar → Appar**
-2. Hitta **"OneUptime"**
-3. Tryck på **"Avinstallera"**
-4. Bekräfta borttagningen
-
-## Uppdateringar och underhåll
-
-### Automatiska uppdateringar
-OneUptime PWA uppdateras automatiskt:
-- **Automatiska uppdateringar**: Appen uppdateras när du besöker den medan du är online
-- **Inga manuella uppdateringar**: Till skillnad från butiksappar krävs ingen användaråtgärd
-- **Omedelbara uppdateringar**: Nya funktioner tillgängliga omedelbart
-- **Säker återställning**: Dåliga uppdateringar kan snabbt återställas
-
-## Avancerad konfiguration
-
-### Utvecklaralternativ
-För avancerade användare som vill inspektera PWA:n:
-1. Aktivera Utvecklaralternativ i Android
-2. Anslut till datorn med ADB
-3. Använd Chrome DevTools för fjärrfelsökning
-
-### Nätverkskonfiguration
-- Konfigurera VPN om du använder en intern OneUptime-instans
-- Konfigurera proxyinställningar om din organisation kräver det
-- Se till att brandväggen tillåter PWA-resurser
+1. Öppna **Inställningar → Appar → OneUptime On-Call → Aviseringar** och bekräfta att alla kategorier är aktiverade.
+2. Öppna **Inställningar → Appar → OneUptime On-Call → Batteri** och välj **Obegränsad** (eller inaktivera batterioptimering) så att operativsystemet inte fördröjer push-meddelanden i bakgrunden.
+3. Tillåt att appen körs i bakgrunden och inaktivera eventuella "Datasparare"-begränsningar för den.
+4. Om du använder Samsung-enheter, stäng även av **Inställningar → Enhetsvård → Batteri → Bakgrundsbegränsningar** för OneUptime On-Call.
+5. Lägg till OneUptime On-Call i alla undantagslistor för **Stör ej** så att utkallelser fortfarande ringer under ditt jourskift.
 
 ## Uppdateringar
 
-OneUptime PWA uppdateras automatiskt:
-- **Automatiska uppdateringar**: Appen uppdateras när du besöker den medan du är online
-- **Inga manuella uppdateringar**: Till skillnad från butiksappar krävs ingen användaråtgärd
-- **Omedelbara uppdateringar**: Nya funktioner tillgängliga omedelbart
-- **Säker återställning**: Dåliga uppdateringar kan snabbt återställas
+**Google Play:**
+- Uppdateringar installeras automatiskt. För att utlösa en manuellt, öppna **Play Store → Profil → Hantera appar och enheter → Uppdateringar tillgängliga → OneUptime On-Call → Uppdatera**.
 
-## Bästa praxis
+**Sidoladdad APK:**
+- Ladda ned den senaste APK:n från GitHub Releases-länken ovan och installera den ovanpå den befintliga appen — dina data, server-URL och inloggning bevaras.
 
-### För optimal prestanda
-1. **Första start**: Alltid online för initial konfiguration
-2. **Regelbunden användning**: Öppna appen regelbundet för att hålla cachen färsk
-3. **Lagringshantering**: Behåll tillräckligt med ledigt utrymme
-4. **Nätverk**: Använd Wi-Fi för initial installation och stora uppdateringar
+## Avinstallera
 
-### Säkerhetsrekommendationer
-1. **Endast HTTPS**: Installera bara från säkra OneUptime-instanser
-2. **Officiella URL:er**: Verifiera att du installerar från din organisations officiella OneUptime-URL
-3. **Behörigheter**: Bevilja bara nödvändiga behörigheter
-4. **Uppdateringar**: Håll ditt Android-operativsystem och webbläsare uppdaterade
+1. **Tryck och håll** på ikonen för **OneUptime On-Call** och tryck sedan på **Avinstallera**.
+2. Eller öppna **Inställningar → Appar → OneUptime On-Call → Avinstallera**.
+3. Bekräfta för att ta bort appen.
+
+Ditt OneUptime-konto och dina jourscheman lagras på serversidan och tas inte bort när du avinstallerar appen.
+
+## Felsökning
+
+**"Nätverksfel" vid inloggning:**
+- Kontrollera att **Server-URL** är korrekt och nåbar från din enhet.
+- Om du befinner dig på ett företagsnätverk eller VPN, säkerställ att OneUptime-instansen är åtkomlig.
+- Bekräfta att servern levereras via HTTPS med ett giltigt certifikat.
+
+**Tar inte emot push-aviseringar:**
+- Bekräfta att aviseringar är aktiverade i **Inställningar → Appar → OneUptime On-Call → Aviseringar**.
+- Inaktivera batterioptimering för OneUptime On-Call (se Push-aviseringar ovan).
+- Säkerställ att Stör ej är avstängt, eller att OneUptime On-Call finns på undantagslistan.
+- Logga ut och logga in igen för att uppdatera push-token som är registrerad hos servern.
+- Användare med egen drift: bekräfta att push-aviseringar är konfigurerade på din OneUptime-instans (se guiden [Push-aviseringar](/docs/self-hosted/push-notifications) för egen drift).
+
+**Biometrisk upplåsning fungerar inte:**
+- Registrera ett fingeravtryck i **Inställningar → Säkerhet → Fingeravtryck**.
+- Aktivera biometrisk upplåsning på nytt från skärmen **Inställningar** inuti appen OneUptime On-Call.
+
+**APK-installation blockerad:**
+- Du måste ge webbläsaren tillstånd att installera okända appar (se Alternativ 2 ovan).
+- Vissa operatörer eller företagsenhetsprofiler blockerar sidoladdning helt; i det fallet, använd Google Play-versionen istället.
+
+**Appen kraschar vid start:**
+- Uppdatera till den senaste versionen från Google Play eller den senaste APK:n.
+- Starta om enheten.
+- Om problemet kvarstår, avinstallera och installera om och logga sedan in igen.
+
+## Support
+
+Om du fortfarande behöver hjälp, kontakta oss via din OneUptime-instrumentpanel eller skapa ett ärende på vårt [GitHub-arkiv](https://github.com/OneUptime/oneuptime).

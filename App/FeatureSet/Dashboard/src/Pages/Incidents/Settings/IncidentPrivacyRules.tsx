@@ -49,6 +49,9 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
       id="incident-privacy-rules-table"
       name="Settings > Incident Privacy Rules"
       userPreferencesKey="incident-privacy-rules-table"
+      saveFilterProps={{
+        tableId: "incident-privacy-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}
@@ -227,6 +230,9 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
       id="incident-episode-privacy-rules-table"
       name="Settings > Incident Episode Privacy Rules"
       userPreferencesKey="incident-episode-privacy-rules-table"
+      saveFilterProps={{
+        tableId: "incident-episode-privacy-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

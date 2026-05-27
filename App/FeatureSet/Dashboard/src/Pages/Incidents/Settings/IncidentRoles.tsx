@@ -21,6 +21,9 @@ const IncidentRoles: FunctionComponent<
         id="incident-roles-table"
         name="Incidents > Settings > Incident Roles"
         userPreferencesKey="incident-roles-table"
+        saveFilterProps={{
+          tableId: "incident-roles-table",
+        }}
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}

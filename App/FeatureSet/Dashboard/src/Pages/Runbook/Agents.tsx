@@ -37,6 +37,9 @@ const RunbookAgentsPage: FunctionComponent<
         modelType={RunbookAgent}
         id="runbook-agents-table"
         userPreferencesKey="runbook-agents-table"
+        saveFilterProps={{
+          tableId: "runbook-agents-table",
+        }}
         name="Runbook Agents"
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,

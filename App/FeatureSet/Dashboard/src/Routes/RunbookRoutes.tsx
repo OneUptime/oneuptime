@@ -17,6 +17,7 @@ import RunbookSteps from "../Pages/Runbook/View/Steps";
 import RunbookExecutionsList from "../Pages/Runbook/View/Executions";
 import RunbookExecutionView from "../Pages/Runbook/View/ExecutionView";
 import RunbookOwners from "../Pages/Runbook/View/Owners";
+import RunbookAuditLogs from "../Pages/Runbook/View/AuditLogs";
 import RunbookSettings from "../Pages/Runbook/View/Settings";
 import RunbookDelete from "../Pages/Runbook/View/Delete";
 import RunbookSettingsOwnerRules from "../Pages/Runbook/Settings/OwnerRules";
@@ -143,6 +144,15 @@ const RunbookRoutes: FunctionComponent<ComponentProps> = (
             <RunbookOwners
               {...props}
               pageRoute={RouteMap[PageMap.RUNBOOK_VIEW_OWNERS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.RUNBOOK_VIEW_AUDIT_LOGS)}
+          element={
+            <RunbookAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.RUNBOOK_VIEW_AUDIT_LOGS] as Route}
             />
           }
         />

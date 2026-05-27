@@ -75,6 +75,9 @@ const OnCallPolicyOwnerRulesTable: FunctionComponent = (): ReactElement => {
       id="on-call-policy-owner-rules-table"
       name="Settings > On-Call Policy Owner Rules"
       userPreferencesKey="on-call-policy-owner-rules-table"
+      saveFilterProps={{
+        tableId: "on-call-policy-owner-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}
@@ -238,6 +241,9 @@ const OnCallScheduleOwnerRulesTable: FunctionComponent = (): ReactElement => {
       id="on-call-schedule-owner-rules-table"
       name="Settings > On-Call Schedule Owner Rules"
       userPreferencesKey="on-call-schedule-owner-rules-table"
+      saveFilterProps={{
+        tableId: "on-call-schedule-owner-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}
@@ -404,6 +410,9 @@ const IncomingCallPolicyOwnerRulesTable: FunctionComponent =
         id="incoming-call-policy-owner-rules-table"
         name="Settings > Incoming Call Policy Owner Rules"
         userPreferencesKey="incoming-call-policy-owner-rules-table"
+        saveFilterProps={{
+          tableId: "incoming-call-policy-owner-rules-table",
+        }}
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}

@@ -6,10 +6,16 @@ import AnalyticsTableColumn, {
   SkipIndexType,
 } from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
+import OperationalResource from "../../Types/Database/AccessControl/OperationalResource";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import Service from "../DatabaseModels/Service";
+import ServiceType from "../../Types/Telemetry/ServiceType";
 
+@OperationalResource()
+@OwnedThrough("serviceId", Service)
 export default class ProfileSample extends AnalyticsBaseModel {
   public constructor() {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
@@ -24,6 +30,7 @@ export default class ProfileSample extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -44,7 +51,8 @@ export default class ProfileSample extends AnalyticsBaseModel {
     const serviceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "serviceId",
       title: "Service ID",
-      description: "ID of the Service which created the profile",
+      description:
+        "ID of the resource the profile sample belongs to (Service / Host / DockerHost / KubernetesCluster / Monitor — disambiguated by serviceType)",
       required: true,
       type: TableColumnType.ObjectID,
       accessControl: {
@@ -52,6 +60,43 @@ export default class ProfileSample extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
+          Permission.ReadTelemetryServiceProfiles,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.CreateTelemetryServiceProfiles,
+        ],
+        update: [],
+      },
+    });
+
+    const serviceTypeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "serviceType",
+      title: "Service Type",
+      description:
+        "Discriminator for serviceId — tells the read side which resource table to dispatch to",
+      required: false,
+      type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_service_type",
+        type: SkipIndexType.Set,
+        params: [10],
+        granularity: 4,
+      },
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -87,6 +132,7 @@ export default class ProfileSample extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -122,6 +168,7 @@ export default class ProfileSample extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -157,6 +204,7 @@ export default class ProfileSample extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -185,6 +233,7 @@ export default class ProfileSample extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -214,6 +263,7 @@ export default class ProfileSample extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -244,6 +294,7 @@ export default class ProfileSample extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -280,6 +331,7 @@ export default class ProfileSample extends AnalyticsBaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.Viewer,
             Permission.TelemetryAdmin,
             Permission.TelemetryMember,
             Permission.TelemetryViewer,
@@ -312,6 +364,7 @@ export default class ProfileSample extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -340,6 +393,7 @@ export default class ProfileSample extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -374,6 +428,7 @@ export default class ProfileSample extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -404,6 +459,7 @@ export default class ProfileSample extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -442,6 +498,7 @@ export default class ProfileSample extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -475,6 +532,7 @@ export default class ProfileSample extends AnalyticsBaseModel {
       tableColumns: [
         projectIdColumn,
         serviceIdColumn,
+        serviceTypeColumn,
         profileIdColumn,
         traceIdColumn,
         spanIdColumn,
@@ -504,6 +562,7 @@ export default class ProfileSample extends AnalyticsBaseModel {
       ],
       partitionKey: "sipHash64(projectId) % 16",
       ttlExpression: "retentionDate DELETE",
+      defaultSortColumn: "time",
     });
   }
 
@@ -521,6 +580,14 @@ export default class ProfileSample extends AnalyticsBaseModel {
 
   public set serviceId(v: ObjectID | undefined) {
     this.setColumnValue("serviceId", v);
+  }
+
+  public get serviceType(): ServiceType | undefined {
+    return this.getColumnValue("serviceType") as ServiceType | undefined;
+  }
+
+  public set serviceType(v: ServiceType | undefined) {
+    this.setColumnValue("serviceType", v);
   }
 
   public get profileId(): string | undefined {

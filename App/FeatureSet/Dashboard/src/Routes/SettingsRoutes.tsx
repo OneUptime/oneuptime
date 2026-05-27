@@ -11,10 +11,6 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 import ProjectSettings from "../Pages/Settings/ProjectSettings";
 import SettingsApiKeys from "../Pages/Settings/APIKeys";
 
-import SettingsUsers from "../Pages/Settings/Users";
-
-import SettingsUserView from "../Pages/Settings/UserView";
-
 import SettingsApiKeyView from "../Pages/Settings/APIKeyView";
 
 import SettingsIngestionKeys from "../Pages/Settings/TelemetryIngestionKeys";
@@ -36,8 +32,6 @@ import SettingsLlmProviderView from "../Pages/Settings/LlmProviderView";
 import SettingsAIBilling from "../Pages/Settings/AIBillingSettings";
 
 import SettingFeatureFlags from "../Pages/Settings/FeatureFlags";
-import SettingsTeams from "../Pages/Settings/Teams";
-import SettingsTeamView from "../Pages/Settings/TeamView";
 
 import SettingsDomains from "../Pages/Settings/Domains";
 
@@ -347,46 +341,6 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingLlmProviders
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_TEAMS)}
-          element={
-            <SettingsTeams
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_TEAMS] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_USERS)}
-          element={
-            <SettingsUsers
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_USERS] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_TEAM_VIEW, 2)}
-          element={
-            <SettingsTeamView
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_TEAM_VIEW] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_USER_VIEW, 2)}
-          element={
-            <SettingsUserView
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_USER_VIEW] as Route}
             />
           }
         />

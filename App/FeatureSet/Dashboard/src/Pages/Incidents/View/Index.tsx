@@ -1,7 +1,6 @@
+import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
 import ChangeIncidentState from "../../../Components/Incident/ChangeState";
-import HostsElement from "../../../Components/Host/Hosts";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import MonitorsElement from "../../../Components/Monitor/Monitors";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import PageComponentProps from "../../PageComponentProps";
@@ -56,6 +55,15 @@ import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import IncidentAffectedResources from "./AffectedResources";
 import IncidentMemberRoleAssignment from "../../../Components/Incident/IncidentMemberRoleAssignment";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import Host from "Common/Models/DatabaseModels/Host";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import Service from "Common/Models/DatabaseModels/Service";
+import AffectedResourcesPicker, {
+  isAffectedResourcesPayload,
+} from "../../../Components/AffectedResources/AffectedResourcesPicker";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import ExceptionInstanceTable from "../../../Components/Exceptions/ExceptionInstanceTable";
@@ -321,10 +329,6 @@ const IncidentView: FunctionComponent<
             id: "incident-details",
           },
           {
-            title: "Resources Affected",
-            id: "resources-affected",
-          },
-          {
             title: "Labels",
             id: "labels",
           },
@@ -359,39 +363,6 @@ const IncidentView: FunctionComponent<
             },
             required: true,
             placeholder: "Incident Severity",
-          },
-          {
-            field: {
-              monitors: true,
-            },
-            title: "Monitors affected",
-            stepId: "resources-affected",
-            description: "Select monitors affected by this incident.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Monitor,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Monitors affected",
-          },
-          {
-            field: {
-              changeMonitorStatusTo: true,
-            },
-            title: "Change Monitor Status to ",
-            stepId: "resources-affected",
-            description:
-              "This will change the status of all the monitors attached to this incident.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: MonitorStatus,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Monitor Status",
           },
           {
             field: {
@@ -569,35 +540,6 @@ const IncidentView: FunctionComponent<
             },
             {
               field: {
-                monitors: {
-                  name: true,
-                  _id: true,
-                },
-              },
-              title: "Monitors Affected",
-              fieldType: FieldType.Element,
-              getElement: (item: Incident): ReactElement => {
-                return <MonitorsElement monitors={item["monitors"] || []} />;
-              },
-            },
-            {
-              field: {
-                hosts: {
-                  name: true,
-                  _id: true,
-                },
-              },
-              title: "Hosts Affected",
-              fieldType: FieldType.Element,
-              showIf: (item: Incident): boolean => {
-                return Boolean(item["hosts"] && item["hosts"].length > 0);
-              },
-              getElement: (item: Incident): ReactElement => {
-                return <HostsElement hosts={item["hosts"] || []} />;
-              },
-            },
-            {
-              field: {
                 onCallDutyPolicies: {
                   name: true,
                   _id: true,
@@ -671,6 +613,168 @@ const IncidentView: FunctionComponent<
               fieldType: FieldType.Element,
               getElement: (item: Incident): ReactElement => {
                 return <LabelsElement labels={item["labels"] || []} />;
+              },
+            },
+          ],
+          modelId: modelId,
+        }}
+      />
+
+      <CardModelDetail<Incident>
+        name="Affected Resources"
+        cardProps={{
+          title: "Affected Resources",
+          description:
+            "Monitors, hosts, Kubernetes clusters, Docker hosts, and services affected by this incident.",
+        }}
+        isEditable={true}
+        formFields={[
+          {
+            field: {
+              monitors: true,
+            },
+            title: "",
+            description:
+              "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services affected by this incident.",
+            fieldType: FormFieldSchemaType.CustomComponent,
+            required: false,
+            getCustomElement: (
+              values: FormValues<Incident>,
+              elementProps: CustomElementProps,
+            ) => {
+              return (
+                <AffectedResourcesPicker
+                  monitors={values.monitors as Array<Monitor>}
+                  hosts={values.hosts as Array<Host>}
+                  kubernetesClusters={
+                    values.kubernetesClusters as Array<KubernetesCluster>
+                  }
+                  dockerHosts={values.dockerHosts as Array<DockerHost>}
+                  services={values.services as Array<Service>}
+                  onChange={(payload: unknown) => {
+                    elementProps.onChange?.(payload);
+                  }}
+                />
+              );
+            },
+            onChange: (
+              value: unknown,
+              currentValues: FormValues<Incident>,
+              setNewFormValues: (values: FormValues<Incident>) => void,
+            ) => {
+              if (isAffectedResourcesPayload(value)) {
+                const payload: typeof value = value;
+                queueMicrotask(() => {
+                  setNewFormValues({
+                    ...currentValues,
+                    monitors: payload.monitors,
+                    hosts: payload.hosts,
+                    kubernetesClusters: payload.kubernetesClusters,
+                    dockerHosts: payload.dockerHosts,
+                    services: payload.services,
+                  } as FormValues<Incident>);
+                });
+              }
+            },
+          },
+          /*
+           * Hidden registrations so ModelForm.getSelectFields includes
+           * hosts/kubernetesClusters/dockerHosts/services on load and submit.
+           */
+          {
+            field: { hosts: true },
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { kubernetesClusters: true },
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { dockerHosts: true },
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { services: true },
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: {
+              changeMonitorStatusTo: true,
+            },
+            title: "Change Monitor Status to ",
+            description:
+              "This will change the status of all the monitors attached to this incident.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: MonitorStatus,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Monitor Status",
+          },
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: Incident,
+          id: "model-detail-incident-affected-resources",
+          fields: [
+            {
+              field: {
+                monitors: {
+                  name: true,
+                  _id: true,
+                },
+                hosts: {
+                  name: true,
+                  _id: true,
+                },
+                kubernetesClusters: {
+                  name: true,
+                  _id: true,
+                },
+                dockerHosts: {
+                  name: true,
+                  _id: true,
+                },
+                services: {
+                  name: true,
+                  _id: true,
+                  serviceColor: true,
+                },
+              },
+              title: "",
+              fieldType: FieldType.Element,
+              getElement: (item: Incident): ReactElement => {
+                return (
+                  <AffectedResourcesDisplay
+                    monitors={item.monitors || []}
+                    hosts={item.hosts || []}
+                    kubernetesClusters={item.kubernetesClusters || []}
+                    dockerHosts={item.dockerHosts || []}
+                    services={item.services || []}
+                  />
+                );
               },
             },
           ],

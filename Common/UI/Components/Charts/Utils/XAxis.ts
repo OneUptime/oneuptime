@@ -32,10 +32,15 @@ export default class XAxisUtil {
     const totalMonths: number = totalDays / 30;
 
     /*
-     * Thresholds are chosen so that the number of tick labels
-     * stays between ~6 and ~15 for any range, keeping the axis readable.
+     * Mirror the server's aggregation interval (see
+     * AggregateUtil.getAggregationInterval) so the chart renders one
+     * point per backend bucket instead of re-bucketing them into
+     * coarser groups. Previously a 1h range was rendered with EVERY_
+     * FIVE_MINUTES (~12 points) even though the server returned 60
+     * per-minute rows. Recharts thins the X-axis label set via
+     * `interval="equidistantPreserveStart"`, so high point counts do
+     * not crowd the labels.
      */
-
     if (totalSeconds <= 15) {
       return XAxisPrecision.EVERY_SECOND;
     }
@@ -48,56 +53,20 @@ export default class XAxisUtil {
     if (totalSeconds <= 450) {
       return XAxisPrecision.EVERY_THIRTY_SECONDS;
     }
-    if (totalMinutes <= 15) {
+    if (totalHours <= 3) {
       return XAxisPrecision.EVERY_MINUTE;
     }
-    if (totalMinutes <= 75) {
-      return XAxisPrecision.EVERY_FIVE_MINUTES;
-    }
-    if (totalMinutes <= 150) {
-      return XAxisPrecision.EVERY_TEN_MINUTES;
-    }
-    if (totalMinutes <= 450) {
-      return XAxisPrecision.EVERY_THIRTY_MINUTES;
-    }
-    if (totalHours <= 15) {
+    if (totalDays <= 7) {
       return XAxisPrecision.EVERY_HOUR;
     }
-    if (totalHours <= 30) {
-      return XAxisPrecision.EVERY_TWO_HOURS;
-    }
-    if (totalHours <= 45) {
-      return XAxisPrecision.EVERY_THREE_HOURS;
-    }
-    if (totalHours <= 90) {
-      return XAxisPrecision.EVERY_SIX_HOURS;
-    }
-    if (totalHours <= 180) {
-      return XAxisPrecision.EVERY_TWELVE_HOURS;
-    }
-    if (totalDays <= 15) {
+    if (totalWeeks <= 6) {
       return XAxisPrecision.EVERY_DAY;
     }
-    if (totalDays <= 30) {
-      return XAxisPrecision.EVERY_TWO_DAYS;
-    }
-    if (totalWeeks <= 15) {
+    if (totalMonths <= 6) {
       return XAxisPrecision.EVERY_WEEK;
     }
-    if (totalWeeks <= 30) {
-      return XAxisPrecision.EVERY_TWO_WEEKS;
-    }
-    if (totalMonths <= 15) {
+    if (totalMonths <= 72) {
       return XAxisPrecision.EVERY_MONTH;
-    }
-    if (totalMonths <= 30) {
-      return XAxisPrecision.EVERY_TWO_MONTHS;
-    }
-    if (totalMonths <= 45) {
-      return XAxisPrecision.EVERY_THREE_MONTHS;
-    }
-    if (totalMonths <= 90) {
-      return XAxisPrecision.EVERY_SIX_MONTHS;
     }
     return XAxisPrecision.EVERY_YEAR;
   }
@@ -283,11 +252,15 @@ export default class XAxisUtil {
           return OneUptimeDate.getLocalTimeString(roundedValue);
         };
       case XAxisPrecision.EVERY_HOUR:
+        /*
+         * Include date — hourly buckets can span multiple days, where
+         * a bare "HH" repeats and is ambiguous.
+         */
         return (value: Date) => {
-          return OneUptimeDate.getLocalTimeString(value, {
-            includeMinutes: false,
-          });
-        }; // HH:00
+          const roundedValue: Date = this.cloneDate(value);
+          roundedValue.setMinutes(0, 0, 0);
+          return OneUptimeDate.getDateAsLocalDayMonthHourString(roundedValue);
+        };
       case XAxisPrecision.EVERY_TWO_HOURS:
         return (value: Date) => {
           const roundedValue: Date = this.cloneDate(value);

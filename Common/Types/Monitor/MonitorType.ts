@@ -32,6 +32,9 @@ enum MonitorType {
   // DNS monitoring
   DNS = "DNS",
 
+  // DNSSEC validation monitoring
+  DNSSEC = "DNSSEC",
+
   // Domain registration monitoring
   Domain = "Domain",
 
@@ -64,11 +67,14 @@ export class MonitorTypeHelper {
           MonitorType.Ping,
           MonitorType.IP,
           MonitorType.Port,
-          MonitorType.DNS,
           MonitorType.SSLCertificate,
           MonitorType.Domain,
           MonitorType.ExternalStatusPage,
         ],
+      },
+      {
+        label: "DNS Monitoring",
+        monitorTypes: [MonitorType.DNS, MonitorType.DNSSEC],
       },
       {
         label: "Synthetic Monitoring",
@@ -83,7 +89,7 @@ export class MonitorTypeHelper {
       },
       {
         label: "Infrastructure",
-        monitorTypes: [MonitorType.Server, MonitorType.SNMP],
+        monitorTypes: [MonitorType.SNMP],
       },
       {
         label: "Kubernetes",
@@ -274,6 +280,13 @@ export class MonitorTypeHelper {
         icon: IconProp.GlobeAlt,
       },
       {
+        monitorType: MonitorType.DNSSEC,
+        title: "DNSSEC",
+        description:
+          "This monitor type performs full DNSSEC validation — DNSKEY, DS at the parent zone, RRSIG validity windows, AD-flag/SERVFAIL behavior across public resolvers, and primary/secondary nameserver consistency.",
+        icon: IconProp.Key,
+      },
+      {
         monitorType: MonitorType.Domain,
         title: "Domain",
         description:
@@ -334,6 +347,7 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.CustomJavaScriptCode ||
       monitorType === MonitorType.SNMP ||
       monitorType === MonitorType.DNS ||
+      monitorType === MonitorType.DNSSEC ||
       monitorType === MonitorType.Domain ||
       monitorType === MonitorType.ExternalStatusPage;
     return isProbeableMonitor;
@@ -359,6 +373,7 @@ export class MonitorTypeHelper {
       MonitorType.Profiles,
       MonitorType.SNMP,
       MonitorType.DNS,
+      MonitorType.DNSSEC,
       MonitorType.Domain,
       MonitorType.ExternalStatusPage,
       MonitorType.Kubernetes,
@@ -397,6 +412,7 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.CustomJavaScriptCode ||
       monitorType === MonitorType.SNMP ||
       monitorType === MonitorType.DNS ||
+      monitorType === MonitorType.DNSSEC ||
       monitorType === MonitorType.Domain ||
       monitorType === MonitorType.ExternalStatusPage
     ) {

@@ -24,11 +24,20 @@ export interface ComponentProps {
   singularLabel: string;
   pluralLabel: string;
   dataTestId?: string;
+  /*
+   * Optional. Set by analytics list endpoints that skip COUNT(*) for
+   * performance — `totalItemsCount` is then only a lower bound, so
+   * the page-count math and "X of Y" label don't apply. When set,
+   * we render prev/next-only with no jump-to-page modal.
+   */
+  hasMore?: boolean | undefined;
 }
 
 const Pagination: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const isHasMoreMode: boolean = props.hasMore !== undefined;
+
   const [minPageNumber, setMinPageNumber] = useState<number>(1);
   const [maxPageNumber, setMaxPageNumber] = useState<number>(1);
 
@@ -56,12 +65,14 @@ const Pagination: FunctionComponent<ComponentProps> = (
 
   const isPreviousDisabled: boolean =
     props.currentPageNumber === 1 || props.isLoading || props.isError;
-  const isNextDisabled: boolean =
-    props.currentPageNumber * props.itemsOnPage >= props.totalItemsCount ||
-    props.isLoading ||
-    props.isError;
-  const isCurrentPageButtonDisabled: boolean =
-    props.totalItemsCount === 0 || props.isLoading || props.isError;
+  const isNextDisabled: boolean = isHasMoreMode
+    ? !props.hasMore || props.isLoading || props.isError
+    : props.currentPageNumber * props.itemsOnPage >= props.totalItemsCount ||
+      props.isLoading ||
+      props.isError;
+  const isCurrentPageButtonDisabled: boolean = isHasMoreMode
+    ? props.isLoading || props.isError
+    : props.totalItemsCount === 0 || props.isLoading || props.isError;
 
   const [showPaginationModel, setShowPaginationModel] =
     useState<boolean>(false);
@@ -75,7 +86,21 @@ const Pagination: FunctionComponent<ComponentProps> = (
       {/* Desktop layout: Description on left, all controls on right */}
       <div className="hidden md:block">
         <p className="text-sm text-gray-500">
-          {!props.isLoading && (
+          {!props.isLoading && isHasMoreMode && (
+            <span>
+              {`Showing ${
+                props.itemsOnPage * (props.currentPageNumber - 1) + 1
+              } to ${
+                props.itemsOnPage * (props.currentPageNumber - 1) +
+                Math.max(
+                  props.totalItemsCount -
+                    props.itemsOnPage * (props.currentPageNumber - 1),
+                  0,
+                )
+              }${props.hasMore ? "+" : ""} ${props.pluralLabel.toLowerCase()}.`}
+            </span>
+          )}
+          {!props.isLoading && !isHasMoreMode && (
             <span>
               {props.totalItemsCount.toLocaleString()}{" "}
               {props.totalItemsCount > 1
@@ -164,10 +189,12 @@ const Pagination: FunctionComponent<ComponentProps> = (
                 isCurrentPageButtonDisabled ? "bg-gray-100" : ""
               }`}
               onClick={() => {
-                setShowPaginationModel(true);
+                if (!isHasMoreMode) {
+                  setShowPaginationModel(true);
+                }
               }}
               onKeyDown={(e: React.KeyboardEvent) => {
-                if (e.key === "Enter" || e.key === " ") {
+                if ((e.key === "Enter" || e.key === " ") && !isHasMoreMode) {
                   e.preventDefault();
                   setShowPaginationModel(true);
                 }
@@ -294,10 +321,12 @@ const Pagination: FunctionComponent<ComponentProps> = (
                 isCurrentPageButtonDisabled ? "bg-gray-100" : ""
               }`}
               onClick={() => {
-                setShowPaginationModel(true);
+                if (!isHasMoreMode) {
+                  setShowPaginationModel(true);
+                }
               }}
               onKeyDown={(e: React.KeyboardEvent) => {
-                if (e.key === "Enter" || e.key === " ") {
+                if ((e.key === "Enter" || e.key === " ") && !isHasMoreMode) {
                   e.preventDefault();
                   setShowPaginationModel(true);
                 }
@@ -354,14 +383,23 @@ const Pagination: FunctionComponent<ComponentProps> = (
       {showPaginationModel && (
         <BasicFormModal<PaginationNavigationItem>
           data-testid="pagination-modal"
-          title={"Navigate to Page"}
+          title={isHasMoreMode ? "Items on Page" : "Navigate to Page"}
           onClose={() => {
             setShowPaginationModel(false);
           }}
-          submitButtonText={"Go to Page"}
+          submitButtonText={isHasMoreMode ? "Apply" : "Go to Page"}
           onSubmit={(item: PaginationNavigationItem) => {
             if (props.onNavigateToPage) {
-              props.onNavigateToPage(item.pageNumber, item.itemsOnPage);
+              /*
+               * hasMore mode doesn't know the max page, so the
+               * pageNumber field is hidden — navigating "in place"
+               * keeps the current page and only changes the page
+               * size.
+               */
+              const pageNumber: number = isHasMoreMode
+                ? props.currentPageNumber
+                : item.pageNumber;
+              props.onNavigateToPage(pageNumber, item.itemsOnPage);
             }
             setShowPaginationModel(false);
           }}
@@ -371,25 +409,29 @@ const Pagination: FunctionComponent<ComponentProps> = (
               itemsOnPage: props.itemsOnPage,
             },
             fields: [
-              {
-                title: "Page Number",
-                description: `You can enter page numbers from ${
-                  minPageNumber !== maxPageNumber
-                    ? minPageNumber + " to " + maxPageNumber
-                    : minPageNumber
-                }. Please enter it here:`,
-                field: {
-                  pageNumber: true,
-                },
-                disabled: minPageNumber === maxPageNumber,
-                placeholder: "1",
-                required: true,
-                validation: {
-                  minValue: minPageNumber,
-                  maxValue: maxPageNumber,
-                },
-                fieldType: FormFieldSchemaType.PositiveNumber,
-              },
+              ...(isHasMoreMode
+                ? []
+                : [
+                    {
+                      title: "Page Number",
+                      description: `You can enter page numbers from ${
+                        minPageNumber !== maxPageNumber
+                          ? minPageNumber + " to " + maxPageNumber
+                          : minPageNumber
+                      }. Please enter it here:`,
+                      field: {
+                        pageNumber: true,
+                      },
+                      disabled: minPageNumber === maxPageNumber,
+                      placeholder: "1",
+                      required: true,
+                      validation: {
+                        minValue: minPageNumber,
+                        maxValue: maxPageNumber,
+                      },
+                      fieldType: FormFieldSchemaType.PositiveNumber,
+                    },
+                  ]),
               {
                 title: `${props.pluralLabel} on Page `,
                 description: `Enter the number of ${props.pluralLabel.toLowerCase()} you would like to see on the page:`,

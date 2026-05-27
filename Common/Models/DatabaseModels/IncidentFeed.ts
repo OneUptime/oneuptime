@@ -91,6 +91,7 @@ export enum IncidentFeedEventType {
   tableDescription:
     "Log of the entire incident state change. This is a log of all the incident state changes, public notes, more etc.",
 })
+@Index(["incidentId", "postedAt"]) // Incident detail page: feed sorted by postedAt
 export default class IncidentFeed extends BaseModel {
   @ColumnAccessControl({
     create: [

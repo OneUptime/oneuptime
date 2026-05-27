@@ -15,7 +15,11 @@ import DockerHostContainers from "../Pages/Docker/View/Containers";
 import DockerHostContainerDetail from "../Pages/Docker/View/ContainerDetail";
 import DockerHostMetrics from "../Pages/Docker/View/Metrics";
 import DockerHostLogs from "../Pages/Docker/View/Logs";
+import DockerHostIncidents from "../Pages/Docker/View/Incidents";
+import DockerHostAlerts from "../Pages/Docker/View/Alerts";
+import DockerHostScheduledMaintenance from "../Pages/Docker/View/ScheduledMaintenance";
 import DockerHostOwners from "../Pages/Docker/View/Owners";
+import DockerHostAuditLogs from "../Pages/Docker/View/AuditLogs";
 import DockerHostSettings from "../Pages/Docker/View/Settings";
 import DockerHostDelete from "../Pages/Docker/View/Delete";
 import DockerHostDocumentation from "../Pages/Docker/View/Documentation";
@@ -131,6 +135,45 @@ const DockerRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
+        {/* Incidents */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.DOCKER_HOST_VIEW_INCIDENTS)}
+          element={
+            <DockerHostIncidents
+              {...props}
+              pageRoute={RouteMap[PageMap.DOCKER_HOST_VIEW_INCIDENTS] as Route}
+            />
+          }
+        />
+
+        {/* Alerts */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.DOCKER_HOST_VIEW_ALERTS)}
+          element={
+            <DockerHostAlerts
+              {...props}
+              pageRoute={RouteMap[PageMap.DOCKER_HOST_VIEW_ALERTS] as Route}
+            />
+          }
+        />
+
+        {/* Scheduled Maintenance */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DOCKER_HOST_VIEW_SCHEDULED_MAINTENANCE,
+          )}
+          element={
+            <DockerHostScheduledMaintenance
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.DOCKER_HOST_VIEW_SCHEDULED_MAINTENANCE
+                ] as Route
+              }
+            />
+          }
+        />
+
         {/* Owners */}
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.DOCKER_HOST_VIEW_OWNERS)}
@@ -138,6 +181,19 @@ const DockerRoutes: FunctionComponent<ComponentProps> = (
             <DockerHostOwners
               {...props}
               pageRoute={RouteMap[PageMap.DOCKER_HOST_VIEW_OWNERS] as Route}
+            />
+          }
+        />
+
+        {/* Audit Logs */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DOCKER_HOST_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <DockerHostAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.DOCKER_HOST_VIEW_AUDIT_LOGS] as Route}
             />
           }
         />

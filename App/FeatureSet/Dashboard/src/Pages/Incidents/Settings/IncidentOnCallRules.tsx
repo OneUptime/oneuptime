@@ -69,6 +69,9 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
       id="incident-on-call-rules-table"
       name="Settings > Incident On-Call Rules"
       userPreferencesKey="incident-on-call-rules-table"
+      saveFilterProps={{
+        tableId: "incident-on-call-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}
@@ -276,6 +279,9 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
       id="incident-episode-on-call-rules-table"
       name="Settings > Incident Episode On-Call Rules"
       userPreferencesKey="incident-episode-on-call-rules-table"
+      saveFilterProps={{
+        tableId: "incident-episode-on-call-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

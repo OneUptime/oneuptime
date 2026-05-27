@@ -340,6 +340,32 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         },
       },
     ];
+  } else if (props.monitorType === MonitorType.DNSSEC) {
+    fields = [
+      {
+        key: "dnssecMonitor",
+        title: "Zone",
+        description: "The zone being validated end-to-end via DNSSEC.",
+        fieldType: FieldType.Element,
+        placeholder: "No data entered",
+        getElement: (item: MonitorStepType): ReactElement => {
+          const dnssecMonitor: any = item.dnssecMonitor;
+          return <p>{dnssecMonitor?.domainName || "-"}</p>;
+        },
+      },
+      {
+        key: "dnssecMonitor",
+        title: "Resolvers",
+        description: "Validating resolvers queried for AD/SERVFAIL behavior.",
+        fieldType: FieldType.Element,
+        placeholder: "No data entered",
+        getElement: (item: MonitorStepType): ReactElement => {
+          const dnssecMonitor: any = item.dnssecMonitor;
+          const resolvers: Array<string> = dnssecMonitor?.resolvers || [];
+          return <p>{resolvers.length > 0 ? resolvers.join(", ") : "-"}</p>;
+        },
+      },
+    ];
   } else if (props.monitorType === MonitorType.ExternalStatusPage) {
     fields = [
       {

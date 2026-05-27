@@ -1,5 +1,9 @@
-import DashboardTableComponent from "../../../Types/Dashboard/DashboardComponents/DashboardTableComponent";
+import DashboardTableComponent, {
+  TableColumnKind,
+  TableReduce,
+} from "../../../Types/Dashboard/DashboardComponents/DashboardTableComponent";
 import { ObjectType } from "../../../Types/JSON";
+import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import ObjectID from "../../../Types/ObjectID";
 import DashboardBaseComponentUtil from "./DashboardBaseComponent";
 import {
@@ -9,15 +13,16 @@ import {
 } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 
-const DataSourceSection: ComponentArgumentSection = {
-  name: "Data Source",
-  description: "Configure which metrics to display in the table",
+const DataSection: ComponentArgumentSection = {
+  name: "Data",
+  description:
+    "Pick how rows are grouped, then add columns for metrics and formulas",
   order: 1,
 };
 
 const DisplaySection: ComponentArgumentSection = {
   name: "Display Options",
-  description: "Customize the table appearance",
+  description: "Customize how the table renders",
   order: 2,
   defaultCollapsed: true,
 };
@@ -35,13 +40,22 @@ export default class DashboardTableComponentUtil extends DashboardBaseComponentU
       minHeightInDashboardUnits: 3,
       minWidthInDashboardUnits: 4,
       arguments: {
-        metricQueryConfig: {
-          metricQueryData: {
-            filterData: {},
-            groupBy: undefined,
+        groupByAttributes: [],
+        columns: [
+          {
+            id: ObjectID.generate().toString(),
+            variable: "a",
+            header: "Value",
+            kind: TableColumnKind.Metric,
+            showAsColumn: true,
+            metricName: undefined,
+            aggregation: MetricsAggregationType.Avg,
+            decimals: 2,
           },
-        },
-        maxRows: 20,
+        ],
+        maxRows: 25,
+        reduce: TableReduce.Last,
+        decimals: 2,
       },
     };
   }
@@ -54,12 +68,23 @@ export default class DashboardTableComponentUtil extends DashboardBaseComponentU
     > = [];
 
     componentArguments.push({
-      name: "Metric Query",
-      description: "Select the metrics to display in the table",
+      name: "Group By Attributes",
+      description:
+        "Each unique combination of these attribute values becomes one row. Customize the column header for each picked attribute below. Leave empty for a time-bucketed table.",
+      required: false,
+      type: ComponentInputType.TableGroupBy,
+      id: "groupByAttributes",
+      section: DataSection,
+    });
+
+    componentArguments.push({
+      name: "Metrics & Columns",
+      description:
+        "Define metrics (data sources) and formulas. Each is auto-assigned a variable letter (a, b, c…) — formulas reference these. Toggle 'Show as column' off for metrics that should only feed formulas without appearing in the table.",
       required: true,
-      type: ComponentInputType.MetricsQueryConfig,
-      id: "metricQueryConfig",
-      section: DataSourceSection,
+      type: ComponentInputType.TableColumns,
+      id: "columns",
+      section: DataSection,
     });
 
     componentArguments.push({
@@ -72,12 +97,50 @@ export default class DashboardTableComponentUtil extends DashboardBaseComponentU
     });
 
     componentArguments.push({
+      name: "Description",
+      description: "Subtitle shown below the title",
+      required: false,
+      type: ComponentInputType.LongText,
+      id: "tableDescription",
+      section: DisplaySection,
+    });
+
+    componentArguments.push({
+      name: "Reduce across time",
+      description:
+        "When Group By is set, how to collapse the time series into one value per row",
+      required: false,
+      type: ComponentInputType.Dropdown,
+      id: "reduce",
+      placeholder: TableReduce.Last,
+      section: DisplaySection,
+      dropdownOptions: [
+        { label: "Last value", value: TableReduce.Last },
+        { label: "Average", value: TableReduce.Avg },
+        { label: "Sum", value: TableReduce.Sum },
+        { label: "Min", value: TableReduce.Min },
+        { label: "Max", value: TableReduce.Max },
+      ],
+    });
+
+    componentArguments.push({
+      name: "Decimals",
+      description:
+        "Default decimals for value columns (overridable per column)",
+      required: false,
+      type: ComponentInputType.Number,
+      id: "decimals",
+      placeholder: "2",
+      section: DisplaySection,
+    });
+
+    componentArguments.push({
       name: "Max Rows",
       description: "Maximum number of rows to show",
       required: false,
       type: ComponentInputType.Number,
       id: "maxRows",
-      placeholder: "20",
+      placeholder: "25",
       section: DisplaySection,
     });
 

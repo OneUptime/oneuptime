@@ -22,6 +22,9 @@ const CodeRepositoryServices: FunctionComponent<
         id="table-code-repository-service"
         userPreferencesKey="code-repository-service-table"
         name="Code Repository > Service"
+        saveFilterProps={{
+          tableId: "code-repository-services-table",
+        }}
         singularName="Service"
         isDeleteable={true}
         createVerb={"Link"}

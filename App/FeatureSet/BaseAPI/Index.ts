@@ -437,6 +437,9 @@ import MetricAPI from "Common/Server/API/MetricAPI";
 import MonitorCustomFieldService, {
   Service as MonitorCustomFieldServiceType,
 } from "Common/Server/Services/MonitorCustomFieldService";
+import TeamCustomFieldService, {
+  Service as TeamCustomFieldServiceType,
+} from "Common/Server/Services/TeamCustomFieldService";
 import MonitorGroupOwnerTeamService, {
   Service as MonitorGroupOwnerTeamServiceType,
 } from "Common/Server/Services/MonitorGroupOwnerTeamService";
@@ -559,13 +562,6 @@ import ServiceOwnerUserService, {
 import ServiceService, {
   Service as ServiceServiceType,
 } from "Common/Server/Services/ServiceService";
-import ServiceDependencyService, {
-  Service as ServiceDependencyServiceType,
-} from "Common/Server/Services/ServiceDependencyService";
-import ServiceMonitor from "Common/Models/DatabaseModels/ServiceMonitor";
-import ServiceMonitorService, {
-  Service as ServiceMonitorServiceType,
-} from "Common/Server/Services/ServiceMonitorService";
 
 import ServiceCodeRepository from "Common/Models/DatabaseModels/ServiceCodeRepository";
 import ServiceCodeRepositoryService, {
@@ -826,6 +822,7 @@ import HostOwnerTeam from "Common/Models/DatabaseModels/HostOwnerTeam";
 import HostOwnerUser from "Common/Models/DatabaseModels/HostOwnerUser";
 import Label from "Common/Models/DatabaseModels/Label";
 import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField";
+import TeamCustomField from "Common/Models/DatabaseModels/TeamCustomField";
 import MonitorGroupOwnerTeam from "Common/Models/DatabaseModels/MonitorGroupOwnerTeam";
 import MonitorGroupOwnerUser from "Common/Models/DatabaseModels/MonitorGroupOwnerUser";
 import MonitorGroupResource from "Common/Models/DatabaseModels/MonitorGroupResource";
@@ -907,7 +904,6 @@ import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
 import AIAgentOwnerTeam from "Common/Models/DatabaseModels/AIAgentOwnerTeam";
 import AIAgentOwnerUser from "Common/Models/DatabaseModels/AIAgentOwnerUser";
 import LlmLog from "Common/Models/DatabaseModels/LlmLog";
-import ServiceDependency from "Common/Models/DatabaseModels/ServiceDependency";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import WorkspaceNotificationLogService, {
   Service as WorkspaceNotificationLogServiceType,
@@ -2064,28 +2060,12 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ServiceDependency, ServiceDependencyServiceType>(
-        ServiceDependency,
-        ServiceDependencyService,
-      ).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<
         StatusPageHistoryChartBarColorRule,
         StatusPageHistoryChartBarColorRuleServiceType
       >(
         StatusPageHistoryChartBarColorRule,
         StatusPageHistoryChartBarColorRuleService,
-      ).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ServiceMonitor, ServiceMonitorServiceType>(
-        ServiceMonitor,
-        ServiceMonitorService,
       ).getRouter(),
     );
 
@@ -3339,6 +3319,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<MonitorCustomField, MonitorCustomFieldServiceType>(
         MonitorCustomField,
         MonitorCustomFieldService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TeamCustomField, TeamCustomFieldServiceType>(
+        TeamCustomField,
+        TeamCustomFieldService,
       ).getRouter(),
     );
 

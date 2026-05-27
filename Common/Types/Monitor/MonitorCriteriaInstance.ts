@@ -487,6 +487,33 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       return monitorCriteriaInstance;
     }
 
+    if (arg.monitorType === MonitorType.DNSSEC) {
+      const monitorCriteriaInstance: MonitorCriteriaInstance =
+        new MonitorCriteriaInstance();
+
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            checkOn: CheckOn.DnssecChainValid,
+            filterType: FilterType.True,
+            value: undefined,
+          },
+        ],
+        incidents: [],
+        alerts: [],
+        createAlerts: false,
+        changeMonitorStatus: true,
+        createIncidents: false,
+        name: `Check if ${arg.monitorName} DNSSEC chain is valid`,
+        description: `This criteria checks if the ${arg.monitorName} DNSSEC chain is valid end-to-end`,
+      };
+
+      return monitorCriteriaInstance;
+    }
+
     if (arg.monitorType === MonitorType.ExternalStatusPage) {
       const monitorCriteriaInstance: MonitorCriteriaInstance =
         new MonitorCriteriaInstance();
@@ -692,6 +719,46 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         name: `Check if ${arg.monitorName} domain is expired`,
         description: `This criteria checks if the ${arg.monitorName} domain registration has expired`,
+      };
+    }
+
+    if (arg.monitorType === MonitorType.DNSSEC) {
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.Any,
+        filters: [
+          {
+            checkOn: CheckOn.DnssecChainValid,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+        ],
+        incidents: [
+          {
+            title: `${arg.monitorName} DNSSEC chain is broken`,
+            description: `${arg.monitorName} DNSSEC validation is currently failing.`,
+            incidentSeverityId: arg.incidentSeverityId,
+            autoResolveIncident: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        changeMonitorStatus: true,
+        createIncidents: true,
+        createAlerts: false,
+        alerts: [
+          {
+            title: `${arg.monitorName} DNSSEC chain is broken`,
+            description: `${arg.monitorName} DNSSEC validation is currently failing.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        name: `Check if ${arg.monitorName} DNSSEC chain is broken`,
+        description: `This criteria checks if the ${arg.monitorName} DNSSEC chain is broken`,
       };
     }
 

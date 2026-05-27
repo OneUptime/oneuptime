@@ -31,7 +31,7 @@ Trace pipelines let you transform and enrich spans **at ingest time** — before
 |----------|---------|-------------|
 | \`=\` | \`kind = 'SPAN_KIND_SERVER'\` | Exact match |
 | \`!=\` | \`statusCode != 2\` | Not equal |
-| \`LIKE\` | \`name LIKE '%health%'\` | Pattern match (\`%\` = wildcard) |
+| \`LIKE\` | \`name LIKE 'health'\` | Substring match (use \`%\` for SQL-style wildcards) |
 | \`IN\` | \`kind IN ('SPAN_KIND_CLIENT', 'SPAN_KIND_PRODUCER')\` | Match any value in list |
 | \`AND\` / \`OR\` | combine conditions |
 
@@ -50,6 +50,9 @@ const TracePipelines: FunctionComponent<
       id="trace-pipelines-table"
       name="Traces > Settings > Pipelines"
       userPreferencesKey="trace-pipelines-table"
+      saveFilterProps={{
+        tableId: "trace-pipelines-table",
+      }}
       isDeleteable={false}
       isEditable={false}
       isCreateable={true}

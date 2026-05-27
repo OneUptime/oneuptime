@@ -161,6 +161,11 @@ export interface BaseTableProps<
     | undefined
     | ((data: Array<TBaseModel>, totalCount: number) => void);
   cardProps?: CardComponentProps | undefined;
+  /**
+   * Optional content rendered inside the card body, above the table rows.
+   * Useful for in-table filter chips, alerts, etc.
+   */
+  topContent?: ReactElement | undefined;
   helpContent?:
     | {
         title: string;
@@ -179,6 +184,7 @@ export interface BaseTableProps<
   isDeleteable: boolean;
   isEditable?: boolean | undefined;
   isCreateable: boolean;
+  onCreateClick?: (() => void) | undefined;
   disablePagination?: undefined | boolean;
   formFields?: undefined | Array<ModelField<TBaseModel>>;
   formSteps?: undefined | Array<FormStep<TBaseModel>>;
@@ -239,6 +245,19 @@ export interface BaseTableProps<
   initialFilterData?: FilterData<TBaseModel> | undefined;
 
   saveFilterProps?: SaveFilterProps | undefined;
+
+  /**
+   * Extra serializable state to persist alongside the saved view (e.g. facet
+   * selections from a parent hook). Stored on `TableView.facets`. The shape
+   * is opaque to ModelTable.
+   */
+  currentFacetState?: JSONObject | undefined;
+  /**
+   * Called when a saved view is loaded so the parent can restore its facet
+   * state. `null` means "no saved facet data" (e.g. the user reset to the
+   * default empty view).
+   */
+  onFacetStateRestored?: ((state: JSONObject | null) => void) | undefined;
 
   onFilterApplied?: ((isFilterApplied: boolean) => void) | undefined;
 
@@ -363,6 +382,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const [query, setQuery] = useState<Query<TBaseModel>>({});
   const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
   const [totalItemsCount, setTotalItemsCount] = useState<number>(0);
+  /*
+   * Analytics endpoints (Log/Span/Metric/...) skip COUNT(*) for
+   * performance and instead return `hasMore`. When `hasMore` is
+   * `undefined`, the endpoint emitted an exact `count` and the
+   * pagination falls back to the count-based UI.
+   */
+  const [hasMore, setHasMore] = useState<boolean | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [error, setError] = useState<string>("");
@@ -1171,7 +1197,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       });
 
       setTotalItemsCount(listResult.count);
+      setHasMore(listResult.hasMore);
       setData(listResult.data);
+      /*
+       * Fire onFetchSuccess so consumers (e.g. the resource-owners hook)
+       * can react to the loaded page. Previously the prop was declared
+       * but never invoked, which broke per-row owner enrichment.
+       */
+      if (props.onFetchSuccess) {
+        props.onFetchSuccess(listResult.data, listResult.count);
+      }
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -1260,6 +1295,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           currentSortBy={sortBy}
           currentItemsOnPage={itemsOnPage}
           currentSortOrder={sortOrder}
+          currentFacetState={props.currentFacetState}
           onViewChange={async (tableView: TableView | null) => {
             setTableView(tableView);
 
@@ -1286,12 +1322,22 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               if (classicTableFilters.length === 0) {
                 await getFilterDropdownItems();
               }
+
+              if (props.onFacetStateRestored) {
+                props.onFacetStateRestored(
+                  (tableView.facets as JSONObject | undefined) || null,
+                );
+              }
             } else {
               setQuery({});
               setSortBy(null);
               setSortOrder(SortOrder.Descending);
               setItemsOnPage(10);
               setCurrentPageNumber(1);
+
+              if (props.onFacetStateRestored) {
+                props.onFacetStateRestored(null);
+              }
             }
           }}
         />
@@ -1381,6 +1427,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         buttonSize: ButtonSize.Normal,
         className: "",
         onClick: () => {
+          if (props.onCreateClick) {
+            props.onCreateClick();
+            return;
+          }
           setModalType(ModalType.Create);
           setShowModal(true);
         },
@@ -1576,6 +1626,17 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   useEffect(() => {
     serializeToTableColumns();
   }, [data]);
+
+  /*
+   * Re-serialize whenever the parent passes a new `columns` reference. The
+   * column array carries `getElement` closures that capture parent state
+   * (e.g. an owners map populated asynchronously). Without this, the cell
+   * renders are frozen at first paint and never see updated state — which
+   * is what made the Owners column stick on "Loading…" forever.
+   */
+  useEffect(() => {
+    serializeToTableColumns();
+  }, [props.columns]);
 
   const setActionSchema: VoidFunction = () => {
     const permissions: Array<Permission> = PermissionUtil.getAllPermissions();
@@ -2063,6 +2124,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         dragDropIdField={"_id"}
         dragDropIndexField={props.dragDropIndexField}
         totalItemsCount={totalItemsCount}
+        hasMore={hasMore}
         data={data}
         id={props.id}
         columns={tableColumns}
@@ -2219,6 +2281,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         dragDropIndexField={props.dragDropIndexField}
         isLoading={getTableLoadingState()}
         totalItemsCount={totalItemsCount}
+        hasMore={hasMore}
         data={data}
         id={props.id}
         fields={fields}
@@ -2429,7 +2492,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       })
       .filter((l: SearchLabelOption) => {
         return (
-          lowerPrefix.length === 0 || l.name.toLowerCase().includes(lowerPrefix)
+          lowerPrefix.length === 0 ||
+          l.name.toLowerCase().startsWith(lowerPrefix)
         );
       })
       .slice(0, 8);
@@ -2600,12 +2664,23 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 />
               </div>
             )}
-            {showMatchPill && totalItemsCount >= 0 && (
+            {showMatchPill && totalItemsCount >= 0 && hasMore === undefined && (
               <span
                 className="flex-none whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
                 title={`${totalItemsCount} ${totalItemsCount === 1 ? "result" : "results"}`}
               >
                 {totalItemsCount} {totalItemsCount === 1 ? "match" : "matches"}
+              </span>
+            )}
+            {showMatchPill && hasMore !== undefined && data.length > 0 && (
+              <span
+                className="flex-none whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
+                title={`${data.length}${hasMore ? "+" : ""} ${
+                  data.length === 1 ? "result" : "results"
+                } on this page`}
+              >
+                {data.length}
+                {hasMore ? "+" : ""} {data.length === 1 ? "match" : "matches"}
               </span>
             )}
             {searchText.length > 0 || selectedLabels.length > 0 ? (
@@ -3055,6 +3130,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               ) : (
                 <></>
               )}
+              {props.topContent || <></>}
               {tableColumns.length > 0 && showAs === ShowAs.Table ? (
                 getTable()
               ) : (
@@ -3081,6 +3157,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           ) : (
             <></>
           )}
+          {!props.cardProps && props.topContent}
           {!props.cardProps && showAs === ShowAs.Table ? getTable() : <></>}
           {!props.cardProps && showAs === ShowAs.List ? getList() : <></>}
         </div>

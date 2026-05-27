@@ -40,6 +40,9 @@ const DockerHostOwnerRulesPage: FunctionComponent<
       id="dockerHost-owner-rules-table"
       name="Settings > Docker Host Owner Rules"
       userPreferencesKey="dockerHost-owner-rules-table"
+      saveFilterProps={{
+        tableId: "docker-host-owner-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

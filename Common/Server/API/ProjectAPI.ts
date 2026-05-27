@@ -5,6 +5,7 @@ import ProjectService, {
 } from "../Services/ProjectService";
 import ResellerService from "../Services/ResellerService";
 import TeamMemberService from "../Services/TeamMemberService";
+import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import {
   ExpressRequest,
@@ -223,25 +224,61 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
             }
           }
 
-          // get reseller for each project.
+          /*
+           * Batch-fetch resellers for every project in one query instead of
+           * one findOneById per project.
+           */
+          const resellerIds: Array<ObjectID> = [];
+          const seenResellerIds: Set<string> = new Set<string>();
           for (const project of projects) {
-            if (project.resellerId) {
-              const reseller: Reseller | null =
-                await ResellerService.findOneById({
-                  id: project.resellerId,
-                  select: {
-                    enableTelemetryFeatures: true,
-                  },
-                  props: {
-                    isRoot: true,
-                  },
-                });
+            if (
+              project.resellerId &&
+              !seenResellerIds.has(project.resellerId.toString())
+            ) {
+              seenResellerIds.add(project.resellerId.toString());
+              resellerIds.push(project.resellerId);
+            }
+          }
 
-              if (!reseller) {
-                continue;
+          if (resellerIds.length > 0) {
+            const resellers: Array<Reseller> = await ResellerService.findBy({
+              query: {
+                _id: QueryHelper.any(
+                  resellerIds.map((id: ObjectID) => {
+                    return id.toString();
+                  }),
+                ),
+              },
+              select: {
+                _id: true,
+                enableTelemetryFeatures: true,
+              },
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              props: {
+                isRoot: true,
+              },
+            });
+
+            const resellersById: Map<string, Reseller> = new Map<
+              string,
+              Reseller
+            >();
+            for (const reseller of resellers) {
+              if (reseller._id) {
+                resellersById.set(reseller._id.toString(), reseller);
               }
+            }
 
-              project.reseller = reseller;
+            for (const project of projects) {
+              if (project.resellerId) {
+                const reseller: Reseller | undefined = resellersById.get(
+                  project.resellerId.toString(),
+                );
+                if (reseller) {
+                  project.reseller = reseller;
+                }
+              }
             }
           }
 

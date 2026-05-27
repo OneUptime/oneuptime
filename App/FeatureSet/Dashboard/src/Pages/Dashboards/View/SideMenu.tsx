@@ -103,6 +103,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
         <SideMenuItem
           link={{
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DASHBOARD_VIEW_AUDIT_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.List}
+        />
+
+        <SideMenuItem
+          link={{
             title: "Delete",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.DASHBOARD_VIEW_DELETE] as Route,

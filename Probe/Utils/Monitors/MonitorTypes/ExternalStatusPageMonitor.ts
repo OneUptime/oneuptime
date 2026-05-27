@@ -1,6 +1,7 @@
 import OnlineCheck from "../../OnlineCheck";
 import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
+import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import Sleep from "Common/Types/Sleep";
 import MonitorStepExternalStatusPageMonitor from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
 import ExternalStatusPageMonitorResponse, {
@@ -16,6 +17,7 @@ export interface ExternalStatusPageQueryOptions {
   currentRetryCount?: number | undefined;
   monitorId?: ObjectID | undefined;
   isOnlineCheckRequest?: boolean | undefined;
+  attempts?: Array<ProbeAttempt> | undefined;
 }
 
 interface AtlassianStatusResponse {
@@ -55,11 +57,16 @@ export default class ExternalStatusPageMonitorUtil {
       options.currentRetryCount = 1;
     }
 
+    if (!options.attempts) {
+      options.attempts = [];
+    }
+
     logger.debug(
       `External Status Page Query: ${options?.monitorId?.toString()} ${config.statusPageUrl} - Retry: ${options?.currentRetryCount}`,
     );
 
     const startTime: [number, number] = process.hrtime();
+    const attemptedAt: Date = new Date();
 
     try {
       let response: ExternalStatusPageMonitorResponse | null = null;
@@ -121,6 +128,19 @@ export default class ExternalStatusPageMonitorUtil {
             },
           );
         }
+
+        const responseReceivedAt: Date = new Date();
+        options.attempts.push({
+          attemptNumber: options.currentRetryCount,
+          attemptedAt,
+          responseReceivedAt,
+          responseTimeInMs,
+          isOnline: response.isOnline,
+          failureCause: response.isOnline ? undefined : response.failureCause,
+        });
+
+        response.probeAttempts = options.attempts;
+        response.totalAttempts = options.attempts.length;
       }
 
       logger.debug(
@@ -142,6 +162,25 @@ export default class ExternalStatusPageMonitorUtil {
         options.currentRetryCount = 0;
       }
 
+      if (!options.attempts) {
+        options.attempts = [];
+      }
+
+      const endTime: [number, number] = process.hrtime(startTime);
+      const responseTimeInMs: number = Math.ceil(
+        (endTime[0] * 1000000000 + endTime[1]) / 1000000,
+      );
+
+      const responseReceivedAt: Date = new Date();
+      options.attempts.push({
+        attemptNumber: options.currentRetryCount || 1,
+        attemptedAt,
+        responseReceivedAt,
+        responseTimeInMs,
+        isOnline: false,
+        failureCause: (err as Error).message || (err as Error).toString(),
+      });
+
       if (options.currentRetryCount < (options.retry || config.retries || 3)) {
         options.currentRetryCount++;
         await Sleep.sleep(1000);
@@ -157,11 +196,6 @@ export default class ExternalStatusPageMonitorUtil {
           return null;
         }
       }
-
-      const endTime: [number, number] = process.hrtime(startTime);
-      const responseTimeInMs: number = Math.ceil(
-        (endTime[0] * 1000000000 + endTime[1]) / 1000000,
-      );
 
       const isTimeout: boolean =
         (err as Error).message?.toLowerCase().includes("timeout") ||
@@ -181,6 +215,8 @@ export default class ExternalStatusPageMonitorUtil {
             "Request was tried " +
             options.currentRetryCount +
             " times and it timed out.",
+          probeAttempts: options.attempts,
+          totalAttempts: options.attempts.length,
         };
       }
 
@@ -192,6 +228,8 @@ export default class ExternalStatusPageMonitorUtil {
         activeIncidentCount: 0,
         responseTimeInMs: responseTimeInMs,
         failureCause: (err as Error).message || (err as Error).toString(),
+        probeAttempts: options.attempts,
+        totalAttempts: options.attempts.length,
       };
     }
   }

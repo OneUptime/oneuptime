@@ -4,6 +4,13 @@ import { JSONObject } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
 import logger from "Common/Server/Utils/Logger";
 import Dictionary from "Common/Types/Dictionary";
+import ProductType from "Common/Types/MeteredPlan/ProductType";
+import {
+  OtelPayloadEncoding,
+  OtelPayloadFormat,
+} from "../../Utils/OtelPayloadDecoder";
+import { headerValueToString } from "Common/Server/Utils/Express";
+import TelemetryBodyStore from "../../Utils/TelemetryBodyStore";
 
 export enum TelemetryType {
   Logs = "logs",
@@ -67,7 +74,24 @@ export interface IncomingRequestIngestJobData {
 export interface TelemetryIngestJobData {
   type: TelemetryType;
   projectId?: string;
+  /*
+   * Parsed JSON body. Used by the non-OTel ingest paths
+   * (Fluent, Syslog) that hand the queue a decoded object
+   * directly. OTel paths go through `bodyKey` below instead.
+   */
   requestBody?: JSONObject;
+  /*
+   * Redis key for the raw HTTP request body, written out-of-band
+   * by TelemetryBodyStore before the job is enqueued. The worker
+   * fetches the raw buffer via TelemetryBodyStore.readAndDeleteBody
+   * and decodes (gunzip + protobuf or JSON) per `bodyFormat` /
+   * `bodyEncoding`. Used by every OTel ingest path so the HTTP
+   * request thread never pays the encode / inflate cost.
+   */
+  bodyKey?: string;
+  bodyFormat?: OtelPayloadFormat;
+  bodyEncoding?: OtelPayloadEncoding;
+  productType?: ProductType;
   requestHeaders?: Record<string, string>;
   ingestionTimestamp: Date;
   // ProbeIngest-specific
@@ -108,10 +132,60 @@ export default class TelemetryQueueService {
       const jobData: TelemetryIngestJobData = {
         type,
         projectId: req.projectId.toString(),
-        requestBody: req.body,
         requestHeaders: req.headers as Record<string, string>,
         ingestionTimestamp: OneUptimeDate.getCurrentDate(),
       };
+
+      /*
+       * Deferred-decode path: when the OTel middleware leaves
+       * `req.body` as a raw Buffer (the new default), we ship the
+       * bytes + format metadata so the worker can run the protobuf
+       * decode and JSON normalization off the HTTP request thread.
+       * Legacy callers (Fluent / Syslog) hand us a parsed JSON body
+       * — fall back to the old `requestBody` path for those.
+       */
+      const isRawBuffer: boolean =
+        Buffer.isBuffer(req.body) || req.body instanceof Uint8Array;
+
+      if (isRawBuffer) {
+        const buffer: Buffer = Buffer.isBuffer(req.body)
+          ? (req.body as Buffer)
+          : Buffer.from(req.body as Uint8Array);
+        const contentEncoding: string | undefined = headerValueToString(
+          req.headers["content-encoding"],
+        );
+        const contentType: string | undefined = headerValueToString(
+          req.headers["content-type"],
+        );
+        const isProtobuf: boolean =
+          !contentType ||
+          contentType.includes("application/x-protobuf") ||
+          contentType.includes("application/protobuf");
+
+        /*
+         * Store the raw bytes out-of-band via TelemetryBodyStore
+         * (binary Redis SET). The worker reads them back through
+         * the same store. We only carry a small key reference in
+         * the BullMQ job payload, which:
+         *   - removes the synchronous base64 encode that used to
+         *     burn ~150 ms on a 50 MB payload on the Express thread,
+         *   - removes the ~33 % inflation from base64 in the BullMQ
+         *     job state stored in Redis,
+         *   - removes the matching base64 decode on the worker side.
+         * The body SET completes before the BullMQ enqueue so a
+         * worker can never pick up a job whose body hasn't landed.
+         */
+        jobData.bodyKey = await TelemetryBodyStore.storeBody(buffer);
+        jobData.bodyFormat = isProtobuf
+          ? OtelPayloadFormat.Protobuf
+          : OtelPayloadFormat.Json;
+        jobData.bodyEncoding = contentEncoding?.includes("gzip")
+          ? "gzip"
+          : "none";
+        jobData.productType = req.productType;
+      } else {
+        jobData.requestBody = req.body;
+      }
 
       const jobId: string = `${type}-${req.projectId?.toString()}-${OneUptimeDate.getCurrentDateAsUnixNano()}`;
 

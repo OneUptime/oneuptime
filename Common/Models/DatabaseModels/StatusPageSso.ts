@@ -9,6 +9,8 @@ import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccess
 import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
+import TableEditionAccessControl from "../../Types/Database/AccessControl/TableEditionAccessControl";
+import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -26,6 +28,10 @@ import SignatureMethod from "../../Types/SSO/SignatureMethod";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @EnableDocumentation()
+@CanAccessIfCanReadOn("statusPage")
+@TableEditionAccessControl({
+  requiresEnterprise: true,
+})
 @TableBillingAccessControl({
   create: PlanType.Scale,
   read: PlanType.Scale,

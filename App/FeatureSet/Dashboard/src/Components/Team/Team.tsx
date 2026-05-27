@@ -31,9 +31,7 @@ const TeamElement: FunctionComponent<ComponentProps> = (
       <AppLink
         onNavigateComplete={props.onNavigateComplete}
         className="hover:underline"
-        to={
-          new Route(`/dashboard/${projectId}/settings/teams/${props.team._id}`)
-        }
+        to={new Route(`/dashboard/${projectId}/teams/${props.team._id}`)}
       >
         <span>{props.team.name}</span>
       </AppLink>

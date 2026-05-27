@@ -82,6 +82,7 @@ import DatabaseConfig from "../DatabaseConfig";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 
 export interface CurrentPlan {
   plan: PlanType | null;
@@ -89,6 +90,30 @@ export interface CurrentPlan {
 }
 
 export class ProjectService extends DatabaseService<Model> {
+  /*
+   * Suppresses repeated `lastActive` UPDATEs from a single API node. 60s of
+   * staleness on "last seen" is acceptable; an UPDATE per request is not.
+   */
+  private lastActiveCache: InMemoryTTLCache<true> = new InMemoryTTLCache(
+    10_000,
+  );
+  /*
+   * Caches the `requireSsoForLogin` flag per project so middleware can skip a
+   * Postgres findOneById on every authenticated request.
+   */
+  private requireSsoForLoginCache: InMemoryTTLCache<boolean> =
+    new InMemoryTTLCache(10_000);
+  /*
+   * Caches the current billing plan per project. `getCurrentPlan` is hit
+   * by `CommonAPI.getDatabaseCommonInteractionProps` on every
+   * authenticated request when billing is enabled — without caching,
+   * that's one Postgres findOneById per API call to a billable project.
+   * Plans change rarely (subscription create / cancel / change), so a
+   * 60s staleness window is acceptable.
+   */
+  private currentPlanCache: InMemoryTTLCache<CurrentPlan> =
+    new InMemoryTTLCache(10_000);
+
   public constructor() {
     super(Model);
   }
@@ -318,6 +343,14 @@ export class ProjectService extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    /*
+     * Any project field could have changed; invalidate the in-process cache
+     * of the SSO flag. Cheap to refetch on the next request.
+     */
+    if (updateBy.data.requireSsoForLogin !== undefined) {
+      this.requireSsoForLoginCache.clear();
+    }
+
     if (IsBillingEnabled) {
       if (
         updateBy.data.businessDetails ||
@@ -742,14 +775,23 @@ export class ProjectService extends DatabaseService<Model> {
       }
     }
 
-    createdItem = await this.addDefaultIncidentSeverity(createdItem);
-    createdItem = await this.addDefaultAlertSeverity(createdItem);
-    createdItem = await this.addDefaultProjectTeams(createdItem);
-    createdItem = await this.addDefaultMonitorStatus(createdItem);
-    createdItem = await this.addDefaultIncidentState(createdItem);
-    createdItem = await this.addDefaultScheduledMaintenanceState(createdItem);
-    createdItem = await this.addDefaultAlertState(createdItem);
-    createdItem = await this.addDefaultIncidentRoles(createdItem);
+    /*
+     * Each addDefault* method only reads `createdItem.id` and writes rows to a
+     * distinct table; none of them mutate `createdItem`. Running them in
+     * parallel cuts the onCreate hook latency from sum-of-8 sequential DB
+     * round-trips to max-of-8, which removes ~hundreds of ms on project
+     * create.
+     */
+    await Promise.all([
+      this.addDefaultIncidentSeverity(createdItem),
+      this.addDefaultAlertSeverity(createdItem),
+      this.addDefaultProjectTeams(createdItem),
+      this.addDefaultMonitorStatus(createdItem),
+      this.addDefaultIncidentState(createdItem),
+      this.addDefaultScheduledMaintenanceState(createdItem),
+      this.addDefaultAlertState(createdItem),
+      this.addDefaultIncidentRoles(createdItem),
+    ]);
 
     if (NotificationSlackWebhookOnCreateProject) {
       // fetch project again.
@@ -1251,7 +1293,21 @@ export class ProjectService extends DatabaseService<Model> {
 
   @CaptureSpan()
   public async updateLastActive(projectId: ObjectID): Promise<void> {
-    await this.updateOneById({
+    const key: string = projectId.toString();
+    if (this.lastActiveCache.has(key)) {
+      return;
+    }
+    /*
+     * Set BEFORE the await so a burst of concurrent requests collapses to one
+     * UPDATE per node per 60s window instead of all firing in parallel.
+     */
+    this.lastActiveCache.set(key, true, 60_000);
+
+    /*
+     * Fire-and-forget — `lastActive` is a soft-real-time field and the
+     * caller (auth middleware) shouldn't pay a Postgres round-trip for it.
+     */
+    void this.updateOneById({
       id: projectId,
       data: {
         lastActive: OneUptimeDate.getCurrentDate(),
@@ -1259,7 +1315,41 @@ export class ProjectService extends DatabaseService<Model> {
       props: {
         isRoot: true,
       },
+    }).catch((err: Error) => {
+      // Drop the cache entry so a retry can fire within the same TTL window.
+      this.lastActiveCache.delete(key);
+      logger.error(
+        `Failed to update Project.lastActive for ${key}: ${err.message}`,
+      );
     });
+  }
+
+  /**
+   * Returns whether the given project requires SSO for login. Cached for
+   * 60s in-process — middleware calls this on every authenticated request.
+   */
+  @CaptureSpan()
+  public async getRequireSsoForLogin(projectId: ObjectID): Promise<boolean> {
+    const key: string = projectId.toString();
+    const cached: boolean | undefined = this.requireSsoForLoginCache.get(key);
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    const project: Model | null = await this.findOneById({
+      id: projectId,
+      select: { requireSsoForLogin: true },
+      props: { isRoot: true },
+    });
+
+    if (!project) {
+      // Don't cache "not found" — let the caller decide how to handle it.
+      throw new BadDataException("Project not found");
+    }
+
+    const value: boolean = Boolean(project.requireSsoForLogin);
+    this.requireSsoForLoginCache.set(key, value, 60_000);
+    return value;
   }
 
   @CaptureSpan()
@@ -1421,6 +1511,12 @@ export class ProjectService extends DatabaseService<Model> {
       return { plan: null, isSubscriptionUnpaid: false };
     }
 
+    const cacheKey: string = projectId.toString();
+    const cached: CurrentPlan | undefined = this.currentPlanCache.get(cacheKey);
+    if (cached !== undefined) {
+      return cached;
+    }
+
     const project: Model | null = await this.findOneById({
       id: projectId,
       select: {
@@ -1435,10 +1531,12 @@ export class ProjectService extends DatabaseService<Model> {
     });
 
     if (!project) {
+      // Don't cache "not found" — let the caller surface a fresh error.
       throw new BadDataException("Project ID is invalid");
     }
 
     if (!project.paymentProviderPlanId) {
+      // Don't cache "no plan" — the project may be mid-onboarding.
       throw new BadDataException("Project does not have any plans");
     }
 
@@ -1447,7 +1545,7 @@ export class ProjectService extends DatabaseService<Model> {
       getAllEnvVars(),
     );
 
-    return {
+    const result: CurrentPlan = {
       plan: plan,
       isSubscriptionUnpaid:
         !BillingService.isSubscriptionActive(
@@ -1457,6 +1555,8 @@ export class ProjectService extends DatabaseService<Model> {
           project.paymentProviderMeteredSubscriptionStatus!,
         ),
     };
+    this.currentPlanCache.set(cacheKey, result, 60_000);
+    return result;
   }
 
   @CaptureSpan()

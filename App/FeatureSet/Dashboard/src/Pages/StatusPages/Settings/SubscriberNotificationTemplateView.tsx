@@ -286,6 +286,9 @@ const SubscriberNotificationTemplateView: FunctionComponent<
         modelType={StatusPageSubscriberNotificationTemplateStatusPage}
         id="status-pages-for-template-table"
         userPreferencesKey="status-pages-for-template-table"
+        saveFilterProps={{
+          tableId: "status-pages-for-template-table",
+        }}
         name="Subscriber Notification Template > Status Pages"
         isDeleteable={true}
         createVerb="Link"

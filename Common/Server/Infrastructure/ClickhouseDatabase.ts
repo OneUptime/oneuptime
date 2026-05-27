@@ -2,6 +2,7 @@ import logger from "../Utils/Logger";
 import {
   ClickHouseClientConfigOptions,
   dataSourceOptions,
+  ingestDataSourceOptions,
   testDataSourceOptions,
 } from "./ClickhouseConfig";
 import { PingResult, createClient, ClickHouseClient } from "@clickhouse/client";
@@ -18,9 +19,16 @@ export type ClickhouseClient = ClickHouseClient;
 
 export default class ClickhouseDatabase {
   private dataSource!: ClickhouseClient | null;
+  private options: ClickHouseClientConfigOptions;
+
+  public constructor(
+    options: ClickHouseClientConfigOptions = dataSourceOptions,
+  ) {
+    this.options = options;
+  }
 
   public getDatasourceOptions(): ClickHouseClientConfigOptions {
-    return dataSourceOptions;
+    return this.options;
   }
 
   public getTestDatasourceOptions(): ClickHouseClientConfigOptions {
@@ -161,5 +169,14 @@ export default class ClickhouseDatabase {
   }
 }
 
-export const ClickhouseAppInstance: ClickhouseDatabase =
-  new ClickhouseDatabase();
+export const ClickhouseAppInstance: ClickhouseDatabase = new ClickhouseDatabase(
+  dataSourceOptions,
+);
+
+/*
+ * Separate pool for high-volume telemetry inserts. Reads/DDL keep using
+ * ClickhouseAppInstance so dashboard queries are not starved of HTTP
+ * sockets when ingest is bursting.
+ */
+export const ClickhouseIngestInstance: ClickhouseDatabase =
+  new ClickhouseDatabase(ingestDataSourceOptions);

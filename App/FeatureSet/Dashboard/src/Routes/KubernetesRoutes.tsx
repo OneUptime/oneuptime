@@ -40,7 +40,11 @@ import KubernetesClusterViewEvents from "../Pages/Kubernetes/View/Events";
 import KubernetesClusterViewInsights from "../Pages/Kubernetes/View/Insights";
 import KubernetesClusterViewControlPlane from "../Pages/Kubernetes/View/ControlPlane";
 import KubernetesClusterViewServiceMesh from "../Pages/Kubernetes/View/ServiceMesh";
+import KubernetesClusterViewIncidents from "../Pages/Kubernetes/View/Incidents";
+import KubernetesClusterViewAlerts from "../Pages/Kubernetes/View/Alerts";
+import KubernetesClusterViewScheduledMaintenance from "../Pages/Kubernetes/View/ScheduledMaintenance";
 import KubernetesClusterViewOwners from "../Pages/Kubernetes/View/Owners";
+import KubernetesClusterViewAuditLogs from "../Pages/Kubernetes/View/AuditLogs";
 import KubernetesClusterViewDelete from "../Pages/Kubernetes/View/Delete";
 import KubernetesClusterViewSettings from "../Pages/Kubernetes/View/Settings";
 import KubernetesClusterViewDocumentation from "../Pages/Kubernetes/View/Documentation";
@@ -574,6 +578,53 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
+        {/* Incidents */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_INCIDENTS,
+          )}
+          element={
+            <KubernetesClusterViewIncidents
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_INCIDENTS] as Route
+              }
+            />
+          }
+        />
+
+        {/* Alerts */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_ALERTS,
+          )}
+          element={
+            <KubernetesClusterViewAlerts
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_ALERTS] as Route
+              }
+            />
+          }
+        />
+
+        {/* Scheduled Maintenance */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_SCHEDULED_MAINTENANCE,
+          )}
+          element={
+            <KubernetesClusterViewScheduledMaintenance
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.KUBERNETES_CLUSTER_VIEW_SCHEDULED_MAINTENANCE
+                ] as Route
+              }
+            />
+          }
+        />
+
         {/* Owners */}
         <PageRoute
           path={RouteUtil.getLastPathForKey(
@@ -584,6 +635,21 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_OWNERS] as Route
+              }
+            />
+          }
+        />
+
+        {/* Audit Logs */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <KubernetesClusterViewAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AUDIT_LOGS] as Route
               }
             />
           }

@@ -19,6 +19,7 @@ import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
 import {
   Column,
   Entity,
@@ -429,6 +430,40 @@ export default class KubernetesCluster extends BaseModel {
   })
   @TableColumn({
     required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Agent Version",
+    description:
+      "Version of the OneUptime Kubernetes agent reporting telemetry, as self-reported via the oneuptime.agent.version resource attribute",
+    example: "1.0.0",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public agentVersion?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditKubernetesCluster,
+    ],
+  })
+  @TableColumn({
+    required: false,
     type: TableColumnType.Date,
     canReadOnRelationQuery: true,
     title: "Last Seen At",
@@ -725,4 +760,86 @@ export default class KubernetesCluster extends BaseModel {
     },
   })
   public labels?: Array<Label> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateKubernetesCluster,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditKubernetesCluster,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Retain Telemetry Data For Days",
+    description:
+      "Number of days to retain telemetry data for this Kubernetes cluster. Leave blank to use the project-wide default.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+    unique: false,
+  })
+  public retainTelemetryDataForDays?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateKubernetesCluster,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditKubernetesCluster,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Telemetry Data Retention Overrides",
+    description:
+      "Per-pillar retention overrides for this Kubernetes cluster (logs by severity, traces by status, metrics, profiles). Unset fields fall back to the cluster default, then the project's retention settings.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public telemetryRetentionConfig?: TelemetryRetentionConfig = undefined;
 }

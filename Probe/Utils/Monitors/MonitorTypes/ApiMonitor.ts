@@ -8,6 +8,7 @@ import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
+import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import RequestFailedDetails from "Common/Types/Probe/RequestFailedDetails";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
@@ -28,6 +29,8 @@ export interface APIResponse {
   failureCause: string;
   requestFailedDetails?: RequestFailedDetails | undefined;
   isTimeout?: boolean;
+  probeAttempts?: Array<ProbeAttempt> | undefined;
+  totalAttempts?: number | undefined;
 }
 
 export default class ApiMonitor {
@@ -47,6 +50,7 @@ export default class ApiMonitor {
       tlsClientCertificate?: string | undefined;
       tlsClientKey?: string | undefined;
       tlsClientKeyPassphrase?: string | undefined;
+      attempts?: Array<ProbeAttempt> | undefined;
     },
   ): Promise<APIResponse | null> {
     if (!options) {
@@ -55,6 +59,10 @@ export default class ApiMonitor {
 
     if (options?.currentRetryCount === undefined) {
       options.currentRetryCount = 1;
+    }
+
+    if (!options.attempts) {
+      options.attempts = [];
     }
 
     const requestType: HTTPMethod = options.requestType || HTTPMethod.GET;
@@ -119,6 +127,7 @@ export default class ApiMonitor {
       return proxyAgents;
     };
 
+    const attemptedAt: Date = new Date();
     try {
       logger.debug(
         `API Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} - Retry: ${
@@ -169,6 +178,25 @@ export default class ApiMonitor {
         result = await API.fetch(fetchOptions);
       }
 
+      const endTime: [number, number] = process.hrtime(startTime);
+      const responseTimeInMS: PositiveNumber = new PositiveNumber(
+        Math.ceil((endTime[0] * 1000000000 + endTime[1]) / 1000000),
+      );
+      const responseReceivedAt: Date = new Date();
+
+      options.attempts!.push({
+        attemptNumber: options.currentRetryCount,
+        attemptedAt,
+        responseReceivedAt,
+        responseTimeInMs: responseTimeInMS.toNumber(),
+        responseCode: result.statusCode,
+        isOnline: true,
+        failureCause:
+          result.statusCode >= 500 && result.statusCode < 600
+            ? `Server returned ${result.statusCode}`
+            : undefined,
+      });
+
       if (result.statusCode >= 500 && result.statusCode < 600) {
         // implement retry, just to be sure server is down.
         if (!options) {
@@ -185,11 +213,6 @@ export default class ApiMonitor {
           return await this.ping(url, options);
         }
       }
-
-      const endTime: [number, number] = process.hrtime(startTime);
-      const responseTimeInMS: PositiveNumber = new PositiveNumber(
-        Math.ceil((endTime[0] * 1000000000 + endTime[1]) / 1000000),
-      );
 
       // if response time is greater than 10 seconds then give it one more try
 
@@ -215,6 +238,8 @@ export default class ApiMonitor {
         requestBody: options.requestBody || {},
         failureCause: "",
         isTimeout: false,
+        probeAttempts: options.attempts,
+        totalAttempts: options.attempts!.length,
       };
 
       logger.debug(
@@ -232,6 +257,21 @@ export default class ApiMonitor {
       if (!options.currentRetryCount) {
         options.currentRetryCount = 0; // default value
       }
+
+      if (!options.attempts) {
+        options.attempts = [];
+      }
+
+      const responseReceivedAt: Date = new Date();
+      options.attempts.push({
+        attemptNumber: options.currentRetryCount || 1,
+        attemptedAt,
+        responseReceivedAt,
+        responseTimeInMs: responseReceivedAt.getTime() - attemptedAt.getTime(),
+        responseCode: undefined,
+        isOnline: false,
+        failureCause: API.getFriendlyErrorMessage(err as Error),
+      });
 
       if (options.currentRetryCount < (options.retry || 5)) {
         options.currentRetryCount++;
@@ -265,6 +305,8 @@ export default class ApiMonitor {
         responseHeaders: {},
         failureCause: API.getFriendlyErrorMessage(err as Error),
         requestFailedDetails: requestFailedDetails,
+        probeAttempts: options.attempts,
+        totalAttempts: options.attempts.length,
       };
 
       // check if timeout exceeded and if yes, return null

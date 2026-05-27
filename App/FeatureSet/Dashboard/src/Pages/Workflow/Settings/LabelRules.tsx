@@ -37,6 +37,9 @@ const WorkflowLabelRulesPage: FunctionComponent<
       id="workflow-label-rules-table"
       name="Settings > Workflow Label Rules"
       userPreferencesKey="workflow-label-rules-table"
+      saveFilterProps={{
+        tableId: "workflow-label-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

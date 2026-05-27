@@ -7,6 +7,7 @@ import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
@@ -24,9 +25,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 export type MonitorStepProbeResponse = Dictionary<ProbeMonitorResponse>;
 
 @EnableDocumentation()
+@CanAccessIfCanReadOn("monitor")
 @TenantColumn("projectId")
 @Index(["monitorId", "probeId"]) // Composite index for efficient monitor-probe relationship queries
 @Index(["monitorId", "projectId"]) // Alternative index for monitor queries within project
+@Index(["probeId", "isEnabled", "nextPingAt"]) // Scheduler hot path: pick due probes per probeId
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,

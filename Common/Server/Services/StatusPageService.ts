@@ -1,4 +1,5 @@
 import DatabaseConfig from "../DatabaseConfig";
+import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -87,8 +88,29 @@ export interface StatusPageReport {
 }
 
 export class Service extends DatabaseService<StatusPage> {
+  /*
+   * Caches the resolved status page URL per statusPageId. `getStatusPageURL`
+   * is called inside per-subscriber notification loops (see
+   * `StatusPageSubscriberService`), where a single batch can fire N×
+   * Postgres lookups against `StatusPageDomain`. SSL-provisioned custom
+   * domains change rarely (provisioning takes minutes), so a 60s staleness
+   * window is acceptable. Callers that need stronger consistency can call
+   * `clearStatusPageUrlCache` after writes to the underlying domain.
+   */
+  private statusPageUrlCache: InMemoryTTLCache<string> = new InMemoryTTLCache(
+    10_000,
+  );
+
   public constructor() {
     super(StatusPage);
+  }
+
+  public clearStatusPageUrlCache(statusPageId?: ObjectID): void {
+    if (statusPageId) {
+      this.statusPageUrlCache.delete(statusPageId.toString());
+      return;
+    }
+    this.statusPageUrlCache.clear();
   }
 
   public static getDefaultEmailFooterText(): string {
@@ -655,6 +677,12 @@ export class Service extends DatabaseService<StatusPage> {
 
   @CaptureSpan()
   public async getStatusPageURL(statusPageId: ObjectID): Promise<string> {
+    const cacheKey: string = statusPageId.toString();
+    const cached: string | undefined = this.statusPageUrlCache.get(cacheKey);
+    if (cached !== undefined) {
+      return cached;
+    }
+
     const domain: StatusPageDomain | null =
       await StatusPageDomainService.findOneBy({
         query: {
@@ -684,6 +712,8 @@ export class Service extends DatabaseService<StatusPage> {
         .addRoute("/status-page/" + statusPageId.toString())
         .toString();
     }
+
+    this.statusPageUrlCache.set(cacheKey, statusPageURL, 60_000);
 
     return statusPageURL;
   }

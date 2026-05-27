@@ -150,6 +150,9 @@ const TraceScrubRules: FunctionComponent<
       id="trace-scrub-rules-table"
       name="Traces > Settings > Scrub Rules"
       userPreferencesKey="trace-scrub-rules-table"
+      saveFilterProps={{
+        tableId: "trace-scrub-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

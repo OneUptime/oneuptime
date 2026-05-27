@@ -94,9 +94,9 @@ data:
           {{- end }}
           {{- end }}
 
-      {{- if or .Values.controlPlane.enabled .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled }}
+      {{- if or .Values.controlPlane.enabled .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled }}
       # Scrape metrics via Prometheus endpoints (control plane, service
-      # mesh, CSI drivers, CoreDNS)
+      # mesh, CSI drivers, CoreDNS, kube-state-metrics)
       prometheus:
         config:
           scrape_configs:
@@ -219,6 +219,30 @@ data:
                   action: replace
                   target_label: container_name
             {{- end }}
+            {{- if .Values.kubeStateMetrics.enabled }}
+            # Cluster-state metrics from kube-state-metrics (KSM).
+            # `metric_relabel_configs` keeps only the configured
+            # allowlist at the receiver — KSM exports ~100 metric
+            # families by default, and we only forward the ones that
+            # power monitors.
+            - job_name: kube-state-metrics
+              scrape_interval: {{ .Values.kubeStateMetrics.scrapeInterval }}
+              {{- if eq .Values.kubeStateMetrics.mode "external" }}
+              # External KSM — operator-provided endpoint.
+              static_configs:
+                - targets:
+                    - {{ .Values.kubeStateMetrics.endpoint | trimPrefix "http://" | trimPrefix "https://" | trimSuffix "/metrics" | quote }}
+              {{- else }}
+              # Bundled KSM — Service deployed by templates/kube-state-metrics.yaml.
+              static_configs:
+                - targets:
+                    - "{{ include "kubernetes-agent.fullname" . }}-kube-state-metrics.{{ .Release.Namespace }}.svc.cluster.local:8080"
+              {{- end }}
+              metric_relabel_configs:
+                - source_labels: [__name__]
+                  regex: "^({{ join "|" .Values.kubeStateMetrics.metricsAllowlist }})$"
+                  action: keep
+            {{- end }}
             {{- if .Values.coreDns.enabled }}
             # CoreDNS metrics. By default CoreDNS exposes a Prometheus
             # endpoint on port 9153 — exposes query rate, latency, cache
@@ -287,6 +311,10 @@ data:
       # metrics — which already carry the real per-pod service.name —
       # aren't overwritten and show up under their own service in the
       # dashboard.
+      #
+      # Any keys under .Values.oneuptime.labels are also stamped here as
+      # `oneuptime.label.<key>=<value>` resource attributes. The OneUptime
+      # ingest pipeline promotes those into project Labels.
       resource:
         attributes:
           - key: k8s.cluster.name
@@ -295,6 +323,10 @@ data:
           - key: service.name
             value: "kubernetes-agent-{{ .Values.clusterName }}"
             action: insert
+          - key: oneuptime.agent.version
+            value: {{ .Chart.AppVersion | quote }}
+            action: insert
+          {{- include "kubernetes-agent.oneuptimeLabels" (dict "labels" .Values.oneuptime.labels "action" "insert") | nindent 10 }}
 
       # The k8sobjects receiver emits LogRecords without a severity, so
       # Kubernetes events and resource snapshots arrive at OneUptime with
@@ -355,7 +387,7 @@ data:
             # path to OneUptime.
             - otlp
             {{- end }}
-            {{- if or .Values.controlPlane.enabled .Values.serviceMesh.enabled }}
+            {{- if or .Values.controlPlane.enabled .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled }}
             - prometheus
             {{- end }}
           processors:

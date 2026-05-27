@@ -1,302 +1,136 @@
 # Vanlige spørsmål og feilsøking
 
-Vanlige spørsmål og løsninger for OneUptime mobil- og skrivebordapper (PWA).
+Vanlige spørsmål og løsninger for OneUptime mobil- og skrivebordsapper.
 
-## Generelle spørsmål
+## Hvordan distribuerer OneUptime appene sine?
 
-### Hva er en Progressive Web App (PWA)?
+- **Mobil (iOS og Android):** OneUptime leverer en native app som heter **OneUptime On-Call**. Den er publisert i [Apple App Store](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391) og [Google Play](https://play.google.com/store/apps/details?id=com.oneuptime.oncall). En signert [APK-nedlasting](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk) er også tilgjengelig for Android-enheter uten Google Play.
+- **Skrivebord (Windows, macOS, Linux):** OneUptimes nettbaserte dashbord er en progressiv nettapp (PWA). Du kan installere det som en skrivebordsapplikasjon direkte fra en Chromium-basert nettleser eller Safari — ingen butikkonto kreves.
 
-En Progressive Web App er en nettapplikasjon som bruker moderne netteknologier for å levere app-liknende opplevelser. PWA-er kan installeres direkte fra nettlesere uten appbutikker, fungere frakoblet, sende push-varsler og integreres med enhetens operativsystem.
+## Vanlige spørsmål om mobilappen
 
-### Hvorfor bruker ikke OneUptime tradisjonelle appbutikker?
+### Hvilke enheter støttes?
 
-OneUptime bruker PWA-teknologi fordi det gir flere fordeler:
-- **Umiddelbare oppdateringer**: Ingen ventetid for godkjenning fra appbutikk eller manuelle oppdateringer
-- **Kryssplattform**: Én kodebase fungerer på alle enheter
-- **Ingen grenser for nedlastingsstørrelse**: Fulle funksjoner uten størrelsesbegrensninger
-- **Direkte distribusjon**: Installer direkte fra OneUptime-instansen din
-- **Alltid nyeste**: Brukere har alltid den nyeste versjonen
-- **Sikkerhet**: Samme sikkerhetsfordeler som nettapplikasjoner
+- **iOS:** iPhone eller iPad med iOS 15.0 eller nyere.
+- **Android:** Telefoner og nettbrett med Android 8.0 (Oreo) eller nyere.
 
+### Er appen gratis?
 
-### Hvor mye lagringsplass bruker OneUptime PWA?
+Ja. OneUptime On-Call-appen er gratis å installere. Du logger inn med din eksisterende OneUptime-konto.
 
-- **Første installasjon**: 10–20 MB
-- **Hurtigbuffervekst**: 50–100 MB ved regelmessig bruk
-- **Maksimal hurtigbuffer**: Vanligvis begrenset til 200 MB av nettlesere
-- **Automatisk opprydding**: Nettlesere administrerer lagring automatisk
+### Kan jeg bruke appen med en selvhostet OneUptime-instans?
 
-### Støtter OneUptime PWA push-varsler?
+Ja. Ved første oppstart spør appen om en **server-URL**. Skriv inn URL-en til din selvhostede instans (for eksempel `https://oneuptime.example.com`). Appen validerer at serveren er tilgjengelig før du kan logge inn.
 
-Ja, OneUptime PWA støtter rike push-varsler:
-- **Hendelsesvarsler**: Sanntidsvarsler for hendelser
-- **Statusoppdateringer**: Varsler om endringer i monitorstatus
-- **Egendefinerte utløsere**: Konfigurer varselregler
-- **Rikt innhold**: Bilder, handlinger og detaljert informasjon
-- **Badge-oppdateringer**: Antall uleste på app-ikonet
+For push-varsler på selvhostede instanser, følg [Push-varsler](/docs/self-hosted/push-notifications)-veiledningen.
 
-## Installasjonsspørsmål
+### Hvordan leveres oppdateringer?
 
-### Hvorfor ser jeg ikke "Installer"-knappen?
+- **iOS:** Gjennom App Store. Aktiver automatiske oppdateringer i **Innstillinger → App Store**, eller oppdater manuelt fra App Store-profilen din.
+- **Android (Google Play):** Automatiske oppdateringer er aktivert som standard.
+- **Android (APK-sideload):** Last ned og installer den nyeste APK-en fra GitHub Releases-lenken over.
 
-Vanlige årsaker og løsninger:
-1. **Nettleserkompatibilitet**: Bruk Chrome, Edge eller Safari
-2. **HTTPS påkrevd**: Sørg for at OneUptime-instansen bruker HTTPS
-3. **PWA-krav**: Server må oppfylle PWA-manifestkrav
-4. **Hurtigbufferproblemer**: Tøm nettleserens hurtigbuffer og last inn på nytt
-5. **Allerede installert**: Appen er kanskje allerede installert
-6. **Ventetid**: Noen nettlesere trenger 30+ sekunder på siden
+### Hvorfor mottar jeg ikke push-varsler?
 
-### Kan jeg installere på flere enheter?
+Mobil push-levering bruker APNs (iOS) og FCM (Android) via Expo Push. Kontroller følgende:
 
-Ja! Du kan installere OneUptime PWA på:
-- Ubegrensede enheter per bruker
-- Flere nettlesere på samme enhet
-- Ulike operativsystemer
-- Delte enheter (med separate kontoer)
+1. Varsler er aktivert på OS-nivå for **OneUptime On-Call**.
+2. Batterioptimalisering er deaktivert og bakgrunnsaktivitet er tillatt (Android).
+3. Ikke forstyrr- eller Fokus-modi er av, eller appen er på unntakslisten.
+4. Du er logget inn — push-tokenet registreres hos serveren først etter at du har logget inn.
+5. **Kun selvhostet:** Push-varsler er konfigurert på OneUptime-instansen din. Se [Push-varsler](/docs/self-hosted/push-notifications)-veiledningen.
 
-### Hvordan oppdaterer jeg den installerte appen?
+### Er dataene på telefonen min sikre?
 
-OneUptime PWA oppdateres automatisk:
-- **Automatiske oppdateringer**: Appen oppdateres når du besøker den mens du er tilkoblet
-- **Bakgrunnsoppdateringer**: Oppdateringer lastes ned i bakgrunnen
-- **Umiddelbar tilgjengelighet**: Nye funksjoner er tilgjengelige umiddelbart
-- **Ingen brukerhandling**: I motsetning til butikkapper kreves ingen manuelle oppdateringer
+- All API-trafikk bruker HTTPS.
+- Tilgangs- og fornyelsestokener lagres i enhetens sikre nøkkellager (Keychain på iOS, Keystore på Android).
+- Du kan kreve opplåsing med Face ID / Touch ID / fingeravtrykk fra **Innstillinger**-skjermen i appen.
 
-### Kan jeg tilpasse appnavnet under installasjonen?
+### Kan jeg installere appen på flere enheter?
 
-Ja, under installasjonen kan du:
-- Endre appnavnet (standard: "OneUptime")
-- Legge til organisasjonsnavnet
-- Bruke egendefinert navnekonvensjon
-- Endre ikonetikett (plattformavhengig)
+Ja. Logg inn med samme OneUptime-konto på så mange enheter du trenger. Hver enhet mottar sine egne push-varsler.
 
-### Hvordan avinstallerer jeg OneUptime PWA?
+### Hvordan avinstallerer jeg?
 
-Avinstallering varierer etter plattform:
+- **iOS:** Trykk og hold på ikonet → **Fjern app** → **Slett app**.
+- **Android:** Trykk og hold på ikonet → **Avinstaller**, eller **Innstillinger → Apper → OneUptime On-Call → Avinstaller**.
 
-**Android:**
-- Trykk og hold app-ikonet → Avinstaller
-- Innstillinger → Apper → OneUptime → Avinstaller
+OneUptime-kontoen og dataene dine lagres på serveren og fjernes ikke når du avinstallerer appen.
 
-**iOS:**
-- Trykk og hold app-ikonet → Fjern app → Slett app
+## Vanlige spørsmål om skrivebordsappen (PWA)
 
-**Windows:**
-- Innstillinger → Apper → OneUptime → Avinstaller
-- Høyreklikk Start-menyelement → Avinstaller
+### Hva er en progressiv nettapp (PWA)?
 
-**macOS:**
-- Dra fra Programmer til papirkurv
-- Høyreklikk Dock-ikonet → Fjern
+En progressiv nettapp er en nettapplikasjon som kan installeres som en native skrivebordsapp. Når den er installert, kjører den i sitt eget vindu, har sitt eget ikon i appstarteren din, og kan levere skrivebordsvarsler — uten å gå gjennom Windows Store, Mac App Store eller andre distribusjonskanaler.
 
-**Linux:**
-- Fjern fra applikasjonsstarter
-- Slett .desktop-fil
+### Hvorfor bruker skrivebordsappen PWA-teknologi?
 
+- **Umiddelbare oppdateringer** — appen holdes synkronisert med OneUptime-instansen din i det øyeblikket du distribuerer.
+- **Ingen butikkonto kreves** — installer direkte fra en hvilken som helst moderne nettleser.
+- **Felles kodebase** — det samme dashbordet kjører på Windows, macOS og Linux.
 
-## Spørsmål om varsler
+### Hvorfor vises ikke «Install»-knappen?
 
-### Hvorfor mottar jeg ikke varsler?
+1. Bruk en Chromium-basert nettleser (Chrome, Edge, Brave, Arc) eller Safari (macOS Sonoma+).
+2. Bekreft at OneUptime-instansen din leveres over HTTPS med et gyldig sertifikat.
+3. Tøm nettleserens hurtigbuffer og last inn på nytt.
+4. Appen kan allerede være installert — sjekk Programmer / Start-menyen.
 
-Vanlige varslingsproblemer og løsninger:
+### Hvordan oppdaterer jeg skrivebordsappen?
 
-**Sjekk tillatelser:**
-```
-1. Nettleserens varselstillatelser er aktivert
-2. Operativsystemets varselstillatelser
-3. OneUptime-varselinnstillinger konfigurert
-4. Modusen Ikke forstyrr er deaktivert
-```
+PWA-en oppdateres automatisk hver gang du åpner den mens du er tilkoblet. For å tvinge frem en oppdatering, last inn vinduet på nytt med **Ctrl+R** (Windows/Linux) eller **Cmd+R** (macOS).
 
-**Plattformspesifikt:**
-- **Android**: Sjekk batterioptimaliseringsinnstillinger
-- **iOS**: Bekreft varselinnstillinger i Innstillinger-appen
-- **Windows**: Sjekk Fokushjelp-innstillinger
-- **macOS**: Bekreft tillatelser i varselsenter
-- **Linux**: Sjekk status for varselsdemon
+### Hvordan avinstallerer jeg skrivebords-PWA-en?
 
-### Kan jeg tilpasse varselyder?
-
-Alternativer for varseltilpasning:
-- **Systemlyder**: Bruk OS-varsellydsinnstillinger
-- **Nettleserinnstillinger**: Konfigurer i nettleserens varselpreferanser
-- **OneUptime-innstillinger**: Angi varselpreferanser i dashbordet
-- **Prioritetsnivåer**: Konfigurer ulike lyder for alvorlighetsgrader
-
-### Hvordan deaktiverer jeg varsler midlertidig?
-
-Midlertidig deaktivering av varsler:
-- **Ikke forstyrr**: Aktiver system-DND-modus
-- **Nettleserinnstillinger**: Deaktiver stedsvarsler midlertidig
-- **OneUptime-dashbord**: Sett varsler på pause i innstillinger
-- **Fokusmodi**: Bruk OS-fokus/konsentrasjonsmodi
-
-## Sikkerhetsspørsmål
-
-### Er OneUptime PWA sikkert?
-
-Sikkerhetsfunksjoner og vurderinger:
-- **HTTPS-kryptering**: Alle data overføres sikkert
-- **Same-Origin-policy**: Nettlesersikkerhetsbegrensninger gjelder
-- **Sandkassemiljø**: Kjører i nettleserens sikkerhetssandkasse
-- **Regelmessige oppdateringer**: Sikkerhetsoppdateringer brukes automatisk
-- **Ingen root-tilgang**: Begrenset systemtilgang sammenlignet med innebygde apper
-
-
-*Merk: Sensitive data krypteres og følger nettlesersikkerhetsstandarder.*
-
-### Kan jeg bruke OneUptime PWA på bedriftsnettverk?
-
-Vurderinger for bedriftsnettverk:
-- **Brannmurregler**: Sørg for HTTPS-tilgang (port 443)
-- **Proxykonfigurasjon**: Konfigurer nettleserproxyinnstillinger
-- **Sertifitatillit**: Installer bedriftssertifikater om nødvendig
-- **VPN-tilgang**: Bruk VPN for ekstern tilgang
-- **Sikkerhetspolicyer**: Overhold IT-sikkerhetskrav
+- **Windows:** **Innstillinger → Apper → OneUptime → Avinstaller**, eller høyreklikk på Start-menyoppføringen.
+- **macOS:** Dra appen fra **Programmer** til papirkurven, eller høyreklikk på Dock-ikonet og velg **Fjern**.
+- **Linux:** Bruk avinstalleringsalternativet i appstarteren din, eller fjern den relevante `.desktop`-filen.
 
 ## Feilsøking
 
-### Installasjonsproblemer
+### Problemer med mobilappen
 
-**Problem**: Installasjonsknappen vises ikke
-```
-Løsninger:
-1. Vent 30+ sekunder på OneUptime-siden
-2. Oppdater siden og vent igjen
-3. Tøm nettleserens hurtigbuffer og informasjonskapsler
-4. Prøv en annen nettleser (Chrome/Edge anbefalt)
-5. Bekreft HTTPS-tilkobling (se etter hengelåsikon)
-6. Sjekk om allerede installert
-```
+**Appen logger ikke inn / «Nettverksfeil»:**
+- Bekreft at **server-URL** er korrekt og kan nås fra telefonen din.
+- Sjekk at telefonen er koblet til internett.
+- For selvhostede instanser bak en VPN, sørg for at VPN-en er aktiv.
 
-**Problem**: Installasjonen mislykkes eller krasjer
-```
-Løsninger:
-1. Sørg for tilstrekkelig lagringsplass (100 MB+)
-2. Lukk andre nettleserfaner og applikasjoner
-3. Oppdater nettleseren til nyeste versjon
-4. Deaktiver nettleserutvidelser midlertidig
-5. Prøv installasjon i privat/inkognitomodus
-6. Start nettleseren på nytt og prøv igjen
-```
+**Push-varsler er forsinket eller mangler (Android):**
+- Deaktiver batterioptimalisering: **Innstillinger → Apper → OneUptime On-Call → Batteri → Ubegrenset**.
+- Deaktiver Datasparing for appen.
+- På Samsung-enheter, slå av **Enhetspleie → Batteri → Grenser for bakgrunnsbruk** for OneUptime On-Call.
 
-**Problem**: Appen installeres men vises ikke
-```
-Løsninger:
-1. Sjekk alle app-startplasseringer
-2. Søk etter "OneUptime" i enhetsøket
-3. Se i nettleserens appbehandlingsseksjon
-4. Vent 1-2 minutter for at systemet skal oppdateres
-5. Start enheten på nytt og sjekk igjen
-```
+**Push-varsler er forsinket eller mangler (iOS):**
+- Unngå å tvinge appen til å avslutte — iOS kan stanse bakgrunnslevering.
+- Deaktiver Lavstrømmodus mens du er på vakt.
+- Legg OneUptime On-Call til på tillatelseslisten for en aktiv Fokus-modus.
 
-**Problem**: Appen krasjer hyppig
-```
-Løsninger:
-1. Oppdater nettleseren til nyeste versjon
-2. Tøm alle nettleserdata for OneUptime
-3. Deaktiver nettleserutvidelser
-4. Sjekk tilgjengelig lagringsplass
-5. Start operativsystemet på nytt
-6. Installer OneUptime PWA på nytt
-```
+**Face ID / Touch ID / fingeravtrykk fungerer ikke:**
+- Forsikre deg om at biometri er registrert i OS-innstillingene dine.
+- Aktiver biometrisk opplåsing på nytt fra **Innstillinger**-skjermen inne i OneUptime On-Call-appen.
 
-**Problem**: Push-varsler fungerer ikke
-```
-Løsninger:
-1. Sjekk varselstillatelser i nettleseren
-2. Bekreft systemvarselinnstillinger
-3. Test med enkelt varsel først
-4. Tøm varseldata og gi tillatelser på nytt
-5. Sjekk innstillinger for Ikke forstyrr/Fokus-modus
-6. Bekreft OneUptime-varselkonfigurasjon
-```
+### Problemer med skrivebordsappen (PWA)
 
-**Problem**: Appen synkroniserer ikke nyeste data
-```
-Løsninger:
-1. Dra ned for å oppdatere (mobil)
-2. Trykk Ctrl+F5 (Windows/Linux) eller Cmd+R (Mac)
-3. Lukk og åpne appen på nytt
-4. Tøm app-hurtigbuffer og last inn på nytt
-5. Sjekk nettverkstilkobling
-```
+**Installeringsknappen mangler:**
+- Bruk en støttet nettleser (Chromium-basert eller Safari på macOS Sonoma+).
+- Forsikre deg om at OneUptime-instansen leveres over HTTPS.
+- Vent til siden er ferdig lastet, og sjekk deretter adressefeltet for installeringsikonet.
 
-### Plattformspesifikke problemer
+**Skrivebordsvarsler vises ikke:**
+- Tillat varsler når nettleseren ber om det.
+- Sjekk OS-varselinnstillingene (Windows Focus Assist, macOS Varsler, varslingsdemon på Linux).
+- For selvhostede instanser, sørg for at konfigurasjonen for [Push-varsler](/docs/self-hosted/push-notifications) er fullført.
 
-**Android-problemer:**
-```
-Problem: Appen vises ikke i app-skuffen
-Løsning: Sjekk seksjonen "Nylig lagt til" apper, søk i app-skuffen
+**Appen viser ikke nyeste data:**
+- Last inn på nytt med **Ctrl+R** / **Cmd+R**.
+- Lukk og åpne vinduet på nytt.
+- Sjekk nettverkstilkoblingen din.
 
-Problem: Forsinkede varsler
-Løsning: Deaktiver batterioptimalisering for nettleserappen
+## Brukerstøtte
 
-Problem: Appen krasjer ved oppstart
-Løsning: Tøm Chrome app-data, start enheten på nytt
-```
+Hvis du fortsatt trenger hjelp:
 
-**iOS-problemer:**
-```
-Problem: Kan ikke legge til på startskjerm
-Løsning: Bruk Safari-nettleseren, sørg for iOS 11.3+
-
-Problem: App-ikonet mangler
-Løsning: Sjekk alle startskjermsider og App Library
-
-Problem: Face ID fungerer ikke
-Løsning: Aktiver Face ID for Safari i innstillingene
-```
-
-**Windows-problemer:**
-```
-Problem: Appen vises ikke i Start-menyen
-Løsning: Søk etter appnavn, sjekk listen over installerte apper
-
-Problem: Varsler vises ikke
-Løsning: Sjekk Windows-varselinnstillinger, aktiver for nettleser
-
-Problem: Problemer med vindusstørrelse
-Løsning: Endre størrelse manuelt, appen husker dimensjoner
-```
-
-**macOS-problemer:**
-```
-Problem: Kan ikke installere via Safari
-Løsning: Oppdater til macOS Sonoma+, bruk Fil → Legg til i Dock
-
-Problem: Appen er ikke i Programmer-mappen
-Løsning: Sjekk Launchpad, bruk Spotlight-søk
-
-Problem: Varsler fungerer ikke
-Løsning: Sjekk Systemvalg → Varsler
-```
-
-**Linux-problemer:**
-```
-Problem: PWA-installasjonalternativet mangler
-Løsning: Bruk Chrome/Chromium, sørg for støtte for skrivebordsmiljø
-
-Problem: Ikonet vises ikke i starteren
-Løsning: Oppdater skrivebordsdatabase, sjekk .desktop-filen
-
-Problem: Lydvarsler fungerer ikke
-Løsning: Sjekk PulseAudio, bekreft lydtillatelser i nettleseren
-```
-
-### Feilmeldinger
-
-**"This site cannot be installed"**
-```
-Årsaker:
-- OneUptime-instansen oppfyller ikke PWA-krav
-- Manglende eller ugyldig web app-manifest
-- HTTPS ikke riktig konfigurert
-- Nettleseren støtter ikke PWA-installasjon
-
-Løsninger:
-- Kontakt administrator for å bekrefte PWA-oppsett
-- Prøv en annen nettleser
-- Sjekk nettleserkonsoll for detaljerte feil
-```
+- Mobil: se installasjonsveiledningene for [iOS](./ios-installation.md) eller [Android](./android-installation.md).
+- Skrivebord: se installasjonsveiledningene for [Windows](./windows-installation.md), [macOS](./macos-installation.md) eller [Linux](./linux-installation.md).
+- Opprett en sak i [OneUptime GitHub-repositoriet](https://github.com/OneUptime/oneuptime).
+- Kontakt brukerstøtte gjennom OneUptime-dashbordet.

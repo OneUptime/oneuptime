@@ -267,6 +267,19 @@ RunCron(
             }),
           );
 
+        /*
+         * Pre-compute markdown conversions for the note once per public note.
+         * These values do not vary per status page or per subscriber, so
+         * memoizing here avoids N redundant markdown parses during fan-out.
+         */
+        const noteHtml: string = await Markdown.convertToHTML(
+          incidentPublicNote.note || "",
+          MarkdownContentType.Email,
+        );
+        const notePlainText: string = Markdown.convertToPlainText(
+          incidentPublicNote.note || "",
+        );
+
         let notificationSentToAtLeastOneSubscriber: boolean = false;
 
         for (const statuspage of statusPages) {
@@ -380,10 +393,13 @@ RunCron(
             note: incidentPublicNote.note || "",
           };
 
-          // Prepare SMS-specific template variables with plain text (no HTML/Markdown)
+          /*
+           * Prepare SMS-specific template variables with plain text (no HTML/Markdown).
+           * Uses the memoized plain-text conversion computed once per public note above.
+           */
           const smsTemplateVariables: Record<string, string> = {
             ...templateVariables,
-            note: Markdown.convertToPlainText(incidentPublicNote.note || ""),
+            note: notePlainText,
           };
 
           // Send email to Email subscribers.
@@ -548,10 +564,7 @@ RunCron(
                     templateType:
                       EmailTemplateType.SubscriberIncidentNoteCreated,
                     vars: {
-                      note: await Markdown.convertToHTML(
-                        incidentPublicNote.note!,
-                        MarkdownContentType.Email,
-                      ),
+                      note: noteHtml,
                       statusPageName: statusPageName,
                       statusPageUrl: statusPageURL,
                       detailsUrl: incidentDetailsUrl,

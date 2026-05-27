@@ -185,13 +185,17 @@ Afstemming:
 | `profiling.tracers` | `""` *(alle runtimes)* | Door komma's gescheiden lijst van taaltracers om te laden. |
 | `profiling.obiProcessContext` | `true` | Correleer samples met OBI's trace-context voor trace ↔ profile-koppeling. |
 
-## Overige dataverzameling (host-metrics, audit-logboeken, CSI, CoreDNS)
+## Overige dataverzameling (host-metrics, saturatie, cAdvisor, KSM, audit-logboeken, CSI, CoreDNS)
 
 De chart kan ook verzamelen:
 
 | `<key>.enabled` | Standaard | Wat het toevoegt |
 | --- | --- | --- |
 | `hostMetrics` | aan | OS-metrics per node uit `/proc` en `/sys` — schijf-I/O-wachtrijdiepte, gebruik van bestandssysteem-inodes, NIC-fouttellers, paging-statistieken, load average. Bevindt zich in de log-collector-DaemonSet (geen extra pods). |
+| `kubeletstats.utilizationMetrics` | aan | Saturatie-metrics — container- & pod-CPU/geheugen uitgedrukt als percentage van request en limit. Acht afgeleide metric-families die de "CPU/Memory vs Request"- en "CPU/Memory vs Limit"-monitors voeden. Dezelfde scrape als de bestaande `kubeletstats`-receiver, geen extra pods. Altijd 0 wanneer een pod geen request/limit ingesteld heeft. |
+| `kubeletstats.volumeMetrics` | aan | Schijfgebruik per PVC (`k8s.volume.available`, `k8s.volume.capacity`). Voedt de "PVC Low Disk Space"-monitor. Eén reeks per PVC per pod — begrensd voor de meeste clusters, zwaarder bij stateful workloads met duizenden PVC's. |
+| `cadvisor` | aan | Scrapet het `/metrics/cadvisor`-endpoint van de kubelet vanuit de DaemonSet-pod van elke node voor de container-metrics die `kubeletstats` niet vertaalt: CFS-throttling (`container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total`) en OOM kill-events (`container_oom_events_total`). Een relabel-allowlist dropt al het overige bij de receiver, zodat cardinaliteit begrensd blijft. |
+| `kubeStateMetrics` | uit | Haalt cluster-state-metrics op uit kube-state-metrics: pod-fases (Pending / Terminating), container-waiting-redenen (CrashLoopBackOff, ImagePullBackOff) en gebruik van resource quota. `mode: bundled` (standaard) deployt een kleine KSM-Deployment voor u; `mode: external` scrapet een bestaande KSM via `endpoint`. Standaard uit omdat de bundled-modus een Deployment toevoegt aan de footprint van de chart. |
 | `auditLogs` | uit | Lees `/var/log/kubernetes/audit.log` vanaf de host. Legt elk Kubernetes API-verzoek vast — wie wat met welke resource deed. Alleen zelf-beheerde clusters — beheerde K8s (EKS, GKE, AKS, DOKS) routeren audit-logboeken naar de sink van de cloudprovider. |
 | `csi` | uit | Detecteert automatisch pods gelabeld `app=csi-driver` (of `app.kubernetes.io/component=csi-driver`) en scrapet hun Prometheus `metrics`-poort — volume attach/detach-latentie, provisioning-fouten, IOPS. |
 | `coreDns` | uit | Scrapet de cluster-CoreDNS-service op `:9153/metrics`. Toont query-frequentie, latentie, cache-hitrate, fouttellingen — veelvoorkomende oorzaken van P99-latentie. |
@@ -212,6 +216,10 @@ De chart kan ook verzamelen:
 | `ebpf.enabled` | `true` | Leg automatisch HTTP/gRPC-traces vast vanuit elke pod via OpenTelemetry eBPF Instrumentation. Zie de sectie hierboven. |
 | `profiling.enabled` | `false` | Continue CPU-flame graphs via de OpenTelemetry eBPF Profiler. Standaard uit; schakel in voor meer telemetrie. Zie de sectie hierboven. |
 | `hostMetrics.enabled` | `true` | OS-metrics per node. |
+| `kubeletstats.utilizationMetrics.enabled` | `true` | Container- & pod-CPU/geheugen-saturatie (% van request en limit). Geen extra scrape — afgeleid van kubeletstats-data. |
+| `kubeletstats.volumeMetrics.enabled` | `true` | Schijfgebruik per PVC (`k8s.volume.available`, `k8s.volume.capacity`). |
+| `cadvisor.enabled` | `true` | Scrape de kubelet `/metrics/cadvisor` van deze node voor CFS-throttling- + OOM-kill-tellers. Allowlisted op 3 metrics. |
+| `kubeStateMetrics.enabled` | `false` | Haal pod-fases, container-waiting-redenen (CrashLoopBackOff / ImagePullBackOff) en ResourceQuota-gebruik op uit kube-state-metrics. Zie `kubeStateMetrics.mode` voor bundled vs external. |
 | `auditLogs.enabled` | `false` | Verzameling van Kubernetes audit-logboeken (zelf-beheerde clusters). |
 | `csi.enabled` | `false` | Prometheus-metrics van CSI-driver. |
 | `coreDns.enabled` | `false` | Prometheus-metrics van CoreDNS. |

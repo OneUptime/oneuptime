@@ -37,6 +37,9 @@ When a rule matches:
 - Every user and team listed on the rule is added as an owner.
 - If \`Inherit Owners From Monitors\` is on, every owner of the incident's monitors is also added.
 - If \`Inherit Owners From Hosts\` is on, every owner of the incident's affected hosts is also added.
+- If \`Inherit Owners From Kubernetes Clusters\` is on, every owner of the incident's affected Kubernetes clusters is also added.
+- If \`Inherit Owners From Docker Hosts\` is on, every owner of the incident's affected Docker hosts is also added.
+- If \`Inherit Owners From Services\` is on, every owner of the incident's affected services is also added.
 
 Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified. Multiple matching rules all fire — the union of their owners ends up assigned.
 `;
@@ -58,6 +61,9 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
       id="incident-owner-rules-table"
       name="Settings > Incident Owner Rules"
       userPreferencesKey="incident-owner-rules-table"
+      saveFilterProps={{
+        tableId: "incident-owner-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}
@@ -283,6 +289,33 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
           description:
             "Assign every owner of the incident's affected hosts as an owner of the incident.",
         },
+        {
+          field: { inheritOwnersFromKubernetesClusters: true },
+          title: "Inherit Owners From Kubernetes Clusters",
+          stepId: "owners",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          description:
+            "Assign every owner of the incident's affected Kubernetes clusters as an owner of the incident.",
+        },
+        {
+          field: { inheritOwnersFromDockerHosts: true },
+          title: "Inherit Owners From Docker Hosts",
+          stepId: "owners",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          description:
+            "Assign every owner of the incident's affected Docker hosts as an owner of the incident.",
+        },
+        {
+          field: { inheritOwnersFromServices: true },
+          title: "Inherit Owners From Services",
+          stepId: "owners",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          description:
+            "Assign every owner of the incident's affected services as an owner of the incident.",
+        },
       ]}
       showRefreshButton={true}
     />
@@ -296,6 +329,9 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
       id="incident-episode-owner-rules-table"
       name="Settings > Incident Episode Owner Rules"
       userPreferencesKey="incident-episode-owner-rules-table"
+      saveFilterProps={{
+        tableId: "incident-episode-owner-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

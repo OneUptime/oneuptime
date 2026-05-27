@@ -32,6 +32,11 @@ export interface ComponentProps<T extends GenericObject> {
   onNavigateToPage: (pageNumber: number, itemsOnPage: number) => void;
   currentPageNumber: number;
   totalItemsCount: number;
+  /*
+   * Optional. Forwarded to Pagination. When set, count is a lower
+   * bound and pagination switches to a prev/next-only UI.
+   */
+  hasMore?: boolean | undefined;
   itemsOnPage: number;
   error: string;
   isLoading: boolean;
@@ -334,6 +339,7 @@ const Table: TableFunction = <T extends GenericObject>(
               pluralLabel={translatedPluralLabel}
               currentPageNumber={props.currentPageNumber}
               totalItemsCount={props.totalItemsCount}
+              hasMore={props.hasMore}
               itemsOnPage={props.itemsOnPage}
               onNavigateToPage={props.onNavigateToPage}
               isLoading={props.isLoading}

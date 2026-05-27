@@ -3,6 +3,15 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import DockerHostOwnerTeam from "Common/Models/DatabaseModels/DockerHostOwnerTeam";
+import DockerHostOwnerUser from "Common/Models/DatabaseModels/DockerHostOwnerUser";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners, {
+  ResourceFacet,
+  buildEnumFacetQuery,
+} from "../../Components/ResourceOwners/useResourceOwners";
+import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
+import IconProp from "Common/Types/Icon/IconProp";
 import React, {
   Fragment,
   FunctionComponent,
@@ -12,6 +21,7 @@ import React, {
 } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -32,6 +42,48 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<DockerHost>({ modelType: DockerHost });
+
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<DockerHost>({
+      ownerUserModelType: DockerHostOwnerUser,
+      ownerTeamModelType: DockerHostOwnerTeam,
+      resourceIdField: "dockerHostId",
+    });
+
+  const dockerExtraFacets: Array<ResourceFacet> = [
+    {
+      key: "otelCollectorStatus",
+      label: "Status",
+      icon: IconProp.Wifi,
+      isMultiSelect: false,
+      options: [
+        { value: "connected", label: "Connected" },
+        { value: "disconnected", label: "Disconnected" },
+      ],
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildEnumFacetQuery(values, operator, false);
+      },
+    },
+  ];
+
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<DockerHost>({
+    ownerUserModelType: DockerHostOwnerUser,
+    ownerTeamModelType: DockerHostOwnerTeam,
+    resourceIdField: "dockerHostId",
+    showLabelsFacet: true,
+    extraFacets: dockerExtraFacets,
+  });
 
   const fetchHostCount: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -78,11 +130,18 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         modelType={DockerHost}
         id="docker-hosts-table"
         userPreferencesKey="docker-hosts-table"
+        topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery(undefined)}
+        onFetchSuccess={(data: Array<DockerHost>) => {
+          onResourcesFetched(data);
+        }}
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
         bulkActions={{
-          buttons: [...labelBulkActions],
+          buttons: [...labelBulkActions, ...ownerBulkActions],
         }}
         name="Docker Hosts"
         isViewable={true}
@@ -220,6 +279,22 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
             },
           },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: DockerHost): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
+            },
+          },
         ]}
         onViewPage={(item: DockerHost): Promise<Route> => {
           return Promise.resolve(
@@ -235,6 +310,7 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
       />
       {labelBulkActionModals}
+      {ownerBulkActionModals}
     </Fragment>
   );
 };

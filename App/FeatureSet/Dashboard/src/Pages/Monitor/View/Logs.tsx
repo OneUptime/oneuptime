@@ -119,12 +119,21 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   type GetMaxAttemptsFunction = (logBody: unknown) => number;
 
   /*
-   * A synthetic run can produce one SyntheticMonitorResponse per browser × screen-size.
-   * Each carries its own retry history, so we surface the highest attempt count.
-   * Falls back to 1 per response when totalAttempts is missing — historical log rows
-   * written before retry tracking was added don't carry the field.
+   * For probeable monitors (Website/API/Ping/etc), totalAttempts is recorded directly
+   * on the log body. Synthetic runs produce one SyntheticMonitorResponse per
+   * browser × screen-size, each with its own retry history, so we surface the
+   * highest attempt count across them. Historical log rows written before retry
+   * tracking was added return 0.
    */
   const getMaxAttempts: GetMaxAttemptsFunction = (logBody: unknown): number => {
+    const probeTotal: number | undefined = (
+      logBody as { totalAttempts?: number | undefined }
+    )?.totalAttempts;
+
+    if (typeof probeTotal === "number" && probeTotal > 0) {
+      return probeTotal;
+    }
+
     const responses: Array<SyntheticMonitorResponse> | undefined = (
       logBody as { syntheticMonitorResponse?: Array<SyntheticMonitorResponse> }
     )?.syntheticMonitorResponse;
@@ -252,10 +261,11 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
               ]
             : []),
           /*
-           * Synthetic monitors are the only type that retries today; column is
-           * hidden for other monitor types to avoid an always-empty column.
+           * Attempts column applies to any monitor type whose probe retries on
+           * failure or slow response. Probeable monitors store totalAttempts at
+           * the top level; synthetic runs nest it per browser × screen-size.
            */
-          ...(isSyntheticMonitor
+          ...(isProbableMonitor || isSyntheticMonitor
             ? [
                 {
                   field: {

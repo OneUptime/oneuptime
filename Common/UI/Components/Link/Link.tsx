@@ -35,9 +35,16 @@ const Link: FunctionComponent<ComponentProps> = (
 
   const linkProps: JSONObject = {};
 
+  /*
+   * Always set href when a destination is provided so the browser's native
+   * right-click "Open in new tab" and Cmd/Ctrl+click behaviors work.
+   */
+  if (props.to) {
+    linkProps["href"] = props.to.toString();
+  }
+
   if (props.openInNewTab) {
     linkProps["target"] = "_blank";
-    linkProps["href"] = props.to?.toString();
   }
 
   const cursorClassName: string = props.to
@@ -72,6 +79,11 @@ const Link: FunctionComponent<ComponentProps> = (
       onClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
         if (props.onClick) {
           props.onClick();
+        }
+
+        // Let the browser handle modifier-key clicks natively (open in new tab/window).
+        if (event.metaKey || event.ctrlKey || event.shiftKey) {
+          return;
         }
 
         if (props.openInNewTab) {

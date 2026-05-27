@@ -9,10 +9,12 @@ import SyntheticMonitorResponse from "../Monitor/SyntheticMonitors/SyntheticMoni
 import SnmpMonitorResponse from "../Monitor/SnmpMonitor/SnmpMonitorResponse";
 import DnsMonitorResponse from "../Monitor/DnsMonitor/DnsMonitorResponse";
 import DomainMonitorResponse from "../Monitor/DomainMonitor/DomainMonitorResponse";
+import DnssecMonitorResponse from "../Monitor/DnssecMonitor/DnssecMonitorResponse";
 import ExternalStatusPageMonitorResponse from "../Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
 import MonitorEvaluationSummary from "../Monitor/MonitorEvaluationSummary";
 import ObjectID from "../ObjectID";
 import Port from "../Port";
+import ProbeAttempt from "./ProbeAttempt";
 import RequestFailedDetails from "./RequestFailedDetails";
 
 export default interface ProbeMonitorResponse {
@@ -35,9 +37,12 @@ export default interface ProbeMonitorResponse {
   snmpResponse?: SnmpMonitorResponse | undefined;
   dnsResponse?: DnsMonitorResponse | undefined;
   domainResponse?: DomainMonitorResponse | undefined;
+  dnssecResponse?: DnssecMonitorResponse | undefined;
   externalStatusPageResponse?: ExternalStatusPageMonitorResponse | undefined;
   monitoredAt: Date;
   isTimeout?: boolean | undefined;
   ingestedAt?: Date | undefined;
   evaluationSummary?: MonitorEvaluationSummary | undefined;
+  probeAttempts?: Array<ProbeAttempt> | undefined;
+  totalAttempts?: number | undefined;
 }

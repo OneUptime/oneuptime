@@ -6,8 +6,9 @@ RUN npm config set fetch-retry-mintimeout 20000
 RUN npm config set fetch-retry-maxtimeout 60000
 
 
-# Install bash. 
-RUN apk add bash && apk add curl
+# Install runtime tools in a single layer with --no-cache so the apk index
+# data doesn't persist in the image.
+RUN apk add --no-cache bash curl
 
 
 ARG GIT_SHA
@@ -30,15 +31,14 @@ LABEL org.opencontainers.image.revision="${GIT_SHA}"
 LABEL org.opencontainers.image.version="${APP_VERSION}"
 
 
-# IF APP_VERSION is not set, set it to 1.0.0
-RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=1.0.0; fi
 
-RUN apk add bash
-
+WORKDIR /usr/src/app
 COPY ./Tests .
 
 RUN chmod -R +x Scripts
-# Set permission to write logs and cache in case container run as non root
-RUN chown -R 1000:1000 "/tmp/npm" && chmod -R 2777 "/tmp/npm"
+# Ensure runtime dirs are owned by the non-root `node` user (UID 1000) so the
+# container can run as non-root.
+RUN chown -R 1000:1000 /tmp/npm /usr/src/app && chmod -R 2777 /tmp/npm
+USER node
 
 CMD ["bash start.sh"]

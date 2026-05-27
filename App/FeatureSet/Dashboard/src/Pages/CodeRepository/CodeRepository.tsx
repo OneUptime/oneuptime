@@ -249,6 +249,9 @@ const CodeRepositoryPage: FunctionComponent<
         modelType={CodeRepository}
         id="code-repository-table"
         userPreferencesKey="code-repository-table"
+        saveFilterProps={{
+          tableId: "code-repository-table",
+        }}
         isDeleteable={false}
         isEditable={false}
         isCreateable={false}

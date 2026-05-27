@@ -5,7 +5,6 @@ import IncidentElement from "../../../Components/Incident/Incident";
 import AlertElement from "../../../Components/Alert/Alert";
 import UserElement from "../../../Components/User/User";
 import AppLink from "../../../Components/AppLink/AppLink";
-import OwnersCard from "./OwnersCard";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
@@ -473,8 +472,6 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
           </div>
         </div>
       </Card>
-
-      <OwnersCard runbookId={modelId} />
 
       {error && (
         <ConfirmModal

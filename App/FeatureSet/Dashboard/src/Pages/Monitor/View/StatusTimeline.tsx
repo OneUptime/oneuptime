@@ -45,6 +45,9 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
         id="table-monitor-status-timeline"
         name="Monitor > Status Timeline"
         userPreferencesKey="monitor-status-timeline-table"
+        saveFilterProps={{
+          tableId: "monitor-status-timeline-table",
+        }}
         isDeleteable={true}
         showViewIdButton={true}
         isCreateable={true}

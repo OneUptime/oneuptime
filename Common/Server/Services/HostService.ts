@@ -135,6 +135,7 @@ export class Service extends DatabaseService<Model> {
       containerRuntime?: string | undefined;
       dockerHostId?: ObjectID | undefined;
       kubernetesClusterId?: ObjectID | undefined;
+      agentVersion?: string | undefined;
     },
   ): Promise<void> {
     /*
@@ -204,6 +205,9 @@ export class Service extends DatabaseService<Model> {
     if (extra?.kubernetesClusterId) {
       data.kubernetesClusterId = extra.kubernetesClusterId;
     }
+    if (extra?.agentVersion) {
+      data.agentVersion = extra.agentVersion;
+    }
 
     await this.updateOneById({
       id: hostId,
@@ -227,6 +231,7 @@ export class Service extends DatabaseService<Model> {
     containerRuntime?: string | undefined;
     dockerHostId?: ObjectID | undefined;
     kubernetesClusterId?: ObjectID | undefined;
+    agentVersion?: string | undefined;
   }): string {
     const normalized: Record<string, string | number | null> = {
       osType: extra?.osType ?? null,
@@ -241,6 +246,7 @@ export class Service extends DatabaseService<Model> {
       containerRuntime: extra?.containerRuntime ?? null,
       dockerHostId: extra?.dockerHostId?.toString() ?? null,
       kubernetesClusterId: extra?.kubernetesClusterId?.toString() ?? null,
+      agentVersion: extra?.agentVersion ?? null,
     };
 
     return crypto

@@ -1,3 +1,4 @@
+import ProbeAttempt from "../../Probe/ProbeAttempt";
 import DnsRecordType from "./DnsRecordType";
 
 export interface DnsRecordResponse {
@@ -13,4 +14,6 @@ export default interface DnsMonitorResponse {
   records: Array<DnsRecordResponse>;
   isDnssecValid?: boolean | undefined;
   isTimeout?: boolean | undefined;
+  probeAttempts?: Array<ProbeAttempt> | undefined;
+  totalAttempts?: number | undefined;
 }

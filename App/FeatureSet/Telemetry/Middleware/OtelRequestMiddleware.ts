@@ -8,51 +8,20 @@ import {
   headerValueToString,
 } from "Common/Server/Utils/Express";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
-import protobuf from "protobufjs";
 import logger, {
   getLogAttributesFromRequest,
 } from "Common/Server/Utils/Logger";
-import path from "path";
-import zlib from "zlib";
-import { promisify } from "util";
-
-// Load proto file for OTel
-
-const PROTO_DIR: string = path.resolve(
-  __dirname,
-  "..",
-  "ProtoFiles",
-  "OTel",
-  "v1",
-);
-
-// Create a root namespace
-const LogsProto: protobuf.Root = protobuf.loadSync(
-  path.join(PROTO_DIR, "logs.proto"),
-);
-
-const TracesProto: protobuf.Root = protobuf.loadSync(
-  path.join(PROTO_DIR, "traces.proto"),
-);
-
-const MetricsProto: protobuf.Root = protobuf.loadSync(
-  path.join(PROTO_DIR, "metrics.proto"),
-);
-
-const ProfilesProto: protobuf.Root = protobuf.loadSync(
-  path.join(PROTO_DIR, "profiles.proto"),
-);
-
-// Lookup the message type
-const LogsData: protobuf.Type = LogsProto.lookupType("LogsData");
-const TracesData: protobuf.Type = TracesProto.lookupType("TracesData");
-const MetricsData: protobuf.Type = MetricsProto.lookupType("MetricsData");
-const ProfilesData: protobuf.Type = ProfilesProto.lookupType("ProfilesData");
-const gunzipAsync: (buffer: Uint8Array) => Promise<Buffer> = promisify(
-  zlib.gunzip,
-);
 
 export default class OpenTelemetryRequestMiddleware {
+  /*
+   * Read the OTel HTTP request body into a raw Buffer. We deliberately
+   * do NOT gunzip or decode protobuf here. Both operations are CPU-
+   * bound and used to block the Express event loop on every ingest
+   * request (large batches spent 50-150ms decoding before the 200 was
+   * sent). The handler now base64-encodes this raw buffer and queues
+   * it; the BullMQ worker performs gunzip + protobuf decode off the
+   * HTTP path.
+   */
   @CaptureSpan()
   public static async parseBody(
     req: ExpressRequest,
@@ -86,13 +55,7 @@ export default class OpenTelemetryRequestMiddleware {
         },
       );
 
-      const contentEncoding: string | undefined = headerValueToString(
-        req.headers["content-encoding"],
-      );
-
-      req.body = contentEncoding?.includes("gzip")
-        ? await gunzipAsync(new Uint8Array(requestBuffer))
-        : requestBuffer;
+      req.body = requestBuffer;
 
       next();
     } catch (err) {
@@ -100,6 +63,12 @@ export default class OpenTelemetryRequestMiddleware {
     }
   }
 
+  /*
+   * Identify the OTel signal type from the URL and stash format /
+   * encoding metadata on the request so the handler can forward it to
+   * the queue. No payload decoding happens here — that has moved to
+   * the worker.
+   */
   @CaptureSpan()
   public static async getProductType(
     req: ExpressRequest,
@@ -109,49 +78,27 @@ export default class OpenTelemetryRequestMiddleware {
     try {
       let productType: ProductType;
 
-      const contentType: string | undefined = headerValueToString(
-        req.headers["content-type"],
-      );
-      const isProtobuf: boolean =
-        req.body instanceof Uint8Array &&
-        (!contentType ||
-          contentType.includes("application/x-protobuf") ||
-          contentType.includes("application/protobuf"));
-
       if (req.url.includes("/otlp/v1/traces")) {
-        if (isProtobuf) {
-          req.body = TracesData.decode(req.body);
-        } else if (req.body instanceof Uint8Array) {
-          req.body = JSON.parse(Buffer.from(req.body).toString("utf-8"));
-        }
         productType = ProductType.Traces;
       } else if (req.url.includes("/otlp/v1/logs")) {
-        if (isProtobuf) {
-          req.body = LogsData.decode(req.body);
-        } else if (req.body instanceof Uint8Array) {
-          req.body = JSON.parse(Buffer.from(req.body).toString("utf-8"));
-        }
-
         productType = ProductType.Logs;
       } else if (req.url.includes("/otlp/v1/metrics")) {
-        if (isProtobuf) {
-          req.body = MetricsData.decode(req.body);
-        } else if (req.body instanceof Uint8Array) {
-          req.body = JSON.parse(Buffer.from(req.body).toString("utf-8"));
-        }
         productType = ProductType.Metrics;
       } else if (req.url.includes("/otlp/v1/profiles")) {
-        if (isProtobuf) {
-          req.body = ProfilesData.decode(req.body);
-        } else if (req.body instanceof Uint8Array) {
-          req.body = JSON.parse(Buffer.from(req.body).toString("utf-8"));
-        }
         productType = ProductType.Profiles;
       } else {
         throw new BadRequestException("Invalid URL: " + req.baseUrl);
       }
 
       (req as TelemetryRequest).productType = productType;
+
+      const contentType: string | undefined = headerValueToString(
+        req.headers["content-type"],
+      );
+      const isProtobuf: boolean =
+        !contentType ||
+        contentType.includes("application/x-protobuf") ||
+        contentType.includes("application/protobuf");
 
       logger.debug(
         "Product Type: " + productType,

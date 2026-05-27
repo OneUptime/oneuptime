@@ -293,6 +293,17 @@ RunCron(
           },
         );
 
+        /*
+         * Pre-compute markdown→HTML conversion for the postmortem note once
+         * per incident. This value does not vary per status page or per
+         * subscriber, so memoizing here avoids N redundant markdown parses
+         * during fan-out.
+         */
+        const postmortemNoteHtml: string = await Markdown.convertToHTML(
+          incident.postmortemNote || "",
+          MarkdownContentType.Email,
+        );
+
         for (const statuspage of statusPages) {
           try {
             if (!statuspage.id) {
@@ -537,10 +548,7 @@ RunCron(
                           incidentSeverity:
                             incident.incidentSeverity?.name || " - ",
                           incidentTitle: incident.title || "",
-                          postmortemNote: await Markdown.convertToHTML(
-                            incident.postmortemNote || "",
-                            MarkdownContentType.Email,
-                          ),
+                          postmortemNote: postmortemNoteHtml,
                           unsubscribeUrl: unsubscribeUrl,
 
                           subscriberEmailNotificationFooterText:

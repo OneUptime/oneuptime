@@ -4,6 +4,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Host from "Common/Models/DatabaseModels/Host";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -28,6 +29,10 @@ import Column from "Common/UI/Components/Table/Types/Column";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
+import Link from "Common/UI/Components/Link/Link";
+import Route from "Common/Types/API/Route";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 
 interface ProcessRow {
   key: string;
@@ -301,6 +306,20 @@ const HostProcesses: FunctionComponent<
   }, []);
 
   const tableColumns: Array<Column<ProcessRow>> = useMemo(() => {
+    const processViewRouteFor: (row: ProcessRow) => Route | null = (
+      row: ProcessRow,
+    ): Route | null => {
+      if (!row.pid) {
+        return null;
+      }
+      return RouteUtil.populateRouteParams(
+        RouteMap[PageMap.HOST_VIEW_PROCESS_VIEW] as Route,
+        {
+          modelId: modelId,
+          subModelId: row.pid,
+        },
+      );
+    };
     return [
       {
         title: "Process",
@@ -308,12 +327,23 @@ const HostProcesses: FunctionComponent<
         key: "executable",
         disableSort: true,
         getElement: (row: ProcessRow): ReactElement => {
+          const route: Route | null = processViewRouteFor(row);
+          const nameNode: ReactElement = route ? (
+            <Link
+              to={route}
+              className="text-sm font-medium text-indigo-600 hover:text-indigo-900 truncate"
+            >
+              {row.executable}
+            </Link>
+          ) : (
+            <span className="text-sm font-medium text-gray-900 truncate">
+              {row.executable}
+            </span>
+          );
           return (
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-900 truncate">
-                  {row.executable}
-                </span>
+                {nameNode}
                 {row.pid && (
                   <span className="text-[10px] font-mono text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">
                     pid {row.pid}
@@ -392,8 +422,28 @@ const HostProcesses: FunctionComponent<
           );
         },
       },
+      {
+        title: "",
+        type: FieldType.Element,
+        key: "key",
+        disableSort: true,
+        getElement: (row: ProcessRow): ReactElement => {
+          const route: Route | null = processViewRouteFor(row);
+          if (!route) {
+            return <Fragment />;
+          }
+          return (
+            <Link
+              to={route}
+              className="text-indigo-600 hover:text-indigo-900 font-medium"
+            >
+              View
+            </Link>
+          );
+        },
+      },
     ];
-  }, []);
+  }, [modelId]);
 
   const cardButtons: Array<CardButtonSchema> = [
     {

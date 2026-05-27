@@ -56,12 +56,11 @@ const ModelDetail: <TBaseModel extends BaseModel>(
   const getSelectFields: GetSelectFields = (): Select<TBaseModel> => {
     const select: Select<TBaseModel> = {};
     for (const field of props.fields) {
-      const keyofField: keyof TBaseModel | null = field.field
-        ? (Object.keys(field.field)[0] as string as keyof TBaseModel)
-        : null;
-
-      if (keyofField) {
-        select[keyofField] = true;
+      if (!field.field) {
+        continue;
+      }
+      for (const key of Object.keys(field.field)) {
+        select[key as keyof TBaseModel] = true;
       }
     }
 
@@ -85,21 +84,23 @@ const ModelDetail: <TBaseModel extends BaseModel>(
   const getRelationSelect: GetRelationSelectFunction =
     (): Select<TBaseModel> => {
       const relationSelect: Select<TBaseModel> = {};
+      const model: BaseModel = new props.modelType();
 
       for (const field of props.fields || []) {
-        const key: string | null = field.field
-          ? (Object.keys(field.field)[0] as string)
-          : null;
-
-        if (key && new props.modelType()?.isFileColumn(key)) {
-          (relationSelect as JSONObject)[key] = {
-            file: true,
-            _id: true,
-            fileType: true,
-            name: true,
-          };
-        } else if (key && new props.modelType()?.isEntityColumn(key)) {
-          (relationSelect as JSONObject)[key] = (field.field as any)[key];
+        if (!field.field) {
+          continue;
+        }
+        for (const key of Object.keys(field.field)) {
+          if (model.isFileColumn(key)) {
+            (relationSelect as JSONObject)[key] = {
+              file: true,
+              _id: true,
+              fileType: true,
+              name: true,
+            };
+          } else if (model.isEntityColumn(key)) {
+            (relationSelect as JSONObject)[key] = (field.field as any)[key];
+          }
         }
       }
 

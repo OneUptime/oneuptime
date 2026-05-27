@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 #
 # OneUptime-Probe Dockerfile
 #
@@ -65,7 +66,7 @@ WORKDIR /usr/src/Common
 COPY ./Common/package*.json /usr/src/Common/
 # Set version in ./Common/package.json to the APP_VERSION
 RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/Common/package.json
-RUN npm install
+RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 COPY ./Common /usr/src/Common
 
 
@@ -83,7 +84,7 @@ ENV PRODUCTION=true
 WORKDIR /usr/src/app
 # Install app dependencies first so local Playwright CLI is available
 COPY ./Probe/package*.json /usr/src/app/
-RUN npm install
+RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 
 # Install browsers to a fixed path accessible by any runtime user (root or non-root)
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright-browsers

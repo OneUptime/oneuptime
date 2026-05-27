@@ -184,6 +184,20 @@ export function getKubernetesBreadcrumbs(
       ["Project", "Kubernetes", "View Cluster", "Service Mesh"],
     ),
 
+    // Activity
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_INCIDENTS, [
+      "Project",
+      "Kubernetes",
+      "View Cluster",
+      "Incidents",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_ALERTS, [
+      "Project",
+      "Kubernetes",
+      "View Cluster",
+      "Alerts",
+    ]),
+
     // Advanced
     ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_DELETE, [
       "Project",

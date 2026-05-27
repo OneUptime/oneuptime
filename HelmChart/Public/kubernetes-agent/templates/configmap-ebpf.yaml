@@ -7,6 +7,13 @@
 #
 # OBI merges this YAML with the env vars at startup; env vars win on
 # conflict, so the toggles in values.yaml stay authoritative.
+#
+# The `services:` block below is rendered from `.Values.ebpf.logEnricher.services`
+# so users can narrow which processes get the in-process write() uprobe and
+# buffer rewrite. Defaults to `exe_path: "*"` (every process). See the
+# warning on `ebpf.logToTraceCorrelation` in values.yaml for why you would
+# want to scope it (LD_PRELOAD-based APM agents like Dynatrace conflict
+# with the log enricher and will crash with SIGSEGV).
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -18,10 +25,6 @@ data:
   obi-config.yaml: |
     ebpf:
       log_enricher:
-        # Enrich pod stdout writes from every process OBI auto-discovers.
-        # Selector must overlap with the discovery selector, which is "*"
-        # (set via OTEL_EBPF_AUTO_TARGET_EXE on the DaemonSet).
         services:
-          - service:
-              - exe_path: "*"
+{{ toYaml .Values.ebpf.logEnricher.services | indent 10 }}
 {{- end }}

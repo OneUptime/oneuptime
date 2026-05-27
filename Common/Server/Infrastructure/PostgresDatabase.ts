@@ -82,12 +82,9 @@ export default class Database {
 
   @CaptureSpan()
   public static async checkConnnectionStatus(): Promise<boolean> {
-    // check popstgres connection to see if it is still alive
-
+    // SELECT 1 round-trips a connection without scanning any user table.
     try {
-      const result: any = await this.dataSource?.query(
-        `SELECT COUNT(domain) FROM "AcmeChallenge"`,
-      ); // this is a dummy query to check if the connection is still alive
+      const result: any = await this.dataSource?.query(`SELECT 1`);
 
       if (!result) {
         return false;

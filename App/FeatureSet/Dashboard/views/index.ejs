@@ -112,18 +112,32 @@
   <link rel="mask-icon" href="/dashboard/assets/img/favicons/safari-pinned-tab.svg" color="#000000">
 
   <!-- Preload critical resources -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@100;200;300;400;500;600;700;800;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  
-  <!-- Fallback for preloaded stylesheets -->
-  <noscript>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  </noscript>
+  <link rel="preload" href="/dashboard/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/dashboard/assets/fonts/CourierPrime-Regular.woff2" as="font" type="font/woff2" crossorigin>
 
   <style>
+    @font-face {
+      font-family: 'Inter';
+      font-style: normal;
+      font-weight: 100 900;
+      font-display: swap;
+      src: url('/dashboard/assets/fonts/InterVariable.woff2') format('woff2') tech('variations'),
+           url('/dashboard/assets/fonts/InterVariable.woff2') format('woff2-variations');
+    }
+    @font-face {
+      font-family: 'Courier Prime';
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+      src: url('/dashboard/assets/fonts/CourierPrime-Regular.woff2') format('woff2');
+    }
+    @font-face {
+      font-family: 'Courier Prime';
+      font-style: normal;
+      font-weight: 700;
+      font-display: swap;
+      src: url('/dashboard/assets/fonts/CourierPrime-Bold.woff2') format('woff2');
+    }
     * {
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     }

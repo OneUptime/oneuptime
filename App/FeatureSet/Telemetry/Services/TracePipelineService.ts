@@ -12,17 +12,31 @@ import TracePipelineProcessorType, {
   SpanKindRemapperConfig,
   CategoryProcessorConfig,
 } from "Common/Types/Trace/TracePipelineProcessorType";
-import { evaluateFilter } from "../Utils/LogFilterEvaluator";
+import {
+  compileFilter,
+  CompiledFilter,
+  evaluateCompiledFilter,
+} from "../Utils/LogFilterEvaluator";
 import logger from "Common/Server/Utils/Logger";
 
 export interface LoadedTracePipeline {
   pipeline: TracePipeline;
+  /*
+   * Pre-compiled at cache load time so per-span evaluation
+   * doesn't re-tokenize / re-parse the filterQuery on every
+   * record. See LogFilterEvaluator.compileFilter.
+   */
+  compiledFilter: CompiledFilter;
   processors: Array<TracePipelineProcessor>;
 }
 
 interface CacheEntry {
   pipelines: Array<LoadedTracePipeline>;
   loadedAt: number;
+}
+
+interface CompiledCategoryConfig extends CategoryProcessorConfig {
+  _compiledCategoryFilters?: Array<CompiledFilter>;
 }
 
 const CACHE_TTL_MS: number = 60 * 1000; // 60 seconds
@@ -93,7 +107,11 @@ export class TracePipelineService {
           },
         });
 
-      loaded.push({ pipeline, processors });
+      loaded.push({
+        pipeline,
+        compiledFilter: compileFilter((pipeline.filterQuery as string) || ""),
+        processors,
+      });
     }
 
     pipelineCache.set(cacheKey, { pipelines: loaded, loadedAt: Date.now() });
@@ -106,9 +124,8 @@ export class TracePipelineService {
   ): JSONObject {
     let result: JSONObject = { ...spanRow };
 
-    for (const { pipeline, processors } of pipelines) {
-      const filterQuery: string = (pipeline.filterQuery as string) || "";
-      if (!evaluateFilter(result, filterQuery)) {
+    for (const { pipeline, compiledFilter, processors } of pipelines) {
+      if (!evaluateCompiledFilter(result, compiledFilter)) {
         continue;
       }
 
@@ -180,7 +197,7 @@ export class TracePipelineService {
       case TracePipelineProcessorType.CategoryProcessor:
         return TracePipelineService.applyCategoryProcessor(
           spanRow,
-          config as unknown as CategoryProcessorConfig,
+          config as unknown as CompiledCategoryConfig,
         );
       default:
         return spanRow;
@@ -300,10 +317,39 @@ export class TracePipelineService {
 
   private static applyCategoryProcessor(
     spanRow: JSONObject,
-    config: CategoryProcessorConfig,
+    config: CompiledCategoryConfig,
   ): JSONObject {
-    for (const category of config.categories || []) {
-      if (evaluateFilter(spanRow, category.filterQuery)) {
+    const categories: CategoryProcessorConfig["categories"] =
+      config.categories || [];
+    if (categories.length === 0) {
+      return spanRow;
+    }
+
+    /*
+     * Lazy-compile category filters on first hit. The pipeline
+     * cache holds this object for the 60s TTL window so we pay
+     * the compile cost at most once per category per window.
+     */
+    if (
+      !config._compiledCategoryFilters ||
+      config._compiledCategoryFilters.length !== categories.length
+    ) {
+      config._compiledCategoryFilters = categories.map(
+        (category: CategoryProcessorConfig["categories"][number]) => {
+          return compileFilter(category.filterQuery || "");
+        },
+      );
+    }
+
+    for (let i: number = 0; i < categories.length; i++) {
+      const category: CategoryProcessorConfig["categories"][number] =
+        categories[i]!;
+      const compiled: CompiledFilter | undefined =
+        config._compiledCategoryFilters[i];
+      if (!compiled) {
+        continue;
+      }
+      if (evaluateCompiledFilter(spanRow, compiled)) {
         const attrs: Record<string, unknown> = {
           ...((spanRow["attributes"] as Record<string, unknown>) || {}),
         };

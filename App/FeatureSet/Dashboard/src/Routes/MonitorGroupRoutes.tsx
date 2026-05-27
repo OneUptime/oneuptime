@@ -16,6 +16,7 @@ import MonitorGroupAlerts from "../Pages/MonitorGroup/View/Alerts";
 import MonitorGroupViewMonitors from "../Pages/MonitorGroup/View/Monitors";
 import MonitorGroupViewIncidents from "../Pages/MonitorGroup/View/Incidents";
 import MonitorGroupViewOwners from "../Pages/MonitorGroup/View/Owners";
+import MonitorGroupViewAuditLogs from "../Pages/MonitorGroup/View/AuditLogs";
 
 const MonitorGroupRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -97,6 +98,20 @@ const MonitorGroupRoutes: FunctionComponent<ComponentProps> = (
             <MonitorGroupViewOwners
               {...props}
               pageRoute={RouteMap[PageMap.MONITOR_GROUP_VIEW_OWNERS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.MONITOR_GROUP_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <MonitorGroupViewAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.MONITOR_GROUP_VIEW_AUDIT_LOGS] as Route
+              }
             />
           }
         />

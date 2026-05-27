@@ -1,174 +1,99 @@
 # Guia de Instalação para Android
 
-Instale o OneUptime como um aplicativo nativo no seu dispositivo Android para a melhor experiência de monitoramento.
+Instale o aplicativo nativo **OneUptime On-Call** para Android a partir da Google Play Store, ou faça o sideload do APK diretamente em dispositivos sem Google Play.
 
-## Métodos de Instalação
+## Requisitos
 
-### Método 1: Navegador Chrome (Recomendado)
+- Celular ou tablet Android com **Android 8.0 (Oreo) ou posterior**
+- Uma conta OneUptime ativa (ou o URL da sua instância auto-hospedada do OneUptime)
+- Conexão com a internet para fazer login e receber notificações push
 
-1. **Abrir o OneUptime no Chrome**
-   - Inicie o Google Chrome no seu dispositivo Android
-   - Navegue para a URL da sua instância do OneUptime
-   - Aguarde a página carregar completamente
+## Opção 1: Instalar pelo Google Play (Recomendado)
 
-2. **Prompt de Instalação**
-   - Procure o banner "Adicionar à Tela Inicial" na parte inferior
-   - Toque em "Instalar" ou "Adicionar à Tela Inicial"
-   - Se não ver o prompt, toque no menu de três pontos (⋮) no canto superior direito
+1. Abra a **Google Play Store** no seu dispositivo.
+2. Pesquise por **"OneUptime On-Call"**, ou abra este link no seu dispositivo:
+   [https://play.google.com/store/apps/details?id=com.oneuptime.oncall](https://play.google.com/store/apps/details?id=com.oneuptime.oncall)
+3. Toque em **Instalar**.
+4. Após a instalação, toque em **Abrir** ou inicie o **OneUptime On-Call** pela gaveta de aplicativos.
 
-3. **Instalação Manual via Menu**
-   - Toque no menu do Chrome (três pontos)
-   - Selecione "Adicionar à Tela Inicial" ou "Instalar Aplicativo"
-   - Personalize o nome do aplicativo se desejar
-   - Toque em "Adicionar" para confirmar
+## Opção 2: Instalar o APK Diretamente
 
-4. **Iniciar o Aplicativo**
-   - Encontre o ícone do OneUptime na sua tela inicial ou gaveta de aplicativos
-   - Toque para iniciar o aplicativo em modo de tela cheia
+Para dispositivos sem Google Play (por exemplo, GrapheneOS, /e/OS ou dispositivos Huawei), instale o APK oficial pelo GitHub Releases:
 
-### Método 2: Samsung Internet
+1. No seu dispositivo Android, abra este link:
+   [https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk)
+2. Quando solicitado, permita que o seu navegador instale aplicativos desconhecidos:
+   **Configurações → Apps → \[Seu navegador\] → Instalar apps desconhecidos → Permitir desta fonte**.
+3. Abra o APK baixado e toque em **Instalar**.
+4. Inicie o **OneUptime On-Call** pela gaveta de aplicativos.
 
-1. **Abrir o OneUptime**
-   - Inicie o navegador Samsung Internet
-   - Vá para a sua instância do OneUptime
-   - Aguarde o carregamento completo da página
+O APK é compilado e assinado pelo OneUptime a partir da mesma fonte da versão da Play Store. As atualizações do aplicativo não são automáticas quando feito sideload — baixe o APK mais recente pelo link acima sempre que uma nova versão for lançada.
 
-2. **Adicionar à Tela Inicial**
-   - Toque no botão de menu (três linhas)
-   - Selecione "Adicionar página a" → "Tela inicial"
-   - Insira o nome do aplicativo e toque em "Adicionar"
+## Primeira Execução e Login
 
-3. **Iniciar**
-   - Encontre o ícone do aplicativo na sua tela inicial
-   - Toque para abrir o OneUptime no modo de aplicativo
+1. **URL do Servidor**
+   - Se você usa o OneUptime Cloud, mantenha o padrão `https://oneuptime.com`.
+   - Se você é auto-hospedado, insira o URL da sua instância do OneUptime (ex.: `https://oneuptime.example.com`).
+   - O aplicativo verifica se o servidor está acessível antes de prosseguir.
+2. **Entrar**
+   - Insira o e-mail e a senha da sua conta OneUptime.
+   - Opcionalmente, habilite o **desbloqueio biométrico** (impressão digital) para desbloqueios mais rápidos em execuções posteriores.
+3. **Permitir Notificações**
+   - Quando solicitado, toque em **Permitir** para que o aplicativo possa entregar chamados de plantão, alertas de incidentes e confirmações.
 
-### Método 3: Firefox
+## Notificações Push
 
-1. **Abrir o OneUptime**
-   - Inicie o navegador Firefox
-   - Navegue para a sua URL do OneUptime
-   - Permita que a página carregue completamente
+As notificações push são entregues através do Firebase Cloud Messaging (FCM) via Expo Push. Para garantir que os chamados cheguem até você de forma confiável durante o plantão:
 
-2. **Instalar**
-   - Toque no menu de três pontos
-   - Selecione "Instalar" (se disponível)
-   - Ou selecione "Adicionar à Tela Inicial"
-   - Confirme a instalação
-
-### Opções de Personalização
-
-### Nome do Aplicativo
-- Durante a instalação, você pode personalizar o nome do aplicativo
-- Padrão: "OneUptime"
-- Recomendado: Mantenha como "OneUptime" ou adicione o nome da sua empresa
-
-### Configurações de Notificação
-1. **Conceder Permissões**
-   - Permita notificações quando solicitado
-   - Vá para Configurações → Aplicativos → OneUptime → Notificações
-   - Habilite todas as categorias de notificação para a melhor experiência
-
-2. **Personalizar Alertas**
-   - Configure quais incidentes acionam notificações
-   - Defina níveis de prioridade de notificação
-   - Escolha preferências de som e vibração
-
-## Solução de Problemas
-
-### Problemas de Instalação
-
-**"Adicionar à Tela Inicial" não aparecendo:**
-```
-1. Limpe o cache e os cookies do navegador
-2. Certifique-se de estar em HTTPS (conexão segura)
-3. Aguarde 2-3 minutos na página antes de procurar o prompt
-4. Verifique se os requisitos de PWA são atendidos na sua instância do OneUptime
-```
-
-**Instalação falha:**
-```
-1. Libere espaço de armazenamento (precisa de pelo menos 50MB)
-2. Atualize seu navegador para a versão mais recente
-3. Reinicie o navegador e tente novamente
-4. Tente um navegador diferente (Chrome recomendado)
-```
-
-**Ícone do aplicativo não aparece:**
-```
-1. Verifique a tela inicial e a gaveta de aplicativos
-2. Procure na seção "Adicionados recentemente" dos aplicativos
-3. Pesquise por "OneUptime" na gaveta de aplicativos
-4. Reinstale se necessário
-```
-
-### Problemas de Notificação
-
-**Não está recebendo notificações:**
-```
-1. Verifique as permissões de notificação:
-   - Configurações → Aplicativos → OneUptime → Permissões → Notificações
-2. Certifique-se de que as notificações estão habilitadas no painel do OneUptime
-3. Verifique as configurações de Não Perturbe
-4. Verifique se as configurações de otimização de bateria não bloqueiam o OneUptime
-```
-
-**Notificações atrasadas:**
-```
-1. Desabilite a otimização de bateria para o OneUptime:
-   - Configurações → Aplicativos → OneUptime → Bateria → Otimizar uso de bateria
-2. Permita atividade em segundo plano
-3. Verifique as configurações de economia de dados
-```
-
-## Desinstalação
-
-### Remover Aplicativo
-1. **Pressione e segure** o ícone do OneUptime na tela inicial
-2. Selecione **"Desinstalar"** ou arraste para a lixeira
-3. Confirme a remoção
-
-### Método Alternativo
-1. Vá para **Configurações → Aplicativos**
-2. Encontre **"OneUptime"**
-3. Toque em **"Desinstalar"**
-4. Confirme a remoção
-
-### Limpar Dados
-- Desinstalar remove todos os dados em cache
-- Os dados da sua conta no OneUptime permanecem seguros no servidor
-- A reinstalação exigirá novo login
-
-## Configuração Avançada
-
-### Opções do Desenvolvedor
-Para usuários avançados que desejam inspecionar o PWA:
-1. Habilite as Opções do Desenvolvedor no Android
-2. Conecte-se ao computador com ADB
-3. Use o Chrome DevTools para depuração remota
-
-### Configuração de Rede
-- Configure VPN se acessar a instância interna do OneUptime
-- Configure as configurações de proxy se exigido pela sua organização
-- Certifique-se de que o firewall permita recursos PWA
+1. Abra **Configurações → Apps → OneUptime On-Call → Notificações** e confirme que todas as categorias estão habilitadas.
+2. Abra **Configurações → Apps → OneUptime On-Call → Bateria** e escolha **Sem restrições** (ou desative a otimização de bateria) para que o sistema operacional não atrase as notificações em segundo plano.
+3. Permita que o aplicativo seja executado em segundo plano e desative quaisquer restrições do "Economia de Dados" para ele.
+4. Se você usa dispositivos Samsung, também desative **Configurações → Cuidado com o dispositivo → Bateria → Limites de uso em segundo plano** para o OneUptime On-Call.
+5. Adicione o OneUptime On-Call a quaisquer listas de exceção do **Do Not Disturb** (Não perturbar) para que os chamados continuem tocando durante seu turno de plantão.
 
 ## Atualizações
 
-O PWA do OneUptime é atualizado automaticamente:
-- **Atualizações Automáticas**: O aplicativo é atualizado quando você visita enquanto está online
-- **Sem Atualizações Manuais**: Ao contrário dos aplicativos de loja, nenhuma ação do usuário é necessária
-- **Atualizações Instantâneas**: Novos recursos disponíveis imediatamente
-- **Rollback Seguro**: Atualizações com problemas podem ser revertidas rapidamente
+**Google Play:**
+- As atualizações são instaladas automaticamente. Para acioná-las manualmente, abra **Play Store → Perfil → Gerenciar apps e dispositivo → Atualizações disponíveis → OneUptime On-Call → Atualizar**.
 
-## Melhores Práticas
+**Sideload do APK:**
+- Baixe novamente o APK mais recente a partir do link do GitHub Releases acima e instale sobre o aplicativo existente — seus dados, URL do servidor e login são preservados.
 
-### Para Desempenho Ideal
-1. **Primeiro Lançamento**: Sempre online para a configuração inicial
-2. **Uso Regular**: Abra o aplicativo regularmente para manter o cache atualizado
-3. **Gerenciamento de Armazenamento**: Mantenha espaço livre suficiente
-4. **Rede**: Use Wi-Fi para a instalação inicial e atualizações importantes
+## Desinstalação
 
-### Recomendações de Segurança
-1. **Somente HTTPS**: Instale apenas de instâncias seguras do OneUptime
-2. **URLs Oficiais**: Verifique se você está instalando da URL oficial do OneUptime da sua organização
-3. **Permissões**: Conceda apenas as permissões necessárias
-4. **Atualizações**: Mantenha seu Android OS e navegadores atualizados
+1. **Mantenha pressionado** o ícone do **OneUptime On-Call** e toque em **Desinstalar**.
+2. Ou abra **Configurações → Apps → OneUptime On-Call → Desinstalar**.
+3. Confirme para remover o aplicativo.
+
+Sua conta do OneUptime e as escalas de plantão são armazenadas no servidor e não são removidas ao desinstalar o aplicativo.
+
+## Solução de Problemas
+
+**"Erro de Rede" ao fazer login:**
+- Verifique se o **URL do Servidor** está correto e acessível a partir do seu dispositivo.
+- Se você está em uma rede corporativa ou VPN, certifique-se de que a instância do OneUptime está acessível.
+- Confirme que o servidor é servido via HTTPS com um certificado válido.
+
+**Não está recebendo notificações push:**
+- Confirme que as notificações estão habilitadas em **Configurações → Apps → OneUptime On-Call → Notificações**.
+- Desative a otimização de bateria para o OneUptime On-Call (veja Notificações Push acima).
+- Certifique-se de que o Do Not Disturb está desativado, ou que o OneUptime On-Call está na lista de exceções.
+- Saia da conta e entre novamente para atualizar o token de push registrado no servidor.
+- Usuários auto-hospedados: confirme que as notificações push estão configuradas na sua instância do OneUptime (consulte o guia de [Notificações Push](/docs/self-hosted/push-notifications) para auto-hospedagem).
+
+**Desbloqueio biométrico não funciona:**
+- Cadastre uma impressão digital em **Configurações → Segurança → Impressão digital**.
+- Reabilite o desbloqueio biométrico pela tela de **Configurações** dentro do aplicativo OneUptime On-Call.
+
+**Instalação do APK bloqueada:**
+- Você deve conceder ao navegador permissão para instalar aplicativos desconhecidos (veja a Opção 2 acima).
+- Algumas operadoras ou perfis corporativos de dispositivos bloqueiam o sideload por completo; nesse caso, use a versão da Google Play.
+
+**O aplicativo trava ao iniciar:**
+- Atualize para a versão mais recente pelo Google Play ou pelo APK mais recente.
+- Reinicie seu dispositivo.
+- Se o problema persistir, desinstale e reinstale, depois faça login novamente.
+
+## Suporte
+
+Se você ainda precisar de ajuda, entre em contato através do seu painel do OneUptime ou abra uma issue no nosso [repositório do GitHub](https://github.com/OneUptime/oneuptime).

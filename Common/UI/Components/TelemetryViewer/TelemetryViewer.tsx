@@ -70,6 +70,13 @@ export interface TelemetryViewerProps<T> {
   facetLoading?: boolean;
   onFacetInclude?: ((facetKey: string, value: string) => void) | undefined;
   onFacetExclude?: ((facetKey: string, value: string) => void) | undefined;
+  /*
+   * Called (debounced) when the user types in a server-searchable facet's
+   * search box. Parent typically updates state and refetches facetData.
+   */
+  onFacetSearchChange?:
+    | ((facetKey: string, searchText: string) => void)
+    | undefined;
 
   // -- Active filters --
   activeFilters?: Array<ActiveFilter> | undefined;
@@ -219,6 +226,7 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             onExcludeFilter={(key: string, value: string) => {
               props.onFacetExclude?.(key, value);
             }}
+            onFacetSearchChange={props.onFacetSearchChange}
           />
         )}
 

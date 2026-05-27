@@ -338,6 +338,23 @@ import { AddOnCallDutyPolicyScheduleOwners1778929624633 } from "./1778929624633-
 import { AddOnCallIncomingCallOwnersAndRules1778931537020 } from "./1778931537020-AddOnCallIncomingCallOwnersAndRules";
 import { IncreaseSmtpUsernameLength1779125489830 } from "./1779125489830-IncreaseSmtpUsernameLength";
 import { AddTelemetryRetentionConfig1779199346010 } from "./1779199346010-AddTelemetryRetentionConfig";
+import { DropServiceDependencyTable1779277271302 } from "./1779277271302-DropServiceDependencyTable";
+import { AddTelemetryRetentionToHostDockerKubernetes1779282769946 } from "./1779282769946-AddTelemetryRetentionToHostDockerKubernetes";
+import { AttachKubernetesAndDockerToIncidentAndAlert1779302536475 } from "./1779302536475-AttachKubernetesAndDockerToIncidentAndAlert";
+import { AttachServiceToIncidentAndAlert1779303924241 } from "./1779303924241-AttachServiceToIncidentAndAlert";
+import { AddAgentVersionToKubernetesDockerHost1779392865146 } from "./1779392865146-AddAgentVersionToKubernetesDockerHost";
+import { AddPerformanceIndexes1779392970424 } from "./1779392970424-AddPerformanceIndexes";
+import { AddFacetsToTableView1779536271671 } from "./1779536271671-AddFacetsToTableView";
+import { AddIsMemberNotifiedIndex1779540427366 } from "./1779540427366-AddIsMemberNotifiedIndex";
+import { AddDropdownOptionsToCustomFields1779619108628 } from "./1779619108628-AddDropdownOptionsToCustomFields";
+import { AddLabelInheritanceAndScheduledMaintenanceResources1779653508434 } from "./1779653508434-AddLabelInheritanceAndScheduledMaintenanceResources";
+import { AddAffectedResourcesToTemplates1779708719656 } from "./1779708719656-AddAffectedResourcesToTemplates";
+import { MigrationName1779739410559 } from "./1779739410559-MigrationName";
+import { AttachServiceToScheduledMaintenanceTemplatesAndLabelRules1779742211961 } from "./1779742211961-AttachServiceToScheduledMaintenanceTemplatesAndLabelRules";
+import { MigrationName1779790539196 } from "./1779790539196-MigrationName";
+import { ExpandOwnerRuleInheritFlags1779823516881 } from "./1779823516881-ExpandOwnerRuleInheritFlags";
+import { RenameStatusPageZhToZhCN1779827700000 } from "./1779827700000-RenameStatusPageZhToZhCN";
+import { DedupeTelemetryExceptionsAndAddUniqueIndex1779900000000 } from "./1779900000000-DedupeTelemetryExceptionsAndAddUniqueIndex";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -679,4 +696,21 @@ export default [
   AddOnCallIncomingCallOwnersAndRules1778931537020,
   IncreaseSmtpUsernameLength1779125489830,
   AddTelemetryRetentionConfig1779199346010,
+  DropServiceDependencyTable1779277271302,
+  AddTelemetryRetentionToHostDockerKubernetes1779282769946,
+  AttachKubernetesAndDockerToIncidentAndAlert1779302536475,
+  AttachServiceToIncidentAndAlert1779303924241,
+  AddAgentVersionToKubernetesDockerHost1779392865146,
+  AddPerformanceIndexes1779392970424,
+  AddFacetsToTableView1779536271671,
+  AddIsMemberNotifiedIndex1779540427366,
+  AddDropdownOptionsToCustomFields1779619108628,
+  AddLabelInheritanceAndScheduledMaintenanceResources1779653508434,
+  AddAffectedResourcesToTemplates1779708719656,
+  MigrationName1779739410559,
+  AttachServiceToScheduledMaintenanceTemplatesAndLabelRules1779742211961,
+  MigrationName1779790539196,
+  ExpandOwnerRuleInheritFlags1779823516881,
+  RenameStatusPageZhToZhCN1779827700000,
+  DedupeTelemetryExceptionsAndAddUniqueIndex1779900000000,
 ];

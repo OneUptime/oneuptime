@@ -175,6 +175,21 @@ RunCron(
       );
 
       try {
+        /*
+         * Pre-compute markdown conversions for announcement.description once
+         * per announcement. These values do not vary per status page or per
+         * subscriber, so memoizing here avoids N redundant markdown parses
+         * during fan-out (the HTML version was previously recomputed inside
+         * the per-subscriber loop).
+         */
+        const announcementDescriptionHtml: string =
+          await Markdown.convertToHTML(
+            announcement.description || "",
+            MarkdownContentType.Email,
+          );
+        const announcementDescriptionPlainText: string =
+          Markdown.convertToPlainText(announcement.description || "");
+
         let notificationSentToAtLeastOneSubscriber: boolean = false;
 
         for (const statuspage of statusPages) {
@@ -362,9 +377,7 @@ RunCron(
                       statusPageUrl: statusPageURL,
                       detailsUrl: announcementDetailsUrl,
                       announcementTitle: announcement.title || "",
-                      announcementDescription: Markdown.convertToPlainText(
-                        announcement.description || "",
-                      ),
+                      announcementDescription: announcementDescriptionPlainText,
                       unsubscribeUrl: unsubscribeUrl,
                     };
                     smsMessage =
@@ -506,13 +519,11 @@ RunCron(
                     `Queueing email notification to subscriber ${subscriber._id} at ${subscriber.subscriberEmail} for announcement ${announcement.id}.`,
                   );
 
-                  // Prepare email content - use custom template if available
-                  const announcementDescriptionHtml: string =
-                    await Markdown.convertToHTML(
-                      announcement.description || "",
-                      MarkdownContentType.Email,
-                    );
-
+                  /*
+                   * Prepare email content - use custom template if available.
+                   * announcementDescriptionHtml is memoized at the per-announcement
+                   * scope above; reusing it here.
+                   */
                   let emailSubject: string =
                     "[Announcement] " + announcement.title;
 

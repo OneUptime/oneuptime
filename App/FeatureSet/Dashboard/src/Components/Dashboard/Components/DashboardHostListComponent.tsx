@@ -53,6 +53,8 @@ const HONEYCOMB_LEGEND: Array<HoneycombLegendItem> = [
 const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
   "host.name": "name",
   "host.id": "hostIdentifier",
+  "resource.host.name": "name",
+  "resource.host.id": "hostIdentifier",
 };
 
 function formatBytes(bytes: number): string {

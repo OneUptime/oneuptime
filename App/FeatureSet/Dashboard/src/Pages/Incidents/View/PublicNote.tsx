@@ -184,6 +184,9 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
         id="table-incident-internal-note"
         name="Monitor > Public Note"
         userPreferencesKey="incident-public-note-table"
+        saveFilterProps={{
+          tableId: "incident-public-note-table",
+        }}
         isDeleteable={true}
         showCreateForm={Object.keys(initialValuesForIncident).length > 0}
         createInitialValues={initialValuesForIncident}

@@ -9,6 +9,8 @@ import {
   ClickhouseTlsCert,
   ClickhouseTlsKey,
   ClickhouseUsername,
+  MaxClickhouseConnections,
+  MaxClickhouseIngestConnections,
   ShouldClickhouseSslEnable,
 } from "../EnvironmentConfig";
 import Hostname from "../../Types/API/Hostname";
@@ -35,6 +37,13 @@ const options: ClickHouseClientConfigOptions = {
    * aggregation statements provides the hard server-side cap.
    */
   request_timeout: 58_000,
+  /*
+   * @clickhouse/client defaults max_open_connections to 10. Sized for the
+   * query pool (dashboard reads, DDL); ingest writes use a separate pool
+   * (see ingestDataSourceOptions) so a burst of inserts cannot starve
+   * user-facing queries of HTTP sockets.
+   */
+  max_open_connections: MaxClickhouseConnections,
 };
 
 if (ShouldClickhouseSslEnable && ClickhouseTlsCa) {
@@ -57,6 +66,11 @@ if (
 }
 
 export const dataSourceOptions: ClickHouseClientConfigOptions = options;
+
+export const ingestDataSourceOptions: ClickHouseClientConfigOptions = {
+  ...options,
+  max_open_connections: MaxClickhouseIngestConnections,
+};
 
 export const testDataSourceOptions: ClickHouseClientConfigOptions =
   dataSourceOptions;

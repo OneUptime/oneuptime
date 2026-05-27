@@ -107,6 +107,8 @@ import IncidentEpisodeViewRemediation from "../Pages/Incidents/EpisodeView/Remed
 
 import IncidentEpisodeViewOwners from "../Pages/Incidents/EpisodeView/Owners";
 
+import IncidentEpisodeViewAuditLogs from "../Pages/Incidents/EpisodeView/AuditLogs";
+
 import IncidentEpisodeViewStateTimeline from "../Pages/Incidents/EpisodeView/StateTimeline";
 
 import IncidentEpisodeViewIncidents from "../Pages/Incidents/EpisodeView/Incidents";
@@ -674,6 +676,20 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.INCIDENT_EPISODE_VIEW_SETTINGS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.INCIDENT_EPISODE_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <IncidentEpisodeViewAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENT_EPISODE_VIEW_AUDIT_LOGS] as Route
               }
             />
           }

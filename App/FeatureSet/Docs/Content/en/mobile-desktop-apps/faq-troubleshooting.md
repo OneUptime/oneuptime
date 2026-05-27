@@ -1,302 +1,136 @@
 # FAQ and Troubleshooting
 
-Frequently asked questions and solutions for OneUptime Mobile and Desktop Apps (PWA).
+Frequently asked questions and solutions for the OneUptime mobile and desktop apps.
 
-## General FAQ
+## How does OneUptime distribute its apps?
+
+- **Mobile (iOS and Android):** OneUptime ships a native app called **OneUptime On-Call**. It is published to the [Apple App Store](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391) and [Google Play](https://play.google.com/store/apps/details?id=com.oneuptime.oncall). A signed [APK download](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk) is also available for Android devices without Google Play.
+- **Desktop (Windows, macOS, Linux):** The OneUptime web dashboard is a Progressive Web App (PWA). You can install it as a desktop application directly from a Chromium-based browser or Safari — no store account required.
+
+## Mobile App FAQ
+
+### Which devices are supported?
+
+- **iOS:** iPhone or iPad running iOS 15.0 or later.
+- **Android:** Phones and tablets running Android 8.0 (Oreo) or later.
+
+### Is the app free?
+
+Yes. The OneUptime On-Call app is free to install. You sign in with your existing OneUptime account.
+
+### Can I use the app with a self-hosted OneUptime instance?
+
+Yes. On first launch, the app asks for a **Server URL**. Enter the URL of your self-hosted instance (for example, `https://oneuptime.example.com`). The app validates that the server is reachable before letting you sign in.
+
+For push notifications on self-hosted instances, follow the [Push Notifications](/docs/self-hosted/push-notifications) guide.
+
+### How are updates delivered?
+
+- **iOS:** Through the App Store. Enable automatic updates in **Settings → App Store**, or update manually from your App Store profile.
+- **Android (Google Play):** Automatic updates are enabled by default.
+- **Android (APK sideload):** Download and install the latest APK from the GitHub Releases link above.
+
+### Why don't I receive push notifications?
+
+Mobile push uses APNs (iOS) and FCM (Android) via Expo Push. Check the following:
+
+1. Notifications are enabled at the OS level for **OneUptime On-Call**.
+2. Battery optimisation is disabled and background activity is allowed (Android).
+3. Do Not Disturb or Focus modes are off, or the app is on the exception list.
+4. You are signed in — the push token is registered with the server only after you sign in.
+5. **Self-hosted only:** Push notifications are configured on your OneUptime instance. See the [Push Notifications](/docs/self-hosted/push-notifications) guide.
+
+### Is the data on my phone secure?
+
+- All API traffic uses HTTPS.
+- Access and refresh tokens are stored in the device's secure keystore (Keychain on iOS, Keystore on Android).
+- You can require Face ID / Touch ID / fingerprint unlock from the in-app **Settings** screen.
+
+### Can I install the app on multiple devices?
+
+Yes. Sign in with the same OneUptime account on as many devices as you need. Each device receives its own push notifications.
+
+### How do I uninstall?
+
+- **iOS:** Long-press the icon → **Remove App** → **Delete App**.
+- **Android:** Long-press the icon → **Uninstall**, or **Settings → Apps → OneUptime On-Call → Uninstall**.
+
+Your OneUptime account and data are stored on the server and are not removed when you uninstall the app.
+
+## Desktop App (PWA) FAQ
 
 ### What is a Progressive Web App (PWA)?
 
-A Progressive Web App is a web application that uses modern web technologies to deliver app-like experiences. PWAs can be installed directly from browsers without app stores, work offline, send push notifications, and integrate with your device's operating system.
+A Progressive Web App is a web application that can be installed like a native desktop app. Once installed, it runs in its own window, has its own icon in your launcher, and can deliver desktop notifications — without going through Windows Store, Mac App Store, or any other distribution channel.
 
-### Why doesn't OneUptime use traditional app stores?
+### Why does the desktop app use PWA technology?
 
-OneUptime uses PWA technology because it offers several advantages:
-- **Instant Updates**: No waiting for app store approval or manual updates
-- **Cross-Platform**: Single codebase works on all devices
-- **No Download Size Limits**: Full features without size restrictions
-- **Direct Distribution**: Install directly from your OneUptime instance
-- **Always Latest**: Users always have the newest version
-- **Security**: Same security benefits as web applications
+- **Instant updates** — the app stays in sync with your OneUptime instance the moment you deploy.
+- **No store account required** — install directly from any modern browser.
+- **Single codebase** — the same dashboard runs on Windows, macOS, and Linux.
 
+### Why isn't the "Install" button appearing?
 
-### How much storage does OneUptime PWA use?
+1. Use a Chromium-based browser (Chrome, Edge, Brave, Arc) or Safari (macOS Sonoma+).
+2. Confirm your OneUptime instance is served over HTTPS with a valid certificate.
+3. Clear your browser cache and reload.
+4. The app may already be installed — check your Applications / Start Menu.
 
-- **Initial Installation**: 10-20MB
-- **Cache Growth**: 50-100MB with regular use
-- **Maximum Cache**: Typically limited to 200MB by browsers
-- **Auto-Cleanup**: Browsers automatically manage storage
+### How do I update the desktop app?
 
-### Does OneUptime PWA support push notifications?
+The PWA updates automatically whenever you open it while online. To force an update, refresh the window with **Ctrl+R** (Windows/Linux) or **Cmd+R** (macOS).
 
-Yes, OneUptime PWA supports rich push notifications:
-- **Incident Alerts**: Real-time incident notifications
-- **Status Updates**: Monitor status change alerts
-- **Custom Triggers**: Configure notification rules
-- **Rich Content**: Images, actions, and detailed information
-- **Badge Updates**: Unread count on app icon
+### How do I uninstall the desktop PWA?
 
-## Installation FAQ
-
-### Why don't I see the "Install" button?
-
-Common reasons and solutions:
-1. **Browser Compatibility**: Use Chrome, Edge, or Safari
-2. **HTTPS Required**: Ensure OneUptime instance uses HTTPS
-3. **PWA Requirements**: Server must meet PWA manifest requirements
-4. **Cache Issues**: Clear browser cache and reload
-5. **Already Installed**: App may already be installed
-6. **Wait Time**: Some browsers need 30+ seconds on page
-
-### Can I install on multiple devices?
-
-Yes! You can install OneUptime PWA on:
-- Unlimited devices per user
-- Multiple browsers on same device
-- Different operating systems
-- Shared/family devices (with separate accounts)
-
-### How do I update the installed app?
-
-OneUptime PWA updates automatically:
-- **Automatic Updates**: App updates when you visit while online
-- **Background Updates**: Updates download in background
-- **Immediate Availability**: New features available instantly
-- **No User Action**: Unlike store apps, no manual updates needed
-
-### Can I customize the app name during installation?
-
-Yes, during installation you can:
-- Change the app name (default: "OneUptime")
-- Add your organization name
-- Use custom naming convention
-- Modify icon label (platform dependent)
-
-### How do I uninstall OneUptime PWA?
-
-Uninstallation varies by platform:
-
-**Android:**
-- Long press app icon → Uninstall
-- Settings → Apps → OneUptime → Uninstall
-
-**iOS:**
-- Long press app icon → Remove App → Delete App
-
-**Windows:**
-- Settings → Apps → OneUptime → Uninstall
-- Right-click Start Menu item → Uninstall
-
-**macOS:**
-- Drag from Applications to Trash
-- Right-click Dock icon → Remove
-
-**Linux:**
-- Remove from application launcher
-- Delete .desktop file
-
-
-## Notification FAQ
-
-### Why am I not receiving notifications?
-
-Common notification issues and fixes:
-
-**Check Permissions:**
-```
-1. Browser notification permissions enabled
-2. Operating system notification permissions
-3. OneUptime notification settings configured
-4. Do Not Disturb mode disabled
-```
-
-**Platform-Specific:**
-- **Android**: Check battery optimization settings
-- **iOS**: Verify notification settings in Settings app
-- **Windows**: Check Focus Assist settings
-- **macOS**: Verify notification center permissions
-- **Linux**: Check notification daemon status
-
-### Can I customize notification sounds?
-
-Notification customization options:
-- **System Sounds**: Use OS notification sound settings
-- **Browser Settings**: Configure in browser notification preferences
-- **OneUptime Settings**: Set notification preferences in dashboard
-- **Priority Levels**: Configure different sounds for severity levels
-
-### How do I disable notifications temporarily?
-
-Temporary notification disable:
-- **Do Not Disturb**: Enable system DND mode
-- **Browser Settings**: Disable site notifications temporarily
-- **OneUptime Dashboard**: Pause notifications in settings
-- **Focus Modes**: Use OS focus/concentration modes
-
-## Security FAQ
-
-### Is OneUptime PWA secure?
-
-Security features and considerations:
-- **HTTPS Encryption**: All data transmitted securely
-- **Same-Origin Policy**: Browser security restrictions apply
-- **Sandboxed Environment**: Runs in browser security sandbox
-- **Regular Updates**: Security patches applied automatically
-- **No Root Access**: Limited system access compared to native apps
-
-
-*Note: Sensitive data is encrypted and follows browser security standards.*
-
-### Can I use OneUptime PWA on corporate networks?
-
-Corporate network considerations:
-- **Firewall Rules**: Ensure HTTPS (port 443) access
-- **Proxy Configuration**: Configure browser proxy settings
-- **Certificate Trust**: Install corporate certificates if needed
-- **VPN Access**: Use VPN for remote access
-- **Security Policies**: Comply with IT security requirements
+- **Windows:** **Settings → Apps → OneUptime → Uninstall**, or right-click the Start Menu entry.
+- **macOS:** Drag the app from **Applications** to the Trash, or right-click the Dock icon and choose **Remove**.
+- **Linux:** Use your application launcher's uninstall option, or remove the relevant `.desktop` file.
 
 ## Troubleshooting
 
-### Installation Problems
+### Mobile App Issues
 
-**Problem**: Installation button doesn't appear
-```
-Solutions:
-1. Wait 30+ seconds on the OneUptime page
-2. Refresh the page and wait again
-3. Clear browser cache and cookies
-4. Try different browser (Chrome/Edge recommended)
-5. Verify HTTPS connection (check for lock icon)
-6. Check if already installed
-```
+**App won't sign in / "Network Error":**
+- Confirm the **Server URL** is correct and reachable from your phone.
+- Check that your phone is connected to the internet.
+- For self-hosted instances behind a VPN, ensure the VPN is active.
 
-**Problem**: Installation fails or crashes
-```
-Solutions:
-1. Ensure sufficient storage space (100MB+)
-2. Close other browser tabs and applications
-3. Update browser to latest version
-4. Disable browser extensions temporarily
-5. Try installation in private/incognito mode
-6. Restart browser and try again
-```
+**Push notifications delayed or missing (Android):**
+- Disable battery optimisation: **Settings → Apps → OneUptime On-Call → Battery → Unrestricted**.
+- Disable Data Saver for the app.
+- On Samsung devices, turn off **Device care → Battery → Background usage limits** for OneUptime On-Call.
 
-**Problem**: App installs but doesn't appear
-```
-Solutions:
-1. Check all app launcher locations
-2. Search for "OneUptime" in device search
-3. Look in browser's app management section
-4. Wait 1-2 minutes for system to refresh
-5. Restart device and check again
-```
+**Push notifications delayed or missing (iOS):**
+- Avoid Force-Quitting the app — iOS may pause background delivery.
+- Disable Low Power Mode while you are on-call.
+- Add OneUptime On-Call to any active Focus mode's allow list.
 
-**Problem**: App crashes frequently
-```
-Solutions:
-1. Update browser to latest version
-2. Clear all browser data for OneUptime
-3. Disable browser extensions
-4. Check available storage space
-5. Restart operating system
-6. Reinstall OneUptime PWA
-```
+**Face ID / Touch ID / fingerprint not working:**
+- Make sure biometrics are enrolled in your OS settings.
+- Re-enable biometric unlock from the **Settings** screen inside the OneUptime On-Call app.
 
-**Problem**: Push notifications not working
-```
-Solutions:
-1. Check notification permissions in browser
-2. Verify system notification settings
-3. Test with simple notification first
-4. Clear notification data and re-grant permissions
-5. Check Do Not Disturb/Focus mode settings
-6. Verify OneUptime notification configuration
-```
+### Desktop App (PWA) Issues
 
-**Problem**: App doesn't sync latest data
-```
-Solutions:
-1. Pull down to refresh (mobile)
-2. Press Ctrl+F5 (Windows/Linux) or Cmd+R (Mac)
-3. Close and reopen the app
-4. Clear app cache and reload
-5. Check network connectivity
-```
+**Install button missing:**
+- Use a supported browser (Chromium-based or Safari on macOS Sonoma+).
+- Ensure the OneUptime instance is served over HTTPS.
+- Wait for the page to finish loading, then check the address bar for the install icon.
 
-### Platform-Specific Issues
+**Desktop notifications not appearing:**
+- Allow notifications when the browser prompts you.
+- Check OS notification settings (Windows Focus Assist, macOS Notifications, Linux notification daemon).
+- For self-hosted instances, ensure the [Push Notifications](/docs/self-hosted/push-notifications) configuration is complete.
 
-**Android Issues:**
-```
-Problem: App not appearing in app drawer
-Solution: Check "Recently added" apps section, search in app drawer
+**App not showing latest data:**
+- Refresh with **Ctrl+R** / **Cmd+R**.
+- Close and reopen the window.
+- Check your network connection.
 
-Problem: Notifications delayed
-Solution: Disable battery optimization for browser app
+## Support
 
-Problem: App crashes on startup
-Solution: Clear Chrome app data, restart device
-```
+If you still need help:
 
-**iOS Issues:**
-```
-Problem: Can't add to home screen
-Solution: Use Safari browser, ensure iOS 11.3+
-
-Problem: App icon missing
-Solution: Check all home screen pages and App Library
-
-Problem: Face ID not working
-Solution: Enable Face ID for Safari in settings
-```
-
-**Windows Issues:**
-```
-Problem: App doesn't appear in Start Menu
-Solution: Search for app name, check installed apps list
-
-Problem: Notifications not showing
-Solution: Check Windows notification settings, enable for browser
-
-Problem: Window sizing issues
-Solution: Manually resize, app will remember dimensions
-```
-
-**macOS Issues:**
-```
-Problem: Can't install via Safari
-Solution: Update to macOS Sonoma+, use File → Add to Dock
-
-Problem: App not in Applications folder
-Solution: Check Launchpad, use Spotlight search
-
-Problem: Notifications not working
-Solution: Check System Preferences → Notifications
-```
-
-**Linux Issues:**
-```
-Problem: PWA install option missing
-Solution: Use Chrome/Chromium, ensure desktop environment support
-
-Problem: Icon not appearing in launcher
-Solution: Update desktop database, check .desktop file
-
-Problem: Audio notifications not working
-Solution: Check PulseAudio, verify browser audio permissions
-```
-
-### Error Messages
-
-**"This site cannot be installed"**
-```
-Causes:
-- OneUptime instance doesn't meet PWA requirements
-- Missing or invalid web app manifest
-- HTTPS not properly configured
-- Browser doesn't support PWA installation
-
-Solutions:
-- Contact administrator to verify PWA setup
-- Try different browser
-- Check browser console for detailed errors
-```
+- Mobile: see the [iOS](./ios-installation.md) or [Android](./android-installation.md) installation guides.
+- Desktop: see the [Windows](./windows-installation.md), [macOS](./macos-installation.md), or [Linux](./linux-installation.md) installation guides.
+- Open an issue on the [OneUptime GitHub repository](https://github.com/OneUptime/oneuptime).
+- Contact support through your OneUptime dashboard.

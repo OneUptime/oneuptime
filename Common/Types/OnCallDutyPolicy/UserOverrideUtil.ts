@@ -27,22 +27,49 @@ export const OVERRIDE_META_KEY: string = "_override";
 
 export default class UserOverrideUtil {
   /**
-   * Returns true when this override should be applied on top of the schedule
-   * events. Global overrides always apply; policy-scoped overrides apply to
-   * any schedule, since a schedule's calendar shows coverage information for
-   * every user who could potentially be paged through it.
+   * Decides whether an override should affect resolution for a given policy
+   * context. Global overrides (no policy id) always apply. Policy-scoped
+   * overrides only apply when their policy matches the caller's policy.
+   * When the caller has no policy context, only global overrides apply.
    */
-  public static isOverrideApplicable(_override: UserOverrideRecord): boolean {
-    return true;
+  public static isOverrideApplicable(
+    override: UserOverrideRecord,
+    currentOnCallDutyPolicyId?: string | null | undefined,
+  ): boolean {
+    if (!override.onCallDutyPolicyId) {
+      return true;
+    }
+
+    if (!currentOnCallDutyPolicyId) {
+      return false;
+    }
+
+    return override.onCallDutyPolicyId === currentOnCallDutyPolicyId;
   }
 
   public static applyOverridesToEvents(data: {
     events: Array<CalendarEvent>;
     overrides: Array<UserOverrideRecord>;
+    currentOnCallDutyPolicyId?: string | null | undefined;
   }): Array<CalendarEvent> {
-    const applicable: Array<UserOverrideRecord> = data.overrides.filter(
-      UserOverrideUtil.isOverrideApplicable,
-    );
+    const applicable: Array<UserOverrideRecord> = data.overrides
+      .filter((o: UserOverrideRecord) => {
+        return UserOverrideUtil.isOverrideApplicable(
+          o,
+          data.currentOnCallDutyPolicyId,
+        );
+      })
+      /*
+       * Apply policy-specific overrides before globals so that when both
+       * target the same user/window, the policy-specific substitution wins.
+       * splitEventByOverride only matches on the original user id, so the
+       * first override that consumes a segment claims it.
+       */
+      .sort((a: UserOverrideRecord, b: UserOverrideRecord) => {
+        const aPolicyScoped: number = a.onCallDutyPolicyId ? 0 : 1;
+        const bPolicyScoped: number = b.onCallDutyPolicyId ? 0 : 1;
+        return aPolicyScoped - bPolicyScoped;
+      });
 
     if (applicable.length === 0) {
       return data.events;

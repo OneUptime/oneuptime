@@ -1,13 +1,19 @@
 import AlertEpisode from "./AlertEpisode";
 import AlertSeverity from "./AlertSeverity";
 import AlertState from "./AlertState";
+import DockerHost from "./DockerHost";
+import DockerResource from "./DockerResource";
 import Host from "./Host";
+import KubernetesCluster from "./KubernetesCluster";
+import KubernetesContainer from "./KubernetesContainer";
+import KubernetesResource from "./KubernetesResource";
 import Label from "./Label";
 import Monitor from "./Monitor";
 import MonitorStatus from "./MonitorStatus";
 import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import Probe from "./Probe";
 import Project from "./Project";
+import Service from "./Service";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -108,6 +114,7 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
     delete: true,
   },
 })
+@Index(["projectId", "currentAlertStateId"]) // Active-alert counters on dashboard
 export default class Alert extends BaseModel {
   @ColumnAccessControl({
     create: [
@@ -478,6 +485,7 @@ export default class Alert extends BaseModel {
       Permission.EditAlert,
     ],
   })
+  @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "Monitor ID",
@@ -597,6 +605,332 @@ export default class Alert extends BaseModel {
     },
   })
   public hosts?: Array<Host> = undefined; // hosts affected by this alert.
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: KubernetesCluster,
+    title: "Kubernetes Clusters",
+    description: "List of Kubernetes clusters affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return KubernetesCluster;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertKubernetesCluster",
+    inverseJoinColumn: {
+      name: "kubernetesClusterId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public kubernetesClusters?: Array<KubernetesCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: KubernetesResource,
+    title: "Kubernetes Resources",
+    description:
+      "List of Kubernetes resources (pods, deployments, nodes, etc.) affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return KubernetesResource;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertKubernetesResource",
+    inverseJoinColumn: {
+      name: "kubernetesResourceId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public kubernetesResources?: Array<KubernetesResource> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: KubernetesContainer,
+    title: "Kubernetes Containers",
+    description: "List of Kubernetes containers affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return KubernetesContainer;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertKubernetesContainer",
+    inverseJoinColumn: {
+      name: "kubernetesContainerId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public kubernetesContainers?: Array<KubernetesContainer> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: DockerHost,
+    title: "Docker Hosts",
+    description: "List of Docker hosts affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return DockerHost;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertDockerHost",
+    inverseJoinColumn: {
+      name: "dockerHostId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public dockerHosts?: Array<DockerHost> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: DockerResource,
+    title: "Docker Resources",
+    description:
+      "List of Docker resources (containers, images, networks, volumes) affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return DockerResource;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertDockerResource",
+    inverseJoinColumn: {
+      name: "dockerResourceId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public dockerResources?: Array<DockerResource> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Service,
+    title: "Services",
+    description: "List of services affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return Service;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertService",
+    inverseJoinColumn: {
+      name: "serviceId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public services?: Array<Service> = undefined;
 
   @ColumnAccessControl({
     create: [

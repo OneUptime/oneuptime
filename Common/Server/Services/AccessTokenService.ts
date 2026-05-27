@@ -199,7 +199,7 @@ export class AccessTokenService extends BaseService {
 
     await GlobalCache.setJSON(
       PermissionNamespace.ProjectPermission,
-      userId.toString() + projectId.toString(),
+      UserPermissionUtil.buildTenantPermissionCacheKey(userId, projectId),
       permission,
     );
 

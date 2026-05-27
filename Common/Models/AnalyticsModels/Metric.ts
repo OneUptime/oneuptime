@@ -12,6 +12,7 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import Service from "../DatabaseModels/Service";
+import ServiceType from "../../Types/Telemetry/ServiceType";
 
 export enum AggregationTemporality {
   Delta = "Delta",
@@ -24,13 +25,6 @@ export enum MetricPointType {
   Histogram = "Histogram",
   ExponentialHistogram = "ExponentialHistogram",
   Summary = "Summary",
-}
-
-export enum ServiceType {
-  OpenTelemetry = "OpenTelemetry",
-  Monitor = "Monitor",
-  Alert = "Alert",
-  Incident = "Incident",
 }
 
 @OperationalResource()
@@ -49,6 +43,7 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -78,6 +73,7 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -113,6 +109,7 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -148,6 +145,7 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -177,6 +175,7 @@ export default class Metric extends AnalyticsBaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.Viewer,
             Permission.TelemetryAdmin,
             Permission.TelemetryMember,
             Permission.TelemetryViewer,
@@ -212,6 +211,7 @@ export default class Metric extends AnalyticsBaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.Viewer,
             Permission.TelemetryAdmin,
             Permission.TelemetryMember,
             Permission.TelemetryViewer,
@@ -241,6 +241,7 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -269,6 +270,7 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -298,6 +300,7 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -327,6 +330,7 @@ export default class Metric extends AnalyticsBaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.Viewer,
             Permission.TelemetryAdmin,
             Permission.TelemetryMember,
             Permission.TelemetryViewer,
@@ -356,6 +360,7 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -391,6 +396,7 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -419,6 +425,7 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -447,6 +454,7 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -475,6 +483,7 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -503,6 +512,7 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -531,6 +541,7 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -559,6 +570,7 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -588,6 +600,7 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -619,6 +632,7 @@ export default class Metric extends AnalyticsBaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.Viewer,
             Permission.TelemetryAdmin,
             Permission.TelemetryMember,
             Permission.TelemetryViewer,
@@ -655,6 +669,7 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -684,6 +699,7 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -714,6 +730,7 @@ export default class Metric extends AnalyticsBaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.Viewer,
             Permission.TelemetryAdmin,
             Permission.TelemetryMember,
             Permission.TelemetryViewer,
@@ -746,6 +763,7 @@ export default class Metric extends AnalyticsBaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.Viewer,
             Permission.TelemetryAdmin,
             Permission.TelemetryMember,
             Permission.TelemetryViewer,
@@ -776,6 +794,7 @@ export default class Metric extends AnalyticsBaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.Viewer,
             Permission.TelemetryAdmin,
             Permission.TelemetryMember,
             Permission.TelemetryViewer,
@@ -808,6 +827,7 @@ export default class Metric extends AnalyticsBaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.Viewer,
             Permission.TelemetryAdmin,
             Permission.TelemetryMember,
             Permission.TelemetryViewer,
@@ -846,6 +866,7 @@ export default class Metric extends AnalyticsBaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.Viewer,
             Permission.TelemetryAdmin,
             Permission.TelemetryMember,
             Permission.TelemetryViewer,
@@ -876,6 +897,7 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -911,6 +933,7 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -946,6 +969,7 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -984,6 +1008,7 @@ export default class Metric extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
@@ -1052,6 +1077,16 @@ export default class Metric extends AnalyticsBaseModel {
       primaryKeys: ["projectId", "name", "serviceId", "time"],
       partitionKey: "sipHash64(projectId) % 16",
       ttlExpression: "retentionDate DELETE",
+      /*
+       * `time` is the 4th column of the Metric sort key (after
+       * projectId + name + serviceId). A list query that filters
+       * by name (the typical "metric detail" drilldown) can still
+       * stream from the index when sorting by `time DESC`. With
+       * no name filter the sort is less efficient but still far
+       * better than the legacy `createdAt DESC` fallback, which
+       * isn't in the sort key at all.
+       */
+      defaultSortColumn: "time",
     });
   }
 

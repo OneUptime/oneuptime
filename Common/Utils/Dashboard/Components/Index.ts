@@ -11,7 +11,6 @@ import DashboardDockerNetworkListComponentUtil from "./DashboardDockerNetworkLis
 import DashboardDockerVolumeListComponentUtil from "./DashboardDockerVolumeListComponent";
 import DashboardGaugeComponentUtil from "./DashboardGaugeComponent";
 import DashboardHostListComponentUtil from "./DashboardHostListComponent";
-import DashboardHostMetricChartComponentUtil from "./DashboardHostMetricChartComponent";
 import DashboardIncidentListComponentUtil from "./DashboardIncidentListComponent";
 import DashboardKubernetesCronJobListComponentUtil from "./DashboardKubernetesCronJobListComponent";
 import DashboardKubernetesDaemonSetListComponentUtil from "./DashboardKubernetesDaemonSetListComponent";
@@ -183,12 +182,6 @@ export default class DashboardComponentsUtil {
 
     if (dashboardComponentType === DashboardComponentType.HostList) {
       return DashboardHostListComponentUtil.getComponentConfigArguments() as Array<
-        ComponentArgument<DashboardBaseComponent>
-      >;
-    }
-
-    if (dashboardComponentType === DashboardComponentType.HostMetricChart) {
-      return DashboardHostMetricChartComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }

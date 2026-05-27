@@ -162,6 +162,9 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
         createInitialValues={initialValuesForIncident}
         name="Monitor > Internal Note"
         userPreferencesKey="incident-internal-note-table"
+        saveFilterProps={{
+          tableId: "incident-internal-note-table",
+        }}
         isDeleteable={true}
         showViewIdButton={true}
         isCreateable={true}

@@ -6,6 +6,14 @@ usage() {
 	cat <<'EOF'
 Usage: build_docker_images.sh --image <name> --version <version> --dockerfile <path> [options]
 
+Builds the image twice — once as community (IS_ENTERPRISE_EDITION=false), once
+as enterprise (IS_ENTERPRISE_EDITION=true) — and pushes each under its own tag
+set. Both variants share a single GHA cache scope so the enterprise pass is
+mostly a cache hit: BuildKit reuses any RUN/COPY layer whose effective inputs
+are unchanged, and downstream RUN steps in our Dockerfiles don't read
+$IS_ENTERPRISE_EDITION, so only the ENV/LABEL metadata differs between the two
+final images.
+
 Required flags:
 	--image <name>        Image name without registry prefix (example: mcp)
 	--version <version>   Version/tag string appended to the generated tags
@@ -17,8 +25,8 @@ Optional flags:
 	                      When a single platform is given, tags are suffixed with the arch
 	                      (e.g. -amd64 or -arm64) so parallel builds don't overwrite each other.
 	--git-sha <sha>       Commit SHA used for the GIT_SHA build arg (default: detected via git)
-	--extra-tags <tag>    Additional tags for the community image (can be repeated)
-	--extra-enterprise-tags <tag>  Additional tags for the enterprise image (can be repeated)
+	--extra-tags <tag>    Additional tag (no version) for the community image (can be repeated)
+	--extra-enterprise-tags <tag>  Additional tag (no version) for the enterprise image (can be repeated)
 EOF
 }
 
@@ -99,47 +107,48 @@ if [[ "$PLATFORMS" != *","* ]]; then
 	ARCH_SUFFIX="-${PLATFORMS#*/}"
 fi
 
+SANITIZED_VERSION="${VERSION//+/-}"
+
+# Single GHA cache scope per (image, arch). Community and enterprise share it
+# so the second variant's build is mostly cache hits.
+#
+# Requires ACTIONS_RUNTIME_TOKEN + ACTIONS_CACHE_URL to be exposed to the
+# step running this script. The workflow accomplishes that with
+# `crazy-max/ghaction-github-runtime@v3` immediately after
+# `docker/setup-buildx-action`.
+CACHE_SCOPE="${IMAGE}${ARCH_SUFFIX}"
+
 build_variant() {
-	local variant_prefix="$1"       # "" or "enterprise-"
-	local enterprise_flag="$2"      # false/true
-	local -n extra_tags_ref="$3"    # Array reference with extra tag suffixes
-	local sanitized_version
-	sanitized_version="${VERSION//+/-}"
+	local variant_prefix="$1"       # "" for community, "enterprise-" for enterprise
+	local enterprise_flag="$2"      # "false" or "true" — baked into ENV IS_ENTERPRISE_EDITION
+	shift 2
+	local extras=("$@")             # Remaining args are extra tag suffixes
 
-	local cache_scope="${IMAGE}-${variant_prefix:-community}"
-
-	local -a args
-	args=(
-		docker buildx build
-		--file "$DOCKERFILE"
-		--platform "$PLATFORMS"
-		--push
-		--cache-from "type=registry,ref=ghcr.io/oneuptime/${IMAGE}:cache-${cache_scope}"
-		--cache-to "type=registry,ref=ghcr.io/oneuptime/${IMAGE}:cache-${cache_scope},mode=max"
+	local -a tag_args
+	tag_args=(
+		--tag "oneuptime/${IMAGE}:${variant_prefix}${SANITIZED_VERSION}${ARCH_SUFFIX}"
+		--tag "ghcr.io/oneuptime/${IMAGE}:${variant_prefix}${SANITIZED_VERSION}${ARCH_SUFFIX}"
 	)
-
-	args+=(
-		--tag "oneuptime/${IMAGE}:${variant_prefix}${sanitized_version}${ARCH_SUFFIX}"
-		--tag "ghcr.io/oneuptime/${IMAGE}:${variant_prefix}${sanitized_version}${ARCH_SUFFIX}"
-	)
-
-	for tag_suffix in "${extra_tags_ref[@]}"; do
-		args+=(--tag "oneuptime/${IMAGE}:${tag_suffix}${ARCH_SUFFIX}")
-		args+=(--tag "ghcr.io/oneuptime/${IMAGE}:${tag_suffix}${ARCH_SUFFIX}")
+	for tag_suffix in "${extras[@]+"${extras[@]}"}"; do
+		tag_args+=(--tag "oneuptime/${IMAGE}:${tag_suffix}${ARCH_SUFFIX}")
+		tag_args+=(--tag "ghcr.io/oneuptime/${IMAGE}:${tag_suffix}${ARCH_SUFFIX}")
 	done
 
-	args+=(
-		--build-arg "GIT_SHA=${GIT_SHA}"
-		--build-arg "APP_VERSION=${VERSION}"
-		--build-arg "IS_ENTERPRISE_EDITION=${enterprise_flag}"
+	docker buildx build \
+		--file "$DOCKERFILE" \
+		--platform "$PLATFORMS" \
+		--push \
+		--cache-from "type=gha,scope=${CACHE_SCOPE}" \
+		--cache-to "type=gha,mode=max,scope=${CACHE_SCOPE}" \
+		"${tag_args[@]}" \
+		--build-arg "GIT_SHA=${GIT_SHA}" \
+		--build-arg "APP_VERSION=${VERSION}" \
+		--build-arg "IS_ENTERPRISE_EDITION=${enterprise_flag}" \
 		"$CONTEXT"
-	)
-
-	"${args[@]}"
 }
 
 echo "🚀 Building docker images for ${IMAGE} (${VERSION}) [${PLATFORMS}]"
-build_variant "" false EXTRA_TAGS
-echo "✅ Pushed community image for ${IMAGE}:${VERSION}${ARCH_SUFFIX}"
-build_variant "enterprise-" true EXTRA_ENTERPRISE_TAGS
-echo "✅ Pushed enterprise image for ${IMAGE}:enterprise-${VERSION}${ARCH_SUFFIX}"
+build_variant "" "false" "${EXTRA_TAGS[@]+"${EXTRA_TAGS[@]}"}"
+echo "✅ Pushed community image for ${IMAGE}:${SANITIZED_VERSION}${ARCH_SUFFIX}"
+build_variant "enterprise-" "true" "${EXTRA_ENTERPRISE_TAGS[@]+"${EXTRA_ENTERPRISE_TAGS[@]}"}"
+echo "✅ Pushed enterprise image for ${IMAGE}:enterprise-${SANITIZED_VERSION}${ARCH_SUFFIX}"

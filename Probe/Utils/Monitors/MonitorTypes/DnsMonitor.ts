@@ -1,6 +1,7 @@
 import OnlineCheck from "../../OnlineCheck";
 import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
+import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import Sleep from "Common/Types/Sleep";
 import MonitorStepDnsMonitor from "Common/Types/Monitor/MonitorStepDnsMonitor";
 import DnsMonitorResponse, {
@@ -16,6 +17,7 @@ export interface DnsQueryOptions {
   currentRetryCount?: number | undefined;
   monitorId?: ObjectID | undefined;
   isOnlineCheckRequest?: boolean | undefined;
+  attempts?: Array<ProbeAttempt> | undefined;
 }
 
 export default class DnsMonitorUtil {
@@ -31,11 +33,16 @@ export default class DnsMonitorUtil {
       options.currentRetryCount = 1;
     }
 
+    if (!options.attempts) {
+      options.attempts = [];
+    }
+
     logger.debug(
       `DNS Query: ${options?.monitorId?.toString()} ${config.queryName} ${config.recordType} - Retry: ${options?.currentRetryCount}`,
     );
 
     const startTime: [number, number] = process.hrtime();
+    const attemptedAt: Date = new Date();
 
     try {
       const resolver: dns.promises.Resolver = new dns.promises.Resolver({
@@ -81,12 +88,23 @@ export default class DnsMonitorUtil {
         `DNS Query success: ${options?.monitorId?.toString()} ${config.queryName} ${config.recordType} - Response Time: ${responseTimeInMs}ms`,
       );
 
+      const responseReceivedAt: Date = new Date();
+      options.attempts.push({
+        attemptNumber: options.currentRetryCount,
+        attemptedAt,
+        responseReceivedAt,
+        responseTimeInMs,
+        isOnline: true,
+      });
+
       return {
         isOnline: true,
         responseTimeInMs: responseTimeInMs,
         failureCause: "",
         records: records,
         isDnssecValid: isDnssecValid,
+        probeAttempts: options.attempts,
+        totalAttempts: options.attempts.length,
       };
     } catch (err: unknown) {
       logger.debug(
@@ -101,6 +119,25 @@ export default class DnsMonitorUtil {
       if (!options.currentRetryCount) {
         options.currentRetryCount = 0;
       }
+
+      if (!options.attempts) {
+        options.attempts = [];
+      }
+
+      const endTime: [number, number] = process.hrtime(startTime);
+      const responseTimeInMs: number = Math.ceil(
+        (endTime[0] * 1000000000 + endTime[1]) / 1000000,
+      );
+
+      const responseReceivedAt: Date = new Date();
+      options.attempts.push({
+        attemptNumber: options.currentRetryCount || 1,
+        attemptedAt,
+        responseReceivedAt,
+        responseTimeInMs,
+        isOnline: false,
+        failureCause: (err as Error).message || (err as Error).toString(),
+      });
 
       if (options.currentRetryCount < (options.retry || config.retries || 3)) {
         options.currentRetryCount++;
@@ -118,11 +155,6 @@ export default class DnsMonitorUtil {
         }
       }
 
-      const endTime: [number, number] = process.hrtime(startTime);
-      const responseTimeInMs: number = Math.ceil(
-        (endTime[0] * 1000000000 + endTime[1]) / 1000000,
-      );
-
       // Check if timeout
       const isTimeout: boolean =
         (err as Error).message?.toLowerCase().includes("timeout") ||
@@ -139,6 +171,8 @@ export default class DnsMonitorUtil {
             options.currentRetryCount +
             " times and it timed out.",
           records: [],
+          probeAttempts: options.attempts,
+          totalAttempts: options.attempts.length,
         };
       }
 
@@ -148,6 +182,8 @@ export default class DnsMonitorUtil {
         responseTimeInMs: responseTimeInMs,
         failureCause: (err as Error).message || (err as Error).toString(),
         records: [],
+        probeAttempts: options.attempts,
+        totalAttempts: options.attempts.length,
       };
     }
   }

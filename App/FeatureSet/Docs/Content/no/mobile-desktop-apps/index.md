@@ -1,49 +1,46 @@
-# OneUptime mobil- og skrivebordapper
+# OneUptime mobil- og skrivebordsapper
 
-OneUptime tilbyr innebygd-lignende mobil- og skrivebordapplikasjoner gjennom Progressive Web App (PWA)-teknologi. Disse appene gir en sømløs opplevelse på tvers av alle store plattformer uten at det kreves nedlasting fra appbutikker.
+OneUptime tilbyr to måter å bruke plattformen på utenfor nettleseren:
 
-## Hva er en Progressive Web App (PWA)?
+- **Native mobilapper** for iOS og Android, publisert i **Apple App Store** og **Google Play**. Disse leverer vakttilkallinger, hendelsesvarsler og bekreftelseshandlinger direkte til telefonen din.
+- **Installerbare skrivebordsapper** for Windows, macOS og Linux, levert som en progressiv nettapp (PWA) som installeres direkte fra nettleseren. Disse gir OneUptime-dashbordet sitt eget vindu, ikon og varslingsflate på datamaskinen din.
 
-En Progressive Web App er en nettapplikasjon som bruker moderne nettefunksjoner for å levere en app-lignende opplevelse til brukere.
+## Mobil (native apper)
 
-## Installasjonsveiledninger
+**OneUptime On-Call**-appen er en native applikasjon bygget med React Native. Den distribueres gjennom de offisielle butikkene, slik at du får automatiske oppdateringer, push-varsler og biometrisk opplåsing.
 
-Velg plattformen din nedenfor for detaljerte installasjonsinstruksjoner:
+- **iOS** — [Last ned i App Store](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391). Krever iOS 15.0 eller nyere. Se [installasjonsveiledningen for iOS](./ios-installation.md).
+- **Android** — [Hent den i Google Play](https://play.google.com/store/apps/details?id=com.oneuptime.oncall). Krever Android 8.0 eller nyere. En direkte [APK-nedlasting](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk) er også tilgjengelig for enheter uten Google Play. Se [installasjonsveiledningen for Android](./android-installation.md).
 
-- [Android-installasjon](./android-installation.md)
-- [iOS-installasjon](./ios-installation.md)
-- [Windows-installasjon](./windows-installation.md)
-- [macOS-installasjon](./macos-installation.md)
-- [Linux-installasjon](./linux-installation.md)
+## Skrivebord (progressiv nettapp)
 
+OneUptimes nettbaserte dashbord er en progressiv nettapp, slik at du kan installere det som en skrivebordsapplikasjon fra en moderne nettleser uten å gå gjennom noen butikk.
 
-## Kom i gang
+- [Installasjon for Windows](./windows-installation.md)
+- [Installasjon for macOS](./macos-installation.md)
+- [Installasjon for Linux](./linux-installation.md)
 
-1. Besøk OneUptime-instansen din i en støttet nettleser
-2. Se etter forespørselen "Installer" eller "Legg til på startskjerm"
-3. Følg de plattformspesifikke installasjonstrinnene
-4. Start appen fra enhetens app-skuff eller skrivebord
+### Kom i gang på skrivebordet
 
-## Feilsøking
+1. Åpne OneUptime-instansen din i en Chromium-basert nettleser (Chrome, Edge) eller Safari.
+2. Se etter **Install**-knappen i adressefeltet eller i **File → Add to Dock / Apps → Install this site as an app**.
+3. Start den installerte appen fra Start-menyen, Launchpad eller appstarteren din.
 
-### Vanlige problemer
+### Feilsøking for skrivebord
 
-**Installasjonsalternativet vises ikke:**
-- Sørg for at du bruker en støttet nettleser
-- Sjekk at OneUptime-instansen betjenes over HTTPS
-- Prøv å oppdatere siden eller tøm nettleserens hurtigbuffer
+**Installeringsvalget vises ikke:**
+- Forsikre deg om at du bruker en støttet nettleser.
+- Bekreft at OneUptime-instansen din leveres over HTTPS.
+- Last inn siden på nytt eller tøm nettleserens hurtigbuffer.
 
 **Push-varsler fungerer ikke:**
-- Gi varselstillatelser når du blir bedt om det
-- Sjekk nettleserens varselinnstillinger
-- Sørg for at OneUptime-instansen har varsler konfigurert
+- Gi varslingstillatelser når nettleseren ber om det.
+- Sjekk operativsystemets varslingsinnstillinger for nettleseren.
+- Selvhostede brukere: bekreft at push-varsler er konfigurert på OneUptime-instansen din.
 
+## Brukerstøtte
 
-## Support
-
-Hvis du støter på problemer med OneUptime PWA:
-
-1. Sjekk feilsøkingsavsnittet ovenfor
-2. Bekreft at nettleseren din oppfyller minimumskravene
-3. Kontakt support gjennom OneUptime-dashbordet ditt
-4. Rapporter problemer på [GitHub-repositoriet vårt](https://github.com/OneUptime/oneuptime)
+- Mobilspesifikke problemer: se installasjonsveiledningene for [iOS](./ios-installation.md) eller [Android](./android-installation.md).
+- Skrivebordsspesifikke problemer: se installasjonsveiledningene for [Windows](./windows-installation.md), [macOS](./macos-installation.md) eller [Linux](./linux-installation.md).
+- Generelle spørsmål: se siden [Vanlige spørsmål og feilsøking](./faq-troubleshooting.md).
+- Rapporter feil eller funksjonsønsker i [GitHub-repositoriet vårt](https://github.com/OneUptime/oneuptime).

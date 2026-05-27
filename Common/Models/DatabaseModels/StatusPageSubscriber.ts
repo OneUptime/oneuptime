@@ -94,6 +94,8 @@ import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
 @Entity({
   name: "StatusPageSubscriber",
 })
+@Index(["statusPageId", "subscriberEmail"]) // Dedupe lookup on email subscribe
+@Index(["statusPageId", "subscriberPhone"]) // Dedupe lookup on phone subscribe
 export default class StatusPageSubscriber extends BaseModel {
   @ColumnAccessControl({
     create: [

@@ -21,15 +21,6 @@ const ServiceSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.List,
         },
-        {
-          link: {
-            title: "Dependency Graph",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SERVICE_DEPENDENCY_GRAPH] as Route,
-            ),
-          },
-          icon: IconProp.Workflow,
-        },
       ],
     },
     {

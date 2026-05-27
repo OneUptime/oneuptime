@@ -17,6 +17,9 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         id="api-keys-table"
         name="Settings > Telemetry Ingestion Keys"
+        saveFilterProps={{
+          tableId: "settings-telemetry-ingestion-keys-table",
+        }}
         isDeleteable={false}
         isEditable={false}
         showViewIdButton={false}

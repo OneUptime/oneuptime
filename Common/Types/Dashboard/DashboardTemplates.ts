@@ -5,13 +5,13 @@ import DashboardComponentType from "./DashboardComponentType";
 import DashboardChartType from "./Chart/ChartType";
 import ObjectID from "../ObjectID";
 import DashboardBaseComponent from "./DashboardComponents/DashboardBaseComponent";
+import DashboardVariable, { DashboardVariableType } from "./DashboardVariable";
 import IconProp from "../Icon/IconProp";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 import IncidentMetricType from "../Incident/IncidentMetricType";
 import MonitorMetricType from "../Monitor/MonitorMetricType";
 import MetricDashboardMetricType from "../Metrics/MetricDashboardMetricType";
 import { DashboardValueTrendDirection } from "./DashboardComponents/DashboardValueComponent";
-import { HostMetricKind } from "./DashboardComponents/DashboardHostMetricChartComponent";
 
 /*
  * Trace / Exception / Profiles entries are intentionally not in this
@@ -88,6 +88,19 @@ interface MetricConfig {
   aggregationType: MetricsAggregationType;
   legend?: string;
   legendUnit?: string;
+  /*
+   * OpenTelemetry attribute keys to fan the query out across (e.g.
+   * ["host.name"] for one series per host). When set, the chart renders
+   * one series per unique value combination.
+   */
+  groupByAttributeKeys?: Array<string>;
+  /*
+   * Plot the per-second rate of change instead of the raw cumulative
+   * counter. Required for OTel cumulative counters such as
+   * `system.disk.io` and `system.network.io` so the chart shows I/O rate
+   * rather than bytes-since-boot.
+   */
+  transformAsRate?: boolean;
 }
 
 function buildMetricQueryConfig(config: MetricConfig): Record<string, unknown> {
@@ -104,8 +117,10 @@ function buildMetricQueryConfig(config: MetricConfig): Record<string, unknown> {
         metricName: config.metricName,
         aggegationType: config.aggregationType,
       },
-      groupBy: undefined,
+      groupBy: config.groupByAttributeKeys ? { attributes: true } : undefined,
+      groupByAttributeKeys: config.groupByAttributeKeys,
     },
+    transformAsRate: config.transformAsRate,
   };
 }
 
@@ -383,6 +398,31 @@ function createKubernetesNodeListComponent(data: {
   };
 }
 
+/*
+ * Template variables are pre-built TelemetryAttribute variables that
+ * ship with the template — the toolbar renders a "Cluster" /
+ * "Namespace" / "Host" picker without the user having to open the
+ * Variables modal. Resource attributes from the OTel collector are
+ * stored in ClickHouse under the `resource.` prefix (see the comment
+ * in MonitorAlert.ts), so the binding keys here mirror what the
+ * Kubernetes / Host detail pages already filter on.
+ */
+function createTelemetryAttributeVariable(data: {
+  name: string;
+  label: string;
+  attributeKey: string;
+  isMultiSelect?: boolean;
+}): DashboardVariable {
+  return {
+    id: ObjectID.generate().toString(),
+    name: data.name,
+    label: data.label,
+    type: DashboardVariableType.TelemetryAttribute,
+    attributeKey: data.attributeKey,
+    isMultiSelect: data.isMultiSelect ?? false,
+  };
+}
+
 function createHostListComponent(data: {
   title: string;
   top: number;
@@ -408,33 +448,6 @@ function createHostListComponent(data: {
       maxRows: data.maxRows ?? 25,
       statusFilter: data.statusFilter,
       osTypeFilter: data.osTypeFilter,
-    },
-  };
-}
-
-function createHostMetricChartComponent(data: {
-  title: string;
-  description?: string;
-  metricKind: HostMetricKind;
-  top: number;
-  left: number;
-  width: number;
-  height: number;
-}): DashboardBaseComponent {
-  return {
-    _type: ObjectType.DashboardComponent,
-    componentType: DashboardComponentType.HostMetricChart,
-    componentId: ObjectID.generate(),
-    topInDashboardUnits: data.top,
-    leftInDashboardUnits: data.left,
-    widthInDashboardUnits: data.width,
-    heightInDashboardUnits: data.height,
-    minHeightInDashboardUnits: 3,
-    minWidthInDashboardUnits: 6,
-    arguments: {
-      title: data.title,
-      description: data.description,
-      metricKind: data.metricKind,
     },
   };
 }
@@ -630,9 +643,25 @@ function createMonitorDashboardConfig(): DashboardViewConfig {
     }),
   ];
 
+  /*
+   * Monitor metrics are stored with bare attribute keys (`monitorName`,
+   * `probeName`) rather than the OTel `resource.*` prefix — see
+   * MonitorMetricUtil.buildAttributes — so the variable binds to the
+   * bare key. Multi-select lets users pin a small group of monitors.
+   */
+  const variables: Array<DashboardVariable> = [
+    createTelemetryAttributeVariable({
+      name: "monitor",
+      label: "Monitor",
+      attributeKey: "monitorName",
+      isMultiSelect: true,
+    }),
+  ];
+
   return {
     _type: ObjectType.DashboardViewConfig,
     components,
+    variables,
     heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 13),
   };
 }
@@ -1122,9 +1151,31 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
     }),
   ];
 
+  /*
+   * Pre-built variables let the user scope every widget on the dashboard
+   * to a single cluster / namespace from the toolbar. Multi-select is on
+   * for namespace so users can pick a couple of namespaces at once;
+   * cluster stays single-select since the typical "compare two clusters"
+   * workflow lives on the Compare page.
+   */
+  const variables: Array<DashboardVariable> = [
+    createTelemetryAttributeVariable({
+      name: "cluster",
+      label: "Cluster",
+      attributeKey: "resource.k8s.cluster.name",
+    }),
+    createTelemetryAttributeVariable({
+      name: "namespace",
+      label: "Namespace",
+      attributeKey: "resource.k8s.namespace.name",
+      isMultiSelect: true,
+    }),
+  ];
+
   return {
     _type: ObjectType.DashboardViewConfig,
     components,
+    variables,
     heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 21),
   };
 }
@@ -1442,9 +1493,25 @@ function createMetricsDashboardConfig(): DashboardViewConfig {
     }),
   ];
 
+  /*
+   * Most HTTP / runtime metrics on this dashboard carry the standard
+   * OTel `resource.service.name` attribute, so scoping by service is
+   * the most useful default. Multi-select keeps the cross-service view
+   * available — e.g. compare API and worker on one chart.
+   */
+  const variables: Array<DashboardVariable> = [
+    createTelemetryAttributeVariable({
+      name: "service",
+      label: "Service",
+      attributeKey: "resource.service.name",
+      isMultiSelect: true,
+    }),
+  ];
+
   return {
     _type: ObjectType.DashboardViewConfig,
     components,
+    variables,
     heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 24),
   };
 }
@@ -1453,11 +1520,10 @@ function createHostDashboardConfig(): DashboardViewConfig {
   /*
    * Layout notes:
    *
-   * - The HostMetricChart widget groups by `host.name` and plots one
-   *   series per host (or a single series when filtered to one host).
-   *   The OTel host receiver emits `system.cpu.utilization` and
-   *   `system.memory.utilization` as [0, 1] ratios, which Value/Gauge
-   *   widgets auto-scale to percent at render time (see
+   * - Per-host charts fan out via `groupByAttributeKeys: ["host.name"]`
+   *   so a single chart renders one series per host. The OTel host
+   *   receiver emits `system.cpu.utilization` as a [0, 1] ratio, which
+   *   Value/Gauge widgets auto-scale to percent at render time (see
    *   splitFormattedValue / isFractionScale).
    *
    * - The Value widget for "Avg Memory" uses `system.memory.usage`
@@ -1465,11 +1531,10 @@ function createHostDashboardConfig(): DashboardViewConfig {
    *   `system.memory.utilization` is not always emitted by default OTel
    *   host metrics.
    *
-   * - Disk and Network I/O Value widgets aggregate the raw byte counters
-   *   with Sum. HostMetricChart turns these into per-second rates for
-   *   the chart view; the Value tile shows the unrated total so users
-   *   reading "Disk I/O" against the time window get an absolute byte
-   *   figure rather than a noisy snapshot.
+   * - Disk and Network I/O charts set `transformAsRate: true` so the
+   *   cumulative byte counters render as per-second rates rather than
+   *   bytes-since-boot. The matching Value tiles in row 1 keep the
+   *   unrated Sum so users see an absolute byte figure over the window.
    */
   const components: Array<DashboardBaseComponent> = [
     // Row 0: Title
@@ -1529,21 +1594,31 @@ function createHostDashboardConfig(): DashboardViewConfig {
     }),
 
     // Row 2-4: Per-host CPU and Memory charts
-    createHostMetricChartComponent({
+    createChartComponent({
       title: "CPU Utilization by Host",
-      metricKind: HostMetricKind.CpuUtilization,
+      chartType: DashboardChartType.Line,
       top: 2,
       left: 0,
       width: 6,
       height: 3,
+      metricConfig: {
+        metricName: MetricDashboardMetricType.SystemCpuUtilization,
+        aggregationType: MetricsAggregationType.Avg,
+        groupByAttributeKeys: ["host.name"],
+      },
     }),
-    createHostMetricChartComponent({
+    createChartComponent({
       title: "Memory Usage by Host",
-      metricKind: HostMetricKind.MemoryUsage,
+      chartType: DashboardChartType.Line,
       top: 2,
       left: 6,
       width: 6,
       height: 3,
+      metricConfig: {
+        metricName: MetricDashboardMetricType.SystemMemoryUsage,
+        aggregationType: MetricsAggregationType.Avg,
+        groupByAttributeKeys: ["host.name"],
+      },
     }),
 
     // Row 5: Section header
@@ -1600,13 +1675,18 @@ function createHostDashboardConfig(): DashboardViewConfig {
         aggregationType: MetricsAggregationType.Avg,
       },
     }),
-    createHostMetricChartComponent({
+    createChartComponent({
       title: "Filesystem Usage by Host",
-      metricKind: HostMetricKind.Filesystem,
+      chartType: DashboardChartType.Line,
       top: 11,
       left: 4,
       width: 8,
       height: 3,
+      metricConfig: {
+        metricName: "system.filesystem.usage",
+        aggregationType: MetricsAggregationType.Avg,
+        groupByAttributeKeys: ["host.name"],
+      },
     }),
 
     // Row 14: Section header
@@ -1620,21 +1700,33 @@ function createHostDashboardConfig(): DashboardViewConfig {
     }),
 
     // Row 15-17: Disk and network I/O rates per host
-    createHostMetricChartComponent({
+    createChartComponent({
       title: "Disk I/O by Host",
-      metricKind: HostMetricKind.DiskIo,
+      chartType: DashboardChartType.Line,
       top: 15,
       left: 0,
       width: 6,
       height: 3,
+      metricConfig: {
+        metricName: MetricDashboardMetricType.SystemDiskIo,
+        aggregationType: MetricsAggregationType.Sum,
+        groupByAttributeKeys: ["host.name"],
+        transformAsRate: true,
+      },
     }),
-    createHostMetricChartComponent({
+    createChartComponent({
       title: "Network I/O by Host",
-      metricKind: HostMetricKind.NetworkIo,
+      chartType: DashboardChartType.Line,
       top: 15,
       left: 6,
       width: 6,
       height: 3,
+      metricConfig: {
+        metricName: MetricDashboardMetricType.SystemNetworkIo,
+        aggregationType: MetricsAggregationType.Sum,
+        groupByAttributeKeys: ["host.name"],
+        transformAsRate: true,
+      },
     }),
 
     // Row 18: Section header
@@ -1648,13 +1740,18 @@ function createHostDashboardConfig(): DashboardViewConfig {
     }),
 
     // Row 19-21: Process count chart and recent logs
-    createHostMetricChartComponent({
+    createChartComponent({
       title: "Process Count by Host",
-      metricKind: HostMetricKind.ProcessCount,
+      chartType: DashboardChartType.Line,
       top: 19,
       left: 0,
       width: 6,
       height: 3,
+      metricConfig: {
+        metricName: "system.processes.count",
+        aggregationType: MetricsAggregationType.Avg,
+        groupByAttributeKeys: ["host.name"],
+      },
     }),
     createLogStreamComponent({
       title: "Recent Logs",
@@ -1665,9 +1762,25 @@ function createHostDashboardConfig(): DashboardViewConfig {
     }),
   ];
 
+  /*
+   * Per-host scoping: the variable defaults to multi-select because the
+   * dashboard's by-host charts already split rendering per host; the
+   * selector lets users narrow to a subset (e.g. just two prod hosts)
+   * without losing the per-host breakdown.
+   */
+  const variables: Array<DashboardVariable> = [
+    createTelemetryAttributeVariable({
+      name: "host",
+      label: "Host",
+      attributeKey: "resource.host.name",
+      isMultiSelect: true,
+    }),
+  ];
+
   return {
     _type: ObjectType.DashboardViewConfig,
     components,
+    variables,
     heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 22),
   };
 }

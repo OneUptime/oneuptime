@@ -374,6 +374,9 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
             id="table-slack-subscriber"
             name="Status Page > Slack Subscribers"
             userPreferencesKey="status-page-slack-subscribers-table"
+            saveFilterProps={{
+              tableId: "status-page-slack-subscribers-table",
+            }}
             isDeleteable={true}
             showViewIdButton={true}
             isCreateable={true}

@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 #
 # OneUptime-App Dockerfile
 #
@@ -9,6 +10,10 @@ RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm co
 RUN npm config set fetch-retries 5
 RUN npm config set fetch-retry-mintimeout 20000
 RUN npm config set fetch-retry-maxtimeout 60000
+# Serialize npm lifecycle scripts so esbuild's postinstall doesn't race against
+# concurrent package extractions on BuildKit's overlayfs (ETXTBSY on
+# /Common/node_modules/esbuild/bin/esbuild). See esbuild#1711, #2785.
+RUN npm config set foreground-scripts true
 
 ARG GIT_SHA
 ARG APP_VERSION
@@ -29,15 +34,14 @@ LABEL org.opencontainers.image.licenses="Apache-2.0"
 LABEL org.opencontainers.image.revision="${GIT_SHA}"
 LABEL org.opencontainers.image.version="${APP_VERSION}"
 
-# IF APP_VERSION is not set, set it to 1.0.0
-RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=1.0.0; fi
 
-# Install bash. 
-RUN apk add bash && apk add curl && apk add git
-
-
-# Install python
-RUN apk update && apk add --no-cache --virtual .gyp python3 make g++
+# Install runtime tools + build toolchain.
+# Build toolchain (.gyp virtual) is installed temporarily for native npm
+# modules and is removed after all npm installs complete (see `apk del .gyp`
+# below). --no-cache avoids retaining apk index data in the image layer.
+# `git` stays — Home clones the blog repo below.
+RUN apk add --no-cache bash curl git \
+    && apk add --no-cache --virtual .gyp python3 make g++
 
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
@@ -47,9 +51,7 @@ RUN mkdir /usr/src
 
 WORKDIR /usr/src/Common
 COPY ./Common/package*.json /usr/src/Common/
-# Set version in ./Common/package.json to the APP_VERSION
-RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/Common/package.json
-RUN npm install
+RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 COPY ./Common /usr/src/Common
 
 ENV PRODUCTION=true
@@ -58,9 +60,11 @@ WORKDIR /usr/src/app
 
 # Install app dependencies
 COPY ./Home/package*.json /usr/src/app/
-# Set version in ./App/package.json to the APP_VERSION
-RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/app/package.json
-RUN npm install
+RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
+
+# Remove the build toolchain (python3/make/g++) now that all native npm modules
+# have been compiled. This keeps build-time CVEs out of the runtime image.
+RUN apk del .gyp
 
 # Expose ports.
 #   - 1444: OneUptime-home
@@ -82,8 +86,10 @@ CMD [ "npm", "run", "dev" ]
 COPY ./Home /usr/src/app
 # Bundle app source
 RUN npm run compile
-# Set permission to write logs and cache in case container run as non root
-RUN chown -R 1000:1000 "/tmp/npm" && chmod -R 2777 "/tmp/npm"
+# Ensure runtime dirs (including the cloned /usr/src/blog) are owned by the
+# non-root `node` user (UID 1000) so the container can run as non-root.
+RUN chown -R 1000:1000 /usr/src /tmp/npm && chmod -R 2777 /tmp/npm
+USER node
 #Run the app
 CMD [ "npm", "start" ]
 {{ end }}

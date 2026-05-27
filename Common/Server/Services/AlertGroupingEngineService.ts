@@ -10,7 +10,6 @@ import AlertEpisodeOwnerTeam from "../../Models/DatabaseModels/AlertEpisodeOwner
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
-import ServiceMonitor from "../../Models/DatabaseModels/ServiceMonitor";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
@@ -22,7 +21,6 @@ import AlertEpisodeMemberService from "./AlertEpisodeMemberService";
 import AlertEpisodeOwnerUserService from "./AlertEpisodeOwnerUserService";
 import AlertEpisodeOwnerTeamService from "./AlertEpisodeOwnerTeamService";
 import MonitorService from "./MonitorService";
-import ServiceMonitorService from "./ServiceMonitorService";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import AlertEpisodeFeedService from "./AlertEpisodeFeedService";
 import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpisodeFeed";
@@ -93,7 +91,6 @@ class AlertGroupingEngineServiceClass {
             groupByMonitor: true,
             groupBySeverity: true,
             groupByAlertTitle: true,
-            groupByService: true,
             // Time settings
             enableTimeWindow: true,
             timeWindowMinutes: true,
@@ -539,29 +536,6 @@ class AlertGroupingEngineServiceClass {
   ): Promise<string> {
     const parts: Array<string> = [];
 
-    /*
-     * Group by service - only if explicitly enabled
-     * Must be checked before monitor since service contains multiple monitors
-     */
-    if (rule.groupByService && alert.monitorId) {
-      const serviceMonitor: ServiceMonitor | null =
-        await ServiceMonitorService.findOneBy({
-          query: {
-            monitorId: alert.monitorId,
-          },
-          select: {
-            serviceId: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-      if (serviceMonitor?.serviceId) {
-        parts.push(`service:${serviceMonitor.serviceId.toString()}`);
-      }
-    }
-
     // Group by monitor - only if explicitly enabled
     if (rule.groupByMonitor && alert.monitorId) {
       parts.push(`monitor:${alert.monitorId.toString()}`);
@@ -818,9 +792,6 @@ class AlertGroupingEngineServiceClass {
         }
         if (rule.groupByAlertTitle) {
           groupByParts.push("Alert Title");
-        }
-        if (rule.groupByService) {
-          groupByParts.push("Service");
         }
 
         const groupByDescription: string =

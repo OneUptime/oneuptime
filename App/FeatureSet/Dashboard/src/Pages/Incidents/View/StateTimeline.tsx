@@ -64,6 +64,9 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
         id="table-incident-status-timeline"
         name="Monitor > State Timeline"
         userPreferencesKey="incident-status-timeline-table"
+        saveFilterProps={{
+          tableId: "incident-status-timeline-table",
+        }}
         isEditable={false}
         isDeleteable={true}
         isCreateable={true}

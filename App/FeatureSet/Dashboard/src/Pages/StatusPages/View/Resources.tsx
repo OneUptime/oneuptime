@@ -263,6 +263,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         modelType={StatusPageResource}
         id={`status-page-group-${statusPageGroupId?.toString() || ""}`}
         userPreferencesKey="status-page-resource-table"
+        saveFilterProps={{
+          tableId: `status-page-resources-table-${statusPageGroupId?.toString() || "ungrouped"}`,
+        }}
         isDeleteable={true}
         name="Status Page > Resources"
         sortBy="order"

@@ -158,6 +158,9 @@ const AlertDelete: FunctionComponent<PageComponentProps> = (
         modelType={AlertInternalNote}
         id="table-alert-internal-note"
         userPreferencesKey="alert-internal-note-table"
+        saveFilterProps={{
+          tableId: "alert-internal-note-table",
+        }}
         showCreateForm={Object.keys(initialValuesForAlert).length > 0}
         createInitialValues={initialValuesForAlert}
         name="Monitor > Internal Note"

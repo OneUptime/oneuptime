@@ -74,9 +74,13 @@ spec:
               value: {{ include "kubernetes-agent.ebpfMetricsFeatures" . | quote }}
             {{- if .Values.ebpf.contextPropagation }}
             # Inject W3C `traceparent` into outbound traffic so traces
-            # link across services (HTTP headers + TCP options).
+            # link across services. Mode is governed by
+            # `.Values.ebpf.contextPropagationMode` — default `headers`
+            # (HTTP/1.1 headers only) which is safe alongside service
+            # meshes and eBPF CNIs. Set to `ip` or `all` if you also
+            # need propagation across raw TCP.
             - name: OTEL_EBPF_BPF_CONTEXT_PROPAGATION
-              value: "all"
+              value: {{ .Values.ebpf.contextPropagationMode | default "headers" | quote }}
             {{- if .Values.ebpf.trackRequestHeaders }}
             - name: OTEL_EBPF_BPF_TRACK_REQUEST_HEADERS
               value: "true"

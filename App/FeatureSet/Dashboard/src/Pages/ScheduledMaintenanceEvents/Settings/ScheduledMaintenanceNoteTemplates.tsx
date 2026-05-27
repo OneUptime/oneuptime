@@ -21,6 +21,9 @@ const ScheduledMaintenanceNoteTemplates: FunctionComponent<
         isCreateable={true}
         isViewable={true}
         userPreferencesKey="scheduled-maintenance-note-templates-table"
+        saveFilterProps={{
+          tableId: "scheduled-maintenance-note-templates-table",
+        }}
         cardProps={{
           title:
             "Public or Private Note Templates for Scheduled Maintenance Events",

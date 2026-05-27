@@ -40,6 +40,9 @@ const DashboardOwnerRulesPage: FunctionComponent<
       id="dashboard-owner-rules-table"
       name="Settings > Dashboard Owner Rules"
       userPreferencesKey="dashboard-owner-rules-table"
+      saveFilterProps={{
+        tableId: "dashboard-owner-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

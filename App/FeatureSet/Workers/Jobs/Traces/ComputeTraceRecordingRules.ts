@@ -11,10 +11,8 @@ import TraceAggregationType from "Common/Types/Trace/TraceAggregationType";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
-import {
-  MetricPointType,
-  ServiceType,
-} from "Common/Models/AnalyticsModels/Metric";
+import { MetricPointType } from "Common/Models/AnalyticsModels/Metric";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { JSONObject } from "Common/Types/JSON";
 import {
   evaluate,

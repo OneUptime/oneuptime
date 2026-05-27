@@ -37,8 +37,19 @@ import User from "../../Models/DatabaseModels/User";
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import OneUptimeDate from "../../Types/Date";
 import ProjectSCIMService from "./ProjectSCIMService";
+import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 
 export class TeamMemberService extends DatabaseService<TeamMember> {
+  /*
+   * Caches the user's accepted team memberships per project. Auth middleware
+   * calls this on every authenticated request to evaluate the `Owned`
+   * permission scope; without the cache it's a Postgres findBy per request.
+   * 60s of staleness on team membership changes is acceptable; we also
+   * invalidate proactively when team membership writes happen.
+   */
+  private teamIdsForUserCache: InMemoryTTLCache<Array<string>> =
+    new InMemoryTTLCache(10_000);
+
   public constructor() {
     super(TeamMember);
   }
@@ -215,6 +226,14 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     userId: ObjectID,
     projectId: ObjectID,
   ): Promise<void> {
+    /*
+     * Invalidate the in-process cache of this user's team memberships in
+     * this project — membership just changed.
+     */
+    this.teamIdsForUserCache.delete(
+      `${userId.toString()}:${projectId.toString()}`,
+    );
+
     /// Refresh tokens.
     await AccessTokenService.refreshUserGlobalAccessPermission(userId);
 
@@ -545,6 +564,15 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     userId: ObjectID,
     projectId: ObjectID,
   ): Promise<Array<ObjectID>> {
+    const cacheKey: string = `${userId.toString()}:${projectId.toString()}`;
+    const cached: Array<string> | undefined =
+      this.teamIdsForUserCache.get(cacheKey);
+    if (cached !== undefined) {
+      return cached.map((id: string) => {
+        return new ObjectID(id);
+      });
+    }
+
     const members: Array<TeamMember> = await this.findBy({
       query: {
         userId: userId,
@@ -570,6 +598,14 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         teamIds.push(id);
       }
     }
+
+    this.teamIdsForUserCache.set(
+      cacheKey,
+      teamIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+      60_000,
+    );
     return teamIds;
   }
 }

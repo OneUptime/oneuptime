@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/common",
-  "version": "1.0.0",
+  "version": "10.5.2",
   "description": "",
   "repository": {
     "type": "git",
@@ -96,7 +96,6 @@
     "dompurify": "^3.4.0",
     "dotenv": "^16.4.4",
     "ejs": "^3.1.10",
-    "elkjs": "^0.10.0",
     "esbuild": "^0.25.5",
     "expo-server-sdk": "^3.15.0",
     "express": "^4.21.1",

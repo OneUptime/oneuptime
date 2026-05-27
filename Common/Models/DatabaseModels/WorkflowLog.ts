@@ -6,6 +6,7 @@ import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
@@ -20,6 +21,7 @@ import WorkflowStatus from "../../Types/Workflow/WorkflowStatus";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @EnableDocumentation()
+@CanAccessIfCanReadOn("workflow")
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [
@@ -60,6 +62,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   icon: IconProp.Logs,
   tableDescription: "Logs of the workflows executed",
 })
+@Index(["workflowStatus", "createdAt"]) // Worker sweep for scheduled/timed-out runs
 export default class WorkflowLog extends BaseModel {
   @ColumnAccessControl({
     create: [],

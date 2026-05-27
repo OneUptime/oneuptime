@@ -1052,17 +1052,28 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     scheduleUserIds: Array<ObjectID>;
     windowStart: Date;
     windowEnd: Date;
+    currentOnCallDutyPolicyId?: ObjectID | undefined;
   }): Promise<Array<UserOverrideRecord>> {
     if (data.scheduleUserIds.length === 0) {
       return [];
     }
 
+    /*
+     * When a policy context is provided, include overrides scoped to that
+     * policy plus global overrides. Without a policy context (e.g. schedule
+     * roster refresh, dashboard preview, incoming-call routing), only global
+     * overrides apply — a policy-specific override from one policy must not
+     * affect schedule resolution for a different policy.
+     */
     const overrides: Array<OnCallDutyPolicyUserOverride> =
       await OnCallDutyPolicyUserOverrideService.findBy({
         query: {
           projectId: data.projectId,
           startsAt: QueryHelper.lessThanEqualTo(data.windowEnd),
           endsAt: QueryHelper.greaterThanEqualTo(data.windowStart),
+          onCallDutyPolicyId: data.currentOnCallDutyPolicyId
+            ? QueryHelper.equalToOrNull(data.currentOnCallDutyPolicyId)
+            : QueryHelper.isNull(),
         },
         select: {
           startsAt: true,
@@ -1106,6 +1117,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
   public async getEventByIndexInSchedule(data: {
     scheduleId: ObjectID;
     getNumberOfEvents: number; // which event would you like to get. First event, second event, etc.
+    onCallDutyPolicyId?: ObjectID | undefined;
   }): Promise<Array<CalendarEvent>> {
     logger.debug(
       "getEventByIndexInSchedule called with data: " + JSON.stringify(data),
@@ -1169,12 +1181,14 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
           scheduleUserIds,
           windowStart: currentStartTime,
           windowEnd: currentEndTime,
+          currentOnCallDutyPolicyId: data.onCallDutyPolicyId,
         });
 
       if (overrides.length > 0) {
         events = UserOverrideUtil.applyOverridesToEvents({
           events,
           overrides,
+          currentOnCallDutyPolicyId: data.onCallDutyPolicyId?.toString(),
         });
       }
     }
@@ -1189,6 +1203,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
   @CaptureSpan()
   public async getCurrentUserIdInSchedule(
     scheduleId: ObjectID,
+    options?: { onCallDutyPolicyId?: ObjectID | undefined } | undefined,
   ): Promise<ObjectID | null> {
     const { layerProps, projectId, scheduleUserIds } =
       await this.getScheduleLayerProps({
@@ -1223,12 +1238,14 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
           scheduleUserIds,
           windowStart: currentStartTime,
           windowEnd: currentEndTime,
+          currentOnCallDutyPolicyId: options?.onCallDutyPolicyId,
         });
 
       if (overrides.length > 0) {
         events = UserOverrideUtil.applyOverridesToEvents({
           events,
           overrides,
+          currentOnCallDutyPolicyId: options?.onCallDutyPolicyId?.toString(),
         });
       }
     }

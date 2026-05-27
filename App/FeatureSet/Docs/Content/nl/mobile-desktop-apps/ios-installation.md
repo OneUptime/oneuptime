@@ -1,210 +1,83 @@
-# Installatiegids voor iOS
+# iOS Installatiehandleiding
 
-Installeer OneUptime als native app op uw iPhone of iPad voor naadloze monitoring onderweg.
+Installeer de **OneUptime On-Call** native iOS app vanuit de Apple App Store op uw iPhone of iPad.
 
-## Installatiemethoden
+## Vereisten
 
-### Methode 1: Safari (aanbevolen)
+- iPhone of iPad met **iOS 15.0 of later**
+- Een actief OneUptime account (of de URL van uw zelf-gehoste OneUptime instantie)
+- Internetverbinding voor het inloggen en het ontvangen van pushmeldingen
 
-Safari biedt de beste PWA-ervaring op iOS-apparaten.
+## Installeren vanuit de App Store
 
-1. **OneUptime openen in Safari**
-   - Start Safari op uw iOS-apparaat
-   - Navigeer naar de URL van uw OneUptime-instantie
-   - Wacht tot de pagina volledig is geladen
-   - Zorg dat u bent aangemeld bij uw OneUptime-account
+1. **Open de App Store** op uw iPhone of iPad.
+2. Tik op het tabblad **Zoeken** en zoek naar **"OneUptime On-Call"**, of open deze link op uw apparaat:
+   [https://apps.apple.com/us/app/oneuptime-on-call/id6759615391](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391)
+3. Tik op **Download**, en verifieer vervolgens met Face ID, Touch ID of uw Apple ID wachtwoord.
+4. Zodra de app is geïnstalleerd, tikt u op **Open** of start u **OneUptime On-Call** vanaf uw beginscherm.
 
-2. **Deelmenu openen**
-   - Tik op de **Deelknop** (vierkant met omhoogwijzende pijl) in de onderste werkbalk
-   - Blader door de deelmogelijkheden om "Aan startscherm toevoegen" te vinden
+## Eerste Start en Inloggen
 
-3. **Aan startscherm toevoegen**
-   - Tik op **"Aan startscherm toevoegen"**
-   - Pas de app-naam aan (standaard: "OneUptime")
-   - Tik op **"Voeg toe"** in de rechterbovenhoek
+1. **Server URL**
+   - Als u OneUptime Cloud gebruikt, laat dan de standaardwaarde `https://oneuptime.com` staan.
+   - Als u zelf host, voer dan de URL van uw OneUptime instantie in (bijv. `https://oneuptime.example.com`).
+   - De app controleert of de server bereikbaar is voordat u doorgaat.
+2. **Inloggen**
+   - Voer het e-mailadres en wachtwoord van uw OneUptime account in.
+   - Schakel optioneel **Face ID** of **Touch ID** in voor snellere ontgrendelingen bij latere starts.
+3. **Meldingen Toestaan**
+   - Tik op **Toestaan** wanneer daarom wordt gevraagd, zodat de app oproepen voor wachtdiensten, incidentmeldingen en bevestigingen kan afleveren.
 
-4. **De app starten**
-   - Zoek het OneUptime-pictogram op uw startscherm
-   - Tik om te starten in volledig scherm app-modus
+## Pushmeldingen
 
-### Methode 2: Chrome-browser
+Pushmeldingen worden afgeleverd via de Apple Push Notification service (APNs) via Expo Push. Om ervoor te zorgen dat oproepen u betrouwbaar bereiken:
 
-Hoewel Chrome werkt, is Safari aanbevolen voor de beste iOS PWA-ervaring.
+1. Ga naar **Instellingen → Berichtgeving → OneUptime On-Call**.
+2. Schakel **Sta berichtgeving toe**, **Geluiden**, **Badges**, en aflevering op **Toegangsscherm / Banner / Berichtencentrum** in.
+3. Stel **Groepering van berichten** in op **Automatisch**.
+4. Als u dienst hebt, schakel dan **Energiebesparingsmodus** uit tijdens uw dienst en vermijd het geforceerd afsluiten van de app — iOS kan de aflevering op de achtergrond vertragen als de app geforceerd is afgesloten.
+5. Voeg **OneUptime On-Call** toe aan alle **Focus** modi waarin u nog steeds oproepen wilt ontvangen.
 
-1. **OneUptime openen in Chrome**
-   - Start de Chrome-browser
-   - Ga naar uw OneUptime-instantie
-   - Laat de pagina volledig laden
+## Updates
 
-2. **Aan startscherm toevoegen**
-   - Tik op het **menu met drie puntjes** (meer opties)
-   - Selecteer **"Aan startscherm toevoegen"**
-   - Pas de app-naam aan indien gewenst
-   - Tik op **"Toevoegen"**
+De app wordt bijgewerkt via de App Store:
 
-### Methode 3: Andere browsers
-
-Firefox, Edge en andere browsers ondersteunen basisinstallatie van PWA:
-
-1. **OneUptime openen**
-   - Start uw voorkeursbrowser
-   - Navigeer naar de OneUptime-URL
-   - Wacht tot de pagina volledig is geladen
-
-2. **Zoek installatieoptie**
-   - Controleer het browsermenu op "Aan startscherm toevoegen" of "Installeren"
-   - Volg de browserspecifieke installatieprompts
-
-### Aanpassingsopties
-
-### App-pictogram en naam
-- **Aangepaste naam**: Wijzigen tijdens installatie of later
-- **Pictogramplaatsing**: Organiseer in mappen of specifieke startschermpagina's
-- **Badge-meldingen**: Toon ongelezen incidenttelling
-
-### Meldingsconfiguratie
-1. **Meldingen inschakelen**
-   - Tik op **"Toestaan"** voor meldingen wanneer daarom wordt gevraagd
-   - Of ga naar Instellingen → Meldingen → OneUptime
-   - Schakel alle meldingstypen in voor uitgebreide monitoring
-
-2. **Meldingsstijlen aanpassen**
-   - **Vergrendelscherm**: Toon incidentmeldingen op vergrendeld apparaat
-   - **Bannerstijl**: Kies tijdelijke of permanente banners
-   - **Geluiden**: Pas meldingsgeluiden en trillingen aan
-   - **Kritieke meldingen**: Inschakelen voor hoogprioritaire incidenten (vereist machtiging)
-
-## Probleemoplossing
-
-### Installatieproblemen
-
-**"Aan startscherm toevoegen" niet zichtbaar:**
-```
-Oplossingen:
-1. Zorg dat u Safari gebruikt (beste compatibiliteit)
-2. Vernieuw de pagina en wacht 30 seconden
-3. Controleer of u op de juiste OneUptime-URL bent
-4. Verifieer HTTPS-verbinding (zoek naar slotpictogram)
-5. Safari-cache wissen: Instellingen → Safari → Geschiedenis en websitegegevens wissen
-```
-
-**Installatie voltooid maar geen pictogram zichtbaar:**
-```
-Oplossingen:
-1. Controleer alle startschermpagina's
-2. Zoek in App-bibliotheek (veeg voorbij de laatste startschermpagina)
-3. Gebruik Spotlight-zoekfunctie om "OneUptime" te vinden
-4. Herstart het apparaat en controleer opnieuw
-5. Herinstalleer indien nodig
-```
-
-**App crasht bij starten:**
-```
-Oplossingen:
-1. Forceer sluiten en open de app opnieuw
-2. Herstart uw iOS-apparaat
-3. Safari-cache wissen en herinstalleren
-4. Zorg dat iOS-versie 11.3 of hoger is
-5. Maak apparaatopslagruimte vrij
-```
-
-### Meldingsproblemen
-
-**Geen push-meldingen ontvangen:**
-```
-Controleer deze instellingen:
-1. Instellingen → Meldingen → OneUptime → Meldingen toestaan
-2. Instellingen → Schermtijd → Inhouds- en privacybeperkingen → Toegestane apps
-3. Instellingen voor Niet storen
-4. Meldingsinstellingen controleren in OneUptime-dashboard
-5. Afmelden en opnieuw aanmelden bij OneUptime
-```
-
-**Vertraagde of gemiste meldingen:**
-```
-Oplossingen:
-1. Houd de app actief op de achtergrond (niet forceer sluiten)
-2. Schakel de Energiebesparingsmodus uit tijdens kritieke monitoring
-3. Controleer achtergrond-app vernieuwen: Instellingen → Algemeen → Achtergrond-app vernieuwen
-4. Zorg voor voldoende beschikbare opslagruimte
-```
+- Open de **App Store**, tik op uw profielfoto, scroll naar **OneUptime On-Call** en tik op **Werk bij**.
+- Of schakel **Instellingen → App Store → App-updates** in om updates automatisch te installeren.
 
 ## Verwijderen
 
-### Verwijderen van startscherm
-1. **Houd** het OneUptime-app-pictogram ingedrukt
-2. Tik op **"App verwijderen"**
-3. Selecteer **"App verwijderen"**
-4. Bevestig verwijdering
+1. **Houd ingedrukt** op het **OneUptime On-Call** pictogram op uw beginscherm.
+2. Tik op **Verwijder app → Verwijder app**.
+3. Bevestig door op **Verwijderen** te tikken.
 
-### Alternatieve methode
-1. Ga naar **Instellingen → Algemeen → iPhone-opslag**
-2. Zoek **OneUptime** in de app-lijst
-3. Tik op **"App verwijderen"**
-4. Bevestig verwijdering
+Uw OneUptime account en wachtdienstroosters worden aan de serverkant opgeslagen en worden niet verwijderd wanneer u de app verwijdert.
 
-## Updates en onderhoud
+## Probleemoplossing
 
-### Automatische updates
-- OneUptime PWA wordt automatisch bijgewerkt wanneer online
-- Geen App Store-updates vereist
-- Nieuwe functies direct beschikbaar na serverimplementatie
-- Kritieke beveiligingsupdates worden onmiddellijk toegepast
+**De App Store geeft aan dat de app "Niet beschikbaar in uw regio" is:**
+- De app is gepubliceerd in de wereldwijde App Store. Als deze niet in uw regio verschijnt, neem dan contact op met [support](mailto:support@oneuptime.com).
 
-## iPad-specifieke installatie
+**"Netwerkfout" bij het inloggen:**
+- Controleer of de **Server URL** correct is en bereikbaar is vanaf uw apparaat.
+- Als u zich op een bedrijfsnetwerk of VPN bevindt, zorg er dan voor dat de OneUptime instantie toegankelijk is.
+- Bevestig dat de server via HTTPS met een geldig certificaat wordt aangeboden.
 
-### Verbeterde iPad-ervaring
-1. **Groter interface**: Geoptimaliseerde lay-outs voor iPad-schermformaten
-2. **Meerdere vensters**: Voer meerdere OneUptime-vensters tegelijkertijd uit
-3. **Sneltoetsen**: Volledige ondersteuning voor externe toetsenborden
-4. **Slepen en neerzetten**: Verplaats gegevens tussen OneUptime en andere apps
+**Geen pushmeldingen ontvangen:**
+- Open **Instellingen → Berichtgeving → OneUptime On-Call** en bevestig dat meldingen zijn toegestaan.
+- Schakel **Niet storen** uit of voeg OneUptime On-Call toe aan de lijst met toegestane apps van uw actieve Focus modus.
+- Log uit en log opnieuw in om het push-token dat bij de server is geregistreerd te vernieuwen.
+- Zelf-gehoste gebruikers: bevestig dat pushmeldingen zijn geconfigureerd op uw OneUptime instantie (zie de zelf-gehoste handleiding [Pushmeldingen](/docs/self-hosted/push-notifications)).
 
-### iPad-installatiestappen
-Dezelfde als bij iPhone-installatie, maar met aanvullende overwegingen:
-- Gebruik de liggende modus voor optimale dashboardweergave
-- Overweeg een gesplitste weergave met andere productiviteits-apps
-- Configureer sneltoetsen voor veelgebruikte acties
+**Face ID / Touch ID werkt niet:**
+- Zorg ervoor dat biometrische gegevens zijn ingeschreven in **Instellingen → Face ID en toegangscode** of **Instellingen → Touch ID en toegangscode**.
+- Schakel biometrische ontgrendeling opnieuw in vanuit het scherm **Instellingen** binnen de OneUptime On-Call app.
 
-## Apple Watch-integratie
+**App crasht bij het opstarten:**
+- Werk bij naar de nieuwste versie via de App Store.
+- Start uw apparaat opnieuw op.
+- Als het probleem aanhoudt, verwijder de app en installeer deze opnieuw, en log dan opnieuw in.
 
-Hoewel OneUptime geen speciale watchOS-app heeft, kunt u:
-- **Meldingen ontvangen**: Incidentmeldingen verschijnen op Apple Watch
-- **Snelle acties**: Incidenten bevestigen vanuit watchmeldingen
-- **Siri-integratie**: Siri vragen naar systeemstatus (indien geconfigureerd)
+## Ondersteuning
 
-## Geavanceerde configuratie
-
-### Integratie met de Snelkoppelingen-app
-Maak aangepaste Siri-snelkoppelingen voor OneUptime:
-1. Open de **Snelkoppelingen**-app
-2. Maak een **Nieuwe snelkoppeling** aan
-3. Voeg de actie **"App openen"** toe
-4. Selecteer **OneUptime**
-5. Voeg een spraakopdracht toe zoals "Controleer systeemstatus"
-
-### Focusmodi
-Integreer OneUptime met iOS-focusmodi:
-1. **Instellingen → Focus**
-2. Selecteer of maak een focusmodus aan
-3. **Apps → Apps toevoegen → OneUptime**
-4. Configureer meldingsgedrag voor verschillende focusstatussen
-
-## Best practices
-
-### Beveiligingsaanbevelingen
-1. **Verifieer URL**: Installeer alleen vanuit de officiële OneUptime-instantie van uw organisatie
-2. **Alleen HTTPS**: Zorg voor een beveiligde verbinding (zoek naar slotpictogram)
-3. **Regelmatige updates**: Houd iOS bijgewerkt voor beveiligingspatches
-4. **App-machtigingen**: Verleen alleen de benodigde machtigingen
-
-### Prestatieoptimalisatie
-1. **Wi-Fi-installatie**: Gebruik Wi-Fi voor initiële installatie en grote updates
-2. **Achtergrond vernieuwen**: Inschakelen voor tijdige meldingen
-3. **Opslagbeheer**: Zorg voor voldoende vrije ruimte
-4. **Regelmatig herstarten**: Herstart de app wekelijks voor optimale prestaties
-
-### Beste monitoringpraktijken
-1. **Kritieke meldingen**: Schakel in voor alleen hoogprioritaire meldingen
-2. **Meerdere apparaten**: Installeer op zowel iPhone als iPad voor redundantie
-3. **Teamtoegang**: Deel de installatiegids met teamleden
-4. **Testen**: Test regelmatig de bezorging van meldingen en offline-functionaliteit
+Als u nog hulp nodig hebt, neem dan contact op via uw OneUptime dashboard of open een issue op onze [GitHub repository](https://github.com/OneUptime/oneuptime).

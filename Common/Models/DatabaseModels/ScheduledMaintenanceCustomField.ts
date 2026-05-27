@@ -265,6 +265,43 @@ export default class ScheduledMaintenanceCustomField extends BaseModel {
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceCustomField,
     ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditScheduledMaintenanceCustomField,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Dropdown Options",
+    description:
+      "Options for the dropdown field, one per line. Only used when Custom Field Type is Dropdown.",
+    example: "Option 1\nOption 2\nOption 3",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public dropdownOptions?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateScheduledMaintenanceCustomField,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadScheduledMaintenanceCustomField,
+    ],
     update: [],
   })
   @TableColumn({

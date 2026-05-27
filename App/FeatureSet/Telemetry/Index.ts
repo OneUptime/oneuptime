@@ -20,6 +20,7 @@ import { startGrpcServer } from "./GrpcServer";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
+import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -67,6 +68,13 @@ const TelemetryFeatureSet: FeatureSet = {
         `Telemetry Service - Queue concurrency: ${TELEMETRY_CONCURRENCY}`,
         { service: "telemetry" },
       );
+
+      if (TelemetryIngestionDisabled.isDisabled()) {
+        logger.warn(
+          "DISABLE_TELEMETRY_INGESTION=true — telemetry ingestion endpoints will accept requests but drop all data.",
+          { service: "telemetry" },
+        );
+      }
 
       // Start gRPC OTLP server on port 4317
       startGrpcServer();

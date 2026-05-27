@@ -1,170 +1,99 @@
-# Installatiegids voor Android
+# Android Installatiehandleiding
 
-Installeer OneUptime als native app op uw Android-apparaat voor de beste monitoringervaring.
+Installeer de **OneUptime On-Call** native Android app vanuit de Google Play Store, of laad de APK rechtstreeks (sideload) op apparaten zonder Google Play.
 
-## Installatiemethoden
+## Vereisten
 
-### Methode 1: Chrome-browser (aanbevolen)
+- Android telefoon of tablet met **Android 8.0 (Oreo) of later**
+- Een actief OneUptime account (of de URL van uw zelf-gehoste OneUptime instantie)
+- Internetverbinding voor het inloggen en het ontvangen van pushmeldingen
 
-1. **OneUptime openen in Chrome**
-   - Start Google Chrome op uw Android-apparaat
-   - Navigeer naar de URL van uw OneUptime-instantie
-   - Wacht tot de pagina volledig is geladen
+## Optie 1: Installeren vanuit Google Play (Aanbevolen)
 
-2. **Installatieprompt**
-   - Zoek de banner "Aan startscherm toevoegen" onderaan
-   - Tik op "Installeren" of "Aan startscherm toevoegen"
-   - Als u de prompt niet ziet, tik dan op het menu met drie puntjes (⋮) in de rechterbovenhoek
+1. Open de **Google Play Store** op uw apparaat.
+2. Zoek naar **"OneUptime On-Call"**, of open deze link op uw apparaat:
+   [https://play.google.com/store/apps/details?id=com.oneuptime.oncall](https://play.google.com/store/apps/details?id=com.oneuptime.oncall)
+3. Tik op **Installeren**.
+4. Zodra de app is geïnstalleerd, tikt u op **Openen** of start u **OneUptime On-Call** vanuit uw app-lade.
 
-3. **Handmatige installatie via menu**
-   - Tik op het Chrome-menu (drie puntjes)
-   - Selecteer "Aan startscherm toevoegen" of "App installeren"
-   - Pas de app-naam aan indien gewenst
-   - Tik op "Toevoegen" om te bevestigen
+## Optie 2: Installeer de APK Rechtstreeks
 
-4. **De app starten**
-   - Zoek het OneUptime-pictogram op uw startscherm of in de app-lade
-   - Tik om de app te starten in volledig scherm
+Voor apparaten zonder Google Play (bijvoorbeeld GrapheneOS, /e/OS of Huawei apparaten), installeert u de officiële APK vanuit GitHub Releases:
 
-### Methode 2: Samsung Internet
+1. Open op uw Android apparaat deze link:
+   [https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk)
+2. Wanneer daarom wordt gevraagd, sta uw browser toe om onbekende apps te installeren:
+   **Instellingen → Apps → \[Uw browser\] → Onbekende apps installeren → Toestaan vanuit deze bron**.
+3. Open de gedownloade APK en tik op **Installeren**.
+4. Start **OneUptime On-Call** vanuit uw app-lade.
 
-1. **OneUptime openen**
-   - Start de Samsung Internet-browser
-   - Ga naar uw OneUptime-instantie
-   - Wacht tot de pagina volledig is geladen
+De APK is gebouwd en ondertekend door OneUptime vanuit dezelfde bron als de Play Store-release. App-updates zijn niet automatisch bij sideloading — download de nieuwste APK via de bovenstaande link wanneer er een nieuwe versie is uitgebracht.
 
-2. **Aan startscherm toevoegen**
-   - Tik op de menuknop (drie streepjes)
-   - Selecteer "Pagina toevoegen aan" → "Startscherm"
-   - Voer de app-naam in en tik op "Toevoegen"
+## Eerste Start en Inloggen
 
-3. **Starten**
-   - Zoek het app-pictogram op uw startscherm
-   - Tik om OneUptime in app-modus te openen
+1. **Server URL**
+   - Als u OneUptime Cloud gebruikt, laat dan de standaardwaarde `https://oneuptime.com` staan.
+   - Als u zelf host, voer dan de URL van uw OneUptime instantie in (bijv. `https://oneuptime.example.com`).
+   - De app controleert of de server bereikbaar is voordat u doorgaat.
+2. **Inloggen**
+   - Voer het e-mailadres en wachtwoord van uw OneUptime account in.
+   - Schakel optioneel **biometrische ontgrendeling** (vingerafdruk) in voor snellere ontgrendelingen bij latere starts.
+3. **Meldingen Toestaan**
+   - Tik op **Toestaan** wanneer daarom wordt gevraagd, zodat de app oproepen voor wachtdiensten, incidentmeldingen en bevestigingen kan afleveren.
 
-### Methode 3: Firefox
+## Pushmeldingen
 
-1. **OneUptime openen**
-   - Start de Firefox-browser
-   - Navigeer naar uw OneUptime-URL
-   - Laat de pagina volledig laden
+Pushmeldingen worden afgeleverd via Firebase Cloud Messaging (FCM) via Expo Push. Om ervoor te zorgen dat oproepen u betrouwbaar bereiken tijdens een wachtdienst:
 
-2. **Installeren**
-   - Tik op het menu met drie puntjes
-   - Selecteer "Installeren" (indien beschikbaar)
-   - Of selecteer "Aan startscherm toevoegen"
-   - Bevestig de installatie
+1. Open **Instellingen → Apps → OneUptime On-Call → Meldingen** en bevestig dat alle categorieën zijn ingeschakeld.
+2. Open **Instellingen → Apps → OneUptime On-Call → Batterij** en kies **Onbeperkt** (of schakel batterijoptimalisatie uit) zodat het besturingssysteem achtergrond-pushes niet vertraagt.
+3. Sta toe dat de app op de achtergrond draait en schakel eventuele "Databesparing" beperkingen ervoor uit.
+4. Als u Samsung apparaten gebruikt, schakel dan ook **Instellingen → Apparaatonderhoud → Batterij → Limieten voor achtergrondgebruik** uit voor OneUptime On-Call.
+5. Voeg OneUptime On-Call toe aan eventuele uitzonderingslijsten voor **Niet storen** zodat oproepen blijven overgaan tijdens uw wachtdienst.
 
-### Aanpassingsopties
+## Updates
 
-### App-naam
-- Tijdens de installatie kunt u de app-naam aanpassen
-- Standaard: "OneUptime"
-- Aanbevolen: houd "OneUptime" of voeg uw bedrijfsnaam toe
+**Google Play:**
+- Updates worden automatisch geïnstalleerd. Om er handmatig een te activeren, opent u **Play Store → Profiel → Apps en apparaat beheren → Updates beschikbaar → OneUptime On-Call → Bijwerken**.
 
-### Meldingsinstellingen
-1. **Machtigingen verlenen**
-   - Sta meldingen toe wanneer daarom wordt gevraagd
-   - Ga naar Instellingen → Apps → OneUptime → Meldingen
-   - Schakel alle meldingscategorieën in voor de beste ervaring
-
-2. **Meldingen aanpassen**
-   - Configureer welke incidenten meldingen activeren
-   - Stel prioriteitsniveaus voor meldingen in
-   - Kies geluid- en trillingsinstellingen
-
-## Probleemoplossing
-
-### Installatieproblemen
-
-**"Aan startscherm toevoegen" verschijnt niet:**
-```
-1. Browsercache en cookies wissen
-2. Zorg dat u op HTTPS bent (beveiligde verbinding)
-3. Wacht 2-3 minuten op de pagina voordat u naar de prompt zoekt
-4. Controleer of aan de PWA-vereisten is voldaan op uw OneUptime-instantie
-```
-
-**Installatie mislukt:**
-```
-1. Maak opslagruimte vrij (minimaal 50 MB nodig)
-2. Update uw browser naar de nieuwste versie
-3. Herstart uw browser en probeer opnieuw
-4. Probeer een andere browser (Chrome aanbevolen)
-```
-
-**App-pictogram verschijnt niet:**
-```
-1. Controleer het startscherm en de app-lade
-2. Zoek in de sectie "Onlangs toegevoegd" apps
-3. Zoek naar "OneUptime" in de app-lade
-4. Herinstalleer indien nodig
-```
-
-### Meldingsproblemen
-
-**Geen meldingen ontvangen:**
-```
-1. Controleer meldingsmachtigingen:
-   - Instellingen → Apps → OneUptime → Machtigingen → Meldingen
-2. Zorg dat meldingen zijn ingeschakeld in het OneUptime-dashboard
-3. Controleer de instellingen voor Niet storen
-4. Controleer of batterijoptimalisatie-instellingen OneUptime niet blokkeren
-```
-
-**Vertraagde meldingen:**
-```
-1. Batterijoptimalisatie uitschakelen voor OneUptime:
-   - Instellingen → Apps → OneUptime → Batterij → Batterijgebruik optimaliseren
-2. Achtergrondactiviteit toestaan
-3. Controleer de instellingen voor gegevensbesparing
-```
+**APK sideload:**
+- Download de nieuwste APK opnieuw via de bovenstaande GitHub Releases-link en installeer deze over de bestaande app heen — uw gegevens, server-URL en login worden behouden.
 
 ## Verwijderen
 
-### App verwijderen
-1. **Houd** het OneUptime-pictogram op het startscherm ingedrukt
-2. Selecteer **"Verwijderen"** of sleep naar de prullenbak
-3. Bevestig de verwijdering
+1. **Houd ingedrukt** op het **OneUptime On-Call** pictogram en tik vervolgens op **Verwijderen**.
+2. Of open **Instellingen → Apps → OneUptime On-Call → Verwijderen**.
+3. Bevestig om de app te verwijderen.
 
-### Alternatieve methode
-1. Ga naar **Instellingen → Apps**
-2. Zoek **"OneUptime"**
-3. Tik op **"Verwijderen"**
-4. Bevestig de verwijdering
+Uw OneUptime account en wachtdienstroosters worden aan de serverkant opgeslagen en worden niet verwijderd wanneer u de app verwijdert.
 
-## Updates en onderhoud
+## Probleemoplossing
 
-### Automatische updates
-OneUptime PWA wordt automatisch bijgewerkt:
-- **Automatische updates**: App wordt bijgewerkt wanneer u online een bezoek brengt
-- **Geen handmatige updates**: In tegenstelling tot store-apps is geen gebruikersactie vereist
-- **Directe updates**: Nieuwe functies zijn onmiddellijk beschikbaar
-- **Terugdraaien veilig**: Slechte updates kunnen snel worden teruggedraaid
+**"Netwerkfout" bij het inloggen:**
+- Controleer of de **Server URL** correct is en bereikbaar is vanaf uw apparaat.
+- Als u zich op een bedrijfsnetwerk of VPN bevindt, zorg er dan voor dat de OneUptime instantie toegankelijk is.
+- Bevestig dat de server via HTTPS met een geldig certificaat wordt aangeboden.
 
-## Geavanceerde configuratie
+**Geen pushmeldingen ontvangen:**
+- Bevestig dat meldingen zijn ingeschakeld bij **Instellingen → Apps → OneUptime On-Call → Meldingen**.
+- Schakel batterijoptimalisatie uit voor OneUptime On-Call (zie Pushmeldingen hierboven).
+- Zorg ervoor dat Niet storen is uitgeschakeld, of dat OneUptime On-Call op de uitzonderingslijst staat.
+- Log uit en log opnieuw in om het push-token dat bij de server is geregistreerd te vernieuwen.
+- Zelf-gehoste gebruikers: bevestig dat pushmeldingen zijn geconfigureerd op uw OneUptime instantie (zie de zelf-gehoste handleiding [Pushmeldingen](/docs/self-hosted/push-notifications)).
 
-### Ontwikkelaarsopties
-Voor gevorderde gebruikers die de PWA willen inspecteren:
-1. Schakel Ontwikkelaarsopties in op Android
-2. Verbind met de computer via ADB
-3. Gebruik Chrome DevTools voor foutopsporing op afstand
+**Biometrische ontgrendeling werkt niet:**
+- Schrijf een vingerafdruk in bij **Instellingen → Beveiliging → Vingerafdruk**.
+- Schakel biometrische ontgrendeling opnieuw in vanuit het scherm **Instellingen** binnen de OneUptime On-Call app.
 
-### Netwerkconfiguratie
-- Configureer VPN als u toegang heeft tot een interne OneUptime-instantie
-- Stel proxyinstellingen in indien vereist door uw organisatie
-- Zorg dat de firewall PWA-resources toestaat
+**APK-installatie geblokkeerd:**
+- U moet de browser toestemming geven om onbekende apps te installeren (zie Optie 2 hierboven).
+- Sommige providers of bedrijfsapparaatprofielen blokkeren sideloading volledig; gebruik in dat geval in plaats daarvan de Google Play versie.
 
-## Best practices
+**App crasht bij het opstarten:**
+- Werk bij naar de nieuwste versie via Google Play of de nieuwste APK.
+- Start uw apparaat opnieuw op.
+- Als het probleem aanhoudt, verwijder en herinstalleer de app, en log dan opnieuw in.
 
-### Voor optimale prestaties
-1. **Eerste start**: Altijd online voor initiële installatie
-2. **Regelmatig gebruik**: Open de app regelmatig om de cache actueel te houden
-3. **Opslagbeheer**: Zorg voor voldoende vrije ruimte
-4. **Netwerk**: Gebruik Wi-Fi voor initiële installatie en grote updates
+## Ondersteuning
 
-### Beveiligingsaanbevelingen
-1. **Alleen HTTPS**: Installeer alleen vanuit veilige OneUptime-instanties
-2. **Officiële URL's**: Controleer of u installeert vanuit de officiële OneUptime-URL van uw organisatie
-3. **Machtigingen**: Verleen alleen de benodigde machtigingen
-4. **Updates**: Houd uw Android-besturingssysteem en browsers bijgewerkt
+Als u nog hulp nodig hebt, neem dan contact op via uw OneUptime dashboard of open een issue op onze [GitHub repository](https://github.com/OneUptime/oneuptime).

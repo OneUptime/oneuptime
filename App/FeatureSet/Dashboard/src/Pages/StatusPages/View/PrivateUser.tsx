@@ -204,6 +204,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         id="status-page-group"
         name="Status Page > Private Users"
         userPreferencesKey="status-page-private-user-table"
+        saveFilterProps={{
+          tableId: "status-page-private-users-table",
+        }}
         isDeleteable={true}
         showViewIdButton={true}
         isCreateable={true}

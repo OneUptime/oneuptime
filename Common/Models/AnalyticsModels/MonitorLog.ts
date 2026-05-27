@@ -22,6 +22,7 @@ export default class MonitorLog extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.MonitorAdmin,
           Permission.MonitorMember,
           Permission.MonitorViewer,
@@ -50,6 +51,7 @@ export default class MonitorLog extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.MonitorAdmin,
           Permission.MonitorMember,
           Permission.MonitorViewer,
@@ -78,6 +80,7 @@ export default class MonitorLog extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.MonitorAdmin,
           Permission.MonitorMember,
           Permission.MonitorViewer,
@@ -108,6 +111,7 @@ export default class MonitorLog extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.MonitorAdmin,
           Permission.MonitorMember,
           Permission.MonitorViewer,
@@ -144,6 +148,7 @@ export default class MonitorLog extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
+          Permission.Viewer,
           Permission.MonitorAdmin,
           Permission.MonitorMember,
           Permission.MonitorViewer,
@@ -188,6 +193,7 @@ export default class MonitorLog extends AnalyticsBaseModel {
       primaryKeys: ["projectId", "time", "monitorId"],
       partitionKey: "sipHash64(projectId) % 16",
       ttlExpression: "retentionDate DELETE",
+      defaultSortColumn: "time",
     });
   }
 

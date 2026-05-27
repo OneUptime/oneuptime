@@ -49,7 +49,8 @@ const WIDGET_CATALOG: ReadonlyArray<CatalogCategory> = [
         type: DashboardComponentType.Table,
         label: "Table",
         icon: IconProp.TableCells,
-        description: "Tabular result from a metrics or data query.",
+        description:
+          "Tabular metric values — set a Group By (e.g. host.name) for one row per entity, or none for time-bucketed rows. Add formulas for derived columns like availability %.",
       },
       {
         type: DashboardComponentType.Text,
@@ -104,7 +105,7 @@ const WIDGET_CATALOG: ReadonlyArray<CatalogCategory> = [
   {
     name: "Hosts",
     description:
-      "Hosts auto-discovered from the host.name OTel resource attribute — list view and per-host system metrics.",
+      "Hosts auto-discovered from the host.name OTel resource attribute.",
     items: [
       {
         type: DashboardComponentType.HostList,
@@ -112,13 +113,6 @@ const WIDGET_CATALOG: ReadonlyArray<CatalogCategory> = [
         icon: IconProp.Server,
         description:
           "Hosts with connection status, OS, CPU/memory, and last-seen.",
-      },
-      {
-        type: DashboardComponentType.HostMetricChart,
-        label: "Host Metric Chart",
-        icon: IconProp.ArrowTrendingUp,
-        description:
-          "Time-series chart for CPU, memory, disk, network, or process metrics — per host or all hosts.",
       },
     ],
   },

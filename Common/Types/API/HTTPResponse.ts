@@ -69,6 +69,19 @@ export default class HTTPResponse<
     this._skip = v;
   }
 
+  /*
+   * Optional. Set by analytics list endpoints that skip the expensive
+   * COUNT(*) and instead over-fetch by one row. When defined, `count`
+   * is only a lower bound — UI should drive next/prev from `hasMore`.
+   */
+  private _hasMore: boolean | undefined = undefined;
+  public get hasMore(): boolean | undefined {
+    return this._hasMore;
+  }
+  public set hasMore(v: boolean | undefined) {
+    this._hasMore = v;
+  }
+
   public constructor(
     statusCode: number,
     data: JSONObject | Array<JSONObject>,
@@ -86,6 +99,9 @@ export default class HTTPResponse<
       this.count = data["count"] as number;
       this.skip = data["skip"] as number;
       this.limit = data["limit"] as number;
+      if (Object.keys(data).includes("hasMore")) {
+        this.hasMore = data["hasMore"] as boolean;
+      }
       this.jsonData = JSONFunctions.deserializeArray(data["data"] as JSONArray);
     } else if (Array.isArray(data)) {
       this.jsonData = JSONFunctions.deserializeArray(data as JSONArray);

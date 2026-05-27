@@ -1,24 +1,56 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import Label from "Common/Models/DatabaseModels/Label";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageOwnerTeam from "Common/Models/DatabaseModels/StatusPageOwnerTeam";
+import StatusPageOwnerUser from "Common/Models/DatabaseModels/StatusPageOwnerUser";
 import React, { FunctionComponent, ReactElement } from "react";
 import StatusPageElement from "../../Components/StatusPage/StatusPageElement";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 
 const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<StatusPage>({ modelType: StatusPage });
 
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<StatusPage>({
+      ownerUserModelType: StatusPageOwnerUser,
+      ownerTeamModelType: StatusPageOwnerTeam,
+      resourceIdField: "statusPageId",
+    });
+
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<StatusPage>({
+    ownerUserModelType: StatusPageOwnerUser,
+    ownerTeamModelType: StatusPageOwnerTeam,
+    resourceIdField: "statusPageId",
+    showLabelsFacet: true,
+  });
+
   return (
     <div>
       <ModelTable<StatusPage>
+        topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery(undefined)}
+        onFetchSuccess={(data: Array<StatusPage>) => {
+          onResourcesFetched(data);
+        }}
         modelType={StatusPage}
         id="status-page-table"
         userPreferencesKey="status-page-table"
@@ -26,7 +58,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isEditable={false}
         isCreateable={true}
         bulkActions={{
-          buttons: [...labelBulkActions],
+          buttons: [...labelBulkActions, ...ownerBulkActions],
         }}
         name="Status Pages"
         isViewable={true}
@@ -88,24 +120,6 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Description",
             type: FieldType.LongText,
           },
-          {
-            field: {
-              labels: {
-                name: true,
-                color: true,
-              },
-            },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
         ]}
         columns={[
           {
@@ -142,9 +156,26 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
             },
           },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: StatusPage): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
+            },
+          },
         ]}
       />
       {labelBulkActionModals}
+      {ownerBulkActionModals}
     </div>
   );
 };

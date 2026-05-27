@@ -5,6 +5,7 @@ import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -21,6 +22,7 @@ import DatabaseBaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Service from "./Service";
 
 @EnableDocumentation()
+@CanAccessIfCanReadOn("service")
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [
@@ -62,6 +64,17 @@ import Service from "./Service";
 @Entity({
   name: "TelemetryException",
 })
+@Index(["projectId", "isResolved", "isArchived"]) // Exceptions dashboard counts/filters
+/*
+ * Composite uniqueness on the dedup key used by the OTel traces ingest
+ * batched upsert. The ingest path collapses every exception event in a
+ * worker batch into a single INSERT … ON CONFLICT (projectId,
+ * serviceId, fingerprint) DO UPDATE statement; this index is what makes
+ * that conflict target resolvable and stops two concurrent workers from
+ * racing the old findOneBy + update path into duplicate rows or lost
+ * occuranceCount increments.
+ */
+@Index(["projectId", "serviceId", "fingerprint"], { unique: true })
 export default class TelemetryException extends DatabaseBaseModel {
   @ColumnAccessControl({
     create: [
@@ -1096,6 +1109,7 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.EditTelemetryException,
     ],
   })
+  @Index()
   @TableColumn({
     title: "Occurances",
     description: "Number of times this exception has occurred",

@@ -64,6 +64,9 @@ const EpisodePublicNote: FunctionComponent<PageComponentProps> = (
         id="table-episode-public-note"
         name="Episode > Public Note"
         userPreferencesKey="episode-public-note-table"
+        saveFilterProps={{
+          tableId: "incident-episode-public-note-table",
+        }}
         isDeleteable={true}
         isCreateable={true}
         showViewIdButton={true}

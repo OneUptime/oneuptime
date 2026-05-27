@@ -1,6 +1,6 @@
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
-import Button, { ButtonStyleType } from "../Button/Button";
-import Icon, { SizeProp } from "../Icon/Icon";
+import { ButtonStyleType } from "../Button/Button";
+import Icon from "../Icon/Icon";
 import ConfirmModal, {
   ComponentProps as ConfirmModalProps,
 } from "../Modal/ConfirmModal";
@@ -317,76 +317,86 @@ const BulkUpdateForm: <T extends GenericObject>(
     menuChildren.push(renderMenuItem(button, safeButtons.length + index));
   });
 
+  const showLimitWarning: boolean =
+    props.isAllItemsSelected &&
+    props.selectedItems.length === LIMIT_PER_PROJECT;
+
   return (
     <div>
       <div>
-        <div className="flex mt-5 mb-5 bg-gray-50 rounded rounded-xl p-5 border border-2 border-gray-100 justify-between">
-          <div className="-mt-1">
-            <div className="flex mt-1">
-              <div className="flex-auto py-0.5 text-sm leading-5">
-                <span className="font-semibold">
-                  {props.selectedItems.length} {props.pluralLabel + " " || ""}
-                  Selected
-                </span>{" "}
-                {props.isAllItemsSelected &&
-                  props.selectedItems.length === LIMIT_PER_PROJECT && (
-                    <span className="text-gray-500">
-                      (You can only select {LIMIT_PER_PROJECT}{" "}
-                      {props.pluralLabel} at a time. This is for performance
-                      reasons.)
-                    </span>
-                  )}
+        <div className="mt-5 mb-5 bg-gray-50 rounded-xl p-4 border-2 border-gray-100">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/** Selected Count Badge */}
+              <div className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-50 px-3 py-1.5 text-sm font-semibold text-indigo-700 border border-indigo-100">
+                <Icon
+                  icon={IconProp.CheckCircle}
+                  className="h-4 w-4 text-indigo-600"
+                />
+                <span>
+                  {props.selectedItems.length} {props.pluralLabel} Selected
+                </span>
               </div>
-            </div>
-            <div className="flex -ml-3 mt-1">
+
+              {/** Divider */}
+              <div className="h-6 w-px bg-gray-300 mx-1" />
+
               {/** Select All Button */}
               {!props.isAllItemsSelected && (
-                <Button
-                  className="font-medium text-gray-900"
-                  icon={IconProp.CheckCircle}
+                <button
+                  type="button"
                   onClick={() => {
                     props.onSelectAllClick();
                   }}
-                  title={`Select All ${props.pluralLabel}`}
-                  iconSize={SizeProp.Smaller}
-                  buttonStyle={ButtonStyleType.SECONDARY_LINK}
-                />
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-150 cursor-pointer select-none"
+                >
+                  <Icon icon={IconProp.CheckCircle} className="h-3.5 w-3.5" />
+                  <span>Select All {props.pluralLabel}</span>
+                </button>
               )}
 
               {/** Clear Selection Button */}
-              <Button
+              <button
+                type="button"
                 onClick={() => {
                   props.onClearSelectionClick();
                 }}
-                className="font-medium text-gray-900 -ml-2"
-                icon={IconProp.Close}
-                title="Clear Selection"
-                buttonStyle={ButtonStyleType.SECONDARY_LINK}
-              />
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-red-50 hover:border-red-300 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-150 cursor-pointer select-none"
+              >
+                <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
+                <span>Clear Selection</span>
+              </button>
+            </div>
+
+            <div className="flex items-center">
+              {menuChildren.length > 0 && (
+                <MoreMenu
+                  elementToBeShownInsteadOfButton={
+                    <div className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3.5 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-400 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-150 cursor-pointer select-none">
+                      <Icon
+                        icon={IconProp.Bolt}
+                        className="h-4 w-4 text-gray-500"
+                      />
+                      <span>Bulk Actions</span>
+                      <Icon
+                        icon={IconProp.ChevronDown}
+                        className="h-3.5 w-3.5 text-gray-400 ml-0.5"
+                      />
+                    </div>
+                  }
+                >
+                  {menuChildren}
+                </MoreMenu>
+              )}
             </div>
           </div>
 
-          <div className="flex items-center">
-            {menuChildren.length > 0 && (
-              <MoreMenu
-                elementToBeShownInsteadOfButton={
-                  <div className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-400 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-150 cursor-pointer select-none">
-                    <Icon
-                      icon={IconProp.Bolt}
-                      className="h-4 w-4 text-gray-500"
-                    />
-                    <span>Bulk Actions</span>
-                    <Icon
-                      icon={IconProp.ChevronDown}
-                      className="h-3.5 w-3.5 text-gray-400 ml-0.5"
-                    />
-                  </div>
-                }
-              >
-                {menuChildren}
-              </MoreMenu>
-            )}
-          </div>
+          {showLimitWarning && (
+            <div className="mt-2 text-xs text-gray-500">
+              You can only select {LIMIT_PER_PROJECT} {props.pluralLabel} at a
+              time. This is for performance reasons.
+            </div>
+          )}
         </div>
       </div>
 

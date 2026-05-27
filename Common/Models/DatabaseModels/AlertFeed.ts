@@ -91,6 +91,7 @@ export enum AlertFeedEventType {
   tableDescription:
     "Log of the entire alert state change. This is a log of all the alert state changes, public notes, more etc.",
 })
+@Index(["alertId", "postedAt"]) // Alert detail page: feed sorted by postedAt
 export default class AlertFeed extends BaseModel {
   @ColumnAccessControl({
     create: [

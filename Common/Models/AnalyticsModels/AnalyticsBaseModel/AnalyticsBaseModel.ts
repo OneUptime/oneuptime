@@ -52,6 +52,16 @@ export default class AnalyticsBaseModel extends CommonModel {
     materializedViews?: Array<MaterializedView> | undefined;
     enableMCP?: boolean | undefined;
     ttlExpression?: string | undefined; // e.g. "retentionDate DELETE"
+    /*
+     * Column that `findBy` falls back to when the caller doesn't
+     * specify a `sort`. Defaults to `createdAt` (matching the legacy
+     * behavior), but heavy analytics tables should override this to
+     * a column that participates in their ClickHouse sort key so the
+     * default list query streams from the index instead of doing a
+     * full sort. Examples: Log/MonitorLog/ExceptionInstance => "time",
+     * Span/Profile => "startTime", AuditLog => "createdAt".
+     */
+    defaultSortColumn?: string | undefined;
   }) {
     super({
       tableColumns: data.tableColumns,
@@ -156,6 +166,29 @@ export default class AnalyticsBaseModel extends CommonModel {
     this.materializedViews = data.materializedViews || [];
     this.enableMCP = data.enableMCP || false;
     this.ttlExpression = data.ttlExpression || "";
+
+    /*
+     * Validate the override matches the schema. We deliberately do
+     * NOT require the column to be in `sortKeys` — it must just
+     * exist on the table; the caller picks a column they know is
+     * indexed (typically the timestamp column at position 2 of the
+     * sort key, after `projectId`).
+     */
+    if (data.defaultSortColumn) {
+      const column: AnalyticsTableColumn | undefined = columns.find(
+        (column: AnalyticsTableColumn) => {
+          return column.key === data.defaultSortColumn;
+        },
+      );
+      if (!column) {
+        throw new BadDataException(
+          "defaultSortColumn " +
+            data.defaultSortColumn +
+            " is not part of tableColumns",
+        );
+      }
+      this.defaultSortColumn = data.defaultSortColumn;
+    }
   }
 
   private _enableWorkflowOn: EnableWorkflowOn | undefined;
@@ -212,6 +245,22 @@ export default class AnalyticsBaseModel extends CommonModel {
   }
   public set sortKeys(v: Array<string>) {
     this._sortKeys = v;
+  }
+
+  /*
+   * Column that `AnalyticsDatabaseService._findBy` falls back to
+   * when the caller didn't pass a `sort`. `createdAt` (the historical
+   * default) is not part of the ClickHouse sort key on heavy
+   * analytics tables (Log/Span/Metric/...), so a default list query
+   * over those tables triggers a full sort. Per-model overrides
+   * point at a column that participates in the sort key.
+   */
+  private _defaultSortColumn: string = "createdAt";
+  public get defaultSortColumn(): string {
+    return this._defaultSortColumn;
+  }
+  public set defaultSortColumn(v: string) {
+    this._defaultSortColumn = v;
   }
 
   private _singularName: string = "";

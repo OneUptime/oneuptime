@@ -1,7 +1,5 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
-import OTelIngestService, {
-  TelemetryServiceMetadata,
-} from "Common/Server/Services/OpenTelemetryIngestService";
+import { TelemetryServiceMetadata } from "Common/Server/Services/OpenTelemetryIngestService";
 import OneUptimeDate from "Common/Types/Date";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
@@ -22,7 +20,7 @@ import {
   SpanKind,
   SpanStatus,
 } from "Common/Models/AnalyticsModels/Span";
-import ExceptionUtil from "../Utils/Exception";
+import ExceptionUtil, { TelemetryExceptionPayload } from "../Utils/Exception";
 import StackTraceParser, { ParsedStackTrace } from "../Utils/StackTraceParser";
 import logger, {
   getLogAttributesFromRequest,
@@ -34,12 +32,14 @@ import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import Text from "Common/Types/Text";
 import TracesQueueService from "./Queue/TracesQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
-import TraceDropFilterService from "./TraceDropFilterService";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
+import TraceDropFilterService, {
+  LoadedTraceDropFilter,
+} from "./TraceDropFilterService";
 import TraceScrubRuleService from "./TraceScrubRuleService";
 import TracePipelineService, {
   LoadedTracePipeline,
 } from "./TracePipelineService";
-import TraceDropFilter from "Common/Models/DatabaseModels/TraceDropFilter";
 import TraceScrubRule from "Common/Models/DatabaseModels/TraceScrubRule";
 import {
   TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE,
@@ -172,8 +172,12 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         );
       }
 
-      req.body = req.body?.toJSON ? req.body.toJSON() : req.body;
-
+      /*
+       * Send the 200 first, then enqueue the raw request bytes. The
+       * heavy protobuf decode + toJSON used to run here on the
+       * Express event loop, blocking all other requests (including
+       * dashboard reads). The worker now handles it.
+       */
       Response.sendEmptySuccessResponse(req, res);
 
       await TracesQueueService.addTraceIngestJob(req as TelemetryRequest);
@@ -206,13 +210,27 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
 
       const dbSpans: Array<JSONObject> = [];
       const dbExceptions: Array<JSONObject> = [];
+      /*
+       * Pending TelemetryException (Postgres) upserts for this batch.
+       * The old code did one fire-and-forget findOneBy + update/create
+       * pair per exception event, which (a) burnt one Postgres
+       * round-trip per event and (b) lost occuranceCount increments
+       * under concurrent writes because the +1 was read-modify-write
+       * in JS. We now buffer the payloads and flush them in one
+       * batched ON CONFLICT statement (per
+       * ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch) at the
+       * end of the worker job, which collapses thousands of
+       * round-trips into one and lets Postgres do the increment
+       * atomically.
+       */
+      const pendingExceptionUpserts: Array<TelemetryExceptionPayload> = [];
       const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
       let totalSpansProcessed: number = 0;
 
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
 
       // Load trace pipeline artifacts once per batch (60s cached inside services).
-      let dropFilters: Array<TraceDropFilter> = [];
+      let dropFilters: Array<LoadedTraceDropFilter> = [];
       let scrubRules: Array<CompiledTraceScrubRule> = [];
       let pipelines: Array<LoadedTracePipeline> = [];
       try {
@@ -244,40 +262,93 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
               "attributes"
             ] as JSONArray) || [];
 
-          const serviceName: string = await this.getServiceNameFromAttributes(
-            req,
-            resourceAttributes_raw,
-          );
+          /*
+           * K8s cluster and Docker host discovery are independent — they
+           * inspect different resource attributes and don't share state.
+           * Run them concurrently so per-resource Postgres latency
+           * collapses from `t(k8s) + t(docker)` to `max(t(k8s), t(docker))`.
+           * `autoDiscoverHost` still has to wait because it consumes
+           * the two ids above.
+           */
+          const [kubernetesClusterId, dockerHostId]: [
+            ObjectID | null,
+            ObjectID | null,
+          ] = await Promise.all([
+            this.autoDiscoverKubernetesCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverDockerHost({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+          ]);
 
           /*
            * Generic Host auto-discovery from resource attributes.
            * Traces don't carry infra metrics; we gate on resource
-           * signals (host.id / host.arch / os.type / container.runtime /
-           * k8s.cluster.name) so app-only traces don't flood the Hosts
-           * list.
+           * signals (os.type / container.runtime) so app-only traces
+           * don't flood the Hosts list. K8s telemetry routes to the
+           * KubernetesCluster id instead.
            */
-          await this.autoDiscoverHost({
+          const hostId: ObjectID | null = await this.autoDiscoverHost({
             projectId,
             attributes: resourceAttributes_raw,
             hasInfraSignal: false,
+            dockerHostId,
+            kubernetesClusterId,
           });
 
-          if (!serviceDictionary[serviceName]) {
-            serviceDictionary[serviceName] =
-              await OTelIngestService.telemetryServiceFromName({
-                serviceName: serviceName,
-                projectId: (req as TelemetryRequest).projectId,
-                resourceAttributes: resourceAttributes_raw,
-              });
-          }
+          const serviceMetadata: TelemetryServiceMetadata =
+            await this.resolveTelemetryResource({
+              req,
+              attributes: resourceAttributes_raw,
+              projectId,
+              hostId,
+              dockerHostId,
+              kubernetesClusterId,
+            });
+          const serviceName: string = serviceMetadata.serviceName;
+
+          serviceDictionary[serviceName] = serviceMetadata;
+
+          const stampHostName: string | null =
+            OtelIngestBaseService.getStringAttribute(
+              resourceAttributes_raw,
+              "host.name",
+            );
+          const stampClusterName: string | null =
+            OtelIngestBaseService.getClusterNameFromAttributes(
+              resourceAttributes_raw,
+            );
 
           const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
           > = {
-            ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
-              serviceId: serviceDictionary[serviceName]!.serviceId!,
-              serviceName: serviceName,
-            }),
+            ...(serviceMetadata.serviceType === ServiceType.OpenTelemetry
+              ? TelemetryUtil.getAttributesForServiceIdAndServiceName({
+                  serviceId: serviceMetadata.serviceId!,
+                  serviceName: serviceName,
+                })
+              : {}),
+            ...(hostId && stampHostName
+              ? TelemetryUtil.getAttributesForHostIdAndHostName({
+                  hostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(dockerHostId && stampHostName
+              ? TelemetryUtil.getAttributesForDockerHostIdAndHostName({
+                  dockerHostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(kubernetesClusterId && stampClusterName
+              ? TelemetryUtil.getAttributesForKubernetesClusterIdAndName({
+                  kubernetesClusterId,
+                  clusterName: stampClusterName,
+                })
+              : {}),
             ...TelemetryUtil.getAttributes({
               items: resourceAttributes_raw,
               prefixKeysWithString: "resource",
@@ -337,8 +408,15 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                     }
                   }
 
+                  /*
+                   * Stored as a ClickHouse Array column and only read
+                   * back as an unordered set. Skip the sort the shared
+                   * TelemetryUtil.getAttributeKeys helper does — it's
+                   * an O(N log N) cost per record that the downstream
+                   * consumers do not depend on.
+                   */
                   const attributeKeys: Array<string> =
-                    TelemetryUtil.getAttributeKeys(spanAttributes);
+                    Object.keys(spanAttributes);
 
                   const serviceId: ObjectID =
                     serviceDictionary[serviceName]!.serviceId!;
@@ -413,6 +491,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                         serviceMetadata: serviceDictionary[serviceName]!,
                       },
                       dbExceptions,
+                      pendingExceptionUpserts,
                     );
                     spanEvents = spanEventsResult.events;
                     hasException = spanEventsResult.hasException;
@@ -515,6 +594,26 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       await Promise.all([
         this.flushSpansBuffer(dbSpans, true),
         this.flushExceptionsBuffer(dbExceptions, true),
+        /*
+         * Flush the Postgres TelemetryException upserts in one
+         * batched ON CONFLICT statement (chunked internally). Wrap
+         * in a local try so a Postgres outage cannot fail the whole
+         * worker job — the ClickHouse-side ExceptionInstance rows
+         * have already been queued in `dbExceptions` above and are
+         * the source of truth; the TelemetryException Postgres
+         * table is a denormalised summary used by the dashboard.
+         * Losing one flush under failure produces a stale dashboard
+         * count, not lost telemetry data.
+         */
+        ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch(
+          pendingExceptionUpserts,
+        ).catch((err: Error) => {
+          logger.error(
+            "Telemetry exception batch upsert failed; dashboard counts may lag this batch.",
+            getLogAttributesFromRequest(req as RequestLike),
+          );
+          logger.error(err);
+        }),
       ]);
 
       if (totalSpansProcessed === 0) {
@@ -529,6 +628,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       try {
         dbSpans.length = 0;
         dbExceptions.length = 0;
+        pendingExceptionUpserts.length = 0;
         if (req.body) {
           req.body = null;
         }
@@ -577,6 +677,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       serviceMetadata: TelemetryServiceMetadata;
     },
     dbExceptions: Array<JSONObject>,
+    pendingExceptionUpserts: Array<TelemetryExceptionPayload>,
   ): { events: Array<JSONObject>; hasException: boolean } {
     const spanEvents: Array<JSONObject> = [];
     let hasException: boolean = false;
@@ -679,7 +780,19 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
 
               dbExceptions.push(this.buildExceptionRow(exceptionData));
 
-              ExceptionUtil.saveOrUpdateTelemetryException({
+              /*
+               * Buffer the Postgres upsert payload for the batched
+               * flush at the end of the worker job (see
+               * pendingExceptionUpserts in processTracesAsync). The
+               * legacy code called
+               * ExceptionUtil.saveOrUpdateTelemetryException here
+               * fire-and-forget per event, which produced one
+               * Postgres round-trip per exception and lost
+               * occuranceCount increments under concurrent writes.
+               * Aggregation by fingerprint + atomic increment now
+               * happens inside saveOrUpdateTelemetryExceptionsBatch.
+               */
+              pendingExceptionUpserts.push({
                 fingerprint: fingerprint,
                 projectId: spanContext.projectId,
                 serviceId: spanContext.serviceId,
@@ -708,9 +821,6 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                       environment: environment,
                     }
                   : {}),
-              }).catch((err: Error) => {
-                logger.error("Error saving/updating telemetry exception:");
-                logger.error(err);
               });
             } catch (exceptionError) {
               logger.warn(
@@ -803,6 +913,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
       serviceId: data.serviceId.toString(),
+      serviceType: data.serviceMetadata.serviceType,
       startTime: OneUptimeDate.toClickhouseDateTime(data.startTime.date),
       endTime: OneUptimeDate.toClickhouseDateTime(data.endTime.date),
       startTimeUnixNano: data.startTime.nano,
@@ -849,6 +960,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
       serviceId: data.serviceId.toString(),
+      serviceType: data.serviceMetadata.serviceType,
       time: OneUptimeDate.toClickhouseDateTime(data.time.date),
       timeUnixNano: data.time.nano,
       exceptionType: data.exceptionType || "",

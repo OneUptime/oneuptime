@@ -1,3 +1,5 @@
+import ProbeAttempt from "../../Probe/ProbeAttempt";
+
 export default interface DomainMonitorResponse {
   isOnline: boolean;
   responseTimeInMs: number;
@@ -12,4 +14,6 @@ export default interface DomainMonitorResponse {
   dnssec?: string | undefined;
   domainStatus?: Array<string> | undefined;
   isTimeout?: boolean | undefined;
+  probeAttempts?: Array<ProbeAttempt> | undefined;
+  totalAttempts?: number | undefined;
 }

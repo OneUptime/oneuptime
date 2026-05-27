@@ -10,6 +10,22 @@ import PermissionNamespace from "../../Types/Permission/PermissionNamespace";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
 export default class UserPermissionUtil {
+  /*
+   * Build the cache key for a (user, project) tenant-permission entry.
+   * The previous shape was `userId.toString() + projectId.toString()`
+   * with no separator — two distinct ObjectID pairs could in principle
+   * collide because plain concatenation has no boundary marker. Use a
+   * delimiter so the namespace is unambiguous, and route both the GET
+   * (here) and the SET (in `AccessTokenService.refreshUserTenant
+   * AccessPermission`) through this helper so they can't drift.
+   */
+  public static buildTenantPermissionCacheKey(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): string {
+    return `${userId.toString()}:${projectId.toString()}`;
+  }
+
   @CaptureSpan()
   public static async getUserTenantAccessPermissionFromCache(
     userId: ObjectID,
@@ -18,7 +34,7 @@ export default class UserPermissionUtil {
     const json: UserTenantAccessPermission | null =
       (await GlobalCache.getJSONObject(
         PermissionNamespace.ProjectPermission,
-        userId.toString() + projectId.toString(),
+        this.buildTenantPermissionCacheKey(userId, projectId),
       )) as UserTenantAccessPermission;
 
     if (json) {

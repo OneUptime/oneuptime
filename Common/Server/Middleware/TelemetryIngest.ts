@@ -7,7 +7,6 @@ import {
   NextFunction,
 } from "../../Server/Utils/Express";
 import TelemetryIngestionKeyService from "../../Server/Services/TelemetryIngestionKeyService";
-import TelemetryIngestionKey from "../../Models/DatabaseModels/TelemetryIngestionKey";
 import Response from "../Utils/Response";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -65,45 +64,14 @@ export default class TelemetryIngest {
         throw new BadRequestException("Missing header: x-oneuptime-token");
       }
 
-      let projectId: ObjectID | undefined = undefined;
-
-      const token: TelemetryIngestionKey | null =
-        await TelemetryIngestionKeyService.findOneBy({
-          query: {
-            secretKey: new ObjectID(oneuptimeToken?.toString() || ""),
-          },
-          select: {
-            projectId: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-      if (!token) {
-        logger.error(
-          "Invalid service token: " + oneuptimeToken,
-          getLogAttributesFromRequest(req as any),
+      const projectId: ObjectID | null =
+        await TelemetryIngestionKeyService.getProjectIdFromSecretKey(
+          oneuptimeToken.toString(),
         );
-
-        if (isOpenTelemetryAPI) {
-          /*
-           * then accept the response and return success.
-           * do not return error because it causes Otel to retry the request.
-           */
-          return Response.sendEmptySuccessResponse(req, res);
-        }
-
-        throw new BadRequestException(
-          "Invalid service token: " + oneuptimeToken,
-        );
-      }
-
-      projectId = token.projectId as ObjectID;
 
       if (!projectId) {
         logger.error(
-          "Project ID not found for service token: " + oneuptimeToken,
+          "Invalid service token: " + oneuptimeToken,
           getLogAttributesFromRequest(req as any),
         );
 
@@ -116,11 +84,11 @@ export default class TelemetryIngest {
         }
 
         throw new BadRequestException(
-          "Project ID not found for service token: " + oneuptimeToken,
+          "Invalid service token: " + oneuptimeToken,
         );
       }
 
-      (req as TelemetryRequest).projectId = projectId as ObjectID;
+      (req as TelemetryRequest).projectId = projectId;
 
       // Tag span with project context for telemetry ingestion observability
       SpanUtil.addAttributesToCurrentSpan({

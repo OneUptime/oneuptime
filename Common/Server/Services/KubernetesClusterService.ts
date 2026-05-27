@@ -127,28 +127,51 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
-  public async updateLastSeen(clusterId: ObjectID): Promise<void> {
+  public async updateLastSeen(
+    clusterId: ObjectID,
+    extra?: {
+      agentVersion?: string | undefined;
+    },
+  ): Promise<void> {
     const cacheKey: string = clusterId.toString();
+    const extrasFingerprint: string = crypto
+      .createHash("sha1")
+      .update(
+        JSON.stringify({
+          agentVersion: extra?.agentVersion ?? null,
+        }),
+      )
+      .digest("hex");
 
     const cached: string | null = await GlobalCache.getString(
       LAST_SEEN_CACHE_NAMESPACE,
       cacheKey,
     );
 
-    if (cached) {
-      return; // another pod already updated recently
+    if (cached === extrasFingerprint) {
+      return; // same data was written recently
     }
 
-    await GlobalCache.setString(LAST_SEEN_CACHE_NAMESPACE, cacheKey, "1", {
-      expiresInSeconds: LAST_SEEN_THROTTLE_SECONDS,
-    });
+    await GlobalCache.setString(
+      LAST_SEEN_CACHE_NAMESPACE,
+      cacheKey,
+      extrasFingerprint,
+      { expiresInSeconds: LAST_SEEN_THROTTLE_SECONDS },
+    );
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: any = {
+      lastSeenAt: OneUptimeDate.getCurrentDate(),
+      otelCollectorStatus: "connected",
+    };
+
+    if (extra?.agentVersion) {
+      data.agentVersion = extra.agentVersion;
+    }
 
     await this.updateOneById({
       id: clusterId,
-      data: {
-        lastSeenAt: OneUptimeDate.getCurrentDate(),
-        otelCollectorStatus: "connected",
-      },
+      data: data,
       props: {
         isRoot: true,
       },

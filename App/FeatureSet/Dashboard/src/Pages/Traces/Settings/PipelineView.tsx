@@ -146,6 +146,9 @@ const TracePipelineView: FunctionComponent<PageComponentProps> = (
         id="trace-pipeline-processors-table"
         name="Trace Pipeline > Processors"
         userPreferencesKey="trace-pipeline-processors-table"
+        saveFilterProps={{
+          tableId: "trace-pipeline-processors-table",
+        }}
         isDeleteable={true}
         isEditable={false}
         isCreateable={false}

@@ -37,6 +37,7 @@ import MoveTelemetryServiceTokenToTelemetryIngestionKey from "./MoveTelemetrySer
 import AddDefaultAlertSeverityAndStateToExistingProjects from "./AddDefaultAlertSeverityAndStateToExistingProjects";
 import RefreshDefaultUserNotificationSetting from "./RefreshUserNotificationSetting";
 import AddServiceTypeColumnToMetricsTable from "./AddServiceTypeColumnToMetricTable";
+import AddServiceTypeColumnToTelemetryTables from "./AddServiceTypeColumnToTelemetryTables";
 import AddIsSubscriptionConfirmedToSubscribers from "./AddIsSubscriptionConfirmedToSubscribers";
 import AddIncidentNumber from "./AddIncidentNumber";
 import RenameRuleTypeInUserNotificationRule from "./RenameRuleTypeInUserNotificationRule";
@@ -142,6 +143,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new AddMetricBaselineHourlyMV(),
   new AddIdAndTimestampsToMVTargetTables(),
   new ExtendMetricBaselineHourlyTTL(),
+  new AddServiceTypeColumnToTelemetryTables(),
 ];
 
 export default DataMigrations;

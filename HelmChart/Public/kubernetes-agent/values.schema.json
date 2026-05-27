@@ -3,6 +3,10 @@
   "type": "object",
   "required": ["oneuptime", "clusterName"],
   "properties": {
+    "global": {
+      "type": "object",
+      "description": "Reserved for platform-injected globals (e.g. Rancher's global.cattle.*, ArgoCD, Flux). Not consumed by this chart."
+    },
     "preset": {
       "type": "string",
       "enum": ["", "standard", "gke-autopilot", "eks-fargate"],
@@ -28,6 +32,13 @@
         "apiKey": {
           "type": "string",
           "description": "Project API key from OneUptime (Settings > API Keys)"
+        },
+        "labels": {
+          "type": "object",
+          "description": "Project Labels auto-attached to every record. Each key/value becomes an `oneuptime.label.<key>=<value>` resource attribute, which the OneUptime ingest pipeline promotes to a project Label.",
+          "additionalProperties": {
+            "type": ["string", "number", "boolean"]
+          }
         }
       },
       "additionalProperties": false
@@ -278,6 +289,91 @@
       "type": "string",
       "description": "Collection interval for metrics (e.g., 30s, 1m)"
     },
+    "kubeletstats": {
+      "type": "object",
+      "description": "Extra metrics from the kubelet that aren't on by default in the OTel kubeletstats receiver. Both groups run inside the existing DaemonSet collector, no new pods.",
+      "properties": {
+        "utilizationMetrics": {
+          "type": "object",
+          "description": "Saturation metrics: CPU/memory as a % of pod request and limit. Six extra metric families per existing series; harmless when pods have no request/limit set.",
+          "properties": {
+            "enabled": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        },
+        "volumeMetrics": {
+          "type": "object",
+          "description": "Per-PVC disk usage (k8s.volume.available / capacity). One series per PVC per pod — bounded on most clusters, can be heavy on stateful workloads with thousands of PVCs.",
+          "properties": {
+            "enabled": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "cadvisor": {
+      "type": "object",
+      "description": "Scrape the kubelet's /metrics/cadvisor endpoint for CFS throttling and OOM kill counters that the kubeletstats receiver doesn't translate. Allowlist keeps only the listed metric names so collector memory stays bounded.",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "scrapeInterval": { "type": "string" },
+        "metricsAllowlist": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Exact __name__ allowlist. Each entry adds one series per container, so keep it tight."
+        }
+      },
+      "additionalProperties": false
+    },
+    "kubeStateMetrics": {
+      "type": "object",
+      "description": "Cluster-state metrics from kube-state-metrics. Off by default because the bundled mode adds a Deployment to the chart's footprint.",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "mode": {
+          "type": "string",
+          "enum": ["bundled", "external"],
+          "description": "'bundled' deploys a small KSM Deployment+Service. 'external' only adds a Prometheus scrape; you must set `endpoint`."
+        },
+        "endpoint": {
+          "type": "string",
+          "description": "URL to scrape when mode == 'external'. Example: http://kube-state-metrics.kube-system.svc.cluster.local:8080/metrics"
+        },
+        "scrapeInterval": { "type": "string" },
+        "metricsAllowlist": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Exact __name__ allowlist. KSM exports ~100 metric families by default; only keep the ones that power monitors."
+        },
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": { "type": "string" },
+            "tag": { "type": "string" },
+            "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] }
+          },
+          "additionalProperties": false
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "object",
+              "properties": { "cpu": { "type": "string" }, "memory": { "type": "string" } },
+              "additionalProperties": false
+            },
+            "limits": {
+              "type": "object",
+              "properties": { "cpu": { "type": "string" }, "memory": { "type": "string" } },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
     "ebpf": {
       "type": "object",
       "description": "OpenTelemetry eBPF Instrumentation (OBI) — auto-captures HTTP/gRPC traces and request metrics from every pod on the node, no SDK required. Enabled by default. Requires Linux kernel 5.8+ and the ability to run privileged pods.",
@@ -375,13 +471,32 @@
           "type": "boolean",
           "description": "Inject W3C `traceparent` into outbound traffic so traces span services without SDK changes."
         },
+        "contextPropagationMode": {
+          "type": "string",
+          "enum": ["headers", "ip", "all"],
+          "description": "How OBI injects the traceparent. 'headers' (default, safe with service meshes / mTLS / eBPF CNIs) — HTTP/1.1 request headers only. 'ip' — IPv4/IPv6 option on outbound packets (covers raw TCP but may be dropped by middleboxes). 'all' — both (most coverage; the IP-option half can break service-mesh proxies)."
+        },
         "trackRequestHeaders": {
           "type": "boolean",
           "description": "Track HTTP request headers in kernel for traceparent extraction. Only effective if `contextPropagation` is true."
         },
         "logToTraceCorrelation": {
           "type": "boolean",
-          "description": "Inject trace_id / span_id into JSON log lines from instrumented processes (via OBI's log enricher) and lift them onto the LogRecord in the filelog pipeline so trace ↔ log click-through works. Non-JSON logs pass through unchanged. Default: true."
+          "description": "Inject trace_id / span_id into JSON log lines from instrumented processes (via OBI's log enricher) and lift them onto the LogRecord in the filelog pipeline so trace ↔ log click-through works. Non-JSON logs pass through unchanged. **Off by default** — the log enricher rewrites the application's stdout buffer in-process and is incompatible with LD_PRELOAD-based APM agents (Dynatrace OneAgent, New Relic, AppDynamics, Datadog, Instana); enabling it inside a process that already has one of those agents typically crashes the application with SIGSEGV. Opt in only when no LD_PRELOAD APM agent runs in the same pods (or scope `logEnricher.services` to skip those pods)."
+        },
+        "logEnricher": {
+          "type": "object",
+          "description": "Log enricher process selector. Only consulted when `logToTraceCorrelation` is true. Each entry under `services` matches one or more processes; OBI enables the in-process write() uprobe and buffer rewrite on every matched process. Default `exe_path: '*'` matches everything OBI auto-discovers. Narrow it (by `languages`, `k8s_pod_labels`, etc.) to skip pods running an LD_PRELOAD-based APM agent.",
+          "properties": {
+            "services": {
+              "type": "array",
+              "description": "List of OBI log_enricher service selectors. Rendered verbatim into obi-config.yaml. Each entry is a GlobAttributes selector with fields like exe_path, languages, k8s_pod_labels, k8s_pod_annotations, open_ports, cmd_args.",
+              "items": {
+                "type": "object"
+              }
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false

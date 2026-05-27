@@ -11,7 +11,6 @@ import IncidentEpisodeRoleMember from "../../Models/DatabaseModels/IncidentEpiso
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
-import ServiceMonitor from "../../Models/DatabaseModels/ServiceMonitor";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
@@ -24,7 +23,6 @@ import IncidentEpisodeOwnerUserService from "./IncidentEpisodeOwnerUserService";
 import IncidentEpisodeOwnerTeamService from "./IncidentEpisodeOwnerTeamService";
 import IncidentEpisodeRoleMemberService from "./IncidentEpisodeRoleMemberService";
 import MonitorService from "./MonitorService";
-import ServiceMonitorService from "./ServiceMonitorService";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
@@ -95,7 +93,6 @@ class IncidentGroupingEngineServiceClass {
             groupByMonitor: true,
             groupBySeverity: true,
             groupByIncidentTitle: true,
-            groupByService: true,
             // Time settings
             enableTimeWindow: true,
             timeWindowMinutes: true,
@@ -589,37 +586,6 @@ class IncidentGroupingEngineServiceClass {
   ): Promise<string> {
     const parts: Array<string> = [];
 
-    /*
-     * Group by service - only if explicitly enabled
-     * Must be checked before monitor since service contains multiple monitors
-     */
-    if (
-      rule.groupByService &&
-      incident.monitors &&
-      incident.monitors.length > 0
-    ) {
-      // Use the first monitor's service for grouping
-      const firstMonitor: Monitor | undefined = incident.monitors[0];
-      if (firstMonitor && firstMonitor.id) {
-        const serviceMonitor: ServiceMonitor | null =
-          await ServiceMonitorService.findOneBy({
-            query: {
-              monitorId: firstMonitor.id,
-            },
-            select: {
-              serviceId: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
-        if (serviceMonitor?.serviceId) {
-          parts.push(`service:${serviceMonitor.serviceId.toString()}`);
-        }
-      }
-    }
-
     // Group by monitor - only if explicitly enabled
     if (
       rule.groupByMonitor &&
@@ -920,9 +886,6 @@ class IncidentGroupingEngineServiceClass {
         }
         if (rule.groupByIncidentTitle) {
           groupByParts.push("Incident Title");
-        }
-        if (rule.groupByService) {
-          groupByParts.push("Service");
         }
 
         const groupByDescription: string =

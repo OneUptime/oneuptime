@@ -281,6 +281,11 @@ enum Permission {
   EditMonitorCustomField = "EditMonitorCustomField",
   ReadMonitorCustomField = "ReadMonitorCustomField",
 
+  CreateTeamCustomField = "CreateTeamCustomField",
+  DeleteTeamCustomField = "DeleteTeamCustomField",
+  EditTeamCustomField = "EditTeamCustomField",
+  ReadTeamCustomField = "ReadTeamCustomField",
+
   CreateOnCallDutyPolicyCustomField = "CreateOnCallDutyPolicyCustomField",
   DeleteOnCallDutyPolicyCustomField = "DeleteOnCallDutyPolicyCustomField",
   EditOnCallDutyPolicyCustomField = "EditOnCallDutyPolicyCustomField",
@@ -1124,16 +1129,6 @@ enum Permission {
   EditService = "EditService",
   ReadService = "ReadService",
 
-  CreateServiceDependency = "CreateServiceDependency",
-  DeleteServiceDependency = "DeleteServiceDependency",
-  EditServiceDependency = "EditServiceDependency",
-  ReadServiceDependency = "ReadServiceDependency",
-
-  CreateServiceMonitor = "CreateServiceMonitor",
-  DeleteServiceMonitor = "DeleteServiceMonitor",
-  EditServiceMonitor = "EditServiceMonitor",
-  ReadServiceMonitor = "ReadServiceMonitor",
-
   CreateServiceTelemetryService = "CreateServiceTelemetryService",
   DeleteServiceTelemetryService = "DeleteServiceTelemetryService",
   EditServiceTelemetryService = "EditServiceTelemetryService",
@@ -1480,29 +1475,62 @@ export class PermissionHelper {
     );
   }
 
+  /*
+   * Returns permissions that grant access WITHOUT a label restriction.
+   * A permission row grants unrestricted access when:
+   *   - scope === All, OR
+   *   - scope is unset/undefined AND labelIds is empty (legacy: empty
+   *     labels meant no restriction regardless of the permission type).
+   *
+   * Owned-scoped rows are NOT unrestricted — they restrict to owned
+   * resources via OwnedScopePermission — but they also don't contribute
+   * a label filter, so they are excluded here. AccessControlPermission's
+   * early return treats "any unrestricted row" as a broader grant; Owned
+   * rows must not trigger that path.
+   *
+   * We intentionally do NOT consult `isAccessControlPermission` here.
+   * The UI allows attaching labels to role permissions like
+   * IncidentViewer via the role-based form (with scope=Labels); honoring
+   * that requires the filter to look at `scope` + `labelIds`, not the
+   * legacy per-permission flag.
+   */
   public static getNonAccessControlPermissions(
     userPermissions: Array<UserPermission>,
   ): Array<Permission> {
     return userPermissions
       .filter((i: UserPermission) => {
-        return (
-          i.labelIds.length === 0 ||
-          !PermissionHelper.isAccessControlPermission(i.permission)
-        );
+        if (i.scope === PermissionScope.All) {
+          return true;
+        }
+        if (i.scope === PermissionScope.Owned) {
+          return false;
+        }
+        // scope === Labels OR scope === undefined (legacy default)
+        return i.labelIds.length === 0;
       })
       .map((i: UserPermission) => {
         return i.permission;
       });
   }
 
+  /*
+   * Returns permission rows that apply a label-based restriction. Rows
+   * count as label-restricting when they have at least one labelId AND
+   * the scope is `Labels` (explicitly) or unset (legacy default).
+   * All/Owned scopes are excluded — All grants unconditionally and Owned
+   * is handled separately by OwnedScopePermission.
+   */
   public static getAccessControlPermissions(
     userPermissions: Array<UserPermission>,
   ): Array<UserPermission> {
     return userPermissions.filter((i: UserPermission) => {
-      return (
-        i.labelIds.length > 0 &&
-        PermissionHelper.isAccessControlPermission(i.permission)
-      );
+      if (
+        i.scope === PermissionScope.All ||
+        i.scope === PermissionScope.Owned
+      ) {
+        return false;
+      }
+      return i.labelIds.length > 0;
     });
   }
 
@@ -6115,6 +6143,47 @@ export class PermissionHelper {
       },
 
       {
+        permission: Permission.CreateTeamCustomField,
+        title: "Create Team Custom Field",
+        description:
+          "This permission can create Team Custom Field this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Team,
+      },
+      {
+        permission: Permission.DeleteTeamCustomField,
+        title: "Delete Team Custom Field",
+        description:
+          "This permission can delete Team Custom Field of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Team,
+      },
+      {
+        permission: Permission.EditTeamCustomField,
+        title: "Edit Team Custom Field",
+        description:
+          "This permission can edit Team Custom Field of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Team,
+      },
+      {
+        permission: Permission.ReadTeamCustomField,
+        title: "Read Team Custom Field",
+        description:
+          "This permission can read Team Custom Field of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Team,
+      },
+
+      {
         permission: Permission.CreateIncidentCustomField,
         title: "Create Incident Custom Field",
         description:
@@ -7524,88 +7593,6 @@ export class PermissionHelper {
         description: "This permission can read Service of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
-        isRolePermission: false,
-        group: PermissionGroup.ServiceCatalog,
-      },
-
-      {
-        permission: Permission.CreateServiceDependency,
-        title: "Create Service Dependency",
-        description:
-          "This permission can create Service Dependencies in this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.ServiceCatalog,
-      },
-      {
-        permission: Permission.DeleteServiceDependency,
-        title: "Delete Service Dependency",
-        description:
-          "This permission can delete Service Dependencies of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.ServiceCatalog,
-      },
-      {
-        permission: Permission.EditServiceDependency,
-        title: "Edit Service Dependency",
-        description:
-          "This permission can edit Service Dependencies of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.ServiceCatalog,
-      },
-      {
-        permission: Permission.ReadServiceDependency,
-        title: "Read Service Dependency",
-        description:
-          "This permission can read Service Dependencies of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.ServiceCatalog,
-      },
-
-      {
-        permission: Permission.CreateServiceMonitor,
-        title: "Create Service Monitor",
-        description:
-          "This permission can create Service Monitor in this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.ServiceCatalog,
-      },
-      {
-        permission: Permission.DeleteServiceMonitor,
-        title: "Delete Service Monitor",
-        description:
-          "This permission can delete Service Monitor of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.ServiceCatalog,
-      },
-      {
-        permission: Permission.EditServiceMonitor,
-        title: "Edit Service Monitor",
-        description:
-          "This permission can edit Service Monitor of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.ServiceCatalog,
-      },
-      {
-        permission: Permission.ReadServiceMonitor,
-        title: "Read Service Monitor",
-        description:
-          "This permission can read Service Monitor of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.ServiceCatalog,
       },

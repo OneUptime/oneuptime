@@ -5,10 +5,24 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import LogDropFilterAction from "Common/Types/Log/LogDropFilterAction";
-import { evaluateFilter } from "../Utils/LogFilterEvaluator";
+import {
+  compileFilter,
+  CompiledFilter,
+  evaluateCompiledFilter,
+} from "../Utils/LogFilterEvaluator";
+
+export interface LoadedLogDropFilter {
+  filter: LogDropFilter;
+  /*
+   * Pre-compiled at cache load time so the per-log evaluation
+   * loop never re-tokenizes / re-parses the filterQuery string.
+   * See LogFilterEvaluator.compileFilter.
+   */
+  compiledFilter: CompiledFilter;
+}
 
 interface CacheEntry {
-  filters: Array<LogDropFilter>;
+  filters: Array<LoadedLogDropFilter>;
   loadedAt: number;
 }
 
@@ -19,7 +33,7 @@ const dropFilterCache: Map<string, CacheEntry> = new Map();
 export class LogDropFilterService {
   public static async loadDropFilters(
     projectId: ObjectID,
-  ): Promise<Array<LogDropFilter>> {
+  ): Promise<Array<LoadedLogDropFilter>> {
     const cacheKey: string = projectId.toString();
     const cached: CacheEntry | undefined = dropFilterCache.get(cacheKey);
 
@@ -53,18 +67,25 @@ export class LogDropFilterService {
       },
     });
 
-    dropFilterCache.set(cacheKey, { filters, loadedAt: Date.now() });
-    return filters;
+    const loaded: Array<LoadedLogDropFilter> = filters.map(
+      (filter: LogDropFilter) => {
+        return {
+          filter,
+          compiledFilter: compileFilter((filter.filterQuery as string) || ""),
+        };
+      },
+    );
+
+    dropFilterCache.set(cacheKey, { filters: loaded, loadedAt: Date.now() });
+    return loaded;
   }
 
   public static shouldDropLog(
     logRow: JSONObject,
-    filters: Array<LogDropFilter>,
+    filters: Array<LoadedLogDropFilter>,
   ): boolean {
-    for (const filter of filters) {
-      const filterQuery: string = (filter.filterQuery as string) || "";
-
-      if (!evaluateFilter(logRow, filterQuery)) {
+    for (const { filter, compiledFilter } of filters) {
+      if (!evaluateCompiledFilter(logRow, compiledFilter)) {
         continue;
       }
 

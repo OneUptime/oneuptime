@@ -32,6 +32,9 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <ModelTable<WorkflowLogs>
           modelType={WorkflowLogs}
           id="workflow-logs-table"
+          saveFilterProps={{
+            tableId: "workflow-view-logs-table",
+          }}
           isDeleteable={false}
           isEditable={false}
           userPreferencesKey="workflow-logs-table"

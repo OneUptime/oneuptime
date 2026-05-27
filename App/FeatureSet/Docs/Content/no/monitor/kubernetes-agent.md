@@ -185,13 +185,17 @@ Tuning:
 | `profiling.tracers` | `""` *(alle kjøretider)* | Kommaseparert liste over språk-tracere som skal lastes. |
 | `profiling.obiProcessContext` | `true` | Korreler samples med OBIs sporingskontekst for sporing ↔ profil-lenking. |
 
-## Annen datainnsamling (host-metrikker, audit-logger, CSI, CoreDNS)
+## Annen datainnsamling (host-metrikker, metning, cAdvisor, KSM, audit-logger, CSI, CoreDNS)
 
 Helm-kartet kan også samle inn:
 
 | `<key>.enabled` | Standard | Hva det legger til |
 | --- | --- | --- |
 | `hostMetrics` | på | OS-metrikker per node fra `/proc` og `/sys` — disk-I/O-kødybde, filsystem-inode-bruk, NIC-feiltellere, paging-statistikk, lastgjennomsnitt. Bor inne i logginnsamler-DaemonSetet (ingen ekstra pods). |
+| `kubeletstats.utilizationMetrics` | på | Metningsmetrikker — container- og pod-CPU/minne uttrykt som en prosentandel av request og limit. Åtte avledede metrikkfamilier som driver «CPU/Memory vs Request»- og «CPU/Memory vs Limit»-monitorene. Samme skrap som den eksisterende `kubeletstats`-mottakeren, ingen ekstra pods. Alltid 0 når en pod ikke har request/limit satt. |
+| `kubeletstats.volumeMetrics` | på | Diskbruk per PVC (`k8s.volume.available`, `k8s.volume.capacity`). Driver «PVC Low Disk Space»-monitoren. Én serie per PVC per pod — begrenset for de fleste klynger, tyngre på stateful arbeidsmengder med tusenvis av PVC-er. |
+| `cadvisor` | på | Skraper kubeletens `/metrics/cadvisor`-endepunkt fra hver nodes DaemonSet-pod for de containermetrikkene som `kubeletstats` ikke oversetter: CFS-strupning (`container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total`) og OOM-drepehendelser (`container_oom_events_total`). En relabel-tillatelsesliste dropper alt annet ved mottakeren slik at kardinaliteten holdes begrenset. |
+| `kubeStateMetrics` | av | Henter klyngetilstandsmetrikker fra kube-state-metrics: pod-faser (Pending / Terminating), container-venteårsaker (CrashLoopBackOff, ImagePullBackOff) og bruk av ressurskvoter. `mode: bundled` (standard) distribuerer en liten KSM-Deployment for deg; `mode: external` skraper en eksisterende KSM via `endpoint`. Av som standard fordi den medfølgende modusen legger til en Deployment i kartets fotavtrykk. |
 | `auditLogs` | av | Les `/var/log/kubernetes/audit.log` fra verten. Fanger hver Kubernetes API-forespørsel — hvem gjorde hva med hvilken ressurs. Kun selvadministrerte klynger — administrert K8s (EKS, GKE, AKS, DOKS) ruter audit-logger til skyleverandørens sink. |
 | `csi` | av | Oppdager automatisk pods merket `app=csi-driver` (eller `app.kubernetes.io/component=csi-driver`) og skraper deres Prometheus-`metrics`-port — volum attach/detach-latens, provisjoneringsfeil, IOPS. |
 | `coreDns` | av | Skraper klyngens CoreDNS-tjeneste på `:9153/metrics`. Synliggjør spørringsrate, latens, cache-hit-rate, feiltellinger — vanlige P99-latensskurker. |
@@ -212,6 +216,10 @@ Helm-kartet kan også samle inn:
 | `ebpf.enabled` | `true` | Auto-fang HTTP/gRPC-sporinger fra hver pod via OpenTelemetry eBPF Instrumentation. Se delen ovenfor. |
 | `profiling.enabled` | `false` | Kontinuerlige CPU-flammegrafer via OpenTelemetry eBPF Profiler. Deaktivert som standard; meld deg på for mer telemetri. Se delen ovenfor. |
 | `hostMetrics.enabled` | `true` | OS-metrikker per node. |
+| `kubeletstats.utilizationMetrics.enabled` | `true` | Container- og pod-CPU/minne-metning (% av request og limit). Ingen ekstra skrap — utledet fra kubeletstats-data. |
+| `kubeletstats.volumeMetrics.enabled` | `true` | Diskbruk per PVC (`k8s.volume.available`, `k8s.volume.capacity`). |
+| `cadvisor.enabled` | `true` | Skrap denne nodens kubelet `/metrics/cadvisor` for CFS-strupning + OOM-drepetellere. Tillatelseslistet til 3 metrikker. |
+| `kubeStateMetrics.enabled` | `false` | Hent pod-faser, container-venteårsaker (CrashLoopBackOff / ImagePullBackOff) og ResourceQuota-bruk fra kube-state-metrics. Se `kubeStateMetrics.mode` for medfølgende vs. ekstern. |
 | `auditLogs.enabled` | `false` | Innsamling av Kubernetes-auditlogger (selvadministrerte klynger). |
 | `csi.enabled` | `false` | Prometheus-metrikker for CSI-driver. |
 | `coreDns.enabled` | `false` | Prometheus-metrikker for CoreDNS. |

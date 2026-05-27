@@ -62,6 +62,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           name="Status Page > Domains"
           userPreferencesKey="status-page-domains-table"
           id="domains-table"
+          saveFilterProps={{
+            tableId: "status-page-domains-table",
+          }}
           isDeleteable={true}
           isCreateable={true}
           isEditable={true}

@@ -55,6 +55,9 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
         modelType={StatusPageSubscriberNotificationTemplate}
         id={`subscriber-notification-templates-table-${notificationMethod.toLowerCase().replace(/\s+/g, "-")}`}
         userPreferencesKey={`subscriber-notification-templates-table-${notificationMethod.toLowerCase().replace(/\s+/g, "-")}`}
+        saveFilterProps={{
+          tableId: `subscriber-notification-templates-table-${notificationMethod.toLowerCase().replace(/\s+/g, "-")}`,
+        }}
         name={`Settings > Subscriber Notification Templates > ${notificationMethod}`}
         isDeleteable={false}
         viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}

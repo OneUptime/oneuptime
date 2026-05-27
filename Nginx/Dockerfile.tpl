@@ -21,8 +21,6 @@ LABEL org.opencontainers.image.revision="${GIT_SHA}"
 LABEL org.opencontainers.image.version="${APP_VERSION}"
 
 
-# IF APP_VERSION is not set, set it to 1.0.0
-RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=1.0.0; fi
 
 # Install bash. 
 RUN apk add bash && apk add curl && apk add openssl
@@ -41,12 +39,15 @@ COPY ./Nginx/nginx.conf /etc/nginx/nginx.conf
 
 RUN apk add nodejs npm
 
+# Serialize npm lifecycle scripts so esbuild's postinstall doesn't race against
+# concurrent package extractions on BuildKit's overlayfs (ETXTBSY on
+# /Common/node_modules/esbuild/bin/esbuild). See esbuild#1711, #2785.
+RUN npm config set foreground-scripts true
+
 RUN mkdir /usr/src
 
 WORKDIR /usr/src/Common
 COPY ./Common/package*.json /usr/src/Common/
-# Set version in ./Common/package.json to the APP_VERSION
-RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/Common/package.json
 RUN npm install
 COPY ./Common /usr/src/Common
 

@@ -1,26 +1,91 @@
 import PageComponentProps from "../PageComponentProps";
-import ProjectUtil from "Common/UI/Utils/Project";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
+import RunbookOwnerTeam from "Common/Models/DatabaseModels/RunbookOwnerTeam";
+import RunbookOwnerUser from "Common/Models/DatabaseModels/RunbookOwnerUser";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green500, Red500 } from "Common/Types/BrandColors";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners, {
+  ResourceFacet,
+  buildBooleanFacetQuery,
+} from "../../Components/ResourceOwners/useResourceOwners";
+import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
+import IconProp from "Common/Types/Icon/IconProp";
 
 const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<Runbook>({
+      ownerUserModelType: RunbookOwnerUser,
+      ownerTeamModelType: RunbookOwnerTeam,
+      resourceIdField: "runbookId",
+    });
+
+  const runbookExtraFacets: Array<ResourceFacet> = [
+    {
+      key: "isEnabled",
+      label: "Enabled",
+      icon: IconProp.Power,
+      isMultiSelect: false,
+      options: [
+        { value: "true", label: "Enabled" },
+        { value: "false", label: "Disabled" },
+      ],
+      supportedOperators: ["is", "is_not"],
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildBooleanFacetQuery(values, operator);
+      },
+    },
+  ];
+
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<Runbook>({
+    ownerUserModelType: RunbookOwnerUser,
+    ownerTeamModelType: RunbookOwnerTeam,
+    resourceIdField: "runbookId",
+    showLabelsFacet: true,
+    extraFacets: runbookExtraFacets,
+  });
+
   return (
     <Fragment>
       <ModelTable<Runbook>
         modelType={Runbook}
         id="runbooks-table"
         userPreferencesKey="runbooks-table"
+        topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery(undefined)}
+        onFetchSuccess={(data: Array<Runbook>) => {
+          onResourcesFetched(data);
+        }}
+        saveFilterProps={{
+          tableId: "runbooks-table",
+        }}
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
+        bulkActions={{
+          buttons: [...ownerBulkActions],
+        }}
         name="Runbooks"
         isViewable={true}
         showViewIdButton={true}
@@ -81,26 +146,6 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
             type: FieldType.Text,
             field: { description: true },
           },
-          {
-            title: "Enabled",
-            type: FieldType.Boolean,
-            field: { isEnabled: true },
-          },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
         ]}
         columns={[
           {
@@ -140,8 +185,25 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
             },
           },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: Runbook): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
+            },
+          },
         ]}
       />
+      {ownerBulkActionModals}
     </Fragment>
   );
 };

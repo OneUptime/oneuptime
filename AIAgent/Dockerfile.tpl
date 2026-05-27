@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 #
 # OneUptime-AIAgent Dockerfile
 #
@@ -9,6 +10,10 @@ RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm co
 RUN npm config set fetch-retries 5
 RUN npm config set fetch-retry-mintimeout 20000
 RUN npm config set fetch-retry-maxtimeout 60000
+# Serialize npm lifecycle scripts so esbuild's postinstall doesn't race against
+# concurrent package extractions on BuildKit's overlayfs (ETXTBSY on
+# /Common/node_modules/esbuild/bin/esbuild). See esbuild#1711, #2785.
+RUN npm config set foreground-scripts true
 
 
 ARG GIT_SHA
@@ -30,25 +35,26 @@ LABEL org.opencontainers.image.licenses="Apache-2.0"
 LABEL org.opencontainers.image.revision="${GIT_SHA}"
 LABEL org.opencontainers.image.version="${APP_VERSION}"
 
-## Add Intermediate Certs
+# Install runtime tools (bash, curl, ca-certificates) in a single layer with
+# cache cleanup. ca-certificates is required by `update-ca-certificates` below.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        bash \
+        curl \
+    && rm -rf /var/lib/apt/lists/*
+
+## Add Intermediate Certs (ca-certificates is now installed above)
 COPY ./SslCertificates /usr/local/share/ca-certificates
 RUN update-ca-certificates
 
-
-# IF APP_VERSION is not set, set it to 1.0.0
-RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=1.0.0; fi
-
-
-RUN apt-get update
-
-# Install bash.
-RUN apt-get install bash -y && apt-get install curl -y
-
-# Install OpenCode AI coding assistant
-RUN curl -fsSL https://opencode.ai/install | bash
-
-# Add OpenCode to PATH (installed to $HOME/.opencode/bin by default)
-ENV PATH="/root/.opencode/bin:${PATH}"
+# Install OpenCode AI coding assistant. The installer defaults to
+# $HOME/.opencode (i.e. /root/.opencode), which is unreachable from non-root
+# users because /root is mode 700. Relocate to /usr/local/opencode so the
+# `node` user can read+execute the CLI when we drop privileges below.
+RUN curl -fsSL https://opencode.ai/install | bash \
+    && mv /root/.opencode /usr/local/opencode \
+    && chmod -R a+rx /usr/local/opencode
+ENV PATH="/usr/local/opencode/bin:${PATH}"
 
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
@@ -57,9 +63,7 @@ RUN mkdir -p /usr/src
 
 WORKDIR /usr/src/Common
 COPY ./Common/package*.json /usr/src/Common/
-# Set version in ./Common/package.json to the APP_VERSION
-RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/Common/package.json
-RUN npm install
+RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 COPY ./Common /usr/src/Common
 
 
@@ -69,9 +73,7 @@ WORKDIR /usr/src/app
 
 # Install app dependencies
 COPY ./AIAgent/package*.json /usr/src/app/
-# Set version in ./AIAgent/package.json to the APP_VERSION
-RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/app/package.json
-RUN npm install
+RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 
 # Expose ports.
 #   - 3875: OneUptime-AIAgent
@@ -85,8 +87,10 @@ CMD [ "npm", "run", "dev" ]
 COPY ./AIAgent /usr/src/app
 # Bundle app source
 RUN npm run compile
-# Set permission to write logs and cache in case container run as non root
-RUN chown -R 1000:1000 "/tmp/npm" && chmod -R 2777 "/tmp/npm"
+# Ensure runtime dirs are owned by the non-root `node` user (UID 1000) so the
+# container can run as non-root.
+RUN chown -R 1000:1000 /usr/src /tmp/npm && chmod -R 2777 /tmp/npm
+USER node
 #Run the app
 CMD [ "npm", "start" ]
 {{ end }}

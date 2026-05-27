@@ -37,6 +37,9 @@ When a rule matches:
 - Every user and team listed on the rule is added as an owner.
 - If \`Inherit Owners From Monitors\` is on, every owner of the alert's monitor is also added.
 - If \`Inherit Owners From Hosts\` is on, every owner of the alert's affected hosts is also added.
+- If \`Inherit Owners From Kubernetes Clusters\` is on, every owner of the alert's affected Kubernetes clusters is also added.
+- If \`Inherit Owners From Docker Hosts\` is on, every owner of the alert's affected Docker hosts is also added.
+- If \`Inherit Owners From Services\` is on, every owner of the alert's affected services is also added.
 
 Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified.
 `;
@@ -54,6 +57,9 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
       id="alert-owner-rules-table"
       name="Settings > Alert Owner Rules"
       userPreferencesKey="alert-owner-rules-table"
+      saveFilterProps={{
+        tableId: "alert-owner-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}
@@ -278,6 +284,33 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
           description:
             "Assign every owner of the alert's affected hosts as an owner of the alert.",
         },
+        {
+          field: { inheritOwnersFromKubernetesClusters: true },
+          title: "Inherit Owners From Kubernetes Clusters",
+          stepId: "owners",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          description:
+            "Assign every owner of the alert's affected Kubernetes clusters as an owner of the alert.",
+        },
+        {
+          field: { inheritOwnersFromDockerHosts: true },
+          title: "Inherit Owners From Docker Hosts",
+          stepId: "owners",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          description:
+            "Assign every owner of the alert's affected Docker hosts as an owner of the alert.",
+        },
+        {
+          field: { inheritOwnersFromServices: true },
+          title: "Inherit Owners From Services",
+          stepId: "owners",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          description:
+            "Assign every owner of the alert's affected services as an owner of the alert.",
+        },
       ]}
       showRefreshButton={true}
     />
@@ -291,6 +324,9 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
       id="alert-episode-owner-rules-table"
       name="Settings > Alert Episode Owner Rules"
       userPreferencesKey="alert-episode-owner-rules-table"
+      saveFilterProps={{
+        tableId: "alert-episode-owner-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

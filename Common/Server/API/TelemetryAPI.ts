@@ -32,7 +32,13 @@ import TraceAggregationService, {
 import ExceptionAggregationService, {
   HistogramBucket as ExceptionHistogramBucket,
   HistogramRequest as ExceptionHistogramRequest,
+  FacetValue as ExceptionFacetValue,
+  FacetRequest as ExceptionFacetRequest,
 } from "../Services/ExceptionAggregationService";
+import MetricAggregationService, {
+  FacetValue as MetricFacetValue,
+  FacetRequest as MetricFacetRequest,
+} from "../Services/MetricAggregationService";
 import ProfileAggregationService, {
   FlamegraphRequest,
   FunctionListRequest,
@@ -55,6 +61,10 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
+import ResourceFacetResolver, {
+  ResolvedFacetValue,
+  ResourceFacetSpec,
+} from "../Utils/Telemetry/ResourceFacetResolver";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -394,6 +404,18 @@ router.post(
         : undefined;
 
       /*
+       * Per-facet partial-match filter applied at the Postgres source-of-truth
+       * lookup stage. Only consulted for resource facets (serviceId / hostId /
+       * dockerHostId / kubernetesClusterId) — other facets continue to filter
+       * client-side over the loaded value list.
+       */
+      const facetSearchText: Record<string, string> | undefined = body[
+        "facetSearchText"
+      ]
+        ? (body["facetSearchText"] as Record<string, string>)
+        : undefined;
+
+      /*
        * Capture tenantId locally so TypeScript narrowing survives the
        * async closure below (narrowing is lost across closure boundaries).
        */
@@ -436,6 +458,40 @@ router.post(
       const facets: Record<string, Array<FacetValue>> = Object.fromEntries(
         facetResults,
       );
+
+      /*
+       * Replace resource-facet results with the Postgres source-of-truth list
+       * (filtered by facetSearchText and enriched with displayName). See the
+       * trace facets handler above for the rationale — same pattern, same
+       * benefit: low-volume resources stay visible and search can reach
+       * resources outside the ClickHouse sample window.
+       */
+      const resourceSpecs: Array<ResourceFacetSpec> = facetKeys
+        .filter((key: string): boolean => {
+          return ResourceFacetResolver.isResourceFacet(key);
+        })
+        .map((key: string): ResourceFacetSpec => {
+          const counts: Map<string, number> = new Map();
+          for (const fv of facets[key] || []) {
+            counts.set(fv.value, fv.count);
+          }
+          return {
+            facetKey: key,
+            counts,
+            searchText: facetSearchText?.[key],
+            limit,
+          };
+        });
+
+      if (resourceSpecs.length > 0) {
+        const resolved: Record<
+          string,
+          Array<ResolvedFacetValue>
+        > = await ResourceFacetResolver.resolve(projectId, resourceSpecs);
+        for (const key of Object.keys(resolved)) {
+          facets[key] = resolved[key] as Array<FacetValue>;
+        }
+      }
 
       return Response.sendJsonObjectResponse(req, res, {
         facets: facets as unknown as JSONObject,
@@ -614,6 +670,18 @@ router.post(
         : undefined;
 
       /*
+       * Per-facet partial-match filter applied at the Postgres source-of-truth
+       * lookup stage. Only consulted for resource facets (serviceId / hostId /
+       * dockerHostId / kubernetesClusterId) — other facets continue to filter
+       * client-side over the loaded value list.
+       */
+      const facetSearchText: Record<string, string> | undefined = body[
+        "facetSearchText"
+      ]
+        ? (body["facetSearchText"] as Record<string, string>)
+        : undefined;
+
+      /*
        * Compute all facets from a single sort-key-aligned sample query
        * (ORDER BY startTime DESC LIMIT N) and count top-K in Node. This
        * avoids ClickHouse GROUP BY aggregations that can't return partial
@@ -646,6 +714,44 @@ router.post(
             return [key, []];
           }),
         );
+      }
+
+      /*
+       * Replace resource-facet results with the Postgres source-of-truth list
+       * (filtered by facetSearchText and enriched with displayName). Counts
+       * come from the ClickHouse sample above — entities with no recent
+       * telemetry surface with count 0 instead of being hidden entirely. This
+       * means low-volume services / hosts still appear in the sidebar and the
+       * search box can find resources beyond the loaded subset.
+       */
+      const resourceSpecs: Array<ResourceFacetSpec> = facetKeys
+        .filter((key: string): boolean => {
+          return ResourceFacetResolver.isResourceFacet(key);
+        })
+        .map((key: string): ResourceFacetSpec => {
+          const counts: Map<string, number> = new Map();
+          for (const fv of facets[key] || []) {
+            counts.set(fv.value, fv.count);
+          }
+          return {
+            facetKey: key,
+            counts,
+            searchText: facetSearchText?.[key],
+            limit,
+          };
+        });
+
+      if (resourceSpecs.length > 0) {
+        const resolved: Record<
+          string,
+          Array<ResolvedFacetValue>
+        > = await ResourceFacetResolver.resolve(
+          databaseProps.tenantId,
+          resourceSpecs,
+        );
+        for (const key of Object.keys(resolved)) {
+          facets[key] = resolved[key] as Array<TraceFacetValue>;
+        }
       }
 
       return Response.sendJsonObjectResponse(req, res, {
@@ -741,6 +847,306 @@ router.post(
 
       return Response.sendJsonObjectResponse(req, res, {
         buckets: buckets as unknown as JSONObject,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Exception Facets Endpoint ---
+
+router.post(
+  "/telemetry/exceptions/facets",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      const facetKeys: Array<string> = body["facetKeys"]
+        ? (body["facetKeys"] as Array<string>)
+        : [
+            "serviceId",
+            "hostId",
+            "dockerHostId",
+            "kubernetesClusterId",
+            "exceptionType",
+            "environment",
+          ];
+
+      const startTime: Date = body["startTime"]
+        ? OneUptimeDate.fromString(body["startTime"] as string)
+        : OneUptimeDate.addRemoveHours(OneUptimeDate.getCurrentDate(), -24);
+
+      const endTime: Date = body["endTime"]
+        ? OneUptimeDate.fromString(body["endTime"] as string)
+        : OneUptimeDate.getCurrentDate();
+
+      const limit: number = (body["limit"] as number) || 500;
+
+      const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
+        ? (body["serviceIds"] as Array<string>).map((id: string) => {
+            return new ObjectID(id);
+          })
+        : undefined;
+
+      const exceptionTypes: Array<string> | undefined = body["exceptionTypes"]
+        ? (body["exceptionTypes"] as Array<string>)
+        : undefined;
+
+      const environments: Array<string> | undefined = body["environments"]
+        ? (body["environments"] as Array<string>)
+        : undefined;
+
+      const fingerprints: Array<string> | undefined = body["fingerprints"]
+        ? (body["fingerprints"] as Array<string>)
+        : undefined;
+
+      const traceIds: Array<string> | undefined = body["traceIds"]
+        ? (body["traceIds"] as Array<string>)
+        : undefined;
+
+      const escaped: boolean | undefined =
+        body["escaped"] === undefined ? undefined : Boolean(body["escaped"]);
+
+      const messageSearchText: string | undefined = body["messageSearchText"]
+        ? (body["messageSearchText"] as string)
+        : undefined;
+
+      /*
+       * Per-facet partial-match filter applied at the Postgres source-of-truth
+       * lookup stage. Only consulted for resource facets — other facets
+       * continue to filter client-side over the loaded value list.
+       */
+      const facetSearchText: Record<string, string> | undefined = body[
+        "facetSearchText"
+      ]
+        ? (body["facetSearchText"] as Record<string, string>)
+        : undefined;
+
+      const projectId: ObjectID = databaseProps.tenantId;
+
+      /*
+       * Per-facet ClickHouse query in parallel. Per-facet errors degrade
+       * gracefully to [] so a slow / failing facet can't block the others.
+       */
+      const facetResults: Array<readonly [string, Array<ExceptionFacetValue>]> =
+        await Promise.all(
+          facetKeys.map(
+            async (
+              facetKey: string,
+            ): Promise<readonly [string, Array<ExceptionFacetValue>]> => {
+              try {
+                const request: ExceptionFacetRequest = {
+                  projectId,
+                  startTime,
+                  endTime,
+                  facetKey,
+                  limit,
+                  serviceIds,
+                  exceptionTypes,
+                  environments,
+                  fingerprints,
+                  traceIds,
+                  escaped,
+                  messageSearchText,
+                };
+                const values: Array<ExceptionFacetValue> =
+                  await ExceptionAggregationService.getFacetValues(request);
+                return [facetKey, values] as const;
+              } catch {
+                return [facetKey, [] as Array<ExceptionFacetValue>] as const;
+              }
+            },
+          ),
+        );
+
+      const facets: Record<
+        string,
+        Array<ExceptionFacetValue>
+      > = Object.fromEntries(facetResults);
+
+      /*
+       * Replace resource-facet results with the Postgres source-of-truth list
+       * (filtered by facetSearchText and enriched with displayName). Same
+       * pattern as the trace/log facets endpoints.
+       */
+      const resourceSpecs: Array<ResourceFacetSpec> = facetKeys
+        .filter((key: string): boolean => {
+          return ResourceFacetResolver.isResourceFacet(key);
+        })
+        .map((key: string): ResourceFacetSpec => {
+          const counts: Map<string, number> = new Map();
+          for (const fv of facets[key] || []) {
+            counts.set(fv.value, fv.count);
+          }
+          return {
+            facetKey: key,
+            counts,
+            searchText: facetSearchText?.[key],
+            limit,
+          };
+        });
+
+      if (resourceSpecs.length > 0) {
+        const resolved: Record<
+          string,
+          Array<ResolvedFacetValue>
+        > = await ResourceFacetResolver.resolve(projectId, resourceSpecs);
+        for (const key of Object.keys(resolved)) {
+          facets[key] = resolved[key] as Array<ExceptionFacetValue>;
+        }
+      }
+
+      return Response.sendJsonObjectResponse(req, res, {
+        facets: facets as unknown as JSONObject,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Metric Facets Endpoint ---
+
+router.post(
+  "/telemetry/metrics/facets",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      const facetKeys: Array<string> = body["facetKeys"]
+        ? (body["facetKeys"] as Array<string>)
+        : ["serviceId", "hostId", "dockerHostId", "kubernetesClusterId"];
+
+      const startTime: Date = body["startTime"]
+        ? OneUptimeDate.fromString(body["startTime"] as string)
+        : OneUptimeDate.addRemoveHours(OneUptimeDate.getCurrentDate(), -1);
+
+      const endTime: Date = body["endTime"]
+        ? OneUptimeDate.fromString(body["endTime"] as string)
+        : OneUptimeDate.getCurrentDate();
+
+      const limit: number = (body["limit"] as number) || 500;
+
+      const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
+        ? (body["serviceIds"] as Array<string>).map((id: string) => {
+            return new ObjectID(id);
+          })
+        : undefined;
+
+      const metricNames: Array<string> | undefined = body["metricNames"]
+        ? (body["metricNames"] as Array<string>)
+        : undefined;
+
+      const facetSearchText: Record<string, string> | undefined = body[
+        "facetSearchText"
+      ]
+        ? (body["facetSearchText"] as Record<string, string>)
+        : undefined;
+
+      const projectId: ObjectID = databaseProps.tenantId;
+
+      /*
+       * Per-facet ClickHouse GROUP BY in parallel. Per-facet errors degrade
+       * to [] so a slow facet doesn't block the rest.
+       */
+      const facetResults: Array<readonly [string, Array<MetricFacetValue>]> =
+        await Promise.all(
+          facetKeys.map(
+            async (
+              facetKey: string,
+            ): Promise<readonly [string, Array<MetricFacetValue>]> => {
+              try {
+                const request: MetricFacetRequest = {
+                  projectId,
+                  startTime,
+                  endTime,
+                  facetKey,
+                  limit,
+                  serviceIds,
+                  metricNames,
+                };
+                const values: Array<MetricFacetValue> =
+                  await MetricAggregationService.getFacetValues(request);
+                return [facetKey, values] as const;
+              } catch {
+                return [facetKey, [] as Array<MetricFacetValue>] as const;
+              }
+            },
+          ),
+        );
+
+      const facets: Record<
+        string,
+        Array<MetricFacetValue>
+      > = Object.fromEntries(facetResults);
+
+      /*
+       * Replace resource-facet results with the Postgres source-of-truth list
+       * (filtered by facetSearchText and enriched with displayName). Same
+       * pattern as the trace / log / exception facets endpoints.
+       */
+      const resourceSpecs: Array<ResourceFacetSpec> = facetKeys
+        .filter((key: string): boolean => {
+          return ResourceFacetResolver.isResourceFacet(key);
+        })
+        .map((key: string): ResourceFacetSpec => {
+          const counts: Map<string, number> = new Map();
+          for (const fv of facets[key] || []) {
+            counts.set(fv.value, fv.count);
+          }
+          return {
+            facetKey: key,
+            counts,
+            searchText: facetSearchText?.[key],
+            limit,
+          };
+        });
+
+      if (resourceSpecs.length > 0) {
+        const resolved: Record<
+          string,
+          Array<ResolvedFacetValue>
+        > = await ResourceFacetResolver.resolve(projectId, resourceSpecs);
+        for (const key of Object.keys(resolved)) {
+          facets[key] = resolved[key] as Array<MetricFacetValue>;
+        }
+      }
+
+      return Response.sendJsonObjectResponse(req, res, {
+        facets: facets as unknown as JSONObject,
       });
     } catch (err: unknown) {
       next(err);

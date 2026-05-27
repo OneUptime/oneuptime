@@ -1,302 +1,136 @@
-# Veelgestelde vragen en probleemoplossing
+# Veelgestelde Vragen en Probleemoplossing
 
-Veelgestelde vragen en oplossingen voor OneUptime Mobiele en Desktopapps (PWA).
+Veelgestelde vragen en oplossingen voor de OneUptime mobiele en desktop apps.
 
-## Algemene veelgestelde vragen
+## Hoe distribueert OneUptime zijn apps?
+
+- **Mobiel (iOS en Android):** OneUptime levert een native app genaamd **OneUptime On-Call**. Deze is gepubliceerd in de [Apple App Store](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391) en [Google Play](https://play.google.com/store/apps/details?id=com.oneuptime.oncall). Een ondertekende [APK-download](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk) is ook beschikbaar voor Android apparaten zonder Google Play.
+- **Desktop (Windows, macOS, Linux):** Het OneUptime webdashboard is een Progressive Web App (PWA). U kunt het als een desktopapplicatie installeren rechtstreeks vanuit een op Chromium gebaseerde browser of Safari — er is geen storeaccount vereist.
+
+## Veelgestelde Vragen Mobiele App
+
+### Welke apparaten worden ondersteund?
+
+- **iOS:** iPhone of iPad met iOS 15.0 of later.
+- **Android:** Telefoons en tablets met Android 8.0 (Oreo) of later.
+
+### Is de app gratis?
+
+Ja. De OneUptime On-Call app is gratis te installeren. U logt in met uw bestaande OneUptime account.
+
+### Kan ik de app gebruiken met een zelf-gehoste OneUptime instantie?
+
+Ja. Bij de eerste start vraagt de app om een **Server URL**. Voer de URL van uw zelf-gehoste instantie in (bijvoorbeeld `https://oneuptime.example.com`). De app valideert of de server bereikbaar is voordat u kunt inloggen.
+
+Volg voor pushmeldingen op zelf-gehoste instanties de handleiding [Pushmeldingen](/docs/self-hosted/push-notifications).
+
+### Hoe worden updates geleverd?
+
+- **iOS:** Via de App Store. Schakel automatische updates in via **Instellingen → App Store**, of werk handmatig bij vanuit uw App Store profiel.
+- **Android (Google Play):** Automatische updates zijn standaard ingeschakeld.
+- **Android (APK sideload):** Download en installeer de nieuwste APK via de bovenstaande GitHub Releases-link.
+
+### Waarom ontvang ik geen pushmeldingen?
+
+Mobiele push maakt gebruik van APNs (iOS) en FCM (Android) via Expo Push. Controleer het volgende:
+
+1. Meldingen zijn op besturingssysteemniveau ingeschakeld voor **OneUptime On-Call**.
+2. Batterijoptimalisatie is uitgeschakeld en achtergrondactiviteit is toegestaan (Android).
+3. Niet storen of Focus modi zijn uitgeschakeld, of de app staat op de uitzonderingslijst.
+4. U bent ingelogd — het push-token wordt pas bij de server geregistreerd nadat u bent ingelogd.
+5. **Alleen zelf-gehost:** Pushmeldingen zijn geconfigureerd op uw OneUptime instantie. Zie de handleiding [Pushmeldingen](/docs/self-hosted/push-notifications).
+
+### Zijn de gegevens op mijn telefoon veilig?
+
+- Al het API-verkeer maakt gebruik van HTTPS.
+- Toegangs- en vernieuwingstokens worden opgeslagen in de beveiligde sleutelopslag van het apparaat (Keychain op iOS, Keystore op Android).
+- U kunt Face ID / Touch ID / vingerafdrukontgrendeling vereisen vanuit het scherm **Instellingen** binnen de app.
+
+### Kan ik de app op meerdere apparaten installeren?
+
+Ja. Log in met hetzelfde OneUptime account op zoveel apparaten als u nodig hebt. Elk apparaat ontvangt zijn eigen pushmeldingen.
+
+### Hoe verwijder ik de app?
+
+- **iOS:** Houd het pictogram ingedrukt → **Verwijder app** → **Verwijder app**.
+- **Android:** Houd het pictogram ingedrukt → **Verwijderen**, of **Instellingen → Apps → OneUptime On-Call → Verwijderen**.
+
+Uw OneUptime account en gegevens worden op de server opgeslagen en worden niet verwijderd wanneer u de app verwijdert.
+
+## Veelgestelde Vragen Desktop App (PWA)
 
 ### Wat is een Progressive Web App (PWA)?
 
-Een Progressive Web App is een webapplicatie die gebruikmaakt van moderne webtechnologieën om app-achtige ervaringen te bieden. PWA's kunnen rechtstreeks vanuit browsers worden geïnstalleerd zonder app stores, werken offline, sturen push-meldingen en integreren met het besturingssysteem van uw apparaat.
+Een Progressive Web App is een webapplicatie die kan worden geïnstalleerd zoals een native desktop app. Eenmaal geïnstalleerd, draait deze in zijn eigen venster, heeft het zijn eigen pictogram in uw launcher en kan het desktopmeldingen afleveren — zonder gebruik te maken van de Windows Store, Mac App Store of een ander distributiekanaal.
 
-### Waarom gebruikt OneUptime geen traditionele app stores?
+### Waarom gebruikt de desktop app PWA-technologie?
 
-OneUptime gebruikt PWA-technologie omdat dit verschillende voordelen biedt:
-- **Directe updates**: Geen wachten op goedkeuring van de app store of handmatige updates
-- **Platformoverschrijdend**: Één codebase werkt op alle apparaten
-- **Geen downloadgroottebeperkingen**: Volledige functies zonder groottebeperkingen
-- **Directe distributie**: Installeer rechtstreeks vanuit uw OneUptime-instantie
-- **Altijd de nieuwste versie**: Gebruikers hebben altijd de nieuwste versie
-- **Beveiliging**: Dezelfde beveiligingsvoordelen als webapplicaties
+- **Onmiddellijke updates** — de app blijft synchroon met uw OneUptime instantie zodra u implementeert.
+- **Geen storeaccount vereist** — installeer rechtstreeks vanuit elke moderne browser.
+- **Eén codebase** — hetzelfde dashboard draait op Windows, macOS en Linux.
 
+### Waarom verschijnt de knop "Install" niet?
 
-### Hoeveel opslag gebruikt de OneUptime PWA?
+1. Gebruik een op Chromium gebaseerde browser (Chrome, Edge, Brave, Arc) of Safari (macOS Sonoma+).
+2. Bevestig dat uw OneUptime instantie via HTTPS met een geldig certificaat wordt aangeboden.
+3. Wis uw browsercache en herlaad de pagina.
+4. De app is mogelijk al geïnstalleerd — controleer uw Programma's / Startmenu.
 
-- **Initiële installatie**: 10-20 MB
-- **Cache-groei**: 50-100 MB bij regelmatig gebruik
-- **Maximale cache**: Doorgaans beperkt tot 200 MB door browsers
-- **Automatisch opruimen**: Browsers beheren opslag automatisch
+### Hoe werk ik de desktop app bij?
 
-### Ondersteunt de OneUptime PWA push-meldingen?
+De PWA werkt automatisch bij wanneer u deze opent terwijl u online bent. Om een update te forceren, vernieuwt u het venster met **Ctrl+R** (Windows/Linux) of **Cmd+R** (macOS).
 
-Ja, de OneUptime PWA ondersteunt uitgebreide push-meldingen:
-- **Incidentmeldingen**: Realtime incidentmeldingen
-- **Statusupdates**: Meldingen bij wijziging van monitorstatus
-- **Aangepaste triggers**: Meldingsregels configureren
-- **Rijke inhoud**: Afbeeldingen, acties en gedetailleerde informatie
-- **Badge-updates**: Ongelezen telling op app-pictogram
+### Hoe verwijder ik de desktop PWA?
 
-## Installatie veelgestelde vragen
-
-### Waarom zie ik de knop "Installeren" niet?
-
-Veelvoorkomende oorzaken en oplossingen:
-1. **Browsercompatibiliteit**: Gebruik Chrome, Edge of Safari
-2. **HTTPS vereist**: Zorg dat de OneUptime-instantie HTTPS gebruikt
-3. **PWA-vereisten**: Server moet voldoen aan PWA-manifestvereisten
-4. **Cacheproblemen**: Wis browsercache en laad opnieuw
-5. **Al geïnstalleerd**: App is mogelijk al geïnstalleerd
-6. **Wachttijd**: Sommige browsers hebben 30+ seconden op de pagina nodig
-
-### Kan ik op meerdere apparaten installeren?
-
-Ja! U kunt de OneUptime PWA installeren op:
-- Onbeperkte apparaten per gebruiker
-- Meerdere browsers op hetzelfde apparaat
-- Verschillende besturingssystemen
-- Gedeelde/gezinsapparaten (met afzonderlijke accounts)
-
-### Hoe update ik de geïnstalleerde app?
-
-OneUptime PWA wordt automatisch bijgewerkt:
-- **Automatische updates**: App wordt bijgewerkt wanneer u online een bezoek brengt
-- **Achtergrondupdates**: Updates worden op de achtergrond gedownload
-- **Directe beschikbaarheid**: Nieuwe functies zijn onmiddellijk beschikbaar
-- **Geen gebruikersactie**: In tegenstelling tot store-apps zijn geen handmatige updates nodig
-
-### Kan ik de app-naam aanpassen tijdens de installatie?
-
-Ja, tijdens de installatie kunt u:
-- De app-naam wijzigen (standaard: "OneUptime")
-- De naam van uw organisatie toevoegen
-- Een aangepaste naamconventie gebruiken
-- Het pictogramlabel aanpassen (platformafhankelijk)
-
-### Hoe verwijder ik de OneUptime PWA?
-
-Verwijdering verschilt per platform:
-
-**Android:**
-- Houd app-pictogram ingedrukt → Verwijderen
-- Instellingen → Apps → OneUptime → Verwijderen
-
-**iOS:**
-- Houd app-pictogram ingedrukt → App verwijderen → App verwijderen
-
-**Windows:**
-- Instellingen → Apps → OneUptime → Verwijderen
-- Klik met rechtermuisknop op Startmenu-item → Verwijderen
-
-**macOS:**
-- Sleep vanuit Programma's naar Prullenbak
-- Klik met rechtermuisknop op Dock-pictogram → Verwijderen
-
-**Linux:**
-- Verwijder uit applicatiestartprogramma
-- Verwijder het .desktop-bestand
-
-
-## Meldingen veelgestelde vragen
-
-### Waarom ontvang ik geen meldingen?
-
-Veelvoorkomende meldingsproblemen en oplossingen:
-
-**Controleer machtigingen:**
-```
-1. Browsermeldingsmachtigingen ingeschakeld
-2. Meldingsmachtigingen voor besturingssysteem
-3. OneUptime-meldingsinstellingen geconfigureerd
-4. Modus Niet storen uitgeschakeld
-```
-
-**Platformspecifiek:**
-- **Android**: Controleer batterijoptimalisatie-instellingen
-- **iOS**: Controleer meldingsinstellingen in de Instellingen-app
-- **Windows**: Controleer de instellingen voor Focus-assistent
-- **macOS**: Controleer de machtigingen voor het Meldingencentrum
-- **Linux**: Controleer de status van de meldingsdaemon
-
-### Kan ik meldingsgeluiden aanpassen?
-
-Aanpassingsmogelijkheden voor meldingen:
-- **Systeemgeluiden**: Gebruik de geluidsinstelling van het OS voor meldingen
-- **Browserinstellingen**: Configureer in browsermeldingenvoorkeuren
-- **OneUptime-instellingen**: Stel meldingsvoorkeuren in op het dashboard
-- **Prioriteitsniveaus**: Configureer verschillende geluiden voor ernstniveaus
-
-### Hoe schakel ik meldingen tijdelijk uit?
-
-Tijdelijk meldingen uitschakelen:
-- **Niet storen**: Schakel de DND-modus van het systeem in
-- **Browserinstellingen**: Schakel sitemeldingen tijdelijk uit
-- **OneUptime-dashboard**: Pauzeer meldingen in instellingen
-- **Focusmodi**: Gebruik OS-focus-/concentratiemodi
-
-## Beveiliging veelgestelde vragen
-
-### Is de OneUptime PWA veilig?
-
-Beveiligingsfuncties en overwegingen:
-- **HTTPS-versleuteling**: Alle gegevens worden veilig verzonden
-- **Same-Origin Policy**: Beveiligingsbeperkingen van de browser zijn van toepassing
-- **Sandbox-omgeving**: Draait in de beveiligingssandbox van de browser
-- **Regelmatige updates**: Beveiligingspatches worden automatisch toegepast
-- **Geen roottoegang**: Beperkte systeemtoegang vergeleken met native apps
-
-
-*Opmerking: Gevoelige gegevens zijn versleuteld en voldoen aan de beveiligingsnormen van de browser.*
-
-### Kan ik de OneUptime PWA gebruiken op bedrijfsnetwerken?
-
-Overwegingen voor bedrijfsnetwerken:
-- **Firewallregels**: Zorg voor HTTPS-toegang (poort 443)
-- **Proxyconfiguratie**: Configureer browserproxyinstellingen
-- **Certificaatvertrouwen**: Installeer bedrijfscertificaten indien nodig
-- **VPN-toegang**: Gebruik VPN voor toegang op afstand
-- **Beveiligingsbeleid**: Voldoe aan IT-beveiligingsvereisten
+- **Windows:** **Instellingen → Apps → OneUptime → Verwijderen**, of klik met de rechtermuisknop op het Startmenu-item.
+- **macOS:** Sleep de app vanuit **Programma's** naar de Prullenmand, of klik met de rechtermuisknop op het Dock-pictogram en kies **Verwijderen**.
+- **Linux:** Gebruik de verwijderoptie van uw applicatielauncher, of verwijder het relevante `.desktop` bestand.
 
 ## Probleemoplossing
 
-### Installatieproblemen
+### Problemen met de Mobiele App
 
-**Probleem**: Installatieknop verschijnt niet
-```
-Oplossingen:
-1. Wacht 30+ seconden op de OneUptime-pagina
-2. Vernieuw de pagina en wacht opnieuw
-3. Wis browsercache en cookies
-4. Probeer een andere browser (Chrome/Edge aanbevolen)
-5. Verifieer HTTPS-verbinding (controleer op slotpictogram)
-6. Controleer of al geïnstalleerd
-```
+**App logt niet in / "Netwerkfout":**
+- Bevestig dat de **Server URL** correct is en bereikbaar is vanaf uw telefoon.
+- Controleer of uw telefoon verbonden is met het internet.
+- Voor zelf-gehoste instanties achter een VPN, zorg ervoor dat de VPN actief is.
 
-**Probleem**: Installatie mislukt of crasht
-```
-Oplossingen:
-1. Zorg voor voldoende opslagruimte (100 MB+)
-2. Sluit andere browsertabs en applicaties
-3. Browser bijwerken naar de nieuwste versie
-4. Browserextensies tijdelijk uitschakelen
-5. Probeer de installatie in privé-/incognitomodus
-6. Browser herstarten en opnieuw proberen
-```
+**Pushmeldingen vertraagd of ontbrekend (Android):**
+- Schakel batterijoptimalisatie uit: **Instellingen → Apps → OneUptime On-Call → Batterij → Onbeperkt**.
+- Schakel Databesparing uit voor de app.
+- Op Samsung apparaten schakelt u **Apparaatonderhoud → Batterij → Limieten voor achtergrondgebruik** uit voor OneUptime On-Call.
 
-**Probleem**: App installeert maar verschijnt niet
-```
-Oplossingen:
-1. Controleer alle locaties van het app-startprogramma
-2. Zoek naar "OneUptime" in apparaatzoekfunctie
-3. Zoek in de sectie voor app-beheer van de browser
-4. Wacht 1-2 minuten tot het systeem zich vernieuwt
-5. Apparaat herstarten en opnieuw controleren
-```
+**Pushmeldingen vertraagd of ontbrekend (iOS):**
+- Vermijd het geforceerd afsluiten van de app — iOS kan aflevering op de achtergrond pauzeren.
+- Schakel de Energiebesparingsmodus uit terwijl u dienst hebt.
+- Voeg OneUptime On-Call toe aan de lijst met toegestane apps van elke actieve Focus modus.
 
-**Probleem**: App crasht regelmatig
-```
-Oplossingen:
-1. Browser bijwerken naar de nieuwste versie
-2. Alle browsergegevens voor OneUptime wissen
-3. Browserextensies uitschakelen
-4. Beschikbare opslagruimte controleren
-5. Besturingssysteem herstarten
-6. OneUptime PWA herinstalleren
-```
+**Face ID / Touch ID / vingerafdruk werkt niet:**
+- Zorg ervoor dat biometrische gegevens zijn ingeschreven in uw OS-instellingen.
+- Schakel biometrische ontgrendeling opnieuw in vanuit het scherm **Instellingen** binnen de OneUptime On-Call app.
 
-**Probleem**: Push-meldingen werken niet
-```
-Oplossingen:
-1. Controleer meldingsmachtigingen in browser
-2. Controleer systeemmeldingsinstellingen
-3. Test eerst met een eenvoudige melding
-4. Meldingsgegevens wissen en machtigingen opnieuw verlenen
-5. Controleer de instellingen voor Niet storen/Focusmodus
-6. Controleer OneUptime-meldingsconfiguratie
-```
+### Problemen met de Desktop App (PWA)
 
-**Probleem**: App synchroniseert de nieuwste gegevens niet
-```
-Oplossingen:
-1. Veeg omlaag om te vernieuwen (mobiel)
-2. Druk op Ctrl+F5 (Windows/Linux) of Cmd+R (Mac)
-3. Sluit de app en open opnieuw
-4. App-cache wissen en opnieuw laden
-5. Netwerkconnectiviteit controleren
-```
+**Installatieknop ontbreekt:**
+- Gebruik een ondersteunde browser (op Chromium gebaseerd of Safari op macOS Sonoma+).
+- Zorg ervoor dat de OneUptime instantie via HTTPS wordt aangeboden.
+- Wacht tot de pagina volledig is geladen en controleer vervolgens de adresbalk op het installatiepictogram.
 
-### Platformspecifieke problemen
+**Desktopmeldingen verschijnen niet:**
+- Sta meldingen toe wanneer de browser daarom vraagt.
+- Controleer de OS-meldingsinstellingen (Windows Focus-assistent, macOS Berichtgeving, Linux meldingsdaemon).
+- Voor zelf-gehoste instanties, zorg ervoor dat de [Pushmeldingen](/docs/self-hosted/push-notifications) configuratie volledig is.
 
-**Android-problemen:**
-```
-Probleem: App verschijnt niet in app-lade
-Oplossing: Controleer de sectie "Onlangs toegevoegd" apps, zoek in app-lade
+**App toont niet de nieuwste gegevens:**
+- Vernieuw met **Ctrl+R** / **Cmd+R**.
+- Sluit en heropen het venster.
+- Controleer uw netwerkverbinding.
 
-Probleem: Meldingen vertraagd
-Oplossing: Batterijoptimalisatie uitschakelen voor browser-app
+## Ondersteuning
 
-Probleem: App crasht bij opstarten
-Oplossing: Chrome-appgegevens wissen, apparaat herstarten
-```
+Als u nog hulp nodig hebt:
 
-**iOS-problemen:**
-```
-Probleem: Kan niet toevoegen aan startscherm
-Oplossing: Gebruik Safari-browser, zorg voor iOS 11.3+
-
-Probleem: App-pictogram ontbreekt
-Oplossing: Controleer alle startschermpagina's en App-bibliotheek
-
-Probleem: Face ID werkt niet
-Oplossing: Schakel Face ID in voor Safari in instellingen
-```
-
-**Windows-problemen:**
-```
-Probleem: App verschijnt niet in Startmenu
-Oplossing: Zoek naar app-naam, controleer lijst met geïnstalleerde apps
-
-Probleem: Meldingen worden niet weergegeven
-Oplossing: Controleer Windows-meldingsinstellingen, schakel in voor browser
-
-Probleem: Vensterformaatproblemen
-Oplossing: Handmatig aanpassen, app onthoudt de afmetingen
-```
-
-**macOS-problemen:**
-```
-Probleem: Kan niet installeren via Safari
-Oplossing: Update naar macOS Sonoma+, gebruik Archief → Voeg toe aan Dock
-
-Probleem: App niet in map Programma's
-Oplossing: Controleer Launchpad, gebruik Spotlight-zoekfunctie
-
-Probleem: Meldingen werken niet
-Oplossing: Controleer Systeemvoorkeuren → Meldingen
-```
-
-**Linux-problemen:**
-```
-Probleem: PWA-installatieoptie ontbreekt
-Oplossing: Gebruik Chrome/Chromium, zorg voor ondersteuning van de desktopomgeving
-
-Probleem: Pictogram verschijnt niet in startprogramma
-Oplossing: Desktop-database bijwerken, controleer het .desktop-bestand
-
-Probleem: Audio-meldingen werken niet
-Oplossing: Controleer PulseAudio, verifieer audio-machtigingen van browser
-```
-
-### Foutmeldingen
-
-**"Deze site kan niet worden geïnstalleerd"**
-```
-Oorzaken:
-- OneUptime-instantie voldoet niet aan de PWA-vereisten
-- Ontbrekend of ongeldig web-app-manifest
-- HTTPS niet correct geconfigureerd
-- Browser ondersteunt geen PWA-installatie
-
-Oplossingen:
-- Neem contact op met de beheerder om de PWA-configuratie te verifiëren
-- Probeer een andere browser
-- Controleer de browserconsole voor gedetailleerde fouten
-```
+- Mobiel: zie de installatiehandleidingen voor [iOS](./ios-installation.md) of [Android](./android-installation.md).
+- Desktop: zie de installatiehandleidingen voor [Windows](./windows-installation.md), [macOS](./macos-installation.md) of [Linux](./linux-installation.md).
+- Open een issue op de [OneUptime GitHub repository](https://github.com/OneUptime/oneuptime).
+- Neem contact op met ondersteuning via uw OneUptime dashboard.

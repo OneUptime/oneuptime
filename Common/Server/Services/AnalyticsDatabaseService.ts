@@ -2,6 +2,7 @@ import { WorkflowHostname } from "../EnvironmentConfig";
 import ClickhouseDatabase, {
   ClickhouseAppInstance,
   ClickhouseClient,
+  ClickhouseIngestInstance,
 } from "../Infrastructure/ClickhouseDatabase";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
 import CountBy from "../Types/AnalyticsDatabase/CountBy";
@@ -67,13 +68,16 @@ export default class AnalyticsDatabaseService<
 > extends BaseService {
   public modelType!: { new (): TBaseModel };
   public database!: ClickhouseDatabase;
+  public ingestDatabase!: ClickhouseDatabase;
   public model!: TBaseModel;
   public databaseClient!: ClickhouseClient | null;
+  public ingestDatabaseClient!: ClickhouseClient | null;
   public statementGenerator!: StatementGenerator<TBaseModel>;
 
   public constructor(data: {
     modelType: { new (): TBaseModel };
     database?: ClickhouseDatabase | undefined;
+    ingestDatabase?: ClickhouseDatabase | undefined;
   }) {
     super();
     this.modelType = data.modelType;
@@ -84,7 +88,14 @@ export default class AnalyticsDatabaseService<
       this.database = ClickhouseAppInstance; // default database
     }
 
+    if (data.ingestDatabase) {
+      this.ingestDatabase = data.ingestDatabase;
+    } else {
+      this.ingestDatabase = ClickhouseIngestInstance;
+    }
+
     this.databaseClient = this.database.getDataSource();
+    this.ingestDatabaseClient = this.ingestDatabase.getDataSource();
 
     this.statementGenerator = new StatementGenerator<TBaseModel>({
       modelType: this.modelType,
@@ -98,7 +109,7 @@ export default class AnalyticsDatabaseService<
       return;
     }
 
-    const client: ClickhouseClient = this.getDatabaseClient();
+    const client: ClickhouseClient = this.getIngestClient();
 
     const tableName: string = this.model.tableName;
 
@@ -524,9 +535,19 @@ export default class AnalyticsDatabaseService<
   ): Promise<Array<TBaseModel>> {
     try {
       if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
+        /*
+         * Default sort uses the model's declared `defaultSortColumn`
+         * (e.g. `time` for Log, `startTime` for Span) so the query
+         * streams from the ClickHouse sort key. The historical
+         * fallback of `createdAt` is not in the sort key on most
+         * analytics tables, which triggered a full sort even on
+         * small LIMITed queries.
+         */
+        const defaultSortColumn: string =
+          this.model.defaultSortColumn || "createdAt";
         findBy.sort = {
-          createdAt: SortOrder.Descending,
-        };
+          [defaultSortColumn]: SortOrder.Descending,
+        } as any;
 
         if (!findBy.select) {
           findBy.select = {} as any;
@@ -899,10 +920,20 @@ export default class AnalyticsDatabaseService<
       deleteBy.query
     );
 
+    /*
+     * Use ClickHouse lightweight deletes (`DELETE FROM`) rather than
+     * `ALTER TABLE … DELETE`. The latter creates an async mutation that
+     * rewrites whole parts and is bounded by `number_of_mutations_to_throw`
+     * (default 1000). Customers with chatty state transitions hit that
+     * ceiling and every subsequent delete fails with TOO_MANY_MUTATIONS.
+     * Lightweight deletes mark rows via the hidden `_row_exists` column
+     * and are reconciled during normal merges, so they don't accumulate
+     * in the mutations queue.
+     */
     /* eslint-disable prettier/prettier */
     const statement: Statement = SQL`
-            ALTER TABLE ${databaseName}.${this.model.tableName}
-            DELETE WHERE TRUE `.append(whereStatement);
+            DELETE FROM ${databaseName}.${this.model.tableName}
+            WHERE TRUE `.append(whereStatement);
 
     logger.debug(`${this.model.tableName} Delete Statement`, { tableName: this.model.tableName } as LogAttributes);
     logger.debug(statement, { tableName: this.model.tableName } as LogAttributes);
@@ -1040,6 +1071,8 @@ export default class AnalyticsDatabaseService<
   public useDefaultDatabase(): void {
     this.database = ClickhouseAppInstance;
     this.databaseClient = this.database.getDataSource();
+    this.ingestDatabase = ClickhouseIngestInstance;
+    this.ingestDatabaseClient = this.ingestDatabase.getDataSource();
   }
 
   @CaptureSpan()
@@ -1098,6 +1131,25 @@ export default class AnalyticsDatabaseService<
     }
 
     return this.databaseClient;
+  }
+
+  private getIngestClient(): ClickhouseClient {
+    if (!this.ingestDatabase) {
+      this.useDefaultDatabase();
+    }
+
+    if (!this.ingestDatabaseClient && this.ingestDatabase) {
+      this.ingestDatabaseClient = this.ingestDatabase.getDataSource();
+    }
+
+    if (!this.ingestDatabaseClient) {
+      throw new Exception(
+        ExceptionCode.DatabaseNotConnectedException,
+        "ClickHouse ingest client is not connected",
+      );
+    }
+
+    return this.ingestDatabaseClient;
   }
 
   protected async onUpdateSuccess(

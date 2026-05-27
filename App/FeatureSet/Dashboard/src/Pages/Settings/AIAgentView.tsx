@@ -243,6 +243,9 @@ const AIAgentView: FunctionComponent<PageComponentProps> = (
         id="table-ai-agent-owner-team"
         userPreferencesKey="ai-agent-owner-team-table"
         name="AI Agent > Owner Team"
+        saveFilterProps={{
+          tableId: "ai-agent-owner-team-table",
+        }}
         singularName="Team"
         isDeleteable={true}
         createVerb={"Add"}
@@ -338,6 +341,9 @@ const AIAgentView: FunctionComponent<PageComponentProps> = (
         id="table-ai-agent-owner-user"
         name="AI Agent > Owner User"
         userPreferencesKey="ai-agent-owner-user-table"
+        saveFilterProps={{
+          tableId: "ai-agent-owner-user-table",
+        }}
         isDeleteable={true}
         singularName="User"
         isCreateable={true}

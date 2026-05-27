@@ -1,9 +1,8 @@
-import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import TelemetryExceptionService from "Common/Server/Services/TelemetryExceptionService";
-import OneUptimeDate from "Common/Types/Date";
-import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Crypto from "Common/Utils/Crypto";
+import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
+import logger from "Common/Server/Utils/Logger";
 
 export interface ExceptionFingerprintInput {
   message?: string;
@@ -23,6 +22,15 @@ export interface TelemetryExceptionPayload {
   release?: string; // current release from the incoming event
   environment?: string;
 }
+
+/*
+ * Per-batch parameter footprint: 12 columns x rows. Postgres caps a
+ * single statement at 65535 placeholders, so 500 rows = 6000 params
+ * gives us plenty of headroom while matching the chunk size used by
+ * KubernetesResourceService.bulkUpsert (the precedent this batch
+ * upsert is modelled on).
+ */
+const TELEMETRY_EXCEPTION_UPSERT_BATCH_SIZE: number = 500;
 
 export default class ExceptionUtil {
   /**
@@ -210,112 +218,294 @@ export default class ExceptionUtil {
     return hash;
   }
 
+  /**
+   * Convenience single-event wrapper retained so call sites that
+   * legitimately only have one exception (e.g. ad-hoc tooling or
+   * tests) do not have to construct a one-element array. Inside the
+   * OTel traces ingest hot path callers should aggregate first and
+   * call `saveOrUpdateTelemetryExceptionsBatch` directly with the
+   * full batch — that is where the round-trip savings live.
+   */
   public static async saveOrUpdateTelemetryException(
     exception: TelemetryExceptionPayload,
   ): Promise<void> {
-    // Exception is saved to main database as well (not just analytics db), so users can assgin it, resolve it, etc.
+    await ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch([exception]);
+  }
 
-    if (!exception.fingerprint) {
-      throw new BadDataException(
-        "Fingerprint is required to save exception status",
+  /**
+   * Upsert a batch of telemetry exception observations into Postgres
+   * in a single statement per chunk.
+   *
+   * The legacy per-event implementation issued a SELECT + UPDATE-or-
+   * INSERT pair per exception event, fired off as fire-and-forget
+   * Promises from inside the OTel trace span loop. Under load that
+   * (a) saturated the Postgres pool, (b) lost concurrent
+   * occuranceCount increments because the +1 was read-modify-write
+   * in JS, and (c) occasionally produced duplicate rows when two
+   * workers both missed the SELECT at the same time.
+   *
+   * This implementation:
+   *
+   *   - Pre-aggregates the incoming payloads by
+   *     (projectId, serviceId, fingerprint) so N events for one
+   *     fingerprint cost one VALUES row, not N.
+   *   - Issues `INSERT … VALUES (…), (…), … ON CONFLICT
+   *     ("projectId", "serviceId", "fingerprint") DO UPDATE SET …`
+   *     so the count merge happens atomically inside Postgres and
+   *     concurrent workers cannot lose increments.
+   *   - Uses GREATEST / LEAST on the timestamps so out-of-order
+   *     delivery (a stale job processed after a fresher one) does
+   *     not regress lastSeenAt / firstSeenAt.
+   *   - Preserves the legacy "new occurrence un-resolves the row"
+   *     behaviour by clearing markedAsResolved* and setting
+   *     isResolved=false in the conflict branch.
+   *
+   * Chunked at TELEMETRY_EXCEPTION_UPSERT_BATCH_SIZE so the
+   * placeholder count stays well below Postgres's 65535 limit.
+   */
+  @CaptureSpan()
+  public static async saveOrUpdateTelemetryExceptionsBatch(
+    exceptions: Array<TelemetryExceptionPayload>,
+  ): Promise<void> {
+    if (!exceptions || exceptions.length === 0) {
+      return;
+    }
+
+    const aggregated: Map<string, AggregatedException> =
+      ExceptionUtil.aggregateExceptions(exceptions);
+
+    if (aggregated.size === 0) {
+      return;
+    }
+
+    const rows: Array<AggregatedException> = Array.from(aggregated.values());
+
+    for (
+      let i: number = 0;
+      i < rows.length;
+      i += TELEMETRY_EXCEPTION_UPSERT_BATCH_SIZE
+    ) {
+      const chunk: Array<AggregatedException> = rows.slice(
+        i,
+        i + TELEMETRY_EXCEPTION_UPSERT_BATCH_SIZE,
       );
-    }
 
-    if (!exception.projectId) {
-      throw new BadDataException(
-        "Project ID is required to save exception status",
-      );
-    }
+      const valueFragments: Array<string> = [];
+      const params: Array<unknown> = [];
+      let paramIndex: number = 1;
 
-    if (!exception.serviceId) {
-      throw new BadDataException(
-        "Service ID is required to save exception status",
-      );
-    }
+      for (const row of chunk) {
+        /*
+         * Column order must stay in lockstep with the INSERT
+         * column list below. 12 placeholders per row: projectId,
+         * serviceId, fingerprint, message, stackTrace,
+         * exceptionType, firstSeenAt, lastSeenAt, occuranceCount,
+         * firstSeenInRelease, lastSeenInRelease, environment.
+         */
+        const placeholders: Array<string> = [];
+        for (let c: number = 0; c < 12; c++) {
+          placeholders.push(`$${paramIndex++}`);
+        }
+        valueFragments.push(`(${placeholders.join(", ")})`);
 
-    const fingerprint: string = exception.fingerprint;
-
-    // check if the exception with the same fingerprint already exists in the database
-
-    const existingExceptionStatus: TelemetryException | null =
-      await TelemetryExceptionService.findOneBy({
-        query: {
-          fingerprint: fingerprint,
-          projectId: exception.projectId,
-          serviceId: exception.serviceId,
-        },
-        select: {
-          _id: true,
-          occuranceCount: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (existingExceptionStatus) {
-      // then update last seen as and unmark as resolved/muted
-      await TelemetryExceptionService.updateOneBy({
-        query: {
-          _id: existingExceptionStatus._id,
-        },
-        data: {
-          lastSeenAt: OneUptimeDate.now(),
-          markedAsResolvedByUserId: null,
-          isResolved: false,
-          markedAsResolvedAt: null, // unmark as resolved if it was marked as resolved
-          occuranceCount: (existingExceptionStatus.occuranceCount || 0) + 1,
-          ...(exception.release
-            ? { lastSeenInRelease: exception.release }
-            : {}),
-          ...(exception.environment
-            ? { environment: exception.environment }
-            : {}),
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    if (!existingExceptionStatus) {
-      // Create a new exception status if it doesn't exist
-      const newExceptionStatus: TelemetryException = new TelemetryException();
-      newExceptionStatus.fingerprint = exception.fingerprint;
-      newExceptionStatus.projectId = exception.projectId;
-      newExceptionStatus.serviceId = exception.serviceId;
-      newExceptionStatus.lastSeenAt = OneUptimeDate.now();
-      newExceptionStatus.firstSeenAt = OneUptimeDate.now();
-      newExceptionStatus.occuranceCount = 1;
-
-      if (exception.exceptionType) {
-        newExceptionStatus.exceptionType = exception.exceptionType;
+        params.push(
+          row.projectId.toString(),
+          row.serviceId.toString(),
+          row.fingerprint,
+          row.message,
+          row.stackTrace,
+          row.exceptionType,
+          row.firstSeenAt,
+          row.lastSeenAt,
+          row.occuranceCount,
+          row.firstSeenInRelease,
+          row.lastSeenInRelease,
+          row.environment,
+        );
       }
 
-      if (exception.message) {
-        newExceptionStatus.message = exception.message;
-      }
+      const sql: string = `
+        INSERT INTO "TelemetryException" (
+          "projectId", "serviceId", "fingerprint",
+          "message", "stackTrace", "exceptionType",
+          "firstSeenAt", "lastSeenAt", "occuranceCount",
+          "firstSeenInRelease", "lastSeenInRelease", "environment",
+          "isResolved", "isArchived", "version"
+        )
+        SELECT
+          v."projectId"::uuid, v."serviceId"::uuid, v."fingerprint",
+          v."message", v."stackTrace", v."exceptionType",
+          v."firstSeenAt"::timestamptz, v."lastSeenAt"::timestamptz,
+          v."occuranceCount"::int,
+          v."firstSeenInRelease", v."lastSeenInRelease", v."environment",
+          false, false, 0
+        FROM (VALUES ${valueFragments.join(", ")})
+          AS v(
+            "projectId", "serviceId", "fingerprint",
+            "message", "stackTrace", "exceptionType",
+            "firstSeenAt", "lastSeenAt", "occuranceCount",
+            "firstSeenInRelease", "lastSeenInRelease", "environment"
+          )
+        ON CONFLICT ("projectId", "serviceId", "fingerprint")
+        DO UPDATE SET
+          "occuranceCount" =
+            "TelemetryException"."occuranceCount" + EXCLUDED."occuranceCount",
+          "lastSeenAt" =
+            GREATEST("TelemetryException"."lastSeenAt", EXCLUDED."lastSeenAt"),
+          "firstSeenAt" =
+            LEAST("TelemetryException"."firstSeenAt", EXCLUDED."firstSeenAt"),
+          "message" = COALESCE(
+            NULLIF(EXCLUDED."message", ''),
+            "TelemetryException"."message"
+          ),
+          "stackTrace" = COALESCE(
+            NULLIF(EXCLUDED."stackTrace", ''),
+            "TelemetryException"."stackTrace"
+          ),
+          "exceptionType" = COALESCE(
+            NULLIF(EXCLUDED."exceptionType", ''),
+            "TelemetryException"."exceptionType"
+          ),
+          "lastSeenInRelease" = COALESCE(
+            NULLIF(EXCLUDED."lastSeenInRelease", ''),
+            "TelemetryException"."lastSeenInRelease"
+          ),
+          "environment" = COALESCE(
+            NULLIF(EXCLUDED."environment", ''),
+            "TelemetryException"."environment"
+          ),
+          "markedAsResolvedByUserId" = NULL,
+          "markedAsResolvedAt" = NULL,
+          "isResolved" = false,
+          "updatedAt" = now()
+      `;
 
-      if (exception.stackTrace) {
-        newExceptionStatus.stackTrace = exception.stackTrace;
+      try {
+        await TelemetryExceptionService.getRepository().manager.query(
+          sql,
+          params,
+        );
+      } catch (err) {
+        /*
+         * Fail loud — the caller wraps this in a try/catch and
+         * logs context-rich attributes; we just surface the cause.
+         */
+        logger.error(
+          `Telemetry exception batch upsert failed (${chunk.length} rows): ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+        throw err;
       }
-
-      if (exception.release) {
-        newExceptionStatus.firstSeenInRelease = exception.release;
-        newExceptionStatus.lastSeenInRelease = exception.release;
-      }
-
-      if (exception.environment) {
-        newExceptionStatus.environment = exception.environment;
-      }
-
-      // Save the new exception status to the database
-      await TelemetryExceptionService.create({
-        data: newExceptionStatus,
-        props: {
-          isRoot: true,
-        },
-      });
     }
   }
+
+  /*
+   * Group payloads by (projectId, serviceId, fingerprint), sum
+   * occurrence counts, and pick the most-informative metadata to
+   * carry into the INSERT/UPDATE. We prefer non-empty message /
+   * stackTrace / exceptionType from later events because earlier
+   * events in the same batch may be truncated or sampled; the
+   * COALESCE(NULLIF(...)) in the SQL guarantees we never overwrite
+   * a populated DB value with an empty incoming one.
+   */
+  private static aggregateExceptions(
+    exceptions: Array<TelemetryExceptionPayload>,
+  ): Map<string, AggregatedException> {
+    const now: Date = new Date();
+    const out: Map<string, AggregatedException> = new Map();
+
+    for (const exception of exceptions) {
+      if (!exception) {
+        continue;
+      }
+
+      if (
+        !exception.fingerprint ||
+        !exception.projectId ||
+        !exception.serviceId
+      ) {
+        /*
+         * Mirror the legacy validation but skip the bad row instead
+         * of throwing — losing one event must not poison the whole
+         * worker batch.
+         */
+        logger.warn(
+          "Skipping telemetry exception payload missing fingerprint / projectId / serviceId",
+        );
+        continue;
+      }
+
+      const key: string = `${exception.projectId.toString()}|${exception.serviceId.toString()}|${exception.fingerprint}`;
+
+      const existing: AggregatedException | undefined = out.get(key);
+      if (existing) {
+        existing.occuranceCount += 1;
+        existing.message = pickNonEmpty(existing.message, exception.message);
+        existing.stackTrace = pickNonEmpty(
+          existing.stackTrace,
+          exception.stackTrace,
+        );
+        existing.exceptionType = pickNonEmpty(
+          existing.exceptionType,
+          exception.exceptionType,
+        );
+        existing.lastSeenInRelease = pickNonEmpty(
+          existing.lastSeenInRelease,
+          exception.release,
+        );
+        existing.firstSeenInRelease = pickNonEmpty(
+          existing.firstSeenInRelease,
+          exception.release,
+        );
+        existing.environment = pickNonEmpty(
+          existing.environment,
+          exception.environment,
+        );
+        continue;
+      }
+
+      out.set(key, {
+        projectId: exception.projectId,
+        serviceId: exception.serviceId,
+        fingerprint: exception.fingerprint,
+        message: exception.message || "",
+        stackTrace: exception.stackTrace || "",
+        exceptionType: exception.exceptionType || "",
+        firstSeenAt: now,
+        lastSeenAt: now,
+        occuranceCount: 1,
+        firstSeenInRelease: exception.release || "",
+        lastSeenInRelease: exception.release || "",
+        environment: exception.environment || "",
+      });
+    }
+
+    return out;
+  }
+}
+
+interface AggregatedException {
+  projectId: ObjectID;
+  serviceId: ObjectID;
+  fingerprint: string;
+  message: string;
+  stackTrace: string;
+  exceptionType: string;
+  firstSeenAt: Date;
+  lastSeenAt: Date;
+  occuranceCount: number;
+  firstSeenInRelease: string;
+  lastSeenInRelease: string;
+  environment: string;
+}
+
+function pickNonEmpty(current: string, incoming: string | undefined): string {
+  if (current && current.length > 0) {
+    return current;
+  }
+  if (incoming && incoming.length > 0) {
+    return incoming;
+  }
+  return current;
 }

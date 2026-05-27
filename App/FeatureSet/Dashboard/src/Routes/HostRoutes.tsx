@@ -14,10 +14,13 @@ import HostSettingsLabelRules from "../Pages/Host/Settings/LabelRules";
 import HostOverview from "../Pages/Host/View/Overview";
 import HostMetrics from "../Pages/Host/View/Metrics";
 import HostProcesses from "../Pages/Host/View/Processes";
+import HostProcessView from "../Pages/Host/View/ProcessView";
 import HostLogs from "../Pages/Host/View/Logs";
 import HostIncidents from "../Pages/Host/View/Incidents";
 import HostAlerts from "../Pages/Host/View/Alerts";
+import HostScheduledMaintenance from "../Pages/Host/View/ScheduledMaintenance";
 import HostOwners from "../Pages/Host/View/Owners";
+import HostAuditLogs from "../Pages/Host/View/AuditLogs";
 import HostSettings from "../Pages/Host/View/Settings";
 import HostDelete from "../Pages/Host/View/Delete";
 import HostViewDocumentation from "../Pages/Host/View/Documentation";
@@ -98,6 +101,16 @@ const HostRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.HOST_VIEW_PROCESS_VIEW, 2)}
+          element={
+            <HostProcessView
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_VIEW_PROCESS_VIEW] as Route}
+            />
+          }
+        />
+
+        <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.HOST_VIEW_LOGS)}
           element={
             <HostLogs
@@ -128,11 +141,35 @@ const HostRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.HOST_VIEW_SCHEDULED_MAINTENANCE,
+          )}
+          element={
+            <HostScheduledMaintenance
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.HOST_VIEW_SCHEDULED_MAINTENANCE] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.HOST_VIEW_OWNERS)}
           element={
             <HostOwners
               {...props}
               pageRoute={RouteMap[PageMap.HOST_VIEW_OWNERS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.HOST_VIEW_AUDIT_LOGS)}
+          element={
+            <HostAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_VIEW_AUDIT_LOGS] as Route}
             />
           }
         />

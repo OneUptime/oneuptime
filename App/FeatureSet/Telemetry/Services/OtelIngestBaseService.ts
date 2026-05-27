@@ -12,6 +12,10 @@ import LabelService from "Common/Server/Services/LabelService";
 import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
 import logger from "Common/Server/Utils/Logger";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
+import OTelIngestService, {
+  TelemetryServiceMetadata,
+} from "Common/Server/Services/OpenTelemetryIngestService";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
 
 export default abstract class OtelIngestBaseService {
   private static readonly DOCKER_CONTAINER_NAME_CACHE_NAMESPACE: string =
@@ -19,11 +23,62 @@ export default abstract class OtelIngestBaseService {
   private static readonly DOCKER_CONTAINER_NAME_CACHE_EXPIRY_SECONDS: number =
     24 * 60 * 60; // 1 day
 
+  /*
+   * Per-resource Postgres maintenance (updateLastSeen, label promotion)
+   * runs on every ingest batch even when nothing has changed. With 100
+   * concurrent telemetry workers and many resources per batch, those
+   * UPDATEs dominate Postgres pool occupancy and starve dashboard auth
+   * queries. Fence each (scope, id) pair behind a short Redis TTL so
+   * we only re-run the maintenance work once per window. Race-safe is
+   * not required — two workers re-running updateLastSeen at the same
+   * instant is harmless; we just want to drop the steady-state cost.
+   */
+  private static readonly MAINTENANCE_FENCE_NAMESPACE: string =
+    "otel-maintenance-fence";
+  private static readonly MAINTENANCE_FENCE_TTL_SECONDS: number = 5 * 60; // 5 minutes
+
+  protected static async shouldRunMaintenance(
+    scope: string,
+    id: string,
+  ): Promise<boolean> {
+    try {
+      const key: string = `${scope}:${id}`;
+      const seen: string | null = await GlobalCache.getString(
+        this.MAINTENANCE_FENCE_NAMESPACE,
+        key,
+      );
+      if (seen) {
+        return false;
+      }
+      await GlobalCache.setString(this.MAINTENANCE_FENCE_NAMESPACE, key, "1", {
+        expiresInSeconds: this.MAINTENANCE_FENCE_TTL_SECONDS,
+      });
+      return true;
+    } catch {
+      // If the cache is down, default to running the maintenance.
+      return true;
+    }
+  }
+
+  /*
+   * Resolves a real (user-facing) service name from OTel resource
+   * attributes. Returns null when the batch is host- / docker-host-
+   * level telemetry that should be routed to the matching Host or
+   * DockerHost record via `serviceId` instead of synthesising a
+   * phantom Service row. The caller (OTelIngestService.resolveTelemetryResource)
+   * is responsible for that routing decision and picks the right
+   * `ServiceType` discriminator for the analytics row.
+   *
+   * "Unknown Service" is still returned for batches with no signal
+   * at all (no service.name, no docker container, no host / k8s /
+   * docker resource signal) — those legitimately have nowhere else
+   * to land.
+   */
   @CaptureSpan()
   protected static async getServiceNameFromAttributes(
     req: ExpressRequest,
     attributes: JSONArray,
-  ): Promise<string> {
+  ): Promise<string | null> {
     for (const attribute of attributes) {
       if (
         attribute["key"] === "service.name" &&
@@ -51,7 +106,11 @@ export default abstract class OtelIngestBaseService {
      * Agent (container.runtime == "docker"), there is no explicit
      * service.name. Synthesize a per-container service name so each
      * container shows up as its own service in the OneUptime UI instead of
-     * every Docker log collapsing into "Unknown Service".
+     * every Docker log collapsing into "Unknown Service". A container
+     * name is a meaningful logical service (e.g. "oneuptime-postgres")
+     * and is intentionally still backed by a Service row. Batches that
+     * only carry container.id with no resolvable name fall through to
+     * null and get routed to the DockerHost record instead.
      */
     if (this.isDockerRuntime(attributes)) {
       const dockerServiceName: string | null = await this.getDockerServiceName(
@@ -64,31 +123,113 @@ export default abstract class OtelIngestBaseService {
     }
 
     /*
-     * Host-aware fallback: when telemetry arrives from a host (OTel
-     * hostmetrics receiver, infrastructure agent over OTLP, a k8s
-     * node, or the eBPF profiler scanning per-process activity)
-     * without an explicit service.name, synthesize a per-host
-     * service name so every signal originating on that host — host
-     * metrics, syslog/journald lines, kernel threads, system
-     * daemons, per-process profiles — rolls up under a single
-     * `host/<name>` entry in the Telemetry Services list. The
-     * underlying `process.executable.name` is still preserved on
-     * each row as an attribute, so per-process drill-down inside
-     * the host is available without polluting the services list.
+     * Host-level telemetry (OTel hostmetrics receiver, infrastructure
+     * agent over OTLP, eBPF profiler) without an explicit service.name
+     * used to be folded into a synthetic `host/<name>` Service row,
+     * which duplicated the Host record we already create via
+     * `autoDiscoverHost`. Return null here so the caller routes the
+     * batch through the resource's own id in `resolveTelemetryResource`
+     * — Host id when `autoDiscoverHost` accepted the batch, otherwise
+     * DockerHost / KubernetesCluster id.
      *
-     * Phantom-service gate: only synthesize when the resource
-     * carries a strong host signal (os.type from the system
-     * resourcedetector, a container runtime, or a k8s cluster
-     * name). host.name alone is not enough — application SDKs
-     * auto-detect hostname inside pods, and trusting that would
-     * create a phantom service per pod.
+     * Phantom-host gating still lives in `autoDiscoverHost` — if the
+     * batch only carries application-SDK-detected host.name (no
+     * os.type / container.runtime), no Host row is created. K8s
+     * batches (k8s.pod.name / k8s.node.name / k8s.cluster.name) are
+     * also rejected by `autoDiscoverHost` so they route via the
+     * KubernetesCluster id instead.
      */
     const hostName: string | null = this.getHostNameFromAttributes(attributes);
     if (hostName && this.hasHostResourceSignal(attributes)) {
-      return `host/${hostName}`;
+      return null;
     }
 
     return "Unknown Service";
+  }
+
+  /*
+   * One-stop resolver used by every OTel / syslog / fluent ingest
+   * path. Takes the already-discovered Host / DockerHost /
+   * KubernetesCluster ids for this batch and dispatches:
+   *
+   *   1. Explicit service.name / x-oneuptime-service-name header
+   *      / docker container name  →  ServiceType.OpenTelemetry,
+   *      serviceId = Service._id (created on first contact via
+   *      `telemetryServiceFromName`).
+   *   2. Else if a Host was auto-discovered for this batch →
+   *      ServiceType.Host, serviceId = Host._id. Avoids the old
+   *      `host/<name>` phantom-Service duplication.
+   *   3. Else if a DockerHost was discovered →
+   *      ServiceType.DockerHost, serviceId = DockerHost._id.
+   *      Catches docker batches that carry only container.id but
+   *      no resolvable container name.
+   *   4. Else if a KubernetesCluster was discovered →
+   *      ServiceType.KubernetesCluster, serviceId = Cluster._id.
+   *      Rare in practice — most k8s batches also carry host.name
+   *      and route via #2.
+   *   5. Fallback: "Unknown Service" Service row, ServiceType.OpenTelemetry.
+   */
+  @CaptureSpan()
+  protected static async resolveTelemetryResource(data: {
+    req: ExpressRequest;
+    attributes: JSONArray;
+    projectId: ObjectID;
+    hostId?: ObjectID | null;
+    dockerHostId?: ObjectID | null;
+    kubernetesClusterId?: ObjectID | null;
+  }): Promise<TelemetryServiceMetadata> {
+    const serviceName: string | null = await this.getServiceNameFromAttributes(
+      data.req,
+      data.attributes,
+    );
+
+    if (serviceName !== null) {
+      return await OTelIngestService.telemetryServiceFromName({
+        serviceName,
+        projectId: data.projectId,
+        resourceAttributes: data.attributes,
+      });
+    }
+
+    const hostName: string | null = this.getHostNameFromAttributes(
+      data.attributes,
+    );
+
+    if (data.hostId) {
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: hostName ? `host/${hostName}` : "Host",
+        resourceId: data.hostId,
+        serviceType: ServiceType.Host,
+        projectId: data.projectId,
+      });
+    }
+
+    if (data.dockerHostId) {
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: hostName ? `docker-host/${hostName}` : "Docker Host",
+        resourceId: data.dockerHostId,
+        serviceType: ServiceType.DockerHost,
+        projectId: data.projectId,
+      });
+    }
+
+    if (data.kubernetesClusterId) {
+      const clusterName: string | null = this.getClusterNameFromAttributes(
+        data.attributes,
+      );
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: clusterName ? `k8s/${clusterName}` : "Kubernetes Cluster",
+        resourceId: data.kubernetesClusterId,
+        serviceType: ServiceType.KubernetesCluster,
+        projectId: data.projectId,
+      });
+    }
+
+    return await OTelIngestService.telemetryServiceFromName({
+      serviceName: "Unknown Service",
+      projectId: data.projectId,
+      resourceAttributes: data.attributes,
+    });
   }
 
   @CaptureSpan()
@@ -96,7 +237,6 @@ export default abstract class OtelIngestBaseService {
     req: ExpressRequest,
     attributes: JSONArray,
   ): Promise<string | null> {
-    const hostName: string | null = this.getHostNameFromAttributes(attributes);
     const containerName: string | null = this.getStringAttribute(
       attributes,
       "container.name",
@@ -161,28 +301,16 @@ export default abstract class OtelIngestBaseService {
             (err as Error).message,
         );
       }
-
-      /*
-       * No cache hit yet (metrics scrape every 30s so the first few log
-       * batches for a newly-started container can race ahead of the cache
-       * fill). Fall back to a stable synthetic name derived from the host
-       * and the short container id so logs are still grouped per container.
-       */
-      const shortId: string = containerId.substring(0, 12);
-      if (hostName) {
-        return `docker/${hostName}/${shortId}`;
-      }
-      return `docker/${shortId}`;
     }
 
     /*
-     * No container identity at all — group by host so at least docker logs
-     * from the same host stick together.
+     * No resolvable container identity. Used to synthesise
+     * `docker/<hostName>/<shortId>` / `docker/<hostName>` / `docker/<shortId>`
+     * service rows, which created a duplicate alongside the DockerHost
+     * record `autoDiscoverDockerHost` had just upserted from the same
+     * batch. The caller now routes the batch through the DockerHost id
+     * with ServiceType.DockerHost.
      */
-    if (hostName) {
-      return `docker/${hostName}`;
-    }
-
     return null;
   }
 
@@ -293,12 +421,28 @@ export default abstract class OtelIngestBaseService {
 
       if (clusterIdStr) {
         const clusterId: ObjectID = new ObjectID(clusterIdStr);
-        await KubernetesClusterService.updateLastSeen(clusterId);
-        await this.promoteOneuptimeLabelsToCluster({
-          projectId: data.projectId,
-          kubernetesClusterId: clusterId,
-          attributes: data.attributes,
-        });
+        /*
+         * Skip the per-batch UPDATE + label upsert when we've already
+         * run it for this cluster in the current fence window. With
+         * 100 telemetry workers each touching the same handful of
+         * clusters, this is the single biggest Postgres write hot
+         * spot on the ingest path; the staleness on `lastSeenAt` is
+         * bounded by the TTL.
+         */
+        if (await this.shouldRunMaintenance("k8s-cluster", clusterIdStr)) {
+          const agentVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "oneuptime.agent.version",
+          );
+          await KubernetesClusterService.updateLastSeen(clusterId, {
+            agentVersion: agentVersion || undefined,
+          });
+          await this.promoteOneuptimeLabelsToCluster({
+            projectId: data.projectId,
+            kubernetesClusterId: clusterId,
+            attributes: data.attributes,
+          });
+        }
         return clusterId;
       }
 
@@ -527,15 +671,27 @@ export default abstract class OtelIngestBaseService {
 
       if (hostIdStr) {
         const dockerHostId: ObjectID = new ObjectID(hostIdStr);
-        await DockerHostService.updateLastSeen(dockerHostId, {
-          osType: osType || undefined,
-          osVersion: osVersion || undefined,
-        });
-        await this.promoteOneuptimeLabelsToDockerHost({
-          projectId: data.projectId,
-          dockerHostId,
-          attributes: data.attributes,
-        });
+        /*
+         * Same fence rationale as the Kubernetes path — skip the
+         * per-batch maintenance UPDATE + label upsert when we
+         * already ran it within the fence window.
+         */
+        if (await this.shouldRunMaintenance("docker-host", hostIdStr)) {
+          const agentVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "oneuptime.agent.version",
+          );
+          await DockerHostService.updateLastSeen(dockerHostId, {
+            osType: osType || undefined,
+            osVersion: osVersion || undefined,
+            agentVersion: agentVersion || undefined,
+          });
+          await this.promoteOneuptimeLabelsToDockerHost({
+            projectId: data.projectId,
+            dockerHostId,
+            attributes: data.attributes,
+          });
+        }
         return dockerHostId;
       }
 
@@ -597,13 +753,31 @@ export default abstract class OtelIngestBaseService {
    *
    * Phantom-host gate: only register a row when the batch carries a
    * strong signal that this is real host telemetry, not an application
-   * SDK auto-detecting hostname inside a pod. Any one of:
-   *   - os.type resource attribute (set by resourcedetection processor
-   *     with the system detector — needs native OS calls, app SDKs
-   *     typically don't include it)
-   *   - container.runtime resource attribute (Docker host)
-   *   - k8s.cluster.name resource attribute (k8s node — also a host)
-   *   - hasInfraSignal=true (caller saw system.* / process.* metrics)
+   * SDK auto-detecting hostname inside a pod and not a Kubernetes node
+   * or pod (those have their own KubernetesCluster home). Requires:
+   *
+   *   1. Explicit `host.name` resource attribute. The k8s.node.name
+   *      fallback used by `getHostNameFromAttributes` for service-name
+   *      synthesis is NOT accepted here — kubeletstats labels pod and
+   *      node metrics with k8s.node.name only, which would otherwise
+   *      flood the Hosts list with k8s node names.
+   *   2. No `k8s.pod.name` / `k8s.node.name` / `k8s.cluster.name`
+   *      resource attribute. If any of these is set the batch is
+   *      Kubernetes telemetry and belongs in the KubernetesCluster
+   *      record; routing happens in `resolveTelemetryResource` via the
+   *      kubernetesClusterId path.
+   *   3. The same batch did not already resolve to a DockerHost or
+   *      KubernetesCluster row. Docker hosts and K8s clusters/nodes have
+   *      their own dedicated tables; we don't want a duplicate Host row
+   *      pointing back at them via dockerHostId / kubernetesClusterId.
+   *   4. One of:
+   *        - os.type resource attribute (set by the resourcedetection
+   *          system detector via native OS calls — app SDKs typically
+   *          don't include it)
+   *        - container.runtime resource attribute (non-Docker container
+   *          host — Docker is already excluded by gate (3))
+   *        - hasInfraSignal=true (caller saw system.* / process.*
+   *          metrics that only a host agent emits)
    *
    * Notably we DO NOT accept host.id or host.arch alone — both are
    * commonly auto-detected by application SDKs from inside a container,
@@ -623,11 +797,36 @@ export default abstract class OtelIngestBaseService {
     processCount?: number | undefined;
   }): Promise<ObjectID | null> {
     try {
-      const hostName: string | null = this.getHostNameFromAttributes(
+      /*
+       * Docker hosts and Kubernetes clusters/nodes live in their own tables.
+       * If this batch already resolved to one, do not also create a Host row.
+       */
+      if (data.dockerHostId || data.kubernetesClusterId) {
+        return null;
+      }
+
+      const hostName: string | null = this.getStringAttribute(
         data.attributes,
+        "host.name",
       );
 
       if (!hostName) {
+        return null;
+      }
+
+      const k8sPodName: string | null = this.getStringAttribute(
+        data.attributes,
+        "k8s.pod.name",
+      );
+      const k8sNodeName: string | null = this.getStringAttribute(
+        data.attributes,
+        "k8s.node.name",
+      );
+      const k8sClusterName: string | null = this.getClusterNameFromAttributes(
+        data.attributes,
+      );
+
+      if (k8sPodName || k8sNodeName || k8sClusterName) {
         return null;
       }
 
@@ -660,13 +859,8 @@ export default abstract class OtelIngestBaseService {
         data.attributes,
         "container.runtime",
       );
-      const k8sClusterName: string | null = this.getClusterNameFromAttributes(
-        data.attributes,
-      );
 
-      const hasResourceSignal: boolean = Boolean(
-        osType || containerRuntime || k8sClusterName,
-      );
+      const hasResourceSignal: boolean = Boolean(osType || containerRuntime);
 
       if (!hasResourceSignal && !data.hasInfraSignal) {
         return null;
@@ -696,20 +890,34 @@ export default abstract class OtelIngestBaseService {
       }
 
       if (hostIdStr) {
-        await HostService.updateLastSeen(new ObjectID(hostIdStr), {
-          osType: osType || undefined,
-          osVersion: osVersion || undefined,
-          hostId: hostIdAttr || undefined,
-          hostArch: hostArch || undefined,
-          hostType: hostType || undefined,
-          hostIpAddresses: hostIpJoined || undefined,
-          cpuCores: data.cpuCores,
-          totalMemoryBytes: data.totalMemoryBytes,
-          processCount: data.processCount,
-          containerRuntime: containerRuntime || undefined,
-          dockerHostId: data.dockerHostId || undefined,
-          kubernetesClusterId: data.kubernetesClusterId || undefined,
-        });
+        /*
+         * Same fence rationale as the K8s / Docker paths — bound the
+         * per-batch updateLastSeen UPDATE to one Postgres write per
+         * (host, fence-window). Host's update includes infra stats
+         * (cpu/memory/process counts) but those are sampled over
+         * minutes, so a 5-minute stale window is acceptable.
+         */
+        if (await this.shouldRunMaintenance("host", hostIdStr)) {
+          const agentVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "oneuptime.agent.version",
+          );
+          await HostService.updateLastSeen(new ObjectID(hostIdStr), {
+            osType: osType || undefined,
+            osVersion: osVersion || undefined,
+            hostId: hostIdAttr || undefined,
+            hostArch: hostArch || undefined,
+            hostType: hostType || undefined,
+            hostIpAddresses: hostIpJoined || undefined,
+            cpuCores: data.cpuCores,
+            totalMemoryBytes: data.totalMemoryBytes,
+            processCount: data.processCount,
+            containerRuntime: containerRuntime || undefined,
+            dockerHostId: data.dockerHostId || undefined,
+            kubernetesClusterId: data.kubernetesClusterId || undefined,
+            agentVersion: agentVersion || undefined,
+          });
+        }
         return new ObjectID(hostIdStr);
       }
 

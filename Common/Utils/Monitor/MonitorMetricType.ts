@@ -171,6 +171,7 @@ class MonitorMetricTypeUtil {
       monitorType === MonitorType.Port ||
       monitorType === MonitorType.SNMP ||
       monitorType === MonitorType.DNS ||
+      monitorType === MonitorType.DNSSEC ||
       monitorType === MonitorType.Domain ||
       monitorType === MonitorType.ExternalStatusPage
     ) {

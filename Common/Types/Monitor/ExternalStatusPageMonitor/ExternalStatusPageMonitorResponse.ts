@@ -1,3 +1,5 @@
+import ProbeAttempt from "../../Probe/ProbeAttempt";
+
 export interface ExternalStatusPageComponentStatus {
   name: string;
   status: string;
@@ -13,4 +15,6 @@ export default interface ExternalStatusPageMonitorResponse {
   failureCause: string;
   rawBody?: string | undefined;
   isTimeout?: boolean | undefined;
+  probeAttempts?: Array<ProbeAttempt> | undefined;
+  totalAttempts?: number | undefined;
 }

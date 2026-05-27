@@ -18,7 +18,7 @@ import Label from "Common/Models/DatabaseModels/Label";
 const alertLabelDocumentation: string = `
 ### How Alert Label Rules Work
 
-Alert Label Rules attach labels to an alert automatically when it matches your criteria — including labels copied from the alert's monitor.
+Alert Label Rules attach labels to an alert automatically when it matches your criteria — including labels copied from the alert's monitor, hosts, Kubernetes clusters, and Docker hosts.
 
 ### Match Criteria
 
@@ -33,6 +33,9 @@ When a rule matches:
 
 - Every label listed under \`Labels to Add\` is attached to the alert.
 - If \`Inherit Labels From Monitor\` is on, every label of the alert's monitor is also attached.
+- If \`Inherit Labels From Hosts\` is on, every label of the alert's affected hosts is also attached.
+- If \`Inherit Labels From Kubernetes Clusters\` is on, every label of the alert's affected Kubernetes clusters is also attached.
+- If \`Inherit Labels From Docker Hosts\` is on, every label of the alert's affected Docker hosts is also attached.
 
 Labels already on the alert are not duplicated. Multiple matching rules contribute the union of their labels.
 `;
@@ -61,6 +64,9 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
       id="alert-label-rules-table"
       name="Settings > Alert Label Rules"
       userPreferencesKey="alert-label-rules-table"
+      saveFilterProps={{
+        tableId: "alert-label-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}
@@ -68,7 +74,7 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
       cardProps={{
         title: "Alert Label Rules",
         description:
-          "Auto-attach labels to alerts — including labels inherited from the alert's monitor — when matching alerts are created.",
+          "Auto-attach labels to alerts — including labels inherited from the alert's monitor, hosts, Kubernetes clusters, and Docker hosts — when matching alerts are created.",
       }}
       helpContent={{
         title: "How Alert Label Rules Work",
@@ -248,10 +254,49 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
           field: { inheritLabelsFromMonitors: true },
           title: "Inherit Labels From Monitor",
           stepId: "labels",
+          sectionTitle: "Inherit Labels",
+          sectionDescription:
+            "Optionally copy labels from related entities onto the alert.",
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
           description:
             "When this rule matches, also copy every label of the alert's monitor onto the alert.",
+        },
+        {
+          field: { inheritLabelsFromHosts: true },
+          title: "Inherit Labels From Hosts",
+          stepId: "labels",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          description:
+            "Copy every label of the alert's affected hosts onto the alert.",
+        },
+        {
+          field: { inheritLabelsFromKubernetesClusters: true },
+          title: "Inherit Labels From Kubernetes Clusters",
+          stepId: "labels",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          description:
+            "Copy every label of the alert's affected Kubernetes clusters onto the alert.",
+        },
+        {
+          field: { inheritLabelsFromDockerHosts: true },
+          title: "Inherit Labels From Docker Hosts",
+          stepId: "labels",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          description:
+            "Copy every label of the alert's affected Docker hosts onto the alert.",
+        },
+        {
+          field: { inheritLabelsFromServices: true },
+          title: "Inherit Labels From Services",
+          stepId: "labels",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          description:
+            "Copy every label of the alert's affected services onto the alert.",
         },
       ]}
       showRefreshButton={true}
@@ -266,6 +311,9 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
       id="alert-episode-label-rules-table"
       name="Settings > Alert Episode Label Rules"
       userPreferencesKey="alert-episode-label-rules-table"
+      saveFilterProps={{
+        tableId: "alert-episode-label-rules-table",
+      }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

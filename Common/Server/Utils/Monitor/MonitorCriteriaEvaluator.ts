@@ -18,6 +18,7 @@ import ProfileMonitorCriteria from "./Criteria/ProfileMonitorCriteria";
 import SnmpMonitorCriteria from "./Criteria/SnmpMonitorCriteria";
 import DnsMonitorCriteria from "./Criteria/DnsMonitorCriteria";
 import DomainMonitorCriteria from "./Criteria/DomainMonitorCriteria";
+import DnssecMonitorCriteria from "./Criteria/DnssecMonitorCriteria";
 import ExternalStatusPageMonitorCriteria from "./Criteria/ExternalStatusPageMonitorCriteria";
 import MonitorCriteriaMessageBuilder from "./MonitorCriteriaMessageBuilder";
 import MonitorCriteriaDataExtractor from "./MonitorCriteriaDataExtractor";
@@ -758,6 +759,18 @@ ${contextBlock}
 
       if (domainMonitorResult) {
         return domainMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.DNSSEC) {
+      const dnssecMonitorResult: string | null =
+        await DnssecMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+        });
+
+      if (dnssecMonitorResult) {
+        return dnssecMonitorResult;
       }
     }
 

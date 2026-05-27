@@ -24,6 +24,9 @@ const Settings: FunctionComponent<ComponentProps> = (
         modelType={TelemetryUsageBilling}
         id="usage-history-table"
         userPreferencesKey="usage-history-table"
+        saveFilterProps={{
+          tableId: "settings-usage-history-table",
+        }}
         isDeleteable={false}
         name="Settings > Billing > Usage History"
         isEditable={false}

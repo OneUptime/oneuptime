@@ -265,6 +265,43 @@ export default class MonitorCustomField extends BaseModel {
       Permission.MonitorViewer,
       Permission.ReadMonitorCustomField,
     ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditMonitorCustomField,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Dropdown Options",
+    description:
+      "Options for the dropdown field, one per line. Only used when Custom Field Type is Dropdown.",
+    example: "Option 1\nOption 2\nOption 3",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public dropdownOptions?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateMonitorCustomField,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadMonitorCustomField,
+    ],
     update: [],
   })
   @TableColumn({

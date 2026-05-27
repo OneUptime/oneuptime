@@ -8,6 +8,7 @@ import Includes from "../../Types/BaseDatabase/Includes";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
+import ServiceType from "../../Types/Telemetry/ServiceType";
 
 export interface HistogramBucket {
   time: string;
@@ -35,6 +36,7 @@ export interface HistogramRequest extends ExceptionFilters {
 export interface FacetValue {
   value: string;
   count: number;
+  displayName?: string | undefined;
 }
 
 export interface FacetRequest extends ExceptionFilters {
@@ -59,6 +61,18 @@ export class ExceptionAggregationService {
     "escaped",
     "release",
   ]);
+  /*
+   * Virtual facet keys — same scheme as TraceAggregationService /
+   * LogAggregationService. The `serviceId` slot is reused for host /
+   * docker host / k8s cluster ids, disambiguated by the `serviceType`
+   * discriminator column on each ExceptionInstance row.
+   */
+  private static readonly RESOURCE_FACET_KEYS: Map<string, ServiceType> =
+    new Map([
+      ["hostId", ServiceType.Host],
+      ["dockerHostId", ServiceType.DockerHost],
+      ["kubernetesClusterId", ServiceType.KubernetesCluster],
+    ]);
   private static readonly ATTRIBUTE_KEY_PATTERN: RegExp = /^[a-zA-Z0-9._:/-]+$/;
   private static readonly MAX_FACET_KEY_LENGTH: number = 256;
 
@@ -169,12 +183,24 @@ export class ExceptionAggregationService {
 
     ExceptionAggregationService.validateFacetKey(request.facetKey);
 
+    const resourceServiceType: ServiceType | undefined =
+      ExceptionAggregationService.RESOURCE_FACET_KEYS.get(request.facetKey);
+    const isResourceFacet: boolean = resourceServiceType !== undefined;
     const isTopLevelColumn: boolean =
+      isResourceFacet ||
       ExceptionAggregationService.isTopLevelColumn(request.facetKey);
 
     const statement: Statement = new Statement();
 
-    if (isTopLevelColumn) {
+    if (isResourceFacet) {
+      /*
+       * Virtual facet — group serviceId values whose row carries the matching
+       * ServiceType discriminator (Host / DockerHost / KubernetesCluster).
+       */
+      statement.append(
+        SQL`SELECT toString(serviceId) AS val, count() AS cnt FROM ${ExceptionAggregationService.TABLE_NAME}`,
+      );
+    } else if (isTopLevelColumn) {
       statement.append(
         SQL`SELECT toString(${request.facetKey}) AS val, count() AS cnt FROM ${ExceptionAggregationService.TABLE_NAME}`,
       );
@@ -200,7 +226,26 @@ export class ExceptionAggregationService {
       }}`,
     );
 
-    if (!isTopLevelColumn) {
+    if (isResourceFacet) {
+      statement.append(
+        SQL` AND serviceType = ${{
+          type: TableColumnType.Text,
+          value: resourceServiceType as string,
+        }}`,
+      );
+    } else if (request.facetKey === "serviceId") {
+      /*
+       * Constrain the canonical Services facet to rows that actually
+       * belong to a Service. NULL / empty serviceType covers legacy rows
+       * ingested before the discriminator existed.
+       */
+      statement.append(
+        SQL` AND (serviceType = '' OR serviceType = ${{
+          type: TableColumnType.Text,
+          value: ServiceType.OpenTelemetry as string,
+        }})`,
+      );
+    } else if (!isTopLevelColumn) {
       statement.append(
         SQL` AND JSONHas(attributes, ${{
           type: TableColumnType.Text,
@@ -322,7 +367,10 @@ export class ExceptionAggregationService {
       throw new BadDataException("Invalid facetKey");
     }
 
-    if (ExceptionAggregationService.isTopLevelColumn(facetKey)) {
+    if (
+      ExceptionAggregationService.isTopLevelColumn(facetKey) ||
+      ExceptionAggregationService.RESOURCE_FACET_KEYS.has(facetKey)
+    ) {
       return;
     }
 

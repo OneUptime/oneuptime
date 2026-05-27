@@ -116,6 +116,9 @@ const RunbookExecutionsList: FunctionComponent<
         modelType={RunbookExecution}
         id="runbook-view-executions-table"
         userPreferencesKey="runbook-view-executions-table"
+        saveFilterProps={{
+          tableId: "runbook-view-executions-table",
+        }}
         isDeleteable={false}
         isEditable={false}
         isCreateable={false}

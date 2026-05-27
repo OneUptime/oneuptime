@@ -1,7 +1,5 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
-import OTelIngestService, {
-  TelemetryServiceMetadata,
-} from "Common/Server/Services/OpenTelemetryIngestService";
+import { TelemetryServiceMetadata } from "Common/Server/Services/OpenTelemetryIngestService";
 import OneUptimeDate from "Common/Types/Date";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Text from "Common/Types/Text";
@@ -26,11 +24,13 @@ import logger, {
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import LogsQueueService from "./Queue/LogsQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { TELEMETRY_LOG_FLUSH_BATCH_SIZE } from "../Config";
 import LogService from "Common/Server/Services/LogService";
 import LogPipelineService, { LoadedPipeline } from "./LogPipelineService";
-import LogDropFilterService from "./LogDropFilterService";
-import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
+import LogDropFilterService, {
+  LoadedLogDropFilter,
+} from "./LogDropFilterService";
 import LogScrubRuleService from "./LogScrubRuleService";
 import KubernetesResourceService from "Common/Server/Services/KubernetesResourceService";
 import KubernetesContainerService from "Common/Server/Services/KubernetesContainerService";
@@ -93,8 +93,11 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         );
       }
 
-      req.body = req.body?.toJSON ? req.body.toJSON() : req.body;
-
+      /*
+       * Respond first, then enqueue the raw bytes. Protobuf decode +
+       * JSON normalization now happens in the worker so the HTTP
+       * event loop isn't blocked on every ingest call.
+       */
       Response.sendEmptySuccessResponse(req, res);
 
       await LogsQueueService.addLogIngestJob(req as TelemetryRequest);
@@ -160,7 +163,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       // Load pipelines, drop filters, and scrub rules once per batch
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
       let loadedPipelines: Array<LoadedPipeline> = [];
-      let loadedDropFilters: Array<LogDropFilter> = [];
+      let loadedDropFilters: Array<LoadedLogDropFilter> = [];
       let loadedScrubRules: Awaited<
         ReturnType<typeof LogScrubRuleService.loadScrubRules>
       > = [];
@@ -186,20 +189,26 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               "attributes"
             ] as JSONArray) || [];
 
-          const serviceName: string = await this.getServiceNameFromAttributes(
-            req,
-            resourceAttributes_raw,
-          );
-
           /*
-           * Auto-discover Kubernetes cluster from resource attributes.
-           * Returns the cluster ID so the inventory hook can key its buffer.
+           * Auto-discover Kubernetes cluster and Docker host from
+           * resource attributes. They look at disjoint attributes
+           * and don't share state, so we issue both Postgres
+           * lookups concurrently and only wait once. The cluster id
+           * is also what the inventory hook below keys its buffer on.
            */
-          const kubernetesClusterId: ObjectID | null =
-            await this.autoDiscoverKubernetesCluster({
+          const [kubernetesClusterId, dockerHostId]: [
+            ObjectID | null,
+            ObjectID | null,
+          ] = await Promise.all([
+            this.autoDiscoverKubernetesCluster({
               projectId,
               attributes: resourceAttributes_raw,
-            });
+            }),
+            this.autoDiscoverDockerHost({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+          ]);
 
           /*
            * The OTel k8sobjects receiver tags each log record (not the
@@ -209,13 +218,6 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
            * inventoried — zero cost on non-k8sobjects batches.
            */
           const isK8sInventoryEligible: boolean = Boolean(kubernetesClusterId);
-
-          // Auto-discover Docker host from resource attributes
-          const dockerHostId: ObjectID | null =
-            await this.autoDiscoverDockerHost({
-              projectId,
-              attributes: resourceAttributes_raw,
-            });
 
           /*
            * Docker inventory eligibility — same shape as the K8s gate.
@@ -230,7 +232,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
            * os.type, container.runtime, k8s.cluster.name) to gate row
            * creation.
            */
-          await this.autoDiscoverHost({
+          const hostId: ObjectID | null = await this.autoDiscoverHost({
             projectId,
             attributes: resourceAttributes_raw,
             hasInfraSignal: false,
@@ -238,22 +240,56 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             kubernetesClusterId,
           });
 
-          if (!serviceDictionary[serviceName]) {
-            serviceDictionary[serviceName] =
-              await OTelIngestService.telemetryServiceFromName({
-                serviceName: serviceName,
-                projectId: (req as TelemetryRequest).projectId,
-                resourceAttributes: resourceAttributes_raw,
-              });
-          }
+          const serviceMetadata: TelemetryServiceMetadata =
+            await this.resolveTelemetryResource({
+              req,
+              attributes: resourceAttributes_raw,
+              projectId,
+              hostId,
+              dockerHostId,
+              kubernetesClusterId,
+            });
+          const serviceName: string = serviceMetadata.serviceName;
+
+          serviceDictionary[serviceName] = serviceMetadata;
+
+          const stampHostName: string | null =
+            OtelIngestBaseService.getStringAttribute(
+              resourceAttributes_raw,
+              "host.name",
+            );
+          const stampClusterName: string | null =
+            OtelIngestBaseService.getClusterNameFromAttributes(
+              resourceAttributes_raw,
+            );
 
           const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
           > = {
-            ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
-              serviceId: serviceDictionary[serviceName]!.serviceId!,
-              serviceName: serviceName,
-            }),
+            ...(serviceMetadata.serviceType === ServiceType.OpenTelemetry
+              ? TelemetryUtil.getAttributesForServiceIdAndServiceName({
+                  serviceId: serviceMetadata.serviceId!,
+                  serviceName: serviceName,
+                })
+              : {}),
+            ...(hostId && stampHostName
+              ? TelemetryUtil.getAttributesForHostIdAndHostName({
+                  hostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(dockerHostId && stampHostName
+              ? TelemetryUtil.getAttributesForDockerHostIdAndHostName({
+                  dockerHostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(kubernetesClusterId && stampClusterName
+              ? TelemetryUtil.getAttributesForKubernetesClusterIdAndName({
+                  kubernetesClusterId,
+                  clusterName: stampClusterName,
+                })
+              : {}),
             ...TelemetryUtil.getAttributes({
               items: resourceAttributes_raw,
               prefixKeysWithString: "resource",
@@ -312,8 +348,18 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     }
                   }
 
+                  /*
+                   * `attributeKeys` is stored as a ClickHouse Array column
+                   * and used downstream only as an unordered set (for
+                   * "has this attribute?" checks). Skip the sort the
+                   * shared TelemetryUtil.getAttributeKeys helper does:
+                   * for a ~100-attr log row a single Object.keys is
+                   * O(N), the sort is O(N log N), and with thousands
+                   * of records per batch that sort cost was visible
+                   * on flamegraphs.
+                   */
                   const attributeKeys: Array<string> =
-                    TelemetryUtil.getAttributeKeys(attributesObject);
+                    Object.keys(attributesObject);
 
                   const projectId: ObjectID = (req as TelemetryRequest)
                     .projectId;
@@ -561,6 +607,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     updatedAt: ingestionTimestamp,
                     projectId: projectId.toString(),
                     serviceId: serviceId.toString(),
+                    serviceType: serviceMetadata.serviceType,
                     time: logTimestamp,
                     timeUnixNano: Math.trunc(timeUnixNanoNumeric).toString(),
                     severityNumber: logSeverityNumber,
