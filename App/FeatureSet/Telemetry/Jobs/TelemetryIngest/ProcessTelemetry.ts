@@ -29,44 +29,32 @@ import OtelPayloadDecoder from "../../Utils/OtelPayloadDecoder";
 import { JSONObject } from "Common/Types/JSON";
 
 /*
- * Resolve the parsed JSON body for an OTel job. Body source priority:
+ * Resolve the parsed JSON body for an OTel job. The HTTP enqueue
+ * stashes the raw request buffer in Redis via TelemetryBodyStore
+ * and only carries the `bodyKey` reference in the BullMQ job. The
+ * decoder fetches the binary back out and runs the heavy
+ * gunzip + protobuf decode here in the worker, off the Express
+ * event loop.
  *
- *   1. `bodyKey` (current path) — the HTTP enqueue stashed the raw
- *      request buffer in Redis via TelemetryBodyStore and only put a
- *      key reference in the BullMQ job data. The decoder fetches the
- *      binary back out, so we avoid the synchronous base64 encode
- *      that used to run on the Express thread and the ~33 % size
- *      inflation in the BullMQ job state.
- *   2. `bodyBase64` (legacy path) — kept so jobs enqueued before the
- *      bodyKey migration deploy keep flowing while the queue drains.
- *   3. `requestBody` (pre-deferred-decode path) — even older jobs
- *      that shipped a parsed JSON body, still supported for the same
- *      drain reason.
- *
- * Heavy gunzip + protobuf decode always runs here in the worker so
- * the HTTP request thread stays free regardless of which body shape
- * we get.
+ * Throws if a required field is missing — that indicates a
+ * producer bug in TelemetryQueueService and must not be silently
+ * swallowed.
  */
 async function resolveOtelBody(
   jobData: TelemetryIngestJobData,
 ): Promise<JSONObject> {
-  if (jobData.bodyKey && jobData.bodyFormat && jobData.productType) {
-    return await OtelPayloadDecoder.decodeFromQueue({
-      productType: jobData.productType,
-      format: jobData.bodyFormat,
-      encoding: jobData.bodyEncoding ?? "none",
-      bodyKey: jobData.bodyKey,
-    });
+  if (!jobData.bodyKey || !jobData.bodyFormat || !jobData.productType) {
+    throw new Error(
+      `ProcessTelemetry: OTel job is missing bodyKey/bodyFormat/productType (type=${jobData.type})`,
+    );
   }
-  if (jobData.bodyBase64 && jobData.bodyFormat && jobData.productType) {
-    return await OtelPayloadDecoder.decodeFromQueue({
-      productType: jobData.productType,
-      format: jobData.bodyFormat,
-      encoding: jobData.bodyEncoding ?? "none",
-      bufferBase64: jobData.bodyBase64,
-    });
-  }
-  return (jobData.requestBody as JSONObject) || ({} as JSONObject);
+
+  return await OtelPayloadDecoder.decodeFromQueue({
+    productType: jobData.productType,
+    format: jobData.bodyFormat,
+    encoding: jobData.bodyEncoding ?? "none",
+    bodyKey: jobData.bodyKey,
+  });
 }
 
 // Set up the unified worker for processing telemetry queue

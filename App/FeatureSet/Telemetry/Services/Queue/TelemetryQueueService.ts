@@ -75,30 +75,20 @@ export interface TelemetryIngestJobData {
   type: TelemetryType;
   projectId?: string;
   /*
-   * Legacy: the parsed JSON body. Still consumed by paths that
-   * already had decoded JSON (Fluent, Syslog) and as a fallback for
-   * any in-flight OTel jobs enqueued before the deferred-decode path
-   * landed. New OTel jobs use `bodyBase64` + `bodyFormat` instead so
-   * the heavy decode runs in the worker, not the HTTP request thread.
+   * Parsed JSON body. Used by the non-OTel ingest paths
+   * (Fluent, Syslog) that hand the queue a decoded object
+   * directly. OTel paths go through `bodyKey` below instead.
    */
   requestBody?: JSONObject;
   /*
    * Redis key for the raw HTTP request body, written out-of-band
-   * by TelemetryBodyStore before the job is enqueued. Replaces
-   * the previous `bodyBase64` field so we no longer pay the
-   * base64 encode/decode cost on the HTTP request thread or
-   * inflate the body by ~33% inside the BullMQ job payload.
-   * The worker fetches the raw buffer via
-   * TelemetryBodyStore.readAndDeleteBody.
+   * by TelemetryBodyStore before the job is enqueued. The worker
+   * fetches the raw buffer via TelemetryBodyStore.readAndDeleteBody
+   * and decodes (gunzip + protobuf or JSON) per `bodyFormat` /
+   * `bodyEncoding`. Used by every OTel ingest path so the HTTP
+   * request thread never pays the encode / inflate cost.
    */
   bodyKey?: string;
-  /*
-   * Legacy: raw body base64-encoded directly into the job. Kept
-   * as a fallback path in OtelPayloadDecoder so jobs enqueued
-   * before the bodyKey migration deploy keep flowing while the
-   * queue drains. New jobs use `bodyKey` instead.
-   */
-  bodyBase64?: string;
   bodyFormat?: OtelPayloadFormat;
   bodyEncoding?: OtelPayloadEncoding;
   productType?: ProductType;
