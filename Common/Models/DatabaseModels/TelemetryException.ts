@@ -65,6 +65,16 @@ import Service from "./Service";
   name: "TelemetryException",
 })
 @Index(["projectId", "isResolved", "isArchived"]) // Exceptions dashboard counts/filters
+/*
+ * Composite uniqueness on the dedup key used by the OTel traces ingest
+ * batched upsert. The ingest path collapses every exception event in a
+ * worker batch into a single INSERT … ON CONFLICT (projectId,
+ * serviceId, fingerprint) DO UPDATE statement; this index is what makes
+ * that conflict target resolvable and stops two concurrent workers from
+ * racing the old findOneBy + update path into duplicate rows or lost
+ * occuranceCount increments.
+ */
+@Index(["projectId", "serviceId", "fingerprint"], { unique: true })
 export default class TelemetryException extends DatabaseBaseModel {
   @ColumnAccessControl({
     create: [

@@ -354,6 +354,7 @@ import { AttachServiceToScheduledMaintenanceTemplatesAndLabelRules1779742211961 
 import { MigrationName1779790539196 } from "./1779790539196-MigrationName";
 import { ExpandOwnerRuleInheritFlags1779823516881 } from "./1779823516881-ExpandOwnerRuleInheritFlags";
 import { RenameStatusPageZhToZhCN1779827700000 } from "./1779827700000-RenameStatusPageZhToZhCN";
+import { DedupeTelemetryExceptionsAndAddUniqueIndex1779900000000 } from "./1779900000000-DedupeTelemetryExceptionsAndAddUniqueIndex";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -711,4 +712,5 @@ export default [
   MigrationName1779790539196,
   ExpandOwnerRuleInheritFlags1779823516881,
   RenameStatusPageZhToZhCN1779827700000,
+  DedupeTelemetryExceptionsAndAddUniqueIndex1779900000000,
 ];

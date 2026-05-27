@@ -20,7 +20,7 @@ import {
   SpanKind,
   SpanStatus,
 } from "Common/Models/AnalyticsModels/Span";
-import ExceptionUtil from "../Utils/Exception";
+import ExceptionUtil, { TelemetryExceptionPayload } from "../Utils/Exception";
 import StackTraceParser, { ParsedStackTrace } from "../Utils/StackTraceParser";
 import logger, {
   getLogAttributesFromRequest,
@@ -209,6 +209,20 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
 
       const dbSpans: Array<JSONObject> = [];
       const dbExceptions: Array<JSONObject> = [];
+      /*
+       * Pending TelemetryException (Postgres) upserts for this batch.
+       * The old code did one fire-and-forget findOneBy + update/create
+       * pair per exception event, which (a) burnt one Postgres
+       * round-trip per event and (b) lost occuranceCount increments
+       * under concurrent writes because the +1 was read-modify-write
+       * in JS. We now buffer the payloads and flush them in one
+       * batched ON CONFLICT statement (per
+       * ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch) at the
+       * end of the worker job, which collapses thousands of
+       * round-trips into one and lets Postgres do the increment
+       * atomically.
+       */
+      const pendingExceptionUpserts: Array<TelemetryExceptionPayload> = [];
       const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
       let totalSpansProcessed: number = 0;
 
@@ -469,6 +483,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                         serviceMetadata: serviceDictionary[serviceName]!,
                       },
                       dbExceptions,
+                      pendingExceptionUpserts,
                     );
                     spanEvents = spanEventsResult.events;
                     hasException = spanEventsResult.hasException;
@@ -571,6 +586,26 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       await Promise.all([
         this.flushSpansBuffer(dbSpans, true),
         this.flushExceptionsBuffer(dbExceptions, true),
+        /*
+         * Flush the Postgres TelemetryException upserts in one
+         * batched ON CONFLICT statement (chunked internally). Wrap
+         * in a local try so a Postgres outage cannot fail the whole
+         * worker job — the ClickHouse-side ExceptionInstance rows
+         * have already been queued in `dbExceptions` above and are
+         * the source of truth; the TelemetryException Postgres
+         * table is a denormalised summary used by the dashboard.
+         * Losing one flush under failure produces a stale dashboard
+         * count, not lost telemetry data.
+         */
+        ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch(
+          pendingExceptionUpserts,
+        ).catch((err: Error) => {
+          logger.error(
+            "Telemetry exception batch upsert failed; dashboard counts may lag this batch.",
+            getLogAttributesFromRequest(req as RequestLike),
+          );
+          logger.error(err);
+        }),
       ]);
 
       if (totalSpansProcessed === 0) {
@@ -585,6 +620,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       try {
         dbSpans.length = 0;
         dbExceptions.length = 0;
+        pendingExceptionUpserts.length = 0;
         if (req.body) {
           req.body = null;
         }
@@ -633,6 +669,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       serviceMetadata: TelemetryServiceMetadata;
     },
     dbExceptions: Array<JSONObject>,
+    pendingExceptionUpserts: Array<TelemetryExceptionPayload>,
   ): { events: Array<JSONObject>; hasException: boolean } {
     const spanEvents: Array<JSONObject> = [];
     let hasException: boolean = false;
@@ -735,7 +772,19 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
 
               dbExceptions.push(this.buildExceptionRow(exceptionData));
 
-              ExceptionUtil.saveOrUpdateTelemetryException({
+              /*
+               * Buffer the Postgres upsert payload for the batched
+               * flush at the end of the worker job (see
+               * pendingExceptionUpserts in processTracesAsync). The
+               * legacy code called
+               * ExceptionUtil.saveOrUpdateTelemetryException here
+               * fire-and-forget per event, which produced one
+               * Postgres round-trip per exception and lost
+               * occuranceCount increments under concurrent writes.
+               * Aggregation by fingerprint + atomic increment now
+               * happens inside saveOrUpdateTelemetryExceptionsBatch.
+               */
+              pendingExceptionUpserts.push({
                 fingerprint: fingerprint,
                 projectId: spanContext.projectId,
                 serviceId: spanContext.serviceId,
@@ -764,9 +813,6 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                       environment: environment,
                     }
                   : {}),
-              }).catch((err: Error) => {
-                logger.error("Error saving/updating telemetry exception:");
-                logger.error(err);
               });
             } catch (exceptionError) {
               logger.warn(
