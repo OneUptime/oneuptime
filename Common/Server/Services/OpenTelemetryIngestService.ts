@@ -23,6 +23,7 @@ import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import HostService from "./HostService";
 import DockerHostService from "./DockerHostService";
 import KubernetesClusterService from "./KubernetesClusterService";
+import GlobalCache from "../Infrastructure/GlobalCache";
 
 export enum OtelAggregationTemporality {
   Cumulative = "AGGREGATION_TEMPORALITY_CUMULATIVE",
@@ -52,11 +53,83 @@ interface ProjectRetentionContext {
   projectRetentionInDays: number;
 }
 
+/*
+ * Per-process memo holding the project's telemetry retention
+ * context for the duration of the cache TTL. The L2 GlobalCache
+ * (Redis, shared across workers) is the source of truth for
+ * cross-process freshness; this L1 in-process Map exists so the
+ * dozens of getProjectRetentionContext calls per worker batch
+ * (one per resource span -> Service/Host/DockerHost/Kubernetes
+ * resolution) collapse to zero network round-trips after the
+ * first one warms it. Both layers TTL out together.
+ */
+interface CachedRetentionContext {
+  context: ProjectRetentionContext;
+  expiresAtMs: number;
+}
+
+const PROJECT_RETENTION_CACHE_NAMESPACE: string = "project-retention-context";
+/*
+ * 5-minute TTL is long enough that steady-state ingest sees ~100%
+ * cache hits and short enough that an admin retention change in
+ * the UI propagates without us having to wire up cross-process
+ * invalidation (which would need pub/sub — GlobalCache has no
+ * delete primitive today). Admins changing retention should
+ * expect up to 5 minutes of lag before new rows pick up the new
+ * config; existing rows keep whatever retentionDate they were
+ * stamped with at ingest time and aren't affected either way.
+ */
+const PROJECT_RETENTION_CACHE_TTL_SECONDS: number = 5 * 60;
+const projectRetentionInProcessCache: Map<string, CachedRetentionContext> =
+  new Map();
+
 export default class OTelIngestService {
   @CaptureSpan()
   private static async getProjectRetentionContext(
     projectId: ObjectID,
   ): Promise<ProjectRetentionContext> {
+    const projectIdStr: string = projectId.toString();
+    const now: number = Date.now();
+
+    // L1: in-process memo. Zero network cost.
+    const memoed: CachedRetentionContext | undefined =
+      projectRetentionInProcessCache.get(projectIdStr);
+    if (memoed && memoed.expiresAtMs > now) {
+      return memoed.context;
+    }
+
+    // L2: Redis. Single round-trip; shared across workers.
+    try {
+      const cached: JSONObject | null = await GlobalCache.getJSONObject(
+        PROJECT_RETENTION_CACHE_NAMESPACE,
+        projectIdStr,
+      );
+      if (cached) {
+        const context: ProjectRetentionContext = {
+          projectRetentionConfig:
+            (cached[
+              "projectRetentionConfig"
+            ] as TelemetryRetentionConfig | null) ?? null,
+          projectRetentionInDays:
+            (cached["projectRetentionInDays"] as number) ||
+            DEFAULT_RETENTION_IN_DAYS,
+        };
+        projectRetentionInProcessCache.set(projectIdStr, {
+          context,
+          expiresAtMs: now + PROJECT_RETENTION_CACHE_TTL_SECONDS * 1000,
+        });
+        return context;
+      }
+    } catch (err) {
+      // Cache outage must never fail ingest. Fall through to Postgres.
+      logger.warn(
+        `Project retention cache read failed for project ${projectIdStr}; falling back to Postgres: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+
+    // Cold path: hit Postgres and warm both caches.
     const project: Project | null = await ProjectService.findOneById({
       id: projectId,
       select: {
@@ -68,11 +141,38 @@ export default class OTelIngestService {
       },
     });
 
-    return {
+    const context: ProjectRetentionContext = {
       projectRetentionConfig: project?.telemetryRetentionConfig ?? null,
       projectRetentionInDays:
         project?.defaultTelemetryRetentionInDays || DEFAULT_RETENTION_IN_DAYS,
     };
+
+    projectRetentionInProcessCache.set(projectIdStr, {
+      context,
+      expiresAtMs: now + PROJECT_RETENTION_CACHE_TTL_SECONDS * 1000,
+    });
+
+    try {
+      await GlobalCache.setJSON(
+        PROJECT_RETENTION_CACHE_NAMESPACE,
+        projectIdStr,
+        {
+          projectRetentionConfig: (context.projectRetentionConfig ??
+            null) as unknown as JSONObject,
+          projectRetentionInDays: context.projectRetentionInDays,
+        },
+        { expiresInSeconds: PROJECT_RETENTION_CACHE_TTL_SECONDS },
+      );
+    } catch (err) {
+      // Best-effort warm. Don't fail the request.
+      logger.warn(
+        `Project retention cache write failed for project ${projectIdStr}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+
+    return context;
   }
 
   @CaptureSpan()
