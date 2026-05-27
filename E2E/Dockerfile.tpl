@@ -85,9 +85,11 @@ RUN apt-get purge -y --auto-remove python3 make g++ \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
-# Ensure runtime dirs are owned by the non-root `node` user (UID 1000) so the
-# container can run as non-root.
-RUN chown -R 1000:1000 /usr/src /tmp/npm && chmod -R 2777 /tmp/npm
-USER node
+# Keep `/tmp/npm` writable so the container can populate the npm cache. The
+# image runs as root because docker-compose mounts host-owned `test-results`
+# and `playwright-report` directories over `/usr/src/app/...`; switching to
+# UID 1000 makes those mounts unwritable and Playwright fails to create its
+# artifacts directory (EACCES on mkdir).
+RUN chown -R 1000:1000 /tmp/npm && chmod -R 2777 /tmp/npm
 #Run the app
 CMD [ "npm", "test" ]
