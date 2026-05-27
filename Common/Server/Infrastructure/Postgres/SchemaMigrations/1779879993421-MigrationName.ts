@@ -13,6 +13,21 @@ export class MigrationName1779879993421 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "restrictionTimes" SET DEFAULT '{"_type":"RestrictionTimes","value":{"restictionType":"None","dayRestrictionTimes":null,"weeklyRestrictionTimes":[]}}'`,
     );
+    // Remove pre-existing duplicates so the unique index below can be created.
+    // Keep the row with the most recent lastSeenAt per (projectId, serviceId, fingerprint).
+    await queryRunner.query(
+      `DELETE FROM "TelemetryException"
+       WHERE "_id" IN (
+         SELECT "_id" FROM (
+           SELECT "_id", ROW_NUMBER() OVER (
+             PARTITION BY "projectId", "serviceId", "fingerprint"
+             ORDER BY "lastSeenAt" DESC NULLS LAST, "_id" DESC
+           ) AS rn
+           FROM "TelemetryException"
+         ) t
+         WHERE t.rn > 1
+       )`,
+    );
     await queryRunner.query(
       `CREATE UNIQUE INDEX IF NOT EXISTS "IDX_1f55d43a0b73e883bb226158c7" ON "TelemetryException" ("projectId", "serviceId", "fingerprint") `,
     );
