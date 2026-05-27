@@ -12,6 +12,8 @@ import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Columns from "Common/UI/Components/ModelTable/Column";
+import Filter from "Common/UI/Components/ModelFilter/Filter";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import API from "Common/UI/Utils/API/API";
@@ -30,9 +32,37 @@ import React, {
   useState,
 } from "react";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
+import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupViewMode";
 import Link from "Common/UI/Components/Link/Link";
 import ProjectUtil from "Common/UI/Utils/Project";
 import MarkdownUtil from "Common/UI/Utils/Markdown";
+
+type AxisOption = {
+  label: string;
+  value: string;
+};
+
+type ParseAxisValuesFunction = (raw?: string) => Array<AxisOption>;
+
+const parseAxisValues: ParseAxisValuesFunction = (
+  raw?: string,
+): Array<AxisOption> => {
+  if (!raw) {
+    return [];
+  }
+
+  return raw
+    .split(",")
+    .map((value: string): string => {
+      return value.trim();
+    })
+    .filter((value: string): boolean => {
+      return value.length > 0;
+    })
+    .map((value: string): AxisOption => {
+      return { label: value, value: value };
+    });
+};
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -62,6 +92,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           select: {
             name: true,
             _id: true,
+            viewMode: true,
+            rowAxisLabel: true,
+            columnAxisLabel: true,
+            rowAxisValues: true,
+            columnAxisValues: true,
           },
           sort: {
             order: SortOrder.Ascending,
@@ -250,14 +285,226 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   ]);
 
   type GetModelTableFunction = (
-    statusPageGroupId: ObjectID | null,
-    statusPageGroupName: string | null,
+    statusPageGroup: StatusPageGroup | null,
   ) => ReactElement;
 
   const getModelTable: GetModelTableFunction = (
-    statusPageGroupId: ObjectID | null,
-    statusPageGroupName: string | null,
+    statusPageGroup: StatusPageGroup | null,
   ): ReactElement => {
+    const statusPageGroupId: ObjectID | null = statusPageGroup?.id || null;
+    const statusPageGroupName: string | null = statusPageGroup?.name || null;
+    const isGridGroup: boolean =
+      statusPageGroup?.viewMode === StatusPageGroupViewMode.Grid;
+    const rowAxisOptions: Array<AxisOption> = isGridGroup
+      ? parseAxisValues(statusPageGroup?.rowAxisValues)
+      : [];
+    const columnAxisOptions: Array<AxisOption> = isGridGroup
+      ? parseAxisValues(statusPageGroup?.columnAxisValues)
+      : [];
+
+    let tableFormFields: Array<ModelField<StatusPageResource>> = formFields;
+
+    const rowColumnTitle: string = statusPageGroup?.rowAxisLabel || "Row";
+    const columnColumnTitle: string =
+      statusPageGroup?.columnAxisLabel || "Column";
+
+    if (isGridGroup) {
+      tableFormFields = tableFormFields.concat([
+        {
+          field: {
+            rowAxisValue: true,
+          },
+          title: statusPageGroup?.rowAxisLabel
+            ? `${statusPageGroup.rowAxisLabel} (Row)`
+            : "Row",
+          description:
+            "Row this resource belongs to in the grid. Pick one of the rows defined on the group.",
+          fieldType:
+            rowAxisOptions.length > 0
+              ? FormFieldSchemaType.Dropdown
+              : FormFieldSchemaType.Text,
+          dropdownOptions:
+            rowAxisOptions.length > 0 ? rowAxisOptions : undefined,
+          required: false,
+          placeholder:
+            rowAxisOptions.length > 0
+              ? `Select ${statusPageGroup?.rowAxisLabel || "row"}`
+              : `Define rows on the group first`,
+          stepId: "monitor-details",
+        },
+        {
+          field: {
+            columnAxisValue: true,
+          },
+          title: statusPageGroup?.columnAxisLabel
+            ? `${statusPageGroup.columnAxisLabel} (Column)`
+            : "Column",
+          description:
+            "Column this resource belongs to in the grid. Pick one of the columns defined on the group.",
+          fieldType:
+            columnAxisOptions.length > 0
+              ? FormFieldSchemaType.Dropdown
+              : FormFieldSchemaType.Text,
+          dropdownOptions:
+            columnAxisOptions.length > 0 ? columnAxisOptions : undefined,
+          required: false,
+          placeholder:
+            columnAxisOptions.length > 0
+              ? `Select ${statusPageGroup?.columnAxisLabel || "column"}`
+              : `Define columns on the group first`,
+          stepId: "monitor-details",
+        },
+      ]);
+    }
+
+    const baseColumns: Array<Columns<StatusPageResource>> = [
+      {
+        field: {
+          monitor: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
+        },
+        title: props.currentProject?.isFeatureFlagMonitorGroupsEnabled
+          ? "Resource"
+          : "Monitor",
+        type: FieldType.Entity,
+
+        getElement: (item: StatusPageResource): ReactElement => {
+          if (item["monitor"]) {
+            return (
+              <MonitorElement
+                monitor={item["monitor"]}
+                showIcon={
+                  props.currentProject?.isFeatureFlagMonitorGroupsEnabled ||
+                  false
+                }
+              />
+            );
+          }
+
+          if (item["monitorGroup"]) {
+            return (
+              <MonitorGroupElement
+                monitorGroup={item["monitorGroup"]}
+                showIcon={
+                  props.currentProject?.isFeatureFlagMonitorGroupsEnabled ||
+                  false
+                }
+              />
+            );
+          }
+
+          return <></>;
+        },
+      },
+      {
+        field: {
+          displayName: true,
+        },
+        title: "Display Name",
+        type: FieldType.Text,
+      },
+    ];
+
+    const gridColumns: Array<Columns<StatusPageResource>> = isGridGroup
+      ? [
+          {
+            field: {
+              rowAxisValue: true,
+            },
+            title: rowColumnTitle,
+            type: FieldType.Text,
+            noValueMessage: "—",
+            getElement: (item: StatusPageResource): ReactElement => {
+              if (!item.rowAxisValue) {
+                return <span className="text-gray-400">—</span>;
+              }
+              return (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-xs font-medium">
+                  {item.rowAxisValue}
+                </span>
+              );
+            },
+          },
+          {
+            field: {
+              columnAxisValue: true,
+            },
+            title: columnColumnTitle,
+            type: FieldType.Text,
+            noValueMessage: "—",
+            getElement: (item: StatusPageResource): ReactElement => {
+              if (!item.columnAxisValue) {
+                return <span className="text-gray-400">—</span>;
+              }
+              return (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-xs font-medium">
+                  {item.columnAxisValue}
+                </span>
+              );
+            },
+          },
+        ]
+      : [];
+
+    const tableColumns: Array<Columns<StatusPageResource>> = [
+      ...baseColumns,
+      ...gridColumns,
+    ];
+
+    const baseFilters: Array<Filter<StatusPageResource>> = [
+      {
+        field: {
+          monitor: {
+            name: true,
+          },
+        },
+        title: "Monitor",
+        type: FieldType.Entity,
+        filterEntityType: Monitor,
+        filterQuery: {
+          projectId: ProjectUtil.getCurrentProjectId()!,
+        },
+        filterDropdownField: {
+          label: "name",
+          value: "_id",
+        },
+      },
+      {
+        field: {
+          displayName: true,
+        },
+        title: "Display Name",
+        type: FieldType.Text,
+      },
+    ];
+
+    const gridFilters: Array<Filter<StatusPageResource>> = isGridGroup
+      ? [
+          {
+            field: {
+              rowAxisValue: true,
+            },
+            title: rowColumnTitle,
+            type: FieldType.Text,
+          },
+          {
+            field: {
+              columnAxisValue: true,
+            },
+            title: columnColumnTitle,
+            type: FieldType.Text,
+          },
+        ]
+      : [];
+
+    const tableFilters: Array<Filter<StatusPageResource>> = [
+      ...baseFilters,
+      ...gridFilters,
+    ];
+
     return (
       <ModelTable<StatusPageResource>
         modelType={StatusPageResource}
@@ -319,7 +566,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             id: "advanced",
           },
         ]}
-        formFields={formFields}
+        formFields={tableFormFields}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}
         selectMoreFields={{
@@ -329,82 +576,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             projectId: true,
           },
         }}
-        filters={[
-          {
-            field: {
-              monitor: {
-                name: true,
-              },
-            },
-            title: "Monitor",
-            type: FieldType.Entity,
-            filterEntityType: Monitor,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              displayName: true,
-            },
-            title: "Display Name",
-            type: FieldType.Text,
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              monitor: {
-                name: true,
-                _id: true,
-                projectId: true,
-              },
-            },
-            title: props.currentProject?.isFeatureFlagMonitorGroupsEnabled
-              ? "Resource"
-              : "Monitor",
-            type: FieldType.Entity,
-
-            getElement: (item: StatusPageResource): ReactElement => {
-              if (item["monitor"]) {
-                return (
-                  <MonitorElement
-                    monitor={item["monitor"]}
-                    showIcon={
-                      props.currentProject?.isFeatureFlagMonitorGroupsEnabled ||
-                      false
-                    }
-                  />
-                );
-              }
-
-              if (item["monitorGroup"]) {
-                return (
-                  <MonitorGroupElement
-                    monitorGroup={item["monitorGroup"]}
-                    showIcon={
-                      props.currentProject?.isFeatureFlagMonitorGroupsEnabled ||
-                      false
-                    }
-                  />
-                );
-              }
-
-              return <></>;
-            },
-          },
-          {
-            field: {
-              displayName: true,
-            },
-            title: "Display Name",
-            type: FieldType.Text,
-          },
-        ]}
+        filters={tableFilters}
+        columns={tableColumns}
       />
     );
   };
@@ -416,11 +589,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
         {error ? <ErrorMessage message={error} /> : <></>}
 
-        {!isLoading && !error ? getModelTable(null, null) : <></>}
+        {!isLoading && !error ? getModelTable(null) : <></>}
 
         {!isLoading && !error && groups && groups.length > 0 ? (
           groups.map((group: StatusPageGroup) => {
-            return getModelTable(group.id, group.name || null);
+            return getModelTable(group);
           })
         ) : (
           <></>

@@ -4837,6 +4837,11 @@ export default class StatusPageAPI extends BaseAPI<
         showCurrentStatus: true,
         showUptimePercent: true,
         uptimePercentPrecision: true,
+        viewMode: true,
+        rowAxisLabel: true,
+        columnAxisLabel: true,
+        rowAxisValues: true,
+        columnAxisValues: true,
       },
       sort: {
         order: SortOrder.Ascending,
@@ -4873,6 +4878,8 @@ export default class StatusPageAPI extends BaseAPI<
           monitorGroupId: true,
           showUptimePercent: true,
           uptimePercentPrecision: true,
+          rowAxisValue: true,
+          columnAxisValue: true,
         },
         sort: {
           order: SortOrder.Ascending,

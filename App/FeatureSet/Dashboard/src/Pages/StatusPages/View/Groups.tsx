@@ -9,6 +9,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
+import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupViewMode";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -62,6 +63,10 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             id: "group-details",
           },
           {
+            title: "Layout",
+            id: "layout",
+          },
+          {
             title: "Advanced",
             id: "advanced",
           },
@@ -97,6 +102,81 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             stepId: "group-details",
+          },
+          {
+            field: {
+              viewMode: true,
+            },
+            title: "View Mode",
+            description:
+              "How resources in this group are laid out on the public status page. 'List' is the classic vertical list. 'Grid' renders resources as a matrix using row and column axes.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
+              StatusPageGroupViewMode,
+            ),
+            required: false,
+            defaultValue: StatusPageGroupViewMode.List,
+            stepId: "layout",
+          },
+          {
+            field: {
+              rowAxisLabel: true,
+            },
+            title: "Row Axis Label",
+            description:
+              "Heading shown on the row axis (e.g. 'Service', 'Tenant'). Use any dimension that makes sense for your status page.",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            placeholder: "Service",
+            showIf: (item: FormValues<StatusPageGroup>): boolean => {
+              return item.viewMode === StatusPageGroupViewMode.Grid;
+            },
+            stepId: "layout",
+          },
+          {
+            field: {
+              rowAxisValues: true,
+            },
+            title: "Row Axis Values",
+            description:
+              "Comma-separated row labels in display order (e.g. 'Auth, API, Database'). Each resource in this group is assigned to one row.",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder: "Auth, API, Database",
+            showIf: (item: FormValues<StatusPageGroup>): boolean => {
+              return item.viewMode === StatusPageGroupViewMode.Grid;
+            },
+            stepId: "layout",
+          },
+          {
+            field: {
+              columnAxisLabel: true,
+            },
+            title: "Column Axis Label",
+            description:
+              "Heading shown on the column axis (e.g. 'Region', 'Environment'). Use any dimension that makes sense for your status page.",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            placeholder: "Region",
+            showIf: (item: FormValues<StatusPageGroup>): boolean => {
+              return item.viewMode === StatusPageGroupViewMode.Grid;
+            },
+            stepId: "layout",
+          },
+          {
+            field: {
+              columnAxisValues: true,
+            },
+            title: "Column Axis Values",
+            description:
+              "Comma-separated column labels in display order (e.g. 'US-East, EU-West, Asia'). Each resource in this group is assigned to one column.",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder: "US-East, EU-West, Asia",
+            showIf: (item: FormValues<StatusPageGroup>): boolean => {
+              return item.viewMode === StatusPageGroupViewMode.Grid;
+            },
+            stepId: "layout",
           },
           {
             field: {
