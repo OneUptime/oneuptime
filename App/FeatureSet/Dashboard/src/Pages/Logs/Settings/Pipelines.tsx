@@ -47,7 +47,7 @@ Filter queries let you target specific logs. If left empty, the pipeline matches
 |----------|---------|-------------|
 | \`=\` | \`severityText = 'ERROR'\` | Exact match |
 | \`!=\` | \`severityText != 'DEBUG'\` | Not equal |
-| \`LIKE\` | \`body LIKE '%timeout%'\` | Pattern match (\`%\` = wildcard) |
+| \`LIKE\` | \`body LIKE 'timeout'\` | Substring match (use \`%\` for SQL-style wildcards) |
 | \`IN\` | \`severityText IN ('ERROR', 'WARN')\` | Match any value in list |
 | \`AND\` | \`severityText = 'ERROR' AND attributes.service = 'api'\` | Both conditions must match |
 | \`OR\` | \`severityText = 'ERROR' OR severityText = 'WARN'\` | Either condition matches |
