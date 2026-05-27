@@ -37,26 +37,37 @@ function getAttrValue(
   return undefined;
 }
 
+function stringifyAttrValue(val: unknown): string {
+  if (val === undefined || val === null) {
+    return "";
+  }
+  if (typeof val === "object") {
+    return JSON.stringify(val);
+  }
+  return String(val);
+}
+
 function getFieldValue(logRow: JSONObject, fieldPath: string): string {
   if (fieldPath.startsWith("attributes.")) {
     const attrKey: string = fieldPath.slice("attributes.".length);
     const attrs: Record<string, unknown> =
       (logRow["attributes"] as Record<string, unknown>) || {};
-    const val: unknown = getAttrValue(attrs, attrKey);
-    if (val === undefined || val === null) {
-      return "";
-    }
-    if (typeof val === "object") {
-      return JSON.stringify(val);
-    }
-    return String(val);
+    return stringifyAttrValue(getAttrValue(attrs, attrKey));
   }
 
-  const val: unknown = logRow[fieldPath];
-  if (val === undefined || val === null) {
-    return "";
+  const topLevel: unknown = logRow[fieldPath];
+  if (topLevel !== undefined && topLevel !== null) {
+    return String(topLevel);
   }
-  return String(val);
+
+  /*
+   * Fallback: treat the bare path as an attribute key. Lets users write e.g.
+   * `url.full LIKE '%foo%'` without remembering the `attributes.` prefix,
+   * since OTel semantic-convention keys are commonly referenced bare.
+   */
+  const attrs: Record<string, unknown> =
+    (logRow["attributes"] as Record<string, unknown>) || {};
+  return stringifyAttrValue(getAttrValue(attrs, fieldPath));
 }
 
 function tokenize(query: string): Array<Token> {
@@ -340,9 +351,18 @@ function evaluateExpr(logRow: JSONObject, expr: FilterExpression): boolean {
         case "!=":
           return fieldVal !== comp.value;
         case "LIKE": {
-          // Convert SQL LIKE pattern to regex: % -> .*, _ -> .
-          const pattern: string = String(comp.value)
-            .replace(/[.*+?^${}()|[\]\\]/g, "\\$&") // escape regex chars first
+          const raw: string = String(comp.value);
+          /*
+           * The UI labels this operator "contains", so a value without any
+           * `%` wildcard means substring match — not exact match. Only honor
+           * SQL LIKE semantics (`%` -> .*, `_` -> .) when the user explicitly
+           * uses `%` in the pattern.
+           */
+          if (!raw.includes("%")) {
+            return fieldVal.toLowerCase().includes(raw.toLowerCase());
+          }
+          const pattern: string = raw
+            .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
             .replace(/%/g, ".*")
             .replace(/_/g, ".");
           return new RegExp(`^${pattern}$`, "i").test(fieldVal);
