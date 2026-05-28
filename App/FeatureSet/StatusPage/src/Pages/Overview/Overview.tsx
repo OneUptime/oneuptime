@@ -27,7 +27,6 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import Accordion from "Common/UI/Components/Accordion/Accordion";
-import AccordionGroup from "Common/UI/Components/Accordion/AccordionGroup";
 import Alert, { AlertSize } from "Common/UI/Components/Alerts/Alert";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -1185,55 +1184,51 @@ const Overview: FunctionComponent<PageComponentProps> = (
           </div>
 
           {statusPageResources.length > 0 && (
-            <div className="bg-white pl-3 pr-3 sm:pl-5 sm:pr-5 mt-5 rounded-xl shadow space-y-3 sm:space-y-5 mb-6">
-              <AccordionGroup>
-                {statusPageResources.filter((resources: StatusPageResource) => {
-                  return !resources.statusPageGroupId;
-                }).length > 0 ? (
+            <div className="mt-5 mb-6 space-y-3 sm:space-y-5">
+              {statusPageResources.filter((resources: StatusPageResource) => {
+                return !resources.statusPageGroupId;
+              }).length > 0 ? (
+                <div className="bg-white pl-3 pr-3 sm:pl-5 sm:pr-5 rounded-xl shadow">
                   <Accordion
                     key={Math.random()}
                     title={undefined}
-                    isLastElement={resourceGroups.length === 0}
+                    isLastElement={true}
                   >
                     {getMonitorOverviewListInGroup(null)}
                   </Accordion>
-                ) : (
-                  <></>
-                )}
-                <div
-                  key={Math.random()}
-                  style={{
-                    padding: "0px",
-                  }}
-                >
-                  {resourceGroups.length > 0 &&
-                    resourceGroups.map(
-                      (resourceGroup: StatusPageGroup, i: number) => {
-                        const isGrid: boolean =
-                          resourceGroup.viewMode ===
-                          StatusPageGroupViewMode.Grid;
-                        return (
-                          <Accordion
-                            key={i}
-                            rightElement={getCurrentGroupStatusElement({
-                              group: resourceGroup,
-                            })}
-                            isInitiallyExpanded={
-                              resourceGroup.isExpandedByDefault
-                            }
-                            isLastElement={resourceGroups.length - 1 === i}
-                            title={resourceGroup.name!}
-                            description={resourceGroup.description!}
-                          >
-                            {isGrid
-                              ? getGridForGroup(resourceGroup)
-                              : getMonitorOverviewListInGroup(resourceGroup)}
-                          </Accordion>
-                        );
-                      },
-                    )}
                 </div>
-              </AccordionGroup>
+              ) : (
+                <></>
+              )}
+              {resourceGroups.length > 0 &&
+                resourceGroups.map(
+                  (resourceGroup: StatusPageGroup, i: number) => {
+                    const isGrid: boolean =
+                      resourceGroup.viewMode === StatusPageGroupViewMode.Grid;
+                    return (
+                      <div
+                        key={i}
+                        className="bg-white pl-3 pr-3 sm:pl-5 sm:pr-5 rounded-xl shadow"
+                      >
+                        <Accordion
+                          rightElement={getCurrentGroupStatusElement({
+                            group: resourceGroup,
+                          })}
+                          isInitiallyExpanded={
+                            resourceGroup.isExpandedByDefault
+                          }
+                          isLastElement={true}
+                          title={resourceGroup.name!}
+                          description={resourceGroup.description!}
+                        >
+                          {isGrid
+                            ? getGridForGroup(resourceGroup)
+                            : getMonitorOverviewListInGroup(resourceGroup)}
+                        </Accordion>
+                      </div>
+                    );
+                  },
+                )}
             </div>
           )}
 

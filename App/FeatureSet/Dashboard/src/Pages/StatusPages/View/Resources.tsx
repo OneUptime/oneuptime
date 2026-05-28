@@ -1,5 +1,6 @@
 import MonitorElement from "../../../Components/Monitor/Monitor";
 import MonitorGroupElement from "../../../Components/MonitorGroup/MonitorGroupElement";
+import GridResourceEditor from "../../../Components/StatusPage/GridResourceEditor";
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -36,33 +37,6 @@ import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupView
 import Link from "Common/UI/Components/Link/Link";
 import ProjectUtil from "Common/UI/Utils/Project";
 import MarkdownUtil from "Common/UI/Utils/Markdown";
-
-type AxisOption = {
-  label: string;
-  value: string;
-};
-
-type ParseAxisValuesFunction = (raw?: string) => Array<AxisOption>;
-
-const parseAxisValues: ParseAxisValuesFunction = (
-  raw?: string,
-): Array<AxisOption> => {
-  if (!raw) {
-    return [];
-  }
-
-  return raw
-    .split(",")
-    .map((value: string): string => {
-      return value.trim();
-    })
-    .filter((value: string): boolean => {
-      return value.length > 0;
-    })
-    .map((value: string): AxisOption => {
-      return { label: value, value: value };
-    });
-};
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -293,71 +267,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   ): ReactElement => {
     const statusPageGroupId: ObjectID | null = statusPageGroup?.id || null;
     const statusPageGroupName: string | null = statusPageGroup?.name || null;
-    const isGridGroup: boolean =
-      statusPageGroup?.viewMode === StatusPageGroupViewMode.Grid;
-    const rowAxisOptions: Array<AxisOption> = isGridGroup
-      ? parseAxisValues(statusPageGroup?.rowAxisValues)
-      : [];
-    const columnAxisOptions: Array<AxisOption> = isGridGroup
-      ? parseAxisValues(statusPageGroup?.columnAxisValues)
-      : [];
 
-    let tableFormFields: Array<ModelField<StatusPageResource>> = formFields;
-
-    const rowColumnTitle: string = statusPageGroup?.rowAxisLabel || "Row";
-    const columnColumnTitle: string =
-      statusPageGroup?.columnAxisLabel || "Column";
-
-    if (isGridGroup) {
-      tableFormFields = tableFormFields.concat([
-        {
-          field: {
-            rowAxisValue: true,
-          },
-          title: statusPageGroup?.rowAxisLabel
-            ? `${statusPageGroup.rowAxisLabel} (Row)`
-            : "Row",
-          description:
-            "Row this resource belongs to in the grid. Pick one of the rows defined on the group.",
-          fieldType:
-            rowAxisOptions.length > 0
-              ? FormFieldSchemaType.Dropdown
-              : FormFieldSchemaType.Text,
-          dropdownOptions:
-            rowAxisOptions.length > 0 ? rowAxisOptions : undefined,
-          required: false,
-          placeholder:
-            rowAxisOptions.length > 0
-              ? `Select ${statusPageGroup?.rowAxisLabel || "row"}`
-              : `Define rows on the group first`,
-          stepId: "monitor-details",
-        },
-        {
-          field: {
-            columnAxisValue: true,
-          },
-          title: statusPageGroup?.columnAxisLabel
-            ? `${statusPageGroup.columnAxisLabel} (Column)`
-            : "Column",
-          description:
-            "Column this resource belongs to in the grid. Pick one of the columns defined on the group.",
-          fieldType:
-            columnAxisOptions.length > 0
-              ? FormFieldSchemaType.Dropdown
-              : FormFieldSchemaType.Text,
-          dropdownOptions:
-            columnAxisOptions.length > 0 ? columnAxisOptions : undefined,
-          required: false,
-          placeholder:
-            columnAxisOptions.length > 0
-              ? `Select ${statusPageGroup?.columnAxisLabel || "column"}`
-              : `Define columns on the group first`,
-          stepId: "monitor-details",
-        },
-      ]);
-    }
-
-    const baseColumns: Array<Columns<StatusPageResource>> = [
+    const tableColumns: Array<Columns<StatusPageResource>> = [
       {
         field: {
           monitor: {
@@ -408,53 +319,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       },
     ];
 
-    const gridColumns: Array<Columns<StatusPageResource>> = isGridGroup
-      ? [
-          {
-            field: {
-              rowAxisValue: true,
-            },
-            title: rowColumnTitle,
-            type: FieldType.Text,
-            noValueMessage: "—",
-            getElement: (item: StatusPageResource): ReactElement => {
-              if (!item.rowAxisValue) {
-                return <span className="text-gray-400">—</span>;
-              }
-              return (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-xs font-medium">
-                  {item.rowAxisValue}
-                </span>
-              );
-            },
-          },
-          {
-            field: {
-              columnAxisValue: true,
-            },
-            title: columnColumnTitle,
-            type: FieldType.Text,
-            noValueMessage: "—",
-            getElement: (item: StatusPageResource): ReactElement => {
-              if (!item.columnAxisValue) {
-                return <span className="text-gray-400">—</span>;
-              }
-              return (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-xs font-medium">
-                  {item.columnAxisValue}
-                </span>
-              );
-            },
-          },
-        ]
-      : [];
-
-    const tableColumns: Array<Columns<StatusPageResource>> = [
-      ...baseColumns,
-      ...gridColumns,
-    ];
-
-    const baseFilters: Array<Filter<StatusPageResource>> = [
+    const tableFilters: Array<Filter<StatusPageResource>> = [
       {
         field: {
           monitor: {
@@ -479,30 +344,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         title: "Display Name",
         type: FieldType.Text,
       },
-    ];
-
-    const gridFilters: Array<Filter<StatusPageResource>> = isGridGroup
-      ? [
-          {
-            field: {
-              rowAxisValue: true,
-            },
-            title: rowColumnTitle,
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              columnAxisValue: true,
-            },
-            title: columnColumnTitle,
-            type: FieldType.Text,
-          },
-        ]
-      : [];
-
-    const tableFilters: Array<Filter<StatusPageResource>> = [
-      ...baseFilters,
-      ...gridFilters,
     ];
 
     return (
@@ -566,7 +407,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             id: "advanced",
           },
         ]}
-        formFields={tableFormFields}
+        formFields={formFields}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}
         selectMoreFields={{
@@ -593,6 +434,22 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
         {!isLoading && !error && groups && groups.length > 0 ? (
           groups.map((group: StatusPageGroup) => {
+            if (group.viewMode === StatusPageGroupViewMode.Grid) {
+              return (
+                <GridResourceEditor
+                  key={group.id?.toString() || ""}
+                  group={group}
+                  statusPageId={modelId}
+                  projectId={new ObjectID(props.currentProject!._id!)}
+                  currentProject={props.currentProject!}
+                  baseFormFields={formFields}
+                  formSteps={[
+                    { title: "Monitor Details", id: "monitor-details" },
+                    { title: "Advanced", id: "advanced" },
+                  ]}
+                />
+              );
+            }
             return getModelTable(group);
           })
         ) : (

@@ -19,10 +19,24 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Yellow } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Banner from "Common/UI/Components/Banner/Banner";
+import useResourceOwners, {
+  ResourceFacet,
+  buildBooleanFacetQuery,
+  buildEntityFacetQuery,
+} from "../../Components/ResourceOwners/useResourceOwners";
+import {
+  FilterChipDropdownOption,
+  FilterOperator,
+} from "../../Components/ResourceOwners/FilterChipDropdown";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import Search from "Common/Types/BaseDatabase/Search";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import Query from "Common/Types/BaseDatabase/Query";
+import ObjectID from "Common/Types/ObjectID";
 
 const Users: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -31,9 +45,105 @@ const Users: FunctionComponent<PageComponentProps> = (
     React.useState<boolean>(false);
   const [showScimErrorModal, setShowScimErrorModal] =
     React.useState<boolean>(false);
-  const [isFilterApplied, setIsFilterApplied] = React.useState<boolean>(false);
   const [isPushGroupsManaged, setIsPushGroupsManaged] =
     React.useState<boolean>(false);
+
+  const userExtraFacets: Array<ResourceFacet> = [
+    {
+      key: "hasAcceptedInvitation",
+      label: "Status",
+      icon: IconProp.CheckCircle,
+      isMultiSelect: false,
+      options: [
+        { value: "true", label: "Member" },
+        { value: "false", label: "Invitation Sent" },
+      ],
+      supportedOperators: ["is", "is_not"],
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildBooleanFacetQuery(values, operator);
+      },
+    },
+    {
+      key: "team",
+      queryField: "teamId",
+      label: "Team",
+      icon: IconProp.Team,
+      isMultiSelect: true,
+      searchPlaceholder: "Search teams...",
+      loadOptions: async (
+        projectId: ObjectID,
+        searchTerm: string,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        const query: Query<Team> = {
+          projectId: projectId,
+        } as Query<Team>;
+        if (searchTerm.trim()) {
+          (query as unknown as Record<string, unknown>)["name"] = new Search(
+            searchTerm.trim(),
+          );
+        }
+        const result: ListResult<Team> = await ModelAPI.getList<Team>({
+          modelType: Team,
+          query: query,
+          limit: 50,
+          skip: 0,
+          select: { _id: true, name: true },
+          sort: { name: SortOrder.Ascending },
+        });
+        return result.data.map((t: Team) => {
+          return {
+            value: t.id?.toString() || "",
+            label: t.name?.toString() || "",
+          };
+        });
+      },
+      resolveOptions: async (
+        projectId: ObjectID,
+        values: Array<string>,
+      ): Promise<Array<FilterChipDropdownOption>> => {
+        if (values.length === 0) {
+          return [];
+        }
+        const result: ListResult<Team> = await ModelAPI.getList<Team>({
+          modelType: Team,
+          query: {
+            projectId: projectId,
+            _id: new Includes(values),
+          } as Query<Team>,
+          limit: values.length,
+          skip: 0,
+          select: { _id: true, name: true },
+          sort: {},
+        });
+        return result.data.map((t: Team) => {
+          return {
+            value: t.id?.toString() || "",
+            label: t.name?.toString() || "",
+          };
+        });
+      },
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildEntityFacetQuery(values, operator, true);
+      },
+    },
+  ];
+
+  const {
+    filterBar,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+    hasActiveFilters,
+  } = useResourceOwners<TeamMember>({
+    showOwnerFacet: false,
+    extraFacets: userExtraFacets,
+  });
 
   React.useEffect(() => {
     const checkScim: () => Promise<void> = async () => {
@@ -83,10 +193,10 @@ const Users: FunctionComponent<PageComponentProps> = (
         }
         isEditable={false}
         isCreateable={false}
-        onFilterApplied={(isApplied: boolean) => {
-          setIsFilterApplied(isApplied);
-        }}
         isViewable={true}
+        topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
         onBeforeDelete={async (item: TeamMember): Promise<TeamMember> => {
           if (isPushGroupsManaged) {
             throw new BadDataException(
@@ -115,13 +225,13 @@ const Users: FunctionComponent<PageComponentProps> = (
           ],
         }}
         noItemsMessage={
-          isFilterApplied
+          hasActiveFilters
             ? "No users found"
             : "Please wait, we are refreshing the list of users for this project. Please try again in sometime."
         }
-        query={{
+        query={mergeFiltersIntoQuery({
           projectId: ProjectUtil.getCurrentProjectId()!,
-        }}
+        } as Query<TeamMember>)}
         showRefreshButton={true}
         onViewPage={(item: TeamMember) => {
           const viewPageRoute: string =
@@ -130,32 +240,7 @@ const Users: FunctionComponent<PageComponentProps> = (
             item.user?.id?.toString();
           return Promise.resolve(new Route(viewPageRoute));
         }}
-        filters={[
-          {
-            field: {
-              team: {
-                name: true,
-              },
-            },
-            title: "Team",
-            type: FieldType.Entity,
-            filterEntityType: Team,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              hasAcceptedInvitation: true,
-            },
-            title: "Status",
-            type: FieldType.Boolean,
-          },
-        ]}
+        filters={[]}
         columns={[
           {
             field: {
