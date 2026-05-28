@@ -31,8 +31,10 @@ import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
-// Cap the number of incidents we list inline in the email body. Anything
-// beyond this gets summarized as "and N more" so the email stays readable.
+/*
+ * Cap the number of incidents we list inline in the email body. Anything
+ * beyond this gets summarized as "and N more" so the email stays readable.
+ */
 const MAX_INCIDENTS_IN_EMAIL: number = 25;
 
 RunCron(
@@ -63,8 +65,10 @@ RunCron(
       return;
     }
 
-    // Group members by episode so each owner gets ONE email per episode per
-    // cron tick, no matter how many incidents landed.
+    /*
+     * Group members by episode so each owner gets ONE email per episode per
+     * cron tick, no matter how many incidents landed.
+     */
     const membersByEpisode: Dictionary<Array<IncidentEpisodeMember>> = {};
 
     for (const member of members) {
@@ -101,9 +105,11 @@ RunCron(
       const episodeId: ObjectID = new ObjectID(episodeIdStr);
       const projectId: ObjectID | undefined = episodeMembers[0]!.projectId;
 
-      // Mark everything in this batch as notified upfront. If the rest of
-      // this iteration fails we don't want to retry-spam owners on the next
-      // cron tick.
+      /*
+       * Mark everything in this batch as notified upfront. If the rest of
+       * this iteration fails we don't want to retry-spam owners on the next
+       * cron tick.
+       */
       for (const member of episodeMembers) {
         await IncidentEpisodeMemberService.updateOneById({
           id: member.id!,
@@ -205,18 +211,24 @@ RunCron(
 
       const incidentCountInBatch: number = incidents.length;
 
-      // Map incidentId -> addedAt for the in-email list. Some members may have
-      // had no addedAt (defensive), so we fall back to createdAt.
+      /*
+       * Map incidentId -> addedAt for the in-email list. Some members may have
+       * had no addedAt (defensive), so we fall back to createdAt.
+       */
       const addedAtByIncidentId: Dictionary<Date> = {};
       for (const member of episodeMembers) {
         if (member.incidentId) {
           addedAtByIncidentId[member.incidentId.toString()] =
-            member.addedAt || member.createdAt || OneUptimeDate.getCurrentDate();
+            member.addedAt ||
+            member.createdAt ||
+            OneUptimeDate.getCurrentDate();
         }
       }
 
-      // Sort incidents by addedAt ascending so newest-at-bottom; truncate if
-      // the batch is huge.
+      /*
+       * Sort incidents by addedAt ascending so newest-at-bottom; truncate if
+       * the batch is huge.
+       */
       const sortedIncidents: Array<Incident> = [...incidents].sort(
         (a: Incident, b: Incident) => {
           const aTime: number = (
@@ -251,37 +263,42 @@ RunCron(
 
       for (const user of owners) {
         try {
-          // Build the per-incident list for the HBS template. addedAt is
-          // pre-formatted per-recipient because timezone is per-user.
+          /*
+           * Build the per-incident list for the HBS template. addedAt is
+           * pre-formatted per-recipient because timezone is per-user.
+           */
           const incidentsForTemplate: Array<JSONObject> = await Promise.all(
-            incidentsToShow.map(async (incident: Incident): Promise<JSONObject> => {
-              const incidentLink: string = (
-                await IncidentService.getIncidentLinkInDashboard(
-                  projectId,
-                  incident.id!,
-                )
-              ).toString();
+            incidentsToShow.map(
+              async (incident: Incident): Promise<JSONObject> => {
+                const incidentLink: string = (
+                  await IncidentService.getIncidentLinkInDashboard(
+                    projectId,
+                    incident.id!,
+                  )
+                ).toString();
 
-              const incidentNumberStr: string =
-                incident.incidentNumberWithPrefix ||
-                (incident.incidentNumber
-                  ? `#${incident.incidentNumber}`
-                  : "");
+                const incidentNumberStr: string =
+                  incident.incidentNumberWithPrefix ||
+                  (incident.incidentNumber
+                    ? `#${incident.incidentNumber}`
+                    : "");
 
-              return {
-                incidentTitle: incident.title || "",
-                incidentNumber: incidentNumberStr,
-                incidentSeverity: incident.incidentSeverity?.name || "Not Set",
-                addedAt:
-                  OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
-                    date:
-                      addedAtByIncidentId[incident.id!.toString()] ||
-                      OneUptimeDate.getCurrentDate(),
-                    timezones: user.timezone ? [user.timezone] : [],
-                  }),
-                incidentViewLink: incidentLink,
-              };
-            }),
+                return {
+                  incidentTitle: incident.title || "",
+                  incidentNumber: incidentNumberStr,
+                  incidentSeverity:
+                    incident.incidentSeverity?.name || "Not Set",
+                  addedAt:
+                    OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+                      date:
+                        addedAtByIncidentId[incident.id!.toString()] ||
+                        OneUptimeDate.getCurrentDate(),
+                      timezones: user.timezone ? [user.timezone] : [],
+                    }),
+                  incidentViewLink: incidentLink,
+                };
+              },
+            ),
           );
 
           const vars: Dictionary<string | JSONObject> = {

@@ -31,8 +31,10 @@ import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
-// Cap the number of alerts we list inline in the email body. Anything beyond
-// this gets summarized as "and N more" so the email stays readable.
+/*
+ * Cap the number of alerts we list inline in the email body. Anything beyond
+ * this gets summarized as "and N more" so the email stays readable.
+ */
 const MAX_ALERTS_IN_EMAIL: number = 25;
 
 RunCron(
@@ -63,8 +65,10 @@ RunCron(
       return;
     }
 
-    // Group members by episode so each owner gets ONE email per episode per
-    // cron tick, no matter how many alerts landed.
+    /*
+     * Group members by episode so each owner gets ONE email per episode per
+     * cron tick, no matter how many alerts landed.
+     */
     const membersByEpisode: Dictionary<Array<AlertEpisodeMember>> = {};
 
     for (const member of members) {
@@ -101,9 +105,11 @@ RunCron(
       const episodeId: ObjectID = new ObjectID(episodeIdStr);
       const projectId: ObjectID | undefined = episodeMembers[0]!.projectId;
 
-      // Mark everything in this batch as notified upfront. If the rest of
-      // this iteration fails we don't want to retry-spam owners on the next
-      // cron tick.
+      /*
+       * Mark everything in this batch as notified upfront. If the rest of
+       * this iteration fails we don't want to retry-spam owners on the next
+       * cron tick.
+       */
       for (const member of episodeMembers) {
         await AlertEpisodeMemberService.updateOneById({
           id: member.id!,
@@ -204,18 +210,24 @@ RunCron(
 
       const alertCountInBatch: number = alerts.length;
 
-      // Map alertId -> addedAt for the in-email list. Some members may have
-      // had no addedAt (defensive), so we fall back to createdAt.
+      /*
+       * Map alertId -> addedAt for the in-email list. Some members may have
+       * had no addedAt (defensive), so we fall back to createdAt.
+       */
       const addedAtByAlertId: Dictionary<Date> = {};
       for (const member of episodeMembers) {
         if (member.alertId) {
           addedAtByAlertId[member.alertId.toString()] =
-            member.addedAt || member.createdAt || OneUptimeDate.getCurrentDate();
+            member.addedAt ||
+            member.createdAt ||
+            OneUptimeDate.getCurrentDate();
         }
       }
 
-      // Sort alerts by addedAt ascending so newest-at-bottom; truncate if
-      // the batch is huge.
+      /*
+       * Sort alerts by addedAt ascending so newest-at-bottom; truncate if
+       * the batch is huge.
+       */
       const sortedAlerts: Array<Alert> = [...alerts].sort(
         (a: Alert, b: Alert) => {
           const aTime: number = (
@@ -249,15 +261,14 @@ RunCron(
 
       for (const user of owners) {
         try {
-          // Build the per-alert list for the HBS template. addedAt is
-          // pre-formatted per-recipient because timezone is per-user.
+          /*
+           * Build the per-alert list for the HBS template. addedAt is
+           * pre-formatted per-recipient because timezone is per-user.
+           */
           const alertsForTemplate: Array<JSONObject> = await Promise.all(
             alertsToShow.map(async (alert: Alert): Promise<JSONObject> => {
               const alertLink: string = (
-                await AlertService.getAlertLinkInDashboard(
-                  projectId,
-                  alert.id!,
-                )
+                await AlertService.getAlertLinkInDashboard(projectId, alert.id!)
               ).toString();
 
               const alertNumberStr: string =
