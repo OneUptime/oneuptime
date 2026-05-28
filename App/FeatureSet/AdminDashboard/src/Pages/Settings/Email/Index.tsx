@@ -3,6 +3,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import DashboardSideMenu from "../SideMenu";
 import Route from "Common/Types/API/Route";
 import { Green, Red } from "Common/Types/BrandColors";
+import MailTransportType from "Common/Types/Email/MailTransportType";
 import OAuthProviderType from "Common/Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -182,17 +183,39 @@ const Settings: FunctionComponent = (): ReactElement => {
           editButtonText={t("pages.settings.email.smtpEditButton")}
           formSteps={[
             {
+              title: "Transport",
+              id: "transport-info",
+            },
+            {
               title: "SMTP Server",
               id: "server-info",
+              showIf: (values: FormValues<GlobalConfig>): boolean => {
+                const transport: MailTransportType =
+                  (values["smtpTransportType"] as MailTransportType) ||
+                  MailTransportType.SMTP;
+                return transport === MailTransportType.SMTP;
+              },
             },
             {
               title: "Authentication",
               id: "authentication",
+              showIf: (values: FormValues<GlobalConfig>): boolean => {
+                const transport: MailTransportType =
+                  (values["smtpTransportType"] as MailTransportType) ||
+                  MailTransportType.SMTP;
+                return transport === MailTransportType.SMTP;
+              },
             },
             {
               title: "OAuth Settings",
               id: "oauth-info",
               showIf: (values: FormValues<GlobalConfig>): boolean => {
+                const transport: MailTransportType =
+                  (values["smtpTransportType"] as MailTransportType) ||
+                  MailTransportType.SMTP;
+                if (transport === MailTransportType.MicrosoftGraph) {
+                  return true;
+                }
                 return values["smtpAuthType"] === SMTPAuthenticationType.OAuth;
               },
             },
@@ -202,6 +225,20 @@ const Settings: FunctionComponent = (): ReactElement => {
             },
           ]}
           formFields={[
+            {
+              field: {
+                smtpTransportType: true,
+              },
+              title: "Transport",
+              stepId: "transport-info",
+              fieldType: FormFieldSchemaType.Dropdown,
+              dropdownOptions:
+                DropdownUtil.getDropdownOptionsFromEnum(MailTransportType),
+              required: true,
+              defaultValue: MailTransportType.SMTP,
+              description:
+                "How OneUptime delivers mail using the global SMTP config. Choose 'SMTP' for most servers. Choose 'Microsoft Graph' if your Microsoft 365 tenant has SMTP AUTH disabled — Graph uses the Mail.Send application permission and bypasses SMTP entirely.",
+            },
             {
               field: {
                 smtpHost: true,
@@ -214,6 +251,12 @@ const Settings: FunctionComponent = (): ReactElement => {
               description:
                 "SMTP server hostname. Examples: smtp.office365.com (Microsoft 365), smtp.gmail.com (Google)",
               disableSpellCheck: true,
+              showIf: (values: FormValues<GlobalConfig>): boolean => {
+                return (
+                  ((values["smtpTransportType"] as MailTransportType) ||
+                    MailTransportType.SMTP) === MailTransportType.SMTP
+                );
+              },
             },
             {
               field: {
@@ -226,6 +269,12 @@ const Settings: FunctionComponent = (): ReactElement => {
               placeholder: "587",
               description:
                 "SMTP port. Common ports: 587 (STARTTLS), 465 (SSL/TLS)",
+              showIf: (values: FormValues<GlobalConfig>): boolean => {
+                return (
+                  ((values["smtpTransportType"] as MailTransportType) ||
+                    MailTransportType.SMTP) === MailTransportType.SMTP
+                );
+              },
             },
             {
               field: {
@@ -236,6 +285,12 @@ const Settings: FunctionComponent = (): ReactElement => {
               fieldType: FormFieldSchemaType.Toggle,
               description:
                 "If you use port 465, please enable this. Do not enable this if you use port 587.",
+              showIf: (values: FormValues<GlobalConfig>): boolean => {
+                return (
+                  ((values["smtpTransportType"] as MailTransportType) ||
+                    MailTransportType.SMTP) === MailTransportType.SMTP
+                );
+              },
             },
             {
               field: {
@@ -251,6 +306,12 @@ const Settings: FunctionComponent = (): ReactElement => {
               defaultValue: SMTPAuthenticationType.UsernamePassword,
               description:
                 "Select the authentication method. Use OAuth for providers like Microsoft 365, Google Workspace, etc.",
+              showIf: (values: FormValues<GlobalConfig>): boolean => {
+                return (
+                  ((values["smtpTransportType"] as MailTransportType) ||
+                    MailTransportType.SMTP) === MailTransportType.SMTP
+                );
+              },
             },
             {
               field: {
@@ -264,6 +325,12 @@ const Settings: FunctionComponent = (): ReactElement => {
               description:
                 "For OAuth, this should be the email address you want to send from.",
               disableSpellCheck: true,
+              showIf: (values: FormValues<GlobalConfig>): boolean => {
+                return (
+                  ((values["smtpTransportType"] as MailTransportType) ||
+                    MailTransportType.SMTP) === MailTransportType.SMTP
+                );
+              },
             },
             {
               field: {
@@ -278,6 +345,12 @@ const Settings: FunctionComponent = (): ReactElement => {
                 "Required for Username and Password authentication. Not used for OAuth.",
               disableSpellCheck: true,
               showIf: (values: FormValues<GlobalConfig>): boolean => {
+                const transport: MailTransportType =
+                  (values["smtpTransportType"] as MailTransportType) ||
+                  MailTransportType.SMTP;
+                if (transport !== MailTransportType.SMTP) {
+                  return false;
+                }
                 return (
                   values["smtpAuthType"] ===
                     SMTPAuthenticationType.UsernamePassword ||
@@ -298,7 +371,14 @@ const Settings: FunctionComponent = (): ReactElement => {
               defaultValue: OAuthProviderType.ClientCredentials,
               description:
                 "Select the OAuth grant type. Use 'Client Credentials' for Microsoft 365 and most providers. Use 'JWT Bearer' for Google Workspace service accounts.",
+              // Microsoft Graph always uses Client Credentials — no need to ask.
               showIf: (values: FormValues<GlobalConfig>): boolean => {
+                const transport: MailTransportType =
+                  (values["smtpTransportType"] as MailTransportType) ||
+                  MailTransportType.SMTP;
+                if (transport === MailTransportType.MicrosoftGraph) {
+                  return false;
+                }
                 return values["smtpAuthType"] === SMTPAuthenticationType.OAuth;
               },
             },
@@ -312,9 +392,15 @@ const Settings: FunctionComponent = (): ReactElement => {
               required: true,
               placeholder: "12345678-1234-1234-1234-123456789012",
               description:
-                "For Client Credentials: Application (Client) ID from your OAuth provider. For JWT Bearer (Google): Service account email (client_email from JSON key file).",
+                "Application (Client) ID from your Azure AD app registration (or service account for JWT Bearer).",
               disableSpellCheck: true,
               showIf: (values: FormValues<GlobalConfig>): boolean => {
+                const transport: MailTransportType =
+                  (values["smtpTransportType"] as MailTransportType) ||
+                  MailTransportType.SMTP;
+                if (transport === MailTransportType.MicrosoftGraph) {
+                  return true;
+                }
                 return values["smtpAuthType"] === SMTPAuthenticationType.OAuth;
               },
             },
@@ -331,6 +417,12 @@ const Settings: FunctionComponent = (): ReactElement => {
                 "For Client Credentials: Client secret from your OAuth application. For JWT Bearer (Google): The entire private_key from your service account JSON file (including BEGIN/END markers).",
               disableSpellCheck: true,
               showIf: (values: FormValues<GlobalConfig>): boolean => {
+                const transport: MailTransportType =
+                  (values["smtpTransportType"] as MailTransportType) ||
+                  MailTransportType.SMTP;
+                if (transport === MailTransportType.MicrosoftGraph) {
+                  return true;
+                }
                 return values["smtpAuthType"] === SMTPAuthenticationType.OAuth;
               },
             },
@@ -345,9 +437,15 @@ const Settings: FunctionComponent = (): ReactElement => {
               placeholder:
                 "https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token",
               description:
-                "The OAuth token endpoint URL. For Microsoft 365: https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token. For Google: https://oauth2.googleapis.com/token",
+                "The OAuth token endpoint URL. For Microsoft 365 (both SMTP+OAuth and Microsoft Graph): https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token. For Google: https://oauth2.googleapis.com/token",
               disableSpellCheck: true,
               showIf: (values: FormValues<GlobalConfig>): boolean => {
+                const transport: MailTransportType =
+                  (values["smtpTransportType"] as MailTransportType) ||
+                  MailTransportType.SMTP;
+                if (transport === MailTransportType.MicrosoftGraph) {
+                  return true;
+                }
                 return values["smtpAuthType"] === SMTPAuthenticationType.OAuth;
               },
             },
@@ -359,11 +457,17 @@ const Settings: FunctionComponent = (): ReactElement => {
               stepId: "oauth-info",
               fieldType: FormFieldSchemaType.Text,
               required: true,
-              placeholder: "https://outlook.office365.com/.default",
+              placeholder: "https://graph.microsoft.com/.default",
               description:
-                "The OAuth scope(s) required for SMTP access. For Microsoft 365: https://outlook.office365.com/.default. For Google: https://mail.google.com/",
+                "The OAuth scope(s) required. For Microsoft Graph: https://graph.microsoft.com/.default. For Microsoft 365 SMTP+OAuth: https://outlook.office365.com/.default. For Google: https://mail.google.com/",
               disableSpellCheck: true,
               showIf: (values: FormValues<GlobalConfig>): boolean => {
+                const transport: MailTransportType =
+                  (values["smtpTransportType"] as MailTransportType) ||
+                  MailTransportType.SMTP;
+                if (transport === MailTransportType.MicrosoftGraph) {
+                  return true;
+                }
                 return values["smtpAuthType"] === SMTPAuthenticationType.OAuth;
               },
             },
@@ -398,6 +502,13 @@ const Settings: FunctionComponent = (): ReactElement => {
             modelType: GlobalConfig,
             id: "model-detail-global-config",
             fields: [
+              {
+                field: {
+                  smtpTransportType: true,
+                },
+                title: "Transport",
+                placeholder: "SMTP",
+              },
               {
                 field: {
                   smtpHost: true,

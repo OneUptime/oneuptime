@@ -684,6 +684,7 @@ Stay informed about service availability! 🚀`;
         name: true,
         smtpConfig: {
           _id: true,
+          transportType: true,
           hostname: true,
           port: true,
           username: true,
@@ -915,6 +916,7 @@ Stay informed about service availability! 🚀`;
         name: true,
         smtpConfig: {
           _id: true,
+          transportType: true,
           hostname: true,
           port: true,
           username: true,
@@ -1347,6 +1349,7 @@ Stay informed about service availability! 🚀`;
         allowSubscribersToChooseEventTypes: true,
         smtpConfig: {
           _id: true,
+          transportType: true,
           hostname: true,
           port: true,
           username: true,

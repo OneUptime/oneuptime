@@ -92,6 +92,7 @@ export class Service extends DatabaseService<Model> {
         projectId: true,
         smtpConfig: {
           _id: true,
+          transportType: true,
           hostname: true,
           port: true,
           username: true,

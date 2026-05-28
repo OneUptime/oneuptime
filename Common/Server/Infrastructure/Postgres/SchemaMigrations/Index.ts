@@ -357,6 +357,8 @@ import { RenameStatusPageZhToZhCN1779827700000 } from "./1779827700000-RenameSta
 import { MigrationName1779879993421 } from "./1779879993421-MigrationName";
 import { MigrationName1779882573463 } from "./1779882573463-MigrationName";
 import { AddLabelGroupByToGroupingRules1779971548393 } from "./1779971548393-AddLabelGroupByToGroupingRules";
+import { AddTransportTypeToProjectSmtpConfig1779975064262 } from "./1779975064262-AddTransportTypeToProjectSmtpConfig";
+import { AddSmtpTransportTypeToGlobalConfig1779976190561 } from "./1779976190561-AddSmtpTransportTypeToGlobalConfig";
 
 export default [
   InitialMigration,
@@ -718,4 +720,6 @@ export default [
   MigrationName1779879993421,
   MigrationName1779882573463,
   AddLabelGroupByToGroupingRules1779971548393,
+  AddTransportTypeToProjectSmtpConfig1779975064262,
+  AddSmtpTransportTypeToGlobalConfig1779976190561,
 ];

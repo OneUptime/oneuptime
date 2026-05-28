@@ -475,6 +475,7 @@ router.post(
             projectId: true,
             smtpConfig: {
               _id: true,
+              transportType: true,
               hostname: true,
               port: true,
               username: true,
@@ -667,6 +668,7 @@ router.post(
             projectId: true,
             smtpConfig: {
               _id: true,
+              transportType: true,
               hostname: true,
               port: true,
               username: true,
