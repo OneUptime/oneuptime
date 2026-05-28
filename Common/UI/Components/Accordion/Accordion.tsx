@@ -75,7 +75,9 @@ const Accordion: FunctionComponent<ComponentProps> = (
     <div className={className}>
       <div>
         <div
-          className={`flex justify-between items-start gap-3 cursor-pointer group/accordion-header rounded-md -mx-2 px-2 py-1 hover:bg-gray-50 transition-colors`}
+          className={`flex justify-between items-start gap-3 cursor-pointer group/accordion-header rounded-lg -mx-2 px-2 py-2 transition-colors ${
+            isOpen ? "" : "hover:bg-gray-50/80"
+          }`}
           role="button"
           tabIndex={0}
           aria-expanded={isOpen}
@@ -87,26 +89,26 @@ const Accordion: FunctionComponent<ComponentProps> = (
         >
           <div className="flex items-start min-w-0 flex-1">
             {props.title && (
-              <div className="flex-shrink-0 pt-1.5">
-                {isOpen && (
-                  <Icon
-                    className="h-4 w-4 text-gray-400 group-hover/accordion-header:text-gray-600 transition-colors"
-                    icon={IconProp.ChevronDown}
-                    thick={ThickProp.Thick}
-                  />
-                )}
-                {!isOpen && (
-                  <Icon
-                    className="h-4 w-4 text-gray-400 group-hover/accordion-header:text-gray-600 transition-colors"
-                    icon={IconProp.ChevronRight}
-                    thick={ThickProp.Thick}
-                  />
-                )}
+              <div
+                className={`flex-shrink-0 mt-0.5 flex items-center justify-center w-6 h-6 rounded-md transition-all duration-200 ${
+                  isOpen
+                    ? "bg-gray-900/5 text-gray-700"
+                    : "text-gray-400 group-hover/accordion-header:bg-gray-900/5 group-hover/accordion-header:text-gray-700"
+                }`}
+                aria-hidden="true"
+              >
+                <Icon
+                  className={`h-3.5 w-3.5 transition-transform duration-200 ease-out ${
+                    isOpen ? "rotate-90" : ""
+                  }`}
+                  icon={IconProp.ChevronRight}
+                  thick={ThickProp.Thick}
+                />
               </div>
             )}
             {props.title && (
               <div
-                className={`ml-2 min-w-0 flex-1 ${
+                className={`ml-2.5 min-w-0 flex-1 ${
                   props.onClick ? "cursor-pointer" : ""
                 }`}
               >
@@ -124,7 +126,7 @@ const Accordion: FunctionComponent<ComponentProps> = (
             )}
           </div>
           {!isOpen && props.rightElement && (
-            <div className="flex-shrink-0 pt-1">{props.rightElement}</div>
+            <div className="flex-shrink-0 mt-0.5">{props.rightElement}</div>
           )}
         </div>
         {isOpen && (
