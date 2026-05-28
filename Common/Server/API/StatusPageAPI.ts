@@ -3070,11 +3070,16 @@ export default class StatusPageAPI extends BaseAPI<
           statusPageGroupId: true,
           statusPageGroup: {
             name: true,
+            viewMode: true,
+            rowAxisLabel: true,
+            columnAxisLabel: true,
           },
           monitorId: true,
           displayTooltip: true,
           displayDescription: true,
           displayName: true,
+          rowAxisValue: true,
+          columnAxisValue: true,
           monitorGroupId: true,
           monitor: {
             _id: true,
@@ -4863,6 +4868,9 @@ export default class StatusPageAPI extends BaseAPI<
           statusPageGroupId: true,
           statusPageGroup: {
             name: true,
+            viewMode: true,
+            rowAxisLabel: true,
+            columnAxisLabel: true,
           },
           monitorId: true,
           displayTooltip: true,

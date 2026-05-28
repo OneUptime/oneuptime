@@ -463,29 +463,48 @@ const Overview: FunctionComponent<PageComponentProps> = (
           return <></>;
         }
 
+        const color: string =
+          currentStatus?.color?.toString() || Green.toString();
         return (
           <div
-            className="font-medium"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold tabular-nums"
             style={{
-              color: currentStatus?.color?.toString() || Green.toString(),
+              backgroundColor: tintFromHex(color, 0.1),
+              color: color,
             }}
           >
-            {uptimePercent}
-            {t("overview.uptimeSuffix")}
+            <span
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ backgroundColor: color }}
+              aria-hidden="true"
+            />
+            <span>
+              {uptimePercent}
+              {t("overview.uptimeSuffix")}
+            </span>
           </div>
         );
       }
 
       if (data.group.showCurrentStatus) {
+        const color: string =
+          currentStatus?.color?.toString() || Green.toString();
+        const statusName: string =
+          translateStatusName(currentStatus?.name) || t("overview.operational");
         return (
           <div
-            className=""
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold tracking-tight"
             style={{
-              color: currentStatus?.color?.toString() || Green.toString(),
+              backgroundColor: tintFromHex(color, 0.1),
+              color: color,
             }}
           >
-            {translateStatusName(currentStatus?.name) ||
-              t("overview.operational")}
+            <span
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ backgroundColor: color }}
+              aria-hidden="true"
+            />
+            <span>{statusName}</span>
           </div>
         );
       }
@@ -946,17 +965,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
     type StatBucket = { color: string; count: number; label: string };
 
     const statBuckets: Map<string, StatBucket> = new Map();
-    let totalCellsWithData: number = 0;
-    let totalEmptyCells: number = 0;
     for (const row of rowValues) {
       for (const col of columnValues) {
         const cell: CellContent = cellByRowCol[row]![col]!;
         const meta: CellMeta = computeCellMeta(cell);
         if (meta.isEmpty) {
-          totalEmptyCells++;
           continue;
         }
-        totalCellsWithData++;
         const key: string = `${meta.statusName}|${meta.color}`;
         const existing: StatBucket | undefined = statBuckets.get(key);
         if (existing) {
@@ -974,7 +989,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     return (
       <div className="pt-1 pb-1">
-        {(statEntries.length > 0 || totalEmptyCells > 0) && (
+        {statEntries.length > 0 && (
           <div className="flex items-center flex-wrap gap-x-4 gap-y-1.5 mb-3 px-1 text-xs">
             {statEntries.map((stat: StatBucket, i: number) => {
               return (
@@ -996,20 +1011,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 </div>
               );
             })}
-            {totalEmptyCells > 0 && totalCellsWithData > 0 && (
-              <div className="inline-flex items-center gap-1.5">
-                <span
-                  className="block w-2 h-0.5 bg-gray-300 rounded-full flex-shrink-0"
-                  aria-hidden="true"
-                />
-                <span className="text-gray-500">
-                  <span className="font-semibold tabular-nums text-gray-600">
-                    {totalEmptyCells}
-                  </span>{" "}
-                  not configured
-                </span>
-              </div>
-            )}
           </div>
         )}
         <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-[0_1px_2px_0_rgba(0,0,0,0.02)]">

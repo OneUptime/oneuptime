@@ -1247,11 +1247,16 @@ export class Service extends DatabaseService<StatusPage> {
           statusPageGroupId: true,
           statusPageGroup: {
             name: true,
+            viewMode: true,
+            rowAxisLabel: true,
+            columnAxisLabel: true,
           },
           monitorId: true,
           displayTooltip: true,
           displayDescription: true,
           displayName: true,
+          rowAxisValue: true,
+          columnAxisValue: true,
           monitor: {
             _id: true,
             currentMonitorStatusId: true,
