@@ -274,10 +274,13 @@ class TransporterPool {
 
 export default class MailService {
   public static isSMTPConfigValid(obj: JSONObject): boolean {
-    if (!obj["SMTP_USERNAME"]) {
-      logger.error("SMTP_USERNAME env var not found");
-      return false;
-    }
+    /*
+     * SMTP_TRANSPORT_TYPE is optional. Absent → 'SMTP' (back-compat: existing
+     * callers that don't send this key get identical behavior to before).
+     */
+    const transportType: MailTransportType =
+      (obj["SMTP_TRANSPORT_TYPE"] as MailTransportType) ||
+      MailTransportType.SMTP;
 
     if (!obj["SMTP_EMAIL"]) {
       logger.error("SMTP_EMAIL env var not found");
@@ -296,29 +299,46 @@ export default class MailService {
       return false;
     }
 
-    if (!obj["SMTP_PORT"]) {
-      logger.error("SMTP_PORT env var not found");
-      return false;
+    /*
+     * Host/port/username are SMTP-only. Microsoft Graph posts to graph.microsoft.com
+     * directly and uses OAuth credentials, not SMTP AUTH.
+     */
+    if (transportType === MailTransportType.SMTP) {
+      if (!obj["SMTP_USERNAME"]) {
+        logger.error("SMTP_USERNAME env var not found");
+        return false;
+      }
+
+      if (!obj["SMTP_PORT"]) {
+        logger.error("SMTP_PORT env var not found");
+        return false;
+      }
+
+      if (!Port.isValid(obj["SMTP_PORT"].toString())) {
+        logger.error("SMTP_PORT " + obj["SMTP_HOST"] + " env var not valid");
+        return false;
+      }
+
+      if (!obj["SMTP_HOST"]) {
+        logger.error("SMTP_HOST env var not found");
+        return false;
+      }
+
+      if (!Hostname.isValid(obj["SMTP_HOST"].toString())) {
+        logger.error("SMTP_HOST env var " + obj["SMTP_HOST"] + "  not valid");
+        return false;
+      }
     }
 
-    if (!Port.isValid(obj["SMTP_PORT"].toString())) {
-      logger.error("SMTP_PORT " + obj["SMTP_HOST"] + " env var not valid");
-      return false;
-    }
-
-    if (!obj["SMTP_HOST"]) {
-      logger.error("SMTP_HOST env var not found");
-      return false;
-    }
-
-    if (!Hostname.isValid(obj["SMTP_HOST"].toString())) {
-      logger.error("SMTP_HOST env var " + obj["SMTP_HOST"] + "  not valid");
-      return false;
-    }
-
+    /*
+     * Microsoft Graph always uses OAuth (Client Credentials). For SMTP, the
+     * auth type is configurable.
+     */
     const authType: SMTPAuthenticationType =
-      (obj["SMTP_AUTH_TYPE"] as SMTPAuthenticationType) ||
-      SMTPAuthenticationType.UsernamePassword;
+      transportType === MailTransportType.MicrosoftGraph
+        ? SMTPAuthenticationType.OAuth
+        : (obj["SMTP_AUTH_TYPE"] as SMTPAuthenticationType) ||
+          SMTPAuthenticationType.UsernamePassword;
 
     if (authType === SMTPAuthenticationType.UsernamePassword) {
       if (!obj["SMTP_PASSWORD"]) {
@@ -355,19 +375,30 @@ export default class MailService {
       throw new BadDataException("SMTP Config is not valid");
     }
 
+    const transportType: MailTransportType =
+      (obj["SMTP_TRANSPORT_TYPE"] as MailTransportType) ||
+      MailTransportType.SMTP;
+
     const authType: SMTPAuthenticationType =
-      (obj["SMTP_AUTH_TYPE"] as SMTPAuthenticationType) ||
-      SMTPAuthenticationType.UsernamePassword;
+      transportType === MailTransportType.MicrosoftGraph
+        ? SMTPAuthenticationType.OAuth
+        : (obj["SMTP_AUTH_TYPE"] as SMTPAuthenticationType) ||
+          SMTPAuthenticationType.UsernamePassword;
 
     return {
       id:
         obj && obj["SMTP_ID"]
           ? new ObjectID(obj["SMTP_ID"].toString())
           : undefined,
+      transportType: transportType,
       username: obj["SMTP_USERNAME"]?.toString() || undefined,
       password: obj["SMTP_PASSWORD"]?.toString() || undefined,
-      host: new Hostname(obj["SMTP_HOST"]?.toString() as string),
-      port: new Port(obj["SMTP_PORT"]?.toString() as string),
+      host: obj["SMTP_HOST"]
+        ? new Hostname(obj["SMTP_HOST"].toString())
+        : undefined,
+      port: obj["SMTP_PORT"]
+        ? new Port(obj["SMTP_PORT"].toString())
+        : undefined,
       fromEmail: new Email(obj["SMTP_EMAIL"]?.toString() as string),
       fromName: obj["SMTP_FROM_NAME"]?.toString() as string,
       secure:

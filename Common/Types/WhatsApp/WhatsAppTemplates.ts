@@ -18,10 +18,12 @@ type TemplateIdsMap = {
   readonly AlertEpisodeNotePostedOwnerNotification: "oneuptime_alert_episode_note_posted_owner_notification";
   readonly AlertEpisodeStateChangedOwnerNotification: "oneuptime_alert_episode_state_changed_owner_notification";
   readonly AlertEpisodeOwnerAddedNotification: "oneuptime_alert_episode_owner_added_notification";
+  readonly AlertAddedToEpisodeOwnerNotification: "oneuptime_alert_added_to_episode_owner_notification";
   readonly IncidentEpisodeCreatedOwnerNotification: "oneuptime_incident_episode_created_owner_notification";
   readonly IncidentEpisodeNotePostedOwnerNotification: "oneuptime_incident_episode_note_posted_owner_notification";
   readonly IncidentEpisodeStateChangedOwnerNotification: "oneuptime_incident_episode_state_changed_owner_notification";
   readonly IncidentEpisodeOwnerAddedNotification: "oneuptime_incident_episode_owner_added_notification";
+  readonly IncidentAddedToEpisodeOwnerNotification: "oneuptime_incident_added_to_episode_owner_notification";
   readonly MonitorOwnerAddedNotification: "oneuptime_monitor_owner_added_notification";
   readonly MonitorCreatedOwnerNotification: "oneuptime_monitor_created_owner_notification";
   readonly MonitorStatusChangedOwnerNotification: "oneuptime_monitor_status_changed_owner_notification";
@@ -75,6 +77,8 @@ const templateIds: TemplateIdsMap = {
     "oneuptime_alert_episode_state_changed_owner_notification",
   AlertEpisodeOwnerAddedNotification:
     "oneuptime_alert_episode_owner_added_notification",
+  AlertAddedToEpisodeOwnerNotification:
+    "oneuptime_alert_added_to_episode_owner_notification",
   IncidentEpisodeCreatedOwnerNotification:
     "oneuptime_incident_episode_created_owner_notification",
   IncidentEpisodeNotePostedOwnerNotification:
@@ -83,6 +87,8 @@ const templateIds: TemplateIdsMap = {
     "oneuptime_incident_episode_state_changed_owner_notification",
   IncidentEpisodeOwnerAddedNotification:
     "oneuptime_incident_episode_owner_added_notification",
+  IncidentAddedToEpisodeOwnerNotification:
+    "oneuptime_incident_added_to_episode_owner_notification",
   MonitorOwnerAddedNotification: "oneuptime_monitor_owner_added_notification",
   MonitorCreatedOwnerNotification:
     "oneuptime_monitor_created_owner_notification",
@@ -156,10 +162,12 @@ export const WhatsAppTemplateMessages: WhatsAppTemplateMessagesDefinition = {
   [WhatsAppTemplateIds.AlertEpisodeNotePostedOwnerNotification]: `A new note was posted on alert episode #{{episode_number}} ({{episode_title}}). Review the alert episode using {{episode_link}} on the OneUptime dashboard for updates.`,
   [WhatsAppTemplateIds.AlertEpisodeStateChangedOwnerNotification]: `Alert Episode #{{episode_number}} ({{episode_title}}) state changed to {{episode_state}}. Track the alert episode status using {{episode_link}} on the OneUptime dashboard.`,
   [WhatsAppTemplateIds.AlertEpisodeOwnerAddedNotification]: `You have been added as an owner of alert episode #{{episode_number}} ({{episode_title}}). Manage the alert episode using {{episode_link}} on the OneUptime dashboard.`,
+  [WhatsAppTemplateIds.AlertAddedToEpisodeOwnerNotification]: `Alert #{{alert_number}} ({{alert_title}}) was added to alert episode #{{episode_number}} ({{episode_title}}). Review the alert episode using {{episode_link}} on the OneUptime dashboard.`,
   [WhatsAppTemplateIds.IncidentEpisodeCreatedOwnerNotification]: `Incident Episode #{{episode_number}} ({{episode_title}}) has been created for project {{project_name}}. View incident episode details using {{episode_link}} on the OneUptime dashboard.`,
   [WhatsAppTemplateIds.IncidentEpisodeNotePostedOwnerNotification]: `A new note was posted on incident episode #{{episode_number}} ({{episode_title}}). Review the incident episode using {{episode_link}} on the OneUptime dashboard for updates.`,
   [WhatsAppTemplateIds.IncidentEpisodeStateChangedOwnerNotification]: `Incident Episode #{{episode_number}} ({{episode_title}}) state changed to {{episode_state}}. Track the incident episode status using {{episode_link}} on the OneUptime dashboard.`,
   [WhatsAppTemplateIds.IncidentEpisodeOwnerAddedNotification]: `You have been added as an owner of incident episode #{{episode_number}} ({{episode_title}}). Manage the incident episode using {{episode_link}} on the OneUptime dashboard.`,
+  [WhatsAppTemplateIds.IncidentAddedToEpisodeOwnerNotification]: `Incident #{{incident_number}} ({{incident_title}}) was added to incident episode #{{episode_number}} ({{episode_title}}). Review the incident episode using {{episode_link}} on the OneUptime dashboard.`,
   [WhatsAppTemplateIds.MonitorOwnerAddedNotification]: `You have been added as an owner of monitor {{monitor_name}}. Manage the monitor using {{monitor_link}} on the OneUptime dashboard to keep things running.`,
   [WhatsAppTemplateIds.MonitorCreatedOwnerNotification]: `Monitor {{monitor_name}} has been created. Check monitor {{monitor_link}} on the OneUptime dashboard `,
   [WhatsAppTemplateIds.MonitorStatusChangedOwnerNotification]: `Monitor {{monitor_name}} status changed to {{monitor_status}}. Check the monitor status using {{monitor_link}} on the OneUptime dashboard to stay informed.`,
@@ -203,10 +211,12 @@ export const WhatsAppTemplateLanguage: Record<WhatsAppTemplateId, string> = {
   [WhatsAppTemplateIds.AlertEpisodeNotePostedOwnerNotification]: "en",
   [WhatsAppTemplateIds.AlertEpisodeStateChangedOwnerNotification]: "en",
   [WhatsAppTemplateIds.AlertEpisodeOwnerAddedNotification]: "en",
+  [WhatsAppTemplateIds.AlertAddedToEpisodeOwnerNotification]: "en",
   [WhatsAppTemplateIds.IncidentEpisodeCreatedOwnerNotification]: "en",
   [WhatsAppTemplateIds.IncidentEpisodeNotePostedOwnerNotification]: "en",
   [WhatsAppTemplateIds.IncidentEpisodeStateChangedOwnerNotification]: "en",
   [WhatsAppTemplateIds.IncidentEpisodeOwnerAddedNotification]: "en",
+  [WhatsAppTemplateIds.IncidentAddedToEpisodeOwnerNotification]: "en",
   [WhatsAppTemplateIds.MonitorOwnerAddedNotification]: "en",
   [WhatsAppTemplateIds.MonitorCreatedOwnerNotification]: "en",
   [WhatsAppTemplateIds.MonitorStatusChangedOwnerNotification]: "en",

@@ -132,6 +132,12 @@ const EVENT_LIBRARY: Record<
       label: "Added as incident episode owner",
       description: "You are added as an owner of an incident episode.",
     },
+  [NotificationSettingEventType.SEND_INCIDENT_ADDED_TO_EPISODE_OWNER_NOTIFICATION]:
+    {
+      label: "Incident added to incident episode",
+      description:
+        "A new incident is added to an existing incident episode you own.",
+    },
 
   [NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION]: {
     label: "Alert created",
@@ -169,6 +175,12 @@ const EVENT_LIBRARY: Record<
     label: "Added as alert episode owner",
     description: "You are added as an owner of an alert episode.",
   },
+  [NotificationSettingEventType.SEND_ALERT_ADDED_TO_EPISODE_OWNER_NOTIFICATION]:
+    {
+      label: "Alert added to alert episode",
+      description:
+        "A new alert is added to an existing alert episode you own.",
+    },
 
   [NotificationSettingEventType.SEND_MONITOR_CREATED_OWNER_NOTIFICATION]: {
     label: "Monitor created",
@@ -628,6 +640,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         NotificationSettingEventType.SEND_INCIDENT_EPISODE_STATE_CHANGED_OWNER_NOTIFICATION,
         NotificationSettingEventType.SEND_INCIDENT_EPISODE_NOTE_POSTED_OWNER_NOTIFICATION,
         NotificationSettingEventType.SEND_INCIDENT_EPISODE_OWNER_ADDED_NOTIFICATION,
+        NotificationSettingEventType.SEND_INCIDENT_ADDED_TO_EPISODE_OWNER_NOTIFICATION,
       ],
     ),
   ];
@@ -647,6 +660,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         NotificationSettingEventType.SEND_ALERT_EPISODE_STATE_CHANGED_OWNER_NOTIFICATION,
         NotificationSettingEventType.SEND_ALERT_EPISODE_NOTE_POSTED_OWNER_NOTIFICATION,
         NotificationSettingEventType.SEND_ALERT_EPISODE_OWNER_ADDED_NOTIFICATION,
+        NotificationSettingEventType.SEND_ALERT_ADDED_TO_EPISODE_OWNER_NOTIFICATION,
       ],
     ),
   ];
