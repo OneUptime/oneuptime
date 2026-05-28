@@ -1,6 +1,7 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
+import Route from "Common/Types/API/Route";
 import TechStack from "Common/Types/Service/TechStack";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
@@ -11,12 +12,31 @@ import Label from "Common/Models/DatabaseModels/Label";
 import Service from "Common/Models/DatabaseModels/Service";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import TechStackView from "../../../Components/TechStack/TechStackView";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
 
 const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   return (
     <Fragment>
+      <ResourceActivityCards
+        modelId={modelId}
+        resourceQueryKey="services"
+        incidentsRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.SERVICE_VIEW_INCIDENTS] as Route,
+          { modelId: modelId },
+        )}
+        alertsRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.SERVICE_VIEW_ALERTS] as Route,
+          { modelId: modelId },
+        )}
+        scheduledMaintenanceRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE] as Route,
+          { modelId: modelId },
+        )}
+      />
       {/* Service View  */}
       <CardModelDetail<Service>
         name="Service > Service Details"

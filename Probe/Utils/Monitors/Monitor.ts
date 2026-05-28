@@ -33,7 +33,11 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import { CheckOn, CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
 import CustomCodeMonitorResponse from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
-import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MonitorStep, {
+  clampMonitorRequestTimeoutInMs,
+  clampMonitorRetryCount,
+  DEFAULT_MONITOR_REQUEST_TIMEOUT_IN_MS,
+} from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
@@ -291,6 +295,22 @@ export default class MonitorUtil {
       return result;
     }
 
+    // Per-step request timeout (capped at the user-facing max). Falls back
+    // to the global default when the user hasn't configured one.
+    const requestTimeoutInMs: number =
+      monitorStep.data.requestTimeoutInMs !== undefined &&
+      monitorStep.data.requestTimeoutInMs !== null
+        ? clampMonitorRequestTimeoutInMs(monitorStep.data.requestTimeoutInMs)
+        : DEFAULT_MONITOR_REQUEST_TIMEOUT_IN_MS;
+
+    // Per-step retry count (capped at the user-facing max). Falls back to
+    // the probe-wide default (env var) when the user hasn't configured one.
+    const retryCount: number =
+      monitorStep.data.retryCount !== undefined &&
+      monitorStep.data.retryCount !== null
+        ? clampMonitorRetryCount(monitorStep.data.retryCount)
+        : PROBE_MONITOR_RETRY_LIMIT;
+
     if (monitorType === MonitorType.Ping || monitorType === MonitorType.IP) {
       if (!monitorStep.data?.monitorDestination) {
         return result;
@@ -305,9 +325,9 @@ export default class MonitorUtil {
           monitorStep.data?.monitorDestination,
           new Port(80), // use port 80 by default.
           {
-            retry: PROBE_MONITOR_RETRY_LIMIT,
+            retry: retryCount,
             monitorId: monitorId,
-            timeout: new PositiveNumber(60000), // 60 seconds
+            timeout: new PositiveNumber(requestTimeoutInMs),
           },
         );
 
@@ -325,9 +345,9 @@ export default class MonitorUtil {
         const response: PingResponse | null = await PingMonitor.ping(
           monitorStep.data?.monitorDestination,
           {
-            retry: PROBE_MONITOR_RETRY_LIMIT,
+            retry: retryCount,
             monitorId: monitorId,
-            timeout: new PositiveNumber(60000), // 60 seconds
+            timeout: new PositiveNumber(requestTimeoutInMs),
           },
         );
 
@@ -365,9 +385,9 @@ export default class MonitorUtil {
         monitorStep.data?.monitorDestination,
         monitorStep.data.monitorDestinationPort,
         {
-          retry: PROBE_MONITOR_RETRY_LIMIT,
+          retry: retryCount,
           monitorId: monitorId,
-          timeout: new PositiveNumber(60000), // 60 seconds
+          timeout: new PositiveNumber(requestTimeoutInMs),
         },
       );
 
@@ -445,9 +465,9 @@ export default class MonitorUtil {
       const response: SslResponse | null = await SSLMonitor.ping(
         monitorStep.data?.monitorDestination as URL,
         {
-          retry: PROBE_MONITOR_RETRY_LIMIT,
+          retry: retryCount,
           monitorId: monitorId,
-          timeout: new PositiveNumber(60000), // 60 seconds
+          timeout: new PositiveNumber(requestTimeoutInMs),
         },
       );
 
@@ -481,8 +501,8 @@ export default class MonitorUtil {
         {
           isHeadRequest: MonitorUtil.isHeadRequest(monitorStep),
           monitorId: monitorId,
-          retry: PROBE_MONITOR_RETRY_LIMIT,
-          timeout: new PositiveNumber(60000), // 60 seconds
+          retry: retryCount,
+          timeout: new PositiveNumber(requestTimeoutInMs),
           doNotFollowRedirects: monitorStep.data?.doNotFollowRedirects || false,
           allowSelfSignedCertificates:
             monitorStep.data?.allowSelfSignedCertificates || false,
@@ -536,8 +556,8 @@ export default class MonitorUtil {
         requestBody: requestBody || undefined,
         monitorId: monitorId,
         requestType: monitorStep.data?.requestType || HTTPMethod.GET,
-        retry: PROBE_MONITOR_RETRY_LIMIT,
-        timeout: new PositiveNumber(60000), // 60 seconds
+        retry: retryCount,
+        timeout: new PositiveNumber(requestTimeoutInMs),
         doNotFollowRedirects: monitorStep.data?.doNotFollowRedirects || false,
         allowSelfSignedCertificates:
           monitorStep.data?.allowSelfSignedCertificates || false,

@@ -75,7 +75,7 @@ const Accordion: FunctionComponent<ComponentProps> = (
     <div className={className}>
       <div>
         <div
-          className={`flex justify-between cursor-pointer`}
+          className={`flex justify-between items-start gap-3 cursor-pointer group/accordion-header rounded-md -mx-2 px-2 py-1 hover:bg-gray-50 transition-colors`}
           role="button"
           tabIndex={0}
           aria-expanded={isOpen}
@@ -85,19 +85,19 @@ const Accordion: FunctionComponent<ComponentProps> = (
           }}
           onKeyDown={handleKeyDown}
         >
-          <div className="flex">
+          <div className="flex items-start min-w-0 flex-1">
             {props.title && (
-              <div>
+              <div className="flex-shrink-0 pt-1.5">
                 {isOpen && (
                   <Icon
-                    className="h-4 w-4 text-gray-500"
+                    className="h-4 w-4 text-gray-400 group-hover/accordion-header:text-gray-600 transition-colors"
                     icon={IconProp.ChevronDown}
                     thick={ThickProp.Thick}
                   />
                 )}
                 {!isOpen && (
                   <Icon
-                    className="h-4 w-4 text-gray-500"
+                    className="h-4 w-4 text-gray-400 group-hover/accordion-header:text-gray-600 transition-colors"
                     icon={IconProp.ChevronRight}
                     thick={ThickProp.Thick}
                   />
@@ -106,22 +106,26 @@ const Accordion: FunctionComponent<ComponentProps> = (
             )}
             {props.title && (
               <div
-                className={`ml-1 -mt-1 ${
+                className={`ml-2 min-w-0 flex-1 ${
                   props.onClick ? "cursor-pointer" : ""
                 }`}
               >
-                <div className={`text-gray-500 ${props.titleClassName}`}>
-                  {props.title}{" "}
+                <div
+                  className={`text-gray-900 leading-snug ${props.titleClassName || ""}`}
+                >
+                  {props.title}
                 </div>
-                <div className="mb-2 text-sm">
-                  {props.description && (
-                    <MarkdownViewer text={props.description || ""} />
-                  )}
-                </div>
+                {props.description && (
+                  <div className="mt-1 text-sm text-gray-500 leading-relaxed">
+                    <MarkdownViewer text={props.description} />
+                  </div>
+                )}
               </div>
             )}
           </div>
-          {!isOpen && <div className="">{props.rightElement}</div>}
+          {!isOpen && props.rightElement && (
+            <div className="flex-shrink-0 pt-1">{props.rightElement}</div>
+          )}
         </div>
         {isOpen && (
           <div

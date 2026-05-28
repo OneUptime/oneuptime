@@ -789,10 +789,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
     ): ReactElement => {
       if (cell.resources.length === 0) {
         return (
-          <div className="flex items-center justify-center py-4">
-            <span className="text-gray-300 text-lg leading-none select-none">
-              –
-            </span>
+          <div className="flex items-center justify-center py-3">
+            <span
+              className="block w-4 h-px bg-gray-200 select-none"
+              aria-hidden="true"
+            />
           </div>
         );
       }
@@ -855,15 +856,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
       return (
         <div
-          className="flex flex-col items-center justify-center gap-1.5 px-3 py-4"
+          className="flex flex-col items-center justify-center gap-1 px-2 py-3"
           title={labels.join(", ")}
         >
           <div
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full ring-1"
+            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full"
             style={{
-              backgroundColor: tintFromHex(cellColor, 0.1),
-              borderColor: tintFromHex(cellColor, 0.25),
-              boxShadow: "none",
+              backgroundColor: tintFromHex(cellColor, 0.12),
             }}
           >
             <span
@@ -878,7 +877,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             </span>
           </div>
           {uptimePercentText && (
-            <div className="text-[11px] text-gray-500 font-medium">
+            <div className="text-[11px] text-gray-500 font-medium tabular-nums">
               {uptimePercentText}
             </div>
           )}
@@ -894,69 +893,72 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     return (
       <div className="pt-1 pb-1">
-        <div className="overflow-x-auto rounded-xl ring-1 ring-gray-200 bg-white">
-          <table className="min-w-full border-separate border-spacing-0">
-            <thead>
-              {group.columnAxisLabel ? (
-                <tr>
-                  <th className="bg-white px-4 pt-3 pb-1 min-w-[160px]" />
-                  <th
-                    colSpan={columnValues.length}
-                    className="bg-white px-4 pt-3 pb-1 text-center text-[10px] uppercase tracking-[0.14em] text-gray-400 font-semibold"
-                  >
-                    {group.columnAxisLabel}
-                  </th>
-                </tr>
-              ) : null}
-              <tr>
-                <th className="sticky left-0 z-10 bg-gray-50/70 px-4 py-3 text-left text-xs font-semibold text-gray-700 border-b border-t border-gray-200 min-w-[160px]">
-                  {rowAxisDisplay}
-                </th>
-                {columnValues.map((col: string, i: number) => {
-                  return (
+        <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-separate border-spacing-0">
+              <thead>
+                {group.columnAxisLabel ? (
+                  <tr>
+                    <th className="bg-gray-50 px-4 pt-3 pb-1 min-w-[160px]" />
                     <th
-                      key={`col-${i}`}
-                      className="bg-gray-50/70 px-3 py-3 text-center text-xs font-semibold text-gray-700 border-b border-t border-gray-200 min-w-[140px]"
+                      colSpan={columnValues.length}
+                      className="bg-gray-50 px-4 pt-3 pb-1 text-center text-[10px] uppercase tracking-[0.18em] text-gray-400 font-semibold"
                     >
-                      {col}
+                      {group.columnAxisLabel}
                     </th>
+                  </tr>
+                ) : null}
+                <tr>
+                  <th className="sticky left-0 z-10 bg-gray-50 px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400 border-b border-gray-200 min-w-[160px]">
+                    {rowAxisDisplay}
+                  </th>
+                  {columnValues.map((col: string, i: number) => {
+                    return (
+                      <th
+                        key={`col-${i}`}
+                        className="bg-gray-50 px-3 py-3 text-center text-sm font-semibold text-gray-900 border-b border-gray-200 min-w-[140px]"
+                      >
+                        {col}
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {rowValues.map((row: string, rowIdx: number) => {
+                  const isLast: boolean = rowIdx === rowValues.length - 1;
+                  return (
+                    <tr
+                      key={`row-${rowIdx}`}
+                      className="group transition-colors"
+                    >
+                      <th
+                        scope="row"
+                        className={`sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-4 py-4 text-left text-sm font-semibold text-gray-900 min-w-[140px] transition-colors ${
+                          isLast ? "" : "border-b border-gray-100"
+                        }`}
+                      >
+                        {row}
+                      </th>
+                      {columnValues.map((col: string, colIdx: number) => {
+                        const cell: CellContent = cellByRowCol[row]![col]!;
+                        return (
+                          <td
+                            key={`cell-${rowIdx}-${colIdx}`}
+                            className={`align-middle text-center group-hover:bg-gray-50 transition-colors ${
+                              isLast ? "" : "border-b border-gray-100"
+                            }`}
+                          >
+                            {renderCell(cell)}
+                          </td>
+                        );
+                      })}
+                    </tr>
                   );
                 })}
-              </tr>
-            </thead>
-            <tbody>
-              {rowValues.map((row: string, rowIdx: number) => {
-                const isLast: boolean = rowIdx === rowValues.length - 1;
-                return (
-                  <tr
-                    key={`row-${rowIdx}`}
-                    className="hover:bg-gray-50/60 transition-colors"
-                  >
-                    <td
-                      className={`sticky left-0 z-10 bg-white px-4 py-3 text-left text-sm font-medium text-gray-800 min-w-[140px] ${
-                        isLast ? "" : "border-b border-gray-100"
-                      }`}
-                    >
-                      {row}
-                    </td>
-                    {columnValues.map((col: string, colIdx: number) => {
-                      const cell: CellContent = cellByRowCol[row]![col]!;
-                      return (
-                        <td
-                          key={`cell-${rowIdx}-${colIdx}`}
-                          className={`align-middle text-center ${
-                            isLast ? "" : "border-b border-gray-100"
-                          }`}
-                        >
-                          {renderCell(cell)}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     );
@@ -1205,6 +1207,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
                   (resourceGroup: StatusPageGroup, i: number) => {
                     const isGrid: boolean =
                       resourceGroup.viewMode === StatusPageGroupViewMode.Grid;
+                    const groupName: string = resourceGroup.name || "";
+                    const rawDescription: string =
+                      resourceGroup.description || "";
+                    const description: string | undefined =
+                      rawDescription &&
+                      rawDescription.trim() !== groupName.trim()
+                        ? rawDescription
+                        : undefined;
                     return (
                       <div
                         key={i}
@@ -1218,8 +1228,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                             resourceGroup.isExpandedByDefault
                           }
                           isLastElement={true}
-                          title={resourceGroup.name!}
-                          description={resourceGroup.description!}
+                          title={groupName}
+                          titleClassName="text-base sm:text-lg font-semibold tracking-tight"
+                          description={description}
                         >
                           {isGrid
                             ? getGridForGroup(resourceGroup)

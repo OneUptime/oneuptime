@@ -52,6 +52,37 @@ import MonitorStepDockerMonitor, {
 } from "./MonitorStepDockerMonitor";
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 
+// Caps and defaults for per-step request timeout and retry settings.
+// Users may lower these via the UI; values higher than the cap are clamped.
+export const MAX_MONITOR_REQUEST_TIMEOUT_IN_MS: number = 60000; // 60 seconds
+export const DEFAULT_MONITOR_REQUEST_TIMEOUT_IN_MS: number = 60000;
+export const MAX_MONITOR_RETRY_COUNT: number = 3;
+export const DEFAULT_MONITOR_RETRY_COUNT: number = 3;
+
+export const clampMonitorRequestTimeoutInMs: (value: number) => number = (
+  value: number,
+): number => {
+  if (!value || value <= 0) {
+    return DEFAULT_MONITOR_REQUEST_TIMEOUT_IN_MS;
+  }
+  if (value > MAX_MONITOR_REQUEST_TIMEOUT_IN_MS) {
+    return MAX_MONITOR_REQUEST_TIMEOUT_IN_MS;
+  }
+  return value;
+};
+
+export const clampMonitorRetryCount: (value: number) => number = (
+  value: number,
+): number => {
+  if (value === undefined || value === null || isNaN(value) || value < 0) {
+    return DEFAULT_MONITOR_RETRY_COUNT;
+  }
+  if (value > MAX_MONITOR_RETRY_COUNT) {
+    return MAX_MONITOR_RETRY_COUNT;
+  }
+  return value;
+};
+
 export interface MonitorStepType {
   id: string;
   monitorDestination?: URL | IP | Hostname | undefined;
@@ -87,6 +118,19 @@ export interface MonitorStepType {
 
   // retry count for synthetic monitors - number of times to retry on error
   retryCountOnError?: number | undefined;
+
+  /*
+   * Per-step request timeout in milliseconds for probe-based monitors
+   * (Website, API, Ping, IP, Port, SSLCertificate). Defaults to and is
+   * capped at 60000 ms (60 seconds).
+   */
+  requestTimeoutInMs?: number | undefined;
+
+  /*
+   * Per-step retry count for probe-based monitors when a check fails.
+   * Defaults to and is capped at 3.
+   */
+  retryCount?: number | undefined;
 
   // Log monitor type.
   logMonitor?: MonitorStepLogMonitor | undefined;
@@ -148,6 +192,8 @@ export default class MonitorStep extends DatabaseProperty {
       screenSizeTypes: undefined,
       browserTypes: undefined,
       retryCountOnError: undefined,
+      requestTimeoutInMs: undefined,
+      retryCount: undefined,
       logMonitor: undefined,
       traceMonitor: undefined,
       metricMonitor: undefined,
@@ -190,6 +236,8 @@ export default class MonitorStep extends DatabaseProperty {
       screenSizeTypes: undefined,
       browserTypes: undefined,
       retryCountOnError: undefined,
+      requestTimeoutInMs: undefined,
+      retryCount: undefined,
       logMonitor: undefined,
       traceMonitor: undefined,
       metricMonitor: undefined,
@@ -291,6 +339,28 @@ export default class MonitorStep extends DatabaseProperty {
 
   public setRetryCountOnError(retryCountOnError: number): MonitorStep {
     this.data!.retryCountOnError = retryCountOnError;
+    return this;
+  }
+
+  public setRequestTimeoutInMs(
+    requestTimeoutInMs: number | undefined,
+  ): MonitorStep {
+    if (requestTimeoutInMs === undefined) {
+      this.data!.requestTimeoutInMs = undefined;
+      return this;
+    }
+    this.data!.requestTimeoutInMs = clampMonitorRequestTimeoutInMs(
+      requestTimeoutInMs,
+    );
+    return this;
+  }
+
+  public setRetryCount(retryCount: number | undefined): MonitorStep {
+    if (retryCount === undefined) {
+      this.data!.retryCount = undefined;
+      return this;
+    }
+    this.data!.retryCount = clampMonitorRetryCount(retryCount);
     return this;
   }
 
@@ -400,6 +470,8 @@ export default class MonitorStep extends DatabaseProperty {
         screenSizeTypes: undefined,
         browserTypes: undefined,
         retryCountOnError: undefined,
+        requestTimeoutInMs: undefined,
+        retryCount: undefined,
         logMonitor: undefined,
         exceptionMonitor: undefined,
         kubernetesMonitor: undefined,
@@ -597,6 +669,9 @@ export default class MonitorStep extends DatabaseProperty {
           screenSizeTypes: this.data.screenSizeTypes || undefined,
           browserTypes: this.data.browserTypes || undefined,
           retryCountOnError: this.data.retryCountOnError || undefined,
+          requestTimeoutInMs: this.data.requestTimeoutInMs || undefined,
+          retryCount:
+            this.data.retryCount === undefined ? undefined : this.data.retryCount,
           logMonitor: this.data.logMonitor
             ? MonitorStepLogMonitorUtil.toJSON(
                 this.data.logMonitor || MonitorStepLogMonitorUtil.getDefault(),
@@ -745,6 +820,12 @@ export default class MonitorStep extends DatabaseProperty {
         (json["screenSizeTypes"] as Array<ScreenSizeType>) || undefined,
       browserTypes: (json["browserTypes"] as Array<BrowserType>) || undefined,
       retryCountOnError: (json["retryCountOnError"] as number) || undefined,
+      requestTimeoutInMs:
+        (json["requestTimeoutInMs"] as number) || undefined,
+      retryCount:
+        json["retryCount"] === undefined || json["retryCount"] === null
+          ? undefined
+          : (json["retryCount"] as number),
       logMonitor: json["logMonitor"]
         ? (json["logMonitor"] as JSONObject)
         : undefined,
@@ -806,6 +887,8 @@ export default class MonitorStep extends DatabaseProperty {
         screenSizeTypes: Zod.any().optional(),
         browserTypes: Zod.any().optional(),
         retryCountOnError: Zod.number().optional(),
+        requestTimeoutInMs: Zod.number().optional(),
+        retryCount: Zod.number().optional(),
         logMonitor: Zod.any().optional(),
         traceMonitor: Zod.any().optional(),
         metricMonitor: Zod.any().optional(),

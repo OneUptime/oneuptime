@@ -391,7 +391,80 @@ return {
     Boolean(monitorStep.data?.doNotFollowRedirects) ||
     Boolean(monitorStep.data?.allowSelfSignedCertificates) ||
     Boolean(monitorStep.data?.tlsClientCertificate) ||
-    Boolean(monitorStep.data?.tlsClientKey);
+    Boolean(monitorStep.data?.tlsClientKey) ||
+    monitorStep.data?.requestTimeoutInMs !== undefined ||
+    monitorStep.data?.retryCount !== undefined;
+
+  const renderTimeoutAndRetryFields: () => ReactElement = (): ReactElement => {
+    return (
+      <>
+        <div>
+          <FieldLabelElement
+            title={"Request Timeout (seconds)"}
+            description={
+              "How long to wait for a response before timing out. Defaults to 60 seconds. Maximum is 60 seconds."
+            }
+            required={false}
+          />
+          <Input
+            initialValue={
+              monitorStep.data?.requestTimeoutInMs
+                ? Math.round(
+                    monitorStep.data.requestTimeoutInMs / 1000,
+                  ).toString()
+                : "60"
+            }
+            onChange={(value: string) => {
+              const seconds: number = parseInt(value);
+              if (isNaN(seconds) || seconds <= 0) {
+                monitorStep.setRequestTimeoutInMs(undefined);
+              } else {
+                const clampedSeconds: number = seconds > 60 ? 60 : seconds;
+                monitorStep.setRequestTimeoutInMs(clampedSeconds * 1000);
+              }
+              if (props.onChange) {
+                props.onChange(MonitorStep.clone(monitorStep));
+              }
+            }}
+            placeholder="60"
+            type={InputType.NUMBER}
+          />
+        </div>
+
+        <div>
+          <FieldLabelElement
+            title={"Retries on Failure"}
+            description={
+              "How many times to retry if the check fails. Set to 0 for no retries. Defaults to 3. Maximum is 3."
+            }
+            required={false}
+          />
+          <Input
+            initialValue={
+              monitorStep.data?.retryCount !== undefined &&
+              monitorStep.data?.retryCount !== null
+                ? monitorStep.data.retryCount.toString()
+                : "3"
+            }
+            onChange={(value: string) => {
+              const num: number = parseInt(value);
+              if (isNaN(num)) {
+                monitorStep.setRetryCount(undefined);
+              } else {
+                const clamped: number = num < 0 ? 0 : num > 3 ? 3 : num;
+                monitorStep.setRetryCount(clamped);
+              }
+              if (props.onChange) {
+                props.onChange(MonitorStep.clone(monitorStep));
+              }
+            }}
+            placeholder="3"
+            type={InputType.NUMBER}
+          />
+        </div>
+      </>
+    );
+  };
 
   return (
     <div className="mt-5 space-y-6">
@@ -839,6 +912,8 @@ return {
                 </div>
               </>
             )}
+
+            {renderTimeoutAndRetryFields()}
           </div>
         </CollapsibleSection>
       )}
@@ -1014,7 +1089,33 @@ return {
                 </div>
               </>
             )}
+
+            {renderTimeoutAndRetryFields()}
           </div>
+        </CollapsibleSection>
+      )}
+
+      {/* Advanced Options - Collapsible Section for Ping/IP/Port/SSL monitors */}
+      {(props.monitorType === MonitorType.Ping ||
+        props.monitorType === MonitorType.IP ||
+        props.monitorType === MonitorType.Port ||
+        props.monitorType === MonitorType.SSLCertificate) && (
+        <CollapsibleSection
+          title="Advanced Options"
+          description="Timeout and retry settings"
+          badge={
+            monitorStep.data?.requestTimeoutInMs !== undefined ||
+            monitorStep.data?.retryCount !== undefined
+              ? "Configured"
+              : undefined
+          }
+          variant="card"
+          defaultCollapsed={
+            monitorStep.data?.requestTimeoutInMs === undefined &&
+            monitorStep.data?.retryCount === undefined
+          }
+        >
+          <div className="space-y-4">{renderTimeoutAndRetryFields()}</div>
         </CollapsibleSection>
       )}
 
