@@ -45,9 +45,11 @@ export class MailService extends BaseService {
 
     if (options && options.mailServer) {
       body["SMTP_ID"] = options.mailServer.id?.toString();
-      // host/port/secure are optional on EmailServer because HTTP-API
-      // transports (e.g. Microsoft Graph) don't use them. Only serialize the
-      // SMTP-only fields when they're actually present.
+      /*
+       * host/port/secure are optional on EmailServer because HTTP-API
+       * transports (e.g. Microsoft Graph) don't use them. Only serialize the
+       * SMTP-only fields when they're actually present.
+       */
       body["SMTP_TRANSPORT_TYPE"] =
         options.mailServer.transportType || undefined;
       body["SMTP_USERNAME"] = options.mailServer.username || undefined;

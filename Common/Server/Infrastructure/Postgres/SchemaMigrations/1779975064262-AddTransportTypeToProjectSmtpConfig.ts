@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class AddTransportTypeToProjectSmtpConfig1779975064262
   implements MigrationInterface
 {
-  name = "AddTransportTypeToProjectSmtpConfig1779975064262";
+  public name: string = "AddTransportTypeToProjectSmtpConfig1779975064262";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

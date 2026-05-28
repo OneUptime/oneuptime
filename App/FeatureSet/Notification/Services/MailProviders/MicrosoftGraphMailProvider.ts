@@ -80,7 +80,7 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
       )}/sendMail`,
     );
 
-    const payload: object = {
+    const payload: Record<string, unknown> = {
       message: {
         subject: mail.subject,
         body: {

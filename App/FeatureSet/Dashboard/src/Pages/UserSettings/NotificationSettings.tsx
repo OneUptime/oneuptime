@@ -178,8 +178,7 @@ const EVENT_LIBRARY: Record<
   [NotificationSettingEventType.SEND_ALERT_ADDED_TO_EPISODE_OWNER_NOTIFICATION]:
     {
       label: "Alert added to alert episode",
-      description:
-        "A new alert is added to an existing alert episode you own.",
+      description: "A new alert is added to an existing alert episode you own.",
     },
 
   [NotificationSettingEventType.SEND_MONITOR_CREATED_OWNER_NOTIFICATION]: {
