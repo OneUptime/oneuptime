@@ -463,48 +463,29 @@ const Overview: FunctionComponent<PageComponentProps> = (
           return <></>;
         }
 
-        const color: string =
-          currentStatus?.color?.toString() || Green.toString();
         return (
           <div
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold tabular-nums"
+            className="font-medium"
             style={{
-              backgroundColor: tintFromHex(color, 0.1),
-              color: color,
+              color: currentStatus?.color?.toString() || Green.toString(),
             }}
           >
-            <span
-              className="w-1.5 h-1.5 rounded-full"
-              style={{ backgroundColor: color }}
-              aria-hidden="true"
-            />
-            <span>
-              {uptimePercent}
-              {t("overview.uptimeSuffix")}
-            </span>
+            {uptimePercent}
+            {t("overview.uptimeSuffix")}
           </div>
         );
       }
 
       if (data.group.showCurrentStatus) {
-        const color: string =
-          currentStatus?.color?.toString() || Green.toString();
-        const statusName: string =
-          translateStatusName(currentStatus?.name) || t("overview.operational");
         return (
           <div
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold tracking-tight"
+            className=""
             style={{
-              backgroundColor: tintFromHex(color, 0.1),
-              color: color,
+              color: currentStatus?.color?.toString() || Green.toString(),
             }}
           >
-            <span
-              className="w-1.5 h-1.5 rounded-full"
-              style={{ backgroundColor: color }}
-              aria-hidden="true"
-            />
-            <span>{statusName}</span>
+            {translateStatusName(currentStatus?.name) ||
+              t("overview.operational")}
           </div>
         );
       }
