@@ -4,6 +4,7 @@ import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
+import { JSONObject } from "Common/Types/JSON";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import { SMSMessage } from "Common/Types/SMS/SMS";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
@@ -12,15 +13,14 @@ import IncidentEpisodeService from "Common/Server/Services/IncidentEpisodeServic
 import IncidentEpisodeMemberService from "Common/Server/Services/IncidentEpisodeMemberService";
 import IncidentService from "Common/Server/Services/IncidentService";
 import ProjectService from "Common/Server/Services/ProjectService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Select from "Common/Server/Types/Database/Select";
 import logger from "Common/Server/Utils/Logger";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
-import IncidentEpisodeMember, {
-  IncidentEpisodeMemberAddedBy,
-} from "Common/Models/DatabaseModels/IncidentEpisodeMember";
+import IncidentEpisodeMember from "Common/Models/DatabaseModels/IncidentEpisodeMember";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Project from "Common/Models/DatabaseModels/Project";
 import User from "Common/Models/DatabaseModels/User";
@@ -31,11 +31,15 @@ import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
+// Cap the number of incidents we list inline in the email body. Anything
+// beyond this gets summarized as "and N more" so the email stays readable.
+const MAX_INCIDENTS_IN_EMAIL: number = 25;
+
 RunCron(
   "IncidentEpisodeOwner:SendIncidentAddedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
-    // Find all episode-member rows we haven't yet notified owners about.
+    // Find every member row that hasn't been rolled into a notification yet.
     const members: Array<IncidentEpisodeMember> =
       await IncidentEpisodeMemberService.findAllBy({
         query: {
@@ -51,25 +55,23 @@ RunCron(
           incidentId: true,
           incidentEpisodeId: true,
           addedAt: true,
-          addedBy: true,
           createdAt: true,
-          addedByUser: {
-            name: true,
-            email: true,
-          },
         },
       });
 
-    for (const member of members) {
-      const memberId: ObjectID = member.id!;
-      const projectId: ObjectID | undefined = member.projectId;
-      const incidentId: ObjectID | undefined = member.incidentId;
-      const episodeId: ObjectID | undefined = member.incidentEpisodeId;
+    if (members.length === 0) {
+      return;
+    }
 
-      if (!projectId || !incidentId || !episodeId) {
-        // Bad data — mark as notified so we don't loop on it.
+    // Group members by episode so each owner gets ONE email per episode per
+    // cron tick, no matter how many incidents landed.
+    const membersByEpisode: Dictionary<Array<IncidentEpisodeMember>> = {};
+
+    for (const member of members) {
+      if (!member.incidentEpisodeId) {
+        // Bad data — mark so we never reprocess.
         await IncidentEpisodeMemberService.updateOneById({
-          id: memberId,
+          id: member.id!,
           data: {
             isOwnerNotifiedOfIncidentAdded: true,
           },
@@ -80,11 +82,45 @@ RunCron(
         continue;
       }
 
-      /*
-       * Load the episode. We need its current incidentCount so we can skip the
-       * very first incident — that one is covered by the "episode created"
-       * notification and we don't want to double-notify owners.
-       */
+      const key: string = member.incidentEpisodeId.toString();
+      if (!membersByEpisode[key]) {
+        membersByEpisode[key] = [];
+      }
+      (membersByEpisode[key] as Array<IncidentEpisodeMember>).push(member);
+    }
+
+    for (const episodeIdStr of Object.keys(membersByEpisode)) {
+      const episodeMembers: Array<IncidentEpisodeMember> = membersByEpisode[
+        episodeIdStr
+      ] as Array<IncidentEpisodeMember>;
+
+      if (episodeMembers.length === 0) {
+        continue;
+      }
+
+      const episodeId: ObjectID = new ObjectID(episodeIdStr);
+      const projectId: ObjectID | undefined = episodeMembers[0]!.projectId;
+
+      // Mark everything in this batch as notified upfront. If the rest of
+      // this iteration fails we don't want to retry-spam owners on the next
+      // cron tick.
+      for (const member of episodeMembers) {
+        await IncidentEpisodeMemberService.updateOneById({
+          id: member.id!,
+          data: {
+            isOwnerNotifiedOfIncidentAdded: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+
+      if (!projectId) {
+        continue;
+      }
+
+      // Load episode metadata for the email.
       const episode: IncidentEpisode | null =
         await IncidentEpisodeService.findOneById({
           id: episodeId,
@@ -95,7 +131,6 @@ RunCron(
             _id: true,
             title: true,
             projectId: true,
-            incidentCount: true,
             project: {
               name: true,
             } as Select<Project>,
@@ -108,52 +143,31 @@ RunCron(
         });
 
       if (!episode) {
-        // Episode is gone — nothing to notify about.
-        await IncidentEpisodeMemberService.updateOneById({
-          id: memberId,
-          data: {
-            isOwnerNotifiedOfIncidentAdded: true,
-          },
-          props: {
-            isRoot: true,
-          },
+        continue;
+      }
+
+      // Load every added incident in one query.
+      const incidentIds: Array<ObjectID> = episodeMembers
+        .map((m: IncidentEpisodeMember) => {
+          return m.incidentId;
+        })
+        .filter((id: ObjectID | undefined): id is ObjectID => {
+          return Boolean(id);
         });
+
+      if (incidentIds.length === 0) {
         continue;
       }
 
-      /*
-       * Mark as notified now so we never retry this member, even if all
-       * subsequent steps fail.
-       */
-      await IncidentEpisodeMemberService.updateOneById({
-        id: memberId,
-        data: {
-          isOwnerNotifiedOfIncidentAdded: true,
+      const incidents: Array<Incident> = await IncidentService.findBy({
+        query: {
+          _id: QueryHelper.any(incidentIds),
         },
         props: {
           isRoot: true,
         },
-      });
-
-      /*
-       * Skip the founding incident — the "episode created" notification
-       * already covers it. If incidentCount <= 1 the episode has just this
-       * one incident, which means owners are already being notified via the
-       * creation flow.
-       */
-      const incidentCount: number =
-        typeof episode.incidentCount === "number" ? episode.incidentCount : 0;
-
-      if (incidentCount <= 1) {
-        continue;
-      }
-
-      // Load incident details.
-      const incident: Incident | null = await IncidentService.findOneById({
-        id: incidentId,
-        props: {
-          isRoot: true,
-        },
+        skip: 0,
+        limit: incidentIds.length,
         select: {
           _id: true,
           title: true,
@@ -165,7 +179,7 @@ RunCron(
         },
       });
 
-      if (!incident) {
+      if (incidents.length === 0) {
         continue;
       }
 
@@ -188,29 +202,41 @@ RunCron(
         (episode.episodeNumber ? `#${episode.episodeNumber}` : "");
       const episodeDisplayNumber: string =
         episode.episodeNumberWithPrefix || "#" + episode.episodeNumber;
-      const incidentNumberStr: string =
-        incident.incidentNumberWithPrefix ||
-        (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
 
-      const addedAtDate: Date =
-        member.addedAt || member.createdAt || OneUptimeDate.getCurrentDate();
+      const incidentCountInBatch: number = incidents.length;
 
-      let addedByLabel: string;
-      if (
-        member.addedByUser &&
-        member.addedByUser.name &&
-        member.addedByUser.email
-      ) {
-        addedByLabel = `${member.addedByUser.name.toString()} (${member.addedByUser.email.toString()})`;
-      } else if (member.addedBy === IncidentEpisodeMemberAddedBy.Rule) {
-        addedByLabel = "Grouping rule";
-      } else if (member.addedBy === IncidentEpisodeMemberAddedBy.API) {
-        addedByLabel = "API";
-      } else if (member.addedBy === IncidentEpisodeMemberAddedBy.Manual) {
-        addedByLabel = "Manual";
-      } else {
-        addedByLabel = "OneUptime";
+      // Map incidentId -> addedAt for the in-email list. Some members may have
+      // had no addedAt (defensive), so we fall back to createdAt.
+      const addedAtByIncidentId: Dictionary<Date> = {};
+      for (const member of episodeMembers) {
+        if (member.incidentId) {
+          addedAtByIncidentId[member.incidentId.toString()] =
+            member.addedAt || member.createdAt || OneUptimeDate.getCurrentDate();
+        }
       }
+
+      // Sort incidents by addedAt ascending so newest-at-bottom; truncate if
+      // the batch is huge.
+      const sortedIncidents: Array<Incident> = [...incidents].sort(
+        (a: Incident, b: Incident) => {
+          const aTime: number = (
+            addedAtByIncidentId[a.id!.toString()] || new Date(0)
+          ).getTime();
+          const bTime: number = (
+            addedAtByIncidentId[b.id!.toString()] || new Date(0)
+          ).getTime();
+          return aTime - bTime;
+        },
+      );
+
+      const truncated: boolean =
+        sortedIncidents.length > MAX_INCIDENTS_IN_EMAIL;
+      const incidentsToShow: Array<Incident> = truncated
+        ? sortedIncidents.slice(0, MAX_INCIDENTS_IN_EMAIL)
+        : sortedIncidents;
+      const remainingCount: number = truncated
+        ? sortedIncidents.length - MAX_INCIDENTS_IN_EMAIL
+        : 0;
 
       const episodeViewLink: string = (
         await IncidentEpisodeService.getEpisodeLinkInDashboard(
@@ -219,30 +245,56 @@ RunCron(
         )
       ).toString();
 
-      const incidentViewLink: string = (
-        await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)
-      ).toString();
-
-      const episodeFeedText: string = `🔔 **Owner Incident Added to Episode Notification Sent**:
-      Notification sent to owners because incident ${incidentNumberStr} was added to [Incident Episode ${episodeDisplayNumber}](${episodeViewLink}).`;
+      const episodeFeedText: string = `🔔 **Owner Incidents Added to Episode Notification Sent**:
+      Notification sent to owners because ${incidentCountInBatch} incident(s) were added to [Incident Episode ${episodeDisplayNumber}](${episodeViewLink}).`;
       let moreEpisodeFeedInformationInMarkdown: string = "";
 
       for (const user of owners) {
         try {
-          const vars: Dictionary<string> = {
+          // Build the per-incident list for the HBS template. addedAt is
+          // pre-formatted per-recipient because timezone is per-user.
+          const incidentsForTemplate: Array<JSONObject> = await Promise.all(
+            incidentsToShow.map(async (incident: Incident): Promise<JSONObject> => {
+              const incidentLink: string = (
+                await IncidentService.getIncidentLinkInDashboard(
+                  projectId,
+                  incident.id!,
+                )
+              ).toString();
+
+              const incidentNumberStr: string =
+                incident.incidentNumberWithPrefix ||
+                (incident.incidentNumber
+                  ? `#${incident.incidentNumber}`
+                  : "");
+
+              return {
+                incidentTitle: incident.title || "",
+                incidentNumber: incidentNumberStr,
+                incidentSeverity: incident.incidentSeverity?.name || "Not Set",
+                addedAt:
+                  OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+                    date:
+                      addedAtByIncidentId[incident.id!.toString()] ||
+                      OneUptimeDate.getCurrentDate(),
+                    timezones: user.timezone ? [user.timezone] : [],
+                  }),
+                incidentViewLink: incidentLink,
+              };
+            }),
+          );
+
+          const vars: Dictionary<string | JSONObject> = {
             episodeTitle: episode.title!,
             episodeNumber: episodeNumberStr,
             projectName: episode.project!.name!,
             currentState: episode.currentIncidentState?.name || "Not Set",
-            incidentTitle: incident.title!,
-            incidentNumber: incidentNumberStr,
-            incidentSeverity: incident.incidentSeverity?.name || "Not Set",
-            addedAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
-              date: addedAtDate,
-              timezones: user.timezone ? [user.timezone] : [],
-            }),
-            addedBy: addedByLabel,
-            incidentViewLink: incidentViewLink,
+            incidentCount: incidentCountInBatch.toString(),
+            incidentCountLabel:
+              incidentCountInBatch === 1 ? "incident" : "incidents",
+            remainingCount: remainingCount.toString(),
+            hasMore: remainingCount > 0 ? "true" : "false",
+            incidents: incidentsForTemplate as unknown as JSONObject,
             episodeViewLink: episodeViewLink,
           };
 
@@ -250,29 +302,39 @@ RunCron(
             vars["isOwner"] = "true";
           }
 
+          const subjectIncidentLabel: string =
+            incidentCountInBatch === 1
+              ? `1 new incident`
+              : `${incidentCountInBatch} new incidents`;
+
           const emailMessage: EmailEnvelope = {
             templateType: EmailTemplateType.IncidentEpisodeOwnerIncidentAdded,
             vars: vars,
-            subject: `[Incident ${incidentNumberStr} added to Episode ${episodeNumberStr}] - ${incident.title!}`,
+            subject: `[Episode ${episodeNumberStr}] ${subjectIncidentLabel} added - ${episode.title!}`,
           };
 
+          const summaryLine: string =
+            incidentCountInBatch === 1
+              ? `1 new incident was added to incident episode ${episodeNumberStr} (${episode.title}).`
+              : `${incidentCountInBatch} new incidents were added to incident episode ${episodeNumberStr} (${episode.title}).`;
+
           const sms: SMSMessage = {
-            message: `This is a message from OneUptime. Incident ${incidentNumberStr} (${incident.title}) was added to incident episode ${episodeNumberStr} (${episode.title}). To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+            message: `This is a message from OneUptime. ${summaryLine} To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
           };
 
           const callMessage: CallRequestMessage = {
             data: [
               {
-                sayMessage: `This is a message from OneUptime. Incident ${incidentNumberStr} was added to incident episode ${episodeNumberStr}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+                sayMessage: `This is a message from OneUptime. ${summaryLine} To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
               },
             ],
           };
 
           const pushMessage: PushNotificationMessage =
             PushNotificationUtil.createGenericNotification({
-              title: `Incident ${incidentNumberStr} added to Episode ${episodeNumberStr}`,
-              body: `Incident ${incidentNumberStr} (${incident.title}) was added to incident episode ${episodeNumberStr} in ${episode.project!.name!}. Click to view details.`,
-              clickAction: incidentViewLink,
+              title: `${subjectIncidentLabel} added to Episode ${episodeNumberStr}`,
+              body: `${summaryLine} Click to view the episode.`,
+              clickAction: episodeViewLink,
               tag: "incident-added-to-episode",
               requireInteraction: false,
             });
@@ -287,12 +349,7 @@ RunCron(
                 episode_title: episode.title!,
                 episode_number: episodeDisplayNumber,
                 episode_link: episodeViewLink,
-                incident_title: incident.title!,
-                incident_number:
-                  incident.incidentNumberWithPrefix ||
-                  (incident.incidentNumber !== undefined
-                    ? incident.incidentNumber.toString()
-                    : ""),
+                incident_count: incidentCountInBatch.toString(),
               },
             });
 
@@ -308,20 +365,19 @@ RunCron(
             eventType,
           });
 
-          moreEpisodeFeedInformationInMarkdown += `**Notified**: ${user.name} (${user.email})\n`;
+          moreEpisodeFeedInformationInMarkdown += `**Notified**: ${user.name} (${user.email}) — ${incidentCountInBatch} incident(s)\n`;
         } catch (e) {
           logger.error(
-            "Error in sending incident added to episode notification",
+            "Error in sending incident-added-to-episode batch notification",
             {
               projectId: projectId?.toString(),
               incidentEpisodeId: episodeId?.toString(),
-              incidentId: incidentId?.toString(),
+              batchSize: incidentCountInBatch,
             },
           );
           logger.error(e, {
             projectId: projectId?.toString(),
             incidentEpisodeId: episodeId?.toString(),
-            incidentId: incidentId?.toString(),
           });
         }
       }

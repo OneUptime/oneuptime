@@ -4,6 +4,7 @@ import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
+import { JSONObject } from "Common/Types/JSON";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import { SMSMessage } from "Common/Types/SMS/SMS";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
@@ -12,15 +13,14 @@ import AlertEpisodeService from "Common/Server/Services/AlertEpisodeService";
 import AlertEpisodeMemberService from "Common/Server/Services/AlertEpisodeMemberService";
 import AlertService from "Common/Server/Services/AlertService";
 import ProjectService from "Common/Server/Services/ProjectService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Select from "Common/Server/Types/Database/Select";
 import logger from "Common/Server/Utils/Logger";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
-import AlertEpisodeMember, {
-  AlertEpisodeMemberAddedBy,
-} from "Common/Models/DatabaseModels/AlertEpisodeMember";
+import AlertEpisodeMember from "Common/Models/DatabaseModels/AlertEpisodeMember";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import Project from "Common/Models/DatabaseModels/Project";
 import User from "Common/Models/DatabaseModels/User";
@@ -31,11 +31,15 @@ import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
+// Cap the number of alerts we list inline in the email body. Anything beyond
+// this gets summarized as "and N more" so the email stays readable.
+const MAX_ALERTS_IN_EMAIL: number = 25;
+
 RunCron(
   "AlertEpisodeOwner:SendAlertAddedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
-    // Find all episode-member rows we haven't yet notified owners about.
+    // Find every member row that hasn't been rolled into a notification yet.
     const members: Array<AlertEpisodeMember> =
       await AlertEpisodeMemberService.findAllBy({
         query: {
@@ -51,25 +55,23 @@ RunCron(
           alertId: true,
           alertEpisodeId: true,
           addedAt: true,
-          addedBy: true,
           createdAt: true,
-          addedByUser: {
-            name: true,
-            email: true,
-          },
         },
       });
 
-    for (const member of members) {
-      const memberId: ObjectID = member.id!;
-      const projectId: ObjectID | undefined = member.projectId;
-      const alertId: ObjectID | undefined = member.alertId;
-      const episodeId: ObjectID | undefined = member.alertEpisodeId;
+    if (members.length === 0) {
+      return;
+    }
 
-      if (!projectId || !alertId || !episodeId) {
-        // Bad data — mark as notified so we don't loop on it.
+    // Group members by episode so each owner gets ONE email per episode per
+    // cron tick, no matter how many alerts landed.
+    const membersByEpisode: Dictionary<Array<AlertEpisodeMember>> = {};
+
+    for (const member of members) {
+      if (!member.alertEpisodeId) {
+        // Bad data — mark so we never reprocess.
         await AlertEpisodeMemberService.updateOneById({
-          id: memberId,
+          id: member.id!,
           data: {
             isOwnerNotifiedOfAlertAdded: true,
           },
@@ -80,11 +82,45 @@ RunCron(
         continue;
       }
 
-      /*
-       * Load the episode. We need its current alertCount so we can skip the
-       * very first alert — that one is covered by the "episode created"
-       * notification and we don't want to double-notify owners.
-       */
+      const key: string = member.alertEpisodeId.toString();
+      if (!membersByEpisode[key]) {
+        membersByEpisode[key] = [];
+      }
+      (membersByEpisode[key] as Array<AlertEpisodeMember>).push(member);
+    }
+
+    for (const episodeIdStr of Object.keys(membersByEpisode)) {
+      const episodeMembers: Array<AlertEpisodeMember> = membersByEpisode[
+        episodeIdStr
+      ] as Array<AlertEpisodeMember>;
+
+      if (episodeMembers.length === 0) {
+        continue;
+      }
+
+      const episodeId: ObjectID = new ObjectID(episodeIdStr);
+      const projectId: ObjectID | undefined = episodeMembers[0]!.projectId;
+
+      // Mark everything in this batch as notified upfront. If the rest of
+      // this iteration fails we don't want to retry-spam owners on the next
+      // cron tick.
+      for (const member of episodeMembers) {
+        await AlertEpisodeMemberService.updateOneById({
+          id: member.id!,
+          data: {
+            isOwnerNotifiedOfAlertAdded: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+
+      if (!projectId) {
+        continue;
+      }
+
+      // Load episode metadata for the email.
       const episode: AlertEpisode | null =
         await AlertEpisodeService.findOneById({
           id: episodeId,
@@ -95,7 +131,6 @@ RunCron(
             _id: true,
             title: true,
             projectId: true,
-            alertCount: true,
             project: {
               name: true,
             } as Select<Project>,
@@ -108,51 +143,31 @@ RunCron(
         });
 
       if (!episode) {
-        // Episode is gone — nothing to notify about.
-        await AlertEpisodeMemberService.updateOneById({
-          id: memberId,
-          data: {
-            isOwnerNotifiedOfAlertAdded: true,
-          },
-          props: {
-            isRoot: true,
-          },
+        continue;
+      }
+
+      // Load every added alert in one query.
+      const alertIds: Array<ObjectID> = episodeMembers
+        .map((m: AlertEpisodeMember) => {
+          return m.alertId;
+        })
+        .filter((id: ObjectID | undefined): id is ObjectID => {
+          return Boolean(id);
         });
+
+      if (alertIds.length === 0) {
         continue;
       }
 
-      /*
-       * Mark as notified now so we never retry this member, even if all
-       * subsequent steps fail.
-       */
-      await AlertEpisodeMemberService.updateOneById({
-        id: memberId,
-        data: {
-          isOwnerNotifiedOfAlertAdded: true,
+      const alerts: Array<Alert> = await AlertService.findBy({
+        query: {
+          _id: QueryHelper.any(alertIds),
         },
         props: {
           isRoot: true,
         },
-      });
-
-      /*
-       * Skip the founding alert — the "episode created" notification already
-       * covers it. If alertCount <= 1 the episode has just this one alert,
-       * which means owners are already being notified via the creation flow.
-       */
-      const alertCount: number =
-        typeof episode.alertCount === "number" ? episode.alertCount : 0;
-
-      if (alertCount <= 1) {
-        continue;
-      }
-
-      // Load alert details.
-      const alert: Alert | null = await AlertService.findOneById({
-        id: alertId,
-        props: {
-          isRoot: true,
-        },
+        skip: 0,
+        limit: alertIds.length,
         select: {
           _id: true,
           title: true,
@@ -164,7 +179,7 @@ RunCron(
         },
       });
 
-      if (!alert) {
+      if (alerts.length === 0) {
         continue;
       }
 
@@ -186,29 +201,40 @@ RunCron(
         (episode.episodeNumber ? `#${episode.episodeNumber}` : "");
       const episodeDisplayNumber: string =
         episode.episodeNumberWithPrefix || "#" + episode.episodeNumber;
-      const alertNumberStr: string =
-        alert.alertNumberWithPrefix ||
-        (alert.alertNumber ? `#${alert.alertNumber}` : "");
 
-      const addedAtDate: Date =
-        member.addedAt || member.createdAt || OneUptimeDate.getCurrentDate();
+      const alertCountInBatch: number = alerts.length;
 
-      let addedByLabel: string;
-      if (
-        member.addedByUser &&
-        member.addedByUser.name &&
-        member.addedByUser.email
-      ) {
-        addedByLabel = `${member.addedByUser.name.toString()} (${member.addedByUser.email.toString()})`;
-      } else if (member.addedBy === AlertEpisodeMemberAddedBy.Rule) {
-        addedByLabel = "Grouping rule";
-      } else if (member.addedBy === AlertEpisodeMemberAddedBy.API) {
-        addedByLabel = "API";
-      } else if (member.addedBy === AlertEpisodeMemberAddedBy.Manual) {
-        addedByLabel = "Manual";
-      } else {
-        addedByLabel = "OneUptime";
+      // Map alertId -> addedAt for the in-email list. Some members may have
+      // had no addedAt (defensive), so we fall back to createdAt.
+      const addedAtByAlertId: Dictionary<Date> = {};
+      for (const member of episodeMembers) {
+        if (member.alertId) {
+          addedAtByAlertId[member.alertId.toString()] =
+            member.addedAt || member.createdAt || OneUptimeDate.getCurrentDate();
+        }
       }
+
+      // Sort alerts by addedAt ascending so newest-at-bottom; truncate if
+      // the batch is huge.
+      const sortedAlerts: Array<Alert> = [...alerts].sort(
+        (a: Alert, b: Alert) => {
+          const aTime: number = (
+            addedAtByAlertId[a.id!.toString()] || new Date(0)
+          ).getTime();
+          const bTime: number = (
+            addedAtByAlertId[b.id!.toString()] || new Date(0)
+          ).getTime();
+          return aTime - bTime;
+        },
+      );
+
+      const truncated: boolean = sortedAlerts.length > MAX_ALERTS_IN_EMAIL;
+      const alertsToShow: Array<Alert> = truncated
+        ? sortedAlerts.slice(0, MAX_ALERTS_IN_EMAIL)
+        : sortedAlerts;
+      const remainingCount: number = truncated
+        ? sortedAlerts.length - MAX_ALERTS_IN_EMAIL
+        : 0;
 
       const episodeViewLink: string = (
         await AlertEpisodeService.getEpisodeLinkInDashboard(
@@ -217,30 +243,53 @@ RunCron(
         )
       ).toString();
 
-      const alertViewLink: string = (
-        await AlertService.getAlertLinkInDashboard(projectId, alertId)
-      ).toString();
-
-      const episodeFeedText: string = `🔔 **Owner Alert Added to Episode Notification Sent**:
-      Notification sent to owners because alert ${alertNumberStr} was added to [Alert Episode ${episodeDisplayNumber}](${episodeViewLink}).`;
-      const moreEpisodeFeedInformationInMarkdown: string = "";
+      const episodeFeedText: string = `🔔 **Owner Alerts Added to Episode Notification Sent**:
+      Notification sent to owners because ${alertCountInBatch} alert(s) were added to [Alert Episode ${episodeDisplayNumber}](${episodeViewLink}).`;
+      let moreEpisodeFeedInformationInMarkdown: string = "";
 
       for (const user of owners) {
         try {
-          const vars: Dictionary<string> = {
+          // Build the per-alert list for the HBS template. addedAt is
+          // pre-formatted per-recipient because timezone is per-user.
+          const alertsForTemplate: Array<JSONObject> = await Promise.all(
+            alertsToShow.map(async (alert: Alert): Promise<JSONObject> => {
+              const alertLink: string = (
+                await AlertService.getAlertLinkInDashboard(
+                  projectId,
+                  alert.id!,
+                )
+              ).toString();
+
+              const alertNumberStr: string =
+                alert.alertNumberWithPrefix ||
+                (alert.alertNumber ? `#${alert.alertNumber}` : "");
+
+              return {
+                alertTitle: alert.title || "",
+                alertNumber: alertNumberStr,
+                alertSeverity: alert.alertSeverity?.name || "Not Set",
+                addedAt:
+                  OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+                    date:
+                      addedAtByAlertId[alert.id!.toString()] ||
+                      OneUptimeDate.getCurrentDate(),
+                    timezones: user.timezone ? [user.timezone] : [],
+                  }),
+                alertViewLink: alertLink,
+              };
+            }),
+          );
+
+          const vars: Dictionary<string | JSONObject> = {
             episodeTitle: episode.title!,
             episodeNumber: episodeNumberStr,
             projectName: episode.project!.name!,
             currentState: episode.currentAlertState?.name || "Not Set",
-            alertTitle: alert.title!,
-            alertNumber: alertNumberStr,
-            alertSeverity: alert.alertSeverity?.name || "Not Set",
-            addedAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
-              date: addedAtDate,
-              timezones: user.timezone ? [user.timezone] : [],
-            }),
-            addedBy: addedByLabel,
-            alertViewLink: alertViewLink,
+            alertCount: alertCountInBatch.toString(),
+            alertCountLabel: alertCountInBatch === 1 ? "alert" : "alerts",
+            remainingCount: remainingCount.toString(),
+            hasMore: remainingCount > 0 ? "true" : "false",
+            alerts: alertsForTemplate as unknown as JSONObject,
             episodeViewLink: episodeViewLink,
           };
 
@@ -248,29 +297,39 @@ RunCron(
             vars["isOwner"] = "true";
           }
 
+          const subjectAlertLabel: string =
+            alertCountInBatch === 1
+              ? `1 new alert`
+              : `${alertCountInBatch} new alerts`;
+
           const emailMessage: EmailEnvelope = {
             templateType: EmailTemplateType.AlertEpisodeOwnerAlertAdded,
             vars: vars,
-            subject: `[Alert ${alertNumberStr} added to Episode ${episodeNumberStr}] - ${alert.title!}`,
+            subject: `[Episode ${episodeNumberStr}] ${subjectAlertLabel} added - ${episode.title!}`,
           };
 
+          const summaryLine: string =
+            alertCountInBatch === 1
+              ? `1 new alert was added to alert episode ${episodeNumberStr} (${episode.title}).`
+              : `${alertCountInBatch} new alerts were added to alert episode ${episodeNumberStr} (${episode.title}).`;
+
           const sms: SMSMessage = {
-            message: `This is a message from OneUptime. Alert ${alertNumberStr} (${alert.title}) was added to alert episode ${episodeNumberStr} (${episode.title}). To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+            message: `This is a message from OneUptime. ${summaryLine} To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
           };
 
           const callMessage: CallRequestMessage = {
             data: [
               {
-                sayMessage: `This is a message from OneUptime. Alert ${alertNumberStr} was added to alert episode ${episodeNumberStr}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+                sayMessage: `This is a message from OneUptime. ${summaryLine} To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
               },
             ],
           };
 
           const pushMessage: PushNotificationMessage =
             PushNotificationUtil.createGenericNotification({
-              title: `Alert ${alertNumberStr} added to Episode ${episodeNumberStr}`,
-              body: `Alert ${alertNumberStr} (${alert.title}) was added to alert episode ${episodeNumberStr} in ${episode.project!.name!}. Click to view details.`,
-              clickAction: alertViewLink,
+              title: `${subjectAlertLabel} added to Episode ${episodeNumberStr}`,
+              body: `${summaryLine} Click to view the episode.`,
+              clickAction: episodeViewLink,
               tag: "alert-added-to-episode",
               requireInteraction: false,
             });
@@ -285,12 +344,7 @@ RunCron(
                 episode_title: episode.title!,
                 episode_number: episodeDisplayNumber,
                 episode_link: episodeViewLink,
-                alert_title: alert.title!,
-                alert_number:
-                  alert.alertNumberWithPrefix ||
-                  (alert.alertNumber !== undefined
-                    ? alert.alertNumber.toString()
-                    : ""),
+                alert_count: alertCountInBatch.toString(),
               },
             });
 
@@ -305,9 +359,21 @@ RunCron(
             alertEpisodeId: episodeId,
             eventType,
           });
+
+          moreEpisodeFeedInformationInMarkdown += `**Notified**: ${user.name} (${user.email}) — ${alertCountInBatch} alert(s)\n`;
         } catch (e) {
-          logger.error("Error in sending alert added to episode notification");
-          logger.error(e);
+          logger.error(
+            "Error in sending alert-added-to-episode batch notification",
+            {
+              projectId: projectId?.toString(),
+              alertEpisodeId: episodeId?.toString(),
+              batchSize: alertCountInBatch,
+            },
+          );
+          logger.error(e, {
+            projectId: projectId?.toString(),
+            alertEpisodeId: episodeId?.toString(),
+          });
         }
       }
 
