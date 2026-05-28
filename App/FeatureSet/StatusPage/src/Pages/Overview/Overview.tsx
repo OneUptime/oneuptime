@@ -27,7 +27,6 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import Accordion from "Common/UI/Components/Accordion/Accordion";
-import AccordionGroup from "Common/UI/Components/Accordion/AccordionGroup";
 import Alert, { AlertSize } from "Common/UI/Components/Alerts/Alert";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -62,10 +61,44 @@ import React, {
 import { useTranslation } from "react-i18next";
 import { translateStatusName } from "../../Utils/StatusTranslation";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
+import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupViewMode";
 import StatusPageResourceUptimeUtil from "Common/Utils/StatusPage/ResourceUptime";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import UptimeBarTooltipIncident from "Common/Types/Monitor/UptimeBarTooltipIncident";
 import Color from "Common/Types/Color";
+
+const parseAxisValues: (raw?: string) => Array<string> = (
+  raw?: string,
+): Array<string> => {
+  if (!raw) {
+    return [];
+  }
+  return raw
+    .split(",")
+    .map((value: string): string => {
+      return value.trim();
+    })
+    .filter((value: string): boolean => {
+      return value.length > 0;
+    });
+};
+
+const tintFromHex: (hex: string, alpha: number) => string = (
+  hex: string,
+  alpha: number,
+): string => {
+  const cleaned: string = hex.replace("#", "").trim();
+  if (cleaned.length !== 6) {
+    return hex;
+  }
+  const r: number = parseInt(cleaned.substring(0, 2), 16);
+  const g: number = parseInt(cleaned.substring(2, 4), 16);
+  const b: number = parseInt(cleaned.substring(4, 6), 16);
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) {
+    return hex;
+  }
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
 
 const Overview: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -660,6 +693,398 @@ const Overview: FunctionComponent<PageComponentProps> = (
     return elements;
   };
 
+  type GetCurrentStatusForResourceFunction = (
+    resource: StatusPageResource,
+  ) => MonitorStatus;
+
+  const getCurrentStatusForResource: GetCurrentStatusForResourceFunction = (
+    resource: StatusPageResource,
+  ): MonitorStatus => {
+    let currentStatus: MonitorStatus | undefined;
+
+    if (resource.monitor) {
+      currentStatus = monitorStatuses.find((status: MonitorStatus) => {
+        return (
+          status._id?.toString() ===
+          resource.monitor?.currentMonitorStatusId?.toString()
+        );
+      });
+    } else if (resource.monitorGroupId) {
+      currentStatus = monitorStatuses.find((status: MonitorStatus) => {
+        return (
+          status._id?.toString() ===
+          monitorGroupCurrentStatuses[
+            resource.monitorGroupId?.toString() || ""
+          ]?.toString()
+        );
+      });
+    }
+
+    if (!currentStatus) {
+      currentStatus = new MonitorStatus();
+      currentStatus.name = t("overview.operational");
+      currentStatus.color = Green;
+    }
+
+    return currentStatus;
+  };
+
+  type GetGridForGroupFunction = (group: StatusPageGroup) => ReactElement;
+
+  const getGridForGroup: GetGridForGroupFunction = (
+    group: StatusPageGroup,
+  ): ReactElement => {
+    const rowValues: Array<string> = parseAxisValues(group.rowAxisValues);
+    const columnValues: Array<string> = parseAxisValues(group.columnAxisValues);
+
+    if (rowValues.length === 0 || columnValues.length === 0) {
+      return (
+        <div className="mb-5">
+          <ErrorMessage
+            message={t("overview.gridAxesNotConfigured", {
+              defaultValue:
+                "This group is set to grid view but no row or column values are configured.",
+            })}
+          />
+        </div>
+      );
+    }
+
+    const resourcesInGroup: Array<StatusPageResource> =
+      statusPageResources.filter((resource: StatusPageResource) => {
+        return resource.statusPageGroupId?.toString() === group._id?.toString();
+      });
+
+    type CellContent = {
+      resources: Array<StatusPageResource>;
+    };
+
+    const cellByRowCol: Record<string, Record<string, CellContent>> = {};
+    for (const rowValue of rowValues) {
+      cellByRowCol[rowValue] = {};
+      for (const colValue of columnValues) {
+        cellByRowCol[rowValue]![colValue] = { resources: [] };
+      }
+    }
+
+    for (const resource of resourcesInGroup) {
+      const row: string | undefined = resource.rowAxisValue || undefined;
+      const col: string | undefined = resource.columnAxisValue || undefined;
+
+      if (!row || !col) {
+        continue;
+      }
+
+      if (!cellByRowCol[row] || !cellByRowCol[row]![col]) {
+        continue;
+      }
+
+      cellByRowCol[row]![col]!.resources.push(resource);
+    }
+
+    type CellMeta = {
+      isEmpty: boolean;
+      color: string | null;
+      statusName: string;
+      uptimeText: string | null;
+      labels: Array<string>;
+      resourceCount: number;
+    };
+
+    type ComputeCellMetaFunction = (cell: CellContent) => CellMeta;
+
+    const computeCellMeta: ComputeCellMetaFunction = (
+      cell: CellContent,
+    ): CellMeta => {
+      if (cell.resources.length === 0) {
+        return {
+          isEmpty: true,
+          color: null,
+          statusName: "",
+          uptimeText: null,
+          labels: [],
+          resourceCount: 0,
+        };
+      }
+
+      const statuses: Array<MonitorStatus> = cell.resources.map(
+        (resource: StatusPageResource) => {
+          return getCurrentStatusForResource(resource);
+        },
+      );
+
+      const worstStatus: MonitorStatus =
+        StatusPageResourceUptimeUtil.getWorstMonitorStatus({
+          monitorStatuses: statuses,
+        });
+
+      const cellColor: string =
+        worstStatus.color?.toString() || Green.toString();
+
+      const showUptimePercent: boolean = cell.resources.some(
+        (resource: StatusPageResource) => {
+          return Boolean(resource.showUptimePercent);
+        },
+      );
+
+      let uptimePercentText: string | null = null;
+      if (showUptimePercent) {
+        const uptimePercents: Array<number> = [];
+        for (const resource of cell.resources) {
+          const percent: number | null =
+            StatusPageResourceUptimeUtil.calculateUptimePercentOfResource({
+              statusPageResource: resource,
+              monitorStatusTimelines: monitorStatusTimelines,
+              precision:
+                resource.uptimePercentPrecision || UptimePrecision.ONE_DECIMAL,
+              downtimeMonitorStatuses:
+                statusPage?.downtimeMonitorStatuses || [],
+              monitorsInGroup: monitorsInGroup,
+            });
+          if (percent !== null) {
+            uptimePercents.push(percent);
+          }
+        }
+        if (uptimePercents.length > 0) {
+          const avg: number =
+            uptimePercents.reduce((a: number, b: number) => {
+              return a + b;
+            }, 0) / uptimePercents.length;
+          uptimePercentText = `${avg.toFixed(2)}${t("overview.uptimeSuffix")}`;
+        }
+      }
+
+      const labels: Array<string> = cell.resources.map(
+        (resource: StatusPageResource) => {
+          return resource.displayName || resource.monitor?.name || "";
+        },
+      );
+
+      const statusName: string =
+        translateStatusName(worstStatus?.name) || t("overview.operational");
+
+      return {
+        isEmpty: false,
+        color: cellColor,
+        statusName,
+        uptimeText: uptimePercentText,
+        labels,
+        resourceCount: cell.resources.length,
+      };
+    };
+
+    type RenderCellContentFunction = (meta: CellMeta) => ReactElement;
+
+    const renderCellContent: RenderCellContentFunction = (
+      meta: CellMeta,
+    ): ReactElement => {
+      if (meta.isEmpty) {
+        return (
+          <div
+            className="flex items-center justify-center py-3.5"
+            aria-hidden="true"
+          >
+            <span className="block w-3 h-0.5 bg-gray-200 rounded-full select-none" />
+          </div>
+        );
+      }
+
+      const color: string = meta.color!;
+
+      return (
+        <div
+          className="flex flex-col items-center justify-center gap-1 px-2 py-3"
+          title={meta.labels.join(", ")}
+        >
+          <div
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full transition-transform group-hover:scale-[1.03]"
+            style={{
+              backgroundColor: "rgba(255,255,255,0.85)",
+              boxShadow: `inset 0 0 0 1px ${tintFromHex(color, 0.25)}`,
+            }}
+          >
+            <span className="relative flex h-2 w-2" aria-hidden="true">
+              <span
+                className="absolute inline-flex h-full w-full rounded-full opacity-40"
+                style={{ backgroundColor: color }}
+              />
+              <span
+                className="relative inline-flex rounded-full h-2 w-2"
+                style={{ backgroundColor: color }}
+              />
+            </span>
+            <span
+              className="text-[11px] font-semibold tracking-tight"
+              style={{ color: color }}
+            >
+              {meta.statusName}
+            </span>
+            {meta.resourceCount > 1 && (
+              <span
+                className="text-[10px] font-medium tabular-nums opacity-60"
+                style={{ color: color }}
+              >
+                ×{meta.resourceCount}
+              </span>
+            )}
+          </div>
+          {meta.uptimeText && (
+            <div className="text-[10.5px] text-gray-500 font-medium tabular-nums">
+              {meta.uptimeText}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const rowAxisDisplay: string =
+      group.rowAxisLabel ||
+      t("overview.gridRowAxisDefaultLabel", {
+        defaultValue: "Resource",
+      });
+
+    type StatBucket = { color: string; count: number; label: string };
+
+    const statBuckets: Map<string, StatBucket> = new Map();
+    for (const row of rowValues) {
+      for (const col of columnValues) {
+        const cell: CellContent = cellByRowCol[row]![col]!;
+        const meta: CellMeta = computeCellMeta(cell);
+        if (meta.isEmpty) {
+          continue;
+        }
+        const key: string = `${meta.statusName}|${meta.color}`;
+        const existing: StatBucket | undefined = statBuckets.get(key);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          statBuckets.set(key, {
+            color: meta.color!,
+            count: 1,
+            label: meta.statusName,
+          });
+        }
+      }
+    }
+    const statEntries: Array<StatBucket> = Array.from(statBuckets.values());
+
+    return (
+      <div className="pt-1 pb-1">
+        {statEntries.length > 0 && (
+          <div className="flex items-center flex-wrap gap-x-4 gap-y-1.5 mb-3 px-1 text-xs">
+            {statEntries.map((stat: StatBucket, i: number) => {
+              return (
+                <div
+                  key={`stat-${i}`}
+                  className="inline-flex items-center gap-1.5"
+                >
+                  <span
+                    className="w-2 h-2 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: stat.color }}
+                    aria-hidden="true"
+                  />
+                  <span className="text-gray-700">
+                    <span className="font-semibold tabular-nums">
+                      {stat.count}
+                    </span>
+                    <span className="text-gray-500 ml-1">{stat.label}</span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-[0_1px_2px_0_rgba(0,0,0,0.02)]">
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-separate border-spacing-0">
+              <thead>
+                {group.columnAxisLabel ? (
+                  <tr>
+                    <th className="bg-gradient-to-b from-gray-50 to-gray-50/80 px-4 pt-3 pb-1.5 min-w-[160px] border-r border-gray-200" />
+                    <th
+                      colSpan={columnValues.length}
+                      className="bg-gradient-to-b from-gray-50 to-gray-50/80 px-4 pt-3 pb-1.5 text-center text-[10px] uppercase tracking-[0.18em] text-gray-400 font-semibold"
+                    >
+                      {group.columnAxisLabel}
+                    </th>
+                  </tr>
+                ) : null}
+                <tr>
+                  <th className="sticky left-0 z-10 bg-gradient-to-b from-gray-50 to-gray-50/80 px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400 border-b border-r border-gray-200 min-w-[160px]">
+                    {rowAxisDisplay}
+                  </th>
+                  {columnValues.map((col: string, i: number) => {
+                    return (
+                      <th
+                        key={`col-${i}`}
+                        className={`bg-gradient-to-b from-gray-50 to-gray-50/80 px-3 py-3 text-center text-sm font-semibold text-gray-900 border-b border-gray-200 min-w-[140px] ${
+                          i < columnValues.length - 1
+                            ? "border-r border-gray-100"
+                            : ""
+                        }`}
+                      >
+                        {col}
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {rowValues.map((row: string, rowIdx: number) => {
+                  const isLast: boolean = rowIdx === rowValues.length - 1;
+                  return (
+                    <tr
+                      key={`row-${rowIdx}`}
+                      className="group transition-colors"
+                    >
+                      <th
+                        scope="row"
+                        className={`sticky left-0 z-10 bg-white group-hover:bg-gray-50/80 px-4 py-3 text-left text-sm font-semibold text-gray-900 min-w-[140px] border-r border-gray-200 transition-colors ${
+                          isLast ? "" : "border-b border-gray-100"
+                        }`}
+                      >
+                        {row}
+                      </th>
+                      {columnValues.map((col: string, colIdx: number) => {
+                        const cell: CellContent = cellByRowCol[row]![col]!;
+                        const meta: CellMeta = computeCellMeta(cell);
+                        const isLastCol: boolean =
+                          colIdx === columnValues.length - 1;
+
+                        return (
+                          <td
+                            key={`cell-${rowIdx}-${colIdx}`}
+                            className={`align-middle text-center transition-colors ${
+                              isLast ? "" : "border-b border-gray-100"
+                            } ${isLastCol ? "" : "border-r border-gray-100"} ${
+                              meta.isEmpty ? "group-hover:bg-gray-50/40" : ""
+                            }`}
+                            style={
+                              meta.color
+                                ? {
+                                    backgroundColor: tintFromHex(
+                                      meta.color,
+                                      0.05,
+                                    ),
+                                  }
+                                : undefined
+                            }
+                          >
+                            {renderCellContent(meta)}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   type GetActiveIncidentsFunction = () => Array<IncidentGroup>;
 
   const getActiveIncidents: GetActiveIncidentsFunction =
@@ -882,50 +1307,52 @@ const Overview: FunctionComponent<PageComponentProps> = (
           </div>
 
           {statusPageResources.length > 0 && (
-            <div className="bg-white pl-3 pr-3 sm:pl-5 sm:pr-5 mt-5 rounded-xl shadow space-y-3 sm:space-y-5 mb-6">
-              <AccordionGroup>
-                {statusPageResources.filter((resources: StatusPageResource) => {
-                  return !resources.statusPageGroupId;
-                }).length > 0 ? (
+            <div className="mt-5 mb-6 space-y-3 sm:space-y-5">
+              {statusPageResources.filter((resources: StatusPageResource) => {
+                return !resources.statusPageGroupId;
+              }).length > 0 ? (
+                <div className="bg-white pl-3 pr-3 sm:pl-5 sm:pr-5 rounded-xl shadow">
                   <Accordion
                     key={Math.random()}
                     title={undefined}
-                    isLastElement={resourceGroups.length === 0}
+                    isLastElement={true}
                   >
                     {getMonitorOverviewListInGroup(null)}
                   </Accordion>
-                ) : (
-                  <></>
-                )}
-                <div
-                  key={Math.random()}
-                  style={{
-                    padding: "0px",
-                  }}
-                >
-                  {resourceGroups.length > 0 &&
-                    resourceGroups.map(
-                      (resourceGroup: StatusPageGroup, i: number) => {
-                        return (
-                          <Accordion
-                            key={i}
-                            rightElement={getCurrentGroupStatusElement({
-                              group: resourceGroup,
-                            })}
-                            isInitiallyExpanded={
-                              resourceGroup.isExpandedByDefault
-                            }
-                            isLastElement={resourceGroups.length - 1 === i}
-                            title={resourceGroup.name!}
-                            description={resourceGroup.description!}
-                          >
-                            {getMonitorOverviewListInGroup(resourceGroup)}
-                          </Accordion>
-                        );
-                      },
-                    )}
                 </div>
-              </AccordionGroup>
+              ) : (
+                <></>
+              )}
+              {resourceGroups.length > 0 &&
+                resourceGroups.map(
+                  (resourceGroup: StatusPageGroup, i: number) => {
+                    const isGrid: boolean =
+                      resourceGroup.viewMode === StatusPageGroupViewMode.Grid;
+                    const groupName: string = resourceGroup.name || "";
+                    return (
+                      <div
+                        key={i}
+                        className="bg-white pl-3 pr-3 sm:pl-5 sm:pr-5 rounded-xl shadow"
+                      >
+                        <Accordion
+                          rightElement={getCurrentGroupStatusElement({
+                            group: resourceGroup,
+                          })}
+                          isInitiallyExpanded={
+                            resourceGroup.isExpandedByDefault
+                          }
+                          isLastElement={true}
+                          title={groupName}
+                          titleClassName="text-base font-semibold tracking-tight"
+                        >
+                          {isGrid
+                            ? getGridForGroup(resourceGroup)
+                            : getMonitorOverviewListInGroup(resourceGroup)}
+                        </Accordion>
+                      </div>
+                    );
+                  },
+                )}
             </div>
           )}
 

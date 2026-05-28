@@ -247,9 +247,19 @@ export interface ResourceFacet {
 }
 
 export interface UseResourceOwnersOptions {
-  ownerUserModelType: { new (): OwnerJunctionModel };
-  ownerTeamModelType: { new (): OwnerJunctionModel };
-  resourceIdField: string;
+  /**
+   * Owner junction model types and the FK column. Required when
+   * `showOwnerFacet !== false`. Safe to omit when the table doesn't
+   * have an owner concept (e.g. a TeamMember listing).
+   */
+  ownerUserModelType?: { new (): OwnerJunctionModel } | undefined;
+  ownerTeamModelType?: { new (): OwnerJunctionModel } | undefined;
+  resourceIdField?: string | undefined;
+  /**
+   * Render the Owner chip. Defaults to true. Set false for tables
+   * where ownership doesn't apply.
+   */
+  showOwnerFacet?: boolean | undefined;
   /**
    * Show a Labels chip in the filter bar. When enabled, the merged query
    * includes `labels: Includes([...])` for the selected labels.
@@ -326,6 +336,7 @@ const useResourceOwners: <TResource extends BaseModel>(
   options: UseResourceOwnersOptions,
 ): UseResourceOwnersResult<TResource> => {
   const { ownerUserModelType, ownerTeamModelType, resourceIdField } = options;
+  const showOwnerFacet: boolean = options.showOwnerFacet !== false;
   const showLabelsFacet: boolean = Boolean(options.showLabelsFacet);
   const extraFacets: Array<ResourceFacet> = options.extraFacets || [];
 
@@ -419,6 +430,9 @@ const useResourceOwners: <TResource extends BaseModel>(
   }, []);
 
   useEffect(() => {
+    if (!showOwnerFacet) {
+      return;
+    }
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
     if (!projectId) {
@@ -427,6 +441,10 @@ const useResourceOwners: <TResource extends BaseModel>(
 
     if (selectedOwnerKeys.length === 0) {
       setMatchingResourceIds(null);
+      return;
+    }
+
+    if (!ownerUserModelType || !ownerTeamModelType || !resourceIdField) {
       return;
     }
 
@@ -630,6 +648,12 @@ const useResourceOwners: <TResource extends BaseModel>(
   const onResourcesFetched: (resources: Array<TResource>) => void = (
     resources: Array<TResource>,
   ): void => {
+    if (!showOwnerFacet) {
+      return;
+    }
+    if (!ownerUserModelType || !ownerTeamModelType || !resourceIdField) {
+      return;
+    }
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
     if (!projectId) {
@@ -912,19 +936,21 @@ const useResourceOwners: <TResource extends BaseModel>(
     const negativeIdSets: Array<Set<string>> = [];
 
     // Owner contribution.
-    if (ownerOperator === "is_empty") {
-      // No owners exist on any of our resources → force empty.
-      positiveIdSets.push(new Set([SENTINEL_EMPTY_ID]));
-    } else if (matchingResourceIds !== null) {
-      if (matchingResourceIds.length === 0) {
-        if (ownerOperator !== "is_not") {
-          positiveIdSets.push(new Set([SENTINEL_EMPTY_ID]));
+    if (showOwnerFacet) {
+      if (ownerOperator === "is_empty") {
+        // No owners exist on any of our resources → force empty.
+        positiveIdSets.push(new Set([SENTINEL_EMPTY_ID]));
+      } else if (matchingResourceIds !== null) {
+        if (matchingResourceIds.length === 0) {
+          if (ownerOperator !== "is_not") {
+            positiveIdSets.push(new Set([SENTINEL_EMPTY_ID]));
+          }
+          // is_not with empty set → no constraint (everything matches "not in empty")
+        } else if (ownerOperator === "is_not") {
+          negativeIdSets.push(new Set(matchingResourceIds));
+        } else {
+          positiveIdSets.push(new Set(matchingResourceIds));
         }
-        // is_not with empty set → no constraint (everything matches "not in empty")
-      } else if (ownerOperator === "is_not") {
-        negativeIdSets.push(new Set(matchingResourceIds));
-      } else {
-        positiveIdSets.push(new Set(matchingResourceIds));
       }
     }
 
@@ -1056,9 +1082,10 @@ const useResourceOwners: <TResource extends BaseModel>(
   });
 
   const ownerOperatorActive: boolean =
-    ownerOperator === "is_empty" ||
-    ownerOperator === "is_not_empty" ||
-    selectedOwnerKeys.length > 0;
+    showOwnerFacet &&
+    (ownerOperator === "is_empty" ||
+      ownerOperator === "is_not_empty" ||
+      selectedOwnerKeys.length > 0);
   const labelOperatorActive: boolean =
     labelOperator === "is_empty" ||
     labelOperator === "is_not_empty" ||
@@ -1355,9 +1382,10 @@ const useResourceOwners: <TResource extends BaseModel>(
 
   const filterBar: ReactElement = useMemo((): ReactElement => {
     const isOwnerActive: boolean =
-      ownerOperator === "is_empty" ||
-      ownerOperator === "is_not_empty" ||
-      selectedOwnerKeys.length > 0;
+      showOwnerFacet &&
+      (ownerOperator === "is_empty" ||
+        ownerOperator === "is_not_empty" ||
+        selectedOwnerKeys.length > 0);
     const isLabelActive: boolean =
       labelOperator === "is_empty" ||
       labelOperator === "is_not_empty" ||
@@ -1389,32 +1417,34 @@ const useResourceOwners: <TResource extends BaseModel>(
           className="hidden h-5 w-px bg-gray-200 sm:inline-block"
         />
 
-        <FilterChipDropdown
-          label="Owner"
-          emptyIcon={IconProp.User}
-          loadOptions={loadOwners}
-          resolveOptions={resolveOwners}
-          isMultiSelect={true}
-          value={selectedOwnerKeys}
-          searchPlaceholder="Search people and teams..."
-          popoverWidthClassName="w-72"
-          operator={ownerOperator}
-          onOperatorChange={(op: FilterOperator) => {
-            setOwnerOperator(op);
-          }}
-          supportedOperators={["is", "is_not", "is_empty", "is_not_empty"]}
-          onChange={(value: string | Array<string> | null) => {
-            if (value === null) {
-              setSelectedOwnerKeys([]);
-              return;
-            }
-            if (Array.isArray(value)) {
-              setSelectedOwnerKeys(value);
-              return;
-            }
-            setSelectedOwnerKeys([value]);
-          }}
-        />
+        {showOwnerFacet && (
+          <FilterChipDropdown
+            label="Owner"
+            emptyIcon={IconProp.User}
+            loadOptions={loadOwners}
+            resolveOptions={resolveOwners}
+            isMultiSelect={true}
+            value={selectedOwnerKeys}
+            searchPlaceholder="Search people and teams..."
+            popoverWidthClassName="w-72"
+            operator={ownerOperator}
+            onOperatorChange={(op: FilterOperator) => {
+              setOwnerOperator(op);
+            }}
+            supportedOperators={["is", "is_not", "is_empty", "is_not_empty"]}
+            onChange={(value: string | Array<string> | null) => {
+              if (value === null) {
+                setSelectedOwnerKeys([]);
+                return;
+              }
+              if (Array.isArray(value)) {
+                setSelectedOwnerKeys(value);
+                return;
+              }
+              setSelectedOwnerKeys([value]);
+            }}
+          />
+        )}
         {showLabelsFacet && (
           <FilterChipDropdown
             label="Labels"
@@ -1543,6 +1573,7 @@ const useResourceOwners: <TResource extends BaseModel>(
     resolveLabelsForChip,
     selectedOwnerKeys,
     selectedLabelIds,
+    showOwnerFacet,
     showLabelsFacet,
     hasActiveFilters,
     extraFacets,

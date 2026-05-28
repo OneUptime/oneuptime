@@ -313,11 +313,21 @@ push_to_repository() {
         remote_url="https://github.com/$GITHUB_ORG/$PROVIDER_REPO.git"
     fi
 
-    # Save generated files to a temporary location
+    # Save generated files to a temporary location.
+    # Exclude build artifacts (especially the ~60MB compiled provider binary at
+    # the repo root) so they never get staged when we copy the files back. If
+    # they slip in here, .gitignore alone won't help because the binary was
+    # previously committed and stays tracked across resets.
     print_status "Saving generated files temporarily..."
     local temp_dir=$(mktemp -d)
     cp -r . "$temp_dir/"
-    rm -rf "$temp_dir/.git" 2>/dev/null || true
+    rm -rf \
+        "$temp_dir/.git" \
+        "$temp_dir/dist" \
+        "$temp_dir/builds" \
+        "$temp_dir/terraform-provider-oneuptime" \
+        "$temp_dir/terraform-provider-oneuptime.exe" \
+        2>/dev/null || true
 
     # Initialize or reset git repository
     if [[ ! -d ".git" ]]; then
@@ -339,10 +349,13 @@ push_to_repository() {
         git remote set-url origin "$remote_url"
     fi
 
-    # Fetch remote to get the latest state
+    # Fetch remote to get the latest state.
+    # Use --depth=1 so we don't pull down the full history (which currently
+    # carries large committed binaries from older runs and made the fetch take
+    # ~9 minutes). We only need the tip to compute the diff for the new commit.
     print_status "Fetching remote repository..."
     local remote_exists=false
-    if git fetch origin master 2>/dev/null; then
+    if git fetch --depth=1 origin master 2>/dev/null; then
         remote_exists=true
         print_status "Remote repository exists, resetting to origin/master..."
         git reset --hard origin/master
@@ -384,8 +397,16 @@ push_to_repository() {
     done
 
     # Remove any previously-tracked build output from the index so it won't be
-    # recommitted (files stay on disk for the subsequent GoReleaser step).
-    git rm -r --cached --ignore-unmatch dist builds 2>/dev/null || true
+    # recommitted (files stay on disk for the subsequent GoReleaser step). The
+    # ~60MB compiled provider binary at the repo root was getting re-committed
+    # on every run because .gitignore alone can't exclude an already-tracked
+    # file — it has to be untracked here first.
+    git rm -r --cached --ignore-unmatch \
+        dist \
+        builds \
+        terraform-provider-oneuptime \
+        terraform-provider-oneuptime.exe \
+        2>/dev/null || true
 
     # Stage all generated files
     print_status "Staging generated files..."

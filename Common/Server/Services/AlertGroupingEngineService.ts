@@ -16,6 +16,7 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import QueryHelper from "../Types/Database/QueryHelper";
 import AlertGroupingRuleService from "./AlertGroupingRuleService";
+import AlertService from "./AlertService";
 import AlertEpisodeService from "./AlertEpisodeService";
 import AlertEpisodeMemberService from "./AlertEpisodeMemberService";
 import AlertEpisodeOwnerUserService from "./AlertEpisodeOwnerUserService";
@@ -91,6 +92,8 @@ class AlertGroupingEngineServiceClass {
             groupByMonitor: true,
             groupBySeverity: true,
             groupByAlertTitle: true,
+            groupByAlertLabels: true,
+            groupByMonitorLabels: true,
             // Time settings
             enableTimeWindow: true,
             timeWindowMinutes: true,
@@ -555,8 +558,82 @@ class AlertGroupingEngineServiceClass {
       parts.push(`title:${normalizedTitle}`);
     }
 
+    // Group by alert labels (exact set match) - only if explicitly enabled
+    if (rule.groupByAlertLabels && alert.id) {
+      const alertLabels: Array<Label> = await this.getAlertLabels(alert);
+      const sortedLabelIds: Array<string> = alertLabels
+        .map((l: Label) => {
+          return l.id?.toString() || "";
+        })
+        .filter((id: string) => {
+          return id.length > 0;
+        })
+        .sort();
+      parts.push(`alertLabels:${sortedLabelIds.join(",")}`);
+    }
+
+    // Group by monitor labels (exact set match) - only if explicitly enabled
+    if (rule.groupByMonitorLabels && alert.monitorId) {
+      const monitorLabels: Array<Label> = await this.getMonitorLabels(
+        alert.monitorId,
+      );
+      const sortedLabelIds: Array<string> = monitorLabels
+        .map((l: Label) => {
+          return l.id?.toString() || "";
+        })
+        .filter((id: string) => {
+          return id.length > 0;
+        })
+        .sort();
+      parts.push(`monitorLabels:${sortedLabelIds.join(",")}`);
+    }
+
     // If no group by options are enabled, all matching alerts go into a single episode
     return parts.join("|") || "default";
+  }
+
+  @CaptureSpan()
+  private async getAlertLabels(alert: Alert): Promise<Array<Label>> {
+    // If labels are already loaded on the alert, use them
+    if (alert.labels && Array.isArray(alert.labels)) {
+      return alert.labels;
+    }
+
+    if (!alert.id) {
+      return [];
+    }
+
+    // Re-load alert with labels
+    const reloadedAlert: Alert | null = await AlertService.findOneById({
+      id: alert.id,
+      select: {
+        labels: {
+          _id: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return reloadedAlert?.labels || [];
+  }
+
+  @CaptureSpan()
+  private async getMonitorLabels(monitorId: ObjectID): Promise<Array<Label>> {
+    const monitor: Monitor | null = await MonitorService.findOneById({
+      id: monitorId,
+      select: {
+        labels: {
+          _id: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return monitor?.labels || [];
   }
 
   @CaptureSpan()
@@ -792,6 +869,12 @@ class AlertGroupingEngineServiceClass {
         }
         if (rule.groupByAlertTitle) {
           groupByParts.push("Alert Title");
+        }
+        if (rule.groupByAlertLabels) {
+          groupByParts.push("Alert Labels");
+        }
+        if (rule.groupByMonitorLabels) {
+          groupByParts.push("Monitor Labels");
         }
 
         const groupByDescription: string =

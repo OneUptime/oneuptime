@@ -1,5 +1,6 @@
 import Page from "../../Components/Page/Page";
 import API from "../../Utils/API";
+import getAffectedResourceLabel from "../../Utils/AffectedResourceLabel";
 import { STATUS_PAGE_API_URL } from "../../Utils/Config";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -151,9 +152,7 @@ export const getAnnouncementEventItem: GetAnnouncementEventItemFunction = (
     eventTitle: announcement.title || "",
     eventDescription: announcement.description,
     eventResourcesAffected: namesOfResources.map((i: StatusPageResource) => {
-      const groupName: string = i.statusPageGroup?.name || "";
-      const displayName: string = i.displayName || "";
-      return groupName ? `${groupName}: ${displayName}` : displayName;
+      return getAffectedResourceLabel(i);
     }),
     eventTimeline: [],
     eventType: i18n.t("announcements.singular"),

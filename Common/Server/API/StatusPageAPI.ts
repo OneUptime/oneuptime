@@ -3070,11 +3070,16 @@ export default class StatusPageAPI extends BaseAPI<
           statusPageGroupId: true,
           statusPageGroup: {
             name: true,
+            viewMode: true,
+            rowAxisLabel: true,
+            columnAxisLabel: true,
           },
           monitorId: true,
           displayTooltip: true,
           displayDescription: true,
           displayName: true,
+          rowAxisValue: true,
+          columnAxisValue: true,
           monitorGroupId: true,
           monitor: {
             _id: true,
@@ -4837,6 +4842,11 @@ export default class StatusPageAPI extends BaseAPI<
         showCurrentStatus: true,
         showUptimePercent: true,
         uptimePercentPrecision: true,
+        viewMode: true,
+        rowAxisLabel: true,
+        columnAxisLabel: true,
+        rowAxisValues: true,
+        columnAxisValues: true,
       },
       sort: {
         order: SortOrder.Ascending,
@@ -4858,6 +4868,9 @@ export default class StatusPageAPI extends BaseAPI<
           statusPageGroupId: true,
           statusPageGroup: {
             name: true,
+            viewMode: true,
+            rowAxisLabel: true,
+            columnAxisLabel: true,
           },
           monitorId: true,
           displayTooltip: true,
@@ -4873,6 +4886,8 @@ export default class StatusPageAPI extends BaseAPI<
           monitorGroupId: true,
           showUptimePercent: true,
           uptimePercentPrecision: true,
+          rowAxisValue: true,
+          columnAxisValue: true,
         },
         sort: {
           order: SortOrder.Ascending,

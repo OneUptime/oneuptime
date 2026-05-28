@@ -143,14 +143,28 @@ describe("AlertGroupingRule Model", () => {
       expect(rule.groupByAlertTitle).toBe(true);
     });
 
+    test("should set and get groupByAlertLabels correctly", () => {
+      rule.groupByAlertLabels = true;
+      expect(rule.groupByAlertLabels).toBe(true);
+    });
+
+    test("should set and get groupByMonitorLabels correctly", () => {
+      rule.groupByMonitorLabels = true;
+      expect(rule.groupByMonitorLabels).toBe(true);
+    });
+
     test("should handle all groupBy options as false", () => {
       rule.groupByMonitor = false;
       rule.groupBySeverity = false;
       rule.groupByAlertTitle = false;
+      rule.groupByAlertLabels = false;
+      rule.groupByMonitorLabels = false;
 
       expect(rule.groupByMonitor).toBe(false);
       expect(rule.groupBySeverity).toBe(false);
       expect(rule.groupByAlertTitle).toBe(false);
+      expect(rule.groupByAlertLabels).toBe(false);
+      expect(rule.groupByMonitorLabels).toBe(false);
     });
 
     test("should handle combination of groupBy options", () => {

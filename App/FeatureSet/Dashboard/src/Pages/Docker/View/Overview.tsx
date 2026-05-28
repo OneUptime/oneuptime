@@ -18,6 +18,7 @@ import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -1574,6 +1575,22 @@ const DockerHostOverview: FunctionComponent<
     <Fragment>
       {renderHero()}
       {renderSummaryCards()}
+      <ResourceActivityCards
+        modelId={modelId}
+        resourceQueryKey="dockerHosts"
+        incidentsRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.DOCKER_HOST_VIEW_INCIDENTS] as Route,
+          { modelId: modelId },
+        )}
+        alertsRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.DOCKER_HOST_VIEW_ALERTS] as Route,
+          { modelId: modelId },
+        )}
+        scheduledMaintenanceRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.DOCKER_HOST_VIEW_SCHEDULED_MAINTENANCE] as Route,
+          { modelId: modelId },
+        )}
+      />
       {renderCharts()}
       {renderTopContainers()}
       <div className="mb-6">{renderQuickLinks()}</div>

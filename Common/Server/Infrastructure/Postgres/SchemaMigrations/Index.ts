@@ -354,7 +354,10 @@ import { AttachServiceToScheduledMaintenanceTemplatesAndLabelRules1779742211961 
 import { MigrationName1779790539196 } from "./1779790539196-MigrationName";
 import { ExpandOwnerRuleInheritFlags1779823516881 } from "./1779823516881-ExpandOwnerRuleInheritFlags";
 import { RenameStatusPageZhToZhCN1779827700000 } from "./1779827700000-RenameStatusPageZhToZhCN";
-import { DedupeTelemetryExceptionsAndAddUniqueIndex1779900000000 } from "./1779900000000-DedupeTelemetryExceptionsAndAddUniqueIndex";
+import { MigrationName1779879993421 } from "./1779879993421-MigrationName";
+import { MigrationName1779882573463 } from "./1779882573463-MigrationName";
+import { AddLabelGroupByToGroupingRules1779971548393 } from "./1779971548393-AddLabelGroupByToGroupingRules";
+
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -712,5 +715,7 @@ export default [
   MigrationName1779790539196,
   ExpandOwnerRuleInheritFlags1779823516881,
   RenameStatusPageZhToZhCN1779827700000,
-  DedupeTelemetryExceptionsAndAddUniqueIndex1779900000000,
+  MigrationName1779879993421,
+  MigrationName1779882573463,
+  AddLabelGroupByToGroupingRules1779971548393,
 ];

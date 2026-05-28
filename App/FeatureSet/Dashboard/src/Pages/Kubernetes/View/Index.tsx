@@ -12,6 +12,7 @@ import Card from "Common/UI/Components/Card/Card";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
 import React, {
   Fragment,
   FunctionComponent,
@@ -2402,6 +2403,25 @@ const KubernetesClusterOverview: FunctionComponent<
           }
         />
       </div>
+
+      <ResourceActivityCards
+        modelId={modelId}
+        resourceQueryKey="kubernetesClusters"
+        incidentsRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_INCIDENTS] as Route,
+          { modelId: modelId },
+        )}
+        alertsRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_ALERTS] as Route,
+          { modelId: modelId },
+        )}
+        scheduledMaintenanceRoute={RouteUtil.populateRouteParams(
+          RouteMap[
+            PageMap.KUBERNETES_CLUSTER_VIEW_SCHEDULED_MAINTENANCE
+          ] as Route,
+          { modelId: modelId },
+        )}
+      />
 
       {/* Quick Navigation - Workloads */}
       <Card

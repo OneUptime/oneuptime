@@ -232,6 +232,34 @@ describe("AlertGroupingEngineService Models", () => {
       );
       expect(groupingKey).toContain(`title:${mockAlert.title}`);
     });
+
+    test("should produce identical label key regardless of label order (exact set match)", () => {
+      // Simulates buildGroupingKey's label-sorting logic.
+      const labelIdsA: string[] = ["lbl-c", "lbl-a", "lbl-b"];
+      const labelIdsB: string[] = ["lbl-b", "lbl-c", "lbl-a"];
+
+      const keyA: string = `alertLabels:${[...labelIdsA].sort().join(",")}`;
+      const keyB: string = `alertLabels:${[...labelIdsB].sort().join(",")}`;
+
+      expect(keyA).toBe(keyB);
+      expect(keyA).toBe("alertLabels:lbl-a,lbl-b,lbl-c");
+    });
+
+    test("should produce different label keys for different label sets (exact set match)", () => {
+      // Alerts with [A,B] and [A,C] must NOT group together under exact set match.
+      const keyAB: string = `alertLabels:${["lbl-a", "lbl-b"].sort().join(",")}`;
+      const keyAC: string = `alertLabels:${["lbl-a", "lbl-c"].sort().join(",")}`;
+
+      expect(keyAB).not.toBe(keyAC);
+    });
+
+    test("should emit empty label key when alert has no labels", () => {
+      // Alerts with no labels should produce the same (empty) label key.
+      const labelIds: string[] = [];
+      const key: string = `alertLabels:${[...labelIds].sort().join(",")}`;
+
+      expect(key).toBe("alertLabels:");
+    });
   });
 
   describe("Time Window Configuration", () => {

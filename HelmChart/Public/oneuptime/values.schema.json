@@ -1141,6 +1141,18 @@
                                 },
                                 "cooldownPeriod": {
                                     "type": "integer"
+                                },
+                                "fallback": {
+                                    "type": "object",
+                                    "properties": {
+                                        "failureThreshold": {
+                                            "type": "integer"
+                                        },
+                                        "replicas": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
                                 }
                             },
                             "additionalProperties": false
@@ -1890,6 +1902,18 @@
                         },
                         "cooldownPeriod": {
                             "type": "integer"
+                        },
+                        "fallback": {
+                            "type": "object",
+                            "properties": {
+                                "failureThreshold": {
+                                    "type": "integer"
+                                },
+                                "replicas": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
                         }
                     },
                     "additionalProperties": false
@@ -2130,6 +2154,18 @@
                         },
                         "cooldownPeriod": {
                             "type": "integer"
+                        },
+                        "fallback": {
+                            "type": "object",
+                            "properties": {
+                                "failureThreshold": {
+                                    "type": "integer"
+                                },
+                                "replicas": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
                         }
                     },
                     "additionalProperties": false
