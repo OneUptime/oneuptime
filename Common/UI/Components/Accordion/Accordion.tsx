@@ -75,7 +75,9 @@ const Accordion: FunctionComponent<ComponentProps> = (
     <div className={className}>
       <div>
         <div
-          className={`flex justify-between items-start gap-3 cursor-pointer group/accordion-header rounded-lg -mx-2 px-2 py-2 transition-colors ${
+          className={`flex justify-between ${
+            props.description ? "items-start" : "items-center"
+          } gap-3 cursor-pointer group/accordion-header rounded-lg -mx-2 px-2 py-2 transition-colors ${
             isOpen ? "" : "hover:bg-gray-50/80"
           }`}
           role="button"
@@ -87,10 +89,16 @@ const Accordion: FunctionComponent<ComponentProps> = (
           }}
           onKeyDown={handleKeyDown}
         >
-          <div className="flex items-start min-w-0 flex-1">
+          <div
+            className={`flex ${
+              props.description ? "items-start" : "items-center"
+            } min-w-0 flex-1`}
+          >
             {props.title && (
               <div
-                className={`flex-shrink-0 mt-0.5 flex items-center justify-center w-6 h-6 rounded-md transition-all duration-200 ${
+                className={`flex-shrink-0 ${
+                  props.description ? "mt-0.5" : ""
+                } flex items-center justify-center w-6 h-6 rounded-md transition-all duration-200 ${
                   isOpen
                     ? "bg-gray-900/5 text-gray-700"
                     : "text-gray-400 group-hover/accordion-header:bg-gray-900/5 group-hover/accordion-header:text-gray-700"
@@ -126,7 +134,7 @@ const Accordion: FunctionComponent<ComponentProps> = (
             )}
           </div>
           {!isOpen && props.rightElement && (
-            <div className="flex-shrink-0 mt-0.5">{props.rightElement}</div>
+            <div className="flex-shrink-0">{props.rightElement}</div>
           )}
         </div>
         {isOpen && (

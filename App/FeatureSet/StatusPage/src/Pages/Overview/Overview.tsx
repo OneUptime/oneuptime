@@ -1329,13 +1329,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     const isGrid: boolean =
                       resourceGroup.viewMode === StatusPageGroupViewMode.Grid;
                     const groupName: string = resourceGroup.name || "";
-                    const rawDescription: string =
-                      resourceGroup.description || "";
-                    const description: string | undefined =
-                      rawDescription &&
-                      rawDescription.trim() !== groupName.trim()
-                        ? rawDescription
-                        : undefined;
                     return (
                       <div
                         key={i}
@@ -1350,8 +1343,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                           }
                           isLastElement={true}
                           title={groupName}
-                          titleClassName="text-base sm:text-lg font-semibold tracking-tight"
-                          description={description}
+                          titleClassName="text-base font-semibold tracking-tight"
                         >
                           {isGrid
                             ? getGridForGroup(resourceGroup)

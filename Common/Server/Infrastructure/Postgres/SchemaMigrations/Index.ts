@@ -356,6 +356,7 @@ import { ExpandOwnerRuleInheritFlags1779823516881 } from "./1779823516881-Expand
 import { RenameStatusPageZhToZhCN1779827700000 } from "./1779827700000-RenameStatusPageZhToZhCN";
 import { MigrationName1779879993421 } from "./1779879993421-MigrationName";
 import { MigrationName1779882573463 } from "./1779882573463-MigrationName";
+import { AddLabelGroupByToGroupingRules1779971548393 } from "./1779971548393-AddLabelGroupByToGroupingRules";
 
 export default [
   InitialMigration,
@@ -716,4 +717,5 @@ export default [
   RenameStatusPageZhToZhCN1779827700000,
   MigrationName1779879993421,
   MigrationName1779882573463,
+  AddLabelGroupByToGroupingRules1779971548393,
 ];

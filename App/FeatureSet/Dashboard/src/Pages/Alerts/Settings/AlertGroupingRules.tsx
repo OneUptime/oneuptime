@@ -87,6 +87,8 @@ flowchart LR
 | **Group By Monitor** | Alerts from different monitors → separate episodes | Alerts from any monitor can be grouped together |
 | **Group By Severity** | Alerts with different severities → separate episodes | Alerts of any severity can be grouped together |
 | **Group By Alert Title** | Alerts with different titles → separate episodes | Alerts with any title can be grouped together |
+| **Group By Alert Labels** | Alerts with different sets of labels → separate episodes (exact set match) | Alert labels are ignored for grouping |
+| **Group By Monitor Labels** | Alerts whose monitors have different sets of labels → separate episodes (exact set match) | Monitor labels are ignored for grouping |
 
 #### Default Behavior
 
@@ -451,6 +453,28 @@ const AlertGroupingRulesPage: FunctionComponent<
             required: false,
             description:
               "When enabled, alerts with different titles will be grouped into separate episodes. When disabled, alerts with any title can be grouped together.",
+          },
+          {
+            field: {
+              groupByAlertLabels: true,
+            },
+            title: "Group By Alert Labels",
+            stepId: "group-by",
+            fieldType: FormFieldSchemaType.Checkbox,
+            required: false,
+            description:
+              "When enabled, alerts with different sets of labels will be grouped into separate episodes (exact set match). When disabled, alert labels are ignored for grouping.",
+          },
+          {
+            field: {
+              groupByMonitorLabels: true,
+            },
+            title: "Group By Monitor Labels",
+            stepId: "group-by",
+            fieldType: FormFieldSchemaType.Checkbox,
+            required: false,
+            description:
+              "When enabled, alerts whose monitors have different sets of labels will be grouped into separate episodes (exact set match). When disabled, monitor labels are ignored for grouping.",
           },
           // Time Settings Fields
           {
