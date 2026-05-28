@@ -52,8 +52,10 @@ import MonitorStepDockerMonitor, {
 } from "./MonitorStepDockerMonitor";
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 
-// Caps and defaults for per-step request timeout and retry settings.
-// Users may lower these via the UI; values higher than the cap are clamped.
+/*
+ * Caps and defaults for per-step request timeout and retry settings.
+ * Users may lower these via the UI; values higher than the cap are clamped.
+ */
 export const MAX_MONITOR_REQUEST_TIMEOUT_IN_MS: number = 60000; // 60 seconds
 export const DEFAULT_MONITOR_REQUEST_TIMEOUT_IN_MS: number = 60000;
 export const MAX_MONITOR_RETRY_COUNT: number = 3;
@@ -349,9 +351,8 @@ export default class MonitorStep extends DatabaseProperty {
       this.data!.requestTimeoutInMs = undefined;
       return this;
     }
-    this.data!.requestTimeoutInMs = clampMonitorRequestTimeoutInMs(
-      requestTimeoutInMs,
-    );
+    this.data!.requestTimeoutInMs =
+      clampMonitorRequestTimeoutInMs(requestTimeoutInMs);
     return this;
   }
 
@@ -671,7 +672,9 @@ export default class MonitorStep extends DatabaseProperty {
           retryCountOnError: this.data.retryCountOnError || undefined,
           requestTimeoutInMs: this.data.requestTimeoutInMs || undefined,
           retryCount:
-            this.data.retryCount === undefined ? undefined : this.data.retryCount,
+            this.data.retryCount === undefined
+              ? undefined
+              : this.data.retryCount,
           logMonitor: this.data.logMonitor
             ? MonitorStepLogMonitorUtil.toJSON(
                 this.data.logMonitor || MonitorStepLogMonitorUtil.getDefault(),
@@ -820,8 +823,7 @@ export default class MonitorStep extends DatabaseProperty {
         (json["screenSizeTypes"] as Array<ScreenSizeType>) || undefined,
       browserTypes: (json["browserTypes"] as Array<BrowserType>) || undefined,
       retryCountOnError: (json["retryCountOnError"] as number) || undefined,
-      requestTimeoutInMs:
-        (json["requestTimeoutInMs"] as number) || undefined,
+      requestTimeoutInMs: (json["requestTimeoutInMs"] as number) || undefined,
       retryCount:
         json["retryCount"] === undefined || json["retryCount"] === null
           ? undefined

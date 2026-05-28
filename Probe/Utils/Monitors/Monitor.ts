@@ -295,16 +295,20 @@ export default class MonitorUtil {
       return result;
     }
 
-    // Per-step request timeout (capped at the user-facing max). Falls back
-    // to the global default when the user hasn't configured one.
+    /*
+     * Per-step request timeout (capped at the user-facing max). Falls back
+     * to the global default when the user hasn't configured one.
+     */
     const requestTimeoutInMs: number =
       monitorStep.data.requestTimeoutInMs !== undefined &&
       monitorStep.data.requestTimeoutInMs !== null
         ? clampMonitorRequestTimeoutInMs(monitorStep.data.requestTimeoutInMs)
         : DEFAULT_MONITOR_REQUEST_TIMEOUT_IN_MS;
 
-    // Per-step retry count (capped at the user-facing max). Falls back to
-    // the probe-wide default (env var) when the user hasn't configured one.
+    /*
+     * Per-step retry count (capped at the user-facing max). Falls back to
+     * the probe-wide default (env var) when the user hasn't configured one.
+     */
     const retryCount: number =
       monitorStep.data.retryCount !== undefined &&
       monitorStep.data.retryCount !== null

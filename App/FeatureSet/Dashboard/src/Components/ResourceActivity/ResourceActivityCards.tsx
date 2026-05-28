@@ -70,9 +70,8 @@ const ResourceActivityCards: FunctionComponent<ComponentProps> = (
 
   const [isIncidentLoading, setIsIncidentLoading] = useState<boolean>(true);
   const [isAlertLoading, setIsAlertLoading] = useState<boolean>(true);
-  const [isMaintenanceLoading, setIsMaintenanceLoading] = useState<boolean>(
-    true,
-  );
+  const [isMaintenanceLoading, setIsMaintenanceLoading] =
+    useState<boolean>(true);
 
   const [hasIncidentError, setHasIncidentError] = useState<boolean>(false);
   const [hasAlertError, setHasAlertError] = useState<boolean>(false);

@@ -782,20 +782,29 @@ const Overview: FunctionComponent<PageComponentProps> = (
       cellByRowCol[row]![col]!.resources.push(resource);
     }
 
-    type RenderCellFunction = (cell: CellContent) => ReactElement;
+    type CellMeta = {
+      isEmpty: boolean;
+      color: string | null;
+      statusName: string;
+      uptimeText: string | null;
+      labels: Array<string>;
+      resourceCount: number;
+    };
 
-    const renderCell: RenderCellFunction = (
+    type ComputeCellMetaFunction = (cell: CellContent) => CellMeta;
+
+    const computeCellMeta: ComputeCellMetaFunction = (
       cell: CellContent,
-    ): ReactElement => {
+    ): CellMeta => {
       if (cell.resources.length === 0) {
-        return (
-          <div className="flex items-center justify-center py-3">
-            <span
-              className="block w-4 h-px bg-gray-200 select-none"
-              aria-hidden="true"
-            />
-          </div>
-        );
+        return {
+          isEmpty: true,
+          color: null,
+          statusName: "",
+          uptimeText: null,
+          labels: [],
+          resourceCount: 0,
+        };
       }
 
       const statuses: Array<MonitorStatus> = cell.resources.map(
@@ -854,31 +863,77 @@ const Overview: FunctionComponent<PageComponentProps> = (
       const statusName: string =
         translateStatusName(worstStatus?.name) || t("overview.operational");
 
+      return {
+        isEmpty: false,
+        color: cellColor,
+        statusName,
+        uptimeText: uptimePercentText,
+        labels,
+        resourceCount: cell.resources.length,
+      };
+    };
+
+    type RenderCellContentFunction = (meta: CellMeta) => ReactElement;
+
+    const renderCellContent: RenderCellContentFunction = (
+      meta: CellMeta,
+    ): ReactElement => {
+      if (meta.isEmpty) {
+        return (
+          <div
+            className="flex items-center justify-center py-3.5"
+            aria-hidden="true"
+          >
+            <span className="block w-3 h-0.5 bg-gray-200 rounded-full select-none" />
+          </div>
+        );
+      }
+
+      const color: string = meta.color!;
+
       return (
         <div
           className="flex flex-col items-center justify-center gap-1 px-2 py-3"
-          title={labels.join(", ")}
+          title={meta.labels.join(", ")}
         >
           <div
-            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full"
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full transition-transform group-hover:scale-[1.03]"
             style={{
-              backgroundColor: tintFromHex(cellColor, 0.12),
+              backgroundColor: "rgba(255,255,255,0.85)",
+              boxShadow: `inset 0 0 0 1px ${tintFromHex(color, 0.25)}`,
             }}
           >
             <span
-              className="w-1.5 h-1.5 rounded-full"
-              style={{ backgroundColor: cellColor }}
-            />
-            <span
-              className="text-xs font-semibold tracking-tight"
-              style={{ color: cellColor }}
+              className="relative flex h-2 w-2"
+              aria-hidden="true"
             >
-              {statusName}
+              <span
+                className="absolute inline-flex h-full w-full rounded-full opacity-40"
+                style={{ backgroundColor: color }}
+              />
+              <span
+                className="relative inline-flex rounded-full h-2 w-2"
+                style={{ backgroundColor: color }}
+              />
             </span>
+            <span
+              className="text-[11px] font-semibold tracking-tight"
+              style={{ color: color }}
+            >
+              {meta.statusName}
+            </span>
+            {meta.resourceCount > 1 && (
+              <span
+                className="text-[10px] font-medium tabular-nums opacity-60"
+                style={{ color: color }}
+              >
+                ×{meta.resourceCount}
+              </span>
+            )}
           </div>
-          {uptimePercentText && (
-            <div className="text-[11px] text-gray-500 font-medium tabular-nums">
-              {uptimePercentText}
+          {meta.uptimeText && (
+            <div className="text-[10.5px] text-gray-500 font-medium tabular-nums">
+              {meta.uptimeText}
             </div>
           )}
         </div>
@@ -893,30 +948,34 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     return (
       <div className="pt-1 pb-1">
-        <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+        <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-[0_1px_2px_0_rgba(0,0,0,0.02)]">
           <div className="overflow-x-auto">
             <table className="min-w-full border-separate border-spacing-0">
               <thead>
                 {group.columnAxisLabel ? (
                   <tr>
-                    <th className="bg-gray-50 px-4 pt-3 pb-1 min-w-[160px]" />
+                    <th className="bg-gradient-to-b from-gray-50 to-gray-50/80 px-4 pt-3 pb-1.5 min-w-[160px] border-r border-gray-200" />
                     <th
                       colSpan={columnValues.length}
-                      className="bg-gray-50 px-4 pt-3 pb-1 text-center text-[10px] uppercase tracking-[0.18em] text-gray-400 font-semibold"
+                      className="bg-gradient-to-b from-gray-50 to-gray-50/80 px-4 pt-3 pb-1.5 text-center text-[10px] uppercase tracking-[0.18em] text-gray-400 font-semibold"
                     >
                       {group.columnAxisLabel}
                     </th>
                   </tr>
                 ) : null}
                 <tr>
-                  <th className="sticky left-0 z-10 bg-gray-50 px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400 border-b border-gray-200 min-w-[160px]">
+                  <th className="sticky left-0 z-10 bg-gradient-to-b from-gray-50 to-gray-50/80 px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400 border-b border-r border-gray-200 min-w-[160px]">
                     {rowAxisDisplay}
                   </th>
                   {columnValues.map((col: string, i: number) => {
                     return (
                       <th
                         key={`col-${i}`}
-                        className="bg-gray-50 px-3 py-3 text-center text-sm font-semibold text-gray-900 border-b border-gray-200 min-w-[140px]"
+                        className={`bg-gradient-to-b from-gray-50 to-gray-50/80 px-3 py-3 text-center text-sm font-semibold text-gray-900 border-b border-gray-200 min-w-[140px] ${
+                          i < columnValues.length - 1
+                            ? "border-r border-gray-100"
+                            : ""
+                        }`}
                       >
                         {col}
                       </th>
@@ -934,7 +993,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     >
                       <th
                         scope="row"
-                        className={`sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-4 py-4 text-left text-sm font-semibold text-gray-900 min-w-[140px] transition-colors ${
+                        className={`sticky left-0 z-10 bg-white group-hover:bg-gray-50/80 px-4 py-3 text-left text-sm font-semibold text-gray-900 min-w-[140px] border-r border-gray-200 transition-colors ${
                           isLast ? "" : "border-b border-gray-100"
                         }`}
                       >
@@ -942,14 +1001,32 @@ const Overview: FunctionComponent<PageComponentProps> = (
                       </th>
                       {columnValues.map((col: string, colIdx: number) => {
                         const cell: CellContent = cellByRowCol[row]![col]!;
+                        const meta: CellMeta = computeCellMeta(cell);
+                        const isLastCol: boolean =
+                          colIdx === columnValues.length - 1;
+
                         return (
                           <td
                             key={`cell-${rowIdx}-${colIdx}`}
-                            className={`align-middle text-center group-hover:bg-gray-50 transition-colors ${
+                            className={`align-middle text-center transition-colors ${
                               isLast ? "" : "border-b border-gray-100"
+                            } ${
+                              isLastCol ? "" : "border-r border-gray-100"
+                            } ${
+                              meta.isEmpty ? "group-hover:bg-gray-50/40" : ""
                             }`}
+                            style={
+                              meta.color
+                                ? {
+                                    backgroundColor: tintFromHex(
+                                      meta.color,
+                                      0.05,
+                                    ),
+                                  }
+                                : undefined
+                            }
                           >
-                            {renderCell(cell)}
+                            {renderCellContent(meta)}
                           </td>
                         );
                       })}
