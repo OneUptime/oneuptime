@@ -903,10 +903,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
               boxShadow: `inset 0 0 0 1px ${tintFromHex(color, 0.25)}`,
             }}
           >
-            <span
-              className="relative flex h-2 w-2"
-              aria-hidden="true"
-            >
+            <span className="relative flex h-2 w-2" aria-hidden="true">
               <span
                 className="absolute inline-flex h-full w-full rounded-full opacity-40"
                 style={{ backgroundColor: color }}
@@ -946,8 +943,75 @@ const Overview: FunctionComponent<PageComponentProps> = (
         defaultValue: "Resource",
       });
 
+    type StatBucket = { color: string; count: number; label: string };
+
+    const statBuckets: Map<string, StatBucket> = new Map();
+    let totalCellsWithData: number = 0;
+    let totalEmptyCells: number = 0;
+    for (const row of rowValues) {
+      for (const col of columnValues) {
+        const cell: CellContent = cellByRowCol[row]![col]!;
+        const meta: CellMeta = computeCellMeta(cell);
+        if (meta.isEmpty) {
+          totalEmptyCells++;
+          continue;
+        }
+        totalCellsWithData++;
+        const key: string = `${meta.statusName}|${meta.color}`;
+        const existing: StatBucket | undefined = statBuckets.get(key);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          statBuckets.set(key, {
+            color: meta.color!,
+            count: 1,
+            label: meta.statusName,
+          });
+        }
+      }
+    }
+    const statEntries: Array<StatBucket> = Array.from(statBuckets.values());
+
     return (
       <div className="pt-1 pb-1">
+        {(statEntries.length > 0 || totalEmptyCells > 0) && (
+          <div className="flex items-center flex-wrap gap-x-4 gap-y-1.5 mb-3 px-1 text-xs">
+            {statEntries.map((stat: StatBucket, i: number) => {
+              return (
+                <div
+                  key={`stat-${i}`}
+                  className="inline-flex items-center gap-1.5"
+                >
+                  <span
+                    className="w-2 h-2 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: stat.color }}
+                    aria-hidden="true"
+                  />
+                  <span className="text-gray-700">
+                    <span className="font-semibold tabular-nums">
+                      {stat.count}
+                    </span>
+                    <span className="text-gray-500 ml-1">{stat.label}</span>
+                  </span>
+                </div>
+              );
+            })}
+            {totalEmptyCells > 0 && totalCellsWithData > 0 && (
+              <div className="inline-flex items-center gap-1.5">
+                <span
+                  className="block w-2 h-0.5 bg-gray-300 rounded-full flex-shrink-0"
+                  aria-hidden="true"
+                />
+                <span className="text-gray-500">
+                  <span className="font-semibold tabular-nums text-gray-600">
+                    {totalEmptyCells}
+                  </span>{" "}
+                  not configured
+                </span>
+              </div>
+            )}
+          </div>
+        )}
         <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-[0_1px_2px_0_rgba(0,0,0,0.02)]">
           <div className="overflow-x-auto">
             <table className="min-w-full border-separate border-spacing-0">
@@ -1010,9 +1074,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                             key={`cell-${rowIdx}-${colIdx}`}
                             className={`align-middle text-center transition-colors ${
                               isLast ? "" : "border-b border-gray-100"
-                            } ${
-                              isLastCol ? "" : "border-r border-gray-100"
-                            } ${
+                            } ${isLastCol ? "" : "border-r border-gray-100"} ${
                               meta.isEmpty ? "group-hover:bg-gray-50/40" : ""
                             }`}
                             style={
