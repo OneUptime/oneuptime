@@ -1270,49 +1270,43 @@ export class BillingService extends BaseService {
   }
 
   public getMeteredPlanPriceId(productType: ProductType): string {
-    if (productType === ProductType.ActiveMonitoring) {
-      if (this.isTestEnvironment()) {
-        return "price_1N6CHFANuQdJ93r7qDaLmb7S";
-      }
+    let envVarName: string = "";
 
-      return "price_1N6B9EANuQdJ93r7fj3bhcWP";
+    if (productType === ProductType.ActiveMonitoring) {
+      envVarName = "BILLING_METERED_PLAN_PRICE_ID_ACTIVE_MONITORING";
     }
 
     if (productType === ProductType.Logs) {
-      if (this.isTestEnvironment()) {
-        return "price_1OPnB5ANuQdJ93r7jG4NLCJG";
-      }
-
-      return "price_1OQ8gwANuQdJ93r74Pi85UQq";
+      envVarName = "BILLING_METERED_PLAN_PRICE_ID_LOGS";
     }
 
     if (productType === ProductType.Traces) {
-      if (this.isTestEnvironment()) {
-        return "price_1OQ8i9ANuQdJ93r75J3wr0PX";
-      }
-
-      return "price_1OQ8ivANuQdJ93r7NAR8KbH3";
+      envVarName = "BILLING_METERED_PLAN_PRICE_ID_TRACES";
     }
 
     if (productType === ProductType.Metrics) {
-      if (this.isTestEnvironment()) {
-        return "price_1OQ8iqANuQdJ93r7wZ7gJ7Gb";
-      }
-
-      return "price_1OQ8j0ANuQdJ93r7WGzR0p6j";
+      envVarName = "BILLING_METERED_PLAN_PRICE_ID_METRICS";
     }
 
     if (productType === ProductType.Profiles) {
-      if (this.isTestEnvironment()) {
-        return "price_1TGwUpANuQdJ93r7b9qxa5Se";
-      }
-
-      return "price_1TGwTDANuQdJ93r7s0jKRxaT";
+      envVarName = "BILLING_METERED_PLAN_PRICE_ID_PROFILES";
     }
 
-    throw new BadDataException(
-      "Plan with productType " + productType + " not found",
-    );
+    if (!envVarName) {
+      throw new BadDataException(
+        "Plan with productType " + productType + " not found",
+      );
+    }
+
+    const priceId: string = process.env[envVarName] || "";
+
+    if (!priceId) {
+      throw new BadDataException(
+        `Environment variable ${envVarName} is not configured for productType ${productType}`,
+      );
+    }
+
+    return priceId;
   }
 
   @CaptureSpan()
