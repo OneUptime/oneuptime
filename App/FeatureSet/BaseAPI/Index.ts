@@ -413,6 +413,9 @@ import DockerHostOwnerTeamService, {
 import DockerHostOwnerUserService, {
   Service as DockerHostOwnerUserServiceType,
 } from "Common/Server/Services/DockerHostOwnerUserService";
+import DockerResourceService, {
+  Service as DockerResourceServiceType,
+} from "Common/Server/Services/DockerResourceService";
 import HostService, {
   Service as HostServiceType,
 } from "Common/Server/Services/HostService";
@@ -817,6 +820,7 @@ import KubernetesClusterOwnerUser from "Common/Models/DatabaseModels/KubernetesC
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerHostOwnerTeam from "Common/Models/DatabaseModels/DockerHostOwnerTeam";
 import DockerHostOwnerUser from "Common/Models/DatabaseModels/DockerHostOwnerUser";
+import DockerResource from "Common/Models/DatabaseModels/DockerResource";
 import Host from "Common/Models/DatabaseModels/Host";
 import HostOwnerTeam from "Common/Models/DatabaseModels/HostOwnerTeam";
 import HostOwnerUser from "Common/Models/DatabaseModels/HostOwnerUser";
@@ -2795,6 +2799,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DockerHostOwnerUser, DockerHostOwnerUserServiceType>(
         DockerHostOwnerUser,
         DockerHostOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DockerResource, DockerResourceServiceType>(
+        DockerResource,
+        DockerResourceService,
       ).getRouter(),
     );
 
