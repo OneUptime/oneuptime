@@ -11,7 +11,11 @@ import Phone from "Common/Types/Phone";
 import SmsStatus from "Common/Types/SmsStatus";
 import Text from "Common/Types/Text";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
-import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import {
+  Host,
+  HttpProtocol,
+  IsBillingEnabled,
+} from "Common/Server/EnvironmentConfig";
 import NotificationService from "Common/Server/Services/NotificationService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import SmsLogService from "Common/Server/Services/SmsLogService";
@@ -93,6 +97,11 @@ export default class SmsService {
   ): Promise<void> {
     let smsError: Error | null = null;
     const smsLog: SmsLog = new SmsLog();
+    /*
+     * Set once the log row is persisted (before send) so the async delivery-status
+     * callback has a row to update, and so the final state below is an update, not an insert.
+     */
+    let smsLogId: ObjectID | null = null;
 
     try {
       // check number of sms to send for this entire messages to send. Each sms can have 160 characters.
@@ -173,6 +182,14 @@ export default class SmsService {
 
       if (options.onCallScheduleId) {
         smsLog.onCallDutyPolicyScheduleId = options.onCallScheduleId;
+      }
+
+      /*
+       * Link the SMS to the on-call timeline entry so the delivery outcome can be
+       * reflected back onto the on-call log via the status callback.
+       */
+      if (options.userOnCallLogTimelineId) {
+        smsLog.userOnCallLogTimelineId = options.userOnCallLogTimelineId;
       }
 
       const twilioConfig: TwilioConfig | null =
@@ -338,13 +355,53 @@ export default class SmsService {
         }
       }
 
+      /*
+       * Persist the log BEFORE sending so Twilio's asynchronous delivery-status
+       * callback (which can arrive within milliseconds) has a row to update. The
+       * row id plus an unguessable, never-exposed token authenticate the callback.
+       * We only track delivery for project-scoped sends (which is when logs persist).
+       */
+      let statusCallbackUrl: string | undefined = undefined;
+
+      if (options.projectId) {
+        smsLog.status = SmsStatus.Sending;
+
+        if (Host) {
+          smsLog.statusCallbackToken = ObjectID.generate().toString();
+        }
+
+        const createdSmsLog: SmsLog = await SmsLogService.create({
+          data: smsLog,
+          props: {
+            isRoot: true,
+          },
+        });
+        smsLogId = createdSmsLog.id;
+
+        if (Host && smsLogId && smsLog.statusCallbackToken) {
+          /*
+           * Nginx rewrites the external /notification path to /api/notification,
+           * which is where the SMS router (and the /status-callback route) is mounted.
+           */
+          statusCallbackUrl = `${HttpProtocol}${Host}/notification/sms/status-callback/${smsLogId.toString()}/${smsLog.statusCallbackToken}`;
+        }
+      }
+
       const twillioMessage: MessageInstance = await client.messages.create({
         body: message,
         to: to.toString(),
         from: fromNumber.toString(), // From a valid Twilio number
+        ...(statusCallbackUrl ? { statusCallback: statusCallbackUrl } : {}),
       });
 
-      smsLog.status = SmsStatus.Success;
+      /*
+       * messages.create resolves once Twilio accepts the message (typically status
+       * "queued"/"accepted"). The terminal delivered/undelivered/failed state arrives
+       * later via the status callback above.
+       */
+      smsLog.status =
+        SmsService.mapProviderStatusToSmsStatus(twillioMessage.status) ||
+        SmsStatus.Sent;
       smsLog.statusMessage = "Message ID: " + twillioMessage.sid;
 
       logger.debug("SMS message sent successfully.");
@@ -375,6 +432,14 @@ export default class SmsService {
       smsLog.statusMessage =
         e && e.message ? e.message.toString() : e.toString();
 
+      /*
+       * Twilio SDK errors expose a numeric `code` (e.g. 21211). Surface it so
+       * operators can see exactly why a send was rejected.
+       */
+      if (e && (e.code || e.code === 0)) {
+        smsLog.errorCode = e.code.toString();
+      }
+
       logger.error("SMS message failed to send.");
       logger.error(smsLog.statusMessage);
 
@@ -382,21 +447,42 @@ export default class SmsService {
     }
 
     if (options.projectId) {
-      await SmsLogService.create({
-        data: smsLog,
-        props: {
-          isRoot: true,
-        },
-      });
+      if (smsLogId) {
+        // Row was inserted before the send — persist the resulting state.
+        await SmsLogService.updateOneById({
+          id: smsLogId,
+          data: {
+            status: smsLog.status!,
+            statusMessage: smsLog.statusMessage!,
+            smsCostInUSDCents: smsLog.smsCostInUSDCents!,
+            ...(smsLog.errorCode ? { errorCode: smsLog.errorCode } : {}),
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      } else {
+        // Send failed before the row could be inserted (e.g. missing Twilio config).
+        await SmsLogService.create({
+          data: smsLog,
+          props: {
+            isRoot: true,
+          },
+        });
+      }
     }
 
     if (options.userOnCallLogTimelineId) {
       await UserOnCallLogTimelineService.updateOneById({
         data: {
-          status:
-            smsLog.status === SmsStatus.Success
-              ? UserNotificationStatus.Sent
-              : UserNotificationStatus.Error,
+          /*
+           * Delivery is confirmed asynchronously via the status callback, so at this
+           * point a successful submit is "Sending"/"Sent". Only the synchronous failure
+           * states count as an error here.
+           */
+          status: SmsService.isFailureStatus(smsLog.status)
+            ? UserNotificationStatus.Error
+            : UserNotificationStatus.Sent,
           statusMessage: smsLog.statusMessage!,
         },
         id: options.userOnCallLogTimelineId,
@@ -409,5 +495,47 @@ export default class SmsService {
     if (smsError) {
       throw smsError;
     }
+  }
+
+  /**
+   * Maps a Twilio message status (from the create response or a status callback)
+   * to our SmsStatus lifecycle. Returns null for statuses we don't track (e.g.
+   * inbound "received"), so callers can keep the existing status.
+   */
+  public static mapProviderStatusToSmsStatus(
+    providerStatus: string | undefined | null,
+  ): SmsStatus | null {
+    switch ((providerStatus || "").toLowerCase()) {
+      case "queued":
+      case "accepted":
+      case "scheduled":
+      case "sending":
+        return SmsStatus.Sending;
+      case "sent":
+        return SmsStatus.Sent;
+      case "delivered":
+      case "partially_delivered":
+        return SmsStatus.Delivered;
+      case "undelivered":
+        return SmsStatus.Undelivered;
+      case "failed":
+      case "canceled":
+        return SmsStatus.Failed;
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Whether a status represents a definitive failure (as opposed to a pending or
+   * successful state). Used to map SMS outcomes onto on-call notification status.
+   */
+  public static isFailureStatus(status: SmsStatus | undefined): boolean {
+    return (
+      status === SmsStatus.Error ||
+      status === SmsStatus.Failed ||
+      status === SmsStatus.Undelivered ||
+      status === SmsStatus.LowBalance
+    );
   }
 }

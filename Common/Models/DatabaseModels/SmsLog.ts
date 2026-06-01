@@ -9,6 +9,7 @@ import User from "./User";
 import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "./OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicySchedule from "./OnCallDutyPolicySchedule";
+import UserOnCallLogTimeline from "./UserOnCallLogTimeline";
 import Team from "./Team";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -257,6 +258,54 @@ export default class SmsLog extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public status?: SmsStatus = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadSmsLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Provider Error Code",
+    description:
+      "Error code returned by the SMS provider (e.g. Twilio error code 30007 for carrier filtering) when the message could not be delivered.",
+    canReadOnRelationQuery: false,
+    example: "30007",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public errorCode?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Status Callback Token",
+    description:
+      "Secret token embedded in the provider delivery-status callback URL. Used to authenticate incoming delivery-status callbacks. Never exposed via the API.",
+    canReadOnRelationQuery: false,
+    hideColumnInDocumentation: true,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public statusCallbackToken?: string = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -894,6 +943,68 @@ export default class SmsLog extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public onCallDutyPolicyScheduleId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadSmsLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "userOnCallLogTimelineId",
+    type: TableColumnType.Entity,
+    modelType: UserOnCallLogTimeline,
+    title: "User On-Call Log Timeline",
+    description:
+      "On-call notification timeline entry this SMS was sent for (if any). Lets the delivery outcome be reflected back onto the on-call log.",
+    example: "f1a2b3c4-d5e6-47f8-9a0b-1c2d3e4f5a6b",
+  })
+  @ManyToOne(
+    () => {
+      return UserOnCallLogTimeline;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "userOnCallLogTimelineId" })
+  public userOnCallLogTimeline?: UserOnCallLogTimeline = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadSmsLog,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "User On-Call Log Timeline ID",
+    description:
+      "ID of the on-call notification timeline entry this SMS was sent for (if any).",
+    example: "f1a2b3c4-d5e6-47f8-9a0b-1c2d3e4f5a6b",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public userOnCallLogTimelineId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

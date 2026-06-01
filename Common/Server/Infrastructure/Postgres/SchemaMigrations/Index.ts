@@ -360,6 +360,7 @@ import { AddLabelGroupByToGroupingRules1779971548393 } from "./1779971548393-Add
 import { AddTransportTypeToProjectSmtpConfig1779975064262 } from "./1779975064262-AddTransportTypeToProjectSmtpConfig";
 import { AddSmtpTransportTypeToGlobalConfig1779976190561 } from "./1779976190561-AddSmtpTransportTypeToGlobalConfig";
 import { MigrationName1779980428744 } from "./1779980428744-MigrationName";
+import { AddDeliveryTrackingToSmsLog1780317745887 } from "./1780317745887-AddDeliveryTrackingToSmsLog";
 
 export default [
   InitialMigration,
@@ -724,4 +725,5 @@ export default [
   AddTransportTypeToProjectSmtpConfig1779975064262,
   AddSmtpTransportTypeToGlobalConfig1779976190561,
   MigrationName1779980428744,
+  AddDeliveryTrackingToSmsLog1780317745887,
 ];

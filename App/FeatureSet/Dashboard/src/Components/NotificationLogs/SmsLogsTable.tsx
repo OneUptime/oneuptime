@@ -4,7 +4,8 @@ import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Columns from "Common/UI/Components/ModelTable/Columns";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
+import { Green, Grey, Red, Yellow } from "Common/Types/BrandColors";
+import Color from "Common/Types/Color";
 import SmsStatus from "Common/Types/SmsStatus";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
@@ -20,6 +21,26 @@ export interface SmsLogsTableProps {
   query?: Query<BaseModel>;
   singularName?: string;
 }
+
+const getSmsStatusColor: (status: SmsStatus) => Color = (
+  status: SmsStatus,
+): Color => {
+  switch (status) {
+    case SmsStatus.Delivered:
+    case SmsStatus.Sent:
+    case SmsStatus.Success:
+      return Green;
+    case SmsStatus.Sending:
+      return Yellow;
+    case SmsStatus.Undelivered:
+    case SmsStatus.Failed:
+    case SmsStatus.Error:
+    case SmsStatus.LowBalance:
+      return Red;
+    default:
+      return Grey;
+  }
+};
 
 const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
   props: SmsLogsTableProps,
@@ -71,13 +92,20 @@ const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
           return (
             <Pill
               isMinimal={false}
-              color={item["status"] === SmsStatus.Success ? Green : Red}
+              color={getSmsStatusColor(item["status"] as SmsStatus)}
               text={item["status"] as string}
             />
           );
         }
         return <></>;
       },
+    },
+    {
+      field: { errorCode: true },
+      title: "Error Code",
+      type: FieldType.Text,
+      hideOnMobile: true,
+      noValueMessage: "-",
     },
   ];
 
