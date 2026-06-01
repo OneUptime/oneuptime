@@ -7,6 +7,7 @@ import ListResult from "Common/Types/BaseDatabase/ListResult";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject, ObjectType } from "Common/Types/JSON";
+import JSONFunctions from "Common/Types/JSONFunctions";
 import API from "Common/UI/Utils/API/API";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
@@ -34,8 +35,22 @@ import {
   detectOperatorFromValue,
   getOperatorOption,
 } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
+import {
+  getPublicDashboardContext,
+  onPublicDashboardContextChange,
+  PublicDashboardContext,
+} from "../../Dashboard/Utils/PublicDashboardContext";
 
 /*
+ * Public-dashboard metric routing.
+ *
+ * On the public, unauthenticated dashboard the shared metric widgets must not
+ * call the private /api/metric* routes (they 401/405 → /accounts/login, issue
+ * #2467). When a public-dashboard context is active (see
+ * PublicDashboardContext), aggregate + metric-type reads are routed to the
+ * dashboard-scoped public endpoints, and exemplar drill-downs (private trace
+ * views an anonymous viewer cannot reach) are skipped.
+ *
  * In-flight aggregate request deduplication.
  *
  * A dashboard with N widgets pointed at the same metric used to issue N
@@ -59,6 +74,15 @@ interface AggregateCacheEntry {
 
 const inFlightAggregates: Map<string, Promise<AggregatedResult>> = new Map();
 const aggregateResultCache: Map<string, AggregateCacheEntry> = new Map();
+
+/*
+ * Authenticated and public reads hit different endpoints, so drop any
+ * cached/in-flight aggregates whenever the public-dashboard context changes.
+ */
+onPublicDashboardContextChange(() => {
+  inFlightAggregates.clear();
+  aggregateResultCache.clear();
+});
 
 function buildAggregateCacheKey(aggregateBy: AggregateBy<Metric>): string {
   /*
@@ -94,10 +118,7 @@ function dedupedAggregate(
     return inFlight;
   }
 
-  const promise: Promise<AggregatedResult> = AnalyticsModelAPI.aggregate({
-    modelType: Metric,
-    aggregateBy,
-  })
+  const promise: Promise<AggregatedResult> = executeAggregate(aggregateBy)
     .then((result: AggregatedResult) => {
       aggregateResultCache.set(cacheKey, {
         result,
@@ -111,6 +132,68 @@ function dedupedAggregate(
 
   inFlightAggregates.set(cacheKey, promise);
   return promise;
+}
+
+/*
+ * Route a metric aggregation either to the authenticated analytics CRUD
+ * endpoint or, when a public-dashboard context is registered, to the
+ * dashboard-scoped public endpoint.
+ */
+function executeAggregate(
+  aggregateBy: AggregateBy<Metric>,
+): Promise<AggregatedResult> {
+  const context: PublicDashboardContext | null = getPublicDashboardContext();
+  if (context) {
+    return fetchPublicAggregate(aggregateBy, context);
+  }
+
+  return AnalyticsModelAPI.aggregate({
+    modelType: Metric,
+    aggregateBy,
+  });
+}
+
+async function fetchPublicAggregate(
+  aggregateBy: AggregateBy<Metric>,
+  context: PublicDashboardContext,
+): Promise<AggregatedResult> {
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+    await context.postJSON(
+      `/metrics-aggregate/${context.dashboardId.toString()}`,
+      {
+        aggregateBy: JSONFunctions.serialize(aggregateBy as any) as JSONObject,
+      },
+    );
+
+  if (response instanceof HTTPErrorResponse) {
+    throw response;
+  }
+
+  return response.data as unknown as AggregatedResult;
+}
+
+async function fetchPublicMetricTypes(
+  context: PublicDashboardContext,
+): Promise<Array<MetricType>> {
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+    await context.postJSON(
+      `/metric-types/${context.dashboardId.toString()}`,
+      {},
+    );
+
+  if (response instanceof HTTPErrorResponse) {
+    throw response;
+  }
+
+  const rawMetricTypes: Array<JSONObject> = (response.data["metricTypes"] ||
+    []) as Array<JSONObject>;
+
+  return rawMetricTypes.map((rawMetricType: JSONObject) => {
+    const metricType: MetricType = new MetricType();
+    metricType.name = (rawMetricType["name"] as string) || "";
+    metricType.unit = (rawMetricType["unit"] as string) || "";
+    return metricType;
+  });
 }
 
 type SanitizeAttributeFiltersFunction = (
@@ -425,6 +508,15 @@ export default class MetricUtil {
     metricName: string;
     startAndEndDate: InBetween<Date>;
   }): Promise<Array<ExemplarPoint>> {
+    if (getPublicDashboardContext()) {
+      /*
+       * Exemplars link to private trace views an anonymous public-dashboard
+       * viewer cannot open, and the underlying raw-metric read is a private
+       * route (whose 401 would redirect to /accounts/login). Skip them.
+       */
+      return [];
+    }
+
     try {
       const result: ListResult<Metric> = await AnalyticsModelAPI.getList({
         modelType: Metric,
@@ -485,6 +577,22 @@ export default class MetricUtil {
     telemetryAttributesError?: string;
   }> {
     const includeAttributes: boolean = options?.includeAttributes ?? true;
+
+    const publicContext: PublicDashboardContext | null =
+      getPublicDashboardContext();
+    if (publicContext) {
+      /*
+       * Public dashboards are read-only. Telemetry attribute autocomplete is
+       * only used by the edit UI, so it is intentionally skipped here.
+       */
+      const publicMetricTypes: Array<MetricType> =
+        await fetchPublicMetricTypes(publicContext);
+
+      return {
+        metricTypes: publicMetricTypes,
+        telemetryAttributes: [],
+      };
+    }
 
     const metrics: ListResult<MetricType> = await ModelAPI.getList({
       modelType: MetricType,
