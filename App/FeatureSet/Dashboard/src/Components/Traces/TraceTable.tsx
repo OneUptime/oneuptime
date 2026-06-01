@@ -35,6 +35,7 @@ import ListResult from "Common/Types/BaseDatabase/ListResult";
 import Service from "Common/Models/DatabaseModels/Service";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ServiceElement from "../Service/ServiceElement";
+import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 
@@ -165,7 +166,23 @@ const TraceTable: FunctionComponent<ComponentProps> = (
           },
         });
 
-      setServices(telemetryServicesResponse.data || []);
+      /*
+       * Traces without a service.name are tagged with the projectId
+       * (ServiceType.Unknown) and have no Service row. Add a synthetic
+       * "Unknown Service" so those rows resolve to a labelled entry and
+       * users can filter the list to them.
+       */
+      const loadedServices: Array<Service> =
+        telemetryServicesResponse.data || [];
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+      setServices(
+        projectId
+          ? [
+              ...loadedServices,
+              TelemetryServiceUtil.getUnknownService(projectId),
+            ]
+          : loadedServices,
+      );
     } catch (err) {
       setPageError(API.getFriendlyErrorMessage(err as Error));
     } finally {
