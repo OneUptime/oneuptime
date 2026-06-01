@@ -103,6 +103,81 @@ Usage:
 {{- end }}
 
 {{/*
+Parse a Kubernetes memory quantity into an integer number of mebibytes (MiB),
+rounded down. Supports the binary (Ki/Mi/Gi/Ti) and decimal (k/K/M/G/T)
+suffixes Kubernetes accepts, plus a plain byte count with no suffix. Arithmetic
+goes through sprig's float helpers (mulf/divf coerce their string args to
+float64), so fractional quantities like "1.5Gi" parse correctly.
+
+  {{ include "kubernetes-agent.memToMib" "512Mi" }}  -> 512
+  {{ include "kubernetes-agent.memToMib" "4Gi" }}    -> 4096
+*/}}
+{{- define "kubernetes-agent.memToMib" -}}
+{{- $q := . | toString | trim -}}
+{{- $mib := 0.0 -}}
+{{- if hasSuffix "Gi" $q -}}
+{{- $mib = mulf (trimSuffix "Gi" $q) 1024 -}}
+{{- else if hasSuffix "Mi" $q -}}
+{{- $mib = mulf (trimSuffix "Mi" $q) 1 -}}
+{{- else if hasSuffix "Ki" $q -}}
+{{- $mib = divf (trimSuffix "Ki" $q) 1024 -}}
+{{- else if hasSuffix "Ti" $q -}}
+{{- $mib = mulf (trimSuffix "Ti" $q) 1048576 -}}
+{{- else if hasSuffix "G" $q -}}
+{{- $mib = divf (mulf (trimSuffix "G" $q) 1000000000) 1048576 -}}
+{{- else if hasSuffix "M" $q -}}
+{{- $mib = divf (mulf (trimSuffix "M" $q) 1000000) 1048576 -}}
+{{- else if hasSuffix "K" $q -}}
+{{- $mib = divf (mulf (trimSuffix "K" $q) 1000) 1048576 -}}
+{{- else if hasSuffix "k" $q -}}
+{{- $mib = divf (mulf (trimSuffix "k" $q) 1000) 1048576 -}}
+{{- else -}}
+{{- $mib = divf $q 1048576 -}}
+{{- end -}}
+{{- $mib | floor | int -}}
+{{- end }}
+
+{{/*
+limit_mib for the OTel memory_limiter: 80% of a container memory limit, in MiB.
+Shared by the memory_limiter processor config and the GOMEMLIMIT env var so the
+two are derived from the same number and can never drift from the cgroup limit.
+Argument: the container memory limit quantity (e.g. "512Mi", "4Gi").
+*/}}
+{{- define "kubernetes-agent.memLimitMib" -}}
+{{- mulf (include "kubernetes-agent.memToMib" .) 0.8 | floor | int -}}
+{{- end }}
+
+{{/*
+Render the OTel `memory_limiter` processor body (check_interval / limit_mib /
+spike_limit_mib) derived from a container memory limit, so limit_mib always
+sits *below* the cgroup limit. If the limiter were set above the container
+limit the kernel would OOMKill the pod before the limiter could shed load —
+which is exactly the failure this avoids. Follows OTel guidance: limit_mib ≈
+80% of the container limit, spike_limit_mib ≈ 20% of limit_mib.
+
+Usage (the include is nindent-ed under the `memory_limiter:` key):
+  memory_limiter:
+    {{`{{- include "kubernetes-agent.memoryLimiter" "512Mi" | nindent 8 }}`}}
+*/}}
+{{- define "kubernetes-agent.memoryLimiter" -}}
+{{- $hard := include "kubernetes-agent.memLimitMib" . | int -}}
+check_interval: 5s
+limit_mib: {{ $hard }}
+spike_limit_mib: {{ mulf $hard 0.2 | floor | int }}
+{{- end }}
+
+{{/*
+GOMEMLIMIT value (the Go runtime soft memory limit) for a collector container:
+80% of the container memory limit, with the MiB suffix the Go runtime expects.
+Matches the memory_limiter's limit_mib so the Go GC starts reclaiming at the
+same threshold the limiter begins shedding load, keeping total RSS under the
+cgroup limit. Argument: the container memory limit quantity.
+*/}}
+{{- define "kubernetes-agent.gomemlimit" -}}
+{{- printf "%dMiB" (include "kubernetes-agent.memLimitMib" . | int) -}}
+{{- end }}
+
+{{/*
 Effective log collection mode.
 
 Resolution order:

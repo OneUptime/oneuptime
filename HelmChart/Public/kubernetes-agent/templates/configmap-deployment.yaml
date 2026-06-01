@@ -351,11 +351,15 @@ data:
         send_batch_max_size: 200
         timeout: 10s
 
-      # Limit memory usage
+      # Memory ceiling for the collector. limit_mib / spike_limit_mib are
+      # derived from the container memory limit
+      # (.Values.deployment.resources.limits.memory, wired into the Deployment
+      # at templates/deployment.yaml) so the limiter always trips *below* the
+      # cgroup limit and can't drift above it. limit_mib ≈ 80% of the
+      # container limit, spike_limit_mib ≈ 20% of limit_mib (OTel guidance).
+      # See the `kubernetes-agent.memoryLimiter` helper.
       memory_limiter:
-        check_interval: 5s
-        limit_mib: 3000
-        spike_limit_mib: 600
+        {{- include "kubernetes-agent.memoryLimiter" (.Values.deployment.resources.limits.memory | default "4Gi") | nindent 8 }}
 
     exporters:
       otlphttp:

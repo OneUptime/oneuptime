@@ -119,13 +119,21 @@ logs:
   # "gke-autopilot" / "eks-fargate" -> api. Override explicitly if you know
   # what you want: "daemonset" | "api" | "disabled".
   mode: ""
+  # The OTel memory_limiter (templates/configmap-daemonset.yaml) and the
+  # container's GOMEMLIMIT are derived from limits.memory — limit_mib is ≈80%
+  # of it — so the limiter and Go GC always engage *before* the kernel
+  # OOMKills the pod. Raising limits.memory gives the collector more headroom
+  # on busy nodes and the limiter scales with it automatically; there's no
+  # separate limiter knob to keep in sync. Keep requests.memory near
+  # steady-state usage so the kubelet doesn't evict the pod under node memory
+  # pressure (usage routinely runs above requests once logs/hostmetrics flow).
   resources:
     requests:
       cpu: 50m
-      memory: 128Mi
+      memory: 256Mi
     limits:
       cpu: 200m
-      memory: 256Mi
+      memory: 512Mi
   # Only used when mode == "api"
   api:
     image:

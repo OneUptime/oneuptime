@@ -66,7 +66,7 @@ Every component the agent ships has its own `resources` block in [`values.yaml`]
 | Component | values key | Requests (cpu / mem) | Limits (cpu / mem) | Enabled |
 | --- | --- | --- | --- | --- |
 | Metrics & events collector (Deployment) | `deployment.resources` | `200m` / `1Gi` | `1000m` / `4Gi` | always on |
-| Pod log collector — DaemonSet | `logs.resources` | `50m` / `128Mi` | `200m` / `256Mi` | when `logs.mode: daemonset` |
+| Pod log collector — DaemonSet | `logs.resources` | `50m` / `256Mi` | `200m` / `512Mi` | when `logs.mode: daemonset` |
 | Pod log tailer — API mode | `logs.api.resources` | `100m` / `256Mi` | `1000m` / `1Gi` | when `logs.mode: api` |
 | eBPF auto-instrumentation (DaemonSet) | `ebpf.resources` | `100m` / `256Mi` | `1000m` / `1Gi` | on by default |
 | Continuous profiler (DaemonSet) | `profiling.resources` | `200m` / `512Mi` | `2000m` / `2Gi` | opt-in (`profiling.enabled=true`) |
