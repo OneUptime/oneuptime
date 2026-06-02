@@ -111,6 +111,13 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
             profilePictureId: true,
           },
           markedAsResolvedAt: true,
+          serviceId: true,
+          serviceType: true,
+          service: {
+            _id: true,
+            name: true,
+            serviceColor: true,
+          },
         },
       });
 

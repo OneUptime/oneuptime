@@ -14,6 +14,12 @@ import ScheduledMaintenanceOwnerTeamService from "../../../Services/ScheduledMai
 import ScheduledMaintenanceOwnerUserService from "../../../Services/ScheduledMaintenanceOwnerUserService";
 import ServiceOwnerTeamService from "../../../Services/ServiceOwnerTeamService";
 import ServiceOwnerUserService from "../../../Services/ServiceOwnerUserService";
+import HostOwnerTeamService from "../../../Services/HostOwnerTeamService";
+import HostOwnerUserService from "../../../Services/HostOwnerUserService";
+import DockerHostOwnerTeamService from "../../../Services/DockerHostOwnerTeamService";
+import DockerHostOwnerUserService from "../../../Services/DockerHostOwnerUserService";
+import KubernetesClusterOwnerTeamService from "../../../Services/KubernetesClusterOwnerTeamService";
+import KubernetesClusterOwnerUserService from "../../../Services/KubernetesClusterOwnerUserService";
 import StatusPageOwnerTeamService from "../../../Services/StatusPageOwnerTeamService";
 import StatusPageOwnerUserService from "../../../Services/StatusPageOwnerUserService";
 import WorkflowOwnerTeamService from "../../../Services/WorkflowOwnerTeamService";
@@ -111,6 +117,30 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
       ownerUserService: ServiceOwnerUserService,
       ownerTeamService: ServiceOwnerTeamService,
       fkColumn: "serviceId",
+    },
+  ],
+  [
+    "Host",
+    {
+      ownerUserService: HostOwnerUserService,
+      ownerTeamService: HostOwnerTeamService,
+      fkColumn: "hostId",
+    },
+  ],
+  [
+    "DockerHost",
+    {
+      ownerUserService: DockerHostOwnerUserService,
+      ownerTeamService: DockerHostOwnerTeamService,
+      fkColumn: "dockerHostId",
+    },
+  ],
+  [
+    "KubernetesCluster",
+    {
+      ownerUserService: KubernetesClusterOwnerUserService,
+      ownerTeamService: KubernetesClusterOwnerTeamService,
+      fkColumn: "kubernetesClusterId",
     },
   ],
   [

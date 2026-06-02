@@ -21,6 +21,9 @@ import ServiceType from "../../Types/Telemetry/ServiceType";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import DatabaseBaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Service from "./Service";
+import Host from "./Host";
+import DockerHost from "./DockerHost";
+import KubernetesCluster from "./KubernetesCluster";
 
 @EnableDocumentation()
 @CanAccessIfCanReadOn("service")
@@ -61,7 +64,16 @@ import Service from "./Service";
   tableDescription:
     "List of all Telemetry Exceptions created for the telemetry service for this OneUptime project and it's status.",
 })
-@OwnedThrough("serviceId", Service)
+/*
+ * serviceId is polymorphic (see the column below) — it may reference a
+ * Service, Host, DockerHost or KubernetesCluster, or be the projectId for
+ * unattributed (Unknown) telemetry. Owned scope unions ownership across all
+ * of those resource types, and includeProjectScope lets in-project users
+ * see the unattributed bucket (which has no owner resource).
+ */
+@OwnedThrough("serviceId", [Service, Host, DockerHost, KubernetesCluster], {
+  includeProjectScope: true,
+})
 @Entity({
   name: "TelemetryException",
 })
