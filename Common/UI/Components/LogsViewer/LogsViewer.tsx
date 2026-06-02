@@ -60,6 +60,8 @@ import { queryStringToFilter } from "../../../Types/Log/LogQueryToFilter";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
 import { exportLogs, LogExportFormat } from "../../Utils/LogExport";
+import ProjectUtil from "../../Utils/Project";
+import TelemetryServiceUtil from "../../Utils/TelemetryService";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 
@@ -459,6 +461,20 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
           }
           services[service.id.toString()] = service;
         });
+
+        /*
+         * Logs without a service.name are tagged with the projectId
+         * (ServiceType.Unknown) and have no Service row. Register a
+         * synthetic "Unknown Service" keyed by the projectId so the
+         * serviceId -> name resolution and the serviceId facet render
+         * "Unknown Service" instead of a raw id. Harmless when no logs
+         * are unattributed — nothing resolves against it.
+         */
+        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+        if (projectId) {
+          services[projectId.toString()] =
+            TelemetryServiceUtil.getUnknownService(projectId);
+        }
 
         const hostsById: Dictionary<Host> = {};
         hosts.data.forEach((host: Host) => {

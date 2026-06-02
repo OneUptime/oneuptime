@@ -1,10 +1,9 @@
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/TelemetryException";
-import TelemetryServiceModel from "../../Models/DatabaseModels/Service";
+import ServiceType from "../../Types/Telemetry/ServiceType";
 import AIAgentTask from "../../Models/DatabaseModels/AIAgentTask";
 import AIAgentTaskTelemetryException from "../../Models/DatabaseModels/AIAgentTaskTelemetryException";
 import ObjectID from "../../Types/ObjectID";
-import PositiveNumber from "../../Types/PositiveNumber";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../Types/Exception/BadDataException";
 import AIAgentTaskType from "../../Types/AI/AIAgentTaskType";
@@ -13,7 +12,6 @@ import { FixExceptionTaskMetadata } from "../../Types/AI/AIAgentTaskMetadata";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import AIAgentTaskService from "./AIAgentTaskService";
 import AIAgentTaskTelemetryExceptionService from "./AIAgentTaskTelemetryExceptionService";
-import ServiceService from "./ServiceService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -24,7 +22,13 @@ export interface CreateAIAgentTaskForExceptionParams {
 }
 
 export interface DashboardServiceSummary {
-  service: TelemetryServiceModel;
+  /*
+   * Polymorphic: a real Service, a Host/DockerHost/KubernetesCluster id, or
+   * the projectId for unattributed telemetry. The client resolves the
+   * display name per serviceType.
+   */
+  serviceId: string;
+  serviceType: ServiceType | null;
   unresolvedCount: number;
   totalOccurrences: number;
 }
@@ -182,11 +186,9 @@ export class Service extends DatabaseService<Model> {
       lastSeenAt: true,
       firstSeenAt: true,
       environment: true,
-      service: {
-        _id: true,
-        name: true,
-        serviceColor: true,
-      },
+      // serviceId is polymorphic; the client resolves it per serviceType.
+      serviceId: true,
+      serviceType: true,
     };
 
     const [
@@ -284,6 +286,7 @@ export class Service extends DatabaseService<Model> {
 
     interface AggregateRow {
       serviceId: string | null;
+      serviceType: string | null;
       unresolvedCount: string;
       totalOccurrences: string | null;
     }
@@ -292,6 +295,7 @@ export class Service extends DatabaseService<Model> {
       "TelemetryException",
     )
       .select(`"TelemetryException"."serviceId"`, "serviceId")
+      .addSelect(`"TelemetryException"."serviceType"`, "serviceType")
       .addSelect(`COUNT(*)`, "unresolvedCount")
       .addSelect(
         `COALESCE(SUM("TelemetryException"."occuranceCount"), 0)`,
@@ -305,6 +309,7 @@ export class Service extends DatabaseService<Model> {
       .andWhere(`"TelemetryException"."deletedAt" IS NULL`)
       .andWhere(`"TelemetryException"."serviceId" IS NOT NULL`)
       .groupBy(`"TelemetryException"."serviceId"`)
+      .addGroupBy(`"TelemetryException"."serviceType"`)
       .orderBy(`"unresolvedCount"`, "DESC")
       .getRawMany()) as Array<AggregateRow>;
 
@@ -312,52 +317,22 @@ export class Service extends DatabaseService<Model> {
       return [];
     }
 
-    const serviceIds: Array<string> = [];
-    for (const row of rows) {
-      if (row.serviceId) {
-        serviceIds.push(row.serviceId);
-      }
-    }
-
-    if (serviceIds.length === 0) {
-      return [];
-    }
-
-    const services: Array<TelemetryServiceModel> = await ServiceService.findBy({
-      query: {
-        projectId,
-        _id: QueryHelper.any(serviceIds),
-      },
-      select: {
-        _id: true,
-        name: true,
-        serviceColor: true,
-      },
-      limit: new PositiveNumber(serviceIds.length),
-      skip: new PositiveNumber(0),
-      props,
-    });
-
-    const serviceById: Map<string, TelemetryServiceModel> = new Map();
-    for (const service of services) {
-      if (service._id) {
-        serviceById.set(service._id, service);
-      }
-    }
-
+    /*
+     * serviceId is polymorphic — do NOT resolve it to a Service here. The
+     * old code looked each serviceId up in the Service table and dropped
+     * any that didn't match, which silently excluded Host / DockerHost /
+     * KubernetesCluster and unattributed (Unknown) telemetry. Return the
+     * raw (serviceId, serviceType) + counts; the client resolves the
+     * display name per serviceType.
+     */
     const summaries: Array<DashboardServiceSummary> = [];
     for (const row of rows) {
       if (!row.serviceId) {
         continue;
       }
-      const service: TelemetryServiceModel | undefined = serviceById.get(
-        row.serviceId,
-      );
-      if (!service) {
-        continue;
-      }
       summaries.push({
-        service,
+        serviceId: row.serviceId,
+        serviceType: (row.serviceType as ServiceType | null) ?? null,
         unresolvedCount: parseInt(row.unresolvedCount, 10) || 0,
         totalOccurrences: parseInt(row.totalOccurrences || "0", 10) || 0,
       });

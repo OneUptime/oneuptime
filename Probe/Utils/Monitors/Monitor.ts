@@ -48,6 +48,7 @@ import API from "Common/Utils/API";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import logger from "Common/Server/Utils/Logger";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
+import TelemetryContext from "Common/Server/Utils/Telemetry/TelemetryContext";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import ObjectID from "Common/Types/ObjectID";
@@ -76,6 +77,25 @@ export default class MonitorUtil {
   }
 
   public static async probeMonitorTest(
+    monitorTest: MonitorTest,
+  ): Promise<Array<ProbeMonitorResponse | null>> {
+    /*
+     * Seed telemetry context so every span/log for this test check carries the
+     * monitor + project identity.
+     */
+    return TelemetryContext.runWithContext(
+      {
+        monitorId: monitorTest.id?.toString(),
+        projectId: monitorTest.projectId?.toString(),
+        monitorType: monitorTest.monitorType?.toString(),
+      },
+      () => {
+        return this.probeMonitorTestInternal(monitorTest);
+      },
+    );
+  }
+
+  private static async probeMonitorTestInternal(
     monitorTest: MonitorTest,
   ): Promise<Array<ProbeMonitorResponse | null>> {
     const results: Array<ProbeMonitorResponse | null> = [];
@@ -130,6 +150,25 @@ export default class MonitorUtil {
   }
 
   public static async probeMonitor(
+    monitor: Monitor,
+  ): Promise<Array<ProbeMonitorResponse | null>> {
+    /*
+     * Seed telemetry context so every span/log for this check carries the
+     * monitor + project identity.
+     */
+    return TelemetryContext.runWithContext(
+      {
+        monitorId: monitor.id?.toString(),
+        projectId: monitor.projectId?.toString(),
+        monitorType: monitor.monitorType?.toString(),
+      },
+      () => {
+        return this.probeMonitorInternal(monitor);
+      },
+    );
+  }
+
+  private static async probeMonitorInternal(
     monitor: Monitor,
   ): Promise<Array<ProbeMonitorResponse | null>> {
     const results: Array<ProbeMonitorResponse | null> = [];

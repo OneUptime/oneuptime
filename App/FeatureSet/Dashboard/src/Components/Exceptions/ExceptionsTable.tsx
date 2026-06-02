@@ -7,6 +7,8 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Query from "Common/Types/BaseDatabase/Query";
 import ProjectUtil from "Common/UI/Utils/Project";
 import TelemetryServiceElement from "../TelemetryService/TelemetryServiceElement";
+import Service from "Common/Models/DatabaseModels/Service";
+import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
 import TelemetryExceptionElement from "./ExceptionElement";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -20,6 +22,8 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
 import UserUtil from "Common/UI/Utils/User";
@@ -40,6 +44,34 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
   const viewRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.EXCEPTIONS_VIEW_ROOT]!,
   );
+
+  /*
+   * An exception's serviceId is polymorphic (no Service relation). Load the
+   * project's Services once so the Service column can resolve real
+   * OpenTelemetry services to their name/colour; Host/Docker/K8s and
+   * unattributed rows resolve to a label / synthetic via
+   * TelemetryServiceUtil.resolveTelemetryResource.
+   */
+  const [services, setServices] = React.useState<Array<Service>>([]);
+
+  React.useEffect(() => {
+    const loadServices: () => Promise<void> = async (): Promise<void> => {
+      try {
+        const result: ListResult<Service> = await ModelAPI.getList<Service>({
+          modelType: Service,
+          query: { projectId: ProjectUtil.getCurrentProjectId()! },
+          select: { _id: true, name: true, serviceColor: true },
+          sort: { name: SortOrder.Ascending },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+        });
+        setServices(result.data);
+      } catch {
+        // Non-fatal: rows fall back to a serviceType label / "Unknown".
+      }
+    };
+    void loadServices();
+  }, []);
 
   return (
     <Fragment>
@@ -456,24 +488,23 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              service: {
-                name: true,
-                serviceColor: true,
-              },
+              serviceId: true,
+              serviceType: true,
             },
             title: "Service",
             type: FieldType.Entity,
-            getElement: (exception: TelemetryException) => {
-              if (!exception.service) {
-                // this should never happen.
-                return <div>Unknown</div>;
+            getElement: (exception: TelemetryException): ReactElement => {
+              const { service, label } =
+                TelemetryServiceUtil.resolveTelemetryResource({
+                  serviceId: exception.serviceId,
+                  serviceType: exception.serviceType,
+                  services: services,
+                  projectId: ProjectUtil.getCurrentProjectId(),
+                });
+              if (service) {
+                return <TelemetryServiceElement telemetryService={service} />;
               }
-
-              return (
-                <TelemetryServiceElement
-                  telemetryService={exception.service!}
-                />
-              );
+              return <div className="text-gray-700">{label}</div>;
             },
           },
           {

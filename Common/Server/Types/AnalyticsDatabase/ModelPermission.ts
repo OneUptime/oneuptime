@@ -807,6 +807,23 @@ export default class ModelPermission {
       }
     }
 
+    /*
+     * Telemetry with no owning resource (the unattributed "Unknown"
+     * bucket) is tagged with the projectId in place of a resource id. It
+     * belongs to the project, not any owner, so an Owned-scoped user
+     * (project-level catch-all access) sees it. Gated on hasOwnedGrant:
+     * a purely Labels-scoped user asked for label-matching telemetry, and
+     * the unattributed bucket carries no labels, so it stays excluded for
+     * them.
+     */
+    if (
+      hasOwnedGrant &&
+      model.ownedThrough.includeProjectScope &&
+      props.tenantId
+    ) {
+      allowedResourceIds.add(props.tenantId.toString());
+    }
+
     const fkColumn: string = model.ownedThrough.fkColumn;
     const idList: Array<string> =
       allowedResourceIds.size > 0
@@ -841,64 +858,73 @@ export default class ModelPermission {
 
     const ownerTableRegistry: Map<
       string,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      { ownerUserService: any; ownerTeamService: any; fkColumn: string }
+      {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ownerUserService: any;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ownerTeamService: any;
+        fkColumn: string;
+        canOwnTelemetry?: boolean;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        modelService?: any;
+      }
     > =
       // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
       require("../Database/Permissions/OwnerTableRegistry").default;
 
-    const serviceEntry:
-      | {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ownerUserService: any;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ownerTeamService: any;
-          fkColumn: string;
-        }
-      | undefined = ownerTableRegistry.get("Service");
-    if (!serviceEntry) {
-      cache.ownedIds = result;
-      return result;
-    }
+    /*
+     * Telemetry serviceId is polymorphic — it can reference any resource
+     * type flagged `canOwnTelemetry` in the registry (Service, Monitor,
+     * Host, DockerHost, KubernetesCluster). Resolve ownership across all of
+     * them so a user who owns any such resource sees its telemetry, not
+     * just owned Services. The polymorphic set lives only in the registry
+     * (single source of truth); the resolved union is the same for every
+     * telemetry analytics model, so the single per-request `ownedIds`
+     * cache slot still holds it.
+     */
+    for (const entry of ownerTableRegistry.values()) {
+      if (!entry.canOwnTelemetry) {
+        continue;
+      }
+      const fkColumn: string = entry.fkColumn;
 
-    if (props.userId) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const userOwnedRows: Array<any> =
-        await serviceEntry.ownerUserService.findBy({
+      if (props.userId) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const userOwnedRows: Array<any> = await entry.ownerUserService.findBy({
           query: {
             userId: props.userId,
             ...(props.tenantId ? { projectId: props.tenantId } : {}),
           },
-          select: { serviceId: true },
+          select: { [fkColumn]: true },
           props: { isRoot: true },
           skip: 0,
           limit: LIMIT_MAX,
         });
-      for (const row of userOwnedRows) {
-        const id: ObjectID | undefined = row.serviceId;
-        if (id) {
-          result.add(id.toString());
+        for (const row of userOwnedRows) {
+          const id: ObjectID | undefined = row[fkColumn];
+          if (id) {
+            result.add(id.toString());
+          }
         }
       }
-    }
 
-    if (props.userTeamIds && props.userTeamIds.length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const teamOwnedRows: Array<any> =
-        await serviceEntry.ownerTeamService.findBy({
+      if (props.userTeamIds && props.userTeamIds.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const teamOwnedRows: Array<any> = await entry.ownerTeamService.findBy({
           query: {
             teamId: QueryHelper.any(props.userTeamIds),
             ...(props.tenantId ? { projectId: props.tenantId } : {}),
           },
-          select: { serviceId: true },
+          select: { [fkColumn]: true },
           props: { isRoot: true },
           skip: 0,
           limit: LIMIT_MAX,
         });
-      for (const row of teamOwnedRows) {
-        const id: ObjectID | undefined = row.serviceId;
-        if (id) {
-          result.add(id.toString());
+        for (const row of teamOwnedRows) {
+          const id: ObjectID | undefined = row[fkColumn];
+          if (id) {
+            result.add(id.toString());
+          }
         }
       }
     }
@@ -942,50 +968,54 @@ export default class ModelPermission {
       return cached;
     }
 
-    const ServiceService: any =
-      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-      require("../../Services/ServiceService").default;
-    const MonitorService: any =
-      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-      require("../../Services/MonitorService").default;
-
     const tenantFilter: Record<string, ObjectID> = props.tenantId
       ? { projectId: props.tenantId }
       : {};
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const serviceRows: Array<any> = await ServiceService.findBy({
-      query: {
-        labels: labelIds,
-        ...tenantFilter,
-      },
-      select: { _id: true },
-      props: { isRoot: true },
-      skip: 0,
-      limit: LIMIT_MAX,
-    });
-    for (const row of serviceRows) {
-      const id: ObjectID | string | undefined = row._id;
-      if (id) {
-        result.add(id.toString());
+    const ownerTableRegistry: Map<
+      string,
+      {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ownerUserService: any;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ownerTeamService: any;
+        fkColumn: string;
+        canOwnTelemetry?: boolean;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        modelService?: any;
       }
-    }
+    > =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      require("../Database/Permissions/OwnerTableRegistry").default;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const monitorRows: Array<any> = await MonitorService.findBy({
-      query: {
-        labels: labelIds,
-        ...tenantFilter,
-      },
-      select: { _id: true },
-      props: { isRoot: true },
-      skip: 0,
-      limit: LIMIT_MAX,
-    });
-    for (const row of monitorRows) {
-      const id: ObjectID | string | undefined = row._id;
-      if (id) {
-        result.add(id.toString());
+    /*
+     * Telemetry serviceId is polymorphic across every resource type
+     * flagged `canOwnTelemetry` in the registry (Service, Monitor, Host,
+     * DockerHost, KubernetesCluster), each of which carries labels. Find
+     * rows of each whose labels intersect the user's. Keeping this set in
+     * the registry (single source of truth) means a new telemetry-owning
+     * resource is picked up here automatically — no edits needed.
+     */
+    for (const entry of ownerTableRegistry.values()) {
+      if (!entry.canOwnTelemetry || !entry.modelService) {
+        continue;
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rows: Array<any> = await entry.modelService.findBy({
+        query: {
+          labels: labelIds,
+          ...tenantFilter,
+        },
+        select: { _id: true },
+        props: { isRoot: true },
+        skip: 0,
+        limit: LIMIT_MAX,
+      });
+      for (const row of rows) {
+        const id: ObjectID | string | undefined = row._id;
+        if (id) {
+          result.add(id.toString());
+        }
       }
     }
 
