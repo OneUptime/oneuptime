@@ -313,9 +313,21 @@ export default class MonitorIncident {
           JSON.stringify(input.dataToProcess, null, 2),
         );
 
-        incident.createdCriteriaId = input.criteriaInstance.data.id.toString();
+        /*
+         * Guard against missing ids — these are optional reference fields and
+         * must not crash incident creation (which runs inside the probe /
+         * telemetry queue workers). A missing id previously threw
+         * "Cannot read properties of undefined (reading 'toString')" and failed
+         * the job on every cycle for the affected monitor.
+         */
+        if (input.criteriaInstance.data?.id) {
+          incident.createdCriteriaId =
+            input.criteriaInstance.data.id.toString();
+        }
 
-        incident.createdIncidentTemplateId = criteriaIncident.id.toString();
+        if (criteriaIncident.id) {
+          incident.createdIncidentTemplateId = criteriaIncident.id.toString();
+        }
 
         if (seriesFingerprint) {
           incident.seriesFingerprint = seriesFingerprint;
