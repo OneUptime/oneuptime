@@ -807,6 +807,23 @@ export default class ModelPermission {
       }
     }
 
+    /*
+     * Telemetry with no owning resource (the unattributed "Unknown"
+     * bucket) is tagged with the projectId in place of a resource id. It
+     * belongs to the project, not any owner, so an Owned-scoped user
+     * (project-level catch-all access) sees it. Gated on hasOwnedGrant:
+     * a purely Labels-scoped user asked for label-matching telemetry, and
+     * the unattributed bucket carries no labels, so it stays excluded for
+     * them.
+     */
+    if (
+      hasOwnedGrant &&
+      model.ownedThrough.includeProjectScope &&
+      props.tenantId
+    ) {
+      allowedResourceIds.add(props.tenantId.toString());
+    }
+
     const fkColumn: string = model.ownedThrough.fkColumn;
     const idList: Array<string> =
       allowedResourceIds.size > 0
@@ -847,58 +864,73 @@ export default class ModelPermission {
       // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
       require("../Database/Permissions/OwnerTableRegistry").default;
 
-    const serviceEntry:
-      | {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ownerUserService: any;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ownerTeamService: any;
-          fkColumn: string;
-        }
-      | undefined = ownerTableRegistry.get("Service");
-    if (!serviceEntry) {
-      cache.ownedIds = result;
-      return result;
-    }
+    /*
+     * Telemetry serviceId is polymorphic — it can reference a Service,
+     * Host, DockerHost or KubernetesCluster (see ServiceType). Resolve
+     * ownership across all of them so a user who owns any such resource
+     * sees its telemetry, not just owned Services. The resolved union is
+     * the same for every telemetry analytics model, so the single
+     * per-request `ownedIds` cache slot still holds the full set.
+     */
+    const resourceTypeNames: Array<string> = [
+      "Service",
+      "Host",
+      "DockerHost",
+      "KubernetesCluster",
+    ];
 
-    if (props.userId) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const userOwnedRows: Array<any> =
-        await serviceEntry.ownerUserService.findBy({
+    for (const resourceTypeName of resourceTypeNames) {
+      const entry:
+        | {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ownerUserService: any;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ownerTeamService: any;
+            fkColumn: string;
+          }
+        | undefined = ownerTableRegistry.get(resourceTypeName);
+      if (!entry) {
+        continue;
+      }
+      const fkColumn: string = entry.fkColumn;
+
+      if (props.userId) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const userOwnedRows: Array<any> = await entry.ownerUserService.findBy({
           query: {
             userId: props.userId,
             ...(props.tenantId ? { projectId: props.tenantId } : {}),
           },
-          select: { serviceId: true },
+          select: { [fkColumn]: true },
           props: { isRoot: true },
           skip: 0,
           limit: LIMIT_MAX,
         });
-      for (const row of userOwnedRows) {
-        const id: ObjectID | undefined = row.serviceId;
-        if (id) {
-          result.add(id.toString());
+        for (const row of userOwnedRows) {
+          const id: ObjectID | undefined = row[fkColumn];
+          if (id) {
+            result.add(id.toString());
+          }
         }
       }
-    }
 
-    if (props.userTeamIds && props.userTeamIds.length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const teamOwnedRows: Array<any> =
-        await serviceEntry.ownerTeamService.findBy({
+      if (props.userTeamIds && props.userTeamIds.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const teamOwnedRows: Array<any> = await entry.ownerTeamService.findBy({
           query: {
             teamId: QueryHelper.any(props.userTeamIds),
             ...(props.tenantId ? { projectId: props.tenantId } : {}),
           },
-          select: { serviceId: true },
+          select: { [fkColumn]: true },
           props: { isRoot: true },
           skip: 0,
           limit: LIMIT_MAX,
         });
-      for (const row of teamOwnedRows) {
-        const id: ObjectID | undefined = row.serviceId;
-        if (id) {
-          result.add(id.toString());
+        for (const row of teamOwnedRows) {
+          const id: ObjectID | undefined = row[fkColumn];
+          if (id) {
+            result.add(id.toString());
+          }
         }
       }
     }
@@ -986,6 +1018,46 @@ export default class ModelPermission {
       const id: ObjectID | string | undefined = row._id;
       if (id) {
         result.add(id.toString());
+      }
+    }
+
+    /*
+     * Telemetry serviceId is also polymorphic across infrastructure
+     * resources, which carry their own labels. Include Host / DockerHost /
+     * KubernetesCluster rows whose labels intersect the user's so
+     * label-scoped users see infra telemetry, not just Service/Monitor.
+     */
+    const HostService: any =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      require("../../Services/HostService").default;
+    const DockerHostService: any =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      require("../../Services/DockerHostService").default;
+    const KubernetesClusterService: any =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      require("../../Services/KubernetesClusterService").default;
+
+    for (const labeledResourceService of [
+      HostService,
+      DockerHostService,
+      KubernetesClusterService,
+    ]) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rows: Array<any> = await labeledResourceService.findBy({
+        query: {
+          labels: labelIds,
+          ...tenantFilter,
+        },
+        select: { _id: true },
+        props: { isRoot: true },
+        skip: 0,
+        limit: LIMIT_MAX,
+      });
+      for (const row of rows) {
+        const id: ObjectID | string | undefined = row._id;
+        if (id) {
+          result.add(id.toString());
+        }
       }
     }
 

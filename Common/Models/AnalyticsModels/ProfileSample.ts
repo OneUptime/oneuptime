@@ -15,7 +15,7 @@ import Service from "../DatabaseModels/Service";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 
 @OperationalResource()
-@OwnedThrough("serviceId", Service)
+@OwnedThrough("serviceId", Service, { includeProjectScope: true })
 export default class ProfileSample extends AnalyticsBaseModel {
   public constructor() {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({

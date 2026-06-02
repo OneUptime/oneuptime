@@ -28,7 +28,7 @@ export enum MetricPointType {
 }
 
 @OperationalResource()
-@OwnedThrough("serviceId", Service)
+@OwnedThrough("serviceId", Service, { includeProjectScope: true })
 export default class Metric extends AnalyticsBaseModel {
   public constructor() {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
