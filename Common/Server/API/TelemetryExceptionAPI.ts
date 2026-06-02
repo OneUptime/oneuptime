@@ -1,5 +1,4 @@
 import TelemetryException from "../../Models/DatabaseModels/TelemetryException";
-import TelemetryServiceModel from "../../Models/DatabaseModels/Service";
 import AIAgentTask from "../../Models/DatabaseModels/AIAgentTask";
 import AIAgentTaskTelemetryException from "../../Models/DatabaseModels/AIAgentTaskTelemetryException";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -211,8 +210,13 @@ export default class TelemetryExceptionAPI extends BaseAPI<
 
     const serviceSummariesJson: JSONArray = summary.serviceSummaries.map(
       (entry: DashboardServiceSummary): JSONObject => {
+        /*
+         * serviceId is polymorphic; the client resolves the display name
+         * per serviceType (no Service relation to serialize anymore).
+         */
         return {
-          service: BaseModel.toJSON(entry.service, TelemetryServiceModel),
+          serviceId: entry.serviceId,
+          serviceType: entry.serviceType,
           unresolvedCount: entry.unresolvedCount,
           totalOccurrences: entry.totalOccurrences,
         };

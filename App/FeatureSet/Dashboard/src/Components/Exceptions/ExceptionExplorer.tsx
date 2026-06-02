@@ -6,6 +6,9 @@ import BreadcrumbTimeline, { BreadcrumbEvent } from "./BreadcrumbTimeline";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import Span, { SpanEvent } from "Common/Models/AnalyticsModels/Span";
 import ObjectID from "Common/Types/ObjectID";
+import Service from "Common/Models/DatabaseModels/Service";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -76,6 +79,33 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     BreadcrumbEvent[]
   >([]);
 
+  /*
+   * An exception's serviceId is polymorphic (no Service relation). Load the
+   * project's Services so the detail view can resolve a real OpenTelemetry
+   * service to its name/colour; other serviceTypes resolve to a label.
+   */
+  const [services, setServices] = React.useState<Array<Service>>([]);
+
+  useEffect(() => {
+    const loadServices: () => Promise<void> = async (): Promise<void> => {
+      try {
+        const result: { data: Array<Service> } =
+          await ModelAPI.getList<Service>({
+            modelType: Service,
+            query: { projectId: ProjectUtil.getCurrentProjectId()! },
+            select: { _id: true, name: true, serviceColor: true },
+            sort: { name: SortOrder.Ascending },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+          });
+        setServices(result.data);
+      } catch {
+        // Non-fatal: the detail view falls back to a serviceType label.
+      }
+    };
+    void loadServices();
+  }, []);
+
   type RefeshExceptionItemFunction = () => Promise<void>;
 
   const refreshExceptionItem: RefeshExceptionItemFunction = async () => {
@@ -113,11 +143,6 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
           markedAsResolvedAt: true,
           serviceId: true,
           serviceType: true,
-          service: {
-            _id: true,
-            name: true,
-            serviceColor: true,
-          },
         },
       });
 
@@ -534,7 +559,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
 
       {/** Exception Details */}
 
-      <ExceptionDetail {...telemetryException} />
+      <ExceptionDetail {...telemetryException} services={services} />
 
       {/** Parsed Stack Frame Viewer */}
       {telemetryException.stackTrace && (

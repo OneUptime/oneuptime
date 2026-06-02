@@ -20,9 +20,10 @@ export interface ComponentProps {
   lastSeenAt?: Date | undefined;
   occuranceCount?: number | undefined;
   attributes?: JSONObject | undefined;
-  service?: Service | undefined;
   serviceId?: ObjectID | undefined;
   serviceType?: ServiceType | undefined;
+  // The project's Services, for resolving a real OpenTelemetry serviceId.
+  services?: Array<Service> | undefined;
   firstSeenInRelease?: string | undefined;
   lastSeenInRelease?: string | undefined;
   environment?: string | undefined;
@@ -135,39 +136,25 @@ const ExceptionDetail: FunctionComponent<ComponentProps> = (
   }
 
   /*
-   * Resolve the resource this exception belongs to. serviceId is
-   * polymorphic: a real Service renders as a linked ServiceElement; the
-   * unattributed bucket (serviceType Unknown / serviceId === projectId)
-   * renders as a non-linked synthetic "Unknown Service"; Host / DockerHost
-   * / KubernetesCluster render as a typed label.
+   * Resolve the resource this exception belongs to from its polymorphic
+   * (serviceId, serviceType): a real Service renders as a linked
+   * ServiceElement; the unattributed bucket renders as a non-linked
+   * synthetic "Unknown Service"; Host / DockerHost / KubernetesCluster
+   * render as a typed label. The bare "Unknown" fallback is omitted.
    */
   const serviceField: ReactElement | null = ((): ReactElement | null => {
-    if (props.service) {
-      return <ServiceElement service={props.service} />;
+    const { service, label } = TelemetryServiceUtil.resolveTelemetryResource({
+      serviceId: props.serviceId,
+      serviceType: props.serviceType,
+      services: props.services || [],
+      projectId: ProjectUtil.getCurrentProjectId(),
+    });
+
+    if (service) {
+      return <ServiceElement service={service} />;
     }
 
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-    if (
-      projectId &&
-      (props.serviceType === ServiceType.Unknown ||
-        TelemetryServiceUtil.isUnknownServiceId(props.serviceId, projectId))
-    ) {
-      return (
-        <ServiceElement
-          service={TelemetryServiceUtil.getUnknownService(projectId)}
-        />
-      );
-    }
-
-    const typeLabels: Record<string, string> = {
-      [ServiceType.Host]: "Host telemetry",
-      [ServiceType.DockerHost]: "Docker host telemetry",
-      [ServiceType.KubernetesCluster]: "Kubernetes telemetry",
-    };
-    const label: string | undefined = props.serviceType
-      ? typeLabels[props.serviceType]
-      : undefined;
-    if (label) {
+    if (label && label !== "Unknown") {
       return <div className="text-gray-700">{label}</div>;
     }
 

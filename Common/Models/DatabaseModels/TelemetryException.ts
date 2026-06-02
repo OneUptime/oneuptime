@@ -163,59 +163,15 @@ export default class TelemetryException extends DatabaseBaseModel {
   })
   public projectId?: ObjectID = undefined;
 
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateTelemetryException,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.TelemetryAdmin,
-      Permission.TelemetryMember,
-      Permission.TelemetryViewer,
-      Permission.ReadTelemetryException,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditTelemetryException,
-    ],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "serviceId",
-    type: TableColumnType.Entity,
-    modelType: Service,
-    title: "Service",
-    description: "Relation to Service Resource in which this object belongs",
-    example: "d4e5f6a7-b8c9-0123-def1-234567890123",
-  })
-  @ManyToOne(
-    () => {
-      return Service;
-    },
-    {
-      eager: false,
-      nullable: true,
-      /*
-       * No DB-level foreign key. An exception's serviceId is polymorphic
-       * (disambiguated by serviceType, mirroring the ClickHouse
-       * ExceptionInstance rows): it can be a real Service, a Host /
-       * DockerHost / KubernetesCluster id, or the projectId for
-       * unattributed (Unknown) telemetry. A FK to Service would reject
-       * every non-Service exception. The relation is kept for read-side
-       * joins and resolves to null for non-Service issues, which the UI
-       * renders with a serviceType label.
-       */
-      createForeignKeyConstraints: false,
-    },
-  )
-  @JoinColumn({ name: "serviceId" })
-  public service?: Service = undefined;
-
+  /*
+   * serviceId is polymorphic (disambiguated by serviceType, mirroring the
+   * ClickHouse ExceptionInstance rows): it can be a real Service, a Host /
+   * DockerHost / KubernetesCluster id, or the projectId for unattributed
+   * (Unknown) telemetry. There is intentionally NO @ManyToOne(Service)
+   * relation — a Service join would only resolve OpenTelemetry rows and
+   * silently null out everything else. The read side resolves serviceId +
+   * serviceType to a resource per type (TelemetryServiceUtil) instead.
+   */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -243,7 +199,8 @@ export default class TelemetryException extends DatabaseBaseModel {
     type: TableColumnType.ObjectID,
     required: true,
     title: "Service ID",
-    description: "ID of your Service resource where this object belongs",
+    description:
+      "ID of the resource this exception belongs to (Service / Host / DockerHost / KubernetesCluster, or the projectId for unattributed telemetry — disambiguated by serviceType).",
     example: "d4e5f6a7-b8c9-0123-def1-234567890123",
   })
   @Column({
