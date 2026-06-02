@@ -792,52 +792,44 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                * Aggregation by fingerprint + atomic increment now
                * happens inside saveOrUpdateTelemetryExceptionsBatch.
                *
-               * Only Service-backed telemetry gets a Postgres summary
-               * row. The TelemetryException table is Service-scoped
-               * (FK serviceId -> Service, @OwnedThrough Service), so
-               * Host / DockerHost / KubernetesCluster / Unknown
-               * telemetry would carry a serviceId with no matching
-               * Service row and fail the whole batched INSERT on the
-               * FK constraint — taking the other rows in the chunk down
-               * with it. Those exceptions are still recorded in
-               * ClickHouse via dbExceptions above (the source of
-               * truth); we just skip the denormalised Postgres summary.
+               * Every serviceType gets a TelemetryException summary row.
+               * The table's serviceId is polymorphic now (the FK to
+               * Service was dropped), so exceptions from Host /
+               * DockerHost / KubernetesCluster and unattributed (Unknown)
+               * telemetry land in the Issues list too — attributed by
+               * serviceType — instead of being dropped from the summary.
                */
-              if (
-                spanContext.serviceMetadata.serviceType ===
-                ServiceType.OpenTelemetry
-              ) {
-                pendingExceptionUpserts.push({
-                  fingerprint: fingerprint,
-                  projectId: spanContext.projectId,
-                  serviceId: spanContext.serviceId,
-                  ...(exceptionType
-                    ? {
-                        exceptionType: exceptionType,
-                      }
-                    : {}),
-                  ...(message
-                    ? {
-                        message: message,
-                      }
-                    : {}),
-                  ...(stackTrace
-                    ? {
-                        stackTrace: stackTrace,
-                      }
-                    : {}),
-                  ...(release
-                    ? {
-                        release: release,
-                      }
-                    : {}),
-                  ...(environment
-                    ? {
-                        environment: environment,
-                      }
-                    : {}),
-                });
-              }
+              pendingExceptionUpserts.push({
+                fingerprint: fingerprint,
+                projectId: spanContext.projectId,
+                serviceId: spanContext.serviceId,
+                serviceType: spanContext.serviceMetadata.serviceType,
+                ...(exceptionType
+                  ? {
+                      exceptionType: exceptionType,
+                    }
+                  : {}),
+                ...(message
+                  ? {
+                      message: message,
+                    }
+                  : {}),
+                ...(stackTrace
+                  ? {
+                      stackTrace: stackTrace,
+                    }
+                  : {}),
+                ...(release
+                  ? {
+                      release: release,
+                    }
+                  : {}),
+                ...(environment
+                  ? {
+                      environment: environment,
+                    }
+                  : {}),
+              });
             } catch (exceptionError) {
               logger.warn(
                 `Error processing span exception event: ${exceptionError instanceof Error ? exceptionError.message : String(exceptionError)}`,

@@ -17,6 +17,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import ServiceType from "../../Types/Telemetry/ServiceType";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import DatabaseBaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Service from "./Service";
@@ -187,8 +188,17 @@ export default class TelemetryException extends DatabaseBaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
-      orphanedRowAction: "nullify",
+      /*
+       * No DB-level foreign key. An exception's serviceId is polymorphic
+       * (disambiguated by serviceType, mirroring the ClickHouse
+       * ExceptionInstance rows): it can be a real Service, a Host /
+       * DockerHost / KubernetesCluster id, or the projectId for
+       * unattributed (Unknown) telemetry. A FK to Service would reject
+       * every non-Service exception. The relation is kept for read-side
+       * joins and resolves to null for non-Service issues, which the UI
+       * renders with a serviceType label.
+       */
+      createForeignKeyConstraints: false,
     },
   )
   @JoinColumn({ name: "serviceId" })
@@ -230,6 +240,39 @@ export default class TelemetryException extends DatabaseBaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public serviceId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateTelemetryException,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadTelemetryException,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Service Type",
+    description:
+      "Resource type that produced this exception (e.g. OpenTelemetry service, Host, DockerHost, KubernetesCluster, or Unknown for unattributed telemetry).",
+    example: "OpenTelemetry",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public serviceType?: ServiceType = undefined;
 
   @ColumnAccessControl({
     create: [
