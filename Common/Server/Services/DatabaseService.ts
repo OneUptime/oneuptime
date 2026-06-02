@@ -1461,10 +1461,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           automaticallyAddedCreatedAtInSelect = true;
         }
       } else {
-        // Ensure every sort column is present in select. When TypeORM
-        // paginates a query that uses relations (which triggers a DISTINCT
-        // subquery), each ORDER BY column must appear in the inner SELECT or
-        // Postgres raises "column does not exist" on the outer query.
+        /*
+         * Ensure every sort column is present in select. When TypeORM
+         * paginates a query that uses relations (which triggers a DISTINCT
+         * subquery), each ORDER BY column must appear in the inner SELECT or
+         * Postgres raises "column does not exist" on the outer query.
+         */
         if (!findBy.select) {
           findBy.select = {} as any;
         }
