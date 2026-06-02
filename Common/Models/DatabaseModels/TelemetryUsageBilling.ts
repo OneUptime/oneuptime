@@ -15,6 +15,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import Decimal from "../../Types/Decimal";
 import IconProp from "../../Types/Icon/IconProp";
 import ProductType from "../../Types/MeteredPlan/ProductType";
+import ServiceType from "../../Types/Telemetry/ServiceType";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
@@ -308,6 +309,30 @@ export default class TelemetryUsageBilling extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public serviceId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ManageProjectBilling,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Service Type",
+    description:
+      "Resource type that produced this telemetry (e.g. OpenTelemetry service, Host, DockerHost, KubernetesCluster, or Unknown for unattributed telemetry).",
+    example: "OpenTelemetry",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public serviceType?: ServiceType = undefined;
 
   @ColumnAccessControl({
     create: [],

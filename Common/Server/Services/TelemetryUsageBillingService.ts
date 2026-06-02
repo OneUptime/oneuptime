@@ -2,7 +2,7 @@ import { MeteredPlanUtil } from "../Types/Billing/MeteredPlan/AllMeteredPlans";
 import TelemetryMeteredPlan from "../Types/Billing/MeteredPlan/TelemetryMeteredPlan";
 import DatabaseService from "./DatabaseService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import LIMIT_MAX, { LIMIT_INFINITY } from "../../Types/Database/LimitMax";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import Decimal from "../../Types/Decimal";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -20,11 +20,16 @@ import MetricService from "./MetricService";
 import ExceptionInstanceService from "./ExceptionInstanceService";
 import ProfileService from "./ProfileService";
 import ProfileSampleService from "./ProfileSampleService";
-import AnalyticsQueryHelper from "../Types/AnalyticsDatabase/QueryHelper";
 import DiskSize from "../../Types/DiskSize";
 import logger from "../Utils/Logger";
-import PositiveNumber from "../../Types/PositiveNumber";
 import ServiceModel from "../../Models/DatabaseModels/Service";
+import HostService from "./HostService";
+import DockerHostService from "./DockerHostService";
+import KubernetesClusterService from "./KubernetesClusterService";
+import Host from "../../Models/DatabaseModels/Host";
+import DockerHost from "../../Models/DatabaseModels/DockerHost";
+import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
+import ServiceType from "../../Types/Telemetry/ServiceType";
 import {
   AverageSpanRowSizeInBytes,
   AverageLogRowSizeInBytes,
@@ -118,13 +123,157 @@ export class Service extends DatabaseService<Model> {
     const startOfDay: Date = OneUptimeDate.getStartOfDay(usageDate);
     const endOfDay: Date = OneUptimeDate.getEndOfDay(usageDate);
 
-    const services: Array<ServiceModel> = await ServiceService.findBy({
+    /*
+     * Enumerate usage from ClickHouse by (serviceId, serviceType) in a
+     * single aggregation scan per analytics table. Unlike the old
+     * per-Service-row loop, this surfaces EVERY resource that emitted
+     * telemetry — real Services AND Hosts / Docker hosts / Kubernetes
+     * clusters / unattributed (serviceId = projectId) — so infrastructure
+     * telemetry is no longer ingested for free. `byteSize(*)` gives the
+     * estimated ingested bytes per group; the configured average row size
+     * is only a fallback if the engine returns 0.
+     */
+    type ServiceUsage = {
+      serviceType: string | null;
+      bytes: number;
+    };
+    const usageByServiceId: Map<string, ServiceUsage> = new Map();
+
+    const addUsage: (
+      rows: Array<{
+        serviceId: string;
+        serviceType: string | null;
+        rowCount: number;
+        estimatedBytes: number;
+      }>,
+      fallbackRowSizeInBytes: number,
+    ) => void = (
+      rows: Array<{
+        serviceId: string;
+        serviceType: string | null;
+        rowCount: number;
+        estimatedBytes: number;
+      }>,
+      fallbackRowSizeInBytes: number,
+    ): void => {
+      for (const row of rows) {
+        const bytes: number =
+          row.estimatedBytes > 0
+            ? row.estimatedBytes
+            : row.rowCount * fallbackRowSizeInBytes;
+        const existing: ServiceUsage | undefined = usageByServiceId.get(
+          row.serviceId,
+        );
+        if (existing) {
+          existing.bytes += bytes;
+          if (!existing.serviceType && row.serviceType) {
+            existing.serviceType = row.serviceType;
+          }
+        } else {
+          usageByServiceId.set(row.serviceId, {
+            serviceType: row.serviceType,
+            bytes,
+          });
+        }
+      }
+    };
+
+    try {
+      if (data.productType === ProductType.Traces) {
+        addUsage(
+          await SpanService.groupTelemetryUsageByService({
+            projectId: data.projectId,
+            timestampColumnName: "startTime",
+            startDate: startOfDay,
+            endDate: endOfDay,
+          }),
+          averageRowSizeInBytes,
+        );
+        addUsage(
+          await ExceptionInstanceService.groupTelemetryUsageByService({
+            projectId: data.projectId,
+            timestampColumnName: "time",
+            startDate: startOfDay,
+            endDate: endOfDay,
+          }),
+          averageExceptionRowSizeInBytes,
+        );
+      } else if (data.productType === ProductType.Logs) {
+        addUsage(
+          await LogService.groupTelemetryUsageByService({
+            projectId: data.projectId,
+            timestampColumnName: "time",
+            startDate: startOfDay,
+            endDate: endOfDay,
+          }),
+          averageRowSizeInBytes,
+        );
+      } else if (data.productType === ProductType.Metrics) {
+        addUsage(
+          await MetricService.groupTelemetryUsageByService({
+            projectId: data.projectId,
+            timestampColumnName: "time",
+            startDate: startOfDay,
+            endDate: endOfDay,
+          }),
+          averageRowSizeInBytes,
+        );
+      } else if (data.productType === ProductType.Profiles) {
+        addUsage(
+          await ProfileService.groupTelemetryUsageByService({
+            projectId: data.projectId,
+            timestampColumnName: "startTime",
+            startDate: startOfDay,
+            endDate: endOfDay,
+          }),
+          averageRowSizeInBytes,
+        );
+        addUsage(
+          await ProfileSampleService.groupTelemetryUsageByService({
+            projectId: data.projectId,
+            timestampColumnName: "time",
+            startDate: startOfDay,
+            endDate: endOfDay,
+          }),
+          averageProfileSampleRowSizeInBytes,
+        );
+      }
+    } catch (error) {
+      logger.error(
+        `Failed to aggregate telemetry usage for project ${data.projectId.toString()} (${data.productType}):`,
+      );
+      logger.error(error as Error);
+      return;
+    }
+
+    if (usageByServiceId.size === 0) {
+      return;
+    }
+
+    /*
+     * Resolve retention per resource (Service / Host / DockerHost /
+     * KubernetesCluster overrides), defaulting to the project default for
+     * everything else — including the unattributed bucket. Retention
+     * scales the billed cost, so we honor per-resource overrides.
+     */
+    const retentionByServiceId: Map<string, number> =
+      await this.buildTelemetryRetentionMap(data.projectId);
+    const projectDefaultRetentionInDays: number =
+      await this.getProjectDefaultRetentionInDays(data.projectId);
+
+    /*
+     * Skip serviceIds already staged for this day so re-runs of the cron
+     * don't double-count (updateUsageBilling accumulates into the day's
+     * row). One query instead of a findOneBy per serviceId.
+     */
+    const alreadyStaged: Array<Model> = await this.findBy({
       query: {
         projectId: data.projectId,
+        productType: data.productType,
+        day: usageDayString,
       },
       select: {
-        _id: true,
-        retainTelemetryDataForDays: true,
+        serviceId: true,
       },
       skip: 0,
       limit: LIMIT_MAX,
@@ -132,214 +281,155 @@ export class Service extends DatabaseService<Model> {
         isRoot: true,
       },
     });
+    const stagedServiceIds: Set<string> = new Set(
+      alreadyStaged
+        .map((row: Model) => {
+          return row.serviceId?.toString();
+        })
+        .filter((id: string | undefined): id is string => {
+          return Boolean(id);
+        }),
+    );
 
-    /*
-     * Meter telemetry that arrived without an OTel service.name. Those
-     * analytics rows carry serviceId = projectId (ServiceType.Unknown)
-     * and have no Service row, so the per-service loop below would never
-     * count them. Add a synthetic billing target keyed on the projectId
-     * — its usage is counted from ClickHouse exactly like a service.
-     * Retention is the project default, matching what the ingest path
-     * applies to unattributed telemetry. Added before the empty-check so
-     * a project with only unattributed telemetry is still metered.
-     */
-    const projectForUnattributed: Project | null =
-      await ProjectService.findOneById({
-        id: data.projectId,
-        select: {
-          defaultTelemetryRetentionInDays: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    const unattributedService: ServiceModel = new ServiceModel();
-    unattributedService.id = data.projectId;
-    unattributedService.retainTelemetryDataForDays =
-      projectForUnattributed?.defaultTelemetryRetentionInDays ||
-      DEFAULT_RETENTION_IN_DAYS;
-    services.push(unattributedService);
-
-    if (!services || services.length === 0) {
-      return;
-    }
-
-    for (const service of services) {
-      if (!service?.id) {
+    for (const [serviceIdStr, usage] of usageByServiceId) {
+      /*
+       * Monitor telemetry is billed via the Active Monitoring plan, and
+       * Alert/Incident telemetry is OneUptime's own operational data —
+       * neither is charged as ingested telemetry volume.
+       */
+      if (
+        usage.serviceType === ServiceType.Monitor ||
+        usage.serviceType === ServiceType.Alert ||
+        usage.serviceType === ServiceType.Incident
+      ) {
         continue;
       }
 
-      const existingEntry: Model | null = await this.findOneBy({
-        query: {
-          projectId: data.projectId,
-          productType: data.productType,
-          serviceId: service.id,
-          day: usageDayString,
-        },
-        select: {
-          _id: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (existingEntry) {
+      if (stagedServiceIds.has(serviceIdStr)) {
         continue;
       }
 
-      let estimatedBytes: number = 0;
-
-      try {
-        if (data.productType === ProductType.Traces) {
-          const spanCount: PositiveNumber = await SpanService.countBy({
-            query: {
-              projectId: data.projectId,
-              serviceId: service.id,
-              startTime: AnalyticsQueryHelper.inBetween(startOfDay, endOfDay),
-            },
-            skip: 0,
-            limit: LIMIT_INFINITY,
-            props: {
-              isRoot: true,
-            },
-          });
-
-          const exceptionCount: PositiveNumber =
-            await ExceptionInstanceService.countBy({
-              query: {
-                projectId: data.projectId,
-                serviceId: service.id,
-                time: AnalyticsQueryHelper.inBetween(startOfDay, endOfDay),
-              },
-              skip: 0,
-              limit: LIMIT_INFINITY,
-              props: {
-                isRoot: true,
-              },
-            });
-
-          const totalSpanCount: number = spanCount.toNumber();
-          const totalExceptionCount: number = exceptionCount.toNumber();
-
-          if (totalSpanCount <= 0 && totalExceptionCount <= 0) {
-            continue;
-          }
-
-          estimatedBytes =
-            totalSpanCount * averageRowSizeInBytes +
-            totalExceptionCount * averageExceptionRowSizeInBytes;
-        } else if (data.productType === ProductType.Logs) {
-          const count: PositiveNumber = await LogService.countBy({
-            query: {
-              projectId: data.projectId,
-              serviceId: service.id,
-              time: AnalyticsQueryHelper.inBetween(startOfDay, endOfDay),
-            },
-            skip: 0,
-            limit: LIMIT_INFINITY,
-            props: {
-              isRoot: true,
-            },
-          });
-
-          const totalRowCount: number = count.toNumber();
-
-          if (totalRowCount <= 0) {
-            continue;
-          }
-
-          estimatedBytes = totalRowCount * averageRowSizeInBytes;
-        } else if (data.productType === ProductType.Metrics) {
-          const count: PositiveNumber = await MetricService.countBy({
-            query: {
-              projectId: data.projectId,
-              serviceId: service.id,
-              time: AnalyticsQueryHelper.inBetween(startOfDay, endOfDay),
-            },
-            skip: 0,
-            limit: LIMIT_INFINITY,
-            props: {
-              isRoot: true,
-            },
-          });
-
-          const totalRowCount: number = count.toNumber();
-
-          if (totalRowCount <= 0) {
-            continue;
-          }
-
-          estimatedBytes = totalRowCount * averageRowSizeInBytes;
-        } else if (data.productType === ProductType.Profiles) {
-          const profileCount: PositiveNumber = await ProfileService.countBy({
-            query: {
-              projectId: data.projectId,
-              serviceId: service.id,
-              startTime: AnalyticsQueryHelper.inBetween(startOfDay, endOfDay),
-            },
-            skip: 0,
-            limit: LIMIT_INFINITY,
-            props: {
-              isRoot: true,
-            },
-          });
-
-          const profileSampleCount: PositiveNumber =
-            await ProfileSampleService.countBy({
-              query: {
-                projectId: data.projectId,
-                serviceId: service.id,
-                time: AnalyticsQueryHelper.inBetween(startOfDay, endOfDay),
-              },
-              skip: 0,
-              limit: LIMIT_INFINITY,
-              props: {
-                isRoot: true,
-              },
-            });
-
-          const totalProfileCount: number = profileCount.toNumber();
-          const totalProfileSampleCount: number = profileSampleCount.toNumber();
-
-          if (totalProfileCount <= 0 && totalProfileSampleCount <= 0) {
-            continue;
-          }
-
-          estimatedBytes =
-            totalProfileCount * averageRowSizeInBytes +
-            totalProfileSampleCount * averageProfileSampleRowSizeInBytes;
-        }
-      } catch (error) {
-        logger.error(
-          `Failed to compute telemetry usage for service ${service.id?.toString()}:`,
-        );
-        logger.error(error as Error);
-        continue;
-      }
-
-      if (estimatedBytes <= 0) {
-        continue;
-      }
-
-      const estimatedGigabytes: number = DiskSize.byteSizeToGB(estimatedBytes);
-
+      const estimatedGigabytes: number = DiskSize.byteSizeToGB(usage.bytes);
       if (!Number.isFinite(estimatedGigabytes) || estimatedGigabytes <= 0) {
         continue;
       }
 
-      const dataRetentionInDays: number =
-        service.retainTelemetryDataForDays || DEFAULT_RETENTION_IN_DAYS;
+      const retentionInDays: number =
+        retentionByServiceId.get(serviceIdStr) ?? projectDefaultRetentionInDays;
+
+      /*
+       * Legacy rows (pre-discriminator) and any null serviceType are
+       * treated as OpenTelemetry — historically every billed serviceId was
+       * a real Service.
+       */
+      const serviceType: ServiceType =
+        (usage.serviceType as ServiceType | null) ?? ServiceType.OpenTelemetry;
 
       await this.updateUsageBilling({
         projectId: data.projectId,
         productType: data.productType,
-        serviceId: service.id,
+        serviceId: new ObjectID(serviceIdStr),
+        serviceType: serviceType,
         dataIngestedInGB: estimatedGigabytes,
-        retentionInDays: dataRetentionInDays,
+        retentionInDays: retentionInDays,
         usageDate: usageDate,
       });
     }
+  }
+
+  /*
+   * Map of resourceId -> retainTelemetryDataForDays for every resource in
+   * the project that can own telemetry (Service, Host, DockerHost,
+   * KubernetesCluster). Used to scale billed cost by the actual retention
+   * applied to each resource's telemetry. Resources without an override
+   * (and the unattributed bucket) fall back to the project default.
+   */
+  @CaptureSpan()
+  private async buildTelemetryRetentionMap(
+    projectId: ObjectID,
+  ): Promise<Map<string, number>> {
+    const retentionByServiceId: Map<string, number> = new Map();
+
+    const services: Array<ServiceModel> = await ServiceService.findBy({
+      query: { projectId: projectId },
+      select: { _id: true, retainTelemetryDataForDays: true },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: { isRoot: true },
+    });
+    for (const service of services) {
+      if (service.id && service.retainTelemetryDataForDays) {
+        retentionByServiceId.set(
+          service.id.toString(),
+          service.retainTelemetryDataForDays,
+        );
+      }
+    }
+
+    const hosts: Array<Host> = await HostService.findBy({
+      query: { projectId: projectId },
+      select: { _id: true, retainTelemetryDataForDays: true },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: { isRoot: true },
+    });
+    for (const host of hosts) {
+      if (host.id && host.retainTelemetryDataForDays) {
+        retentionByServiceId.set(
+          host.id.toString(),
+          host.retainTelemetryDataForDays,
+        );
+      }
+    }
+
+    const dockerHosts: Array<DockerHost> = await DockerHostService.findBy({
+      query: { projectId: projectId },
+      select: { _id: true, retainTelemetryDataForDays: true },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: { isRoot: true },
+    });
+    for (const dockerHost of dockerHosts) {
+      if (dockerHost.id && dockerHost.retainTelemetryDataForDays) {
+        retentionByServiceId.set(
+          dockerHost.id.toString(),
+          dockerHost.retainTelemetryDataForDays,
+        );
+      }
+    }
+
+    const clusters: Array<KubernetesCluster> =
+      await KubernetesClusterService.findBy({
+        query: { projectId: projectId },
+        select: { _id: true, retainTelemetryDataForDays: true },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: { isRoot: true },
+      });
+    for (const cluster of clusters) {
+      if (cluster.id && cluster.retainTelemetryDataForDays) {
+        retentionByServiceId.set(
+          cluster.id.toString(),
+          cluster.retainTelemetryDataForDays,
+        );
+      }
+    }
+
+    return retentionByServiceId;
+  }
+
+  @CaptureSpan()
+  private async getProjectDefaultRetentionInDays(
+    projectId: ObjectID,
+  ): Promise<number> {
+    const project: Project | null = await ProjectService.findOneById({
+      id: projectId,
+      select: { defaultTelemetryRetentionInDays: true },
+      props: { isRoot: true },
+    });
+    return (
+      project?.defaultTelemetryRetentionInDays || DEFAULT_RETENTION_IN_DAYS
+    );
   }
 
   @CaptureSpan()
@@ -347,6 +437,7 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     productType: ProductType;
     serviceId: ObjectID;
+    serviceType?: ServiceType | undefined;
     dataIngestedInGB: number;
     retentionInDays: number;
     usageDate?: Date;
@@ -433,6 +524,9 @@ export class Service extends DatabaseService<Model> {
       usageBilling.productType = data.productType;
       usageBilling.dataIngestedInGB = new Decimal(data.dataIngestedInGB);
       usageBilling.serviceId = data.serviceId;
+      if (data.serviceType) {
+        usageBilling.serviceType = data.serviceType;
+      }
       usageBilling.retainTelemetryDataForDays = data.retentionInDays;
       usageBilling.isReportedToBillingProvider = false;
       usageBilling.createdAt = usageDate;
