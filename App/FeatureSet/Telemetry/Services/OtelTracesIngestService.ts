@@ -21,7 +21,9 @@ import {
   SpanStatus,
 } from "Common/Models/AnalyticsModels/Span";
 import ExceptionUtil, { TelemetryExceptionPayload } from "../Utils/Exception";
-import StackTraceParser, { ParsedStackTrace } from "../Utils/StackTraceParser";
+import StackTraceParser, {
+  ParsedStackTrace,
+} from "Common/Server/Utils/Telemetry/StackTraceParser";
 import logger, {
   getLogAttributesFromRequest,
   type RequestLike,

@@ -160,6 +160,22 @@ receivers:
 
 `start_at: end` means new lines from the moment the collector starts; change to `beginning` to backfill on first run. The collector tracks file offsets, so it resumes correctly across restarts.
 
+**Turning host log stack traces into Exceptions.** OneUptime automatically scans error and fatal log lines for stack traces and rolls them up into the **Exceptions** (Issues) view, attributed to this host — no extra configuration needed. For this to group well, a multi-line stack trace (Java, Python, .NET, Ruby) must arrive as **one** log record, not one record per line. Enable multiline recombination on the `filelog` receiver so a trace and its frames stay together:
+
+```yaml
+receivers:
+  filelog/app:
+    include:
+      - /var/log/myapp/*.log
+    start_at: end
+    multiline:
+      # A new log entry starts with a timestamp; continuation lines (the
+      # "at ...", "File ...", "Caused by: ..." frames) are folded into it.
+      line_start_pattern: '^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}'
+```
+
+Without recombination, each frame is ingested as a separate log and the exception will appear as a one-line, poorly-grouped issue. If your application can emit the OpenTelemetry `exception.type` / `exception.message` / `exception.stacktrace` log attributes directly, do that instead — it is the most reliable path and is independent of multiline parsing.
+
 ### systemd journal (Linux)
 
 If your host uses systemd, the `journald` receiver is often a better fit than tailing `/var/log/*` — it captures everything in one place and preserves structured fields:
