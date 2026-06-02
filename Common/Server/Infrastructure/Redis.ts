@@ -15,6 +15,7 @@ import logger from "../Utils/Logger";
 import Sleep from "../../Types/Sleep";
 import { Redis as RedisClient, RedisOptions } from "ioredis";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import GracefulShutdown, { ShutdownPriority } from "../Utils/GracefulShutdown";
 
 export type ClientType = RedisClient;
 export type RedisOptionsType = RedisOptions;
@@ -122,6 +123,16 @@ export default abstract class Redis {
       logger.debug(
         `Redis connected on ${RedisHostname}:${RedisPort.toNumber()}`,
       );
+
+      // Close the Redis connection on shutdown.
+      GracefulShutdown.registerHandler(
+        "Redis",
+        ShutdownPriority.DataStores,
+        () => {
+          return this.disconnect();
+        },
+      );
+
       return this.client;
     } catch (err) {
       logger.error("Redis Connection Failed");

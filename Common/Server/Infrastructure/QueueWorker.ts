@@ -15,6 +15,7 @@ import Telemetry, {
   SpanStatusCode,
 } from "../Utils/Telemetry";
 import Redis from "./Redis";
+import GracefulShutdown, { ShutdownPriority } from "../Utils/GracefulShutdown";
 
 export default class QueueWorker {
   @CaptureSpan()
@@ -116,9 +117,19 @@ export default class QueueWorker {
         : {}),
     });
 
-    process.on("SIGINT", async () => {
-      await worker.close();
-    });
+    /*
+     * Stop pulling new jobs and let in-flight ones finish on shutdown. Runs in
+     * the Workers tier — before datastores are drained — so jobs mid-flight can
+     * still reach Postgres / Redis. Replaces a SIGINT-only handler that never
+     * fired in containers (Kubernetes / docker stop send SIGTERM).
+     */
+    GracefulShutdown.registerHandler(
+      `QueueWorker:${queueName}`,
+      ShutdownPriority.Workers,
+      () => {
+        return worker.close();
+      },
+    );
 
     return worker;
   }

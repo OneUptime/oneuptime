@@ -52,6 +52,7 @@ import URL from "../../Types/API/URL";
 import Dictionary from "../../Types/Dictionary";
 import { AppVersion, Env, DisableTelemetry } from "../EnvironmentConfig";
 import logger from "./Logger";
+import GracefulShutdown, { ShutdownPriority } from "./GracefulShutdown";
 import ContextSpanProcessor from "./Telemetry/ContextSpanProcessor";
 import RuntimeMetrics from "./Telemetry/RuntimeMetrics";
 
@@ -310,11 +311,20 @@ export default class Telemetry {
       this.getMeterProvider();
       this.getMeter();
 
-      process.on("SIGTERM", () => {
-        sdk.shutdown().finally(() => {
-          return process.exit(0);
-        });
-      });
+      /*
+       * Flush traces / metrics / logs last (Telemetry tier) so spans and logs
+       * emitted by the rest of the shutdown still get exported. GracefulShutdown
+       * owns process.exit now — this handler must NOT call it itself, or it
+       * would race the other tiers and abandon the datastore pools (the exact
+       * bug this replaced).
+       */
+      GracefulShutdown.registerHandler(
+        "Telemetry",
+        ShutdownPriority.Telemetry,
+        () => {
+          return sdk.shutdown();
+        },
+      );
 
       sdk.start();
 

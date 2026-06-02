@@ -205,6 +205,33 @@ export const PostgresIdleTimeoutMs: number = parseInt(
 );
 
 /*
+ * TCP keepalive initial delay (ms) for Postgres sockets. When the client
+ * process dies ungracefully (SIGKILL, OOM, crash) or a network partition cuts
+ * the link, Postgres has no way to know the client is gone and the backend
+ * lingers as an orphaned connection — by default up to the OS
+ * tcp_keepalive_time (~2h on Linux). Enabling socket keepalive makes
+ * node-postgres probe the peer so dead connections are detected and torn down
+ * promptly.
+ */
+export const PostgresKeepAliveInitialDelayMs: number = parseInt(
+  process.env["DATABASE_KEEPALIVE_INITIAL_DELAY_MS"] || "10000",
+  10,
+);
+
+/*
+ * Postgres-side idle-session timeout (ms). Server-side backstop for orphaned
+ * connections: the server terminates any session that sits idle (outside a
+ * transaction) longer than this. MUST be larger than the pool's
+ * idleTimeoutMillis (PostgresIdleTimeoutMs) so the pool reaps its own healthy
+ * idle connections first and only truly-orphaned sessions (client gone) ever
+ * hit this. Set to 0 to disable. Requires Postgres 14+.
+ */
+export const PostgresIdleSessionTimeoutMs: number = parseInt(
+  process.env["DATABASE_IDLE_SESSION_TIMEOUT_MS"] || "300000",
+  10,
+);
+
+/*
  * TypeORM slow-query log threshold (ms). Any query exceeding this is
  * logged so we can find offenders in production without per-query
  * tracing. Set to 0 to disable.
