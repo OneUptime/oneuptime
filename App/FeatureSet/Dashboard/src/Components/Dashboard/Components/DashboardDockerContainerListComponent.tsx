@@ -16,6 +16,7 @@ import {
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import DashboardResourceList from "../Utils/DashboardResourceList";
 import DockerResource from "Common/Models/DatabaseModels/DockerResource";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -119,7 +120,7 @@ const DashboardDockerContainerListComponentElement: FunctionComponent<
     setIsLoading(true);
 
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-    if (!projectId) {
+    if (!DashboardResourceList.isPublic() && !projectId) {
       setIsLoading(false);
       setError("No project selected.");
       return;
@@ -149,6 +150,8 @@ const DashboardDockerContainerListComponentElement: FunctionComponent<
       const listResult: ListResult<DockerResource> =
         await ModelAPI.getList<DockerResource>({
           modelType: DockerResource,
+          requestOptions:
+            DashboardResourceList.getRequestOptions("docker-container"),
           query: query,
           limit: maxRows,
           skip: 0,

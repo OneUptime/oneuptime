@@ -29,7 +29,13 @@ export interface ComponentProps {
 const BASE_INPUT_CLASS: string =
   "block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm";
 
-const MAX_SUGGESTIONS: number = 50;
+/*
+ * Aligned with the server-side attribute-value limit (ATTRIBUTE_VALUES_LIMIT)
+ * so that when suggestions are fetched server-side (and already narrowed by
+ * search text), the dropdown can show the full returned set rather than
+ * truncating it further on the client.
+ */
+const MAX_SUGGESTIONS: number = 100;
 
 // Provides a free-form text input with an optional suggestion dropdown.
 const AutocompleteTextInput: FunctionComponent<ComponentProps> = (

@@ -631,7 +631,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               metricNameServiceNameMap[heartbeatMetricName] =
                 heartbeatMetricType;
             }
+            /*
+             * Only associate a real Service row (OpenTelemetry type).
+             * The host heartbeat's serviceId is a Host/DockerHost/
+             * KubernetesCluster id, which has no matching Service row,
+             * so pushing it would fail the MetricType.services FK. The
+             * heartbeat MetricType is still cataloged above without a
+             * service link.
+             */
             if (
+              serviceMetadata.serviceType === ServiceType.OpenTelemetry &&
               metricNameServiceNameMap[heartbeatMetricName]!.services!.filter(
                 (svc: Service) => {
                   return (
@@ -715,7 +724,21 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                       metricNameServiceNameMap[metricName]!.services = [];
                     }
 
+                    /*
+                     * MetricType.services is a ManyToMany to the
+                     * Service table (join keyed on serviceId). Only
+                     * OpenTelemetry-type telemetry has a real Service
+                     * row; associating Host / DockerHost /
+                     * KubernetesCluster / Unknown telemetry here would
+                     * insert a join row whose serviceId has no matching
+                     * Service and fail the FK. The metric name itself is
+                     * still cataloged above (just without a service
+                     * link), and the datapoints carry the serviceId in
+                     * ClickHouse regardless.
+                     */
                     if (
+                      serviceMetadata.serviceType ===
+                        ServiceType.OpenTelemetry &&
                       metricNameServiceNameMap[metricName]!.services!.filter(
                         (service: Service) => {
                           return (

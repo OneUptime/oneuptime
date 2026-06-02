@@ -21,7 +21,9 @@ import {
   SpanStatus,
 } from "Common/Models/AnalyticsModels/Span";
 import ExceptionUtil, { TelemetryExceptionPayload } from "../Utils/Exception";
-import StackTraceParser, { ParsedStackTrace } from "../Utils/StackTraceParser";
+import StackTraceParser, {
+  ParsedStackTrace,
+} from "Common/Server/Utils/Telemetry/StackTraceParser";
 import logger, {
   getLogAttributesFromRequest,
   type RequestLike,
@@ -791,11 +793,19 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                * occuranceCount increments under concurrent writes.
                * Aggregation by fingerprint + atomic increment now
                * happens inside saveOrUpdateTelemetryExceptionsBatch.
+               *
+               * Every serviceType gets a TelemetryException summary row.
+               * The table's serviceId is polymorphic now (the FK to
+               * Service was dropped), so exceptions from Host /
+               * DockerHost / KubernetesCluster and unattributed (Unknown)
+               * telemetry land in the Issues list too — attributed by
+               * serviceType — instead of being dropped from the summary.
                */
               pendingExceptionUpserts.push({
                 fingerprint: fingerprint,
                 projectId: spanContext.projectId,
                 serviceId: spanContext.serviceId,
+                serviceType: spanContext.serviceMetadata.serviceType,
                 ...(exceptionType
                   ? {
                       exceptionType: exceptionType,

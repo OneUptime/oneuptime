@@ -29,6 +29,7 @@ import logger, {
 import "./Process";
 import Response from "./Response";
 import SpanUtil from "./Telemetry/SpanUtil";
+import TelemetryContext from "./Telemetry/TelemetryContext";
 import { api } from "@opentelemetry/sdk-node";
 import StatusCode from "../../Types/API/StatusCode";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
@@ -213,12 +214,19 @@ app.use((req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
   const requestId: string = crypto.randomUUID();
   (req as OneUptimeRequest).requestId = requestId;
 
-  // Tag the current span with requestId so all downstream spans inherit context
-  SpanUtil.addAttributesToCurrentSpan({
-    requestId: requestId,
-  });
+  /*
+   * Open a telemetry-context scope for the entire request. requestId is seeded
+   * here; projectId/userId are added later by the auth middleware. Because
+   * ContextSpanProcessor and Logger read this ambient context, every span and
+   * log produced downstream inherits it automatically.
+   */
+  TelemetryContext.runWithContext({ requestId: requestId }, () => {
+    SpanUtil.addAttributesToCurrentSpan({
+      requestId: requestId,
+    });
 
-  next();
+    next();
+  });
 });
 
 export interface InitFuctionOptions {

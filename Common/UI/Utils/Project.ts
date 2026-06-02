@@ -12,6 +12,7 @@ import SubscriptionStatus, {
 } from "../../Types/Billing/SubscriptionStatus";
 import Navigation from "./Navigation";
 import SessionStorage from "./SessionStorage";
+import Telemetry from "./Telemetry/Telemetry";
 
 export default class ProjectUtil {
   public static getCurrentProjectId(): ObjectID | null {
@@ -107,6 +108,11 @@ export default class ProjectUtil {
     }
     LocalStorage.setItem(`project_${currentProjectId}`, project);
     SessionStorage.setItem(`current_project_id`, currentProjectId);
+
+    // Keep RUM span context in sync with the project being viewed.
+    if (currentProjectId) {
+      Telemetry.setGlobalAttributes({ projectId: currentProjectId });
+    }
   }
 
   public static clearCurrentProject(): void {

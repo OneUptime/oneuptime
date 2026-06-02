@@ -7,6 +7,8 @@ import ColorSquareCube from "Common/UI/Components/ColorSquareCube/ColorSquareCub
 import AppLink from "../AppLink/AppLink";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import Service from "Common/Models/DatabaseModels/Service";
+import ProjectUtil from "Common/UI/Utils/Project";
+import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -34,7 +36,18 @@ const ServiceElement: FunctionComponent<ComponentProps> = (
     );
   };
 
-  if (props.service._id) {
+  /*
+   * Unattributed telemetry is rendered with a synthetic "Unknown
+   * Service" whose id is the projectId (ServiceType.Unknown). There is
+   * no Service detail page for it, so render it as plain text rather
+   * than a link that would 404.
+   */
+  const isUnknownService: boolean = TelemetryServiceUtil.isUnknownServiceId(
+    props.service._id as string | undefined,
+    ProjectUtil.getCurrentProjectId(),
+  );
+
+  if (props.service._id && !isUnknownService) {
     return (
       <AppLink
         onNavigateComplete={props.onNavigateComplete}

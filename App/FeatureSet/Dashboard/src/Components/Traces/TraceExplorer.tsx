@@ -39,6 +39,7 @@ import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelA
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import Select from "Common/Types/BaseDatabase/Select";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
 import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import Service from "Common/Models/DatabaseModels/Service";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
@@ -673,6 +674,38 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       }
       return stats;
     }, [spans]);
+
+  /*
+   * Telemetry without a service.name is tagged with the projectId
+   * (ServiceType.Unknown) and has no Service row. When a span in this
+   * trace references it, fold a synthetic "Unknown Service" into the
+   * resolved service list so the existing serviceId -> Service lookups
+   * (filter chips, span rows, search) render it instead of a blank
+   * name. Idempotent and returns the same array reference when nothing
+   * is unattributed, so this does not trigger an extra render.
+   */
+  React.useEffect(() => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+    if (!projectId) {
+      return;
+    }
+    const referencedServiceIds: Set<string> = new Set(
+      spans
+        .map((span: Span) => {
+          return span.serviceId?.toString() || "";
+        })
+        .filter((id: string) => {
+          return Boolean(id);
+        }),
+    );
+    setServices((previousServices: Service[]) => {
+      return TelemetryServiceUtil.withUnknownServiceIfReferenced({
+        services: previousServices,
+        referencedServiceIds,
+        projectId,
+      });
+    });
+  }, [spans]);
 
   // Prune selected services if they disappear (new fetch)
   React.useEffect(() => {

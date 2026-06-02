@@ -14,6 +14,7 @@ import {
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import DashboardResourceList from "../Utils/DashboardResourceList";
 import KubernetesResource from "Common/Models/DatabaseModels/KubernetesResource";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -94,7 +95,7 @@ const DashboardKubernetesResourceListBase: FunctionComponent<
     setIsLoading(true);
 
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-    if (!projectId) {
+    if (!DashboardResourceList.isPublic() && !projectId) {
       setIsLoading(false);
       setError("No project selected.");
       return;
@@ -154,6 +155,9 @@ const DashboardKubernetesResourceListBase: FunctionComponent<
       const listResult: ListResult<KubernetesResource> =
         await ModelAPI.getList<KubernetesResource>({
           modelType: KubernetesResource,
+          requestOptions: DashboardResourceList.getRequestOptions(
+            "kubernetes-resource",
+          ),
           query: queryWithVariables,
           limit: props.maxRows,
           skip: 0,

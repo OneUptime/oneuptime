@@ -34,6 +34,14 @@ spec:
                   fieldPath: spec.nodeName
             - name: CLUSTER_NAME
               value: {{ .Values.clusterName | quote }}
+            {{- with .Values.deployment.resources.limits.memory }}
+            # Go runtime soft memory limit — see templates/daemonset.yaml.
+            # Derived from .Values.deployment.resources.limits.memory so the
+            # GC reclaims as the heap nears the cgroup limit. Only set when a
+            # memory limit is configured.
+            - name: GOMEMLIMIT
+              value: {{ include "kubernetes-agent.gomemlimit" . | quote }}
+            {{- end }}
             - name: ONEUPTIME_API_KEY
               valueFrom:
                 secretKeyRef:

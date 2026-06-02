@@ -364,16 +364,44 @@ data:
         send_batch_size: 1024
         timeout: 10s
 
+      # Memory ceiling for the collector. limit_mib / spike_limit_mib are
+      # derived from the container memory limit
+      # (.Values.logs.resources.limits.memory, wired into the DaemonSet at
+      # templates/daemonset.yaml) so the limiter always trips *below* the
+      # cgroup limit — otherwise the kernel OOMKills the pod before the
+      # limiter can shed load. limit_mib ≈ 80% of the container limit,
+      # spike_limit_mib ≈ 20% of limit_mib (OTel guidance). See the
+      # `kubernetes-agent.memoryLimiter` helper.
       memory_limiter:
-        check_interval: 5s
-        limit_mib: 400
-        spike_limit_mib: 100
+        {{- include "kubernetes-agent.memoryLimiter" (.Values.logs.resources.limits.memory | default "512Mi") | nindent 8 }}
 
     exporters:
       otlphttp:
         endpoint: "{{ .Values.oneuptime.url }}/otlp"
         headers:
           x-oneuptime-token: "${env:ONEUPTIME_API_KEY}"
+        # Bound how much un-exported telemetry can buffer in RAM when the
+        # OneUptime backend is slow or unreachable. Without an explicit queue
+        # and retry window the exporter falls back to the OTel defaults
+        # (queue_size 1000, retry for up to 300s), which on this
+        # memory-constrained DaemonSet pod can buffer past the container limit
+        # and get the pod OOMKilled before memory_limiter / GOMEMLIMIT can
+        # react (the original symptom: crashes on backend 502 /
+        # context-deadline-exceeded). A small queue plus a short retry window
+        # sheds (drops) excess logs during an outage instead of crashing; the
+        # pod keeps running and resumes exporting when the backend recovers.
+        # For zero-loss buffering across longer outages, swap this for a
+        # file_storage-backed persistent queue (needs the file_storage
+        # extension and a writable volume).
+        sending_queue:
+          enabled: true
+          num_consumers: 5
+          queue_size: 256
+        retry_on_failure:
+          enabled: true
+          initial_interval: 5s
+          max_interval: 30s
+          max_elapsed_time: 120s
 
     service:
       extensions:

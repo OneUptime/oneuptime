@@ -17,6 +17,7 @@ export interface ComponentProps<T extends GenericObject> {
   onJsonKeySelected?: ((key: string) => void) | undefined;
   isLoadingJsonKeys?: boolean | undefined;
   loadingJsonValueKeys?: Array<string> | undefined;
+  onJsonValueSearch?: ((key: string, searchText: string) => void) | undefined;
   enableOperators?: boolean | undefined;
 }
 
@@ -38,6 +39,7 @@ const JSONFilter: JSONFilterFunction = <T extends GenericObject>(
         onKeySelected={props.onJsonKeySelected}
         isLoadingKeys={props.isLoadingJsonKeys}
         loadingValueKeys={props.loadingJsonValueKeys}
+        onValueSearch={props.onJsonValueSearch}
         enableOperators={props.enableOperators}
         addButtonSuffix={filter.title}
         keyPlaceholder={"Key"}

@@ -94,6 +94,8 @@ const templateIdByEventType: Record<
     WhatsAppTemplateIds.AlertEpisodeStateChangedOwnerNotification,
   [NotificationSettingEventType.SEND_ALERT_EPISODE_OWNER_ADDED_NOTIFICATION]:
     WhatsAppTemplateIds.AlertEpisodeOwnerAddedNotification,
+  [NotificationSettingEventType.SEND_ALERT_ADDED_TO_EPISODE_OWNER_NOTIFICATION]:
+    WhatsAppTemplateIds.AlertAddedToEpisodeOwnerNotification,
   [NotificationSettingEventType.SEND_INCIDENT_EPISODE_CREATED_OWNER_NOTIFICATION]:
     WhatsAppTemplateIds.IncidentEpisodeCreatedOwnerNotification,
   [NotificationSettingEventType.SEND_INCIDENT_EPISODE_NOTE_POSTED_OWNER_NOTIFICATION]:
@@ -102,6 +104,8 @@ const templateIdByEventType: Record<
     WhatsAppTemplateIds.IncidentEpisodeStateChangedOwnerNotification,
   [NotificationSettingEventType.SEND_INCIDENT_EPISODE_OWNER_ADDED_NOTIFICATION]:
     WhatsAppTemplateIds.IncidentEpisodeOwnerAddedNotification,
+  [NotificationSettingEventType.SEND_INCIDENT_ADDED_TO_EPISODE_OWNER_NOTIFICATION]:
+    WhatsAppTemplateIds.IncidentAddedToEpisodeOwnerNotification,
   [NotificationSettingEventType.SEND_MONITOR_OWNER_ADDED_NOTIFICATION]:
     WhatsAppTemplateIds.MonitorOwnerAddedNotification,
   [NotificationSettingEventType.SEND_MONITOR_CREATED_OWNER_NOTIFICATION]:

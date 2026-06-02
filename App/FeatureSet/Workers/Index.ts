@@ -35,6 +35,7 @@ import "./Jobs/AlertEpisode/AutoResolve";
 import "./Jobs/AlertEpisode/ResolveInactiveEpisodes";
 
 // Alert Episode Owners
+import "./Jobs/AlertEpisodeOwners/SendAlertAddedNotification";
 import "./Jobs/AlertEpisodeOwners/SendCreatedResourceNotification";
 import "./Jobs/AlertEpisodeOwners/SendNotePostedNotification";
 import "./Jobs/AlertEpisodeOwners/SendOwnerAddedNotification";
@@ -53,6 +54,7 @@ import "./Jobs/IncidentEpisodePublicNote/SendNotificationToSubscribers";
 
 // Incident Episode Owners
 import "./Jobs/IncidentEpisodeOwners/SendCreatedResourceNotification";
+import "./Jobs/IncidentEpisodeOwners/SendIncidentAddedNotification";
 import "./Jobs/IncidentEpisodeOwners/SendNotePostedNotification";
 import "./Jobs/IncidentEpisodeOwners/SendOwnerAddedNotification";
 import "./Jobs/IncidentEpisodeOwners/SendStateChangeNotification";

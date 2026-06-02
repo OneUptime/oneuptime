@@ -2,6 +2,7 @@ import MonitorLogService from "../../Services/MonitorLogService";
 import GlobalConfigService from "../../Services/GlobalConfigService";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import logger from "../Logger";
+import GracefulShutdown, { ShutdownPriority } from "../GracefulShutdown";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import { JSONObject } from "../../../Types/JSON";
@@ -44,8 +45,9 @@ export default class MonitorLogUtil {
    * here until either MONITOR_LOG_FLUSH_BATCH_SIZE rows arrive
    * (size trigger) or MONITOR_LOG_FLUSH_INTERVAL_MS elapses since
    * the first row entered an empty buffer (time trigger),
-   * whichever comes first. On graceful shutdown the SIGTERM /
-   * SIGINT hook below drains the buffer before the process exits.
+   * whichever comes first. On graceful shutdown the registered
+   * GracefulShutdown handler below drains the buffer (in the
+   * Buffers tier, before the datastores are torn down).
    */
   private static buffer: Array<JSONObject> = [];
   private static flushTimer: NodeJS.Timeout | null = null;
@@ -233,10 +235,12 @@ export default class MonitorLogUtil {
   }
 
   /*
-   * Register SIGTERM / SIGINT handlers exactly once, lazily on
-   * first ingest. We avoid registering at module-load time so
-   * tooling that imports this file (e.g. migration runners,
-   * CLI scripts) doesn't end up with stray process listeners.
+   * Register the shutdown flush exactly once, lazily on first ingest. We avoid
+   * registering at module-load time so tooling that imports this file (e.g.
+   * migration runners, CLI scripts) doesn't end up holding a stray handler.
+   *
+   * Runs in the Buffers tier — ahead of the DataStores tier — so the buffer is
+   * drained to Clickhouse before the datastore pools are torn down.
    */
   private static ensureShutdownHooks(): void {
     if (this.shutdownHooksRegistered) {
@@ -244,16 +248,17 @@ export default class MonitorLogUtil {
     }
     this.shutdownHooksRegistered = true;
 
-    const flushOnShutdown: () => Promise<void> = async (): Promise<void> => {
-      try {
-        await this.flushAndWait();
-      } catch (err) {
-        logger.error("Error flushing MonitorLog buffer on shutdown:");
-        logger.error(err);
-      }
-    };
-
-    process.on("SIGTERM", flushOnShutdown);
-    process.on("SIGINT", flushOnShutdown);
+    GracefulShutdown.registerHandler(
+      "MonitorLogUtil",
+      ShutdownPriority.Buffers,
+      async (): Promise<void> => {
+        try {
+          await this.flushAndWait();
+        } catch (err) {
+          logger.error("Error flushing MonitorLog buffer on shutdown:");
+          logger.error(err);
+        }
+      },
+    );
   }
 }

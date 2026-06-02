@@ -1,5 +1,6 @@
-import OpenTelemetryAPI, { Span } from "@opentelemetry/api";
 import { DisableTelemetry } from "../../EnvironmentConfig";
+import TelemetryContext from "./TelemetryContext";
+import OpenTelemetryAPI, { Span } from "@opentelemetry/api";
 
 export interface SpanAttributes {
   userId?: string | undefined;
@@ -21,13 +22,25 @@ export interface SpanAttributes {
 
 export default class SpanUtil {
   /**
-   * Add attributes to the currently active span.
-   * Safe to call even when there is no active span or telemetry is disabled.
+   * Add attributes to the current unit of work.
+   *
+   * This does two things:
+   *  1. Merges the attributes into the ambient {@link TelemetryContext} so that
+   *     every span and log produced later in this request/job/check inherits
+   *     them (OTel span attributes do NOT propagate parent -> child on their
+   *     own, so this is what actually makes context flow downstream).
+   *  2. Tags the currently active span immediately, if there is one.
+   *
+   * Safe to call even when there is no active span or scope, or when telemetry
+   * is disabled.
    */
   public static addAttributesToCurrentSpan(attributes: SpanAttributes): void {
     if (DisableTelemetry) {
       return;
     }
+
+    // Propagate to all downstream spans + logs via the ambient context.
+    TelemetryContext.setAttributes(attributes);
 
     const span: Span | undefined = OpenTelemetryAPI.trace.getActiveSpan();
 
@@ -54,37 +67,5 @@ export default class SpanUtil {
         span.setAttribute(key, value);
       }
     }
-  }
-
-  /**
-   * Build span attributes from a request-like object.
-   * Similar to getLogAttributesFromRequest in Logger but for spans.
-   */
-  public static getSpanAttributesFromRequest(
-    req?: {
-      requestId?: string;
-      tenantId?: { toString(): string };
-      userAuthorization?: { userId?: { toString(): string } };
-    } | null,
-  ): SpanAttributes {
-    if (!req) {
-      return {};
-    }
-
-    const attributes: SpanAttributes = {};
-
-    if (req.requestId) {
-      attributes["requestId"] = req.requestId;
-    }
-
-    if (req.tenantId) {
-      attributes["projectId"] = req.tenantId.toString();
-    }
-
-    if (req.userAuthorization?.userId) {
-      attributes["userId"] = req.userAuthorization.userId.toString();
-    }
-
-    return attributes;
   }
 }

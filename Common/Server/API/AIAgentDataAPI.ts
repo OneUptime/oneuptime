@@ -1,6 +1,7 @@
 import AIAgentService from "../Services/AIAgentService";
 import LlmProviderService from "../Services/LlmProviderService";
 import TelemetryExceptionService from "../Services/TelemetryExceptionService";
+import ServiceService from "../Services/ServiceService";
 import ServiceCodeRepositoryService from "../Services/ServiceCodeRepositoryService";
 import CodeRepositoryService from "../Services/CodeRepositoryService";
 import AIAgentTaskPullRequestService from "../Services/AIAgentTaskPullRequestService";
@@ -15,6 +16,7 @@ import Response from "../Utils/Response";
 import AIAgent from "../../Models/DatabaseModels/AIAgent";
 import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
 import TelemetryException from "../../Models/DatabaseModels/TelemetryException";
+import Service from "../../Models/DatabaseModels/Service";
 import ServiceCodeRepository from "../../Models/DatabaseModels/ServiceCodeRepository";
 import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
 import AIAgentTaskPullRequest from "../../Models/DatabaseModels/AIAgentTaskPullRequest";
@@ -174,11 +176,7 @@ export default class AIAgentDataAPI {
                 exceptionType: true,
                 fingerprint: true,
                 serviceId: true,
-                service: {
-                  _id: true,
-                  name: true,
-                  description: true,
-                },
+                serviceType: true,
               },
               props: {
                 isRoot: true,
@@ -198,6 +196,26 @@ export default class AIAgentDataAPI {
             getLogAttributesFromRequest(req as any),
           );
 
+          /*
+           * serviceId is polymorphic — resolve the Service only when it is
+           * a real Service. findOneById returns null for Host / DockerHost /
+           * KubernetesCluster / unattributed serviceIds (they aren't
+           * Services), preserving the previous "name only for real
+           * services" behaviour without the dropped ORM relation.
+           */
+          const exceptionService: Service | null = exception.serviceId
+            ? await ServiceService.findOneById({
+                id: exception.serviceId,
+                select: {
+                  name: true,
+                  description: true,
+                },
+                props: {
+                  isRoot: true,
+                },
+              })
+            : null;
+
           return Response.sendJsonObjectResponse(req, res, {
             exception: {
               id: exception._id?.toString(),
@@ -209,8 +227,8 @@ export default class AIAgentDataAPI {
             service: exception.serviceId
               ? {
                   id: exception.serviceId.toString(),
-                  name: exception.service?.name,
-                  description: exception.service?.description,
+                  name: exceptionService?.name,
+                  description: exceptionService?.description,
                 }
               : null,
           });

@@ -17,9 +17,13 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import ServiceType from "../../Types/Telemetry/ServiceType";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import DatabaseBaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Service from "./Service";
+import Host from "./Host";
+import DockerHost from "./DockerHost";
+import KubernetesCluster from "./KubernetesCluster";
 
 @EnableDocumentation()
 @CanAccessIfCanReadOn("service")
@@ -60,7 +64,16 @@ import Service from "./Service";
   tableDescription:
     "List of all Telemetry Exceptions created for the telemetry service for this OneUptime project and it's status.",
 })
-@OwnedThrough("serviceId", Service)
+/*
+ * serviceId is polymorphic (see the column below) — it may reference a
+ * Service, Host, DockerHost or KubernetesCluster, or be the projectId for
+ * unattributed (Unknown) telemetry. Owned scope unions ownership across all
+ * of those resource types, and includeProjectScope lets in-project users
+ * see the unattributed bucket (which has no owner resource).
+ */
+@OwnedThrough("serviceId", [Service, Host, DockerHost, KubernetesCluster], {
+  includeProjectScope: true,
+})
 @Entity({
   name: "TelemetryException",
 })
@@ -150,50 +163,15 @@ export default class TelemetryException extends DatabaseBaseModel {
   })
   public projectId?: ObjectID = undefined;
 
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateTelemetryException,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.TelemetryAdmin,
-      Permission.TelemetryMember,
-      Permission.TelemetryViewer,
-      Permission.ReadTelemetryException,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditTelemetryException,
-    ],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "serviceId",
-    type: TableColumnType.Entity,
-    modelType: Service,
-    title: "Service",
-    description: "Relation to Service Resource in which this object belongs",
-    example: "d4e5f6a7-b8c9-0123-def1-234567890123",
-  })
-  @ManyToOne(
-    () => {
-      return Service;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "CASCADE",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "serviceId" })
-  public service?: Service = undefined;
-
+  /*
+   * serviceId is polymorphic (disambiguated by serviceType, mirroring the
+   * ClickHouse ExceptionInstance rows): it can be a real Service, a Host /
+   * DockerHost / KubernetesCluster id, or the projectId for unattributed
+   * (Unknown) telemetry. There is intentionally NO @ManyToOne(Service)
+   * relation — a Service join would only resolve OpenTelemetry rows and
+   * silently null out everything else. The read side resolves serviceId +
+   * serviceType to a resource per type (TelemetryServiceUtil) instead.
+   */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -221,7 +199,8 @@ export default class TelemetryException extends DatabaseBaseModel {
     type: TableColumnType.ObjectID,
     required: true,
     title: "Service ID",
-    description: "ID of your Service resource where this object belongs",
+    description:
+      "ID of the resource this exception belongs to (Service / Host / DockerHost / KubernetesCluster, or the projectId for unattributed telemetry — disambiguated by serviceType).",
     example: "d4e5f6a7-b8c9-0123-def1-234567890123",
   })
   @Column({
@@ -230,6 +209,39 @@ export default class TelemetryException extends DatabaseBaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public serviceId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateTelemetryException,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadTelemetryException,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Service Type",
+    description:
+      "Resource type that produced this exception (e.g. OpenTelemetry service, Host, DockerHost, KubernetesCluster, or Unknown for unattributed telemetry).",
+    example: "OpenTelemetry",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public serviceType?: ServiceType = undefined;
 
   @ColumnAccessControl({
     create: [

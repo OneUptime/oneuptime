@@ -102,3 +102,15 @@ service:
       receivers: [otlp]
       exporters: [otlphttp]
 ```
+
+### Exceptions from logs
+
+OneUptime detects exceptions inside your **logs** and rolls them into the same **Exceptions** (Issues) view that trace errors feed. Because each log already resolves to a service or host, log-derived exceptions are attributed to the right resource, and they share the same fingerprint grouping — so an error reported by both a trace and a log collapses into one issue.
+
+There are two detection paths:
+
+1. **Explicit exception attributes (recommended).** A log record that carries the OpenTelemetry `exception.type`, `exception.message`, or `exception.stacktrace` attributes is turned into an exception directly. Most logging integrations (Logback / Log4j appenders, Serilog, the Python logging instrumentation, etc.) set these when you log an exception. This is precise and language-agnostic.
+
+2. **Stack traces in the log body.** For error/fatal logs without those attributes — for example raw stdout, syslog, or journald — OneUptime scans the body for a stack trace (JavaScript, Python, Java, Go, Ruby, C#/.NET, PHP) and extracts the type, message, and frames. Multi-line traces must arrive as a single log record; if you collect plain-text logs, enable multiline recombination at the collector (see the [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector) guide).
+
+This is on by default. On self-hosted OneUptime you can disable it by setting `TELEMETRY_LOG_EXCEPTION_EXTRACTION_ENABLED=false` on the ingest service.

@@ -366,6 +366,93 @@ export default class AnalyticsDatabaseService<
     return await this._findBy(findBy);
   }
 
+  /**
+   * Group telemetry rows by (serviceId, serviceType) for a project over a
+   * time window, returning the row count and an estimate of the ingested
+   * byte size (ClickHouse `byteSize(*)`, the uncompressed in-memory size of
+   * each row's columns). This is the enumeration source for usage billing:
+   * a single aggregation scan surfaces EVERY resource that emitted
+   * telemetry — real Services, Hosts, Docker hosts, Kubernetes clusters,
+   * Monitors and unattributed (serviceId = projectId) — without needing a
+   * Postgres row per resource. The caller decides which serviceTypes to
+   * bill and how to attribute retention.
+   */
+  @CaptureSpan()
+  public async groupTelemetryUsageByService(data: {
+    projectId: ObjectID;
+    timestampColumnName: keyof TBaseModel | string;
+    startDate: Date;
+    endDate: Date;
+  }): Promise<
+    Array<{
+      serviceId: string;
+      serviceType: string | null;
+      rowCount: number;
+      estimatedBytes: number;
+    }>
+  > {
+    const timestampColumnName: string = data.timestampColumnName.toString();
+
+    if (!this.model.getTableColumn(timestampColumnName)) {
+      throw new BadDataException(
+        `Invalid timestampColumnName: ${timestampColumnName}`,
+      );
+    }
+
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+    const databaseName: string =
+      this.database!.getDatasourceOptions().database!;
+
+    const statement: Statement = SQL`SELECT serviceId AS serviceId, serviceType AS serviceType, count() AS rowCount, sum(byteSize(*)) AS estimatedBytes FROM ${databaseName}.${this.model.tableName} WHERE projectId = ${{
+      type: TableColumnType.ObjectID,
+      value: data.projectId,
+    }} AND ${timestampColumnName} >= ${{
+      type: TableColumnType.DateTime64,
+      value: data.startDate,
+    }} AND ${timestampColumnName} <= ${{
+      type: TableColumnType.DateTime64,
+      value: data.endDate,
+    }} GROUP BY serviceId, serviceType`;
+
+    statement.append(
+      " SETTINGS max_execution_time = 60, timeout_overflow_mode = 'break'",
+    );
+
+    const dbResult: ResultSet<"JSON"> = await this.executeQuery(statement);
+    const responseJSON: ResponseJSON<JSONObject> =
+      await dbResult.json<JSONObject>();
+    const items: Array<JSONObject> = responseJSON.data ? responseJSON.data : [];
+
+    const results: Array<{
+      serviceId: string;
+      serviceType: string | null;
+      rowCount: number;
+      estimatedBytes: number;
+    }> = [];
+
+    for (const item of items) {
+      const serviceId: string = (item["serviceId"] as string) || "";
+      if (!serviceId) {
+        continue;
+      }
+      const serviceTypeRaw: unknown = item["serviceType"];
+      const serviceType: string | null =
+        typeof serviceTypeRaw === "string" && serviceTypeRaw.trim()
+          ? serviceTypeRaw
+          : null;
+      results.push({
+        serviceId,
+        serviceType,
+        rowCount: Number(item["rowCount"]) || 0,
+        estimatedBytes: Number(item["estimatedBytes"]) || 0,
+      });
+    }
+
+    return results;
+  }
+
   @CaptureSpan()
   public async aggregateBy(
     aggregateBy: AggregateBy<TBaseModel>,

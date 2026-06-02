@@ -47,7 +47,7 @@ export interface SpanLink {
 }
 
 @OperationalResource()
-@OwnedThrough("serviceId", Service)
+@OwnedThrough("serviceId", Service, { includeProjectScope: true })
 export default class Span extends AnalyticsBaseModel {
   public constructor() {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({

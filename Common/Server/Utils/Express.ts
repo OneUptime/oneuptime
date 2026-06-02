@@ -1,4 +1,5 @@
 import logger from "./Logger";
+import GracefulShutdown, { ShutdownPriority } from "./GracefulShutdown";
 import Dictionary from "../../Types/Dictionary";
 import GenericFunction from "../../Types/GenericFunction";
 import { JSONObject, JSONObjectOrArray } from "../../Types/JSON";
@@ -103,6 +104,37 @@ class Express {
     if (!this.httpServer) {
       this.httpServer = createServer(this.app);
     }
+
+    /*
+     * On shutdown, stop accepting new connections first (before datastores are
+     * drained) so in-flight requests can finish but new ones don't acquire
+     * resources we're about to tear down. closeIdleConnections() drops idle
+     * keep-alive sockets so server.close() doesn't block waiting on them; the
+     * GracefulShutdown per-handler timeout bounds anything still in flight.
+     */
+    GracefulShutdown.registerHandler(
+      "HttpServer",
+      ShutdownPriority.HttpServer,
+      () => {
+        return new Promise<void>((resolve: () => void) => {
+          if (!this.httpServer || !this.httpServer.listening) {
+            resolve();
+            return;
+          }
+
+          const server: Server & { closeIdleConnections?: () => void } =
+            this.httpServer;
+
+          if (typeof server.closeIdleConnections === "function") {
+            server.closeIdleConnections();
+          }
+
+          server.close(() => {
+            resolve();
+          });
+        });
+      },
+    );
 
     type ResolveFunction = (app: express.Application) => void;
 

@@ -59,6 +59,16 @@ export const TELEMETRY_PROFILE_SAMPLE_FLUSH_BATCH_SIZE: number = parseBatchSize(
 );
 
 /*
+ * Detect exceptions inside ingested logs (explicit OTel exception.* attributes,
+ * and error/fatal log bodies that contain a stack trace) and roll them up into
+ * the same Issues view that trace span-event exceptions feed. On by default;
+ * set TELEMETRY_LOG_EXCEPTION_EXTRACTION_ENABLED=false to hot-disable the whole
+ * extraction block on the log ingest hot path without a code change.
+ */
+export const TELEMETRY_LOG_EXCEPTION_EXTRACTION_ENABLED: boolean =
+  process.env["TELEMETRY_LOG_EXCEPTION_EXTRACTION_ENABLED"] !== "false";
+
+/*
  * Some telemetry batches can be large and take >30s (BullMQ default lock) to process.
  * Allow configuring a longer lock duration (in ms) to avoid premature stall detection.
  */

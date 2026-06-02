@@ -15,7 +15,7 @@ import { SpanStatus } from "./Span";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 
 @OperationalResource()
-@OwnedThrough("serviceId", Service)
+@OwnedThrough("serviceId", Service, { includeProjectScope: true })
 export default class ExceptionInstance extends AnalyticsBaseModel {
   public constructor() {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({

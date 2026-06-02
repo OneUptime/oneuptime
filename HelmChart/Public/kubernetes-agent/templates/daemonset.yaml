@@ -38,6 +38,16 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.hostIP
+            {{- with .Values.logs.resources.limits.memory }}
+            # Go runtime soft memory limit — makes the GC reclaim
+            # aggressively as the heap approaches the cgroup limit, so the
+            # collector's own memory_limiter (same 80% target) and the kernel
+            # OOM killer act as backstops rather than the primary control.
+            # Derived from .Values.logs.resources.limits.memory so it tracks
+            # the container limit. Only set when a memory limit is configured.
+            - name: GOMEMLIMIT
+              value: {{ include "kubernetes-agent.gomemlimit" . | quote }}
+            {{- end }}
             - name: ONEUPTIME_API_KEY
               valueFrom:
                 secretKeyRef:

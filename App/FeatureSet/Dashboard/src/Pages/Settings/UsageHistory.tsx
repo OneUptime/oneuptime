@@ -1,5 +1,8 @@
 import ServiceElement from "../../Components/Service/ServiceElement";
 import ProjectUtil from "Common/UI/Utils/Project";
+import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
+import ObjectID from "Common/Types/ObjectID";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
 import PageComponentProps from "../PageComponentProps";
 import Currency from "Common/Types/Currency";
 import Decimal from "Common/Types/Decimal";
@@ -116,11 +119,59 @@ const Settings: FunctionComponent<ComponentProps> = (
                 _id: true,
                 serviceColor: true,
               },
+              serviceId: true,
+              serviceType: true,
             },
             title: "Service",
             type: FieldType.Element,
             getElement: (item: TelemetryUsageBilling) => {
-              return <ServiceElement service={item["service"] as Service} />;
+              const service: Service | undefined = item["service"] as
+                | Service
+                | undefined;
+              if (service) {
+                return <ServiceElement service={service} />;
+              }
+
+              const serviceType: ServiceType | undefined = item[
+                "serviceType"
+              ] as ServiceType | undefined;
+
+              /*
+               * Non-Service telemetry (unattributed / Host / Docker /
+               * Kubernetes) has no Service row, so the relation resolves to
+               * null. Render a label from the serviceType discriminator
+               * instead of crashing on the null relation.
+               */
+              const projectId: ObjectID | null =
+                ProjectUtil.getCurrentProjectId();
+              if (
+                projectId &&
+                (serviceType === ServiceType.Unknown ||
+                  TelemetryServiceUtil.isUnknownServiceId(
+                    item.serviceId,
+                    projectId,
+                  ))
+              ) {
+                return (
+                  <ServiceElement
+                    service={TelemetryServiceUtil.getUnknownService(projectId)}
+                  />
+                );
+              }
+
+              const typeLabels: Record<string, string> = {
+                [ServiceType.Host]: "Host telemetry",
+                [ServiceType.DockerHost]: "Docker host telemetry",
+                [ServiceType.KubernetesCluster]: "Kubernetes telemetry",
+              };
+              const label: string | undefined = serviceType
+                ? typeLabels[serviceType]
+                : undefined;
+              if (label) {
+                return <div className="text-gray-700">{label}</div>;
+              }
+
+              return <div className="text-gray-400">—</div>;
             },
           },
           {

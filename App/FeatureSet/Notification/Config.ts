@@ -2,6 +2,7 @@ import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import URL from "Common/Types/API/URL";
 import Email from "Common/Types/Email";
 import EmailServer from "Common/Types/Email/EmailServer";
+import MailTransportType from "Common/Types/Email/MailTransportType";
 import OAuthProviderType from "Common/Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -35,6 +36,7 @@ export const getGlobalSMTPConfig: GetGlobalSMTPConfig =
           smtpPassword: true,
           isSMTPSecure: true,
           smtpFromName: true,
+          smtpTransportType: true,
           smtpAuthType: true,
           smtpClientId: true,
           smtpClientSecret: true,
@@ -48,7 +50,26 @@ export const getGlobalSMTPConfig: GetGlobalSMTPConfig =
       throw new BadDataException("Global Config not found");
     }
 
-    if (
+    const transportType: MailTransportType =
+      (globalConfig.smtpTransportType as MailTransportType) ||
+      MailTransportType.SMTP;
+
+    /*
+     * "config not yet set" detection: for SMTP we look at host/port/credentials;
+     * for Microsoft Graph we look at OAuth credentials. If none of the relevant
+     * fields are populated, treat it as "no global SMTP configured" rather than
+     * throwing — callers handle null gracefully.
+     */
+    if (transportType === MailTransportType.MicrosoftGraph) {
+      if (
+        !globalConfig.smtpFromEmail &&
+        !globalConfig.smtpClientId &&
+        !globalConfig.smtpClientSecret &&
+        !globalConfig.smtpTokenUrl
+      ) {
+        return null;
+      }
+    } else if (
       !globalConfig.smtpFromEmail &&
       !globalConfig.smtpHost &&
       !globalConfig.smtpPort &&
@@ -59,27 +80,19 @@ export const getGlobalSMTPConfig: GetGlobalSMTPConfig =
       return null;
     }
 
+    /*
+     * Microsoft Graph always uses OAuth (Client Credentials). For SMTP, the
+     * user picks an auth type — default to UsernamePassword for back-compat.
+     */
     const smtpAuthType: SMTPAuthenticationType =
-      (globalConfig.smtpAuthType as SMTPAuthenticationType) ||
-      SMTPAuthenticationType.UsernamePassword;
+      transportType === MailTransportType.MicrosoftGraph
+        ? SMTPAuthenticationType.OAuth
+        : (globalConfig.smtpAuthType as SMTPAuthenticationType) ||
+          SMTPAuthenticationType.UsernamePassword;
 
     if (!globalConfig.smtpFromEmail) {
       throw new BadDataException(
         "Global SMTP From Email not found. Please set this in the Admin Dashboard: " +
-          AdminDashboardClientURL.toString(),
-      );
-    }
-
-    if (!globalConfig.smtpHost) {
-      throw new BadDataException(
-        "SMTP Host not found. Please set this in the Admin Dashboard: " +
-          AdminDashboardClientURL.toString(),
-      );
-    }
-
-    if (!globalConfig.smtpPort) {
-      throw new BadDataException(
-        "SMTP Port not found. Please set this in the Admin Dashboard: " +
           AdminDashboardClientURL.toString(),
       );
     }
@@ -91,18 +104,63 @@ export const getGlobalSMTPConfig: GetGlobalSMTPConfig =
       );
     }
 
-    if (!globalConfig.smtpFromEmail) {
-      throw new BadDataException(
-        "SMTP From Email not found. Please set this in the Admin Dashboard: " +
-          AdminDashboardClientURL.toString(),
-      );
+    /*
+     * Host/port are only required for SMTP transport. Microsoft Graph posts to
+     * graph.microsoft.com and ignores host/port entirely.
+     */
+    if (transportType === MailTransportType.SMTP) {
+      if (!globalConfig.smtpHost) {
+        throw new BadDataException(
+          "SMTP Host not found. Please set this in the Admin Dashboard: " +
+            AdminDashboardClientURL.toString(),
+        );
+      }
+
+      if (!globalConfig.smtpPort) {
+        throw new BadDataException(
+          "SMTP Port not found. Please set this in the Admin Dashboard: " +
+            AdminDashboardClientURL.toString(),
+        );
+      }
+    }
+
+    // OAuth credentials are required for both Microsoft Graph and SMTP+OAuth.
+    if (smtpAuthType === SMTPAuthenticationType.OAuth) {
+      if (!globalConfig.smtpClientId) {
+        throw new BadDataException(
+          "SMTP OAuth Client ID not found. Please set this in the Admin Dashboard: " +
+            AdminDashboardClientURL.toString(),
+        );
+      }
+
+      if (!globalConfig.smtpClientSecret) {
+        throw new BadDataException(
+          "SMTP OAuth Client Secret not found. Please set this in the Admin Dashboard: " +
+            AdminDashboardClientURL.toString(),
+        );
+      }
+
+      if (!globalConfig.smtpTokenUrl) {
+        throw new BadDataException(
+          "SMTP OAuth Token URL not found. Please set this in the Admin Dashboard: " +
+            AdminDashboardClientURL.toString(),
+        );
+      }
+
+      if (!globalConfig.smtpScope) {
+        throw new BadDataException(
+          "SMTP OAuth Scope not found. Please set this in the Admin Dashboard: " +
+            AdminDashboardClientURL.toString(),
+        );
+      }
     }
 
     return {
-      host: globalConfig.smtpHost,
-      port: globalConfig.smtpPort,
-      username: globalConfig.smtpUsername || undefined, // these can be optional. If not set, they will be undefined
-      password: globalConfig.smtpPassword || undefined, // these can be optional. If not set, they will be undefined
+      transportType: transportType,
+      host: globalConfig.smtpHost || undefined,
+      port: globalConfig.smtpPort || undefined,
+      username: globalConfig.smtpUsername || undefined,
+      password: globalConfig.smtpPassword || undefined,
       secure: globalConfig.isSMTPSecure || false,
       fromEmail: globalConfig.smtpFromEmail,
       fromName: globalConfig.smtpFromName || "OneUptime",

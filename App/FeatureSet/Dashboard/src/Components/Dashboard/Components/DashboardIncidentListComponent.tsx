@@ -13,6 +13,7 @@ import DashboardResourceListBase, {
 } from "./DashboardResourceListBase";
 import { HoneycombTile } from "./DashboardResourceHoneycomb";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import DashboardResourceList from "../Utils/DashboardResourceList";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -69,7 +70,7 @@ const DashboardIncidentListComponentElement: FunctionComponent<
     setIsLoading(true);
 
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-    if (!projectId) {
+    if (!DashboardResourceList.isPublic() && !projectId) {
       setIsLoading(false);
       setError("No project selected.");
       return;
@@ -118,6 +119,7 @@ const DashboardIncidentListComponentElement: FunctionComponent<
       const listResult: ListResult<Incident> = await ModelAPI.getList<Incident>(
         {
           modelType: Incident,
+          requestOptions: DashboardResourceList.getRequestOptions("incident"),
           query: query,
           limit: maxRows,
           skip: 0,

@@ -25,9 +25,23 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import AppLink from "../AppLink/AppLink";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
+import ObjectID from "Common/Types/ObjectID";
+import ProjectUtil from "Common/UI/Utils/Project";
+import TelemetryServiceUtil, {
+  UNKNOWN_SERVICE_NAME,
+} from "Common/UI/Utils/TelemetryService";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
 interface ServiceExceptionSummary {
-  service: Service;
+  /*
+   * serviceId is polymorphic; the client resolves the display name per
+   * serviceType from the loaded Services.
+   */
+  serviceId: string;
+  serviceType: ServiceType | null;
   unresolvedCount: number;
   totalOccurrences: number;
 }
@@ -80,6 +94,36 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
+  /*
+   * An exception's serviceId is polymorphic (no Service relation). Load the
+   * project's Services so a real OpenTelemetry serviceId resolves to its
+   * name/colour; Host/Docker/K8s and unattributed resolve to a label /
+   * synthetic via resolveServiceDisplay below.
+   */
+  const [services, setServices] = useState<Array<Service>>([]);
+
+  const resolveServiceDisplay: (
+    serviceId: ObjectID | string | null | undefined,
+    serviceType: ServiceType | string | null | undefined,
+  ) => { name: string; color: string } = (
+    serviceId: ObjectID | string | null | undefined,
+    serviceType: ServiceType | string | null | undefined,
+  ): { name: string; color: string } => {
+    const { service, label } = TelemetryServiceUtil.resolveTelemetryResource({
+      serviceId: serviceId,
+      serviceType: serviceType,
+      services: services,
+      projectId: ProjectUtil.getCurrentProjectId(),
+    });
+    if (service) {
+      return {
+        name: service.name?.toString() || UNKNOWN_SERVICE_NAME,
+        color: service.serviceColor?.toString() || "#9ca3af",
+      };
+    }
+    return { name: label || "Unknown", color: "#9ca3af" };
+  };
+
   const loadDashboard: () => Promise<void> = async (): Promise<void> => {
     try {
       setIsLoading(true);
@@ -117,12 +161,9 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
       const serviceSummaries: Array<ServiceExceptionSummary> = rawSummaries.map(
         (raw: JSONObject | unknown): ServiceExceptionSummary => {
           const entry: JSONObject = (raw as JSONObject) || {};
-          const service: Service = BaseModel.fromJSONObject(
-            (entry["service"] as JSONObject) || {},
-            Service,
-          );
           return {
-            service,
+            serviceId: (entry["serviceId"] as string) || "",
+            serviceType: (entry["serviceType"] as ServiceType | null) ?? null,
             unresolvedCount: Number(entry["unresolvedCount"] || 0),
             totalOccurrences: Number(entry["totalOccurrences"] || 0),
           };
@@ -146,6 +187,25 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
 
   useEffect(() => {
     void loadDashboard();
+  }, []);
+
+  useEffect(() => {
+    const loadServices: () => Promise<void> = async (): Promise<void> => {
+      try {
+        const result: ListResult<Service> = await ModelAPI.getList<Service>({
+          modelType: Service,
+          query: { projectId: ProjectUtil.getCurrentProjectId()! },
+          select: { _id: true, name: true, serviceColor: true },
+          sort: { name: SortOrder.Ascending },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+        });
+        setServices(result.data);
+      } catch {
+        // Non-fatal: rows fall back to a serviceType label / "Unknown".
+      }
+    };
+    void loadServices();
   }, []);
 
   if (isLoading) {
@@ -461,19 +521,24 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                                     {exception.exceptionType}
                                   </span>
                                 )}
-                                {exception.service && (
-                                  <span className="inline-flex items-center gap-1.5 text-gray-600">
-                                    <span
-                                      className="h-1.5 w-1.5 rounded-full"
-                                      style={{
-                                        backgroundColor:
-                                          exception.service.serviceColor?.toString() ||
-                                          "#9ca3af",
-                                      }}
-                                    />
-                                    {exception.service.name?.toString()}
-                                  </span>
-                                )}
+                                {(() => {
+                                  const svc: {
+                                    name: string;
+                                    color: string;
+                                  } = resolveServiceDisplay(
+                                    exception.serviceId,
+                                    exception.serviceType,
+                                  );
+                                  return (
+                                    <span className="inline-flex items-center gap-1.5 text-gray-600">
+                                      <span
+                                        className="h-1.5 w-1.5 rounded-full"
+                                        style={{ backgroundColor: svc.color }}
+                                      />
+                                      {svc.name}
+                                    </span>
+                                  );
+                                })()}
                                 {exception.environment && (
                                   <span className="text-gray-500">
                                     · {exception.environment}
@@ -532,22 +597,25 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                       (summary.unresolvedCount / maxServiceBugs) * 100,
                       4,
                     );
-                    const serviceColor: string =
-                      summary.service.serviceColor?.toString() || "#9ca3af";
+                    const serviceDisplay: { name: string; color: string } =
+                      resolveServiceDisplay(
+                        summary.serviceId,
+                        summary.serviceType,
+                      );
 
                     return (
                       <li
-                        key={summary.service.id?.toString()}
+                        key={summary.serviceId}
                         className="px-4 py-3 hover:bg-gray-50/70 transition-colors"
                       >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2 min-w-0">
                             <span
                               className="h-2 w-2 rounded-full shrink-0"
-                              style={{ backgroundColor: serviceColor }}
+                              style={{ backgroundColor: serviceDisplay.color }}
                             />
                             <span className="text-sm font-medium text-gray-800 truncate">
-                              {summary.service.name?.toString()}
+                              {serviceDisplay.name}
                             </span>
                           </div>
                           <div className="shrink-0 text-right">
@@ -565,7 +633,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                               className="h-full rounded-full transition-[width] duration-500"
                               style={{
                                 width: `${barWidth}%`,
-                                backgroundColor: serviceColor,
+                                backgroundColor: serviceDisplay.color,
                               }}
                             />
                           </div>
@@ -604,19 +672,22 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                                 "Unknown"}
                             </p>
                             <div className="flex items-center gap-1.5 mt-1 text-xs">
-                              {exception.service && (
-                                <span className="inline-flex items-center gap-1.5 text-gray-600">
-                                  <span
-                                    className="h-1.5 w-1.5 rounded-full"
-                                    style={{
-                                      backgroundColor:
-                                        exception.service.serviceColor?.toString() ||
-                                        "#9ca3af",
-                                    }}
-                                  />
-                                  {exception.service.name?.toString()}
-                                </span>
-                              )}
+                              {(() => {
+                                const svc: { name: string; color: string } =
+                                  resolveServiceDisplay(
+                                    exception.serviceId,
+                                    exception.serviceType,
+                                  );
+                                return (
+                                  <span className="inline-flex items-center gap-1.5 text-gray-600">
+                                    <span
+                                      className="h-1.5 w-1.5 rounded-full"
+                                      style={{ backgroundColor: svc.color }}
+                                    />
+                                    {svc.name}
+                                  </span>
+                                );
+                              })()}
                               {exception.lastSeenAt && (
                                 <span className="text-gray-400">
                                   ·{" "}

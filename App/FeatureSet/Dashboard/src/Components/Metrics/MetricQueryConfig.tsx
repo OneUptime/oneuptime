@@ -40,6 +40,9 @@ export interface ComponentProps {
     | Record<string, Array<string>>
     | undefined;
   onAttributeKeySelected?: ((key: string) => void) | undefined;
+  onAttributeValueSearch?:
+    | ((key: string, searchText: string) => void)
+    | undefined;
   loadingAttributeValueKeys?: Array<string> | undefined;
 }
 
@@ -374,6 +377,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                   props.telemetryAttributeValueSuggestions
                 }
                 onAttributeKeySelected={props.onAttributeKeySelected}
+                onAttributeValueSearch={props.onAttributeValueSearch}
                 onAdvancedFiltersToggle={props.onAdvancedFiltersToggle}
                 isAttributesLoading={props.attributesLoading}
                 attributesError={props.attributesError}

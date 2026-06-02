@@ -19,6 +19,7 @@ import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
+import DashboardResourceList from "../Utils/DashboardResourceList";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -158,7 +159,7 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
           sort: {
             startTime: SortOrder.Descending,
           },
-          requestOptions: {},
+          requestOptions: DashboardResourceList.getRequestOptions("span"),
         });
 
       setSpans(listResult.data);
