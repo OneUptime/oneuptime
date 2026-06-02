@@ -7,6 +7,9 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Query from "Common/Types/BaseDatabase/Query";
 import ProjectUtil from "Common/UI/Utils/Project";
 import TelemetryServiceElement from "../TelemetryService/TelemetryServiceElement";
+import Service from "Common/Models/DatabaseModels/Service";
+import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
 import TelemetryExceptionElement from "./ExceptionElement";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -460,20 +463,60 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
                 name: true,
                 serviceColor: true,
               },
+              serviceId: true,
+              serviceType: true,
             },
             title: "Service",
             type: FieldType.Entity,
             getElement: (exception: TelemetryException) => {
-              if (!exception.service) {
-                // this should never happen.
-                return <div>Unknown</div>;
+              const service: Service | undefined = exception.service as
+                | Service
+                | undefined;
+              if (service) {
+                return <TelemetryServiceElement telemetryService={service} />;
               }
 
-              return (
-                <TelemetryServiceElement
-                  telemetryService={exception.service!}
-                />
-              );
+              const serviceType: ServiceType | undefined =
+                exception.serviceType as ServiceType | undefined;
+
+              /*
+               * Non-Service exceptions (unattributed / Host / Docker /
+               * Kubernetes) have no Service row — the relation resolves to
+               * null. Render a synthetic "Unknown Service" or a serviceType
+               * label instead of a bare "Unknown".
+               */
+              const projectId: ObjectID | null =
+                ProjectUtil.getCurrentProjectId();
+              if (
+                projectId &&
+                (serviceType === ServiceType.Unknown ||
+                  TelemetryServiceUtil.isUnknownServiceId(
+                    exception.serviceId,
+                    projectId,
+                  ))
+              ) {
+                return (
+                  <TelemetryServiceElement
+                    telemetryService={TelemetryServiceUtil.getUnknownService(
+                      projectId,
+                    )}
+                  />
+                );
+              }
+
+              const typeLabels: Record<string, string> = {
+                [ServiceType.Host]: "Host telemetry",
+                [ServiceType.DockerHost]: "Docker host telemetry",
+                [ServiceType.KubernetesCluster]: "Kubernetes telemetry",
+              };
+              const label: string | undefined = serviceType
+                ? typeLabels[serviceType]
+                : undefined;
+              if (label) {
+                return <div className="text-gray-700">{label}</div>;
+              }
+
+              return <div className="text-gray-400">Unknown</div>;
             },
           },
           {

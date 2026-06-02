@@ -54,6 +54,7 @@ import HashedString from "../../Types/HashedString";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
 import ObjectID from "../../Types/ObjectID";
+import TelemetryContext from "../Utils/Telemetry/TelemetryContext";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Text from "../../Types/Text";
 import Typeof from "../../Types/Typeof";
@@ -681,6 +682,69 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
   }
 
+  /**
+   * Derive the telemetry attribute key for this model's primary id, e.g.
+   * `Incident` -> `incidentId`, `Monitor` -> `monitorId`. Matches the keys in
+   * TelemetryContextAttributes so dashboards/queries stay consistent.
+   */
+  private getTelemetryEntityIdKey(): string {
+    const name: string = this.modelName || "entity";
+    return name.charAt(0).toLowerCase() + name.slice(1) + "Id";
+  }
+
+  /**
+   * Seed the ambient telemetry context with the project (tenant) of an
+   * operation so worker/cron/service spans and logs — which run outside the
+   * HTTP request scope — still carry projectId. Best-effort and safe to call
+   * anywhere.
+   */
+  protected setTelemetryContextFromProps(
+    props: DatabaseCommonInteractionProps | undefined,
+  ): void {
+    try {
+      if (props?.tenantId) {
+        TelemetryContext.setAttributes({
+          projectId: props.tenantId.toString(),
+        });
+      }
+    } catch {
+      // Telemetry must never break a database operation.
+    }
+  }
+
+  /**
+   * Seed the ambient telemetry context from a concrete model instance: the
+   * project (tenant) and the entity's own id (e.g. incidentId, monitorId).
+   * Used on create, where a new entity id is minted. Best-effort and safe.
+   */
+  protected setTelemetryContextFromItem(item: TBaseModel | undefined): void {
+    try {
+      if (!item) {
+        return;
+      }
+
+      const attributes: { [key: string]: string } = {};
+
+      const tenantColumn: string | null = this.model.getTenantColumn();
+      if (tenantColumn) {
+        const tenantValue: unknown = item.getColumnValue(tenantColumn);
+        if (tenantValue) {
+          attributes["projectId"] = String(tenantValue);
+        }
+      }
+
+      if (item.id) {
+        attributes[this.getTelemetryEntityIdKey()] = item.id.toString();
+      }
+
+      if (Object.keys(attributes).length > 0) {
+        TelemetryContext.setAttributes(attributes);
+      }
+    } catch {
+      // Telemetry must never break a database operation.
+    }
+  }
+
   @CaptureSpan()
   public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
     const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
@@ -741,6 +805,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     try {
       createBy.data = await this.getRepository().save(createBy.data);
+
+      // Seed telemetry context with projectId + <model>Id for this create.
+      this.setTelemetryContextFromItem(createBy.data);
 
       if (!createBy.props.ignoreHooks) {
         createBy.data = await this.onCreateSuccess(
@@ -1216,6 +1283,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
     try {
+      this.setTelemetryContextFromProps(deleteBy.props);
+
       if (this.doNotAllowDelete && !deleteBy.props.isRoot) {
         throw new BadDataException("Delete not allowed");
       }
@@ -1444,6 +1513,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     withDeleted?: boolean | undefined,
   ): Promise<Array<TBaseModel>> {
     try {
+      this.setTelemetryContextFromProps(findBy.props);
+
       let automaticallyAddedCreatedAtInSelect: boolean = false;
 
       if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
@@ -1638,6 +1709,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   private async _updateBy(updateBy: UpdateBy<TBaseModel>): Promise<number> {
     try {
+      this.setTelemetryContextFromProps(updateBy.props);
+
       const onUpdate: OnUpdate<TBaseModel> = updateBy.props.ignoreHooks
         ? { updateBy, carryForward: [] }
         : await this.onBeforeUpdate(updateBy);

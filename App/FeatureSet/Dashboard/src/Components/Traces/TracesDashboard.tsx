@@ -9,6 +9,7 @@ import React, {
 import Service from "Common/Models/DatabaseModels/Service";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
 import API from "Common/Utils/API";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -159,10 +160,30 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           }),
         ]);
 
-        const loadedServices: Array<Service> = servicesResult.data || [];
-        setServices(loadedServices);
-
         const allSpans: Array<Span> = spansResult.data || [];
+
+        /*
+         * Telemetry without a service.name is tagged with the projectId
+         * (ServiceType.Unknown) and has no Service row. Surface it under
+         * a synthetic "Unknown Service" so it still shows in the service
+         * health table — but only when some span actually references it.
+         */
+        const referencedServiceIds: Set<string> = new Set(
+          allSpans
+            .map((span: Span) => {
+              return span.serviceId?.toString() || "";
+            })
+            .filter((id: string) => {
+              return Boolean(id);
+            }),
+        );
+        const loadedServices: Array<Service> =
+          TelemetryServiceUtil.withUnknownServiceIfReferenced({
+            services: servicesResult.data || [],
+            referencedServiceIds,
+            projectId: ProjectUtil.getCurrentProjectId()!,
+          });
+        setServices(loadedServices);
 
         // Build per-service summaries
         const summaryMap: Map<string, ServiceTraceSummary> = new Map();
@@ -630,14 +651,23 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
                     <td className="px-5 py-3.5 text-right">
                       <AppLink
                         className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
-                        to={RouteUtil.populateRouteParams(
-                          RouteMap[PageMap.SERVICE_VIEW_TRACES] as Route,
-                          {
-                            modelId: new ObjectID(
-                              summary.service._id as string,
-                            ),
-                          },
-                        )}
+                        to={
+                          TelemetryServiceUtil.isUnknownServiceId(
+                            summary.service._id as string | undefined,
+                            ProjectUtil.getCurrentProjectId(),
+                          )
+                            ? (RouteUtil.populateRouteParams(
+                                RouteMap[PageMap.TRACES] as Route,
+                              ) as Route)
+                            : RouteUtil.populateRouteParams(
+                                RouteMap[PageMap.SERVICE_VIEW_TRACES] as Route,
+                                {
+                                  modelId: new ObjectID(
+                                    summary.service._id as string,
+                                  ),
+                                },
+                              )
+                        }
                       >
                         View
                       </AppLink>

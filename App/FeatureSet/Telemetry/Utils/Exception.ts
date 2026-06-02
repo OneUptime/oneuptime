@@ -1,5 +1,6 @@
 import TelemetryExceptionService from "Common/Server/Services/TelemetryExceptionService";
 import ObjectID from "Common/Types/ObjectID";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
 import Crypto from "Common/Utils/Crypto";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import logger from "Common/Server/Utils/Logger";
@@ -16,6 +17,7 @@ export interface TelemetryExceptionPayload {
   fingerprint: string;
   projectId: ObjectID;
   serviceId: ObjectID;
+  serviceType?: ServiceType;
   exceptionType?: string;
   stackTrace?: string;
   message?: string;
@@ -297,13 +299,14 @@ export default class ExceptionUtil {
       for (const row of chunk) {
         /*
          * Column order must stay in lockstep with the INSERT
-         * column list below. 12 placeholders per row: projectId,
+         * column list below. 13 placeholders per row: projectId,
          * serviceId, fingerprint, message, stackTrace,
          * exceptionType, firstSeenAt, lastSeenAt, occuranceCount,
-         * firstSeenInRelease, lastSeenInRelease, environment.
+         * firstSeenInRelease, lastSeenInRelease, environment,
+         * serviceType.
          */
         const placeholders: Array<string> = [];
-        for (let c: number = 0; c < 12; c++) {
+        for (let c: number = 0; c < 13; c++) {
           placeholders.push(`$${paramIndex++}`);
         }
         valueFragments.push(`(${placeholders.join(", ")})`);
@@ -321,6 +324,7 @@ export default class ExceptionUtil {
           row.firstSeenInRelease,
           row.lastSeenInRelease,
           row.environment,
+          row.serviceType ?? ServiceType.OpenTelemetry,
         );
       }
 
@@ -330,6 +334,7 @@ export default class ExceptionUtil {
           "message", "stackTrace", "exceptionType",
           "firstSeenAt", "lastSeenAt", "occuranceCount",
           "firstSeenInRelease", "lastSeenInRelease", "environment",
+          "serviceType",
           "isResolved", "isArchived", "version"
         )
         SELECT
@@ -338,13 +343,15 @@ export default class ExceptionUtil {
           v."firstSeenAt"::timestamptz, v."lastSeenAt"::timestamptz,
           v."occuranceCount"::int,
           v."firstSeenInRelease", v."lastSeenInRelease", v."environment",
+          v."serviceType",
           false, false, 0
         FROM (VALUES ${valueFragments.join(", ")})
           AS v(
             "projectId", "serviceId", "fingerprint",
             "message", "stackTrace", "exceptionType",
             "firstSeenAt", "lastSeenAt", "occuranceCount",
-            "firstSeenInRelease", "lastSeenInRelease", "environment"
+            "firstSeenInRelease", "lastSeenInRelease", "environment",
+            "serviceType"
           )
         ON CONFLICT ("projectId", "serviceId", "fingerprint")
         DO UPDATE SET
@@ -373,6 +380,10 @@ export default class ExceptionUtil {
           "environment" = COALESCE(
             NULLIF(EXCLUDED."environment", ''),
             "TelemetryException"."environment"
+          ),
+          "serviceType" = COALESCE(
+            "TelemetryException"."serviceType",
+            EXCLUDED."serviceType"
           ),
           "markedAsResolvedByUserId" = NULL,
           "markedAsResolvedAt" = NULL,
@@ -441,6 +452,9 @@ export default class ExceptionUtil {
       const existing: AggregatedException | undefined = out.get(key);
       if (existing) {
         existing.occuranceCount += 1;
+        if (!existing.serviceType && exception.serviceType) {
+          existing.serviceType = exception.serviceType;
+        }
         existing.message = pickNonEmpty(existing.message, exception.message);
         existing.stackTrace = pickNonEmpty(
           existing.stackTrace,
@@ -468,6 +482,7 @@ export default class ExceptionUtil {
       out.set(key, {
         projectId: exception.projectId,
         serviceId: exception.serviceId,
+        serviceType: exception.serviceType ?? null,
         fingerprint: exception.fingerprint,
         message: exception.message || "",
         stackTrace: exception.stackTrace || "",
@@ -488,6 +503,7 @@ export default class ExceptionUtil {
 interface AggregatedException {
   projectId: ObjectID;
   serviceId: ObjectID;
+  serviceType: ServiceType | null;
   fingerprint: string;
   message: string;
   stackTrace: string;

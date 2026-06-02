@@ -69,10 +69,10 @@ export default abstract class OtelIngestBaseService {
    * is responsible for that routing decision and picks the right
    * `ServiceType` discriminator for the analytics row.
    *
-   * "Unknown Service" is still returned for batches with no signal
-   * at all (no service.name, no docker container, no host / k8s /
-   * docker resource signal) — those legitimately have nowhere else
-   * to land.
+   * Returns null for batches with no signal at all (no service.name,
+   * no docker container, no host / k8s / docker resource signal) too —
+   * the caller tags those with the projectId under ServiceType.Unknown
+   * rather than synthesising a shared "Unknown Service" Service row.
    */
   @CaptureSpan()
   protected static async getServiceNameFromAttributes(
@@ -144,7 +144,13 @@ export default abstract class OtelIngestBaseService {
       return null;
     }
 
-    return "Unknown Service";
+    /*
+     * No service.name, no header, no docker container name, no host
+     * resource signal. Return null so the caller routes this batch to
+     * the projectId-backed ServiceType.Unknown bucket instead of a
+     * synthesised "Unknown Service" Service row.
+     */
+    return null;
   }
 
   /*
@@ -167,7 +173,12 @@ export default abstract class OtelIngestBaseService {
    *      ServiceType.KubernetesCluster, serviceId = Cluster._id.
    *      Rare in practice — most k8s batches also carry host.name
    *      and route via #2.
-   *   5. Fallback: "Unknown Service" Service row, ServiceType.OpenTelemetry.
+   *   5. Fallback: no Service row at all. serviceId = projectId,
+   *      ServiceType.Unknown. The read side groups these under a
+   *      synthetic "Unknown Service" bucket. No oneuptime.label.*
+   *      promotion happens here — there is no owning resource, which
+   *      is what stops label-less telemetry from collapsing into one
+   *      row that accumulates every label.
    */
   @CaptureSpan()
   protected static async resolveTelemetryResource(data: {
@@ -225,10 +236,22 @@ export default abstract class OtelIngestBaseService {
       });
     }
 
-    return await OTelIngestService.telemetryServiceFromName({
+    /*
+     * Truly nameless telemetry: no service.name, no docker container,
+     * and no host / docker / k8s resource was discovered for this
+     * batch. Tag it with the projectId in the serviceId slot under
+     * ServiceType.Unknown and create no Service row. Crucially we go
+     * through buildResourceMetadataForNonService (not
+     * telemetryServiceFromName), so no oneuptime.label.* attributes are
+     * promoted — that is what prevents every label-less source from
+     * collapsing into a single "Unknown Service" row that accumulates
+     * all labels. Retention falls back to the project default.
+     */
+    return await OTelIngestService.buildResourceMetadataForNonService({
       serviceName: "Unknown Service",
+      resourceId: data.projectId,
+      serviceType: ServiceType.Unknown,
       projectId: data.projectId,
-      resourceAttributes: data.attributes,
     });
   }
 

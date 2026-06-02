@@ -1,4 +1,8 @@
 import Service from "Common/Models/DatabaseModels/Service";
+import ObjectID from "Common/Types/ObjectID";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
+import ProjectUtil from "Common/UI/Utils/Project";
+import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
 import { JSONObject } from "Common/Types/JSON";
 import Card from "Common/UI/Components/Card/Card";
 import Detail from "Common/UI/Components/Detail/Detail";
@@ -16,7 +20,9 @@ export interface ComponentProps {
   lastSeenAt?: Date | undefined;
   occuranceCount?: number | undefined;
   attributes?: JSONObject | undefined;
-  telemetryService?: Service | undefined;
+  service?: Service | undefined;
+  serviceId?: ObjectID | undefined;
+  serviceType?: ServiceType | undefined;
   firstSeenInRelease?: string | undefined;
   lastSeenInRelease?: string | undefined;
   environment?: string | undefined;
@@ -128,14 +134,54 @@ const ExceptionDetail: FunctionComponent<ComponentProps> = (
     });
   }
 
-  if (props.telemetryService) {
+  /*
+   * Resolve the resource this exception belongs to. serviceId is
+   * polymorphic: a real Service renders as a linked ServiceElement; the
+   * unattributed bucket (serviceType Unknown / serviceId === projectId)
+   * renders as a non-linked synthetic "Unknown Service"; Host / DockerHost
+   * / KubernetesCluster render as a typed label.
+   */
+  const serviceField: ReactElement | null = ((): ReactElement | null => {
+    if (props.service) {
+      return <ServiceElement service={props.service} />;
+    }
+
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+    if (
+      projectId &&
+      (props.serviceType === ServiceType.Unknown ||
+        TelemetryServiceUtil.isUnknownServiceId(props.serviceId, projectId))
+    ) {
+      return (
+        <ServiceElement
+          service={TelemetryServiceUtil.getUnknownService(projectId)}
+        />
+      );
+    }
+
+    const typeLabels: Record<string, string> = {
+      [ServiceType.Host]: "Host telemetry",
+      [ServiceType.DockerHost]: "Docker host telemetry",
+      [ServiceType.KubernetesCluster]: "Kubernetes telemetry",
+    };
+    const label: string | undefined = props.serviceType
+      ? typeLabels[props.serviceType]
+      : undefined;
+    if (label) {
+      return <div className="text-gray-700">{label}</div>;
+    }
+
+    return null;
+  })();
+
+  if (serviceField) {
     fields.push({
-      key: "telemetryService",
+      key: "serviceId",
       title: "Telemetry Service",
-      description: "The service that this exception was received from.",
+      description: "The resource that this exception was received from.",
       fieldType: FieldType.Element,
       getElement: () => {
-        return <ServiceElement service={props.telemetryService!} />;
+        return serviceField;
       },
     });
   }

@@ -208,15 +208,23 @@ export default class OwnedScopePermission {
   ): Promise<Array<ObjectID>> {
     const model: BaseModel = new modelType();
 
-    // Determine which model's owner tables to consult.
-    let resolverName: string;
-    if (model.ownedThrough) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      resolverName = (model.ownedThrough.parentModel as any).name;
-    } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      resolverName = (modelType as any).name;
-    }
+    /*
+     * Which model(s) owner tables to consult. A nested model can inherit
+     * ownership from several parent resource types when its FK is
+     * polymorphic (e.g. a telemetry serviceId that may point at a Service,
+     * Host, DockerHost or KubernetesCluster) — resolve and union the owned
+     * ids across all of them. Top-level operational resources consult
+     * their own owner tables.
+     */
+    const resolverNames: Array<string> = model.ownedThrough
+      ? model.ownedThrough.parentModels.map(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (parentModel: any) => {
+            return parentModel.name;
+          },
+        )
+      : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        [(modelType as any).name];
 
     /*
      * Lazy require to avoid the circular dep cycle: this file is reachable
@@ -227,64 +235,77 @@ export default class OwnedScopePermission {
       // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
       require("./OwnerTableRegistry").default;
 
-    const registryEntry: OwnerTablePair | undefined =
-      ownerTableRegistry.get(resolverName);
-    if (!registryEntry) {
-      /*
-       * No registered owner tables for this model — Owned scope can't
-       * resolve, so nothing is accessible.
-       */
-      return [];
-    }
-
     const seen: Set<string> = new Set<string>();
-    const fkColumn: string = registryEntry.fkColumn;
+
+    for (const resolverName of resolverNames) {
+      const registryEntry: OwnerTablePair | undefined =
+        ownerTableRegistry.get(resolverName);
+      if (!registryEntry) {
+        /*
+         * No registered owner tables for this parent — skip it. Other
+         * parents (or includeProjectScope below) may still resolve.
+         */
+        continue;
+      }
+
+      const fkColumn: string = registryEntry.fkColumn;
+
+      /*
+       * User-ownership lookup. Skipped for non-user callers (API keys,
+       * Probes with no userId); those evaluate `Owned` as `All` elsewhere.
+       */
+      if (props.userId) {
+        const userOwnedRows: Array<BaseModel> =
+          await registryEntry.ownerUserService.findBy({
+            query: {
+              userId: props.userId,
+              ...(props.tenantId ? { projectId: props.tenantId } : {}),
+            },
+            select: { [fkColumn]: true },
+            props: { isRoot: true },
+            skip: 0,
+            limit: LIMIT_MAX,
+          });
+        for (const row of userOwnedRows) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const value: ObjectID | undefined = (row as any)[fkColumn];
+          if (value) {
+            seen.add(value.toString());
+          }
+        }
+      }
+
+      // Team-ownership lookup.
+      if (props.userTeamIds && props.userTeamIds.length > 0) {
+        const teamOwnedRows: Array<BaseModel> =
+          await registryEntry.ownerTeamService.findBy({
+            query: {
+              teamId: QueryHelper.any(props.userTeamIds),
+              ...(props.tenantId ? { projectId: props.tenantId } : {}),
+            },
+            select: { [fkColumn]: true },
+            props: { isRoot: true },
+            skip: 0,
+            limit: LIMIT_MAX,
+          });
+        for (const row of teamOwnedRows) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const value: ObjectID | undefined = (row as any)[fkColumn];
+          if (value) {
+            seen.add(value.toString());
+          }
+        }
+      }
+    }
 
     /*
-     * User-ownership lookup. Skipped for non-user callers (API keys, Probes
-     * with no userId); those evaluate `Owned` as `All` elsewhere.
+     * Polymorphic FK rows with no owning resource (the unattributed
+     * "Unknown" telemetry bucket) carry the projectId in the FK column.
+     * They belong to the project, not any single owner, so include the
+     * tenant id when the model opts in via includeProjectScope.
      */
-    if (props.userId) {
-      const userOwnedRows: Array<BaseModel> =
-        await registryEntry.ownerUserService.findBy({
-          query: {
-            userId: props.userId,
-            ...(props.tenantId ? { projectId: props.tenantId } : {}),
-          },
-          select: { [fkColumn]: true },
-          props: { isRoot: true },
-          skip: 0,
-          limit: LIMIT_MAX,
-        });
-      for (const row of userOwnedRows) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const value: ObjectID | undefined = (row as any)[fkColumn];
-        if (value) {
-          seen.add(value.toString());
-        }
-      }
-    }
-
-    // Team-ownership lookup.
-    if (props.userTeamIds && props.userTeamIds.length > 0) {
-      const teamOwnedRows: Array<BaseModel> =
-        await registryEntry.ownerTeamService.findBy({
-          query: {
-            teamId: QueryHelper.any(props.userTeamIds),
-            ...(props.tenantId ? { projectId: props.tenantId } : {}),
-          },
-          select: { [fkColumn]: true },
-          props: { isRoot: true },
-          skip: 0,
-          limit: LIMIT_MAX,
-        });
-      for (const row of teamOwnedRows) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const value: ObjectID | undefined = (row as any)[fkColumn];
-        if (value) {
-          seen.add(value.toString());
-        }
-      }
+    if (model.ownedThrough?.includeProjectScope && props.tenantId) {
+      seen.add(props.tenantId.toString());
     }
 
     const result: Array<ObjectID> = [];
