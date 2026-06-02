@@ -731,5 +731,5 @@ export default [
   AddDeliveryTrackingToSmsLog1780317745887,
   MigrationName1780381124553,
   MigrationName1780382837019,
-  MigrationName1780387560604
+  MigrationName1780387560604,
 ];
