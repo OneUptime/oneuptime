@@ -80,6 +80,8 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
       ownerUserService: MonitorOwnerUserService,
       ownerTeamService: MonitorOwnerTeamService,
       fkColumn: "monitorId",
+      canOwnTelemetry: true,
+      modelService: MonitorService,
     },
   ],
   [
@@ -144,6 +146,8 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
       ownerUserService: ServiceOwnerUserService,
       ownerTeamService: ServiceOwnerTeamService,
       fkColumn: "serviceId",
+      canOwnTelemetry: true,
+      modelService: ServiceService,
     },
   ],
   [
@@ -152,6 +156,8 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
       ownerUserService: HostOwnerUserService,
       ownerTeamService: HostOwnerTeamService,
       fkColumn: "hostId",
+      canOwnTelemetry: true,
+      modelService: HostService,
     },
   ],
   [
@@ -160,6 +166,8 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
       ownerUserService: DockerHostOwnerUserService,
       ownerTeamService: DockerHostOwnerTeamService,
       fkColumn: "dockerHostId",
+      canOwnTelemetry: true,
+      modelService: DockerHostService,
     },
   ],
   [
@@ -168,6 +176,8 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
       ownerUserService: KubernetesClusterOwnerUserService,
       ownerTeamService: KubernetesClusterOwnerTeamService,
       fkColumn: "kubernetesClusterId",
+      canOwnTelemetry: true,
+      modelService: KubernetesClusterService,
     },
   ],
   [

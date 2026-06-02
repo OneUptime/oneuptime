@@ -858,38 +858,32 @@ export default class ModelPermission {
 
     const ownerTableRegistry: Map<
       string,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      { ownerUserService: any; ownerTeamService: any; fkColumn: string }
+      {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ownerUserService: any;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ownerTeamService: any;
+        fkColumn: string;
+        canOwnTelemetry?: boolean;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        modelService?: any;
+      }
     > =
       // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
       require("../Database/Permissions/OwnerTableRegistry").default;
 
     /*
-     * Telemetry serviceId is polymorphic — it can reference a Service,
-     * Host, DockerHost or KubernetesCluster (see ServiceType). Resolve
-     * ownership across all of them so a user who owns any such resource
-     * sees its telemetry, not just owned Services. The resolved union is
-     * the same for every telemetry analytics model, so the single
-     * per-request `ownedIds` cache slot still holds the full set.
+     * Telemetry serviceId is polymorphic — it can reference any resource
+     * type flagged `canOwnTelemetry` in the registry (Service, Monitor,
+     * Host, DockerHost, KubernetesCluster). Resolve ownership across all of
+     * them so a user who owns any such resource sees its telemetry, not
+     * just owned Services. The polymorphic set lives only in the registry
+     * (single source of truth); the resolved union is the same for every
+     * telemetry analytics model, so the single per-request `ownedIds`
+     * cache slot still holds it.
      */
-    const resourceTypeNames: Array<string> = [
-      "Service",
-      "Host",
-      "DockerHost",
-      "KubernetesCluster",
-    ];
-
-    for (const resourceTypeName of resourceTypeNames) {
-      const entry:
-        | {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ownerUserService: any;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ownerTeamService: any;
-            fkColumn: string;
-          }
-        | undefined = ownerTableRegistry.get(resourceTypeName);
-      if (!entry) {
+    for (const entry of ownerTableRegistry.values()) {
+      if (!entry.canOwnTelemetry) {
         continue;
       }
       const fkColumn: string = entry.fkColumn;
@@ -974,76 +968,40 @@ export default class ModelPermission {
       return cached;
     }
 
-    const ServiceService: any =
-      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-      require("../../Services/ServiceService").default;
-    const MonitorService: any =
-      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-      require("../../Services/MonitorService").default;
-
     const tenantFilter: Record<string, ObjectID> = props.tenantId
       ? { projectId: props.tenantId }
       : {};
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const serviceRows: Array<any> = await ServiceService.findBy({
-      query: {
-        labels: labelIds,
-        ...tenantFilter,
-      },
-      select: { _id: true },
-      props: { isRoot: true },
-      skip: 0,
-      limit: LIMIT_MAX,
-    });
-    for (const row of serviceRows) {
-      const id: ObjectID | string | undefined = row._id;
-      if (id) {
-        result.add(id.toString());
+    const ownerTableRegistry: Map<
+      string,
+      {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ownerUserService: any;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ownerTeamService: any;
+        fkColumn: string;
+        canOwnTelemetry?: boolean;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        modelService?: any;
       }
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const monitorRows: Array<any> = await MonitorService.findBy({
-      query: {
-        labels: labelIds,
-        ...tenantFilter,
-      },
-      select: { _id: true },
-      props: { isRoot: true },
-      skip: 0,
-      limit: LIMIT_MAX,
-    });
-    for (const row of monitorRows) {
-      const id: ObjectID | string | undefined = row._id;
-      if (id) {
-        result.add(id.toString());
-      }
-    }
+    > =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      require("../Database/Permissions/OwnerTableRegistry").default;
 
     /*
-     * Telemetry serviceId is also polymorphic across infrastructure
-     * resources, which carry their own labels. Include Host / DockerHost /
-     * KubernetesCluster rows whose labels intersect the user's so
-     * label-scoped users see infra telemetry, not just Service/Monitor.
+     * Telemetry serviceId is polymorphic across every resource type
+     * flagged `canOwnTelemetry` in the registry (Service, Monitor, Host,
+     * DockerHost, KubernetesCluster), each of which carries labels. Find
+     * rows of each whose labels intersect the user's. Keeping this set in
+     * the registry (single source of truth) means a new telemetry-owning
+     * resource is picked up here automatically — no edits needed.
      */
-    const HostService: any =
-      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-      require("../../Services/HostService").default;
-    const DockerHostService: any =
-      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-      require("../../Services/DockerHostService").default;
-    const KubernetesClusterService: any =
-      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-      require("../../Services/KubernetesClusterService").default;
-
-    for (const labeledResourceService of [
-      HostService,
-      DockerHostService,
-      KubernetesClusterService,
-    ]) {
+    for (const entry of ownerTableRegistry.values()) {
+      if (!entry.canOwnTelemetry || !entry.modelService) {
+        continue;
+      }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rows: Array<any> = await labeledResourceService.findBy({
+      const rows: Array<any> = await entry.modelService.findBy({
         query: {
           labels: labelIds,
           ...tenantFilter,
