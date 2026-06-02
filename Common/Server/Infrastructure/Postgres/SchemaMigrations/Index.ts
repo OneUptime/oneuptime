@@ -363,6 +363,7 @@ import { MigrationName1779980428744 } from "./1779980428744-MigrationName";
 import { AddDeliveryTrackingToSmsLog1780317745887 } from "./1780317745887-AddDeliveryTrackingToSmsLog";
 import { MigrationName1780381124553 } from "./1780381124553-MigrationName";
 import { MigrationName1780382837019 } from "./1780382837019-MigrationName";
+import { MigrationName1780387560604 } from "./1780387560604-MigrationName";
 
 export default [
   InitialMigration,
@@ -730,4 +731,5 @@ export default [
   AddDeliveryTrackingToSmsLog1780317745887,
   MigrationName1780381124553,
   MigrationName1780382837019,
+  MigrationName1780387560604
 ];
