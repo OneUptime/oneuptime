@@ -457,13 +457,18 @@ export const StatusPageApiClientUrl: URL = new URL(
 );
 
 /*
- *Internal URL for server-to-server communication (uses internal Docker hostname)
+ *Internal URL for server-to-server communication (uses internal service hostname)
  *Note: The internal path is /api/status-page (not /status-page-api) because
  * /status-page-api is the external route that Nginx rewrites to /api/status-page
+ *Uses AppApiHostname (SERVER_APP_HOSTNAME:APP_PORT) over plain HTTP so the
+ * call stays within the cluster and does not depend on the public HOST or
+ * HTTP_PROTOCOL env vars.
  */
-export const StatusPageApiInternalUrl: URL = URL.fromString(
-  AppApiClientUrl.toString(),
-).addRoute(new Route("/status-page"));
+export const StatusPageApiInternalUrl: URL = new URL(
+  Protocol.HTTP,
+  AppApiHostname,
+  new Route(`${AppApiRoute.toString()}/status-page`),
+);
 
 export const DashboardClientUrl: URL = new URL(
   HttpProtocol,
