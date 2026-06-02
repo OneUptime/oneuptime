@@ -1445,6 +1445,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   ): Promise<Array<TBaseModel>> {
     try {
       let automaticallyAddedCreatedAtInSelect: boolean = false;
+      const automaticallyAddedSortColumnsInSelect: Array<string> = [];
 
       if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
         findBy.sort = {
@@ -1458,6 +1459,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         if (!(findBy.select as any)["createdAt"]) {
           (findBy.select as any)["createdAt"] = true;
           automaticallyAddedCreatedAtInSelect = true;
+        }
+      } else {
+        // Ensure every sort column is present in select. When TypeORM
+        // paginates a query that uses relations (which triggers a DISTINCT
+        // subquery), each ORDER BY column must appear in the inner SELECT or
+        // Postgres raises "column does not exist" on the outer query.
+        if (!findBy.select) {
+          findBy.select = {} as any;
+        }
+
+        for (const sortKey of Object.keys(findBy.sort)) {
+          if (!(findBy.select as any)[sortKey]) {
+            (findBy.select as any)[sortKey] = true;
+            automaticallyAddedSortColumnsInSelect.push(sortKey);
+          }
         }
       }
 
@@ -1528,6 +1544,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       for (const item of decryptedItems) {
         if (automaticallyAddedCreatedAtInSelect) {
           delete (item as any).createdAt;
+        }
+
+        for (const sortKey of automaticallyAddedSortColumnsInSelect) {
+          delete (item as any)[sortKey];
         }
       }
 
