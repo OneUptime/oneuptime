@@ -1,6 +1,7 @@
 import Pyroscope from "@pyroscope/nodejs";
 import { EnableProfiling } from "../EnvironmentConfig";
 import logger, { LogAttributes } from "./Logger";
+import GracefulShutdown, { ShutdownPriority } from "./GracefulShutdown";
 
 export default class Profiling {
   public static init(data: { serviceName: string }): void {
@@ -44,12 +45,19 @@ export default class Profiling {
       logger.error(err, profilingLogAttributes);
     }
 
-    process.on("SIGTERM", () => {
-      Pyroscope.stop().catch((err: unknown) => {
-        logger.error("Error stopping profiler:", profilingLogAttributes);
-        logger.error(err, profilingLogAttributes);
-      });
-    });
+    // Stop the profiler last (Telemetry tier), alongside the OTEL flush.
+    GracefulShutdown.registerHandler(
+      "Profiling",
+      ShutdownPriority.Telemetry,
+      async (): Promise<void> => {
+        try {
+          await Pyroscope.stop();
+        } catch (err) {
+          logger.error("Error stopping profiler:", profilingLogAttributes);
+          logger.error(err, profilingLogAttributes);
+        }
+      },
+    );
   }
 
   private static getServerAddress(): string | undefined {

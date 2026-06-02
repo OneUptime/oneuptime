@@ -40,6 +40,12 @@ export interface ComponentProps {
   isLoadingKeys?: boolean | undefined;
   loadingValueKeys?: Array<string> | undefined;
   /*
+   * Called (with the row's key and the current value text) as the user
+   * types in the value input, so the parent can fetch refined value
+   * suggestions server-side. Debouncing is the parent's responsibility.
+   */
+  onValueSearch?: ((key: string, searchText: string) => void) | undefined;
+  /*
    * When true, render an operator dropdown (=, !=, contains, etc.)
    * between the key and value inputs. Defaults to false for backwards
    * compatibility with simple key/value forms.
@@ -393,6 +399,19 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                       newData[index]!.value = value;
                       setData(newData);
                       onDataChange(newData);
+
+                      /*
+                       * Let the parent refine value suggestions server-side
+                       * as the user types. Skip numeric operators — those
+                       * have no value suggestions to narrow.
+                       */
+                      if (
+                        props.onValueSearch &&
+                        item.key &&
+                        !operatorOption.expectsNumericValue
+                      ) {
+                        props.onValueSearch(item.key, value);
+                      }
                     }}
                   />
                 )}

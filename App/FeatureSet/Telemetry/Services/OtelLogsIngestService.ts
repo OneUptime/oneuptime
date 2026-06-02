@@ -25,8 +25,18 @@ import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import LogsQueueService from "./Queue/LogsQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
-import { TELEMETRY_LOG_FLUSH_BATCH_SIZE } from "../Config";
+import {
+  TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE,
+  TELEMETRY_LOG_EXCEPTION_EXTRACTION_ENABLED,
+  TELEMETRY_LOG_FLUSH_BATCH_SIZE,
+} from "../Config";
 import LogService from "Common/Server/Services/LogService";
+import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
+import ExceptionUtil, { TelemetryExceptionPayload } from "../Utils/Exception";
+import LogExceptionExtractor, {
+  ExtractedLogException,
+} from "Common/Server/Utils/Telemetry/LogExceptionExtractor";
+import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import LogPipelineService, { LoadedPipeline } from "./LogPipelineService";
 import LogDropFilterService, {
   LoadedLogDropFilter,
@@ -80,6 +90,33 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
     }
   }
 
+  /*
+   * Flush log-derived ClickHouse ExceptionInstance rows. Mirrors
+   * OtelTracesIngestService.flushExceptionsBuffer so the two ingest paths
+   * write exception instances identically.
+   */
+  private static async flushExceptionsBuffer(
+    exceptions: Array<JSONObject>,
+    force: boolean = false,
+  ): Promise<void> {
+    while (
+      exceptions.length >= TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE ||
+      (force && exceptions.length > 0)
+    ) {
+      const batchSize: number = Math.min(
+        exceptions.length,
+        TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE,
+      );
+      const batch: Array<JSONObject> = exceptions.splice(0, batchSize);
+
+      if (batch.length === 0) {
+        continue;
+      }
+
+      await ExceptionInstanceService.insertJsonRows(batch);
+    }
+  }
+
   @CaptureSpan()
   public static async ingestLogs(
     req: ExpressRequest,
@@ -127,6 +164,16 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       }
 
       const dbLogs: Array<JSONObject> = [];
+      /*
+       * Exceptions detected inside logs (explicit OTel exception.* attributes,
+       * or a stack trace in an error/fatal body). Buffered and flushed exactly
+       * like the trace span-event exception path: ClickHouse ExceptionInstance
+       * rows in dbExceptions, and batched Postgres TelemetryException upserts in
+       * pendingExceptionUpserts — so log-derived and span-derived exceptions
+       * share fingerprints and land in the same Issues view.
+       */
+      const dbExceptions: Array<JSONObject> = [];
+      const pendingExceptionUpserts: Array<TelemetryExceptionPayload> = [];
       const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
       let totalLogsProcessed: number = 0;
 
@@ -652,11 +699,51 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     );
                   }
 
+                  /*
+                   * Detect an exception in this log and roll it into the Issues
+                   * view. Runs on the post-scrub/post-pipeline logRow (not the
+                   * pre-scrub locals) so scrubbed secrets never reach the
+                   * exception columns. A drop-filtered log already `continue`d
+                   * above, so it never reaches this point.
+                   */
+                  if (TELEMETRY_LOG_EXCEPTION_EXTRACTION_ENABLED) {
+                    try {
+                      this.collectExceptionFromLog({
+                        logRow,
+                        projectId,
+                        serviceId,
+                        serviceMetadata,
+                        severityNumber: logSeverityNumber,
+                        severityText,
+                        timeDate,
+                        timeUnixNano: timeUnixNanoNumeric,
+                        retentionDate,
+                        dbExceptions,
+                        pendingExceptionUpserts,
+                      });
+                    } catch (exceptionExtractionError) {
+                      // Exception extraction must never fail log ingest.
+                      logger.warn(
+                        `Error extracting exception from log: ${
+                          exceptionExtractionError instanceof Error
+                            ? exceptionExtractionError.message
+                            : String(exceptionExtractionError)
+                        }`,
+                      );
+                    }
+                  }
+
                   dbLogs.push(logRow);
                   totalLogsProcessed++;
 
                   if (dbLogs.length >= TELEMETRY_LOG_FLUSH_BATCH_SIZE) {
                     await this.flushLogsBuffer(dbLogs);
+                  }
+
+                  if (
+                    dbExceptions.length >= TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE
+                  ) {
+                    await this.flushExceptionsBuffer(dbExceptions);
                   }
                 } catch (logError) {
                   logger.error("Error processing individual log record:");
@@ -678,6 +765,25 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       }
 
       await this.flushLogsBuffer(dbLogs, true);
+
+      /*
+       * Flush log-derived exceptions: ClickHouse ExceptionInstance rows plus
+       * the batched Postgres TelemetryException summary upsert. The upsert is
+       * wrapped so a Postgres failure can't fail the log worker — the
+       * ClickHouse rows are the source of truth; a lost upsert only lags the
+       * dashboard count for this batch (mirrors the trace path).
+       */
+      await this.flushExceptionsBuffer(dbExceptions, true);
+      if (pendingExceptionUpserts.length > 0) {
+        await ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch(
+          pendingExceptionUpserts,
+        ).catch((err: Error) => {
+          logger.error(
+            "Telemetry exception batch upsert (from logs) failed; dashboard counts may lag this batch.",
+          );
+          logger.error(err);
+        });
+      }
 
       /*
        * Flush the k8s inventory buffer — one upsert per cluster. Failures
@@ -756,6 +862,8 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
       try {
         dbLogs.length = 0;
+        dbExceptions.length = 0;
+        pendingExceptionUpserts.length = 0;
 
         if (req.body) {
           req.body = null;
@@ -769,6 +877,107 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       logger.error(error);
       throw error;
     }
+  }
+
+  /*
+   * Build the ClickHouse ExceptionInstance row and the Postgres
+   * TelemetryException upsert payload for an exception detected in a single log
+   * record, and push them onto the batch buffers. Mirrors
+   * OtelTracesIngestService.buildExceptionRow / its pendingExceptionUpserts
+   * push, with log-appropriate values: no span backing (spanStatusCode Unset,
+   * spanName ""), escaped left null unless the log carried exception.escaped,
+   * the log's own traceId/spanId preserved when correlated, and the log
+   * retention policy (pillar "logs") reused from the caller.
+   */
+  private static collectExceptionFromLog(data: {
+    logRow: JSONObject;
+    projectId: ObjectID;
+    serviceId: ObjectID;
+    serviceMetadata: TelemetryServiceMetadata;
+    severityNumber: number;
+    severityText: LogSeverity;
+    timeDate: Date;
+    timeUnixNano: number;
+    retentionDate: Date;
+    dbExceptions: Array<JSONObject>;
+    pendingExceptionUpserts: Array<TelemetryExceptionPayload>;
+  }): void {
+    const finalBody: string = (data.logRow["body"] as string) || "";
+    const finalAttributes: JSONObject =
+      (data.logRow["attributes"] as JSONObject) || {};
+    const traceId: string = (data.logRow["traceId"] as string) || "";
+    const spanId: string = (data.logRow["spanId"] as string) || "";
+
+    const extracted: ExtractedLogException | null =
+      LogExceptionExtractor.extractFromLogRecord({
+        body: finalBody,
+        attributes: finalAttributes,
+        severityNumber: data.severityNumber,
+        hasTraceAndSpan: Boolean(traceId) && Boolean(spanId),
+      });
+
+    if (!extracted) {
+      return;
+    }
+
+    const fingerprint: string = ExceptionUtil.getFingerprint({
+      projectId: data.projectId,
+      serviceId: data.serviceId,
+      message: extracted.message,
+      stackTrace: extracted.stackTrace,
+      exceptionType: extracted.exceptionType,
+    });
+
+    const release: string =
+      (finalAttributes["resource.service.version"] as string) || "";
+    const environment: string =
+      (finalAttributes["resource.deployment.environment"] as string) || "";
+
+    const ingestionTimestamp: string = OneUptimeDate.toClickhouseDateTime(
+      OneUptimeDate.getCurrentDate(),
+    );
+
+    data.dbExceptions.push({
+      _id: ObjectID.generate().toString(),
+      createdAt: ingestionTimestamp,
+      updatedAt: ingestionTimestamp,
+      projectId: data.projectId.toString(),
+      serviceId: data.serviceId.toString(),
+      serviceType: data.serviceMetadata.serviceType,
+      time: OneUptimeDate.toClickhouseDateTime(data.timeDate),
+      timeUnixNano: Math.trunc(data.timeUnixNano).toString(),
+      exceptionType: extracted.exceptionType || "",
+      stackTrace: extracted.stackTrace || "",
+      message: extracted.message || "",
+      spanStatusCode: Number(SpanStatus.Unset),
+      escaped: extracted.escaped === null ? null : Boolean(extracted.escaped),
+      traceId: traceId,
+      spanId: spanId,
+      fingerprint: fingerprint,
+      spanName: "",
+      release: release,
+      environment: environment,
+      parsedFrames: extracted.parsedFrames || "[]",
+      attributes: {
+        "exception.source": "log",
+        "log.severityText": String(data.severityText),
+      },
+      retentionDate: OneUptimeDate.toClickhouseDateTime(data.retentionDate),
+    });
+
+    data.pendingExceptionUpserts.push({
+      fingerprint: fingerprint,
+      projectId: data.projectId,
+      serviceId: data.serviceId,
+      serviceType: data.serviceMetadata.serviceType,
+      ...(extracted.exceptionType
+        ? { exceptionType: extracted.exceptionType }
+        : {}),
+      ...(extracted.message ? { message: extracted.message } : {}),
+      ...(extracted.stackTrace ? { stackTrace: extracted.stackTrace } : {}),
+      ...(release ? { release: release } : {}),
+      ...(environment ? { environment: environment } : {}),
+    });
   }
 
   private static convertSeverityNumber(severityNumber: string): number {

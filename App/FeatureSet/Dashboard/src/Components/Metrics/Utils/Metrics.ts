@@ -657,6 +657,7 @@ export default class MetricUtil {
   public static async getTelemetryAttributeValues(data: {
     attributeKey: string;
     metricName?: string | undefined;
+    searchText?: string | undefined;
   }): Promise<Array<string>> {
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await API.post({
@@ -666,6 +667,9 @@ export default class MetricUtil {
         data: {
           attributeKey: data.attributeKey,
           ...(data.metricName ? { metricName: data.metricName } : {}),
+          ...(data.searchText && data.searchText.trim().length > 0
+            ? { searchText: data.searchText.trim() }
+            : {}),
         },
         headers: {
           ...AnalyticsModelAPI.getCommonHeaders(),

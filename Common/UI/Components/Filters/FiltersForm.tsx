@@ -186,6 +186,7 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
                   onJsonKeySelected={filter.onJsonKeySelected}
                   isLoadingJsonKeys={filter.isLoadingJsonKeys}
                   loadingJsonValueKeys={filter.loadingJsonValueKeys}
+                  onJsonValueSearch={filter.onJsonValueSearch}
                   enableOperators={filter.jsonEnableOperators}
                 />
               </div>
