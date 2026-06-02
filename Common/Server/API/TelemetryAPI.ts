@@ -236,12 +236,18 @@ const getAttributeValues: GetAttributeValuesFunction = async (
         ? (req.body["metricName"] as string)
         : undefined;
 
+    const searchText: string | undefined =
+      req.body["searchText"] && typeof req.body["searchText"] === "string"
+        ? (req.body["searchText"] as string)
+        : undefined;
+
     const values: string[] =
       await TelemetryAttributeService.fetchAttributeValues({
         projectId: databaseProps.tenantId,
         telemetryType,
         metricName,
         attributeKey,
+        searchText,
       });
 
     return Response.sendJsonObjectResponse(req, res, {

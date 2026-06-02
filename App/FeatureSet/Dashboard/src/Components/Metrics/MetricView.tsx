@@ -202,6 +202,18 @@ const MetricView: FunctionComponent<ComponentProps> = (
     Record<string, Set<string>>
   >({});
 
+  /*
+   * Per-key ("metricName:attributeKey") debounce timers + monotonic sequence
+   * tokens that power value search-as-you-type. The sequence token lets us
+   * drop out-of-order responses so the suggestion list always reflects the
+   * latest keystroke.
+   */
+  const valueSearchDebounceRef: React.MutableRefObject<
+    Record<string, ReturnType<typeof setTimeout>>
+  > = React.useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const valueSearchSeqRef: React.MutableRefObject<Record<string, number>> =
+    React.useRef<Record<string, number>>({});
+
   const metricViewDataRef: React.MutableRefObject<MetricViewData> =
     React.useRef(props.data);
   const lastFetchSnapshotRef: React.MutableRefObject<string> = React.useRef(
@@ -212,6 +224,19 @@ const MetricView: FunctionComponent<ComponentProps> = (
     loadMetricTypes().catch((err: Error) => {
       setPageError(API.getFriendlyErrorMessage(err as Error));
     });
+  }, []);
+
+  useEffect(() => {
+    // Clear any pending value-search debounce timers on unmount.
+    const debounceTimers: Record<
+      string,
+      ReturnType<typeof setTimeout>
+    > = valueSearchDebounceRef.current;
+    return () => {
+      for (const timer of Object.values(debounceTimers)) {
+        clearTimeout(timer);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -393,29 +418,121 @@ const MetricView: FunctionComponent<ComponentProps> = (
           metricName,
         });
 
-      setAttributeValueSuggestions(
-        (prev: Record<string, Record<string, Array<string>>>) => {
-          return {
-            ...prev,
-            [metricName]: {
-              ...(prev[metricName] || {}),
-              [attributeKey]: values,
-            },
-          };
-        },
-      );
+      /*
+       * A value search (search-as-you-type) may have superseded this default
+       * load while it was in flight — don't clobber the filtered results with
+       * the unfiltered list.
+       */
+      if ((valueSearchSeqRef.current[cacheKey] || 0) === 0) {
+        setAttributeValueSuggestions(
+          (prev: Record<string, Record<string, Array<string>>>) => {
+            return {
+              ...prev,
+              [metricName]: {
+                ...(prev[metricName] || {}),
+                [attributeKey]: values,
+              },
+            };
+          },
+        );
+      }
     } catch {
       // Silently fail — value suggestions are best-effort
       loadedAttributeValuesRef.current.delete(cacheKey);
     } finally {
-      setLoadingAttributeValues(
-        (prev: Record<string, Set<string>>): Record<string, Set<string>> => {
-          const next: Set<string> = new Set(prev[metricName] || []);
-          next.delete(attributeKey);
-          return { ...prev, [metricName]: next };
-        },
-      );
+      /*
+       * If a value search has taken over (seq > 0) it owns the loading
+       * lifecycle for this key; leave the spinner to it.
+       */
+      if ((valueSearchSeqRef.current[cacheKey] || 0) === 0) {
+        setLoadingAttributeValues(
+          (prev: Record<string, Set<string>>): Record<string, Set<string>> => {
+            const next: Set<string> = new Set(prev[metricName] || []);
+            next.delete(attributeKey);
+            return { ...prev, [metricName]: next };
+          },
+        );
+      }
     }
+  };
+
+  const VALUE_SEARCH_DEBOUNCE_MS: number = 300;
+
+  const searchAttributeValues: (
+    metricName: string,
+    attributeKey: string,
+    searchText: string,
+  ) => void = (
+    metricName: string,
+    attributeKey: string,
+    searchText: string,
+  ): void => {
+    if (!metricName || !attributeKey) {
+      return;
+    }
+
+    const cacheKey: string = `${metricName}:${attributeKey}`;
+
+    // Surface the spinner right away while we debounce + fetch.
+    setLoadingAttributeValues(
+      (prev: Record<string, Set<string>>): Record<string, Set<string>> => {
+        const next: Set<string> = new Set(prev[metricName] || []);
+        next.add(attributeKey);
+        return { ...prev, [metricName]: next };
+      },
+    );
+
+    const existingTimer: ReturnType<typeof setTimeout> | undefined =
+      valueSearchDebounceRef.current[cacheKey];
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+
+    valueSearchDebounceRef.current[cacheKey] = setTimeout(() => {
+      const seq: number = (valueSearchSeqRef.current[cacheKey] || 0) + 1;
+      valueSearchSeqRef.current[cacheKey] = seq;
+
+      MetricUtil.getTelemetryAttributeValues({
+        attributeKey,
+        metricName,
+        searchText,
+      })
+        .then((values: Array<string>) => {
+          // Drop stale responses superseded by a newer keystroke.
+          if (valueSearchSeqRef.current[cacheKey] !== seq) {
+            return;
+          }
+          setAttributeValueSuggestions(
+            (prev: Record<string, Record<string, Array<string>>>) => {
+              return {
+                ...prev,
+                [metricName]: {
+                  ...(prev[metricName] || {}),
+                  [attributeKey]: values,
+                },
+              };
+            },
+          );
+        })
+        .catch(() => {
+          // Best-effort suggestions — ignore failures.
+        })
+        .finally(() => {
+          // Only the latest in-flight search clears the spinner.
+          if (valueSearchSeqRef.current[cacheKey] !== seq) {
+            return;
+          }
+          setLoadingAttributeValues(
+            (
+              prev: Record<string, Set<string>>,
+            ): Record<string, Set<string>> => {
+              const next: Set<string> = new Set(prev[metricName] || []);
+              next.delete(attributeKey);
+              return { ...prev, [metricName]: next };
+            },
+          );
+        });
+    }, VALUE_SEARCH_DEBOUNCE_MS);
   };
 
   const handleAdvancedFiltersToggle: (
@@ -546,6 +663,21 @@ const MetricView: FunctionComponent<ComponentProps> = (
                         "";
                       if (metricName && attributeKey) {
                         void loadAttributeValues(metricName, attributeKey);
+                      }
+                    }}
+                    onAttributeValueSearch={(
+                      attributeKey: string,
+                      searchText: string,
+                    ) => {
+                      const metricName: string =
+                        queryConfig.metricQueryData?.filterData?.metricName?.toString() ||
+                        "";
+                      if (metricName && attributeKey) {
+                        searchAttributeValues(
+                          metricName,
+                          attributeKey,
+                          searchText,
+                        );
                       }
                     }}
                     onMetricNameChanged={(metricName: string) => {
