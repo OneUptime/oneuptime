@@ -24,6 +24,17 @@ import StatusPageOwnerTeamService from "../../../Services/StatusPageOwnerTeamSer
 import StatusPageOwnerUserService from "../../../Services/StatusPageOwnerUserService";
 import WorkflowOwnerTeamService from "../../../Services/WorkflowOwnerTeamService";
 import WorkflowOwnerUserService from "../../../Services/WorkflowOwnerUserService";
+/*
+ * The resources whose ids can appear in a telemetry row's polymorphic
+ * serviceId also expose their own service (for label-scope resolution).
+ * Imported here so the registry is the single source of truth for the
+ * telemetry serviceId polymorphism — see canOwnTelemetry / modelService.
+ */
+import ServiceService from "../../../Services/ServiceService";
+import MonitorService from "../../../Services/MonitorService";
+import HostService from "../../../Services/HostService";
+import DockerHostService from "../../../Services/DockerHostService";
+import KubernetesClusterService from "../../../Services/KubernetesClusterService";
 
 /*
  * Maps an operational model name (e.g. "Monitor") to the two services that
@@ -41,6 +52,22 @@ export interface OwnerTablePair {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ownerTeamService: any;
   fkColumn: string;
+  /*
+   * True when a telemetry row's serviceId (polymorphic, discriminated by
+   * serviceType) can reference this resource type. The analytics
+   * owned/labels scope resolution iterates the entries flagged here, so
+   * the telemetry serviceId polymorphism lives only in this registry —
+   * adding a new telemetry-owning resource needs just an entry here, with
+   * no edits in ModelPermission.
+   */
+  canOwnTelemetry?: boolean;
+  /*
+   * The resource's own service, used by labels-scope resolution to find
+   * resources whose labels match the user's. Set for canOwnTelemetry
+   * types (they all carry labels).
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  modelService?: any;
 }
 
 const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<

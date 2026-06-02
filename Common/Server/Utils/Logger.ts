@@ -1,5 +1,6 @@
 import { LogLevel } from "../EnvironmentConfig";
 import OneUptimeTelemetry, { TelemetryLogger } from "./Telemetry";
+import TelemetryContext from "./Telemetry/TelemetryContext";
 import { SeverityNumber } from "@opentelemetry/api-logs";
 import Exception from "../../Types/Exception/Exception";
 import { JSONObject } from "../../Types/JSON";
@@ -171,9 +172,19 @@ export default class logger {
         return;
       }
 
+      /*
+       * Merge ambient TelemetryContext attributes (projectId, userId,
+       * monitorId, requestId, ...) into every log record. Attributes passed
+       * explicitly to the log call take precedence over the ambient context.
+       */
+      const mergedAttributes: LogAttributes = {
+        ...TelemetryContext.getAttributes(),
+        ...(data.attributes || {}),
+      };
+
       const sanitizedAttributes:
         | Record<string, string | number | boolean>
-        | undefined = this.sanitizeAttributes(data.attributes);
+        | undefined = this.sanitizeAttributes(mergedAttributes);
 
       logger.emit({
         body: this.serializeLogBody(data.body),
