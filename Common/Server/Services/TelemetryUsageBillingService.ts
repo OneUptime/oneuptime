@@ -12,6 +12,8 @@ import Model, {
   DEFAULT_RETENTION_IN_DAYS,
 } from "../../Models/DatabaseModels/TelemetryUsageBilling";
 import ServiceService from "./ServiceService";
+import ProjectService from "./ProjectService";
+import Project from "../../Models/DatabaseModels/Project";
 import SpanService from "./SpanService";
 import LogService from "./LogService";
 import MetricService from "./MetricService";
@@ -130,6 +132,33 @@ export class Service extends DatabaseService<Model> {
         isRoot: true,
       },
     });
+
+    /*
+     * Meter telemetry that arrived without an OTel service.name. Those
+     * analytics rows carry serviceId = projectId (ServiceType.Unknown)
+     * and have no Service row, so the per-service loop below would never
+     * count them. Add a synthetic billing target keyed on the projectId
+     * — its usage is counted from ClickHouse exactly like a service.
+     * Retention is the project default, matching what the ingest path
+     * applies to unattributed telemetry. Added before the empty-check so
+     * a project with only unattributed telemetry is still metered.
+     */
+    const projectForUnattributed: Project | null =
+      await ProjectService.findOneById({
+        id: data.projectId,
+        select: {
+          defaultTelemetryRetentionInDays: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    const unattributedService: ServiceModel = new ServiceModel();
+    unattributedService.id = data.projectId;
+    unattributedService.retainTelemetryDataForDays =
+      projectForUnattributed?.defaultTelemetryRetentionInDays ||
+      DEFAULT_RETENTION_IN_DAYS;
+    services.push(unattributedService);
 
     if (!services || services.length === 0) {
       return;

@@ -361,6 +361,7 @@ import { AddTransportTypeToProjectSmtpConfig1779975064262 } from "./177997506426
 import { AddSmtpTransportTypeToGlobalConfig1779976190561 } from "./1779976190561-AddSmtpTransportTypeToGlobalConfig";
 import { MigrationName1779980428744 } from "./1779980428744-MigrationName";
 import { AddDeliveryTrackingToSmsLog1780317745887 } from "./1780317745887-AddDeliveryTrackingToSmsLog";
+import { MigrationName1780381124553 } from "./1780381124553-MigrationName";
 
 export default [
   InitialMigration,
@@ -726,4 +727,5 @@ export default [
   AddSmtpTransportTypeToGlobalConfig1779976190561,
   MigrationName1779980428744,
   AddDeliveryTrackingToSmsLog1780317745887,
+  MigrationName1780381124553,
 ];

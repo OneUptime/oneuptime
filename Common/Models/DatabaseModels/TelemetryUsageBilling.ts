@@ -270,8 +270,16 @@ export default class TelemetryUsageBilling extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
-      orphanedRowAction: "nullify",
+      /*
+       * No DB-level foreign key. Telemetry that arrives without a
+       * service.name is metered against a synthetic "unattributed"
+       * bucket whose serviceId is the projectId (ServiceType.Unknown),
+       * which has no matching Service row — a FK would reject those
+       * billing rows. The relation is kept for read-side joins; it
+       * resolves to null for the unattributed bucket and the UI renders
+       * a synthetic "Unknown Service" in its place.
+       */
+      createForeignKeyConstraints: false,
     },
   )
   @JoinColumn({ name: "serviceId" })
