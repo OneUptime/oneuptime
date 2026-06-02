@@ -791,37 +791,53 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                * occuranceCount increments under concurrent writes.
                * Aggregation by fingerprint + atomic increment now
                * happens inside saveOrUpdateTelemetryExceptionsBatch.
+               *
+               * Only Service-backed telemetry gets a Postgres summary
+               * row. The TelemetryException table is Service-scoped
+               * (FK serviceId -> Service, @OwnedThrough Service), so
+               * Host / DockerHost / KubernetesCluster / Unknown
+               * telemetry would carry a serviceId with no matching
+               * Service row and fail the whole batched INSERT on the
+               * FK constraint — taking the other rows in the chunk down
+               * with it. Those exceptions are still recorded in
+               * ClickHouse via dbExceptions above (the source of
+               * truth); we just skip the denormalised Postgres summary.
                */
-              pendingExceptionUpserts.push({
-                fingerprint: fingerprint,
-                projectId: spanContext.projectId,
-                serviceId: spanContext.serviceId,
-                ...(exceptionType
-                  ? {
-                      exceptionType: exceptionType,
-                    }
-                  : {}),
-                ...(message
-                  ? {
-                      message: message,
-                    }
-                  : {}),
-                ...(stackTrace
-                  ? {
-                      stackTrace: stackTrace,
-                    }
-                  : {}),
-                ...(release
-                  ? {
-                      release: release,
-                    }
-                  : {}),
-                ...(environment
-                  ? {
-                      environment: environment,
-                    }
-                  : {}),
-              });
+              if (
+                spanContext.serviceMetadata.serviceType ===
+                ServiceType.OpenTelemetry
+              ) {
+                pendingExceptionUpserts.push({
+                  fingerprint: fingerprint,
+                  projectId: spanContext.projectId,
+                  serviceId: spanContext.serviceId,
+                  ...(exceptionType
+                    ? {
+                        exceptionType: exceptionType,
+                      }
+                    : {}),
+                  ...(message
+                    ? {
+                        message: message,
+                      }
+                    : {}),
+                  ...(stackTrace
+                    ? {
+                        stackTrace: stackTrace,
+                      }
+                    : {}),
+                  ...(release
+                    ? {
+                        release: release,
+                      }
+                    : {}),
+                  ...(environment
+                    ? {
+                        environment: environment,
+                      }
+                    : {}),
+                });
+              }
             } catch (exceptionError) {
               logger.warn(
                 `Error processing span exception event: ${exceptionError instanceof Error ? exceptionError.message : String(exceptionError)}`,
