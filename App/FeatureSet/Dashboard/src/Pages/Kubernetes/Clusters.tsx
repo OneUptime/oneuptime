@@ -143,6 +143,7 @@ const KubernetesClusters: FunctionComponent<
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
+        showRefreshButton={true}
         bulkActions={{
           buttons: [...labelBulkActions, ...ownerBulkActions],
         }}
