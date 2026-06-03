@@ -42,9 +42,19 @@ KEDA ScaledObjects for various services
 {{- include "oneuptime.kedaScaledObject" $appKedaArgs }}
 {{- end }}
 
-{{/* Worker KEDA ScaledObject - scales the dedicated worker on combined queue size (worker + workflow + telemetry) */}}
+{{/* Worker KEDA ScaledObject - scales the dedicated worker on combined queue size
+     (worker + workflow + telemetry) plus optional CPU/memory utilization. KEDA scales
+     to the max desired replicas across all triggers. */}}
 {{- if and .Values.keda.enabled .Values.worker.enabled .Values.worker.keda.enabled (not .Values.worker.disableAutoscaler) (not .Values.deployment.disableDeployments) }}
-{{- $metricsConfig := dict "enabled" .Values.worker.keda.enabled "minReplicas" .Values.worker.keda.minReplicas "maxReplicas" .Values.worker.keda.maxReplicas "pollingInterval" .Values.worker.keda.pollingInterval "cooldownPeriod" .Values.worker.keda.cooldownPeriod "fallback" .Values.worker.keda.fallback "triggers" (list (dict "query" "oneuptime_worker_queue_size" "threshold" .Values.worker.keda.queueSizeThreshold "port" .Values.worker.ports.http)) }}
+{{- $workerResources := .Values.worker.resources | default dict }}
+{{- $workerRequests := get $workerResources "requests" | default dict }}
+{{- if and (gt (int (.Values.worker.keda.targetCPUUtilizationPercentage | default 0)) 0) (not (get $workerRequests "cpu")) }}
+{{- fail "worker.keda.targetCPUUtilizationPercentage requires worker.resources.requests.cpu to be set" }}
+{{- end }}
+{{- if and (gt (int (.Values.worker.keda.targetMemoryUtilizationPercentage | default 0)) 0) (not (get $workerRequests "memory")) }}
+{{- fail "worker.keda.targetMemoryUtilizationPercentage requires worker.resources.requests.memory to be set" }}
+{{- end }}
+{{- $metricsConfig := dict "enabled" .Values.worker.keda.enabled "minReplicas" .Values.worker.keda.minReplicas "maxReplicas" .Values.worker.keda.maxReplicas "pollingInterval" .Values.worker.keda.pollingInterval "cooldownPeriod" .Values.worker.keda.cooldownPeriod "fallback" .Values.worker.keda.fallback "targetCPUUtilizationPercentage" .Values.worker.keda.targetCPUUtilizationPercentage "targetMemoryUtilizationPercentage" .Values.worker.keda.targetMemoryUtilizationPercentage "triggers" (list (dict "query" "oneuptime_worker_queue_size" "threshold" .Values.worker.keda.queueSizeThreshold "port" .Values.worker.ports.http)) }}
 {{- $workerKedaArgs := dict "ServiceName" "worker" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.worker.disableAutoscaler }}
 {{- include "oneuptime.kedaScaledObject" $workerKedaArgs }}
 {{- end }}
