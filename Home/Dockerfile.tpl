@@ -15,13 +15,9 @@ RUN npm config set fetch-retry-maxtimeout 60000
 # /Common/node_modules/esbuild/bin/esbuild). See esbuild#1711, #2785.
 RUN npm config set foreground-scripts true
 
-ARG GIT_SHA
-ARG APP_VERSION
-ARG IS_ENTERPRISE_EDITION=false
-
-ENV GIT_SHA=${GIT_SHA}
-ENV APP_VERSION=${APP_VERSION}
-ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
+# Per-build args (GIT_SHA / APP_VERSION / IS_ENTERPRISE_EDITION) are declared at
+# the bottom so the npm ci / compile / blog layers stay cacheable across commits
+# and across the community + enterprise build passes.
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 LABEL org.opencontainers.image.title="OneUptime Home"
@@ -31,8 +27,6 @@ LABEL org.opencontainers.image.url="https://oneuptime.com"
 LABEL org.opencontainers.image.documentation="https://oneuptime.com/docs"
 LABEL org.opencontainers.image.vendor="OneUptime"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
-LABEL org.opencontainers.image.revision="${GIT_SHA}"
-LABEL org.opencontainers.image.version="${APP_VERSION}"
 
 
 # Install runtime tools + build toolchain.
@@ -70,26 +64,39 @@ RUN apk del .gyp
 #   - 1444: OneUptime-home
 EXPOSE 1444
 
-# Make a directory for blog. 
-RUN mkdir -p /usr/src
-
-# Clone blog repo. 
-RUN cd /usr/src && git clone --depth 1 https://github.com/oneuptime/blog
-
-# Now we have the blog repo cloned to /usr/src/blog.
+# The blog repo is cloned per-branch below. In production it is cloned as the
+# non-root `node` user so the runtime UpdateBlog `git pull` can write into it
+# without a costly recursive chown of its ~100k files.
 
 {{ if eq .Env.ENVIRONMENT "development" }}
+# Clone blog repo (dev container runs as root).
+RUN cd /usr/src && git clone --depth 1 https://github.com/oneuptime/blog
 #Run the app
 CMD [ "npm", "run", "dev" ]
 {{ else }}
-# Copy app source
-COPY ./Home /usr/src/app
+# Copy app source. --chown sets node (UID 1000) ownership at copy time so we
+# avoid a slow recursive `chown -R` over node_modules; deps stay root-owned and
+# world-readable.
+COPY --chown=1000:1000 ./Home /usr/src/app
 # Bundle app source
 RUN npm run compile
-# Ensure runtime dirs (including the cloned /usr/src/blog) are owned by the
-# non-root `node` user (UID 1000) so the container can run as non-root.
-RUN chown -R 1000:1000 /usr/src /tmp/npm && chmod -R 2777 /tmp/npm
+# Give node ownership of /usr/src itself (non-recursive — instant) so it can
+# create and own the blog clone below. Common/node_modules stay root-owned.
+RUN chown 1000:1000 /usr/src
 USER node
+# Clone the blog as node so the runtime UpdateBlog `git pull` (runs as node) can
+# write into it — avoids a recursive chown of the blog's ~100k files.
+RUN cd /usr/src && git clone --depth 1 https://github.com/oneuptime/blog
+# Per-build metadata last so the heavy layers above stay cacheable across commits
+# and across the community + enterprise build passes.
+ARG GIT_SHA
+ARG APP_VERSION
+ARG IS_ENTERPRISE_EDITION=false
+ENV GIT_SHA=${GIT_SHA}
+ENV APP_VERSION=${APP_VERSION}
+ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
+LABEL org.opencontainers.image.revision="${GIT_SHA}"
+LABEL org.opencontainers.image.version="${APP_VERSION}"
 #Run the app
 CMD [ "npm", "start" ]
 {{ end }}

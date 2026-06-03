@@ -8,13 +8,9 @@
 
 FROM public.ecr.aws/docker/library/node:24.9-slim
 
-ARG GIT_SHA
-ARG APP_VERSION
-ARG IS_ENTERPRISE_EDITION=false
-
-ENV GIT_SHA=${GIT_SHA}
-ENV APP_VERSION=${APP_VERSION}
-ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
+# Per-build args (GIT_SHA / APP_VERSION / IS_ENTERPRISE_EDITION) are declared at
+# the bottom so the npm ci / compile layers stay cacheable across commits and
+# across the community + enterprise build passes.
 ENV NODE_OPTIONS="--use-openssl-ca"
 
 LABEL org.opencontainers.image.title="OneUptime Kubernetes Log Tailer"
@@ -24,8 +20,6 @@ LABEL org.opencontainers.image.url="https://oneuptime.com"
 LABEL org.opencontainers.image.documentation="https://oneuptime.com/docs"
 LABEL org.opencontainers.image.vendor="OneUptime"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
-LABEL org.opencontainers.image.revision="${GIT_SHA}"
-LABEL org.opencontainers.image.version="${APP_VERSION}"
 
 ## Add intermediate CA certs
 COPY ./SslCertificates /usr/local/share/ca-certificates
@@ -57,5 +51,15 @@ CMD [ "npm", "run", "dev" ]
 COPY --chown=node:node ./KubernetesLogTailer /usr/src/app
 RUN npm run compile
 USER node
+# Per-build metadata last so the npm ci / compile layers above stay cacheable
+# across commits and across the community + enterprise build passes.
+ARG GIT_SHA
+ARG APP_VERSION
+ARG IS_ENTERPRISE_EDITION=false
+ENV GIT_SHA=${GIT_SHA}
+ENV APP_VERSION=${APP_VERSION}
+ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
+LABEL org.opencontainers.image.revision="${GIT_SHA}"
+LABEL org.opencontainers.image.version="${APP_VERSION}"
 CMD [ "node", "build/dist/Index.js" ]
 {{ end }}
