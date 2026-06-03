@@ -1,5 +1,4 @@
-import { JSONObject } from "../JSON";
-import Typeof from "../Typeof";
+import { JSONObject, JSONValue } from "../JSON";
 import HTTPResponse from "./HTTPResponse";
 
 export default class HTTPErrorResponse extends HTTPResponse<JSONObject> {
@@ -8,18 +7,47 @@ export default class HTTPErrorResponse extends HTTPResponse<JSONObject> {
       return "";
     }
 
-    if (this.data["data"] && Typeof.String === typeof this.data["data"]) {
-      return this.data["data"] as string;
+    /*
+     * Body shapes we accept, in priority order. Each field may be a
+     * plain string OR an object — some gateways/proxies return
+     * `{ error: { message } }` — so every candidate is coerced to a
+     * string. Returning a raw object here is what rendered as
+     * "[object Object]" in error banners downstream.
+     */
+    for (const key of ["data", "message", "error"]) {
+      const coerced: string = HTTPErrorResponse.coerceToMessage(this.data[key]);
+      if (coerced) {
+        return coerced;
+      }
     }
 
-    if (this.data["message"] && Typeof.String === typeof this.data["message"]) {
-      return this.data["message"] as string;
-    }
+    return "";
+  }
 
-    if (!this.data["error"]) {
+  private static coerceToMessage(value: JSONValue | undefined): string {
+    if (value === undefined || value === null) {
       return "";
     }
 
-    return this.data["error"] as string;
+    if (typeof value === "string") {
+      return value;
+    }
+
+    if (typeof value === "object") {
+      // Common nested shapes: { message: "..." } or { error: "..." }.
+      const nested: JSONValue | undefined =
+        (value as JSONObject)["message"] ?? (value as JSONObject)["error"];
+      if (typeof nested === "string" && nested) {
+        return nested;
+      }
+
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return "Unknown error";
+      }
+    }
+
+    return String(value);
   }
 }

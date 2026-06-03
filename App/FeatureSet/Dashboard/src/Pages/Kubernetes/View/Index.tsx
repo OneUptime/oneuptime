@@ -293,6 +293,7 @@ const KubernetesClusterOverview: FunctionComponent<
    */
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSummaryLoading, setIsSummaryLoading] = useState<boolean>(true);
+  const [summaryError, setSummaryError] = useState<string>("");
   const [isTopPodsLoading, setIsTopPodsLoading] = useState<boolean>(true);
   const [isWarningsLoading, setIsWarningsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -394,6 +395,7 @@ const KubernetesClusterOverview: FunctionComponent<
   const loadSummary: (clusterId: ObjectID) => Promise<void> = async (
     clusterId: ObjectID,
   ): Promise<void> => {
+    setSummaryError("");
     try {
       const summaryUrl: URL = URL.fromString(APP_API_URL.toString())
         .addRoute("/kubernetes-resource/inventory-summary/")
@@ -520,8 +522,12 @@ const KubernetesClusterOverview: FunctionComponent<
       } else {
         setClusterHealth("Healthy");
       }
-    } catch {
-      // Inventory summary is best-effort; leave counts at 0.
+    } catch (err) {
+      /*
+       * Surface the failure instead of silently rendering zero counts,
+       * which is indistinguishable from a genuinely empty cluster.
+       */
+      setSummaryError(API.getFriendlyMessage(err));
     } finally {
       setIsSummaryLoading(false);
     }
@@ -2014,7 +2020,7 @@ const KubernetesClusterOverview: FunctionComponent<
                       />
                       {connectionLabel}
                     </span>
-                    {!isSummaryLoading && (
+                    {!isSummaryLoading && !summaryError && (
                       <span
                         className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${healthBadgeClass}`}
                       >
@@ -2299,12 +2305,19 @@ const KubernetesClusterOverview: FunctionComponent<
       {/* Summary Cards — show a subtle placeholder for each value while
           the inventory summary is loading. Agent Status comes from
           cluster metadata and is always available at this point. */}
+      {summaryError && (
+        <div className="mb-5">
+          <ErrorMessage message={summaryError} />
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-5">
         <InfoCard
           title="Cluster Health"
           value={
             isSummaryLoading ? (
               <span className="text-2xl font-semibold text-gray-300">…</span>
+            ) : summaryError ? (
+              <span className="text-2xl font-semibold text-gray-300">—</span>
             ) : (
               <span
                 className={`text-2xl font-semibold ${
@@ -2333,6 +2346,8 @@ const KubernetesClusterOverview: FunctionComponent<
           value={
             isSummaryLoading ? (
               <span className="text-2xl font-semibold text-gray-300">…</span>
+            ) : summaryError ? (
+              <span className="text-2xl font-semibold text-gray-300">—</span>
             ) : (
               <span className="text-2xl font-semibold">
                 {nodeCount.toString()}
@@ -2358,6 +2373,8 @@ const KubernetesClusterOverview: FunctionComponent<
           value={
             isSummaryLoading ? (
               <span className="text-2xl font-semibold text-gray-300">…</span>
+            ) : summaryError ? (
+              <span className="text-2xl font-semibold text-gray-300">—</span>
             ) : (
               <span className="text-2xl font-semibold">
                 {podCount.toString()}
@@ -2378,6 +2395,8 @@ const KubernetesClusterOverview: FunctionComponent<
           value={
             isSummaryLoading ? (
               <span className="text-2xl font-semibold text-gray-300">…</span>
+            ) : summaryError ? (
+              <span className="text-2xl font-semibold text-gray-300">—</span>
             ) : (
               <span className="text-2xl font-semibold">
                 {namespaceCount.toString()}
