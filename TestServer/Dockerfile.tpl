@@ -16,13 +16,9 @@ RUN npm config set fetch-retry-maxtimeout 60000
 RUN npm config set foreground-scripts true
 
 
-ARG GIT_SHA
-ARG APP_VERSION
-ARG IS_ENTERPRISE_EDITION=false
-
-ENV GIT_SHA=${GIT_SHA}
-ENV APP_VERSION=${APP_VERSION}
-ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
+# Per-build args (GIT_SHA / APP_VERSION / IS_ENTERPRISE_EDITION) are declared at
+# the bottom so the npm ci / compile layers stay cacheable across commits and
+# across the community + enterprise build passes.
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 LABEL org.opencontainers.image.title="OneUptime Test Server"
@@ -32,8 +28,6 @@ LABEL org.opencontainers.image.url="https://oneuptime.com"
 LABEL org.opencontainers.image.documentation="https://oneuptime.com/docs"
 LABEL org.opencontainers.image.vendor="OneUptime"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
-LABEL org.opencontainers.image.revision="${GIT_SHA}"
-LABEL org.opencontainers.image.version="${APP_VERSION}"
 
 
 
@@ -86,14 +80,23 @@ EXPOSE 3800
 #Run the app
 CMD [ "npm", "run", "dev" ]
 {{ else }}
-# Copy app source
-COPY ./TestServer /usr/src/app
+# Copy app source. --chown sets node (UID 1000) ownership at copy time so we
+# avoid a slow recursive `chown -R` over node_modules; deps stay root-owned and
+# world-readable.
+COPY --chown=1000:1000 ./TestServer /usr/src/app
 # Bundle app source
 RUN npm run compile
-# Ensure runtime dirs are owned by the non-root `node` user (UID 1000) so the
-# container can run as non-root.
-RUN chown -R 1000:1000 /usr/src /tmp/npm && chmod -R 2777 /tmp/npm
 USER node
+# Per-build metadata last so the community + enterprise passes share every heavy
+# cached layer above — only this final metadata layer differs between them.
+ARG GIT_SHA
+ARG APP_VERSION
+ARG IS_ENTERPRISE_EDITION=false
+ENV GIT_SHA=${GIT_SHA}
+ENV APP_VERSION=${APP_VERSION}
+ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
+LABEL org.opencontainers.image.revision="${GIT_SHA}"
+LABEL org.opencontainers.image.version="${APP_VERSION}"
 #Run the app
 CMD [ "npm", "start" ]
 {{ end }}

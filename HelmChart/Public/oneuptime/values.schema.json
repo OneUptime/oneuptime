@@ -1921,6 +1921,106 @@
             },
             "additionalProperties": false
         },
+        "worker": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "replicaCount": {
+                    "type": "integer"
+                },
+                "workerConcurrency": {
+                    "type": "integer"
+                },
+                "telemetryConcurrency": {
+                    "type": "integer"
+                },
+                "disableTelemetryCollection": {
+                    "type": "boolean"
+                },
+                "disableAutoscaler": {
+                    "type": "boolean"
+                },
+                "ports": {
+                    "type": "object",
+                    "properties": {
+                        "http": {
+                            "type": "integer"
+                        },
+                        "grpc": {
+                            "type": "integer",
+                            "default": 4317
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "resources": {
+                    "type": [
+                        "object",
+                        "null"
+                    ]
+                },
+                "nodeSelector": {
+                    "type": "object"
+                },
+                "podSecurityContext": {
+                    "type": "object"
+                },
+                "hostAliases": {
+                    "type": ["array", "null"]
+                },
+                "containerSecurityContext": {
+                    "type": "object"
+                },
+                "enableProfiling": {
+                    "type": "boolean"
+                },
+                "keda": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "minReplicas": {
+                            "type": "integer"
+                        },
+                        "maxReplicas": {
+                            "type": "integer"
+                        },
+                        "queueSizeThreshold": {
+                            "type": "integer"
+                        },
+                        "targetCPUUtilizationPercentage": {
+                            "type": "integer"
+                        },
+                        "targetMemoryUtilizationPercentage": {
+                            "type": "integer"
+                        },
+                        "pollingInterval": {
+                            "type": "integer"
+                        },
+                        "cooldownPeriod": {
+                            "type": "integer"
+                        },
+                        "fallback": {
+                            "type": "object",
+                            "properties": {
+                                "failureThreshold": {
+                                    "type": "integer"
+                                },
+                                "replicas": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
         "slackApp": {
             "type": "object",
             "properties": {

@@ -14,11 +14,8 @@ RUN npm config set fetch-retry-maxtimeout 60000
 # /Common/node_modules/esbuild/bin/esbuild). See esbuild#1711, #2785.
 RUN npm config set foreground-scripts true
 
-ARG GIT_SHA
-ARG APP_VERSION
-
-ENV GIT_SHA=${GIT_SHA}
-ENV APP_VERSION=${APP_VERSION}
+# Per-build args (GIT_SHA / APP_VERSION) are declared at the bottom so the npm ci
+# layers stay cacheable across commits.
 ENV NODE_OPTIONS="--use-openssl-ca"
 
 LABEL org.opencontainers.image.title="OneUptime Runbook Agent"
@@ -27,8 +24,6 @@ LABEL org.opencontainers.image.source="https://github.com/OneUptime/oneuptime"
 LABEL org.opencontainers.image.url="https://oneuptime.com"
 LABEL org.opencontainers.image.vendor="OneUptime"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
-LABEL org.opencontainers.image.revision="${GIT_SHA}"
-LABEL org.opencontainers.image.version="${APP_VERSION}"
 
 # Trust the same intermediate certs as the rest of the platform.
 COPY ./SslCertificates /usr/local/share/ca-certificates
@@ -66,12 +61,18 @@ ENTRYPOINT ["/usr/bin/tini", "--"]
 #Run the app
 CMD [ "npm", "run", "dev" ]
 {{ else }}
-# Copy app source
-COPY ./RunbookAgent /usr/src/app
-# Ensure runtime dirs are owned by the non-root `node` user (UID 1000) so the
-# container can run as non-root.
-RUN chown -R 1000:1000 /usr/src /tmp/npm && chmod -R 2777 /tmp/npm
+# Copy app source. --chown sets node (UID 1000) ownership at copy time so we
+# avoid a slow recursive `chown -R` over node_modules; deps stay root-owned and
+# world-readable.
+COPY --chown=1000:1000 ./RunbookAgent /usr/src/app
 USER node
+# Per-build metadata last so the npm ci layers above stay cacheable across commits.
+ARG GIT_SHA
+ARG APP_VERSION
+ENV GIT_SHA=${GIT_SHA}
+ENV APP_VERSION=${APP_VERSION}
+LABEL org.opencontainers.image.revision="${GIT_SHA}"
+LABEL org.opencontainers.image.version="${APP_VERSION}"
 #Run the app
 CMD [ "npm", "start" ]
 {{ end }}

@@ -345,6 +345,19 @@ export const DisableAutomaticAlertCreation: boolean =
 export const DisableTelemetryIngestion: boolean =
   process.env["DISABLE_TELEMETRY_INGESTION"] === "true";
 
+/*
+ * When true, this process does NOT register any BullMQ queue consumers
+ * (the "api" role). Background jobs — telemetry ingestion processing, the
+ * general Worker/cron jobs, Workflow runs and Runbook executions — are
+ * instead drained by the dedicated "worker" deployment so heavy queue
+ * processing never competes with API request handling on the same event
+ * loop. Default false → this process consumes queues (backwards compatible
+ * single-container behavior). The process still mounts ingest endpoints and
+ * enqueues jobs; only consumption is gated.
+ */
+export const DisableQueueWorkers: boolean =
+  process.env["DISABLE_QUEUE_WORKERS"] === "true";
+
 export const ClickhouseHost: Hostname = Hostname.fromString(
   process.env["CLICKHOUSE_HOST"] || "clickhouse",
 );

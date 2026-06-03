@@ -11,13 +11,9 @@ RUN npm config set fetch-retry-maxtimeout 60000
 RUN apk add --no-cache bash curl
 
 
-ARG GIT_SHA
-ARG APP_VERSION
-ARG IS_ENTERPRISE_EDITION=false
-
-ENV GIT_SHA=${GIT_SHA}
-ENV APP_VERSION=${APP_VERSION}
-ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
+# Per-build args (GIT_SHA / APP_VERSION / IS_ENTERPRISE_EDITION) are declared at
+# the bottom so the COPY layer above stays cacheable across the community +
+# enterprise build passes.
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 LABEL org.opencontainers.image.title="OneUptime Tests"
@@ -27,18 +23,25 @@ LABEL org.opencontainers.image.url="https://oneuptime.com"
 LABEL org.opencontainers.image.documentation="https://oneuptime.com/docs"
 LABEL org.opencontainers.image.vendor="OneUptime"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
-LABEL org.opencontainers.image.revision="${GIT_SHA}"
-LABEL org.opencontainers.image.version="${APP_VERSION}"
 
 
 
 WORKDIR /usr/src/app
-COPY ./Tests .
+# --chown sets node (UID 1000) ownership at copy time, avoiding a recursive chown.
+COPY --chown=1000:1000 ./Tests .
 
 RUN chmod -R +x Scripts
-# Ensure runtime dirs are owned by the non-root `node` user (UID 1000) so the
-# container can run as non-root.
-RUN chown -R 1000:1000 /tmp/npm /usr/src/app && chmod -R 2777 /tmp/npm
 USER node
+
+# Per-build metadata last so the COPY layer above stays cacheable across the
+# community + enterprise build passes.
+ARG GIT_SHA
+ARG APP_VERSION
+ARG IS_ENTERPRISE_EDITION=false
+ENV GIT_SHA=${GIT_SHA}
+ENV APP_VERSION=${APP_VERSION}
+ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
+LABEL org.opencontainers.image.revision="${GIT_SHA}"
+LABEL org.opencontainers.image.version="${APP_VERSION}"
 
 CMD ["bash start.sh"]

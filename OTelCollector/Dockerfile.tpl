@@ -4,13 +4,9 @@ FROM otel/opentelemetry-collector-contrib:0.118.0
 
 FROM public.ecr.aws/ubuntu/ubuntu:25.04
 
-ARG GIT_SHA
-ARG APP_VERSION
-ARG IS_ENTERPRISE_EDITION=false
-
-ENV GIT_SHA=${GIT_SHA}
-ENV APP_VERSION=${APP_VERSION}
-ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
+# Per-build args (GIT_SHA / APP_VERSION / IS_ENTERPRISE_EDITION) are declared at
+# the bottom so the apt-get / gomplate-download layers stay cacheable across the
+# community + enterprise build passes.
 
 LABEL org.opencontainers.image.title="OneUptime OpenTelemetry Collector"
 LABEL org.opencontainers.image.description="OneUptime's OpenTelemetry Collector distribution — preconfigured to ingest traces, metrics, and logs."
@@ -19,8 +15,6 @@ LABEL org.opencontainers.image.url="https://oneuptime.com"
 LABEL org.opencontainers.image.documentation="https://oneuptime.com/docs"
 LABEL org.opencontainers.image.vendor="OneUptime"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
-LABEL org.opencontainers.image.revision="${GIT_SHA}"
-LABEL org.opencontainers.image.version="${APP_VERSION}"
 
 ENV COLLECTOR_VERSION=0.104.0
 
@@ -47,6 +41,17 @@ COPY --from=0 /otelcol-contrib /usr/bin/otelcol
 
 # Copy the configuration template file config.yaml.tpl
 COPY ./OTelCollector/otel-collector-config.template.yaml /etc/otel-collector-config.template.yaml
+
+# Per-build metadata last so the apt-get / gomplate-download layers above stay
+# cacheable across the community + enterprise build passes.
+ARG GIT_SHA
+ARG APP_VERSION
+ARG IS_ENTERPRISE_EDITION=false
+ENV GIT_SHA=${GIT_SHA}
+ENV APP_VERSION=${APP_VERSION}
+ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
+LABEL org.opencontainers.image.revision="${GIT_SHA}"
+LABEL org.opencontainers.image.version="${APP_VERSION}"
 
 # In command, gomplate the configuration file to replace the environment variables otel-collector-config.yaml and run the collector
 

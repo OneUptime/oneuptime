@@ -15,7 +15,10 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import path from "path";
 import logger from "Common/Server/Utils/Logger";
-import { WorkflowTimeoutInMs } from "Common/Server/EnvironmentConfig";
+import {
+  DisableQueueWorkers,
+  WorkflowTimeoutInMs,
+} from "Common/Server/EnvironmentConfig";
 
 const APP_NAME: string = "workflow";
 
@@ -61,23 +64,33 @@ const WorkflowFeatureSet: FeatureSet = {
 
       app.use(`/${APP_NAME}`, componentCodeAPI.router);
 
-      // Job process.
-      QueueWorker.getWorker(
-        QueueName.Workflow,
-        async (job: QueueJob) => {
-          await new RunWorkflow().runWorkflow({
-            workflowId: new ObjectID(job.data["workflowId"] as string),
-            workflowLogId: job.data["workflowLogId"]
-              ? new ObjectID(job.data["workflowLogId"] as string)
-              : null,
-            arguments: job.data.data as JSONObject,
-            timeout: WorkflowTimeoutInMs || 5000,
-            callChain:
-              (job.data["callChain"] as Array<string> | undefined) || [],
-          });
-        },
-        { concurrency: 100 },
-      );
+      /*
+       * Job process. Skipped in the "api" role (DISABLE_QUEUE_WORKERS=true) —
+       * the dedicated worker deployment drains the Workflow queue.
+       */
+      if (DisableQueueWorkers) {
+        logger.info(
+          "DISABLE_QUEUE_WORKERS=true — Workflow queue consumer not registered (api role).",
+          { service: "workflow" },
+        );
+      } else {
+        QueueWorker.getWorker(
+          QueueName.Workflow,
+          async (job: QueueJob) => {
+            await new RunWorkflow().runWorkflow({
+              workflowId: new ObjectID(job.data["workflowId"] as string),
+              workflowLogId: job.data["workflowLogId"]
+                ? new ObjectID(job.data["workflowLogId"] as string)
+                : null,
+              arguments: job.data.data as JSONObject,
+              timeout: WorkflowTimeoutInMs || 5000,
+              callChain:
+                (job.data["callChain"] as Array<string> | undefined) || [],
+            });
+          },
+          { concurrency: 100 },
+        );
+      }
     } catch (err) {
       logger.error("App Init Failed:", { service: "workflow" });
       logger.error(err, { service: "workflow" });

@@ -1,13 +1,14 @@
 import logger from "../Utils/Logger";
 import DatabaseDataSourceOptions from "./Postgres/DataSourceOptions";
 import Sleep from "../../Types/Sleep";
-import { DataSource, DataSourceOptions } from "typeorm";
+import { DataSource, DataSourceOptions, QueryRunner } from "typeorm";
 import { createDatabase, dropDatabase } from "typeorm-extension";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import GracefulShutdown, { ShutdownPriority } from "../Utils/GracefulShutdown";
 
 export type DatabaseSourceOptions = DataSourceOptions;
 export type DatabaseSource = DataSource;
+export type DatabaseQueryRunner = QueryRunner;
 
 export default class Database {
   protected static dataSourceOptions: DataSourceOptions | null = null;

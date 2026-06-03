@@ -1,13 +1,9 @@
 FROM nginx:1.29.5-alpine 
 
 
-ARG GIT_SHA
-ARG APP_VERSION
-ARG IS_ENTERPRISE_EDITION=false
-
-ENV GIT_SHA=${GIT_SHA}
-ENV APP_VERSION=${APP_VERSION}
-ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
+# Per-build args (GIT_SHA / APP_VERSION / IS_ENTERPRISE_EDITION) are declared at
+# the bottom so the npm install / compile layers stay cacheable across commits
+# and across the community + enterprise build passes.
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 LABEL org.opencontainers.image.title="OneUptime Nginx"
@@ -17,8 +13,6 @@ LABEL org.opencontainers.image.url="https://oneuptime.com"
 LABEL org.opencontainers.image.documentation="https://oneuptime.com/docs"
 LABEL org.opencontainers.image.vendor="OneUptime"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
-LABEL org.opencontainers.image.revision="${GIT_SHA}"
-LABEL org.opencontainers.image.version="${APP_VERSION}"
 
 
 
@@ -71,6 +65,17 @@ COPY ./Nginx /usr/src/app
 RUN npm run compile
 
 RUN chmod +x ./run.sh
+
+# Per-build metadata last so the npm install / compile layers above stay
+# cacheable across commits and across the community + enterprise build passes.
+ARG GIT_SHA
+ARG APP_VERSION
+ARG IS_ENTERPRISE_EDITION=false
+ENV GIT_SHA=${GIT_SHA}
+ENV APP_VERSION=${APP_VERSION}
+ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
+LABEL org.opencontainers.image.revision="${GIT_SHA}"
+LABEL org.opencontainers.image.version="${APP_VERSION}"
 
 CMD ./run.sh
 

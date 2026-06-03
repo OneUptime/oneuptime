@@ -5,6 +5,7 @@ import RunRunbook from "./Services/RunRunbook";
 import ObjectID from "Common/Types/ObjectID";
 import { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
+import { DisableQueueWorkers } from "Common/Server/EnvironmentConfig";
 import RunbookRuleEngineService from "Common/Server/Services/RunbookRuleEngineService";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
@@ -28,21 +29,34 @@ const RunbookFeatureSet: FeatureSet = {
         },
       );
 
-      QueueWorker.getWorker(
-        QueueName.Runbook,
-        async (job: QueueJob) => {
-          const runbookExecutionId: string = job.data[
-            "runbookExecutionId"
-          ] as string;
-          if (!runbookExecutionId) {
-            return;
-          }
-          await new RunRunbook().runExecution({
-            runbookExecutionId: new ObjectID(runbookExecutionId),
-          });
-        },
-        { concurrency: 25 },
-      );
+      /*
+       * Job process. Skipped in the "api" role (DISABLE_QUEUE_WORKERS=true) —
+       * the dedicated worker deployment drains the Runbook queue. The
+       * execution enqueuer registered above stays active so rule-triggered
+       * runs still enqueue from the api role.
+       */
+      if (DisableQueueWorkers) {
+        logger.info(
+          "DISABLE_QUEUE_WORKERS=true — Runbook queue consumer not registered (api role).",
+          { service: "runbook" },
+        );
+      } else {
+        QueueWorker.getWorker(
+          QueueName.Runbook,
+          async (job: QueueJob) => {
+            const runbookExecutionId: string = job.data[
+              "runbookExecutionId"
+            ] as string;
+            if (!runbookExecutionId) {
+              return;
+            }
+            await new RunRunbook().runExecution({
+              runbookExecutionId: new ObjectID(runbookExecutionId),
+            });
+          },
+          { concurrency: 25 },
+        );
+      }
     } catch (err) {
       logger.error("App Init Failed:", { service: "runbook" });
       logger.error(err, { service: "runbook" });
