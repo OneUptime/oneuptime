@@ -176,6 +176,7 @@ import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import logger from "Common/Server/Utils/Logger";
 import {
+  DisableQueueWorkers,
   EnableQueueDashboard,
   QueueDashboardSecret,
 } from "Common/Server/EnvironmentConfig";
@@ -214,25 +215,38 @@ const WorkersFeatureSet: FeatureSet = {
       // create tables in analytics database
       await AnalyticsTableManagement.createTables();
 
-      // Job process.
-      QueueWorker.getWorker(
-        QueueName.Worker,
-        async (job: QueueJob) => {
-          const name: string = job.name;
+      /*
+       * Job process. Skipped in the "api" role (DISABLE_QUEUE_WORKERS=true) —
+       * the dedicated worker deployment drains the Worker queue (cron jobs,
+       * notifications, incident/alert state reconciliation, etc.). Cron
+       * scheduling above still runs in both roles; it only writes idempotent
+       * repeatable-job definitions to Redis and populates JobDictionary.
+       */
+      if (DisableQueueWorkers) {
+        logger.info(
+          "DISABLE_QUEUE_WORKERS=true — Worker queue consumer not registered (api role).",
+          { service: "workers" },
+        );
+      } else {
+        QueueWorker.getWorker(
+          QueueName.Worker,
+          async (job: QueueJob) => {
+            const name: string = job.name;
 
-          logger.debug("Running Job: " + name, { service: "workers" });
+            logger.debug("Running Job: " + name, { service: "workers" });
 
-          const funcToRun: PromiseVoidFunction =
-            JobDictionary.getJobFunction(name);
+            const funcToRun: PromiseVoidFunction =
+              JobDictionary.getJobFunction(name);
 
-          const timeoutInMs: number = JobDictionary.getTimeoutInMs(name);
+            const timeoutInMs: number = JobDictionary.getTimeoutInMs(name);
 
-          if (funcToRun) {
-            await QueueWorker.runJobWithTimeout(timeoutInMs, funcToRun);
-          }
-        },
-        { concurrency: WORKER_CONCURRENCY },
-      );
+            if (funcToRun) {
+              await QueueWorker.runJobWithTimeout(timeoutInMs, funcToRun);
+            }
+          },
+          { concurrency: WORKER_CONCURRENCY },
+        );
+      }
     } catch (err) {
       logger.error("App Init Failed:", { service: "workers" });
       logger.error(err, { service: "workers" });

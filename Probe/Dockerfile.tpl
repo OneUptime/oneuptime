@@ -14,11 +14,13 @@ RUN npm config set fetch-retry-maxtimeout 60000
 
 ARG GIT_SHA
 ARG APP_VERSION
-ARG IS_ENTERPRISE_EDITION=false
 
 ENV GIT_SHA=${GIT_SHA}
 ENV APP_VERSION=${APP_VERSION}
-ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
+# IS_ENTERPRISE_EDITION is declared in the prod branch below (it is read by no
+# build step, so keeping it out of scope here lets the community + enterprise
+# passes share the npm ci / compile layers). GIT_SHA/APP_VERSION stay here
+# because APP_VERSION is consumed at build time (sed into Common/package.json).
 ENV NODE_OPTIONS="--use-openssl-ca"
 
 LABEL org.opencontainers.image.title="OneUptime Probe"
@@ -101,8 +103,12 @@ CMD [ "bash", "/usr/src/app/Start.dev.sh" ]
 COPY ./Probe /usr/src/app
 # Bundle app source
 RUN npm run compile
-# Set permission to write logs and cache in case container run as non root
-RUN chown -R 1000:1000 "/tmp/npm" && chmod -R 2777 "/tmp/npm"
+# IS_ENTERPRISE_EDITION only changes ENV metadata and is read by no build step,
+# so declaring it last lets the community + enterprise passes share the heavy
+# cached layers above. (/tmp/npm is already world-writable from the base setup,
+# so no extra chown is needed for non-root runtimes.)
+ARG IS_ENTERPRISE_EDITION=false
+ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
 #Run the app
 CMD [ "npm", "start" ]
 {{ end }}

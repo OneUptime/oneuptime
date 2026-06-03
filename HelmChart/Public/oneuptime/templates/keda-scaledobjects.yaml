@@ -17,7 +17,10 @@ KEDA ScaledObjects for various services
 {{- end }}
 {{- end }}
 
-{{/* App KEDA ScaledObject - scales based on combined queue size (worker + workflow + telemetry) */}}
+{{/* App KEDA ScaledObject.
+     Combined (default) mode: scales on combined queue size (worker + workflow + telemetry).
+     Split mode (worker.enabled): the worker deployment drains the queues, so the app must
+     NOT scale on queue depth — its queue-size trigger is dropped and it scales on CPU/memory. */}}
 {{- if and .Values.keda.enabled .Values.app.enabled .Values.app.keda.enabled (not .Values.app.disableAutoscaler) (not .Values.deployment.disableDeployments) }}
 {{- $appResources := .Values.app.resources | default dict }}
 {{- $appRequests := get $appResources "requests" | default dict }}
@@ -27,9 +30,23 @@ KEDA ScaledObjects for various services
 {{- if and (gt (int (.Values.app.keda.targetMemoryUtilizationPercentage | default 0)) 0) (not (get $appRequests "memory")) }}
 {{- fail "app.keda.targetMemoryUtilizationPercentage requires app.resources.requests.memory to be set" }}
 {{- end }}
-{{- $metricsConfig := dict "enabled" .Values.app.keda.enabled "minReplicas" .Values.app.keda.minReplicas "maxReplicas" .Values.app.keda.maxReplicas "pollingInterval" .Values.app.keda.pollingInterval "cooldownPeriod" .Values.app.keda.cooldownPeriod "fallback" .Values.app.keda.fallback "targetCPUUtilizationPercentage" .Values.app.keda.targetCPUUtilizationPercentage "targetMemoryUtilizationPercentage" .Values.app.keda.targetMemoryUtilizationPercentage "triggers" (list (dict "query" "oneuptime_app_queue_size" "threshold" .Values.app.keda.queueSizeThreshold "port" .Values.app.ports.http)) }}
+{{- $appQueueTriggers := list (dict "query" "oneuptime_app_queue_size" "threshold" .Values.app.keda.queueSizeThreshold "port" .Values.app.ports.http) }}
+{{- if .Values.worker.enabled }}
+{{- if and (le (int (.Values.app.keda.targetCPUUtilizationPercentage | default 0)) 0) (le (int (.Values.app.keda.targetMemoryUtilizationPercentage | default 0)) 0) }}
+{{- fail "worker.enabled drops the app's queue-size autoscaling trigger; set app.keda.targetCPUUtilizationPercentage (with app.resources.requests.cpu) and/or app.keda.targetMemoryUtilizationPercentage so the api tier still has an autoscaling trigger." }}
+{{- end }}
+{{- $appQueueTriggers = list }}
+{{- end }}
+{{- $metricsConfig := dict "enabled" .Values.app.keda.enabled "minReplicas" .Values.app.keda.minReplicas "maxReplicas" .Values.app.keda.maxReplicas "pollingInterval" .Values.app.keda.pollingInterval "cooldownPeriod" .Values.app.keda.cooldownPeriod "fallback" .Values.app.keda.fallback "targetCPUUtilizationPercentage" .Values.app.keda.targetCPUUtilizationPercentage "targetMemoryUtilizationPercentage" .Values.app.keda.targetMemoryUtilizationPercentage "triggers" $appQueueTriggers }}
 {{- $appKedaArgs := dict "ServiceName" "app" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.app.disableAutoscaler }}
 {{- include "oneuptime.kedaScaledObject" $appKedaArgs }}
+{{- end }}
+
+{{/* Worker KEDA ScaledObject - scales the dedicated worker on combined queue size (worker + workflow + telemetry) */}}
+{{- if and .Values.keda.enabled .Values.worker.enabled .Values.worker.keda.enabled (not .Values.worker.disableAutoscaler) (not .Values.deployment.disableDeployments) }}
+{{- $metricsConfig := dict "enabled" .Values.worker.keda.enabled "minReplicas" .Values.worker.keda.minReplicas "maxReplicas" .Values.worker.keda.maxReplicas "pollingInterval" .Values.worker.keda.pollingInterval "cooldownPeriod" .Values.worker.keda.cooldownPeriod "fallback" .Values.worker.keda.fallback "triggers" (list (dict "query" "oneuptime_worker_queue_size" "threshold" .Values.worker.keda.queueSizeThreshold "port" .Values.worker.ports.http)) }}
+{{- $workerKedaArgs := dict "ServiceName" "worker" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.worker.disableAutoscaler }}
+{{- include "oneuptime.kedaScaledObject" $workerKedaArgs }}
 {{- end }}
 
 {{/* AI Agent KEDA ScaledObject */}}

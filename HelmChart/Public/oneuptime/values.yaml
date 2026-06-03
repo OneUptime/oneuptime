@@ -722,6 +722,53 @@ app:
       failureThreshold: 3
       replicas: 2
 
+# Dedicated worker deployment (opt-in). When enabled, the `app` pods set
+# DISABLE_QUEUE_WORKERS=true and stop consuming BullMQ queues, and this
+# deployment drains them instead — so heavy telemetry/background processing
+# never stalls API requests on the shared event loop. It runs the same image
+# as `app` (no external ingress, no gRPC), scaled on combined queue depth
+# (worker + workflow + telemetry) via KEDA.
+# NOTE: with the split enabled the worker is REQUIRED for ALL background work
+# (notifications, incident/alert state, telemetry ingestion) — keep
+# keda.minReplicas >= 1. Also set app.keda.targetCPUUtilizationPercentage (and
+# app.resources.requests.cpu) so the api tier still autoscales, since its
+# queue-size trigger is disabled in split mode.
+worker:
+  enabled: false
+  replicaCount: 1
+  workerConcurrency: 100
+  # Max concurrent telemetry ingestion jobs processed by each worker pod.
+  # This is the telemetry hot path; tune it together with pod CPU/memory.
+  telemetryConcurrency: 100
+  disableTelemetryCollection: false
+  enableProfiling: false
+  disableAutoscaler: false
+  ports:
+    http: 3002
+  resources:
+  nodeSelector: {}
+  podSecurityContext: {}
+  hostAliases: []
+  containerSecurityContext: {}
+  # KEDA autoscaling based on combined queue depth (worker + workflow + telemetry)
+  keda:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    # Scale up when combined queue size (worker + workflow + telemetry) exceeds this threshold
+    queueSizeThreshold: 10
+    # Polling interval for metrics (in seconds)
+    pollingInterval: 30
+    # Cooldown period after scaling (in seconds)
+    cooldownPeriod: 300
+    # Fallback used when KEDA cannot read the metrics-api endpoint
+    # (e.g. all worker pods are down). Prevents HPA from flapping between
+    # min/max when the queue-size metric goes <unknown>. Set replicas to 0 to disable.
+    # Note: only applies to the metrics-api trigger, not cpu/memory.
+    fallback:
+      failureThreshold: 3
+      replicas: 2
+
 # AI Agent Configuration
 # Deploy this to run an AI Agent within your Kubernetes cluster
 # Note: This is disabled by default. To enable, set enabled to true and provide the AI Agent credentials

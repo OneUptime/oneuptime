@@ -20,13 +20,9 @@ RUN npm config set foreground-scripts true
 
 
 
-ARG GIT_SHA
-ARG APP_VERSION
-ARG IS_ENTERPRISE_EDITION=false
-
-ENV GIT_SHA=${GIT_SHA}
-ENV APP_VERSION=${APP_VERSION}
-ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
+# Per-build args (GIT_SHA / APP_VERSION / IS_ENTERPRISE_EDITION) are declared
+# further down so the expensive npm ci / build layers stay cacheable across
+# commits and across the community + enterprise build passes.
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 LABEL org.opencontainers.image.title="OneUptime App"
@@ -36,8 +32,6 @@ LABEL org.opencontainers.image.url="https://oneuptime.com"
 LABEL org.opencontainers.image.documentation="https://oneuptime.com/docs"
 LABEL org.opencontainers.image.vendor="OneUptime"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
-LABEL org.opencontainers.image.revision="${GIT_SHA}"
-LABEL org.opencontainers.image.version="${APP_VERSION}"
 
 
 
@@ -102,21 +96,35 @@ EXPOSE 3002
 #Run the app
 CMD [ "npm", "run", "dev" ]
 {{ else }}
-# Copy app source
-COPY ./App /usr/src/app
+# Per-build version args. Declared here (not at the top) so the npm ci layers
+# above stay cacheable across commits. GIT_SHA/APP_VERSION must be set BEFORE
+# build-frontends:prod because the service worker bakes the version in at build
+# time (see Common/Scripts/generate-service-worker.js).
+ARG GIT_SHA
+ARG APP_VERSION
+ENV GIT_SHA=${GIT_SHA}
+ENV APP_VERSION=${APP_VERSION}
+LABEL org.opencontainers.image.revision="${GIT_SHA}"
+LABEL org.opencontainers.image.version="${APP_VERSION}"
+# Copy app source. --chown sets node (UID 1000) ownership at copy time so we
+# avoid a slow recursive `chown -R` over node_modules; deps stay root-owned and
+# world-readable, which the node user can still read.
+COPY --chown=1000:1000 ./App /usr/src/app
 # Copy frontend sources
-COPY ./App/FeatureSet/Accounts /usr/src/app/FeatureSet/Accounts
-COPY ./App/FeatureSet/Dashboard /usr/src/app/FeatureSet/Dashboard
-COPY ./App/FeatureSet/AdminDashboard /usr/src/app/FeatureSet/AdminDashboard
-COPY ./App/FeatureSet/StatusPage /usr/src/app/FeatureSet/StatusPage
-COPY ./App/FeatureSet/PublicDashboard /usr/src/app/FeatureSet/PublicDashboard
+COPY --chown=1000:1000 ./App/FeatureSet/Accounts /usr/src/app/FeatureSet/Accounts
+COPY --chown=1000:1000 ./App/FeatureSet/Dashboard /usr/src/app/FeatureSet/Dashboard
+COPY --chown=1000:1000 ./App/FeatureSet/AdminDashboard /usr/src/app/FeatureSet/AdminDashboard
+COPY --chown=1000:1000 ./App/FeatureSet/StatusPage /usr/src/app/FeatureSet/StatusPage
+COPY --chown=1000:1000 ./App/FeatureSet/PublicDashboard /usr/src/app/FeatureSet/PublicDashboard
 # Bundle frontend source
 RUN npm run build-frontends:prod
 # Bundle app source
 RUN npm run compile
-# Ensure runtime dirs are owned by the non-root `node` user (UID 1000) so the
-# container can run as non-root.
-RUN chown -R 1000:1000 /usr/src /tmp/npm && chmod -R 2777 /tmp/npm
+# IS_ENTERPRISE_EDITION only changes ENV/LABEL metadata and is read by no build
+# step, so declaring it last lets the community and enterprise passes share every
+# heavy cached layer above — only this final metadata layer differs.
+ARG IS_ENTERPRISE_EDITION=false
+ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
 USER node
 #Run the app
 CMD [ "npm", "start" ]
