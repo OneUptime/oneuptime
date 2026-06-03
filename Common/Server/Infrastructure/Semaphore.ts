@@ -12,6 +12,8 @@ export default class Semaphore {
     namespace: string;
     lockTimeout?: number | undefined;
     acquireTimeout?: number | undefined;
+    acquireAttemptsLimit?: number | undefined;
+    retryInterval?: number | undefined;
   }): Promise<SemaphoreMutex> {
     if (!data.lockTimeout) {
       data.lockTimeout = 5000;
@@ -33,6 +35,14 @@ export default class Semaphore {
 
     if (data.acquireTimeout) {
       lockOptions.acquireTimeout = data.acquireTimeout;
+    }
+
+    if (data.acquireAttemptsLimit) {
+      lockOptions.acquireAttemptsLimit = data.acquireAttemptsLimit;
+    }
+
+    if (data.retryInterval) {
+      lockOptions.retryInterval = data.retryInterval;
     }
 
     const mutex: SemaphoreMutex = new Mutex(
