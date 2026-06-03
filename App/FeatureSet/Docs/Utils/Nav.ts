@@ -425,6 +425,63 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "Integrations",
+    links: [
+      {
+        title: "Integrations Overview",
+        url: "/docs/integrations/index",
+      },
+      {
+        title: "Zabbix",
+        url: "/docs/integrations/zabbix",
+      },
+      {
+        title: "Jira",
+        url: "/docs/integrations/jira",
+      },
+      {
+        title: "PagerDuty",
+        url: "/docs/integrations/pagerduty",
+      },
+      {
+        title: "Opsgenie",
+        url: "/docs/integrations/opsgenie",
+      },
+      {
+        title: "ServiceNow",
+        url: "/docs/integrations/servicenow",
+      },
+      {
+        title: "Prometheus Alertmanager",
+        url: "/docs/integrations/prometheus-alertmanager",
+      },
+      {
+        title: "Grafana",
+        url: "/docs/integrations/grafana",
+      },
+      {
+        title: "Datadog",
+        url: "/docs/integrations/datadog",
+      },
+      {
+        title: "GitHub",
+        url: "/docs/integrations/github",
+      },
+      {
+        title: "GitLab",
+        url: "/docs/integrations/gitlab",
+      },
+      {
+        title: "Discord",
+        url: "/docs/integrations/discord",
+      },
+      {
+        title: "Telegram",
+        url: "/docs/integrations/telegram",
+      },
+    ],
+  },
+  {
     title: "Probe",
     links: [
       { title: "Custom Probes", url: "/docs/probe/custom-probe" },
