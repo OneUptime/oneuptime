@@ -757,6 +757,12 @@ worker:
     maxReplicas: 100
     # Scale up when combined queue size (worker + workflow + telemetry) exceeds this threshold
     queueSizeThreshold: 10
+    # Scale up when average CPU utilization exceeds this percentage (0 to disable).
+    # If enabled, worker.resources.requests.cpu must also be set.
+    targetCPUUtilizationPercentage: 0
+    # Scale up when average memory utilization exceeds this percentage (0 to disable).
+    # If enabled, worker.resources.requests.memory must also be set.
+    targetMemoryUtilizationPercentage: 0
     # Polling interval for metrics (in seconds)
     pollingInterval: 30
     # Cooldown period after scaling (in seconds)
