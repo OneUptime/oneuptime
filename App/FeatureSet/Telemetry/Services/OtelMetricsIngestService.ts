@@ -409,6 +409,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         throw new BadRequestException("Invalid resourceMetrics format");
       }
 
+      /*
+       * Canonicalize host.name casing before host enrichment and the main
+       * loop both read it — so the resolved hostIdentifier and the stored
+       * resource.host.name attribute share one casing and the host-detail
+       * pages keep matching via the fast query path.
+       */
+      OtelIngestBaseService.normalizeHostNameAttributesInPlace(resourceMetrics);
+
       const dbMetrics: Array<JSONObject> = [];
       const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
 
