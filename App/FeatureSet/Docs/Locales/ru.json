@@ -134,6 +134,7 @@
     "Custom Probes": "Пользовательские probes",
     "Incoming Request Ingress": "Ingress для входящих запросов",
     "OpenTelemetry": "OpenTelemetry",
+    "Serilog (.NET)": "Serilog (.NET)",
     "FluentBit": "FluentBit",
     "Fluentd": "Fluentd",
     "Syslog": "Syslog",

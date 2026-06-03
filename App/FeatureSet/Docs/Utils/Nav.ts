@@ -438,6 +438,7 @@ const DocsNav: NavGroup[] = [
     title: "Telemetry",
     links: [
       { title: "OpenTelemetry", url: "/docs/telemetry/open-telemetry" },
+      { title: "Serilog (.NET)", url: "/docs/telemetry/serilog" },
       { title: "FluentBit", url: "/docs/telemetry/fluentbit" },
       { title: "Fluentd", url: "/docs/telemetry/fluentd" },
       { title: "Syslog", url: "/docs/telemetry/syslog" },
