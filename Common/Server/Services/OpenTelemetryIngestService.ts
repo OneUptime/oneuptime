@@ -14,6 +14,7 @@ import TelemetryUtil from "../../Server/Utils/Telemetry/Telemetry";
 import { extractOneuptimeLabelNames } from "../Utils/Telemetry/OneuptimeLabel";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import QueryHelper from "../Types/Database/QueryHelper";
 import logger from "../Utils/Logger";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
 import ServiceType from "../../Types/Telemetry/ServiceType";
@@ -252,10 +253,18 @@ export default class OTelIngestService {
      * inserts into unique-violation errors that the catch block
      * below resolves to the winning row).
      */
+    /*
+     * Case-insensitive lookup (findWithSameText) to match the unique
+     * guard's comparison — otherwise a service.name that drifts only in
+     * case or surrounding whitespace misses here, gets rejected on create
+     * ("Service with the same name already exists"), and wedges ingest.
+     * Stored casing is preserved: service-detail pages key telemetry by the
+     * stable serviceId, and the name is user-facing.
+     */
     const service: Service | null = await ServiceService.findOneBy({
       query: {
         projectId: data.projectId,
-        name: data.serviceName,
+        name: QueryHelper.findWithSameText(data.serviceName),
       },
       select: {
         _id: true,
@@ -314,7 +323,7 @@ export default class OTelIngestService {
         const existingService: Service | null = await ServiceService.findOneBy({
           query: {
             projectId: data.projectId,
-            name: data.serviceName,
+            name: QueryHelper.findWithSameText(data.serviceName),
           },
           select: {
             _id: true,

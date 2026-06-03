@@ -59,11 +59,23 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     hostIdentifier: string;
   }): Promise<Model> {
-    // Try to find existing host
+    /*
+     * Canonicalize + look up case-insensitively. A Docker host is keyed by
+     * the OTel `host.name` resource attribute (see autoDiscoverDockerHost),
+     * whose casing is not stable — Windows surfaces PRIMARY01 vs primary01
+     * across resource detectors. Ingest already canonicalizes host.name
+     * (OtelIngestBaseService.normalizeHostNameAttributesInPlace); we repeat
+     * it here so the method is correct for any caller. A case-sensitive
+     * lookup would miss an existing row, then fail to create it because the
+     * unique guard (checkUniqueColumnBy -> findWithSameText) compares
+     * case-insensitively, wedging ingest for that host. Mirrors HostService.
+     */
+    const hostIdentifier: string = data.hostIdentifier.trim().toLowerCase();
+
     const existingHost: Model | null = await this.findOneBy({
       query: {
         projectId: data.projectId,
-        hostIdentifier: data.hostIdentifier,
+        hostIdentifier: QueryHelper.findWithSameText(hostIdentifier),
       },
       select: {
         _id: true,
@@ -76,6 +88,37 @@ export class Service extends DatabaseService<Model> {
     });
 
     if (existingHost) {
+      /*
+       * Converge a legacy mixed-case identifier onto the canonical form so
+       * the stored resource.host.name (canonicalized at ingest) keeps
+       * matching the Docker-host detail page filter. Best-effort — never
+       * block ingest on it. Updates don't re-run the unique guard.
+       */
+      if (
+        existingHost._id &&
+        existingHost.hostIdentifier &&
+        existingHost.hostIdentifier !== hostIdentifier
+      ) {
+        try {
+          await this.updateOneById({
+            id: new ObjectID(existingHost._id.toString()),
+            data: {
+              hostIdentifier: hostIdentifier,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+          existingHost.hostIdentifier = hostIdentifier;
+        } catch (err) {
+          logger.warn(
+            `DockerHostService: failed to canonicalize hostIdentifier for host ${existingHost._id.toString()}: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          );
+        }
+      }
+
       return existingHost;
     }
 
@@ -83,8 +126,8 @@ export class Service extends DatabaseService<Model> {
       // Create new host
       const newHost: Model = new Model();
       newHost.projectId = data.projectId;
-      newHost.name = data.hostIdentifier;
-      newHost.hostIdentifier = data.hostIdentifier;
+      newHost.name = hostIdentifier;
+      newHost.hostIdentifier = hostIdentifier;
       newHost.otelCollectorStatus = "connected";
       newHost.lastSeenAt = OneUptimeDate.getCurrentDate();
 
@@ -98,13 +141,15 @@ export class Service extends DatabaseService<Model> {
       return createdHost;
     } catch {
       /*
-       * Race condition: another request created the host concurrently.
-       * Re-fetch the existing host.
+       * Either two ingest workers raced to create the same host, or a host
+       * with this identifier in a different case already existed and the
+       * unique guard rejected the insert. Re-resolve case-insensitively so
+       * the caller still gets the existing row instead of throwing.
        */
       const reFetchedHost: Model | null = await this.findOneBy({
         query: {
           projectId: data.projectId,
-          hostIdentifier: data.hostIdentifier,
+          hostIdentifier: QueryHelper.findWithSameText(hostIdentifier),
         },
         select: {
           _id: true,
@@ -121,7 +166,7 @@ export class Service extends DatabaseService<Model> {
       }
 
       throw new Error(
-        "Failed to create or find Docker host: " + data.hostIdentifier,
+        "Failed to create or find Docker host: " + hostIdentifier,
       );
     }
   }
