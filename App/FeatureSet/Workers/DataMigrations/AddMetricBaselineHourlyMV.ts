@@ -1,4 +1,5 @@
 import DataMigrationBase from "./DataMigrationBase";
+import AnalyticsTableManagement from "../Utils/AnalyticsDatabase/TableManegement";
 import MetricService from "Common/Server/Services/MetricService";
 import logger from "Common/Server/Utils/Logger";
 
@@ -52,6 +53,23 @@ export default class AddMetricBaselineHourlyMV extends DataMigrationBase {
   }
 
   public override async migrate(): Promise<void> {
+    /*
+     * MV creation is now owned by the model + analytics schema-sync
+     * (AnalyticsTableManagement.createMaterializedViews). Skip if the
+     * view already exists so this one-time migration doesn't redo work.
+     */
+    if (
+      await AnalyticsTableManagement.doesMaterializedViewExist(
+        MetricService,
+        "MetricBaselineHourly_mv",
+      )
+    ) {
+      logger.info(
+        "MetricBaselineHourly_mv already exists - skipping migration.",
+      );
+      return;
+    }
+
     /*
      * Target table that stores AggregateFunction states keyed by
      * (project, metric, service, day, hour-of-week). Read-side merges

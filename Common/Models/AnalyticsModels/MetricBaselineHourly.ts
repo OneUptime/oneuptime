@@ -172,6 +172,36 @@ export default class MetricBaselineHourly extends AnalyticsBaseModel {
       ],
       projections: [],
       /*
+       * Baseline materialized view. Canonical definition applied
+       * idempotently by the analytics schema-sync on every boot (see
+       * AnalyticsTableManagement.createMaterializedViews), so a
+       * wiped/recreated ClickHouse volume self-heals. Aggregates each
+       * sample into a (calendar day, hour-of-week) cell.
+       */
+      materializedViews: [
+        {
+          name: "MetricBaselineHourly_mv",
+          query: `CREATE MATERIALIZED VIEW IF NOT EXISTS MetricBaselineHourly_mv
+TO MetricBaselineHourly
+AS
+SELECT
+  projectId,
+  name,
+  serviceId,
+  toDate(time) AS day,
+  toUInt8((toDayOfWeek(time, 1) - 1) * 24 + toHour(time)) AS hourOfWeek,
+  countState(toFloat64(coalesce(value, sum, 0))) AS sampleCountState,
+  avgState(toFloat64(coalesce(value, sum, 0))) AS meanState,
+  stddevPopState(toFloat64(coalesce(value, sum, 0))) AS stddevState,
+  quantileState(0.5)(toFloat64(coalesce(value, sum, 0))) AS medianState,
+  quantileState(0.95)(toFloat64(coalesce(value, sum, 0))) AS p95State,
+  minState(toFloat64(coalesce(value, sum, 0))) AS minObsState,
+  maxState(toFloat64(coalesce(value, sum, 0))) AS maxObsState
+FROM MetricItemV2
+GROUP BY projectId, name, serviceId, day, hourOfWeek`,
+        },
+      ],
+      /*
        * Sort key prefix matches the read-side WHERE clause of
        * MetricBaselineService.getBaseline so lookups touch a tight
        * granule range.

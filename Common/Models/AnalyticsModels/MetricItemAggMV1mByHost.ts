@@ -131,6 +131,34 @@ export default class MetricItemAggMV1mByHost extends AnalyticsBaseModel {
         retentionDateColumn,
       ],
       projections: [],
+      /*
+       * Per-host materialized view. Canonical definition applied
+       * idempotently by the analytics schema-sync on every boot (see
+       * AnalyticsTableManagement.createMaterializedViews), so a
+       * wiped/recreated ClickHouse volume self-heals. Rows without a
+       * host identifier are filtered out so the per-host MV stays small.
+       */
+      materializedViews: [
+        {
+          name: "MetricItemAggMV1mByHost_mv",
+          query: `CREATE MATERIALIZED VIEW IF NOT EXISTS MetricItemAggMV1mByHost_mv
+TO MetricItemAggMV1mByHost
+AS
+SELECT
+  projectId,
+  name,
+  attributes['resource.host.name'] AS hostIdentifier,
+  toStartOfMinute(time) AS bucketTime,
+  sumState(toFloat64(coalesce(value, sum, 0))) AS valueSumState,
+  countState(toFloat64(coalesce(value, sum, 0))) AS valueCountState,
+  minState(toFloat64(coalesce(value, sum, 0))) AS valueMinState,
+  maxState(toFloat64(coalesce(value, sum, 0))) AS valueMaxState,
+  max(retentionDate) AS retentionDate
+FROM MetricItemV2
+WHERE attributes['resource.host.name'] != ''
+GROUP BY projectId, name, hostIdentifier, bucketTime`,
+        },
+      ],
       sortKeys: ["projectId", "name", "hostIdentifier", "bucketTime"],
       primaryKeys: ["projectId", "name", "hostIdentifier", "bucketTime"],
       partitionKey: "sipHash64(projectId) % 16",
