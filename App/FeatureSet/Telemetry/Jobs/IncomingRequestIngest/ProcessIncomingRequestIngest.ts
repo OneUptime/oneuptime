@@ -45,6 +45,9 @@ export async function processIncomingRequestFromQueue(
     select: {
       _id: true,
       projectId: true,
+      disableActiveMonitoring: true,
+      disableActiveMonitoringBecauseOfManualIncident: true,
+      disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
     },
     props: {
       isRoot: true,
@@ -57,6 +60,28 @@ export async function processIncomingRequestFromQueue(
 
   if (!monitor.projectId) {
     throw new BadDataException("Project not found");
+  }
+
+  /*
+   * Skip disabled monitors here, before doing any further work. Incoming Request
+   * monitors are driven by an external sender that keeps calling the ingest
+   * endpoint regardless of the monitor being disabled in OneUptime, so these
+   * requests arrive continuously. Without this short-circuit, every one would
+   * still invoke monitorResource() — a second monitor fetch, a per-monitor Redis
+   * lock, and a thrown MonitorDisabled — only for the result to be discarded.
+   * This mirrors monitorResource()'s own disabled handling (it throws before
+   * persisting anything), so skipping here is behaviour-preserving while avoiding
+   * the wasted queue/DB/lock work.
+   */
+  if (
+    monitor.disableActiveMonitoring ||
+    monitor.disableActiveMonitoringBecauseOfManualIncident ||
+    monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent
+  ) {
+    logger.debug(
+      `Incoming request received for disabled monitor ${monitor._id.toString()}. Skipping.`,
+    );
+    return;
   }
 
   const now: Date = OneUptimeDate.getCurrentDate();
