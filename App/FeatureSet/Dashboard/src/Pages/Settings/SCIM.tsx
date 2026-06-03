@@ -132,6 +132,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                 isDeleteable={true}
                 isEditable={true}
                 isCreateable={true}
+                showRefreshButton={true}
                 cardProps={{
                   title: "SCIM (System for Cross-domain Identity Management)",
                   description:
