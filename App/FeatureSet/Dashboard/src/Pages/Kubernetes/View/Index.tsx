@@ -88,6 +88,7 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import { computeNetworkRate } from "../Utils/KubernetesNetworkUtils";
 
 interface ResourceLink {
   title: string;
@@ -959,89 +960,15 @@ const KubernetesClusterOverview: FunctionComponent<
       })();
 
       /*
-       * Network — cumulative byte counters per (node, interface,
-       * direction). Convert to per-bucket rate by taking deltas
-       * between consecutive buckets per series, clamping negatives
-       * to 0, and summing rates across (node, interface) per
-       * bucket per direction.
+       * Network — cumulative byte counters converted to per-second
+       * rates per direction. Shared with the insights and node-detail
+       * network charts via KubernetesNetworkUtils.computeNetworkRate.
        */
-      const computeNetRate: (
-        result: AggregatedResult,
-        direction: "receive" | "transmit",
-      ) => Array<TimeValuePoint> = (
-        result: AggregatedResult,
-        direction: "receive" | "transmit",
-      ): Array<TimeValuePoint> => {
-        const perKey: Map<string, Array<{ t: number; v: number }>> = new Map();
-        for (const p of (result.data || []) as Array<AggregatedModel>) {
-          const attrs: Record<string, unknown> =
-            (p["attributes"] as Record<string, unknown>) || {};
-          const pointDirection: string = (attrs["direction"] as string) || "";
-          if (pointDirection !== direction) {
-            continue;
-          }
-          const node: string =
-            (attrs["resource.k8s.node.name"] as string) || "";
-          const interfaceName: string =
-            (attrs["interface"] as string) ||
-            (attrs["network.interface"] as string) ||
-            "";
-          if (!node) {
-            continue;
-          }
-          const key: string = `${node}|${interfaceName}`;
-          const t: number = getBucketTimestamp(p);
-          const v: number = Number(p["value"]);
-          if (!Number.isFinite(t) || !Number.isFinite(v)) {
-            continue;
-          }
-          let arr: Array<{ t: number; v: number }> | undefined =
-            perKey.get(key);
-          if (!arr) {
-            arr = [];
-            perKey.set(key, arr);
-          }
-          arr.push({ t, v });
-        }
-        const perBucket: Map<number, number> = new Map();
-        for (const arr of perKey.values()) {
-          arr.sort(
-            (
-              a: { t: number; v: number },
-              b: { t: number; v: number },
-            ): number => {
-              return a.t - b.t;
-            },
-          );
-          for (let i: number = 1; i < arr.length; i++) {
-            const prev: { t: number; v: number } = arr[i - 1]!;
-            const cur: { t: number; v: number } = arr[i]!;
-            const dtSec: number = (cur.t - prev.t) / 1000;
-            if (dtSec <= 0) {
-              continue;
-            }
-            const dv: number = cur.v - prev.v;
-            if (!Number.isFinite(dv)) {
-              continue;
-            }
-            const rate: number = Math.max(0, dv) / dtSec;
-            perBucket.set(cur.t, (perBucket.get(cur.t) || 0) + rate);
-          }
-        }
-        return Array.from(perBucket.entries())
-          .map(([t, y]: [number, number]): TimeValuePoint => {
-            return { x: new Date(t), y: y };
-          })
-          .sort((a: TimeValuePoint, b: TimeValuePoint): number => {
-            return a.x.getTime() - b.x.getTime();
-          });
-      };
-
-      const networkInPoints: Array<TimeValuePoint> = computeNetRate(
+      const networkInPoints: Array<TimeValuePoint> = computeNetworkRate(
         networkResult,
         "receive",
       );
-      const networkOutPoints: Array<TimeValuePoint> = computeNetRate(
+      const networkOutPoints: Array<TimeValuePoint> = computeNetworkRate(
         networkResult,
         "transmit",
       );
