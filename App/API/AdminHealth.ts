@@ -86,7 +86,8 @@ async function getClickhouseStats(): Promise<JSONObject> {
     // Total size of active parts on disk.
     const sizeResult: ClickhouseJsonResult = (await (
       await client.query({
-        query: "SELECT sum(bytes_on_disk) AS bytes FROM system.parts WHERE active",
+        query:
+          "SELECT sum(bytes_on_disk) AS bytes FROM system.parts WHERE active",
         format: "JSON",
       })
     ).json()) as ClickhouseJsonResult;
@@ -104,7 +105,9 @@ async function getClickhouseStats(): Promise<JSONObject> {
     ).json()) as ClickhouseJsonResult;
 
     result["diskFreeInBytes"] = toNumberOrNull(diskResult.data?.[0]?.["free"]);
-    result["diskTotalInBytes"] = toNumberOrNull(diskResult.data?.[0]?.["total"]);
+    result["diskTotalInBytes"] = toNumberOrNull(
+      diskResult.data?.[0]?.["total"],
+    );
 
     // Largest tables (usually the telemetry tables) so operators can see what consumes space.
     const tablesResult: ClickhouseJsonResult = (await (

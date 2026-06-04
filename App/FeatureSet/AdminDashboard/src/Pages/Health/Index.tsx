@@ -1,4 +1,5 @@
 import AdminModelAPI from "../../Utils/ModelAPI";
+import EnterpriseFeatureUpgrade from "../../Components/EnterpriseEdition/EnterpriseFeatureUpgrade";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -22,7 +23,7 @@ import ResourceUsageBar from "Common/UI/Components/ResourceUsageBar/ResourceUsag
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
-import { APP_API_URL, VERSION } from "Common/UI/Config";
+import { APP_API_URL, IS_ENTERPRISE_EDITION, VERSION } from "Common/UI/Config";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import React, {
   FunctionComponent,
@@ -33,7 +34,9 @@ import React, {
 import { useTranslation } from "react-i18next";
 
 // Format a byte count into a human-readable string. Accepts unknown because values arrive as JSON.
-const bytesToReadable: (value: unknown) => string = (value: unknown): string => {
+const bytesToReadable: (value: unknown) => string = (
+  value: unknown,
+): string => {
   const bytes: number = typeof value === "number" ? value : Number(value);
 
   if (value === null || value === undefined || isNaN(bytes)) {
@@ -104,10 +107,69 @@ const Health: FunctionComponent = (): ReactElement => {
   };
 
   useEffect(() => {
+    // Only the Enterprise Edition build surfaces this page, so skip the fetch otherwise.
+    if (!IS_ENTERPRISE_EDITION) {
+      setIsInitialLoading(false);
+      return;
+    }
+
     loadOverview().catch(() => {
       // handled via setError
     });
   }, []);
+
+  if (!IS_ENTERPRISE_EDITION) {
+    return (
+      <Page
+        title="Health"
+        breadcrumbLinks={[
+          {
+            title: t("breadcrumbs.adminDashboard"),
+            to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
+          },
+          {
+            title: "Health",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.HEALTH] as Route,
+            ),
+          },
+        ]}
+      >
+        <EnterpriseFeatureUpgrade
+          title="Instance health"
+          description="Operational health of this OneUptime instance."
+          featureName="Instance Health Dashboard"
+          featureDescription="Live status, datastore capacity, queue backlogs and instance footprint for your OneUptime deployment."
+          benefits={[
+            {
+              icon: IconProp.Activity,
+              title: "Live component health",
+              subtitle:
+                "Postgres, ClickHouse, Redis and queue health at a glance.",
+            },
+            {
+              icon: IconProp.Database,
+              title: "Datastore capacity",
+              subtitle:
+                "Track database disk and memory utilization before you run out.",
+            },
+            {
+              icon: IconProp.List,
+              title: "Queue & worker insight",
+              subtitle:
+                "Spot job backlogs and failures before they cause incidents.",
+            },
+            {
+              icon: IconProp.Folder,
+              title: "Instance footprint",
+              subtitle:
+                "Projects, users, monitors and incidents across the instance.",
+            },
+          ]}
+        />
+      </Page>
+    );
+  }
 
   const postgres: JSONObject = (data?.["postgres"] || {}) as JSONObject;
   const clickhouse: JSONObject = (data?.["clickhouse"] || {}) as JSONObject;
@@ -120,9 +182,13 @@ const Health: FunctionComponent = (): ReactElement => {
   const chDiskTotal: number | null = toNumberOrNull(
     clickhouse["diskTotalInBytes"],
   );
-  const chDiskFree: number | null = toNumberOrNull(clickhouse["diskFreeInBytes"]);
+  const chDiskFree: number | null = toNumberOrNull(
+    clickhouse["diskFreeInBytes"],
+  );
   const chDiskUsed: number | null =
-    chDiskTotal !== null && chDiskFree !== null ? chDiskTotal - chDiskFree : null;
+    chDiskTotal !== null && chDiskFree !== null
+      ? chDiskTotal - chDiskFree
+      : null;
   const chDiskPercent: number | null =
     chDiskTotal && chDiskUsed !== null && chDiskTotal > 0
       ? (chDiskUsed / chDiskTotal) * 100
@@ -172,27 +238,27 @@ const Health: FunctionComponent = (): ReactElement => {
           <InfoCard
             title="Version"
             value={VERSION.toString()}
-            className="text-2xl font-semibold"
+            textClassName="text-2xl font-semibold text-gray-900"
           />
           <InfoCard
             title="Projects"
             value={countLabel(counts["projects"])}
-            className="text-2xl font-semibold"
+            textClassName="text-2xl font-semibold text-gray-900"
           />
           <InfoCard
             title="Users"
             value={countLabel(counts["users"])}
-            className="text-2xl font-semibold"
+            textClassName="text-2xl font-semibold text-gray-900"
           />
           <InfoCard
             title="Monitors"
             value={countLabel(counts["monitors"])}
-            className="text-2xl font-semibold"
+            textClassName="text-2xl font-semibold text-gray-900"
           />
           <InfoCard
             title="Incidents"
             value={countLabel(counts["incidents"])}
-            className="text-2xl font-semibold"
+            textClassName="text-2xl font-semibold text-gray-900"
           />
         </div>
 
@@ -325,13 +391,17 @@ const Health: FunctionComponent = (): ReactElement => {
               <thead>
                 <tr className="text-left text-xs uppercase text-gray-500">
                   <th className="py-2 pr-4 font-medium">Queue</th>
-                  <th className="py-2 px-4 font-medium tabular-nums">Waiting</th>
+                  <th className="py-2 px-4 font-medium tabular-nums">
+                    Waiting
+                  </th>
                   <th className="py-2 px-4 font-medium tabular-nums">Active</th>
                   <th className="py-2 px-4 font-medium tabular-nums">
                     Completed
                   </th>
                   <th className="py-2 px-4 font-medium tabular-nums">Failed</th>
-                  <th className="py-2 pl-4 font-medium tabular-nums">Delayed</th>
+                  <th className="py-2 pl-4 font-medium tabular-nums">
+                    Delayed
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
