@@ -129,7 +129,7 @@ const InsightsSection: FunctionComponent<SectionProps> = (
             hideCardInCharts={true}
             onChange={() => {}}
           />
-        ) : null)}
+        ) : undefined)}
     </Card>
   );
 };

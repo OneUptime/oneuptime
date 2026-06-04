@@ -78,7 +78,7 @@ const KubernetesMetricsTab: FunctionComponent<ComponentProps> = (
           });
         }}
       />
-      {props.renderExtraCharts
+      {props.renderExtraCharts && metricViewData.startAndEndDate
         ? props.renderExtraCharts(metricViewData.startAndEndDate)
         : null}
     </div>
