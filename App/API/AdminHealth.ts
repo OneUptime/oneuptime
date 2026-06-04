@@ -2,6 +2,7 @@ import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDa
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import Redis from "Common/Server/Infrastructure/Redis";
 import Queue, { QueueName } from "Common/Server/Infrastructure/Queue";
+import { IsEnterpriseEdition } from "Common/Server/EnvironmentConfig";
 import MasterAdminAuthorization from "Common/Server/Middleware/MasterAdminAuthorization";
 import IncidentService from "Common/Server/Services/IncidentService";
 import MonitorService from "Common/Server/Services/MonitorService";
@@ -15,6 +16,7 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
+import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 
 const router: ExpressRouter = Express.getRouter();
@@ -254,6 +256,15 @@ router.get(
     next: NextFunction,
   ): Promise<void> => {
     try {
+      // Instance health is an Enterprise Edition feature — gate server-side to match the UI.
+      if (!IsEnterpriseEdition) {
+        throw new PaymentRequiredException(
+          "The instance health dashboard is only available on the OneUptime Enterprise Edition. " +
+            "Please switch to the Enterprise Edition build to enable this feature. " +
+            "See https://oneuptime.com/enterprise/overview for details.",
+        );
+      }
+
       if (overviewCache && overviewCache.expiresAt > Date.now()) {
         return Response.sendJsonObjectResponse(req, res, overviewCache.data);
       }
