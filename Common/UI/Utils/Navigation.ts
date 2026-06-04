@@ -66,6 +66,45 @@ abstract class Navigation {
     return null;
   }
 
+  /**
+   * Update (or remove) query-string params on the current URL *in place*,
+   * without pushing a new browser-history entry and without triggering a
+   * react-router navigation/re-render. Pass `null` (or "") as a value to
+   * delete that param.
+   *
+   * This is used to keep table filter/facet state in the URL so it survives
+   * navigating to a detail page and back, and so a filtered view is
+   * shareable/bookmarkable. We use `replaceState` (not push) so changing a
+   * filter doesn't flood the back-button history.
+   */
+  public static setQueryString(params: Dictionary<string | null>): void {
+    const urlSearchParams: URLSearchParams = new URLSearchParams(
+      window.location.search,
+    );
+
+    for (const paramName in params) {
+      const value: string | null =
+        params[paramName] === undefined
+          ? null
+          : (params[paramName] as string | null);
+
+      if (value === null || value === "") {
+        urlSearchParams.delete(paramName);
+      } else {
+        urlSearchParams.set(paramName, value);
+      }
+    }
+
+    const queryString: string = urlSearchParams.toString();
+
+    const newRelativeUrl: string =
+      window.location.pathname +
+      (queryString ? `?${queryString}` : "") +
+      window.location.hash;
+
+    window.history.replaceState(window.history.state, "", newRelativeUrl);
+  }
+
   public static getParamByName(
     paramName: string,
     routeTemplate: Route,
