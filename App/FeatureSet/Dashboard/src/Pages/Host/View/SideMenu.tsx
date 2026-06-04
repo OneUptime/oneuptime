@@ -14,6 +14,8 @@ import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import CountModelSideMenuItem from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
 import ProjectUtil from "Common/UI/Utils/Project";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Host from "Common/Models/DatabaseModels/Host";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Alert from "Common/Models/DatabaseModels/Alert";
@@ -46,6 +48,29 @@ const HostViewSideMenu: FunctionComponent<ComponentProps> = (
     activeScheduledMaintenanceStates,
     setActiveScheduledMaintenanceStates,
   ] = useState<Array<ScheduledMaintenanceState>>([]);
+
+  /*
+   * The Services tab is fed by the Windows-only `windowsservicereceiver`,
+   * so it's only shown for hosts that report os.type = windows.
+   */
+  const [isWindowsHost, setIsWindowsHost] = useState<boolean>(false);
+
+  const fetchHostOsType: PromiseVoidFunction = async (): Promise<void> => {
+    try {
+      const item: Host | null = await ModelAPI.getItem({
+        modelType: Host,
+        id: props.modelId,
+        select: {
+          osType: true,
+        },
+      });
+      // OTel sets os.type to a lowercase value ("windows", "linux", "darwin").
+      const osType: string = (item?.osType || "").toLowerCase();
+      setIsWindowsHost(osType.includes("windows"));
+    } catch {
+      // ignore — the Windows-only Services item simply won't show
+    }
+  };
 
   const fetchIncidentStates: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -87,6 +112,9 @@ const HostViewSideMenu: FunctionComponent<ComponentProps> = (
     };
 
   useEffect(() => {
+    fetchHostOsType().catch(() => {
+      // do nothing
+    });
     fetchIncidentStates().catch(() => {
       // do nothing
     });
@@ -144,6 +172,20 @@ const HostViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Cube}
         />
+        {isWindowsHost ? (
+          <SideMenuItem
+            link={{
+              title: "Services",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.HOST_VIEW_SERVICES] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.Cog6Tooth}
+          />
+        ) : (
+          <></>
+        )}
         <SideMenuItem
           link={{
             title: "Logs",

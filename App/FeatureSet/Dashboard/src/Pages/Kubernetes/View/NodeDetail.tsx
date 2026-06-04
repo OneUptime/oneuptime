@@ -28,6 +28,7 @@ import {
 } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import KubernetesCpuUtils from "../Utils/KubernetesCpuUtils";
 import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
 import StatusBadge, {
   StatusBadgeType,
@@ -109,11 +110,20 @@ const KubernetesClusterNodeDetail: FunctionComponent<
 
   const clusterIdentifier: string = cluster.clusterIdentifier || "";
 
+  /*
+   * `k8s.node.cpu.utilization` is cores in use (not a ratio). Divide by
+   * this node's allocatable CPU (from the node object) to render a true
+   * percentage. Falls back to raw cores until the node object loads.
+   */
+  const nodeAllocatableCores: number = nodeObject
+    ? KubernetesCpuUtils.parseCpuToCores(nodeObject.status.allocatable["cpu"])
+    : 0;
+
   const cpuQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "node_cpu",
       title: "CPU Utilization",
-      description: `CPU utilization for node ${nodeName}`,
+      description: `CPU usage as a percentage of allocatable CPU for node ${nodeName}`,
       legend: "CPU",
       legendUnit: "%",
     },
@@ -131,6 +141,8 @@ const KubernetesClusterNodeDetail: FunctionComponent<
         attributes: true,
       },
     },
+    transformValue:
+      KubernetesCpuUtils.makeScalarCpuPercentTransform(nodeAllocatableCores),
   };
 
   const memoryQuery: MetricQueryConfigData = {

@@ -23,6 +23,11 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import KubernetesCpuUtils, {
+  NodeAllocatableCpu,
+} from "../Utils/KubernetesCpuUtils";
+import useNodeAllocatableCpu from "../Utils/useNodeAllocatableCpu";
+import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -39,6 +44,7 @@ interface MetricSpec {
   metricName: string;
   aggregation: AggregationType;
   yAxisFormatter?: (value: number) => string;
+  transformValue?: (value: number, dataPoint: AggregatedModel) => number;
 }
 
 function buildQuery(
@@ -67,6 +73,7 @@ function buildQuery(
       },
     },
     yAxisValueFormatter: spec.yAxisFormatter,
+    transformValue: spec.transformValue,
   };
 }
 
@@ -120,18 +127,24 @@ const InsightsSection: FunctionComponent<SectionProps> = (
   );
 };
 
-function getNodeQueries(cluster: string): Array<MetricQueryConfigData> {
+function getNodeQueries(
+  cluster: string,
+  allocatable: NodeAllocatableCpu | null,
+): Array<MetricQueryConfigData> {
   return [
     buildQuery(
       {
         variable: "node_cpu_utilization",
         title: "Node CPU Utilization",
         description:
-          "CPU utilization across all nodes in the cluster, broken down per node.",
+          "CPU usage as a percentage of allocatable CPU, broken down per node.",
         legend: "CPU",
         legendUnit: "%",
         metricName: "k8s.node.cpu.utilization",
         aggregation: AggregationType.Avg,
+        transformValue: allocatable
+          ? KubernetesCpuUtils.makeCpuPercentTransform(allocatable)
+          : undefined,
       },
       cluster,
     ),
@@ -197,18 +210,24 @@ function getNetworkQueries(cluster: string): Array<MetricQueryConfigData> {
   ];
 }
 
-function getPodQueries(cluster: string): Array<MetricQueryConfigData> {
+function getPodQueries(
+  cluster: string,
+  allocatable: NodeAllocatableCpu | null,
+): Array<MetricQueryConfigData> {
   return [
     buildQuery(
       {
         variable: "pod_cpu_utilization",
         title: "Pod CPU Utilization",
         description:
-          "CPU utilization across all pods in the cluster, summed across pods.",
+          "CPU usage as a percentage of node allocatable CPU, per pod.",
         legend: "Pod CPU",
         legendUnit: "%",
         metricName: "k8s.pod.cpu.utilization",
-        aggregation: AggregationType.Sum,
+        aggregation: AggregationType.Avg,
+        transformValue: allocatable
+          ? KubernetesCpuUtils.makeCpuPercentTransform(allocatable)
+          : undefined,
       },
       cluster,
     ),

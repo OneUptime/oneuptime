@@ -284,6 +284,14 @@ function readInitialUrlState(): InitialUrlState {
 
 interface Props {
   serviceId?: ObjectID | undefined;
+  /*
+   * Scope traces to a resource by OTel resource attribute (e.g.
+   * { "resource.k8s.cluster.name": "<clusterIdentifier>" }). Used by the
+   * Host / Docker / Kubernetes views, which key telemetry off resource
+   * attributes rather than a serviceId. Applied as a read-only scope chip.
+   */
+  attributeFilters?: Record<string, string> | undefined;
+  attributeFilterDisplayKeys?: Record<string, string> | undefined;
 }
 
 const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
@@ -643,17 +651,28 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       }
     }
 
-    // Apply attribute filters (@attribute:value) — merge chip + search sources
+    /*
+     * Apply attribute filters — merge chip + search sources with the
+     * prop-level resource scope (Host / Docker / Kubernetes views).
+     */
     const mergedAttributes: Record<string, string> = {
       ...attributeChips,
       ...attributes,
+      ...(props.attributeFilters || {}),
     };
     if (Object.keys(mergedAttributes).length > 0) {
       (query as Record<string, unknown>)["attributes"] = mergedAttributes;
     }
 
     return query;
-  }, [props.serviceId, timeRange, activeFilters, submittedSearch, parseSearch]);
+  }, [
+    props.serviceId,
+    props.attributeFilters,
+    timeRange,
+    activeFilters,
+    submittedSearch,
+    parseSearch,
+  ]);
 
   const listSelect: Select<Span> = useMemo(() => {
     return {
@@ -927,10 +946,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       groups[key]!.push(...fieldFilters[key]!);
     }
 
-    // Pass attribute filters (chip + parsed) to aggregation
+    // Pass attribute filters (chip + parsed + prop scope) to aggregation
     const mergedAttributes: Record<string, string> = {
       ...attributeChips,
       ...attributes,
+      ...(props.attributeFilters || {}),
     };
     if (Object.keys(mergedAttributes).length > 0) {
       payload["attributes"] = mergedAttributes;
@@ -1028,7 +1048,14 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
 
     return payload;
-  }, [timeRange, activeFilters, submittedSearch, parseSearch, props.serviceId]);
+  }, [
+    timeRange,
+    activeFilters,
+    submittedSearch,
+    parseSearch,
+    props.serviceId,
+    props.attributeFilters,
+  ]);
 
   // Fetch histogram + facets from dedicated backend endpoints
   const fetchHistogramAndFacets: () => Promise<void> = useCallback(async () => {
@@ -1354,8 +1381,30 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         }),
       );
     }
+    if (props.attributeFilters) {
+      for (const [key, value] of Object.entries(props.attributeFilters)) {
+        if (!value) {
+          continue;
+        }
+        const displayKey: string =
+          props.attributeFilterDisplayKeys?.[key] || key;
+        base.push({
+          facetKey: `attributes.${key}`,
+          value,
+          displayKey,
+          displayValue: value,
+          readOnly: true,
+        });
+      }
+    }
     return [...base, ...activeFilters.map(resolveDisplay)];
-  }, [props.serviceId, activeFilters, facetConfigs]);
+  }, [
+    props.serviceId,
+    props.attributeFilters,
+    props.attributeFilterDisplayKeys,
+    activeFilters,
+    facetConfigs,
+  ]);
 
   // Histogram drag-to-zoom
   const handleHistogramTimeRangeSelect: (start: Date, end: Date) => void =
