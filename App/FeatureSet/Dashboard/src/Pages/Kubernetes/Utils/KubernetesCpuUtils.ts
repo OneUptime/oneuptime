@@ -37,11 +37,15 @@ export interface NodeAllocatableCpu {
   perNode: Map<string, number>;
   // Sum of allocatable cores across every node in the cluster.
   clusterTotalCores: number;
-  // Mean allocatable cores per node — used as the fallback denominator
-  // when a datapoint's node is unknown or missing from `perNode`.
+  /*
+   * Mean allocatable cores per node — used as the fallback denominator
+   * when a datapoint's node is unknown or missing from `perNode`.
+   */
   avgNodeCores: number;
-  // Resolve the denominator (cores) for a given node, falling back to
-  // the cluster's average node size when the node is unknown.
+  /*
+   * Resolve the denominator (cores) for a given node, falling back to
+   * the cluster's average node size when the node is unknown.
+   */
   denominatorForNode: (nodeName?: string | undefined) => number;
 }
 
@@ -117,9 +121,11 @@ export default class KubernetesCpuUtils {
             return cores;
           }
         }
-        // Fall back to the average node size so a pod whose node we
-        // can't resolve still produces a sensible percentage rather
-        // than 0 or Infinity.
+        /*
+         * Fall back to the average node size so a pod whose node we
+         * can't resolve still produces a sensible percentage rather
+         * than 0 or Infinity.
+         */
         return avg;
       },
     };
@@ -150,8 +156,10 @@ export default class KubernetesCpuUtils {
               "resource.k8s.cluster.name": options.clusterIdentifier,
             } as Dictionary<string | number | boolean>,
           },
-          // Allocatable is effectively constant over the window; Max
-          // collapses each node's samples to its allocatable cores.
+          /*
+           * Allocatable is effectively constant over the window; Max
+           * collapses each node's samples to its allocatable cores.
+           */
           aggregationType: MetricsAggregationType.Max,
           aggregateColumnName: "value",
           aggregationTimestampColumnName: "time",
@@ -183,9 +191,11 @@ export default class KubernetesCpuUtils {
         }
       }
     } catch {
-      // Allocatable is the denominator; on failure return an empty
-      // lookup and let callers render "no data" rather than a wrong
-      // number.
+      /*
+       * Allocatable is the denominator; on failure return an empty
+       * lookup and let callers render "no data" rather than a wrong
+       * number.
+       */
     }
 
     return KubernetesCpuUtils.buildAllocatable(perNode);
@@ -210,8 +220,10 @@ export default class KubernetesCpuUtils {
         (attributes[NODE_NAME_ATTRIBUTE] as string) || "";
       const denominator: number = allocatable.denominatorForNode(nodeName);
       if (!denominator || denominator <= 0) {
-        // No allocatable data at all for this cluster — fall back to
-        // the raw cores value rather than collapsing the chart to zero.
+        /*
+         * No allocatable data at all for this cluster — fall back to
+         * the raw cores value rather than collapsing the chart to zero.
+         */
         return value;
       }
       return (value / denominator) * 100;

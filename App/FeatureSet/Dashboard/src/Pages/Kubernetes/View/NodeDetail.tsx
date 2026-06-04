@@ -205,19 +205,20 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     },
     metricQueryData: {
       filterData: {
-        metricName: "k8s.node.network.io.receive",
+        metricName: "k8s.node.network.io",
         attributes: {
           "resource.k8s.cluster.name": clusterIdentifier,
           "resource.k8s.node.name": nodeName,
+          direction: "receive",
         },
-        aggegationType: AggregationType.Avg,
+        aggegationType: AggregationType.Max,
         aggregateBy: {},
       },
       groupBy: {
         attributes: true,
       },
     },
-    yAxisValueFormatter: KubernetesResourceUtils.formatBytesPerSecForChart,
+    yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
   const networkTxQuery: MetricQueryConfigData = {
@@ -230,19 +231,20 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     },
     metricQueryData: {
       filterData: {
-        metricName: "k8s.node.network.io.transmit",
+        metricName: "k8s.node.network.io",
         attributes: {
           "resource.k8s.cluster.name": clusterIdentifier,
           "resource.k8s.node.name": nodeName,
+          direction: "transmit",
         },
-        aggegationType: AggregationType.Avg,
+        aggegationType: AggregationType.Max,
         aggregateBy: {},
       },
       groupBy: {
         attributes: true,
       },
     },
-    yAxisValueFormatter: KubernetesResourceUtils.formatBytesPerSecForChart,
+    yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
   // Determine node status from conditions

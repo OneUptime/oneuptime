@@ -43,8 +43,12 @@ interface MetricSpec {
   legendUnit: string;
   metricName: string;
   aggregation: AggregationType;
+  /** Extra data-point attribute filters merged into the query (e.g. direction). */
+  attributes?: Record<string, string>;
   yAxisFormatter?: (value: number) => string;
-  transformValue?: (value: number, dataPoint: AggregatedModel) => number;
+  transformValue?:
+    | ((value: number, dataPoint: AggregatedModel) => number)
+    | undefined;
 }
 
 function buildQuery(
@@ -64,6 +68,7 @@ function buildQuery(
         metricName: spec.metricName,
         attributes: {
           "resource.k8s.cluster.name": clusterIdentifier,
+          ...(spec.attributes || {}),
         },
         aggegationType: spec.aggregation,
         aggregateBy: {},
@@ -179,6 +184,13 @@ function getNodeQueries(
   ];
 }
 
+/*
+ * kubeletstats ships node network IO as a single cumulative
+ * `k8s.node.network.io` counter with a `direction` attribute
+ * (receive | transmit). The split-name `.receive` / `.transmit`
+ * variants do not exist in the schema, so querying them rendered
+ * empty charts. Query the one metric and filter by direction.
+ */
 function getNetworkQueries(cluster: string): Array<MetricQueryConfigData> {
   return [
     buildQuery(
@@ -188,8 +200,9 @@ function getNetworkQueries(cluster: string): Array<MetricQueryConfigData> {
         description: "Bytes received per node across the cluster.",
         legend: "Received",
         legendUnit: "",
-        metricName: "k8s.node.network.io.receive",
-        aggregation: AggregationType.Sum,
+        metricName: "k8s.node.network.io",
+        attributes: { direction: "receive" },
+        aggregation: AggregationType.Max,
         yAxisFormatter: KubernetesResourceUtils.formatBytesForChart,
       },
       cluster,
@@ -201,8 +214,9 @@ function getNetworkQueries(cluster: string): Array<MetricQueryConfigData> {
         description: "Bytes transmitted per node across the cluster.",
         legend: "Transmitted",
         legendUnit: "",
-        metricName: "k8s.node.network.io.transmit",
-        aggregation: AggregationType.Sum,
+        metricName: "k8s.node.network.io",
+        attributes: { direction: "transmit" },
+        aggregation: AggregationType.Max,
         yAxisFormatter: KubernetesResourceUtils.formatBytesForChart,
       },
       cluster,
@@ -299,6 +313,11 @@ const KubernetesClusterInsights: FunctionComponent<
     });
   }, []);
 
+  // Per-node allocatable CPU — denominator for the true CPU% transform.
+  const allocatable: NodeAllocatableCpu | null = useNodeAllocatableCpu(
+    cluster?.clusterIdentifier || undefined,
+  );
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -314,7 +333,7 @@ const KubernetesClusterInsights: FunctionComponent<
   const clusterIdentifier: string = cluster.clusterIdentifier || "";
 
   const nodeData: MetricViewData = buildMetricViewData(
-    getNodeQueries(clusterIdentifier),
+    getNodeQueries(clusterIdentifier, allocatable),
     startAndEndDate,
   );
   const networkData: MetricViewData = buildMetricViewData(
@@ -322,7 +341,7 @@ const KubernetesClusterInsights: FunctionComponent<
     startAndEndDate,
   );
   const podData: MetricViewData = buildMetricViewData(
-    getPodQueries(clusterIdentifier),
+    getPodQueries(clusterIdentifier, allocatable),
     startAndEndDate,
   );
 

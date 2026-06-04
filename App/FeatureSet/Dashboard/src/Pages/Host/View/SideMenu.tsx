@@ -196,6 +196,26 @@ const HostViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Terminal}
         />
+        <SideMenuItem
+          link={{
+            title: "Traces",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.HOST_VIEW_TRACES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Workflow}
+        />
+        <SideMenuItem
+          link={{
+            title: "Performance Profiles",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.HOST_VIEW_PROFILES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Fire}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Activity">

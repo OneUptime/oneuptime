@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import OneUptimeDate from "Common/Types/Date";
-import KubernetesCpuUtils, {
-  NodeAllocatableCpu,
-} from "./KubernetesCpuUtils";
+import KubernetesCpuUtils, { NodeAllocatableCpu } from "./KubernetesCpuUtils";
 
 /**
  * Load the per-node allocatable CPU lookup for a cluster so CPU charts

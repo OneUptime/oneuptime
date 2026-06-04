@@ -75,6 +75,14 @@ type MetricTimestamp = {
  * mirror. Anything else is ignored entirely, so the cost on
  * non-Kubernetes batches is one Set.has check per datapoint.
  */
+/*
+ * The k8s_cluster receiver's per-node allocatable CPU (cores). Not a
+ * displayed metric — its latest value is cached per node and used as
+ * the denominator that turns the cores-valued `*.cpu.utilization`
+ * metrics into a true "% of node allocatable CPU".
+ */
+const K8S_NODE_ALLOCATABLE_CPU_METRIC: string = "k8s.node.allocatable_cpu";
+
 const K8S_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "k8s.pod.cpu.utilization",
   "k8s.pod.memory.usage",
@@ -82,6 +90,7 @@ const K8S_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "k8s.node.memory.usage",
   "container.cpu.utilization",
   "container.memory.usage",
+  K8S_NODE_ALLOCATABLE_CPU_METRIC,
 ]);
 
 /*
@@ -1010,13 +1019,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
   }
 
   /*
-   * Convert a raw datapoint value to a percent. Most OTel Kubernetes
-   * CPU metrics emit a unit-less ratio (0.0-1.0+); a few emit a raw
-   * percent. We use the metric's `unit` field to decide:
-   *   - "%"          -> already a percent, take as-is
-   *   - "1" / "" / undefined / unknown -> ratio, multiply by 100
-   * Sub-percent precision is preserved end-to-end; values past 100
-   * are kept (200% means 2 fully utilized cores).
+   * Docker-stats CPU → percent. The docker_stats receiver emits
+   * `container.cpu.utilization` as a [0, 1] ratio (unit "1") or a raw
+   * percent (unit "%"); scale accordingly. Kubernetes CPU uses
+   * `cpuCoresToPercent` below, which divides cores by node allocatable.
    */
   private static cpuValueToPercent(
     rawValue: number,
@@ -1027,6 +1033,103 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       return rawValue;
     }
     return rawValue * 100;
+  }
+
+  /*
+   * Per-(cluster, node) allocatable CPU cores, learned from the
+   * `k8s.node.allocatable_cpu` metric (k8s_cluster receiver). This is
+   * the denominator that turns cores-valued `*.cpu.utilization` metrics
+   * into a true percentage. In-memory and best-effort: it warms within
+   * one collection interval and is shared across this worker's batches.
+   */
+  private static readonly NODE_ALLOCATABLE_TTL_MS: number = 30 * 60 * 1000;
+  private static nodeAllocatableCpuByCluster: Map<
+    string,
+    Map<string, { cores: number; at: number }>
+  > = new Map();
+
+  private static updateNodeAllocatableCpu(
+    clusterIdStr: string,
+    nodeName: string,
+    cores: number,
+    atMs: number,
+  ): void {
+    if (!nodeName || !Number.isFinite(cores) || cores <= 0) {
+      return;
+    }
+    let byNode: Map<string, { cores: number; at: number }> | undefined =
+      this.nodeAllocatableCpuByCluster.get(clusterIdStr);
+    if (!byNode) {
+      byNode = new Map();
+      this.nodeAllocatableCpuByCluster.set(clusterIdStr, byNode);
+    }
+    byNode.set(nodeName, { cores: cores, at: atMs });
+  }
+
+  /*
+   * Resolve the allocatable CPU cores to divide by. Prefers the exact
+   * node; falls back to the cluster's average node size when the node
+   * hasn't been seen yet (e.g. a pod metric arriving before its node's
+   * allocatable). Returns 0 when nothing is known, signalling the caller
+   * to leave the stored CPU% untouched.
+   */
+  private static lookupNodeAllocatableCpu(
+    clusterIdStr: string,
+    nodeName: string,
+    nowMs: number,
+  ): number {
+    const byNode: Map<string, { cores: number; at: number }> | undefined =
+      this.nodeAllocatableCpuByCluster.get(clusterIdStr);
+    if (!byNode || byNode.size === 0) {
+      return 0;
+    }
+    const exact: { cores: number; at: number } | undefined = nodeName
+      ? byNode.get(nodeName)
+      : undefined;
+    if (exact && nowMs - exact.at <= this.NODE_ALLOCATABLE_TTL_MS) {
+      return exact.cores;
+    }
+    let sum: number = 0;
+    let count: number = 0;
+    for (const entry of byNode.values()) {
+      if (nowMs - entry.at <= this.NODE_ALLOCATABLE_TTL_MS) {
+        sum += entry.cores;
+        count++;
+      }
+    }
+    return count > 0 ? sum / count : 0;
+  }
+
+  /*
+   * Convert a raw Kubernetes CPU datapoint to "% of the node's
+   * allocatable CPU". The kubeletstats `*.cpu.utilization` metrics are
+   * CPU *cores in use* (not a 0-1 ratio), so we divide by the node's
+   * allocatable cores rather than multiplying by 100 — the old
+   * behaviour produced numbers like 711% for a busy multi-core node. A
+   * "%"-unit datapoint is taken as-is. Returns null when allocatable is
+   * unknown so the snapshot keeps its previous CPU value instead of
+   * writing a wrong one.
+   */
+  private static cpuCoresToPercent(
+    rawValue: number,
+    metricUnit: string | undefined,
+    clusterIdStr: string,
+    nodeName: string,
+    nowMs: number,
+  ): number | null {
+    const unit: string = (metricUnit || "").trim();
+    if (unit === "%") {
+      return rawValue;
+    }
+    const allocatableCores: number = this.lookupNodeAllocatableCpu(
+      clusterIdStr,
+      nodeName,
+      nowMs,
+    );
+    if (allocatableCores <= 0) {
+      return null;
+    }
+    return (rawValue / allocatableCores) * 100;
   }
 
   /*
@@ -1066,6 +1169,32 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       "resource.k8s.namespace.name",
     );
 
+    const nowMs: number = Date.now();
+
+    /*
+     * `k8s.node.allocatable_cpu` isn't a displayed snapshot metric — it
+     * is the CPU% denominator. Cache its latest value per node and stop;
+     * never fold it as a Node row.
+     */
+    if (data.metricName === K8S_NODE_ALLOCATABLE_CPU_METRIC) {
+      this.updateNodeAllocatableCpu(
+        data.clusterIdStr,
+        this.readSnapshotAttr(attrs, "resource.k8s.node.name"),
+        rawValue,
+        nowMs,
+      );
+      return;
+    }
+
+    /*
+     * The node a pod/container/node metric belongs to — the key for its
+     * allocatable CPU denominator.
+     */
+    const nodeName: string = this.readSnapshotAttr(
+      attrs,
+      "resource.k8s.node.name",
+    );
+
     const isCpu: boolean = data.metricName.endsWith(".cpu.utilization");
     const isMem: boolean = data.metricName.endsWith(".memory.usage");
 
@@ -1088,7 +1217,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         podName,
         containerName,
         cpuPercent: isCpu
-          ? this.cpuValueToPercent(rawValue, data.metricUnit)
+          ? this.cpuCoresToPercent(
+              rawValue,
+              data.metricUnit,
+              data.clusterIdStr,
+              nodeName,
+              nowMs,
+            )
           : null,
         memoryBytes: isMem ? Math.max(0, Math.trunc(rawValue)) : null,
         observedAt: ts.date,
@@ -1126,7 +1261,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         ns,
         name: podName,
         cpuPercent: isCpu
-          ? this.cpuValueToPercent(rawValue, data.metricUnit)
+          ? this.cpuCoresToPercent(
+              rawValue,
+              data.metricUnit,
+              data.clusterIdStr,
+              nodeName,
+              nowMs,
+            )
           : null,
         memoryBytes: isMem ? Math.max(0, Math.trunc(rawValue)) : null,
         observedAt: ts.date,
@@ -1137,10 +1278,6 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     }
 
     if (data.metricName.startsWith("k8s.node.")) {
-      const nodeName: string = this.readSnapshotAttr(
-        attrs,
-        "resource.k8s.node.name",
-      );
       if (!nodeName) {
         return;
       }
@@ -1151,7 +1288,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         ns: "", // Nodes are cluster-scoped
         name: nodeName,
         cpuPercent: isCpu
-          ? this.cpuValueToPercent(rawValue, data.metricUnit)
+          ? this.cpuCoresToPercent(
+              rawValue,
+              data.metricUnit,
+              data.clusterIdStr,
+              nodeName,
+              nowMs,
+            )
           : null,
         memoryBytes: isMem ? Math.max(0, Math.trunc(rawValue)) : null,
         observedAt: ts.date,

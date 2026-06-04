@@ -933,12 +933,13 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
    *   first-class percent metric we replace it with a Value widget that
    *   renders the absolute usage via ValueFormatter (e.g. "8.3 GB").
    *
-   * - CPU widgets use OTel's k8s.*.cpu.utilization, which the collector
-   *   emits as a [0, 1] ratio with unit "1". DashboardValueComponent /
-   *   DashboardGaugeComponent now scale that to a percent at render time
-   *   when the metric name carries the `.utilization` suffix, so "0.05"
-   *   reads as "5.00%" and gauge thresholds in the natural 0-100 scale work
-   *   as expected.
+   * - CPU widgets show cores, not a percent. OTel's k8s.*.cpu.utilization
+   *   is a misnamed cores gauge (cores in use, NOT a [0, 1] ratio), and
+   *   this templated dashboard's renderer can't divide by per-node
+   *   allocatable CPU to form a true percentage. So we use the `.usage`
+   *   metrics and label them in cores ("2.3 cores"). The Kubernetes
+   *   cluster overview page — which fetches `k8s.node.allocatable_cpu` —
+   *   is where CPU is shown as a real "% of capacity".
    */
   const components: Array<DashboardBaseComponent> = [
     // Row 0: Title
@@ -953,16 +954,16 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
 
     /*
      * Row 1: Key cluster metrics — averages render with proper units via
-     * ValueFormatter (CPU utilization → "%", memory.usage → "MB"/"GB").
+     * ValueFormatter (CPU usage → cores, memory.usage → "MB"/"GB").
      * All four are "higher = worse" (closer to capacity = bad).
      */
     createValueComponent({
-      title: "Pod CPU (avg)",
+      title: "Pod CPU (cores, avg)",
       top: 1,
       left: 0,
       width: 3,
       metricConfig: {
-        metricName: "k8s.pod.cpu.utilization",
+        metricName: "k8s.pod.cpu.usage",
         aggregationType: MetricsAggregationType.Avg,
       },
       trendDirection: DashboardValueTrendDirection.HigherIsWorse,
@@ -979,12 +980,12 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
       trendDirection: DashboardValueTrendDirection.HigherIsWorse,
     }),
     createValueComponent({
-      title: "Node CPU (avg)",
+      title: "Node CPU (cores, avg)",
       top: 1,
       left: 6,
       width: 3,
       metricConfig: {
-        metricName: "k8s.node.cpu.utilization",
+        metricName: "k8s.node.cpu.usage",
         aggregationType: MetricsAggregationType.Avg,
       },
       trendDirection: DashboardValueTrendDirection.HigherIsWorse,
@@ -1003,16 +1004,16 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
 
     // Row 2-4: Resource usage charts
     createChartComponent({
-      title: "CPU Usage Over Time",
+      title: "Pod CPU Cores Over Time",
       chartType: DashboardChartType.Line,
       top: 2,
       left: 0,
       width: 6,
       height: 3,
       metricConfig: {
-        metricName: "k8s.pod.cpu.utilization",
+        metricName: "k8s.pod.cpu.usage",
         aggregationType: MetricsAggregationType.Avg,
-        legend: "CPU Utilization",
+        legend: "CPU Cores",
       },
     }),
     createChartComponent({
@@ -1072,24 +1073,24 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
     }),
 
     /*
-     * Row 11-13: CPU gauge (auto-scaled from [0,1] to percent), and the
-     * network throughput chart. The old "Memory Utilization" gauge over
-     * raw bytes is gone — see top-of-function comment.
+     * Row 11-13: cluster CPU cores tile and the network throughput
+     * chart. This was a 0-100 CPU gauge, but the cores-valued
+     * `k8s.node.cpu.utilization` pinned it to nonsense (e.g. 711%) and
+     * the templated renderer can't divide by allocatable CPU to make a
+     * real percentage — so we show total cores in use instead. The old
+     * "Memory Utilization" gauge over raw bytes is gone — see
+     * top-of-function comment.
      */
-    createGaugeComponent({
-      title: "Cluster CPU Utilization",
+    createValueComponent({
+      title: "Cluster CPU (cores in use)",
       top: 11,
       left: 0,
       width: 4,
-      height: 3,
-      minValue: 0,
-      maxValue: 100,
-      warningThreshold: 70,
-      criticalThreshold: 90,
       metricConfig: {
-        metricName: "k8s.node.cpu.utilization",
-        aggregationType: MetricsAggregationType.Avg,
+        metricName: "k8s.node.cpu.usage",
+        aggregationType: MetricsAggregationType.Sum,
       },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
     }),
     createChartComponent({
       title: "Network I/O",
