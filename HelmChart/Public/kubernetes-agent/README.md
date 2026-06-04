@@ -572,6 +572,68 @@ Three things to check, in order:
 
     No spans there means OBI isn't capturing traffic on that node. Spans there but nothing in OneUptime means the OTLP export path is broken — check the metrics-collector Deployment logs.
 
+### `kubectl exec` into an agent pod fails — no shell, curl, or bash
+
+```
+$ kubectl exec -it <agent-pod> -- bash
+error: exec: "bash": executable file not found in $PATH
+```
+
+This is expected, not a bug. The metrics-collector Deployment and the
+log-collector DaemonSet run the upstream OpenTelemetry Collector image, which is
+**distroless** (built `FROM scratch`): it contains only the collector binary and
+CA certs — no `/bin/sh`, no `bash`, no `curl`. There's nothing to exec into.
+
+You usually hit this when verifying connectivity from inside the cluster to your
+OneUptime instance (DNS, NetworkPolicy, egress proxy, TLS). Two ways to get a
+shell that shares the agent pod's network:
+
+**Option A — ephemeral debug container (recommended, no install change).**
+Requires Kubernetes ≥ 1.23. Leaves no permanent footprint:
+
+```bash
+# Pick a pod (metrics collector shown; use component=log-collector for logs)
+POD=$(kubectl get pod -n oneuptime-kubernetes-agent \
+  -l component=metrics-collector -o name | head -1)
+
+kubectl debug -it "$POD" -n oneuptime-kubernetes-agent \
+  --image=nicolaka/netshoot --target=otel-collector -- bash
+# then, from the shell:
+curl -v https://oneuptime.example.com/otlp/v1/metrics
+```
+
+The ephemeral container shares the pod's network namespace, so this tests the
+**exact** egress path the collector uses. `--target=otel-collector` also shares
+the PID namespace so you can inspect the collector process and its filesystem
+via `/proc/<pid>/root`.
+
+**Option B — built-in debug sidecar (`debug.enabled`).** If you need a shell
+resident in every agent pod (e.g. recurring debugging, or a cluster that blocks
+ephemeral containers), enable the debug sidecar. It injects a `debug` container
+(default `nicolaka/netshoot`) into the metrics Deployment and the logs DaemonSet
+and turns on `shareProcessNamespace`:
+
+```bash
+helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
+  --set debug.enabled=true
+
+kubectl exec -it "$POD" -n oneuptime-kubernetes-agent -c debug -- bash
+# $ONEUPTIME_URL is preset in the sidecar:
+curl -v "$ONEUPTIME_URL/otlp/v1/metrics"
+```
+
+This adds an always-running container to every agent pod (extra resources +
+attack surface), so **turn it back off** once you're done:
+`--set debug.enabled=false`. `curl`, `dig`, and `nslookup` work out of the box;
+`ping`/`traceroute`/`tcpdump` need raw sockets — grant them with
+`--set 'debug.securityContext.capabilities.add[0]=NET_RAW'`. See the `debug.*`
+keys in [`values.yaml`](values.yaml) for all options.
+
+> The `api`-mode log tailer (`logs.mode: api`) runs a Node.js image that already
+> has `bash`, so you can `kubectl exec` into it directly — though it ships no
+> `curl`; use `node -e "fetch('https://…').then(r=>console.log(r.status))"`.
+
 ## Source
 
 - Chart: [`HelmChart/Public/kubernetes-agent/`](https://github.com/OneUptime/oneuptime/tree/master/HelmChart/Public/kubernetes-agent)
