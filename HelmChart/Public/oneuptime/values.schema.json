@@ -442,6 +442,30 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "cnpg": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "instances": {
+                            "type": "integer"
+                        },
+                        "imageName": {
+                            "type": "string"
+                        },
+                        "owner": {
+                            "type": "string"
+                        },
+                        "parameters": {
+                            "type": "object"
+                        },
+                        "affinity": {
+                            "type": "object"
+                        }
+                    },
+                    "additionalProperties": false
                 }
             },
             "additionalProperties": false
@@ -2275,6 +2299,10 @@
                 }
             },
             "additionalProperties": false
+        },
+        "cloudnative-pg": {
+            "type": "object",
+            "additionalProperties": true
         }
     },
     "additionalProperties": false

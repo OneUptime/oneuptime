@@ -1,0 +1,72 @@
+{{- if and .Values.postgresql.enabled .Values.postgresql.cnpg.enabled }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ .Release.Name }}-postgresql-cnpg
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-postgresql
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: postgresql
+    appname: oneuptime
+    helm.sh/release-name: {{ .Release.Name }}
+    helm.sh/release-namespace: {{ .Release.Namespace }}
+spec:
+  instances: {{ .Values.postgresql.cnpg.instances }}
+  imageName: {{ .Values.postgresql.cnpg.imageName | quote }}
+
+  # The OneUptime app connects as the "postgres" superuser (parity with the
+  # built-in StatefulSet). CloudNativePG disables superuser access by default;
+  # we enable it and manage the password via the secret created in secrets.yaml.
+  enableSuperuserAccess: true
+  superuserSecret:
+    name: {{ .Release.Name }}-postgresql-cnpg-superuser
+
+  # Bootstrap a fresh, empty cluster. This does NOT migrate data from an
+  # existing StatefulSet — see the migration runbook in the chart docs.
+  bootstrap:
+    initdb:
+      database: {{ .Values.postgresql.auth.database | quote }}
+      owner: {{ .Values.postgresql.cnpg.owner | quote }}
+
+  storage:
+    size: {{ .Values.postgresql.primary.persistence.size | quote }}
+    {{- if .Values.postgresql.primary.persistence.storageClass }}
+    {{- if (eq "-" .Values.postgresql.primary.persistence.storageClass) }}
+    storageClass: ""
+    {{- else }}
+    storageClass: {{ .Values.postgresql.primary.persistence.storageClass | quote }}
+    {{- end }}
+    {{- else if .Values.global.storageClass }}
+    storageClass: {{ .Values.global.storageClass | quote }}
+    {{- end }}
+
+  {{- with .Values.postgresql.cnpg.parameters }}
+  postgresql:
+    parameters:
+      {{- range $key, $val := . }}
+      {{ $key }}: {{ $val | quote }}
+      {{- end }}
+  {{- end }}
+
+  {{- with .Values.postgresql.primary.resources }}
+  resources:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+  {{- if or .Values.postgresql.primary.nodeSelector .Values.postgresql.primary.tolerations .Values.postgresql.cnpg.affinity }}
+  affinity:
+    {{- with .Values.postgresql.primary.nodeSelector }}
+    nodeSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.postgresql.primary.tolerations }}
+    tolerations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.postgresql.cnpg.affinity }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- end }}
+{{- end }}

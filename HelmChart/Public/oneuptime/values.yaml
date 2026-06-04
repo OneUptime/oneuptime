@@ -148,6 +148,43 @@ postgresql:
       host    all             all             0.0.0.0/0               md5
       host    all             all             ::/0                    md5
 
+  # ---------------------------------------------------------------------------
+  # CloudNativePG (operator-managed PostgreSQL) — opt-in alternative to the
+  # built-in StatefulSet above.
+  #
+  # When cnpg.enabled is true:
+  #   * the StatefulSet / Service / ConfigMaps above are NOT rendered;
+  #   * an operator-managed CloudNativePG "Cluster" is created instead;
+  #   * the CloudNativePG operator is installed as a bundled chart dependency
+  #     (gated by this same flag — see Chart.yaml and the "cloudnative-pg:"
+  #     section at the bottom of this file).
+  #
+  # The OneUptime app still connects as the "postgres" superuser, so this is a
+  # drop-in replacement. It reuses postgresql.auth.database,
+  # postgresql.auth.postgresPassword and postgresql.primary.persistence /
+  # resources / nodeSelector / tolerations.
+  #
+  # NOTE: enabling cnpg bootstraps a FRESH, empty cluster (initdb). It does NOT
+  # migrate data from an existing StatefulSet. To migrate, keep the StatefulSet
+  # running and use CloudNativePG's logical import or pg_basebackup.
+  cnpg:
+    enabled: false
+    # 1 = single primary. >1 = primary + (N-1) hot standbys for HA.
+    instances: 1
+    # PostgreSQL operand image. Pin a specific minor for production (e.g. "17.4").
+    imageName: "ghcr.io/cloudnative-pg/postgresql:17"
+    # Owner role of the application database, created at bootstrap. The app
+    # connects as the postgres superuser, so this role only owns the database.
+    owner: oneuptime
+    # Extra postgresql.conf parameters. CloudNativePG manages everything else.
+    parameters:
+      max_connections: "100"
+      shared_buffers: "128MB"
+    # Advanced: extra CloudNativePG AffinityConfiguration fields merged into
+    # spec.affinity (e.g. podAntiAffinityType, topologyKey). nodeSelector and
+    # tolerations are taken from postgresql.primary.* above.
+    affinity: {}
+
 clickhouse:
   enabled: true
   auth:
@@ -871,3 +908,13 @@ queueDashboard:
 
 keda:
   enabled: true
+
+# CloudNativePG operator — bundled dependency. Installed ONLY when
+# postgresql.cnpg.enabled is true (see the condition in Chart.yaml).
+# Full operator values: https://github.com/cloudnative-pg/charts/tree/main/charts/cloudnative-pg
+cloudnative-pg:
+  # Install the CloudNativePG CRDs together with the operator.
+  crds:
+    create: true
+  # Operator controller replicas.
+  replicaCount: 1

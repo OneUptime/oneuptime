@@ -438,13 +438,17 @@ Usage:
 # Postgres configuration
 
 - name: DATABASE_HOST
-  {{- if $.Values.postgresql.enabled }}
+  {{- if and $.Values.postgresql.enabled $.Values.postgresql.cnpg.enabled }}
+  value: {{ $.Release.Name }}-postgresql-cnpg-rw.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+  {{- else if $.Values.postgresql.enabled }}
   value: {{ $.Release.Name }}-postgresql.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
   {{- else }}
   value: {{ $.Values.externalPostgres.host }}
   {{- end }}
 - name: DATABASE_PORT
-  {{- if $.Values.postgresql.enabled }}
+  {{- if and $.Values.postgresql.enabled $.Values.postgresql.cnpg.enabled }}
+  value: '5432'
+  {{- else if $.Values.postgresql.enabled }}
   value: {{ printf "%s" $.Values.postgresql.primary.service.ports.postgresql | squote }}
   {{- else }}
   value: {{ $.Values.externalPostgres.port | quote }}
@@ -456,7 +460,12 @@ Usage:
   value: {{ $.Values.externalPostgres.username }}
   {{- end }}
 - name: DATABASE_PASSWORD
-  {{- if $.Values.postgresql.enabled }}
+  {{- if and $.Values.postgresql.enabled $.Values.postgresql.cnpg.enabled }}
+  valueFrom:
+    secretKeyRef:
+        name: {{ printf "%s-postgresql-cnpg-superuser" $.Release.Name }}
+        key: password
+  {{- else if $.Values.postgresql.enabled }}
   valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "postgresql"  }}

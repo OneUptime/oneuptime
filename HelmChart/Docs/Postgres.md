@@ -82,3 +82,110 @@ FROM pg_database
 ORDER BY pg_database_size(datname) DESC;
 ```
 
+### Operator-managed Postgres with CloudNativePG (optional)
+
+By default OneUptime runs Postgres as a single-replica `StatefulSet` (no
+replication, failover, or built-in backups). You can instead run Postgres under
+the [CloudNativePG](https://cloudnative-pg.io) operator, which adds HA
+(primary + hot standbys), automated failover, rolling minor upgrades, and
+backup/PITR.
+
+Enabling it is a single switch. The CloudNativePG operator is **bundled** as a
+chart dependency and installed together with the release:
+
+```yaml
+# values.yaml
+postgresql:
+  enabled: true
+  auth:
+    database: oneuptimedb
+  cnpg:
+    enabled: true        # turns on the operator + an operator-managed Cluster
+    instances: 3         # 1 primary + 2 hot standbys (use 1 for single node)
+    imageName: "ghcr.io/cloudnative-pg/postgresql:17.4"   # pin a minor version
+```
+
+When `postgresql.cnpg.enabled` is `true`:
+
+* The built-in `StatefulSet`, its `Service`s and `ConfigMap`s are **not**
+  rendered.
+* A CloudNativePG `Cluster` named `<release>-postgresql-cnpg` is created.
+* The app connects as the `postgres` superuser to the read-write service
+  `<release>-postgresql-cnpg-rw` on port `5432`, using the password in the
+  `<release>-postgresql-cnpg-superuser` secret (auto-generated, or set
+  `postgresql.auth.postgresPassword`). The password is preserved across upgrades.
+* It reuses `postgresql.auth.database`, `postgresql.primary.persistence.size`,
+  `storageClass`, `resources`, `nodeSelector` and `tolerations`. CloudNativePG
+  parameters live under `postgresql.cnpg.parameters`.
+
+Read the superuser password:
+
+```
+echo $(kubectl get secret --namespace "default" oneuptime-postgresql-cnpg-superuser -o jsonpath="{.data.password}" | base64 -d)
+```
+
+> **Bundled-operator caveats.** The operator is cluster-scoped and owns the
+> CloudNativePG CRDs. Do **not** enable the bundled operator in more than one
+> OneUptime release in the same cluster (they would fight over the CRDs/RBAC).
+> Because the CRDs are installed by the chart, `helm uninstall` can remove them
+> and cascade-delete every CloudNativePG `Cluster` in the cluster — back up
+> first. If you already run CloudNativePG cluster-wide, do not use the bundled
+> mode.
+
+### Migrating existing StatefulSet data into CloudNativePG
+
+Turning on `cnpg.enabled` bootstraps a **fresh, empty** cluster — it does not
+copy data from the existing `StatefulSet`. There is no supported way to hand the
+operator your existing PV in place (different PVC ownership, a `pgdata`
+sub-directory layout, and a different runtime UID). Use one of these one-time
+migrations instead, keeping the old `StatefulSet` running until cutover.
+
+**Option A — logical import (recommended).** Apply a one-off `Cluster` that
+imports over the network with `pg_dump`/`pg_restore`. Version-flexible; downtime
+≈ dump/restore time. Keep the old StatefulSet (`postgresql.enabled: true`,
+`cnpg.enabled: false`) running while this completes, then cut the app over.
+
+```yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: oneuptime-postgresql-cnpg
+spec:
+  instances: 1                       # scale up AFTER recovery is healthy
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.4   # match/upgrade your major
+  storage:
+    size: 25Gi
+  superuserSecret:
+    name: oneuptime-postgresql-cnpg-superuser
+  enableSuperuserAccess: true
+  bootstrap:
+    initdb:
+      import:
+        type: microservice
+        databases: ["oneuptimedb"]
+        source:
+          externalCluster: old-statefulset
+  externalClusters:
+    - name: old-statefulset
+      connectionParameters:
+        host: oneuptime-postgresql      # the existing StatefulSet service
+        user: postgres
+        dbname: oneuptimedb
+      password:
+        name: oneuptime-postgresql      # existing secret
+        key: postgres-password
+```
+
+**Option B — `pg_basebackup` (minimal downtime, physical clone).** Requires the
+**same major version** as the source. Set `bootstrap.pg_basebackup` instead of
+`initdb.import`, pointing at the same `externalClusters` entry. Note: the
+StatefulSet's `pg_hba.conf` uses `host all all ...`, which does **not** match
+replication connections — add `host replication all 0.0.0.0/0 md5` to
+`postgresql.primary.hbaConfiguration` on the source first, or basebackup is
+rejected.
+
+After either migration completes and the new cluster is healthy, switch the
+release to operator mode (`postgresql.cnpg.enabled: true`) so the app points at
+`<release>-postgresql-cnpg-rw`, scale `instances` up for HA, then decommission
+the old StatefulSet and its PVC.
+
