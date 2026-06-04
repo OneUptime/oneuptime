@@ -491,6 +491,25 @@ kubectl delete namespace oneuptime-kubernetes-agent
 
 See the [Install the Kubernetes Agent](https://oneuptime.com/docs/monitor/kubernetes-agent) guide — it covers the "hostPath blocked" error, missing logs, and horizontal sharding for large clusters.
 
+### The cluster shows "Disconnected" and/or no data appears — run the diagnostic script
+
+This is usually one problem, not two: telemetry isn't being accepted, so the cluster never connects and nothing ingests. The most common cause — especially after a reinstall — is a **wrong or revoked ingestion key**, which is hard to spot because the OTLP endpoints answer `200` even for a bad token (to avoid making a misconfigured collector retry-storm the server). The collector therefore logs no errors while every byte is dropped.
+
+The bundled script checks pod health, decodes/validates the key, tests cluster egress, and asks OneUptime whether the token is actually accepted — then prints a single root-cause verdict:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+  | bash -s -- -n oneuptime-agent
+```
+
+It only reads cluster state and runs a couple of probes — it changes nothing. For the most accurate egress test, install with `--set debug.enabled=true` first (see below), then re-run.
+
+To validate a key by hand (`200` = valid, `401` = unknown/revoked):
+
+```bash
+curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" "$ONEUPTIME_URL/otlp/v1/validate"
+```
+
 ### Application pods crash with SIGSEGV after enabling log ↔ trace correlation
 
 If you enabled `ebpf.logToTraceCorrelation` (off by default) and **.NET application pods start crashing with `Exit Code: 139`** (SIGSEGV) within seconds of the eBPF DaemonSet starting, the cause is almost always a conflict with an `LD_PRELOAD`-based APM agent in the same pods.

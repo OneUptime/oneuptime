@@ -264,6 +264,15 @@ Cross-service trace context propagation is also on by default — OBI injects W3
 
 ## Troubleshooting
 
+> **Fastest path — run the diagnostic script.** It inspects pod health, decodes and validates the ingestion key, checks that your cluster can reach OneUptime, and asks OneUptime whether your token is actually accepted — then prints a single root-cause verdict:
+>
+> ```bash
+> curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+>   | bash -s -- -n oneuptime-agent
+> ```
+>
+> It only reads cluster state and runs a couple of probes; it changes nothing. For the most accurate egress test, install with `--set debug.enabled=true` first (this adds a small network-tools sidecar to the agent pods so the script tests the collector's exact egress path), then re-run.
+
 ### Install fails with "hostPath volumes are not allowed" or a Pod Security admission error
 
 Your cluster blocks `hostPath` — common on **GKE Autopilot** and **EKS Fargate**. Switch to the API-mode preset:
@@ -277,10 +286,28 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 ### Agent shows "Disconnected"
 
+A cluster's connected status is driven purely by telemetry arriving — if no data lands, the cluster is marked disconnected after ~5 minutes. So "disconnected" and "no metrics" almost always have the **same** cause: the agent's telemetry is not being accepted.
+
+The most common reason — especially after a reinstall — is a **wrong or revoked ingestion key**. This is easy to miss because the OTLP ingest endpoints deliberately return HTTP `200` even for a bad token (so a misconfigured collector can't retry-storm the server). The result: the collector reports success, its logs show no errors, and the data is silently dropped.
+
 1. Check that the agent pods are running: `kubectl get pods -n oneuptime-agent`
-2. Check the agent logs: `kubectl logs -n oneuptime-agent deployment/kubernetes-agent`
-3. Verify your OneUptime URL and API key are correct
-4. Ensure your cluster can reach the OneUptime instance over the network
+2. Check the metrics-collector logs: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector` (no errors here does **not** mean data is landing — see above)
+3. **Validate the ingestion key.** Ask OneUptime directly whether your token is accepted (`200` = valid, `401` = unknown/revoked):
+
+   ```bash
+   curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" https://oneuptime.com/otlp/v1/validate
+   ```
+
+   If it returns `401`, the key in your release is wrong or was revoked. Copy a live key from *Project Settings → Telemetry Ingestion Keys* and re-deploy:
+
+   ```bash
+   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+     --namespace oneuptime-agent --reuse-values \
+     --set oneuptime.apiKey=<LIVE_KEY>
+   ```
+
+4. Verify your OneUptime URL is correct and your cluster can reach it over the network.
+5. If you changed `clusterName` on reinstall, the agent appears as a **new** cluster — the old entry stays "Disconnected" (that's expected; it's stale).
 
 ### No logs appearing (API mode only)
 
@@ -291,9 +318,10 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 ### No metrics appearing
 
-1. Check that the cluster identifier matches the value you passed as `clusterName`
-2. Verify the RBAC permissions: `kubectl get clusterrolebinding | grep kubernetes-agent`
-3. Check the OTel collector logs for export errors
+1. First rule out a rejected ingestion key — it's the most common cause and is invisible from the agent side. See [Agent shows "Disconnected"](#agent-shows-disconnected) above (or just run the diagnostic script).
+2. Check that the cluster identifier matches the value you passed as `clusterName`
+3. Verify the RBAC permissions: `kubectl get clusterrolebinding | grep kubernetes-agent`
+4. Check the OTel collector logs for export errors
 
 ### eBPF pods are CrashLoopBackOff or fail to start
 

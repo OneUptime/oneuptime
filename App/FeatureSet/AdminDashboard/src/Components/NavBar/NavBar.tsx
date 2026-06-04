@@ -11,6 +11,12 @@ const DashboardNavbar: FunctionComponent = (): ReactElement => {
 
   const navItems: NavItem[] = [
     {
+      id: "health-nav-bar-item",
+      title: t("navbar.health"),
+      icon: IconProp.Activity,
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.HEALTH] as Route),
+    },
+    {
       id: "users-nav-bar-item",
       title: t("navbar.users"),
       icon: IconProp.User,

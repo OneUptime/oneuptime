@@ -7,7 +7,7 @@ import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 const Init: FunctionComponent = (): ReactElement => {
   useEffect(() => {
-    Navigation.navigate(RouteMap[PageMap.USERS]!, {
+    Navigation.navigate(RouteMap[PageMap.HEALTH]!, {
       forceNavigate: true,
     });
   }, []);
