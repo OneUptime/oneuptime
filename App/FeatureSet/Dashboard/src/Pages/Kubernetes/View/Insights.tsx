@@ -23,6 +23,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import KubernetesNetworkThroughputChart from "./KubernetesNetworkThroughputChart";
 import KubernetesCpuUtils, {
   NodeAllocatableCpu,
 } from "../Utils/KubernetesCpuUtils";
@@ -43,8 +44,6 @@ interface MetricSpec {
   legendUnit: string;
   metricName: string;
   aggregation: AggregationType;
-  /** Extra data-point attribute filters merged into the query (e.g. direction). */
-  attributes?: Record<string, string>;
   yAxisFormatter?: (value: number) => string;
   transformValue?:
     | ((value: number, dataPoint: AggregatedModel) => number)
@@ -68,7 +67,6 @@ function buildQuery(
         metricName: spec.metricName,
         attributes: {
           "resource.k8s.cluster.name": clusterIdentifier,
-          ...(spec.attributes || {}),
         },
         aggegationType: spec.aggregation,
         aggregateBy: {},
@@ -97,7 +95,8 @@ interface SectionProps {
   title: string;
   description: string;
   icon: IconProp;
-  data: MetricViewData;
+  data?: MetricViewData | undefined;
+  children?: ReactElement | undefined;
   timeRange: RangeStartAndEndDateTime;
   onTimeRangeChange: (newTimeRange: RangeStartAndEndDateTime) => void;
 }
@@ -121,13 +120,16 @@ const InsightsSection: FunctionComponent<SectionProps> = (
         />
       }
     >
-      <MetricView
-        data={props.data}
-        hideQueryElements={true}
-        hideStartAndEndDate={true}
-        hideCardInCharts={true}
-        onChange={() => {}}
-      />
+      {props.children ??
+        (props.data ? (
+          <MetricView
+            data={props.data}
+            hideQueryElements={true}
+            hideStartAndEndDate={true}
+            hideCardInCharts={true}
+            onChange={() => {}}
+          />
+        ) : null)}
     </Card>
   );
 };
@@ -177,46 +179,6 @@ function getNodeQueries(
         legendUnit: "",
         metricName: "k8s.node.filesystem.usage",
         aggregation: AggregationType.Sum,
-        yAxisFormatter: KubernetesResourceUtils.formatBytesForChart,
-      },
-      cluster,
-    ),
-  ];
-}
-
-/*
- * kubeletstats ships node network IO as a single cumulative
- * `k8s.node.network.io` counter with a `direction` attribute
- * (receive | transmit). The split-name `.receive` / `.transmit`
- * variants do not exist in the schema, so querying them rendered
- * empty charts. Query the one metric and filter by direction.
- */
-function getNetworkQueries(cluster: string): Array<MetricQueryConfigData> {
-  return [
-    buildQuery(
-      {
-        variable: "node_network_rx",
-        title: "Network Receive",
-        description: "Bytes received per node across the cluster.",
-        legend: "Received",
-        legendUnit: "",
-        metricName: "k8s.node.network.io",
-        attributes: { direction: "receive" },
-        aggregation: AggregationType.Max,
-        yAxisFormatter: KubernetesResourceUtils.formatBytesForChart,
-      },
-      cluster,
-    ),
-    buildQuery(
-      {
-        variable: "node_network_tx",
-        title: "Network Transmit",
-        description: "Bytes transmitted per node across the cluster.",
-        legend: "Transmitted",
-        legendUnit: "",
-        metricName: "k8s.node.network.io",
-        attributes: { direction: "transmit" },
-        aggregation: AggregationType.Max,
         yAxisFormatter: KubernetesResourceUtils.formatBytesForChart,
       },
       cluster,
@@ -336,10 +298,6 @@ const KubernetesClusterInsights: FunctionComponent<
     getNodeQueries(clusterIdentifier, allocatable),
     startAndEndDate,
   );
-  const networkData: MetricViewData = buildMetricViewData(
-    getNetworkQueries(clusterIdentifier),
-    startAndEndDate,
-  );
   const podData: MetricViewData = buildMetricViewData(
     getPodQueries(clusterIdentifier, allocatable),
     startAndEndDate,
@@ -358,12 +316,17 @@ const KubernetesClusterInsights: FunctionComponent<
 
       <InsightsSection
         title="Network"
-        description="Inbound and outbound network traffic across all nodes."
+        description="Per-second inbound and outbound network throughput across all nodes."
         icon={IconProp.Signal}
-        data={networkData}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
-      />
+      >
+        <KubernetesNetworkThroughputChart
+          clusterIdentifier={clusterIdentifier}
+          startDate={startAndEndDate.startValue}
+          endDate={startAndEndDate.endValue}
+        />
+      </InsightsSection>
 
       <InsightsSection
         title="Pods"

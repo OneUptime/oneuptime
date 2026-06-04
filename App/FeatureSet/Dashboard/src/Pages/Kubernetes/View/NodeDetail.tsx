@@ -22,6 +22,8 @@ import { Tab } from "Common/UI/Components/Tabs/Tab";
 import KubernetesOverviewTab from "../../../Components/Kubernetes/KubernetesOverviewTab";
 import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
+import KubernetesNetworkThroughputChart from "./KubernetesNetworkThroughputChart";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
 import {
   KubernetesCondition,
   KubernetesNodeObject,
@@ -186,58 +188,6 @@ const KubernetesClusterNodeDetail: FunctionComponent<
           "resource.k8s.node.name": nodeName,
         },
         aggegationType: AggregationType.Avg,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-    yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
-  };
-
-  const networkRxQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "node_network_rx",
-      title: "Network Receive",
-      description: `Network bytes received for node ${nodeName}`,
-      legend: "Network RX",
-      legendUnit: "",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "k8s.node.network.io",
-        attributes: {
-          "resource.k8s.cluster.name": clusterIdentifier,
-          "resource.k8s.node.name": nodeName,
-          direction: "receive",
-        },
-        aggegationType: AggregationType.Max,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-    yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
-  };
-
-  const networkTxQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "node_network_tx",
-      title: "Network Transmit",
-      description: `Network bytes transmitted for node ${nodeName}`,
-      legend: "Network TX",
-      legendUnit: "",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "k8s.node.network.io",
-        attributes: {
-          "resource.k8s.cluster.name": clusterIdentifier,
-          "resource.k8s.node.name": nodeName,
-          direction: "transmit",
-        },
-        aggegationType: AggregationType.Max,
         aggregateBy: {},
       },
       groupBy: {
@@ -436,13 +386,22 @@ const KubernetesClusterNodeDetail: FunctionComponent<
           description="CPU, memory, filesystem, and network usage for this node over the last 6 hours."
         >
           <KubernetesMetricsTab
-            queryConfigs={[
-              cpuQuery,
-              memoryQuery,
-              filesystemQuery,
-              networkRxQuery,
-              networkTxQuery,
-            ]}
+            queryConfigs={[cpuQuery, memoryQuery, filesystemQuery]}
+            renderExtraCharts={(dateRange: InBetween<Date>): ReactElement => {
+              return (
+                <div className="mt-4">
+                  <div className="mb-2 text-sm font-medium text-gray-700">
+                    Network Throughput
+                  </div>
+                  <KubernetesNetworkThroughputChart
+                    clusterIdentifier={clusterIdentifier}
+                    nodeName={nodeName}
+                    startDate={dateRange.startValue}
+                    endDate={dateRange.endValue}
+                  />
+                </div>
+              );
+            }}
           />
         </Card>
       ),
