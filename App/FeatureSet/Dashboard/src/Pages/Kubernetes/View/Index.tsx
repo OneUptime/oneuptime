@@ -547,9 +547,10 @@ const KubernetesClusterOverview: FunctionComponent<
         allocatableEnd,
         -2,
       );
-      const [pods, allocatable]: [
+      const [pods, allocatable, nodeAllocatableMemory]: [
         Array<KubernetesResource>,
         NodeAllocatableCpu,
+        Map<string, number>,
       ] = await Promise.all([
         KubernetesResourceUtils.fetchResourceListWithMemory({
           clusterIdentifier: clusterIdentifier,
@@ -563,6 +564,7 @@ const KubernetesClusterOverview: FunctionComponent<
           startDate: allocatableStart,
           endDate: allocatableEnd,
         }),
+        KubernetesResourceUtils.fetchNodeAllocatableMemory(modelId),
       ]);
 
       /*
@@ -581,6 +583,29 @@ const KubernetesClusterOverview: FunctionComponent<
         // Keep raw cores if allocatable is unavailable for the cluster.
         if (denominator > 0) {
           pod.cpuUtilization = (pod.cpuUtilization / denominator) * 100;
+        }
+      }
+
+      /*
+       * Mirror the CPU normalization for memory: turn raw pod memory
+       * bytes into a true "% of the pod's node allocatable memory" so
+       * the panel reads as a percentage, consistent with the CPU panel
+       * and the list views. Left unset when the node's allocatable
+       * memory is unknown — the render then falls back to bytes.
+       */
+      for (const pod of pods) {
+        if (
+          pod.memoryUsageBytes === null ||
+          pod.memoryUsageBytes === undefined
+        ) {
+          continue;
+        }
+        const nodeName: string =
+          pod.additionalAttributes[NODE_NAME_ATTRIBUTE] || "";
+        const nodeMemory: number | undefined =
+          nodeAllocatableMemory.get(nodeName);
+        if (nodeMemory && nodeMemory > 0) {
+          pod.memoryUtilization = (pod.memoryUsageBytes / nodeMemory) * 100;
         }
       }
 
@@ -2575,10 +2600,19 @@ const KubernetesClusterOverview: FunctionComponent<
                     (pod: KubernetesResource, index: number) => {
                       const maxMemory: number =
                         topMemoryPods[0]?.memoryUsageBytes ?? 1;
+                      /*
+                       * Bar width: prefer the true "% of node allocatable
+                       * memory" (parallel to the CPU panel); fall back to
+                       * a relative-to-largest bar when the node's
+                       * allocatable memory is unknown.
+                       */
                       const memPercent: number =
-                        maxMemory > 0
-                          ? ((pod.memoryUsageBytes ?? 0) / maxMemory) * 100
-                          : 0;
+                        pod.memoryUtilization !== null &&
+                        pod.memoryUtilization !== undefined
+                          ? Math.min(pod.memoryUtilization, 100)
+                          : maxMemory > 0
+                            ? ((pod.memoryUsageBytes ?? 0) / maxMemory) * 100
+                            : 0;
                       return (
                         <div
                           key={index}
@@ -2611,11 +2645,24 @@ const KubernetesClusterOverview: FunctionComponent<
                                 </span>
                               )}
                             </div>
-                            <span className="flex-shrink-0 text-sm font-semibold text-gray-700 tabular-nums ml-2">
-                              {KubernetesResourceUtils.formatMemoryValue(
-                                pod.memoryUsageBytes,
-                              )}
-                            </span>
+                            <div className="flex-shrink-0 text-right ml-2">
+                              <div className="text-sm font-semibold text-gray-700 tabular-nums">
+                                {pod.memoryUtilization !== null &&
+                                pod.memoryUtilization !== undefined
+                                  ? `${pod.memoryUtilization.toFixed(1)}%`
+                                  : KubernetesResourceUtils.formatMemoryValue(
+                                      pod.memoryUsageBytes,
+                                    )}
+                              </div>
+                              {pod.memoryUtilization !== null &&
+                              pod.memoryUtilization !== undefined ? (
+                                <div className="text-xs text-gray-400 tabular-nums">
+                                  {KubernetesResourceUtils.formatMemoryValue(
+                                    pod.memoryUsageBytes,
+                                  )}
+                                </div>
+                              ) : null}
+                            </div>
                           </div>
                           <div className="pl-6">
                             <div className="w-full bg-gray-100 rounded-full h-1.5">
