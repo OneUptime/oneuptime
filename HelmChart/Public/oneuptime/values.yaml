@@ -193,6 +193,24 @@ postgresOperator:
     # Advanced: extra CloudNativePG AffinityConfiguration fields merged into
     # spec.affinity (e.g. podAntiAffinityType, topologyKey).
     affinity: {}
+    # Scheduled volume-snapshot backups (native — no object store / WAL archiving).
+    #
+    # NOTE: CloudNativePG does NOT auto-prune volume snapshots (retentionPolicy is an
+    # object-store-only, deprecated feature). Old snapshots accumulate until deleted —
+    # prune them externally, or use object-store backups (Barman Cloud Plugin) for
+    # automatic retention + point-in-time recovery.
+    backup:
+      enabled: false
+      # 6-field cron WITH a leading seconds field (CNPG/robfig format, not k8s CronJob).
+      # Default: daily at 03:00.
+      schedule: "0 0 3 * * *"
+      # Take a backup immediately when the schedule is first created.
+      immediate: true
+      # CSI VolumeSnapshotClass to use. Empty = the driver's default class.
+      volumeSnapshotClassName: ""
+      # Online (hot) snapshot — no downtime. false = cold snapshot (fences a standby;
+      # on a single-instance cluster this briefly stops the primary).
+      online: true
 
 clickhouse:
   enabled: true

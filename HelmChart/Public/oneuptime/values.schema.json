@@ -471,7 +471,18 @@
                         "resources": { "type": ["object", "null"] },
                         "nodeSelector": { "type": "object" },
                         "tolerations": { "type": "array" },
-                        "affinity": { "type": "object" }
+                        "affinity": { "type": "object" },
+                        "backup": {
+                            "type": "object",
+                            "properties": {
+                                "enabled": { "type": "boolean" },
+                                "schedule": { "type": "string" },
+                                "immediate": { "type": "boolean" },
+                                "volumeSnapshotClassName": { "type": "string" },
+                                "online": { "type": "boolean" }
+                            },
+                            "additionalProperties": false
+                        }
                     },
                     "additionalProperties": false
                 }

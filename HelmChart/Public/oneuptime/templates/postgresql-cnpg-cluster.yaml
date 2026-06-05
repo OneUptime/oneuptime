@@ -44,6 +44,16 @@ spec:
     storageClass: {{ .Values.global.storageClass | quote }}
     {{- end }}
 
+  {{- $backup := $cnpg.backup | default dict }}
+  {{- if $backup.enabled }}
+  backup:
+    volumeSnapshot:
+      {{- if $backup.volumeSnapshotClassName }}
+      className: {{ $backup.volumeSnapshotClassName | quote }}
+      {{- end }}
+      online: {{ $backup.online }}
+  {{- end }}
+
   {{- $syncReplicas := int (default 0 $cnpg.synchronousReplicas) }}
   {{- if or $cnpg.parameters (gt $syncReplicas 0) }}
   postgresql:

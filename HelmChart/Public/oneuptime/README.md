@@ -240,6 +240,20 @@ Keep `instances >= synchronousReplicas + 2` so writes don't block when a single 
 
 **Read scaling.** The operator also creates `<release>-postgresql-cnpg-ro` (load-balanced across replicas) and `<release>-postgresql-cnpg-r` (any instance). Point read-heavy/reporting workloads at `-ro`; the OneUptime app itself uses the `-rw` (primary) endpoint.
 
+**Backups.** Enable scheduled, online **volume-snapshot** backups — native, with no object store or extra components:
+
+```yaml
+postgresOperator:
+  cnpg:
+    enabled: true
+    backup:
+      enabled: true
+      schedule: "0 0 3 * * *"      # 6-field cron (incl. seconds) — 3am daily
+      volumeSnapshotClassName: ""  # your CSI VolumeSnapshotClass (empty = default)
+```
+
+This configures the cluster for CSI snapshot backups and creates a `ScheduledBackup`. Requires a CSI driver with `VolumeSnapshot` support. Restore is a new cluster that bootstraps from a snapshot (optionally to a point in time) — see [Docs/Postgres.md](../../Docs/Postgres.md). Note: CloudNativePG does **not** auto-prune volume snapshots (its `retentionPolicy` is object-store-only), so prune old snapshots yourself, or use object-store backups (Barman Cloud Plugin) for automatic retention + continuous PITR.
+
 **Sharding is not supported.** Neither CloudNativePG nor this chart shards PostgreSQL horizontally, and OneUptime does not need it at typical scale. Scale PostgreSQL with a larger node (vertical), read replicas (above), connection pooling, and PostgreSQL table partitioning for very large tables. True distributed sharding would require the Citus extension (or an operator such as StackGres that wraps it) — a different architecture that is out of scope for this chart.
 
 > **Bundled-operator notes.** The CloudNativePG operator is cluster-scoped and owns the CloudNativePG CRDs. Do not enable it in more than one OneUptime release per cluster, and note that `helm uninstall` can remove the CRDs (and cascade-delete clusters) — back up first. Tune the operator itself under the top-level `cloudnative-pg:` values.

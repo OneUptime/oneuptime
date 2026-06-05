@@ -165,6 +165,47 @@ sizing, read replicas, connection pooling, and PostgreSQL table partitioning for
 very large tables. Distributed sharding requires the Citus extension (or an
 operator that wraps it) — a separate architecture, out of scope here.
 
+### Backups (CloudNativePG volume snapshots)
+
+Enable scheduled, online volume-snapshot backups — native to CloudNativePG, with
+no object store or extra components:
+
+```yaml
+postgresOperator:
+  cnpg:
+    enabled: true
+    backup:
+      enabled: true
+      schedule: "0 0 3 * * *"      # 6-field cron WITH seconds — 03:00 daily
+      immediate: true
+      volumeSnapshotClassName: ""  # your CSI VolumeSnapshotClass (empty = default)
+      online: true                 # hot snapshot, no downtime
+```
+
+This sets `spec.backup.volumeSnapshot` on the cluster and creates a
+`ScheduledBackup` named `<release>-postgresql-cnpg-backup`. Requirements: a CSI
+driver that supports `VolumeSnapshot`, and a `VolumeSnapshotClass` (set
+`volumeSnapshotClassName`, or rely on the driver default). Volume snapshots do
+**not** require WAL archiving / an object store.
+
+On-demand backup (needs the `cnpg` kubectl plugin):
+
+```
+kubectl cnpg backup <release>-postgresql-cnpg
+```
+
+**Restore** is a brand-new cluster that bootstraps from a snapshot instead of
+`initdb` (the same `bootstrap.recovery` mechanism shown below), optionally with a
+`recoveryTarget` for point-in-time recovery.
+
+**Retention caveat.** CloudNativePG does **not** auto-prune volume snapshots —
+`spec.backup.retentionPolicy` applies only to object-store (Barman) backups and is
+deprecated. With snapshots, old `Backup` / `VolumeSnapshot` objects accumulate
+until deleted. Options: prune them with your own job/process, rely on your CSI
+driver or cloud provider's snapshot lifecycle, or switch to object-store backups
+(Barman Cloud Plugin) which support a recovery-window retention policy plus
+continuous WAL archiving (full PITR).
+
 ### Migrating existing StatefulSet data into CloudNativePG
 
 Turning on `postgresOperator.cnpg.enabled` bootstraps a **fresh, empty**
