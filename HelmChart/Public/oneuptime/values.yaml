@@ -169,7 +169,7 @@ postgresOperator:
     # 1 = single primary. >1 = primary + (N-1) hot standbys for HA.
     instances: 1
     # PostgreSQL operand image. Pin a specific minor for production (e.g. "17.4").
-    imageName: "ghcr.io/cloudnative-pg/postgresql:17"
+    imageName: "ghcr.io/cloudnative-pg/postgresql:latest"
     # Application database and its owner role, created at bootstrap.
     database: oneuptimedb
     owner: oneuptime
