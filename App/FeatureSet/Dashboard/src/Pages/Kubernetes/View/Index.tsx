@@ -30,6 +30,10 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import KubernetesResourceUtils, {
   KubernetesResource,
 } from "../Utils/KubernetesResourceUtils";
+import KubernetesCpuUtils, {
+  NodeAllocatableCpu,
+  NODE_NAME_ATTRIBUTE,
+} from "../Utils/KubernetesCpuUtils";
 import {
   fetchClusterWarningEvents,
   KubernetesEvent,
@@ -84,6 +88,7 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import { computeNetworkRate } from "../Utils/KubernetesNetworkUtils";
 
 interface ResourceLink {
   title: string;
@@ -537,13 +542,72 @@ const KubernetesClusterOverview: FunctionComponent<
     clusterIdentifier: string,
   ): Promise<void> => {
     try {
-      const pods: Array<KubernetesResource> =
-        await KubernetesResourceUtils.fetchResourceListWithMemory({
+      const allocatableEnd: Date = OneUptimeDate.getCurrentDate();
+      const allocatableStart: Date = OneUptimeDate.addRemoveHours(
+        allocatableEnd,
+        -2,
+      );
+      const [pods, allocatable, nodeAllocatableMemory]: [
+        Array<KubernetesResource>,
+        NodeAllocatableCpu,
+        Map<string, number>,
+      ] = await Promise.all([
+        KubernetesResourceUtils.fetchResourceListWithMemory({
           clusterIdentifier: clusterIdentifier,
           metricName: "k8s.pod.cpu.utilization",
           resourceNameAttribute: "resource.k8s.pod.name",
           memoryMetricName: "k8s.pod.memory.usage",
-        });
+          additionalAttributes: [NODE_NAME_ATTRIBUTE],
+        }),
+        KubernetesCpuUtils.fetchNodeAllocatableCpu({
+          clusterIdentifier: clusterIdentifier,
+          startDate: allocatableStart,
+          endDate: allocatableEnd,
+        }),
+        KubernetesResourceUtils.fetchNodeAllocatableMemory(modelId),
+      ]);
+
+      /*
+       * `k8s.pod.cpu.utilization` is CPU cores in use per pod, not a
+       * ratio. Convert to a true "% of the pod's node capacity" using
+       * that node's allocatable CPU so the value reads as a real
+       * percentage instead of raw cores.
+       */
+      for (const pod of pods) {
+        if (pod.cpuUtilization === null || pod.cpuUtilization === undefined) {
+          continue;
+        }
+        const nodeName: string =
+          pod.additionalAttributes[NODE_NAME_ATTRIBUTE] || "";
+        const denominator: number = allocatable.denominatorForNode(nodeName);
+        // Keep raw cores if allocatable is unavailable for the cluster.
+        if (denominator > 0) {
+          pod.cpuUtilization = (pod.cpuUtilization / denominator) * 100;
+        }
+      }
+
+      /*
+       * Mirror the CPU normalization for memory: turn raw pod memory
+       * bytes into a true "% of the pod's node allocatable memory" so
+       * the panel reads as a percentage, consistent with the CPU panel
+       * and the list views. Left unset when the node's allocatable
+       * memory is unknown — the render then falls back to bytes.
+       */
+      for (const pod of pods) {
+        if (
+          pod.memoryUsageBytes === null ||
+          pod.memoryUsageBytes === undefined
+        ) {
+          continue;
+        }
+        const nodeName: string =
+          pod.additionalAttributes[NODE_NAME_ATTRIBUTE] || "";
+        const nodeMemory: number | undefined =
+          nodeAllocatableMemory.get(nodeName);
+        if (nodeMemory && nodeMemory > 0) {
+          pod.memoryUtilization = (pod.memoryUsageBytes / nodeMemory) * 100;
+        }
+      }
 
       const sortedByCpu: Array<KubernetesResource> = [...pods]
         .filter((p: KubernetesResource) => {
@@ -591,13 +655,15 @@ const KubernetesClusterOverview: FunctionComponent<
 
   /*
    * Golden cluster metrics — aggregate across all nodes for the
-   * selected time range. CPU is an OTel `.utilization` ratio so we
-   * multiply by 100. Memory and filesystem live in absolute bytes
-   * client-side. Filesystem turns into a percent because
-   * `k8s.node.filesystem.available` is also emitted, so
-   * usage / (usage + available) is a clean per-node fraction we can
-   * then average. Network counters are cumulative — we delta them
-   * client-side to get rates.
+   * selected time range. CPU is cores in use (`k8s.node.cpu.
+   * utilization` is a misnamed cores gauge, not a ratio), so we sum it
+   * across nodes and divide by the cluster's allocatable CPU
+   * (`k8s.node.allocatable_cpu`) to get a true percentage. Memory and
+   * filesystem live in absolute bytes client-side. Filesystem turns
+   * into a percent because `k8s.node.filesystem.available` is also
+   * emitted, so usage / (usage + available) is a clean per-node
+   * fraction we can then average. Network counters are cumulative — we
+   * delta them client-side to get rates.
    */
   const loadGoldenMetrics: (
     clusterIdentifier: string,
@@ -693,6 +759,18 @@ const KubernetesClusterOverview: FunctionComponent<
         AggregationType.Count,
       );
 
+      /*
+       * Denominator for CPU%: each node's allocatable CPU (cores) from
+       * the k8s_cluster receiver's `k8s.node.allocatable_cpu`. Fetched
+       * in parallel with the usage queries below.
+       */
+      const allocatablePromise: Promise<NodeAllocatableCpu> =
+        KubernetesCpuUtils.fetchNodeAllocatableCpu({
+          clusterIdentifier: clusterIdentifier,
+          startDate: startDate,
+          endDate: endDate,
+        });
+
       const [
         cpuResult,
         memResult,
@@ -734,6 +812,8 @@ const KubernetesClusterOverview: FunctionComponent<
         }),
       ]);
 
+      const allocatable: NodeAllocatableCpu = await allocatablePromise;
+
       const getBucketTimestamp: (p: AggregatedModel) => number = (
         p: AggregatedModel,
       ): number => {
@@ -749,50 +829,6 @@ const KubernetesClusterOverview: FunctionComponent<
       };
 
       type TimeValuePoint = { x: Date; y: number };
-
-      /*
-       * Average per-bucket across nodes. A bucket's value is the
-       * mean of every (node, mount, device, ...) datapoint in it —
-       * for CPU and memory that collapses to "average node",
-       * which is the closest single number to "how busy is the
-       * cluster" without a true cluster-level metric.
-       */
-      const meanPerBucket: (
-        result: AggregatedResult,
-        scale: number,
-      ) => Array<TimeValuePoint> = (
-        result: AggregatedResult,
-        scale: number,
-      ): Array<TimeValuePoint> => {
-        const perBucket: Map<number, { sum: number; count: number }> =
-          new Map();
-        for (const p of (result.data || []) as Array<AggregatedModel>) {
-          const t: number = getBucketTimestamp(p);
-          const v: number = Number(p["value"]);
-          if (!Number.isFinite(t) || !Number.isFinite(v)) {
-            continue;
-          }
-          let entry: { sum: number; count: number } | undefined =
-            perBucket.get(t);
-          if (!entry) {
-            entry = { sum: 0, count: 0 };
-            perBucket.set(t, entry);
-          }
-          entry.sum += v;
-          entry.count += 1;
-        }
-        const out: Array<TimeValuePoint> = [];
-        for (const [t, e] of perBucket.entries()) {
-          if (e.count === 0) {
-            continue;
-          }
-          out.push({ x: new Date(t), y: (e.sum / e.count) * scale });
-        }
-        out.sort((a: TimeValuePoint, b: TimeValuePoint): number => {
-          return a.x.getTime() - b.x.getTime();
-        });
-        return out;
-      };
 
       /*
        * Total per-bucket across nodes — sum of nodal values per
@@ -847,7 +883,23 @@ const KubernetesClusterOverview: FunctionComponent<
         return count > 0 ? sum / count : null;
       };
 
-      const cpuPoints: Array<TimeValuePoint> = meanPerBucket(cpuResult, 100);
+      /*
+       * Cluster CPU% = total cores in use across all nodes / total
+       * allocatable cores across all nodes * 100. `k8s.node.cpu.
+       * utilization` is cores in use per node (NOT a 0-1 ratio), so we
+       * sum it across nodes per bucket and divide by the cluster's
+       * allocatable CPU. When allocatable is unavailable we render no
+       * CPU series rather than the old cores*100 number (which read as
+       * e.g. "711%").
+       */
+      const clusterAllocatableCores: number = allocatable.clusterTotalCores;
+      const cpuUsagePerBucket: Array<TimeValuePoint> = sumPerBucket(cpuResult);
+      const cpuPoints: Array<TimeValuePoint> =
+        clusterAllocatableCores > 0
+          ? cpuUsagePerBucket.map((p: TimeValuePoint): TimeValuePoint => {
+              return { x: p.x, y: (p.y / clusterAllocatableCores) * 100 };
+            })
+          : [];
       const memoryPoints: Array<TimeValuePoint> = sumPerBucket(memResult);
 
       /*
@@ -933,89 +985,15 @@ const KubernetesClusterOverview: FunctionComponent<
       })();
 
       /*
-       * Network — cumulative byte counters per (node, interface,
-       * direction). Convert to per-bucket rate by taking deltas
-       * between consecutive buckets per series, clamping negatives
-       * to 0, and summing rates across (node, interface) per
-       * bucket per direction.
+       * Network — cumulative byte counters converted to per-second
+       * rates per direction. Shared with the insights and node-detail
+       * network charts via KubernetesNetworkUtils.computeNetworkRate.
        */
-      const computeNetRate: (
-        result: AggregatedResult,
-        direction: "receive" | "transmit",
-      ) => Array<TimeValuePoint> = (
-        result: AggregatedResult,
-        direction: "receive" | "transmit",
-      ): Array<TimeValuePoint> => {
-        const perKey: Map<string, Array<{ t: number; v: number }>> = new Map();
-        for (const p of (result.data || []) as Array<AggregatedModel>) {
-          const attrs: Record<string, unknown> =
-            (p["attributes"] as Record<string, unknown>) || {};
-          const pointDirection: string = (attrs["direction"] as string) || "";
-          if (pointDirection !== direction) {
-            continue;
-          }
-          const node: string =
-            (attrs["resource.k8s.node.name"] as string) || "";
-          const interfaceName: string =
-            (attrs["interface"] as string) ||
-            (attrs["network.interface"] as string) ||
-            "";
-          if (!node) {
-            continue;
-          }
-          const key: string = `${node}|${interfaceName}`;
-          const t: number = getBucketTimestamp(p);
-          const v: number = Number(p["value"]);
-          if (!Number.isFinite(t) || !Number.isFinite(v)) {
-            continue;
-          }
-          let arr: Array<{ t: number; v: number }> | undefined =
-            perKey.get(key);
-          if (!arr) {
-            arr = [];
-            perKey.set(key, arr);
-          }
-          arr.push({ t, v });
-        }
-        const perBucket: Map<number, number> = new Map();
-        for (const arr of perKey.values()) {
-          arr.sort(
-            (
-              a: { t: number; v: number },
-              b: { t: number; v: number },
-            ): number => {
-              return a.t - b.t;
-            },
-          );
-          for (let i: number = 1; i < arr.length; i++) {
-            const prev: { t: number; v: number } = arr[i - 1]!;
-            const cur: { t: number; v: number } = arr[i]!;
-            const dtSec: number = (cur.t - prev.t) / 1000;
-            if (dtSec <= 0) {
-              continue;
-            }
-            const dv: number = cur.v - prev.v;
-            if (!Number.isFinite(dv)) {
-              continue;
-            }
-            const rate: number = Math.max(0, dv) / dtSec;
-            perBucket.set(cur.t, (perBucket.get(cur.t) || 0) + rate);
-          }
-        }
-        return Array.from(perBucket.entries())
-          .map(([t, y]: [number, number]): TimeValuePoint => {
-            return { x: new Date(t), y: y };
-          })
-          .sort((a: TimeValuePoint, b: TimeValuePoint): number => {
-            return a.x.getTime() - b.x.getTime();
-          });
-      };
-
-      const networkInPoints: Array<TimeValuePoint> = computeNetRate(
+      const networkInPoints: Array<TimeValuePoint> = computeNetworkRate(
         networkResult,
         "receive",
       );
-      const networkOutPoints: Array<TimeValuePoint> = computeNetRate(
+      const networkOutPoints: Array<TimeValuePoint> = computeNetworkRate(
         networkResult,
         "transmit",
       );
@@ -2622,10 +2600,19 @@ const KubernetesClusterOverview: FunctionComponent<
                     (pod: KubernetesResource, index: number) => {
                       const maxMemory: number =
                         topMemoryPods[0]?.memoryUsageBytes ?? 1;
+                      /*
+                       * Bar width: prefer the true "% of node allocatable
+                       * memory" (parallel to the CPU panel); fall back to
+                       * a relative-to-largest bar when the node's
+                       * allocatable memory is unknown.
+                       */
                       const memPercent: number =
-                        maxMemory > 0
-                          ? ((pod.memoryUsageBytes ?? 0) / maxMemory) * 100
-                          : 0;
+                        pod.memoryUtilization !== null &&
+                        pod.memoryUtilization !== undefined
+                          ? Math.min(pod.memoryUtilization, 100)
+                          : maxMemory > 0
+                            ? ((pod.memoryUsageBytes ?? 0) / maxMemory) * 100
+                            : 0;
                       return (
                         <div
                           key={index}
@@ -2658,11 +2645,24 @@ const KubernetesClusterOverview: FunctionComponent<
                                 </span>
                               )}
                             </div>
-                            <span className="flex-shrink-0 text-sm font-semibold text-gray-700 tabular-nums ml-2">
-                              {KubernetesResourceUtils.formatMemoryValue(
-                                pod.memoryUsageBytes,
-                              )}
-                            </span>
+                            <div className="flex-shrink-0 text-right ml-2">
+                              <div className="text-sm font-semibold text-gray-700 tabular-nums">
+                                {pod.memoryUtilization !== null &&
+                                pod.memoryUtilization !== undefined
+                                  ? `${pod.memoryUtilization.toFixed(1)}%`
+                                  : KubernetesResourceUtils.formatMemoryValue(
+                                      pod.memoryUsageBytes,
+                                    )}
+                              </div>
+                              {pod.memoryUtilization !== null &&
+                              pod.memoryUtilization !== undefined ? (
+                                <div className="text-xs text-gray-400 tabular-nums">
+                                  {KubernetesResourceUtils.formatMemoryValue(
+                                    pod.memoryUsageBytes,
+                                  )}
+                                </div>
+                              ) : null}
+                            </div>
                           </div>
                           <div className="pl-6">
                             <div className="w-full bg-gray-100 rounded-full h-1.5">

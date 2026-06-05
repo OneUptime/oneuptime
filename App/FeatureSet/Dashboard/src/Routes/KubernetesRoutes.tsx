@@ -40,6 +40,10 @@ import KubernetesClusterViewEvents from "../Pages/Kubernetes/View/Events";
 import KubernetesClusterViewInsights from "../Pages/Kubernetes/View/Insights";
 import KubernetesClusterViewControlPlane from "../Pages/Kubernetes/View/ControlPlane";
 import KubernetesClusterViewServiceMesh from "../Pages/Kubernetes/View/ServiceMesh";
+import KubernetesClusterViewMetrics from "../Pages/Kubernetes/View/Metrics";
+import KubernetesClusterViewTraces from "../Pages/Kubernetes/View/Traces";
+import KubernetesClusterViewLogs from "../Pages/Kubernetes/View/Logs";
+import KubernetesClusterViewProfiles from "../Pages/Kubernetes/View/Profiles";
 import KubernetesClusterViewIncidents from "../Pages/Kubernetes/View/Incidents";
 import KubernetesClusterViewAlerts from "../Pages/Kubernetes/View/Alerts";
 import KubernetesClusterViewScheduledMaintenance from "../Pages/Kubernetes/View/ScheduledMaintenance";
@@ -573,6 +577,66 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_MESH] as Route
+              }
+            />
+          }
+        />
+
+        {/* Metrics */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_METRICS,
+          )}
+          element={
+            <KubernetesClusterViewMetrics
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_METRICS] as Route
+              }
+            />
+          }
+        />
+
+        {/* Traces */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_TRACES,
+          )}
+          element={
+            <KubernetesClusterViewTraces
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_TRACES] as Route
+              }
+            />
+          }
+        />
+
+        {/* Logs */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_LOGS,
+          )}
+          element={
+            <KubernetesClusterViewLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_LOGS] as Route
+              }
+            />
+          }
+        />
+
+        {/* Profiles */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_PROFILES,
+          )}
+          element={
+            <KubernetesClusterViewProfiles
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_PROFILES] as Route
               }
             />
           }

@@ -21,6 +21,10 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/configmap-daemonset.yaml") . | sha256sum }}
     spec:
       serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
+      {{- if and .Values.debug.enabled .Values.debug.shareProcessNamespace }}
+      # Lets the debug sidecar see the collector's processes (ps, /proc, strace).
+      shareProcessNamespace: true
+      {{- end }}
       tolerations:
         - operator: Exists
       containers:
@@ -87,6 +91,9 @@ spec:
               mountPath: /var/log/kubernetes
               readOnly: true
             {{- end }}
+        {{- if .Values.debug.enabled }}
+        {{- include "kubernetes-agent.debugContainer" . | nindent 8 }}
+        {{- end }}
       volumes:
         - name: config
           configMap:

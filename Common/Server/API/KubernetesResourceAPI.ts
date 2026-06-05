@@ -143,19 +143,24 @@ export default class KubernetesResourceAPI extends BaseAPI<
 
   /*
    * Translate a service-layer Map of aggregates into a JSON dict
-   * { name: { cpuPercent, memoryBytes } } suitable for the wire.
-   * memoryBytes is stringified so values past 2 GiB don't overflow
-   * client-side number parsing in the JSON path; the UI parses it
-   * back to a number for rendering.
+   * { name: { cpuPercent, memoryBytes, memoryPercent } } suitable for
+   * the wire. memoryBytes is stringified so values past 2 GiB don't
+   * overflow client-side number parsing in the JSON path; the UI parses
+   * it back to a number for rendering. memoryPercent is the summed
+   * per-pod "% of node allocatable memory" (parallel to cpuPercent).
    */
   private mapAggregatesToJson(
-    aggregates: Map<string, { cpuPercent: number; memoryBytes: number }>,
+    aggregates: Map<
+      string,
+      { cpuPercent: number; memoryBytes: number; memoryPercent: number }
+    >,
   ): JSONObject {
     const out: JSONObject = {};
     for (const [name, value] of aggregates.entries()) {
       out[name] = {
         cpuPercent: value.cpuPercent,
         memoryBytes: value.memoryBytes.toString(),
+        memoryPercent: value.memoryPercent,
       };
     }
     return out;
@@ -169,12 +174,14 @@ export default class KubernetesResourceAPI extends BaseAPI<
       await this.resolveClusterForRequest(req);
 
     const staleAfter: Date = new Date(Date.now() - 15 * 60 * 1000);
-    const aggregates: Map<string, { cpuPercent: number; memoryBytes: number }> =
-      await this.service.getLatestMetricsByNamespace({
-        projectId,
-        kubernetesClusterId,
-        staleAfter,
-      });
+    const aggregates: Map<
+      string,
+      { cpuPercent: number; memoryBytes: number; memoryPercent: number }
+    > = await this.service.getLatestMetricsByNamespace({
+      projectId,
+      kubernetesClusterId,
+      staleAfter,
+    });
 
     return Response.sendJsonObjectResponse(req, res, {
       aggregates: this.mapAggregatesToJson(aggregates),
@@ -210,13 +217,15 @@ export default class KubernetesResourceAPI extends BaseAPI<
       await this.resolveClusterForRequest(req);
 
     const staleAfter: Date = new Date(Date.now() - 15 * 60 * 1000);
-    const aggregates: Map<string, { cpuPercent: number; memoryBytes: number }> =
-      await this.service.getLatestMetricsByOwner({
-        projectId,
-        kubernetesClusterId,
-        ownerKind,
-        staleAfter,
-      });
+    const aggregates: Map<
+      string,
+      { cpuPercent: number; memoryBytes: number; memoryPercent: number }
+    > = await this.service.getLatestMetricsByOwner({
+      projectId,
+      kubernetesClusterId,
+      ownerKind,
+      staleAfter,
+    });
 
     return Response.sendJsonObjectResponse(req, res, {
       aggregates: this.mapAggregatesToJson(aggregates),

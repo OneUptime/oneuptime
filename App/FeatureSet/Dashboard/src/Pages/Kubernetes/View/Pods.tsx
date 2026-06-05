@@ -20,32 +20,6 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
 
-function parseMemoryString(memory: string): number {
-  if (!memory) {
-    return 0;
-  }
-  const value: number = parseFloat(memory);
-  if (memory.endsWith("Gi")) {
-    return value * 1024 * 1024 * 1024;
-  }
-  if (memory.endsWith("Mi")) {
-    return value * 1024 * 1024;
-  }
-  if (memory.endsWith("Ki")) {
-    return value * 1024;
-  }
-  if (memory.endsWith("G")) {
-    return value * 1000 * 1000 * 1000;
-  }
-  if (memory.endsWith("M")) {
-    return value * 1000 * 1000;
-  }
-  if (memory.endsWith("K")) {
-    return value * 1000;
-  }
-  return value;
-}
-
 const KubernetesClusterPods: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -58,6 +32,14 @@ const KubernetesClusterPods: FunctionComponent<
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     try {
+      /*
+       * Node allocatable memory (by node name) is the fallback
+       * denominator for a Pod's memory% when the Pod sets no memory
+       * limit. Kick it off in parallel with the Pod fetch below.
+       */
+      const nodeAllocatableMemoryPromise: Promise<Map<string, number>> =
+        KubernetesResourceUtils.fetchNodeAllocatableMemory(modelId);
+
       /*
        * Latest CPU + memory come straight off the snapshot row
        * (latestCpuPercent / latestMemoryBytes), populated by the
@@ -111,7 +93,8 @@ const KubernetesClusterPods: FunctionComponent<
                 (resources["limits"] as Record<string, unknown>) || {};
               const memLimit: unknown = limits["memory"];
               if (typeof memLimit === "string" && memLimit) {
-                totalMemoryLimit += parseMemoryString(memLimit);
+                totalMemoryLimit +=
+                  KubernetesResourceUtils.parseK8sMemoryToBytes(memLimit);
               }
             }
             if (totalMemoryLimit > 0) {
@@ -119,6 +102,27 @@ const KubernetesClusterPods: FunctionComponent<
             }
           },
         });
+
+      /*
+       * Memory %: the transform above sets memoryLimitBytes from the
+       * Pod's own container limits when present. For Pods that declare
+       * no limit, fall back to their node's allocatable memory so the
+       * column still renders a percentage instead of raw bytes —
+       * mirroring how CPU% is measured against node allocatable.
+       */
+      const nodeAllocatableMemory: Map<string, number> =
+        await nodeAllocatableMemoryPromise;
+      for (const pod of podList) {
+        if (!pod.memoryLimitBytes) {
+          const nodeName: string =
+            pod.additionalAttributes["resource.k8s.node.name"] || "";
+          const nodeMemory: number | undefined =
+            nodeAllocatableMemory.get(nodeName);
+          if (nodeMemory && nodeMemory > 0) {
+            pod.memoryLimitBytes = nodeMemory;
+          }
+        }
+      }
 
       setResources(podList);
     } catch (err) {

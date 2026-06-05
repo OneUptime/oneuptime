@@ -28,6 +28,10 @@
     "user": "Bruker",
     "projects": "Prosjekter",
     "project": "Prosjekt",
+    "projectUsers": "Users",
+    "projectUser": "User",
+    "projectTeams": "Teams",
+    "projectTeam": "Team",
     "settings": "Innstillinger",
     "authentication": "Autentisering",
     "emailSettings": "E-postinnstillinger",
@@ -41,11 +45,7 @@
     "apiKey": "API-nøkkel",
     "more": "Mer",
     "sendEmail": "Send e-post",
-    "logout": "Logg ut",
-    "projectUsers": "Users",
-    "projectUser": "User",
-    "projectTeams": "Teams",
-    "projectTeam": "Team"
+    "logout": "Logg ut"
   },
   "topAlert": {
     "title": "OneUptime admin-dashbord",
@@ -83,6 +83,9 @@
   },
   "sideMenu": {
     "basic": "Grunnleggende",
+    "members": "Members",
+    "users": "Users",
+    "teams": "Teams",
     "advanced": "Avansert",
     "overview": "Oversikt",
     "settings": "Innstillinger",
@@ -96,16 +99,13 @@
     "settingsMonitoring": "Overvåking",
     "settingsGlobalProbes": "Globale prober",
     "settingsDataRetention": "Dataoppbevaring",
-    "settingsAi": "AI",
+    "settingsAi": "KI",
     "settingsGlobalAiAgents": "Globale AI-agenter",
     "settingsGlobalLlmProviders": "Globale LLM-leverandører",
     "settingsApiIntegrations": "API og integrasjoner",
     "settingsApiKey": "API-nøkkel",
     "moreCommunication": "Kommunikasjon",
-    "moreSendEmail": "Send e-post",
-    "members": "Members",
-    "users": "Users",
-    "teams": "Teams"
+    "moreSendEmail": "Send e-post"
   },
   "pages": {
     "users": {
@@ -139,6 +139,40 @@
       "cardTitle": "Prosjekt",
       "cardDescription": "Prosjektdetaljer",
       "editButton": "Rediger prosjekt"
+    },
+    "projectUsers": {
+      "title": "Project Users",
+      "cardTitle": "Users",
+      "cardDescription": "Here is a list of all the users in this project.",
+      "noItems": "No users found in this project.",
+      "noItemsFiltered": "No users matched the filter.",
+      "inviteUser": "Invite User",
+      "inviteUserTitle": "Invite New User",
+      "inviteUserDescription": "Invite a new user to this project.",
+      "inviteUserSubmit": "Invite"
+    },
+    "projectUserView": {
+      "title": "Project User",
+      "cardTitle": "User",
+      "cardDescription": "User details and team memberships in this project.",
+      "teamsCardTitle": "Teams",
+      "teamsCardDescription": "Teams this user belongs to in this project.",
+      "teamsNoItems": "This user is not a member of any team in this project."
+    },
+    "projectTeams": {
+      "title": "Project Teams",
+      "cardTitle": "Teams",
+      "cardDescription": "Here is a list of all the teams in this project.",
+      "noItems": "No teams found in this project."
+    },
+    "projectTeamView": {
+      "title": "Project Team",
+      "cardTitle": "Team Details",
+      "cardDescription": "Details about this team.",
+      "editButton": "Edit Team",
+      "membersCardTitle": "Team Members",
+      "membersCardDescription": "Manage members of this team. Invite new users by email.",
+      "membersNoItems": "No members in this team yet."
     },
     "logout": {
       "title": "Logg ut"
@@ -289,40 +323,6 @@
         "stepProviderSettings": "Leverandørinnstillinger",
         "stepCostSettings": "Kostnadsinnstillinger"
       }
-    },
-    "projectUsers": {
-      "title": "Project Users",
-      "cardTitle": "Users",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
-      "noItemsFiltered": "No users matched the filter.",
-      "inviteUser": "Invite User",
-      "inviteUserTitle": "Invite New User",
-      "inviteUserDescription": "Invite a new user to this project.",
-      "inviteUserSubmit": "Invite"
-    },
-    "projectUserView": {
-      "title": "Project User",
-      "cardTitle": "User",
-      "cardDescription": "User details and team memberships in this project.",
-      "teamsCardTitle": "Teams",
-      "teamsCardDescription": "Teams this user belongs to in this project.",
-      "teamsNoItems": "This user is not a member of any team in this project."
-    },
-    "projectTeams": {
-      "title": "Project Teams",
-      "cardTitle": "Teams",
-      "cardDescription": "Here is a list of all the teams in this project.",
-      "noItems": "No teams found in this project."
-    },
-    "projectTeamView": {
-      "title": "Project Team",
-      "cardTitle": "Team Details",
-      "cardDescription": "Details about this team.",
-      "editButton": "Edit Team",
-      "membersCardTitle": "Team Members",
-      "membersCardDescription": "Manage members of this team. Invite new users by email.",
-      "membersNoItems": "No members in this team yet."
     }
   },
   "Basic": "Grunnleggende",
@@ -347,7 +347,7 @@
   "Monitoring": "Overvåking",
   "Global Probes": "Globale sonder",
   "Data Retention": "Dataoppbevaring",
-  "AI": "AI",
+  "AI": "KI",
   "Global AI Agents": "Globale AI-agenter",
   "Global LLM Providers": "Globale LLM-leverandører",
   "API and Integrations": "API og integrasjoner",

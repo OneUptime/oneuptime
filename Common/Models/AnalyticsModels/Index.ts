@@ -9,6 +9,7 @@ import ExceptionInstance from "./ExceptionInstance";
 import MonitorLog from "./MonitorLog";
 import Profile from "./Profile";
 import ProfileSample from "./ProfileSample";
+import AuditLog from "./AuditLog";
 
 const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
   Log,
@@ -25,6 +26,7 @@ const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
   MonitorLog,
   Profile,
   ProfileSample,
+  AuditLog,
 ];
 
 const modelTypeMap: { [key: string]: { new (): AnalyticsBaseModel } } = {};

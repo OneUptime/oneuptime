@@ -35,6 +35,7 @@ import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/Ex
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import MonitorIncident from "./MonitorIncident";
 import MonitorAlert from "./MonitorAlert";
+import MonitorMaintenanceSuppression from "./MonitorMaintenanceSuppression";
 import MonitorStatusTimelineUtil from "./MonitorStatusTimeline";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
@@ -727,6 +728,21 @@ export default class MonitorResourceUtil {
           });
         }
 
+        /*
+         * For grouped metric monitors, work out which breaching series
+         * belong to a resource that is currently inside an ongoing
+         * scheduled maintenance window. Those series are suppressed
+         * below so the monitor keeps alerting on the rest. Computed once
+         * and shared by both the incident and alert paths. Cheap on the
+         * common path: no per-series matches, or no ongoing maintenance,
+         * returns an empty set after at most one query.
+         */
+        const suppressedSeriesFingerprints: Set<string> =
+          await MonitorMaintenanceSuppression.getSuppressedSeriesFingerprints({
+            projectId: monitor.projectId!,
+            matchesPerSeries: response.perSeriesMatches,
+          });
+
         await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
           monitor: monitor,
           rootCause: response.rootCause,
@@ -738,6 +754,7 @@ export default class MonitorResourceUtil {
             telemetryQuery: telemetryQuery,
           },
           matchesPerSeries: response.perSeriesMatches,
+          suppressedSeriesFingerprints,
         });
 
         await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
@@ -751,6 +768,7 @@ export default class MonitorResourceUtil {
             telemetryQuery: telemetryQuery,
           },
           matchesPerSeries: response.perSeriesMatches,
+          suppressedSeriesFingerprints,
         });
       } else if (
         !response.criteriaMetId &&

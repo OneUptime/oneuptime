@@ -21,6 +21,7 @@ import { JSONObject } from "Common/Types/JSON";
 export interface PodMetricAggregate {
   cpuPercent: number;
   memoryBytes: number;
+  memoryPercent: number;
 }
 
 export interface KubernetesResource {
@@ -29,6 +30,14 @@ export interface KubernetesResource {
   cpuUtilization: number | null;
   memoryUsageBytes: number | null;
   memoryLimitBytes: number | null;
+  /*
+   * Memory usage as a percent of a denominator, used by the aggregate
+   * list views (Deployments / Namespaces / ...) where memory is a
+   * summed "% of node allocatable" coming off the server — parallel to
+   * cpuUtilization. Pod/Node/Container lists leave this undefined and
+   * render from memoryUsageBytes + memoryLimitBytes instead.
+   */
+  memoryUtilization?: number | null;
   status: string;
   age: string;
   additionalAttributes: Record<string, string>;
@@ -281,6 +290,61 @@ export default class KubernetesResourceUtils {
     return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
   }
 
+  /**
+   * Parse a Kubernetes memory quantity string into bytes. Binary
+   * suffixes (Ki/Mi/Gi/Ti/Pi) use 1024; decimal suffixes (K/M/G/T/P)
+   * use 1000; a bare number is taken as bytes. Returns 0 for empty or
+   * unparseable input. Used both for Pod container limits ("512Mi")
+   * and Node allocatable memory ("32847696Ki").
+   */
+  public static parseK8sMemoryToBytes(
+    memory: string | null | undefined,
+  ): number {
+    if (!memory) {
+      return 0;
+    }
+    const value: number = parseFloat(memory);
+    if (isNaN(value)) {
+      return 0;
+    }
+    /*
+     * Binary (IEC) suffixes — these end in "i", so they never collide
+     * with the single-letter decimal suffixes below.
+     */
+    if (memory.endsWith("Ki")) {
+      return value * 1024;
+    }
+    if (memory.endsWith("Mi")) {
+      return value * 1024 * 1024;
+    }
+    if (memory.endsWith("Gi")) {
+      return value * 1024 * 1024 * 1024;
+    }
+    if (memory.endsWith("Ti")) {
+      return value * 1024 * 1024 * 1024 * 1024;
+    }
+    if (memory.endsWith("Pi")) {
+      return value * 1024 * 1024 * 1024 * 1024 * 1024;
+    }
+    // Decimal (SI) suffixes.
+    if (memory.endsWith("K")) {
+      return value * 1000;
+    }
+    if (memory.endsWith("M")) {
+      return value * 1000 * 1000;
+    }
+    if (memory.endsWith("G")) {
+      return value * 1000 * 1000 * 1000;
+    }
+    if (memory.endsWith("T")) {
+      return value * 1000 * 1000 * 1000 * 1000;
+    }
+    if (memory.endsWith("P")) {
+      return value * 1000 * 1000 * 1000 * 1000 * 1000;
+    }
+    return value;
+  }
+
   public static formatBytesForChart(value: number): string {
     if (value === null || value === undefined) {
       return "N/A";
@@ -470,6 +534,63 @@ export default class KubernetesResourceUtils {
   }
 
   /**
+   * Build a per-node "allocatable memory (bytes)" lookup for a cluster
+   * from the Node inventory rows' status JSONB, keyed by node name
+   * (which matches a Pod's spec.nodeName / resource.k8s.node.name).
+   *
+   * This is the fallback denominator for a Pod's memory% when the Pod
+   * declares no memory limit of its own, mirroring how CPU% is taken
+   * against node allocatable CPU. Best-effort: returns an empty map on
+   * failure or when nodes don't report allocatable/capacity memory.
+   */
+  public static async fetchNodeAllocatableMemory(
+    kubernetesClusterId: ObjectID,
+  ): Promise<Map<string, number>> {
+    const map: Map<string, number> = new Map();
+    try {
+      const result: ListResult<KubernetesResourceModel> =
+        await ModelAPI.getList<KubernetesResourceModel>({
+          modelType: KubernetesResourceModel,
+          query: {
+            kubernetesClusterId: kubernetesClusterId,
+            kind: "Node",
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          select: {
+            name: true,
+            status: true,
+          },
+          sort: {
+            name: SortOrder.Ascending,
+          },
+        });
+
+      for (const row of result.data) {
+        const status: Record<string, unknown> =
+          (row.status as unknown as Record<string, unknown>) || {};
+        const allocatable: Record<string, unknown> =
+          (status["allocatable"] as Record<string, unknown>) || {};
+        const capacity: Record<string, unknown> =
+          (status["capacity"] as Record<string, unknown>) || {};
+        // Prefer allocatable (schedulable) memory; fall back to capacity.
+        const memString: string =
+          (allocatable["memory"] as string) ||
+          (capacity["memory"] as string) ||
+          "";
+        const bytes: number =
+          KubernetesResourceUtils.parseK8sMemoryToBytes(memString);
+        if (row.name && bytes > 0) {
+          map.set(row.name, bytes);
+        }
+      }
+    } catch {
+      // Allocatable memory is a best-effort fallback; empty map is fine.
+    }
+    return map;
+  }
+
+  /**
    * Fetch the per-namespace CPU/memory aggregates for the cluster.
    * Server-side computed from KubernetesResource snapshot rows
    * (kind=Pod) where metricsUpdatedAt is fresh. Drops the prior
@@ -538,7 +659,16 @@ export default class KubernetesResourceUtils {
         typeof memRaw === "number"
           ? memRaw
           : parseInt((memRaw as string) || "0", 10) || 0;
-      out.set(key, { cpuPercent: cpu, memoryBytes: mem });
+      const memPctRaw: unknown = v["memoryPercent"];
+      const memPct: number =
+        typeof memPctRaw === "number"
+          ? memPctRaw
+          : parseFloat((memPctRaw as string) || "0") || 0;
+      out.set(key, {
+        cpuPercent: cpu,
+        memoryBytes: mem,
+        memoryPercent: memPct,
+      });
     }
     return out;
   }
@@ -561,6 +691,7 @@ export default class KubernetesResourceUtils {
       }
       resource.cpuUtilization = agg.cpuPercent;
       resource.memoryUsageBytes = agg.memoryBytes;
+      resource.memoryUtilization = agg.memoryPercent;
     }
   }
 

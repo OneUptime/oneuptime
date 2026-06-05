@@ -23,6 +23,12 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import KubernetesNetworkThroughputChart from "./KubernetesNetworkThroughputChart";
+import KubernetesCpuUtils, {
+  NodeAllocatableCpu,
+} from "../Utils/KubernetesCpuUtils";
+import useNodeAllocatableCpu from "../Utils/useNodeAllocatableCpu";
+import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -39,6 +45,9 @@ interface MetricSpec {
   metricName: string;
   aggregation: AggregationType;
   yAxisFormatter?: (value: number) => string;
+  transformValue?:
+    | ((value: number, dataPoint: AggregatedModel) => number)
+    | undefined;
 }
 
 function buildQuery(
@@ -67,6 +76,7 @@ function buildQuery(
       },
     },
     yAxisValueFormatter: spec.yAxisFormatter,
+    transformValue: spec.transformValue,
   };
 }
 
@@ -85,7 +95,8 @@ interface SectionProps {
   title: string;
   description: string;
   icon: IconProp;
-  data: MetricViewData;
+  data?: MetricViewData | undefined;
+  children?: ReactElement | undefined;
   timeRange: RangeStartAndEndDateTime;
   onTimeRangeChange: (newTimeRange: RangeStartAndEndDateTime) => void;
 }
@@ -109,29 +120,38 @@ const InsightsSection: FunctionComponent<SectionProps> = (
         />
       }
     >
-      <MetricView
-        data={props.data}
-        hideQueryElements={true}
-        hideStartAndEndDate={true}
-        hideCardInCharts={true}
-        onChange={() => {}}
-      />
+      {props.children ??
+        (props.data ? (
+          <MetricView
+            data={props.data}
+            hideQueryElements={true}
+            hideStartAndEndDate={true}
+            hideCardInCharts={true}
+            onChange={() => {}}
+          />
+        ) : undefined)}
     </Card>
   );
 };
 
-function getNodeQueries(cluster: string): Array<MetricQueryConfigData> {
+function getNodeQueries(
+  cluster: string,
+  allocatable: NodeAllocatableCpu | null,
+): Array<MetricQueryConfigData> {
   return [
     buildQuery(
       {
         variable: "node_cpu_utilization",
         title: "Node CPU Utilization",
         description:
-          "CPU utilization across all nodes in the cluster, broken down per node.",
+          "CPU usage as a percentage of allocatable CPU, broken down per node.",
         legend: "CPU",
         legendUnit: "%",
         metricName: "k8s.node.cpu.utilization",
         aggregation: AggregationType.Avg,
+        transformValue: allocatable
+          ? KubernetesCpuUtils.makeCpuPercentTransform(allocatable)
+          : undefined,
       },
       cluster,
     ),
@@ -166,49 +186,24 @@ function getNodeQueries(cluster: string): Array<MetricQueryConfigData> {
   ];
 }
 
-function getNetworkQueries(cluster: string): Array<MetricQueryConfigData> {
-  return [
-    buildQuery(
-      {
-        variable: "node_network_rx",
-        title: "Network Receive",
-        description: "Bytes received per node across the cluster.",
-        legend: "Received",
-        legendUnit: "",
-        metricName: "k8s.node.network.io.receive",
-        aggregation: AggregationType.Sum,
-        yAxisFormatter: KubernetesResourceUtils.formatBytesForChart,
-      },
-      cluster,
-    ),
-    buildQuery(
-      {
-        variable: "node_network_tx",
-        title: "Network Transmit",
-        description: "Bytes transmitted per node across the cluster.",
-        legend: "Transmitted",
-        legendUnit: "",
-        metricName: "k8s.node.network.io.transmit",
-        aggregation: AggregationType.Sum,
-        yAxisFormatter: KubernetesResourceUtils.formatBytesForChart,
-      },
-      cluster,
-    ),
-  ];
-}
-
-function getPodQueries(cluster: string): Array<MetricQueryConfigData> {
+function getPodQueries(
+  cluster: string,
+  allocatable: NodeAllocatableCpu | null,
+): Array<MetricQueryConfigData> {
   return [
     buildQuery(
       {
         variable: "pod_cpu_utilization",
         title: "Pod CPU Utilization",
         description:
-          "CPU utilization across all pods in the cluster, summed across pods.",
+          "CPU usage as a percentage of node allocatable CPU, per pod.",
         legend: "Pod CPU",
         legendUnit: "%",
         metricName: "k8s.pod.cpu.utilization",
-        aggregation: AggregationType.Sum,
+        aggregation: AggregationType.Avg,
+        transformValue: allocatable
+          ? KubernetesCpuUtils.makeCpuPercentTransform(allocatable)
+          : undefined,
       },
       cluster,
     ),
@@ -280,6 +275,11 @@ const KubernetesClusterInsights: FunctionComponent<
     });
   }, []);
 
+  // Per-node allocatable CPU — denominator for the true CPU% transform.
+  const allocatable: NodeAllocatableCpu | null = useNodeAllocatableCpu(
+    cluster?.clusterIdentifier || undefined,
+  );
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -295,15 +295,11 @@ const KubernetesClusterInsights: FunctionComponent<
   const clusterIdentifier: string = cluster.clusterIdentifier || "";
 
   const nodeData: MetricViewData = buildMetricViewData(
-    getNodeQueries(clusterIdentifier),
-    startAndEndDate,
-  );
-  const networkData: MetricViewData = buildMetricViewData(
-    getNetworkQueries(clusterIdentifier),
+    getNodeQueries(clusterIdentifier, allocatable),
     startAndEndDate,
   );
   const podData: MetricViewData = buildMetricViewData(
-    getPodQueries(clusterIdentifier),
+    getPodQueries(clusterIdentifier, allocatable),
     startAndEndDate,
   );
 
@@ -320,12 +316,17 @@ const KubernetesClusterInsights: FunctionComponent<
 
       <InsightsSection
         title="Network"
-        description="Inbound and outbound network traffic across all nodes."
+        description="Per-second inbound and outbound network throughput across all nodes."
         icon={IconProp.Signal}
-        data={networkData}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
-      />
+      >
+        <KubernetesNetworkThroughputChart
+          clusterIdentifier={clusterIdentifier}
+          startDate={startAndEndDate.startValue}
+          endDate={startAndEndDate.endValue}
+        />
+      </InsightsSection>
 
       <InsightsSection
         title="Pods"

@@ -267,6 +267,9 @@ export default class AuditLog extends AnalyticsBaseModel {
         delete: PlanType.Enterprise,
       },
       crudApiPath: new Route("/audit-log"),
+      enableDocumentation: true,
+      tableDescription:
+        "Immutable audit-trail records of actions taken within your project.",
       tableColumns: [
         projectIdColumn,
         resourceTypeColumn,

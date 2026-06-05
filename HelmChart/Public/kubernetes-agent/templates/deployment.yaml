@@ -21,6 +21,10 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/configmap-deployment.yaml") . | sha256sum }}
     spec:
       serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
+      {{- if and .Values.debug.enabled .Values.debug.shareProcessNamespace }}
+      # Lets the debug sidecar see the collector's processes (ps, /proc, strace).
+      shareProcessNamespace: true
+      {{- end }}
       containers:
         - name: otel-collector
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -77,6 +81,9 @@ spec:
             - name: config
               mountPath: /etc/otel
               readOnly: true
+        {{- if .Values.debug.enabled }}
+        {{- include "kubernetes-agent.debugContainer" . | nindent 8 }}
+        {{- end }}
       volumes:
         - name: config
           configMap:

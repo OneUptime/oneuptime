@@ -556,6 +556,9 @@ export default class Log extends AnalyticsBaseModel {
       },
       pluralName: "Logs",
       crudApiPath: new Route("/logs"),
+      enableDocumentation: true,
+      tableDescription:
+        "OpenTelemetry log records ingested from your services. Query, filter, and aggregate structured logs across your project.",
       tableColumns: [
         projectIdColumn,
         serviceIdColumn,

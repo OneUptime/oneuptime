@@ -178,6 +178,48 @@ cgroup limit. Argument: the container memory limit quantity.
 {{- end }}
 
 {{/*
+Debug sidecar container. Rendered into the metrics Deployment and logs
+DaemonSet when .Values.debug.enabled is true.
+
+The agent's collector images are distroless (built FROM scratch) — they ship
+only the collector binary, so they have no /bin/sh, bash, or curl and cannot be
+`kubectl exec`-ed into. This parks a shell + network-tooling container (default:
+nicolaka/netshoot) next to the collector. Combined with the pod's shared
+network namespace (every container in a pod shares one), a curl from here
+follows the exact egress path — NetworkPolicy, DNS, proxy, TLS — the collector
+uses. See values.yaml (debug.*) for the rationale and security trade-offs.
+
+  kubectl exec -it <agent-pod> -c debug -- bash
+  curl -v "$ONEUPTIME_URL/otlp/v1/metrics"
+
+Usage (nindent to the `containers:` list-item column):
+  {{- include "kubernetes-agent.debugContainer" . | nindent 8 }}
+*/}}
+{{- define "kubernetes-agent.debugContainer" -}}
+- name: debug
+  image: "{{ .Values.debug.image.repository }}:{{ .Values.debug.image.tag }}"
+  imagePullPolicy: {{ .Values.debug.image.pullPolicy }}
+  {{- with .Values.debug.command }}
+  # netshoot's default entrypoint is an interactive shell, which exits
+  # immediately (CrashLoop) in a pod with no TTY — so park it on a no-op.
+  command:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.debug.securityContext }}
+  securityContext:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  resources:
+    {{- toYaml .Values.debug.resources | nindent 4 }}
+  {{- with .Values.oneuptime.url }}
+  env:
+    # Convenience for `curl "$ONEUPTIME_URL/otlp/v1/metrics"`.
+    - name: ONEUPTIME_URL
+      value: {{ . | quote }}
+  {{- end }}
+{{- end }}
+
+{{/*
 Effective log collection mode.
 
 Resolution order:

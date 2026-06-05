@@ -22,12 +22,15 @@ import { Tab } from "Common/UI/Components/Tabs/Tab";
 import KubernetesOverviewTab from "../../../Components/Kubernetes/KubernetesOverviewTab";
 import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
+import KubernetesNetworkThroughputChart from "./KubernetesNetworkThroughputChart";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
 import {
   KubernetesCondition,
   KubernetesNodeObject,
 } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import KubernetesCpuUtils from "../Utils/KubernetesCpuUtils";
 import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
 import StatusBadge, {
   StatusBadgeType,
@@ -109,11 +112,20 @@ const KubernetesClusterNodeDetail: FunctionComponent<
 
   const clusterIdentifier: string = cluster.clusterIdentifier || "";
 
+  /*
+   * `k8s.node.cpu.utilization` is cores in use (not a ratio). Divide by
+   * this node's allocatable CPU (from the node object) to render a true
+   * percentage. Falls back to raw cores until the node object loads.
+   */
+  const nodeAllocatableCores: number = nodeObject
+    ? KubernetesCpuUtils.parseCpuToCores(nodeObject.status.allocatable["cpu"])
+    : 0;
+
   const cpuQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "node_cpu",
       title: "CPU Utilization",
-      description: `CPU utilization for node ${nodeName}`,
+      description: `CPU usage as a percentage of allocatable CPU for node ${nodeName}`,
       legend: "CPU",
       legendUnit: "%",
     },
@@ -131,6 +143,8 @@ const KubernetesClusterNodeDetail: FunctionComponent<
         attributes: true,
       },
     },
+    transformValue:
+      KubernetesCpuUtils.makeScalarCpuPercentTransform(nodeAllocatableCores),
   };
 
   const memoryQuery: MetricQueryConfigData = {
@@ -181,56 +195,6 @@ const KubernetesClusterNodeDetail: FunctionComponent<
       },
     },
     yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
-  };
-
-  const networkRxQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "node_network_rx",
-      title: "Network Receive",
-      description: `Network bytes received for node ${nodeName}`,
-      legend: "Network RX",
-      legendUnit: "",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "k8s.node.network.io.receive",
-        attributes: {
-          "resource.k8s.cluster.name": clusterIdentifier,
-          "resource.k8s.node.name": nodeName,
-        },
-        aggegationType: AggregationType.Avg,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-    yAxisValueFormatter: KubernetesResourceUtils.formatBytesPerSecForChart,
-  };
-
-  const networkTxQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "node_network_tx",
-      title: "Network Transmit",
-      description: `Network bytes transmitted for node ${nodeName}`,
-      legend: "Network TX",
-      legendUnit: "",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "k8s.node.network.io.transmit",
-        attributes: {
-          "resource.k8s.cluster.name": clusterIdentifier,
-          "resource.k8s.node.name": nodeName,
-        },
-        aggegationType: AggregationType.Avg,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-    yAxisValueFormatter: KubernetesResourceUtils.formatBytesPerSecForChart,
   };
 
   // Determine node status from conditions
@@ -422,13 +386,22 @@ const KubernetesClusterNodeDetail: FunctionComponent<
           description="CPU, memory, filesystem, and network usage for this node over the last 6 hours."
         >
           <KubernetesMetricsTab
-            queryConfigs={[
-              cpuQuery,
-              memoryQuery,
-              filesystemQuery,
-              networkRxQuery,
-              networkTxQuery,
-            ]}
+            queryConfigs={[cpuQuery, memoryQuery, filesystemQuery]}
+            renderExtraCharts={(dateRange: InBetween<Date>): ReactElement => {
+              return (
+                <div className="mt-4">
+                  <div className="mb-2 text-sm font-medium text-gray-700">
+                    Network Throughput
+                  </div>
+                  <KubernetesNetworkThroughputChart
+                    clusterIdentifier={clusterIdentifier}
+                    nodeName={nodeName}
+                    startDate={dateRange.startValue}
+                    endDate={dateRange.endValue}
+                  />
+                </div>
+              );
+            }}
           />
         </Card>
       ),

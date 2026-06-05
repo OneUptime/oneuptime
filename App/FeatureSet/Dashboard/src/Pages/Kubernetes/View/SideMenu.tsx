@@ -152,6 +152,49 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
+      <SideMenuSection title="Telemetry">
+        <SideMenuItem
+          link={{
+            title: "Metrics",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_METRICS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Graph}
+        />
+        <SideMenuItem
+          link={{
+            title: "Traces",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_TRACES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Workflow}
+        />
+        <SideMenuItem
+          link={{
+            title: "Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Logs}
+        />
+        <SideMenuItem
+          link={{
+            title: "Performance Profiles",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_PROFILES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Fire}
+        />
+      </SideMenuSection>
+
       <SideMenuSection title="Workloads">
         <SideMenuItem
           link={{

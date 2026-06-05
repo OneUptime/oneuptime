@@ -253,6 +253,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
     facetSaveState,
     restoreFacetState,
   } = useResourceOwners<Incident>({
+    persistKey: props.saveFilterProps?.tableId,
     ownerUserModelType: IncidentOwnerUser,
     ownerTeamModelType: IncidentOwnerTeam,
     resourceIdField: "incidentId",

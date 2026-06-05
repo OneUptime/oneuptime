@@ -40,6 +40,16 @@ export default class AnalyticsBaseModel extends CommonModel {
      * tool generators.
      */
     crudApiPath?: Route | undefined;
+    /*
+     * When true, this model is published in the public REST API Reference
+     * (/reference). Mirrors @EnableDocumentation() on Postgres models —
+     * having a crudApiPath alone is not enough; documentation is an
+     * explicit opt-in so internal-only tables stay private.
+     */
+    enableDocumentation?: boolean | undefined;
+    // Human-readable summary shown on the model's API Reference page.
+    tableDescription?: string | undefined;
+    isMasterAdminApiDocs?: boolean | undefined;
     allowAccessIfSubscriptionIsUnpaid?: boolean | undefined;
     tableBillingAccessControl?: TableBillingAccessControl | undefined;
     accessControl?: TableAccessControl | undefined;
@@ -160,6 +170,9 @@ export default class AnalyticsBaseModel extends CommonModel {
     this.accessControl = data.accessControl;
     this.enableWorkflowOn = data.enableWorkflowOn;
     this.crudApiPath = data.crudApiPath;
+    this.enableDocumentation = data.enableDocumentation || false;
+    this.tableDescription = data.tableDescription || "";
+    this.isMasterAdminApiDocs = data.isMasterAdminApiDocs || false;
     this.enableRealtimeEventsOn = data.enableRealtimeEventsOn;
     this.partitionKey = data.partitionKey;
     this.projections = data.projections || [];
@@ -315,6 +328,30 @@ export default class AnalyticsBaseModel extends CommonModel {
     this._crudApiPath = v;
   }
 
+  private _enableDocumentation: boolean = false;
+  public get enableDocumentation(): boolean {
+    return this._enableDocumentation;
+  }
+  public set enableDocumentation(v: boolean) {
+    this._enableDocumentation = v;
+  }
+
+  private _tableDescription: string = "";
+  public get tableDescription(): string {
+    return this._tableDescription;
+  }
+  public set tableDescription(v: string) {
+    this._tableDescription = v;
+  }
+
+  private _isMasterAdminApiDocs: boolean = false;
+  public get isMasterAdminApiDocs(): boolean {
+    return this._isMasterAdminApiDocs;
+  }
+  public set isMasterAdminApiDocs(v: boolean) {
+    this._isMasterAdminApiDocs = v;
+  }
+
   private _projections: Array<Projection> = [];
   public get projections(): Array<Projection> {
     return this._projections;
@@ -440,6 +477,14 @@ export default class AnalyticsBaseModel extends CommonModel {
   }
 
   public getAPIDocumentationPath(): string {
+    /*
+     * Prefer the public CRUD API slug (e.g. "/logs" -> "logs") so the
+     * docs URL and the in-app "API Docs" link mirror the real endpoint,
+     * rather than the internal ClickHouse table name (e.g. "LogItemV2").
+     */
+    if (this.crudApiPath) {
+      return this.crudApiPath.toString().replace(/^\/+/, "");
+    }
     return Text.pascalCaseToDashes(this.tableName);
   }
 

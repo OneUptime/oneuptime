@@ -569,6 +569,20 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             }
           : undefined;
 
+      /*
+       * Optional per-datapoint value transform (e.g. divide K8s CPU
+       * cores by the node's allocatable CPU to get a true percentage).
+       * Reads grouped attributes off the datapoint, so it must run
+       * before the series points are built.
+       */
+      const transformPointValue: (item: AggregatedModel) => number = (
+        item: AggregatedModel,
+      ): number => {
+        return queryConfig.transformValue
+          ? queryConfig.transformValue(item.value, item)
+          : item.value;
+      };
+
       if (effectiveGetSeries) {
         for (const item of props.metricResults[index]!.data) {
           const series: ChartSeries = effectiveGetSeries(item);
@@ -583,7 +597,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           if (existingSeries) {
             existingSeries.data.push({
               x: OneUptimeDate.fromString(item.timestamp),
-              y: item.value,
+              y: transformPointValue(item),
             });
           } else {
             const newSeries: SeriesPoint = {
@@ -591,7 +605,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               data: [
                 {
                   x: OneUptimeDate.fromString(item.timestamp),
-                  y: item.value,
+                  y: transformPointValue(item),
                 },
               ],
             };
@@ -609,7 +623,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             (result: AggregatedModel) => {
               return {
                 x: OneUptimeDate.fromString(result.timestamp),
-                y: result.value,
+                y: transformPointValue(result),
               };
             },
           ),
