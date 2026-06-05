@@ -128,8 +128,8 @@
       "description": "すべてのアップデートはこのSlack Webhookに送信されます。",
       "workspaceName": "Slackワークスペース名",
       "workspaceNameDescription": "検証のためSlackワークスペース名を入力してください。",
-      "workspaceNamePlaceholder": "my-company-workspace",
-      "webhookUrl": "Slack Incoming Webhook URL",
+      "workspaceNamePlaceholder": "私の会社のワークスペース",
+      "webhookUrl": "Slack 受信 Webhook URL",
       "webhookUrlDescription": "ステータスページの更新はこのSlack Webhookに送信されます。",
       "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
       "managePrompt": "購読時に使用したSlackワークスペース名を入力してください",
@@ -140,8 +140,8 @@
       "description": "すべてのアップデートはこのTeams Webhookに送信されます。",
       "workspaceName": "Microsoft Teamsワークスペース名",
       "workspaceNameDescription": "検証のためMicrosoft Teamsワークスペース名を入力してください。",
-      "workspaceNamePlaceholder": "my-company-workspace",
-      "webhookUrl": "Microsoft Teams Incoming Webhook URL",
+      "workspaceNamePlaceholder": "私の会社のワークスペース",
+      "webhookUrl": "Microsoft Teams 受信 Webhook URL",
       "webhookUrlDescription": "ステータスページの更新はこのTeams Webhookに送信されます。",
       "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
       "managePrompt": "購読時に使用したMicrosoft Teamsワークスペース名を入力してください",
@@ -236,7 +236,7 @@
     "generic": "問題が発生しました。もう一度お試しください。"
   },
   "footer": {
-    "poweredBy": "Powered by OneUptime"
+    "poweredBy": "OneUptime によって提供"
   },
   "statusNames": {
     "identified": "確認済み",

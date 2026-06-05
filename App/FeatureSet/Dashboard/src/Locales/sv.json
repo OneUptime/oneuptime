@@ -36,7 +36,7 @@
     "userSettings": "Användarinställningar",
     "categories": {
       "essentials": "Grundläggande",
-      "observability": "Observability",
+      "observability": "Observerbarhet",
       "resources": "Resurser",
       "analyticsAutomation": "Mer",
       "settings": "Inställningar"
@@ -638,7 +638,7 @@
   "Resource Specification": "Resursspecifikation",
   "Restarts": "Omstarter",
   "SNMP Monitor Configuration": "SNMP-monitorkonfiguration",
-  "Scheduler": "Scheduler",
+  "Scheduler": "Schemaläggare",
   "Search Again": "Sök igen",
   "Search Available Phone Numbers": "Sök tillgängliga telefonnummer",
   "Search for Numbers": "Sök efter nummer",

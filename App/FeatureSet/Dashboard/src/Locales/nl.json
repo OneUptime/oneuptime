@@ -32,7 +32,7 @@
     "versionUnavailable": "Versiegegevens zijn niet beschikbaar"
   },
   "navbar": {
-    "home": "Home",
+    "home": "Start",
     "userSettings": "Gebruikersinstellingen",
     "categories": {
       "essentials": "Essenties",
@@ -95,7 +95,7 @@
     }
   },
   "help": {
-    "label": "Help",
+    "label": "Hulp",
     "supportEmail": "Support-e-mail",
     "chatSlack": "Chat op Slack",
     "requestDemo": "Demo aanvragen"
@@ -192,7 +192,7 @@
   "Audit": "Audit",
   "Activity": "Activiteit",
   "Builder": "Bouwer",
-  "Help": "Help",
+  "Help": "Hulp",
   "Documentation": "Documentatie",
   "Subscriber Settings": "Abonneeinstellingen",
   "Owners": "Eigenaren",
@@ -211,7 +211,7 @@
   "Danger Zone": "Gevarenzone",
   "Billing and Invoices": "Facturering en facturen",
   "Project": "Project",
-  "Home": "Home",
+  "Home": "Start",
   "Labels": "Labels",
   "Slack": "Slack",
   "Microsoft Teams": "Microsoft Teams",
@@ -290,7 +290,7 @@
   "Timeline": "Tijdlijn",
   "State Timeline": "Statustijdlijn",
   "Reports": "Rapporten",
-  "Pull Requests": "Pull Requests",
+  "Pull Requests": "Pull requests",
   "Pipelines": "Pipelines",
   "Find what's slow": "Vind wat traag is",
   "Browse raw profiles": "Bekijk ruwe profielen",
