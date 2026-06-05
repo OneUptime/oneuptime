@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/runbook-agent",
-  "version": "10.5.35",
+  "version": "10.5.36",
   "description": "OneUptime Runbook Agent — executes bash runbook steps in your own infrastructure and reports results back to OneUptime.",
   "repository": {
     "type": "git",
