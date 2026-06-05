@@ -5,5 +5,8 @@ dependencies:
 - name: cloudnative-pg
   repository: https://cloudnative-pg.github.io/charts
   version: 0.28.2
-digest: sha256:39386f823c5975c981e560db6d73b657c936442eec4fa2e10333850ade7bbda5
-generated: "2026-06-04T16:46:24.06778+03:00"
+- name: altinity-clickhouse-operator
+  repository: https://helm.altinity.com/
+  version: 0.27.1
+digest: sha256:9b37258e28da9bdbb3f04ea0591be756a3707c4b696ec61fed8aa2fea51a9e09
+generated: "2026-06-05T17:43:28.840276+03:00"

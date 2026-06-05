@@ -1,0 +1,256 @@
+{{- $altinity := .Values.clickhouseOperator.altinity }}
+{{- $keeper := $altinity.keeper }}
+{{- $byoNodes := $altinity.zookeeper.nodes | default list }}
+{{- /* Render the bundled Keeper only when the operator is on, keeper is enabled, and
+       the user has NOT supplied their own (bring-your-own) ZooKeeper/Keeper nodes. */ -}}
+{{- if and $altinity.enabled $keeper.enabled (not $byoNodes) }}
+{{- $replicas := int ($keeper.replicas | default 3) }}
+{{- $fullname := printf "%s-clickhouse-keeper" .Release.Name }}
+{{- $headless := printf "%s-headless" $fullname }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $fullname }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: clickhouse-keeper
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: clickhouse-keeper
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+data:
+  keeper_config.xml: |
+    <clickhouse>
+        <logger>
+            <level>warning</level>
+            <console>true</console>
+        </logger>
+        <listen_host>0.0.0.0</listen_host>
+        <max_connections>4096</max_connections>
+        <keeper_server>
+            <tcp_port>2181</tcp_port>
+            <!-- server_id is unique per pod; the StatefulSet command derives it from the
+                 pod ordinal and exports KEEPER_SERVER_ID, read here via from_env. -->
+            <server_id from_env="KEEPER_SERVER_ID" />
+            <log_storage_path>/var/lib/clickhouse-keeper/coordination/log</log_storage_path>
+            <snapshot_storage_path>/var/lib/clickhouse-keeper/coordination/snapshots</snapshot_storage_path>
+            <four_letter_word_white_list>*</four_letter_word_white_list>
+            <coordination_settings>
+                <operation_timeout_ms>10000</operation_timeout_ms>
+                <session_timeout_ms>30000</session_timeout_ms>
+                <raft_logs_level>warning</raft_logs_level>
+            </coordination_settings>
+            <raft_configuration>
+            {{- range $i := until $replicas }}
+                <server>
+                    <id>{{ add $i 1 }}</id>
+                    <hostname>{{ printf "%s-%d.%s.%s.svc.%s" $fullname $i $headless $.Release.Namespace $.Values.global.clusterDomain }}</hostname>
+                    <port>9444</port>
+                </server>
+            {{- end }}
+            </raft_configuration>
+        </keeper_server>
+    </clickhouse>
+---
+# Headless service: provides the stable per-pod DNS used in raft_configuration above
+# and by the ClickHouseInstallation's zookeeper.nodes.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $headless }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: clickhouse-keeper
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: clickhouse-keeper
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - name: client
+      port: 2181
+      targetPort: client
+    - name: raft
+      port: 9444
+      targetPort: raft
+  selector:
+    app.kubernetes.io/name: clickhouse-keeper
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: clickhouse-keeper
+---
+# Client service: a stable endpoint for ops/debugging (the CHI points at the
+# individual pods so the ClickHouse ZK client can fail over across the ensemble).
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: clickhouse-keeper
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: clickhouse-keeper
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - name: client
+      port: 2181
+      targetPort: client
+  selector:
+    app.kubernetes.io/name: clickhouse-keeper
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: clickhouse-keeper
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ $fullname }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: clickhouse-keeper
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: clickhouse-keeper
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: clickhouse-keeper
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: clickhouse-keeper
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $fullname }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: clickhouse-keeper
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: clickhouse-keeper
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+spec:
+  serviceName: {{ $headless }}
+  replicas: {{ $replicas }}
+  # Parallel start is REQUIRED: with OrderedReady, pod-0 never becomes ready until the
+  # raft quorum forms, but the quorum needs pod-1/pod-2 — which OrderedReady won't start
+  # until pod-0 is ready. That is a deadlock; Parallel lets all pods come up and form quorum.
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: clickhouse-keeper
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: clickhouse-keeper
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: clickhouse-keeper
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: clickhouse-keeper
+        app.kubernetes.io/part-of: oneuptime
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      {{- with $keeper.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if $keeper.affinity }}
+      affinity:
+        {{- toYaml $keeper.affinity | nindent 8 }}
+      {{- else }}
+      affinity:
+        podAntiAffinity:
+          # Soft (preferred) so a 3-node ensemble still schedules on small/dev clusters,
+          # while spreading across nodes whenever capacity allows.
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: clickhouse-keeper
+                    app.kubernetes.io/instance: {{ .Release.Name }}
+                    app.kubernetes.io/component: clickhouse-keeper
+      {{- end }}
+      {{- with $keeper.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: clickhouse-keeper
+          image: "{{ $keeper.image.repository }}:{{ $keeper.image.tag }}"
+          imagePullPolicy: {{ $keeper.image.pullPolicy | default "IfNotPresent" }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              # Derive a unique raft server_id (1-based) from the pod ordinal.
+              HOST="$(hostname)"
+              ORD="${HOST##*-}"
+              export KEEPER_SERVER_ID=$((ORD + 1))
+              exec clickhouse-keeper --config-file=/etc/clickhouse-keeper/keeper_config.xml
+          ports:
+            - name: client
+              containerPort: 2181
+            - name: raft
+              containerPort: 9444
+          readinessProbe:
+            tcpSocket:
+              port: client
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket:
+              port: client
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 6
+          {{- with $keeper.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/clickhouse-keeper
+            - name: data
+              mountPath: /var/lib/clickhouse-keeper
+      volumes:
+        - name: config
+          configMap:
+            name: {{ $fullname }}-config
+            items:
+              - key: keeper_config.xml
+                path: keeper_config.xml
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          app.kubernetes.io/name: clickhouse-keeper
+          app.kubernetes.io/instance: {{ .Release.Name }}
+          app.kubernetes.io/component: clickhouse-keeper
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        {{- if $keeper.persistence.storageClass }}
+        {{- if (eq "-" $keeper.persistence.storageClass) }}
+        storageClassName: ""
+        {{- else }}
+        storageClassName: {{ $keeper.persistence.storageClass | quote }}
+        {{- end }}
+        {{- else if .Values.global.storageClass }}
+        storageClassName: {{ .Values.global.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ $keeper.persistence.size | default "10Gi" | quote }}
+{{- end }}

@@ -1,4 +1,4 @@
-{{- if .Values.clickhouse.enabled }}
+{{- if and .Values.clickhouse.enabled (not .Values.clickhouseOperator.altinity.enabled) }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:

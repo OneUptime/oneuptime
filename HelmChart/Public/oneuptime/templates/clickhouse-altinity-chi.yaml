@@ -1,0 +1,149 @@
+{{- $altinity := .Values.clickhouseOperator.altinity }}
+{{- if $altinity.enabled }}
+{{- $username := $altinity.auth.username | default "oneuptime" }}
+apiVersion: clickhouse.altinity.com/v1
+kind: ClickHouseInstallation
+metadata:
+  name: {{ .Release.Name }}-clickhouse-altinity
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: clickhouse
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    appname: oneuptime
+spec:
+  defaults:
+    templates:
+      podTemplate: clickhouse-pod-template
+      dataVolumeClaimTemplate: data-volume-template
+      serviceTemplate: clickhouse-service-template
+  configuration:
+    # The OneUptime app connects as this user (parity with the built-in StatefulSet,
+    # whose config.xml created the same user with access_management). The password is
+    # injected from the secret created in secrets.yaml. The operator additionally
+    # manages its own "clickhouse_operator" user for health checks — do not remove it.
+    users:
+      {{ $username }}/password:
+        valueFrom:
+          secretKeyRef:
+            name: {{ .Release.Name }}-clickhouse-altinity
+            key: admin-password
+      {{ $username }}/networks/ip:
+        - "::/0"
+      {{ $username }}/profile: "default"
+      {{ $username }}/quota: "default"
+      {{ $username }}/access_management: "1"
+    # Server-level settings (rendered into config.d). Slash-separated keys become
+    # nested XML elements, e.g. logger/level -> <logger><level>…</level></logger>.
+    # Defaults preserve the built-in deployment's extra wire protocols (MySQL/Postgres
+    # ports) and the bounded system-log retention that keeps disk usage in check.
+    settings:
+      {{- range $key, $val := $altinity.settings }}
+      {{ $key }}: {{ $val | quote }}
+      {{- end }}
+    {{- with $altinity.files }}
+    # Raw config files (advanced). Each entry is dropped into the server config.
+    files:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- $zkNodes := $altinity.zookeeper.nodes | default list }}
+    {{- if and $altinity.keeper.enabled (not $zkNodes) }}
+    # Coordination for replication. When the bundled ClickHouse Keeper is enabled and
+    # no external nodes are provided, point at each Keeper pod's stable DNS name.
+    zookeeper:
+      nodes:
+        {{- range $i := until (int ($altinity.keeper.replicas | default 3)) }}
+        - host: {{ printf "%s-clickhouse-keeper-%d.%s-clickhouse-keeper-headless.%s.svc.%s" $.Release.Name $i $.Release.Name $.Release.Namespace $.Values.global.clusterDomain }}
+          port: 2181
+        {{- end }}
+    {{- else if $zkNodes }}
+    # Bring-your-own ZooKeeper / ClickHouse Keeper ensemble.
+    zookeeper:
+      nodes:
+        {{- range $zkNodes }}
+        - host: {{ .host | quote }}
+          port: {{ .port | default 2181 }}
+        {{- end }}
+    {{- end }}
+    clusters:
+      - name: oneuptime
+        layout:
+          shardsCount: {{ $altinity.cluster.shardsCount | default 1 }}
+          replicasCount: {{ $altinity.cluster.replicasCount | default 1 }}
+  templates:
+    podTemplates:
+      - name: clickhouse-pod-template
+        spec:
+          {{- with $altinity.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $altinity.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $altinity.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if $altinity.podSecurityContext }}
+          securityContext:
+            {{- toYaml $altinity.podSecurityContext | nindent 12 }}
+          {{- else if .Values.podSecurityContext }}
+          securityContext:
+            {{- toYaml .Values.podSecurityContext | nindent 12 }}
+          {{- end }}
+          containers:
+            - name: clickhouse
+              image: "{{ $altinity.image.repository }}:{{ $altinity.image.tag }}"
+              imagePullPolicy: {{ $altinity.image.pullPolicy | default "IfNotPresent" }}
+              {{- if $altinity.containerSecurityContext }}
+              securityContext:
+                {{- toYaml $altinity.containerSecurityContext | nindent 16 }}
+              {{- else if .Values.containerSecurityContext }}
+              securityContext:
+                {{- toYaml .Values.containerSecurityContext | nindent 16 }}
+              {{- end }}
+              {{- with $altinity.resources }}
+              resources:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+    serviceTemplates:
+      # generateName has no operator macro ({chi}, {shard}, …), so the single root
+      # CHI service is created with this exact, stable name — the drop-in target the
+      # OneUptime app connects to (see CLICKHOUSE_HOST in _helpers.tpl).
+      - name: clickhouse-service-template
+        generateName: "{{ .Release.Name }}-clickhouse-altinity"
+        spec:
+          type: {{ $altinity.service.type | default "ClusterIP" }}
+          ports:
+            - name: http
+              port: 8123
+            - name: tcp
+              port: 9000
+            - name: mysql
+              port: 9004
+            - name: postgresql
+              port: 9005
+            - name: interserver
+              port: 9009
+    volumeClaimTemplates:
+      - name: data-volume-template
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          {{- if $altinity.persistence.storageClass }}
+          {{- if (eq "-" $altinity.persistence.storageClass) }}
+          storageClassName: ""
+          {{- else }}
+          storageClassName: {{ $altinity.persistence.storageClass | quote }}
+          {{- end }}
+          {{- else if .Values.global.storageClass }}
+          storageClassName: {{ .Values.global.storageClass | quote }}
+          {{- end }}
+          resources:
+            requests:
+              storage: {{ $altinity.persistence.size | default "25Gi" | quote }}
+{{- end }}
