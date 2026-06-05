@@ -37,6 +37,9 @@ import OneUptimeDate from "../../../Types/Date";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
 import { IncidentMemberRoleAssignment } from "../../../Types/Monitor/CriteriaIncident";
 import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
+import SeriesResourceLabels, {
+  SeriesResourceRefs,
+} from "./SeriesResourceLabels";
 
 export default class MonitorIncident {
   @CaptureSpan()
@@ -143,6 +146,14 @@ export default class MonitorIncident {
      * reference `{{host.name}}` etc. via the template engine.
      */
     matchesPerSeries?: Array<PerSeriesCriteriaMatch> | undefined;
+    /**
+     * Series fingerprints whose underlying resource (host, docker host,
+     * kubernetes cluster, or service) is inside an ongoing scheduled
+     * maintenance window. The monitor itself keeps evaluating — it is
+     * not attached to the maintenance — but incidents for these series
+     * are suppressed at creation time. See MonitorMaintenanceSuppression.
+     */
+    suppressedSeriesFingerprints?: Set<string> | undefined;
   }): Promise<void> {
     const incidentLogAttributes: LogAttributes = {
       projectId: input.monitor.projectId?.toString(),
@@ -201,6 +212,37 @@ export default class MonitorIncident {
         const seriesLabels: JSONObject | undefined = seriesMatch?.labels;
         const seriesRootCause: string =
           seriesMatch?.rootCause || input.rootCause;
+
+        /*
+         * Per-series scheduled-maintenance suppression: this series'
+         * resource is inside an ongoing maintenance window, so skip
+         * creating an incident for it. Other series on the same monitor
+         * whose resources are not under maintenance still get incidents.
+         * Note: we only suppress *new* creation — any incident already
+         * open for this series is left to the normal resolve path
+         * (checkOpenIncidentsAndCloseIfResolved still sees the full
+         * breaching set), so a real incident raised before maintenance
+         * is not silently closed.
+         */
+        if (
+          seriesFingerprint &&
+          input.suppressedSeriesFingerprints?.has(seriesFingerprint)
+        ) {
+          logger.debug(
+            `${input.monitor.id?.toString()} - Skipping incident for series ${seriesFingerprint}: its resource is under an active scheduled maintenance window.`,
+            incidentLogAttributes,
+          );
+
+          input.evaluationSummary?.events.push({
+            type: "incident-skipped",
+            title: "Incident suppressed by scheduled maintenance",
+            message:
+              "Skipped creating an incident because the resource for this series is under an active scheduled maintenance window.",
+            relatedCriteriaId: input.criteriaInstance.data?.id,
+            at: OneUptimeDate.getCurrentDate(),
+          });
+          continue;
+        }
 
         const alreadyOpenIncident: Incident | undefined = openIncidents.find(
           (incident: Incident) => {
@@ -485,97 +527,22 @@ export default class MonitorIncident {
   }
 
   /*
-   * Pull every host / docker-host / k8s-cluster identifier out of the
-   * series labels and attach the matching project-scoped records to
-   * the incident. Series labels carry both raw OTel resource
-   * attributes (`host.name`, `k8s.cluster.name`) and the OneUptime
-   * stamps added at ingest (`oneuptime.host.id`,
-   * `oneuptime.docker.host.id`, `oneuptime.kubernetes.cluster.id` and
-   * their `.name` twins). OTel resource attributes are stored under
-   * the `resource.` prefix in ClickHouse, so prefixed and unprefixed
-   * forms are both accepted — whichever the group-by query surfaced,
-   * we'll find it. Multi-value labels are flattened, so a series that
-   * groups by a multi-valued attribute attaches every matching
-   * record. Lookups are always project-scoped so a stale or hostile
-   * stamp can't pull in a record from another tenant.
-   *
-   * For Docker hosts we deliberately ignore raw `host.name`/
-   * `oneuptime.host.name`: those are the Host's territory, and the
-   * ingest pipeline stamps `oneuptime.docker.host.*` independently
-   * when the source is a docker host.
+   * Pull every host / docker-host / k8s-cluster / service identifier
+   * out of the series labels and attach the matching project-scoped
+   * records to the incident. The label-key → resource-type mapping
+   * lives in SeriesResourceLabels (shared with the scheduled-maintenance
+   * suppression path so the two never disagree about which labels
+   * identify which resource). Lookups are always project-scoped so a
+   * stale or hostile stamp can't pull in a record from another tenant.
    */
   private static async linkResourceContextFromSeries(input: {
     incident: Incident;
     seriesLabels: JSONObject;
     projectId: ObjectID;
   }): Promise<void> {
-    const collect: (keys: ReadonlyArray<string>) => Array<string> = (
-      keys: ReadonlyArray<string>,
-    ): Array<string> => {
-      const found: Set<string> = new Set<string>();
-      for (const key of keys) {
-        const value: unknown = input.seriesLabels[key];
-        if (typeof value === "string" && value.length > 0) {
-          found.add(value);
-          continue;
-        }
-        if (Array.isArray(value)) {
-          for (const item of value) {
-            if (typeof item === "string" && item.length > 0) {
-              found.add(item);
-            }
-          }
-        }
-      }
-      return Array.from(found);
-    };
-
-    const hostIds: Array<string> = collect([
-      "resource.oneuptime.host.id",
-      "oneuptime.host.id",
-    ]);
-    const hostNames: Array<string> = collect([
-      "resource.oneuptime.host.name",
-      "oneuptime.host.name",
-      "resource.host.name",
-      "host.name",
-    ]);
-
-    const dockerHostIds: Array<string> = collect([
-      "resource.oneuptime.docker.host.id",
-      "oneuptime.docker.host.id",
-    ]);
-    const dockerHostNames: Array<string> = collect([
-      "resource.oneuptime.docker.host.name",
-      "oneuptime.docker.host.name",
-    ]);
-
-    const clusterIds: Array<string> = collect([
-      "resource.oneuptime.kubernetes.cluster.id",
-      "oneuptime.kubernetes.cluster.id",
-    ]);
-    const clusterNames: Array<string> = collect([
-      "resource.oneuptime.kubernetes.cluster.name",
-      "oneuptime.kubernetes.cluster.name",
-      "resource.k8s.cluster.name",
-      "k8s.cluster.name",
-    ]);
-
-    /*
-     * Services come from OTel-ingested telemetry. The ingest pipeline
-     * auto-creates a Service row keyed by `service.name`, so any series
-     * label that carries that attribute (raw or prefixed) tells us the
-     * emitting service. We also accept the `oneuptime.service.id`
-     * stamp for callers that already resolved the ID upstream.
-     */
-    const serviceIds: Array<string> = collect([
-      "resource.oneuptime.service.id",
-      "oneuptime.service.id",
-    ]);
-    const serviceNames: Array<string> = collect([
-      "resource.service.name",
-      "service.name",
-    ]);
+    const refs: SeriesResourceRefs = SeriesResourceLabels.extractResourceRefs(
+      input.seriesLabels,
+    );
 
     const [
       resolvedHosts,
@@ -584,29 +551,29 @@ export default class MonitorIncident {
       resolvedServices,
     ] = await Promise.all([
       this.resolveResourceIds({
-        ids: hostIds,
-        names: hostNames,
+        ids: refs.hostIds,
+        names: refs.hostNames,
         nameColumn: "hostIdentifier",
         projectId: input.projectId,
         findBy: HostService.findBy.bind(HostService),
       }),
       this.resolveResourceIds({
-        ids: dockerHostIds,
-        names: dockerHostNames,
+        ids: refs.dockerHostIds,
+        names: refs.dockerHostNames,
         nameColumn: "hostIdentifier",
         projectId: input.projectId,
         findBy: DockerHostService.findBy.bind(DockerHostService),
       }),
       this.resolveResourceIds({
-        ids: clusterIds,
-        names: clusterNames,
+        ids: refs.kubernetesClusterIds,
+        names: refs.kubernetesClusterNames,
         nameColumn: "clusterIdentifier",
         projectId: input.projectId,
         findBy: KubernetesClusterService.findBy.bind(KubernetesClusterService),
       }),
       this.resolveResourceIds({
-        ids: serviceIds,
-        names: serviceNames,
+        ids: refs.serviceIds,
+        names: refs.serviceNames,
         nameColumn: "name",
         projectId: input.projectId,
         findBy: ServiceService.findBy.bind(ServiceService),
