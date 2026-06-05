@@ -1,4 +1,4 @@
-{{- $cnpg := (index .Values "postgres-operator" | default dict).cnpg | default dict }}
+{{- $cnpg := .Values.postgresOperator.cnpg }}
 {{- if $cnpg.enabled }}
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster

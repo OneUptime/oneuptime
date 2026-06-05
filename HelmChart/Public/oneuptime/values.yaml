@@ -150,7 +150,7 @@ postgresql:
 
 # =============================================================================
 # Operator-managed PostgreSQL (opt-in). A SEPARATE top-level object — NOT nested
-# under "postgresql" above. When postgres-operator.cnpg.enabled is true:
+# under "postgresql" above. When postgresOperator.cnpg.enabled is true:
 #   * the postgresql StatefulSet / Service / ConfigMaps above are NOT rendered;
 #   * an operator-managed CloudNativePG "Cluster" is created instead;
 #   * the CloudNativePG operator is installed as a bundled chart dependency
@@ -163,7 +163,7 @@ postgresql:
 #
 # NOTE: enabling this bootstraps a FRESH, empty cluster (initdb). It does NOT
 # migrate data from an existing StatefulSet — see HelmChart/Docs/Postgres.md.
-postgres-operator:
+postgresOperator:
   cnpg:
     enabled: false
     # 1 = single primary. >1 = primary + (N-1) hot standbys for HA.
@@ -914,7 +914,7 @@ keda:
   enabled: true
 
 # CloudNativePG operator — bundled dependency. Installed ONLY when
-# postgres-operator.cnpg.enabled is true (see the condition in Chart.yaml).
+# postgresOperator.cnpg.enabled is true (see the condition in Chart.yaml).
 # Full operator values: https://github.com/cloudnative-pg/charts/tree/main/charts/cloudnative-pg
 cloudnative-pg:
   # Install the CloudNativePG CRDs together with the operator.

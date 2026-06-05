@@ -92,12 +92,12 @@ backup/PITR.
 
 Enabling it is a single switch. The CloudNativePG operator is **bundled** as a
 chart dependency and installed together with the release. The config lives in a
-self-contained, top-level `postgres-operator` object (**not** nested under
+self-contained, top-level `postgresOperator` object (**not** nested under
 `postgresql`); `cnpg` is nested so other operators can be added later:
 
 ```yaml
 # values.yaml
-postgres-operator:
+postgresOperator:
   cnpg:
     enabled: true        # turns on the operator + an operator-managed Cluster
     instances: 3         # 1 primary + 2 hot standbys (use 1 for single node)
@@ -105,7 +105,7 @@ postgres-operator:
     database: oneuptimedb
 ```
 
-When `postgres-operator.cnpg.enabled` is `true`:
+When `postgresOperator.cnpg.enabled` is `true`:
 
 * The built-in `StatefulSet`, its `Service`s and `ConfigMap`s are **not**
   rendered (regardless of `postgresql.enabled`; the operator path takes
@@ -114,11 +114,11 @@ When `postgres-operator.cnpg.enabled` is `true`:
 * The app connects as the `postgres` superuser to the read-write service
   `<release>-postgresql-cnpg-rw` on port `5432`, using the password in the
   `<release>-postgresql-cnpg-superuser` secret (auto-generated, or set
-  `postgres-operator.cnpg.postgresPassword`). The password is preserved across
+  `postgresOperator.cnpg.postgresPassword`). The password is preserved across
   upgrades.
 * The object is self-contained — `database`, `persistence`, `resources`,
   `nodeSelector`, `tolerations` and CloudNativePG `parameters` all live under
-  `postgres-operator.cnpg.*`. It does not read any `postgresql.*` values.
+  `postgresOperator.cnpg.*`. It does not read any `postgresql.*` values.
 
 Read the superuser password:
 
@@ -136,7 +136,7 @@ echo $(kubectl get secret --namespace "default" oneuptime-postgresql-cnpg-superu
 
 ### Migrating existing StatefulSet data into CloudNativePG
 
-Turning on `postgres-operator.cnpg.enabled` bootstraps a **fresh, empty**
+Turning on `postgresOperator.cnpg.enabled` bootstraps a **fresh, empty**
 cluster — it does not copy data from the existing `StatefulSet`. There is no supported way to hand the
 operator your existing PV in place (different PVC ownership, a `pgdata`
 sub-directory layout, and a different runtime UID). Use one of these one-time
@@ -145,7 +145,7 @@ migrations instead, keeping the old `StatefulSet` running until cutover.
 **Option A — logical import (recommended).** Apply a one-off `Cluster` that
 imports over the network with `pg_dump`/`pg_restore`. Version-flexible; downtime
 ≈ dump/restore time. Keep the old StatefulSet (`postgresql.enabled: true`,
-`postgres-operator.cnpg.enabled: false`) running while this completes, then cut
+`postgresOperator.cnpg.enabled: false`) running while this completes, then cut
 the app over.
 
 ```yaml
@@ -188,7 +188,7 @@ replication connections — add `host replication all 0.0.0.0/0 md5` to
 rejected.
 
 After either migration completes and the new cluster is healthy, switch the
-release to operator mode (`postgres-operator.cnpg.enabled: true`) so the app
+release to operator mode (`postgresOperator.cnpg.enabled: true`) so the app
 points at `<release>-postgresql-cnpg-rw`, scale `instances` up for HA, then
 decommission the old StatefulSet and its PVC.
 

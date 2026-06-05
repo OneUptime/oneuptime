@@ -446,7 +446,7 @@
             },
             "additionalProperties": false
         },
-        "postgres-operator": {
+        "postgresOperator": {
             "type": "object",
             "properties": {
                 "cnpg": {

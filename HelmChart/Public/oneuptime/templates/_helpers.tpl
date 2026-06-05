@@ -436,7 +436,7 @@ Usage:
 {{- end }}
 
 # Postgres configuration
-{{- $cnpg := (index $.Values "postgres-operator" | default dict).cnpg | default dict }}
+{{- $cnpg := $.Values.postgresOperator.cnpg }}
 
 - name: DATABASE_HOST
   {{- if $cnpg.enabled }}
@@ -918,14 +918,3 @@ spec:
     {{- end }}
 {{- end }}
 {{- end }}
-
-{{/*
-Returns "true" when the bundled CloudNativePG operator + cluster is enabled
-(values key "postgres-operator.cnpg.enabled"); empty string otherwise.
-Usage: {{- if include "oneuptime.cnpgEnabled" . }} ... {{- end }}
-*/}}
-{{- define "oneuptime.cnpgEnabled" -}}
-{{- $op := index .Values "postgres-operator" | default dict -}}
-{{- $cnpg := $op.cnpg | default dict -}}
-{{- if $cnpg.enabled -}}true{{- end -}}
-{{- end -}}
