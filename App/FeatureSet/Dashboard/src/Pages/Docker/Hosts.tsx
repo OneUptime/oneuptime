@@ -78,6 +78,7 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     facetSaveState,
     restoreFacetState,
   } = useResourceOwners<DockerHost>({
+    persistKey: "docker-hosts-table",
     ownerUserModelType: DockerHostOwnerUser,
     ownerTeamModelType: DockerHostOwnerTeam,
     resourceIdField: "dockerHostId",

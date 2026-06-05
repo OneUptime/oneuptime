@@ -44,6 +44,7 @@ const AIAgentsPage: FunctionComponent<
     facetSaveState,
     restoreFacetState,
   } = useResourceOwners<AIAgent>({
+    persistKey: "settings-project-ai-agents-table",
     ownerUserModelType: AIAgentOwnerUser,
     ownerTeamModelType: AIAgentOwnerTeam,
     resourceIdField: "aiAgentId",

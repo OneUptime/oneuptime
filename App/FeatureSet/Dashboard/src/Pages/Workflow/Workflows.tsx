@@ -74,6 +74,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
     facetSaveState,
     restoreFacetState,
   } = useResourceOwners<Workflow>({
+    persistKey: "workflows-table",
     ownerUserModelType: WorkflowOwnerUser,
     ownerTeamModelType: WorkflowOwnerTeam,
     resourceIdField: "workflowId",
