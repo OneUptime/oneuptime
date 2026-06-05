@@ -363,6 +363,30 @@ clickhouse:
   resources: {}
 ```
 
+#### Operator-managed ClickHouse (High Availability)
+
+The built-in ClickHouse above is a single, standalone instance — no replication or declarative lifecycle management. For production high availability, you can instead run ClickHouse under the [Altinity ClickHouse operator](https://github.com/Altinity/clickhouse-operator), which is **bundled** with this chart and installed automatically when you enable it. This gives you declarative management, rolling upgrades, sharding, and replication backed by a bundled [ClickHouse Keeper](https://clickhouse.com/docs/en/guides/sre/keeper/clickhouse-keeper) ensemble.
+
+This is a separate, self-contained `clickhouseOperator` object — it does **not** read any `clickhouse.*` values. Enabling it replaces the built-in StatefulSet:
+
+```yaml
+clickhouseOperator:
+  altinity:
+    enabled: true
+    image:
+      tag: "25.3"        # pin a ClickHouse version for production
+    cluster:
+      shardsCount: 1
+      replicasCount: 2   # 2 = HA (uses the bundled Keeper, enabled by default)
+    keeper:
+      enabled: true
+      replicas: 3        # Keeper quorum (1 for dev, 3/5 for production)
+```
+
+When `clickhouseOperator.altinity.enabled` is `true`, the built-in `clickhouse` StatefulSet/Service/ConfigMap are not rendered, and the OneUptime app connects (as the `oneuptime` user) to the operator-managed `ClickHouseInstallation`'s root service `<release>-clickhouse-altinity` on port `8123`. A ClickHouse Keeper ensemble (`<release>-clickhouse-keeper`) is created to coordinate replication; bring your own ZooKeeper/Keeper instead with `clickhouseOperator.altinity.zookeeper.nodes`. See [Docs/Clickhouse.md](../../Docs/Clickhouse.md) for scaling, backups (via [clickhouse-backup](https://github.com/Altinity/clickhouse-backup)), and migration.
+
+> **Bundled-operator notes.** The Altinity operator is cluster-scoped and owns the ClickHouse CRDs. Do not enable it in more than one OneUptime release per cluster. Tune the operator itself (including its management-user credentials) under the top-level `altinity-clickhouse-operator:` values.
+
 #### External ClickHouse Configuration
 
 If you would like to use an external clickhouse database, please add these env vars to your values.yaml file. 
@@ -524,6 +548,7 @@ We use these charts as dependencies for some components. You dont need to instal
 | ----- | ----------- | ---------- | 
 | `keda` | Kubernetes Event-driven Autoscaling | https://kedacore.github.io/charts |
 | `cloudnative-pg` | CloudNativePG operator — only installed when `postgresOperator.cnpg.enabled` is `true` | https://cloudnative-pg.github.io/charts |
+| `altinity-clickhouse-operator` | Altinity ClickHouse operator — only installed when `clickhouseOperator.altinity.enabled` is `true` | https://helm.altinity.com/ |
 
 
 ## Uninstalling OneUptime

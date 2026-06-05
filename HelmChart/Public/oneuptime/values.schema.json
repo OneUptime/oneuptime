@@ -489,6 +489,104 @@
             },
             "additionalProperties": false
         },
+        "clickhouseOperator": {
+            "type": "object",
+            "properties": {
+                "altinity": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": { "type": "boolean" },
+                        "image": {
+                            "type": "object",
+                            "properties": {
+                                "repository": { "type": "string" },
+                                "tag": { "type": "string" },
+                                "pullPolicy": { "type": "string", "enum": ["IfNotPresent", "Always", "Never"] }
+                            },
+                            "additionalProperties": false
+                        },
+                        "cluster": {
+                            "type": "object",
+                            "properties": {
+                                "shardsCount": { "type": "integer" },
+                                "replicasCount": { "type": "integer" }
+                            },
+                            "additionalProperties": false
+                        },
+                        "auth": {
+                            "type": "object",
+                            "properties": {
+                                "username": { "type": "string" },
+                                "password": { "type": ["string", "null"] }
+                            },
+                            "additionalProperties": false
+                        },
+                        "database": { "type": "string" },
+                        "service": {
+                            "type": "object",
+                            "properties": {
+                                "type": { "type": "string", "enum": ["ClusterIP", "LoadBalancer", "NodePort"] }
+                            },
+                            "additionalProperties": false
+                        },
+                        "persistence": {
+                            "type": "object",
+                            "properties": {
+                                "size": { "type": "string" },
+                                "storageClass": { "type": "string" }
+                            },
+                            "additionalProperties": false
+                        },
+                        "resources": { "type": ["object", "null"] },
+                        "nodeSelector": { "type": "object" },
+                        "tolerations": { "type": "array" },
+                        "affinity": { "type": "object" },
+                        "podSecurityContext": { "type": "object" },
+                        "containerSecurityContext": { "type": "object" },
+                        "settings": { "type": "object" },
+                        "files": { "type": "object" },
+                        "keeper": {
+                            "type": "object",
+                            "properties": {
+                                "enabled": { "type": "boolean" },
+                                "replicas": { "type": "integer" },
+                                "image": {
+                                    "type": "object",
+                                    "properties": {
+                                        "repository": { "type": "string" },
+                                        "tag": { "type": "string" },
+                                        "pullPolicy": { "type": "string", "enum": ["IfNotPresent", "Always", "Never"] }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "persistence": {
+                                    "type": "object",
+                                    "properties": {
+                                        "size": { "type": "string" },
+                                        "storageClass": { "type": "string" }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "resources": { "type": ["object", "null"] },
+                                "nodeSelector": { "type": "object" },
+                                "tolerations": { "type": "array" },
+                                "affinity": { "type": "object" }
+                            },
+                            "additionalProperties": false
+                        },
+                        "zookeeper": {
+                            "type": "object",
+                            "properties": {
+                                "nodes": { "type": "array" }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
         "clickhouse": {
             "type": "object",
             "properties": {
@@ -2320,6 +2418,10 @@
             "additionalProperties": false
         },
         "cloudnative-pg": {
+            "type": "object",
+            "additionalProperties": true
+        },
+        "altinity-clickhouse-operator": {
             "type": "object",
             "additionalProperties": true
         }

@@ -334,6 +334,107 @@ clickhouse:
         </quotas>
     </clickhouse>
 
+# =============================================================================
+# Operator-managed ClickHouse (opt-in). A SEPARATE top-level object — NOT nested
+# under "clickhouse" above. When clickhouseOperator.altinity.enabled is true:
+#   * the clickhouse StatefulSet / Service / ConfigMap above are NOT rendered;
+#   * an operator-managed "ClickHouseInstallation" (CHI) is created instead;
+#   * the Altinity ClickHouse operator is installed as a bundled chart dependency
+#     (gated by this flag — see Chart.yaml; tune the operator itself under the
+#     top-level "altinity-clickhouse-operator:" section at the bottom of this file);
+#   * a bundled ClickHouse Keeper ensemble is created (coordination for replication).
+#
+# The OneUptime app connects as the "oneuptime" user (drop-in replacement for the
+# StatefulSet). This object is self-contained — it does not read any clickhouse.*
+# values. "altinity" is nested so other operators can be added later.
+#
+# NOTE: enabling this bootstraps a FRESH, empty ClickHouse. It does NOT migrate
+# data from an existing StatefulSet — see HelmChart/Docs/Clickhouse.md.
+clickhouseOperator:
+  altinity:
+    enabled: false
+    # ClickHouse operand image. Pin a specific version for production.
+    image:
+      repository: clickhouse/clickhouse-server
+      tag: latest
+      pullPolicy: IfNotPresent
+    # Cluster topology. shardsCount distributes data; replicasCount adds copies for
+    # HA. replicasCount > 1 requires a coordinator — keeper.enabled (below) provides
+    # one. Scaling is online: change these and `helm upgrade`.
+    cluster:
+      shardsCount: 1
+      replicasCount: 1
+    # The application user the OneUptime app authenticates as.
+    auth:
+      username: oneuptime
+      # Auto-generated if empty; preserved on upgrade.
+      password:
+    # Application database (created by the app's migrations, same as the StatefulSet).
+    database: oneuptime
+    # Root CHI service type the app connects to.
+    service:
+      type: ClusterIP
+    persistence:
+      size: 25Gi
+      storageClass: ""
+    resources: {}
+    nodeSelector: {}
+    tolerations: []
+    # Advanced: a Kubernetes Affinity merged into the ClickHouse pod template.
+    affinity: {}
+    # Optional: override global security contexts just for the ClickHouse pod/container.
+    podSecurityContext: {}
+    containerSecurityContext: {}
+    # Server settings rendered into config.d. Slash-separated keys become nested XML
+    # (logger/level -> <logger><level>…). Defaults preserve the built-in deployment's
+    # extra wire protocols (MySQL/Postgres ports) and bounded system-log retention
+    # (6h TTL) that keeps disk usage in check.
+    settings:
+      mysql_port: "9004"
+      postgresql_port: "9005"
+      logger/level: warning
+      merge_tree/max_suspicious_broken_parts: "1000"
+      query_log/ttl: "event_date + INTERVAL 6 HOUR DELETE"
+      query_log/partition_by: "toYYYYMM(event_date)"
+      trace_log/ttl: "event_date + INTERVAL 6 HOUR DELETE"
+      trace_log/partition_by: "toYYYYMM(event_date)"
+      text_log/ttl: "event_date + INTERVAL 6 HOUR DELETE"
+      text_log/partition_by: "toYYYYMM(event_date)"
+      part_log/ttl: "event_date + INTERVAL 6 HOUR DELETE"
+      part_log/partition_by: "toYYYYMM(event_date)"
+      metric_log/ttl: "event_date + INTERVAL 6 HOUR DELETE"
+      metric_log/partition_by: "toYYYYMM(event_date)"
+      asynchronous_metric_log/ttl: "event_date + INTERVAL 6 HOUR DELETE"
+      asynchronous_metric_log/partition_by: "toYYYYMM(event_date)"
+      processors_profile_log/ttl: "event_date + INTERVAL 6 HOUR DELETE"
+      processors_profile_log/partition_by: "toYYYYMM(event_date)"
+    # Advanced: raw config files dropped into the server config (map of filename -> content).
+    files: {}
+    # Bundled ClickHouse Keeper — coordination service required for replication.
+    # Adds keeper.replicas extra pods. Set keeper.replicas to 1 for non-HA/testing,
+    # 3 (or 5) for a production quorum. Disable if you set zookeeper.nodes below.
+    keeper:
+      enabled: true
+      replicas: 3
+      image:
+        repository: clickhouse/clickhouse-keeper
+        tag: latest-alpine
+        pullPolicy: IfNotPresent
+      persistence:
+        size: 10Gi
+        storageClass: ""
+      resources: {}
+      nodeSelector: {}
+      tolerations: []
+      affinity: {}
+    # Bring-your-own ZooKeeper / ClickHouse Keeper. When set, the bundled keeper above
+    # is NOT rendered and the CHI points at these nodes instead.
+    #   nodes:
+    #     - host: zookeeper-0.zk.svc.cluster.local
+    #       port: 2181
+    zookeeper:
+      nodes: []
+
 redis:
   enabled: true
   auth:
@@ -945,3 +1046,15 @@ cloudnative-pg:
     create: true
   # Operator controller replicas.
   replicaCount: 1
+
+# Altinity ClickHouse operator — bundled dependency. Installed ONLY when
+# clickhouseOperator.altinity.enabled is true (see the condition in Chart.yaml).
+# The operator is cluster-scoped and installs its CRDs via pre-install/pre-upgrade
+# Helm hooks. Full operator values: https://github.com/Altinity/clickhouse-operator/tree/master/deploy/helm/clickhouse-operator
+altinity-clickhouse-operator:
+  # The operator manages ClickHouse using its own "clickhouse_operator" user. Override
+  # these for production (the password is otherwise a well-known default).
+  secret:
+    create: true
+    username: clickhouse_operator
+    password: clickhouse_operator_password

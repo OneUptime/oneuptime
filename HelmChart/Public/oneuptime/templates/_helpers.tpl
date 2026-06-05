@@ -253,21 +253,29 @@ Usage:
   {{- end }}
   {{- end }}
 
+{{- $chAltinity := $.Values.clickhouseOperator.altinity }}
 - name: CLICKHOUSE_USER
-  {{- if $.Values.clickhouse.enabled }}
+  {{- if $chAltinity.enabled }}
+  value: {{ $chAltinity.auth.username | default "oneuptime" }}
+  {{- else if $.Values.clickhouse.enabled }}
   value: {{ $.Values.clickhouse.auth.username }}
   {{- else }}
   value: {{ $.Values.externalClickhouse.username }}
   {{- end }}
 
 - name: CLICKHOUSE_IS_HOST_HTTPS
-  {{- if $.Values.clickhouse.enabled }}
+  {{- if or $chAltinity.enabled $.Values.clickhouse.enabled }}
   value: {{ false | squote }}
   {{- else }}
   value: {{ $.Values.externalClickhouse.isHostHttps | squote }}
   {{- end }}
 - name: CLICKHOUSE_PASSWORD
-  {{- if $.Values.clickhouse.enabled }}
+  {{- if $chAltinity.enabled }}
+  valueFrom:
+    secretKeyRef:
+        name: {{ printf "%s-clickhouse-altinity" $.Release.Name }}
+        key: admin-password
+  {{- else if $.Values.clickhouse.enabled }}
   valueFrom:
     secretKeyRef:
         {{- if .Values.clickhouse.auth.existingSecret.name }}
@@ -292,27 +300,33 @@ Usage:
   {{- end }}
   {{- end }}
 - name: CLICKHOUSE_HOST
-  {{- if $.Values.clickhouse.enabled }}
+  {{- if $chAltinity.enabled }}
+  value: {{ $.Release.Name }}-clickhouse-altinity.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+  {{- else if $.Values.clickhouse.enabled }}
   value: {{ $.Release.Name }}-clickhouse.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
   {{- else }}
   value: {{ $.Values.externalClickhouse.host }}
   {{- end }}
 - name: CLICKHOUSE_PORT
-  {{- if $.Values.clickhouse.enabled }}
+  {{- if $chAltinity.enabled }}
+  value: {{ printf "%s" "8123" | squote }}
+  {{- else if $.Values.clickhouse.enabled }}
   value: {{ printf "%s" $.Values.clickhouse.service.ports.http | squote }}
   {{- else }}
   value: {{ $.Values.externalClickhouse.port | quote }}
   {{- end }}
 - name: CLICKHOUSE_DATABASE
-  {{- if $.Values.clickhouse.enabled }}
+  {{- if $chAltinity.enabled }}
+  value: {{ $chAltinity.database | default "oneuptime" | squote }}
+  {{- else if $.Values.clickhouse.enabled }}
   value: {{ printf "oneuptime" | squote}}
   {{- else }}
   value: {{ $.Values.externalClickhouse.database }}
   {{- end }}
 
 
-## REDIS SSL BLOCK
-{{- if $.Values.clickhouse.enabled }}
+## CLICKHOUSE SSL BLOCK
+{{- if or $chAltinity.enabled $.Values.clickhouse.enabled }}
 # do nothing here.
 {{- else }}
 {{- if $.Values.externalClickhouse.tls.enabled }}

@@ -134,6 +134,53 @@ echo $(kubectl get secret --namespace "default" oneuptime-postgresql-cnpg-superu
 > first. If you already run CloudNativePG cluster-wide, do not use the bundled
 > mode.
 
+#### First install with the operator enabled (CRDs must exist first)
+
+The CloudNativePG CRDs ship as **templates** in the bundled subchart, not in a
+`crds/` directory. Helm renders and validates *every* manifest against the API
+server **before** applying anything, so on a cluster that does not yet have the
+CRDs the very first `helm install`/`helm upgrade` with
+`postgresOperator.cnpg.enabled: true` aborts with:
+
+```
+Error: ... resource mapping not found for name: "<release>-postgresql-cnpg" ...
+no matches for kind "Cluster" in version "postgresql.cnpg.io/v1"
+ensure CRDs are installed first
+```
+
+Nothing is applied (not even the CRDs), so re-running Helm alone does **not**
+help. `--disable-openapi-validation` does not fix it either (the failure is a
+resource-mapping check, not schema validation). Install the CRDs **once** before
+the first Helm run, then proceed normally. They are cluster-scoped, so this is a
+one-time step per cluster:
+
+```bash
+# 1) Render the chart and apply ONLY the CloudNativePG CRDs first.
+helm template oneuptime ./HelmChart/Public/oneuptime \
+  -f ./HelmChart/Public/oneuptime/values.yaml \
+  -f ./HelmChart/Values/<your>.values.yaml \
+| python3 -c 'import sys,re; d=sys.stdin.read().split("\n---\n"); print("\n---\n".join(x for x in d if re.search(r"^kind: CustomResourceDefinition$",x,re.M) and "cnpg.io" in x))' \
+| kubectl apply --server-side -f -
+
+# 2) Hand the CRDs to Helm so the upgrade can adopt them (crds.create stays true).
+for c in $(kubectl get crd -o name | grep '\.postgresql\.cnpg\.io' | sed 's#.*/##'); do
+  kubectl label  crd "$c" app.kubernetes.io/managed-by=Helm --overwrite
+  kubectl annotate crd "$c" \
+    meta.helm.sh/release-name=oneuptime \
+    meta.helm.sh/release-namespace=default --overwrite
+done
+
+# 3) Now the normal install/upgrade (e.g. npm run deploy-test) succeeds.
+helm upgrade --install oneuptime ./HelmChart/Public/oneuptime \
+  -f ./HelmChart/Public/oneuptime/values.yaml -f ./HelmChart/Values/<your>.values.yaml
+```
+
+Step 2 is only needed if you keep the default `cloudnative-pg.crds.create: true`
+(Helm then manages CRD upgrades for you). Alternatively, set
+`cloudnative-pg.crds.create: false` so Helm never templates or owns the CRDs —
+then skip step 2, but you must apply CRD upgrades out of band yourself. Once the
+CRDs exist, all subsequent upgrades work in a single pass.
+
 ### Replication, failover, and scaling (CloudNativePG)
 
 When `postgresOperator.cnpg.enabled` is set, replication and failover are managed
@@ -263,4 +310,30 @@ After either migration completes and the new cluster is healthy, switch the
 release to operator mode (`postgresOperator.cnpg.enabled: true`) so the app
 points at `<release>-postgresql-cnpg-rw`, scale `instances` up for HA, then
 decommission the old StatefulSet and its PVC.
+
+**Option C — manual logical dump/restore (when both ends can't talk directly).**
+If the operator can't reach the old StatefulSet over the network (e.g. you've
+already torn it down and only the PVC remains), bring the old data up in a throw-
+away pod that mounts the retained PVC (`postgres:<old-tag>`, `PGDATA=/var/lib/
+postgresql/data/data`, same `runAsUser`), expose it as a `Service`, then
+`pg_dump`/`pg_restore` between the two. Two pitfalls that silently corrupt the
+migration:
+
+* **Never pipe `pg_dump` through `kubectl exec` stdout** (`kubectl exec ...
+  pg_dump -Fc > local.dump`). Large binary stdout gets its tail **silently
+  truncated** — the archive looks fine to `pg_restore --list` (TOC is at the
+  front) but fails partway through restore with `could not read from input file:
+  end of file`. Instead run `pg_dump -Fc -f <file>` writing to a file *inside* a
+  pod, reading the source over a normal libpq TCP connection, and verify the
+  archive end-to-end with `pg_restore -f /dev/null <file>` (exit 0 = complete)
+  before restoring. Streaming data *into* a pod via `kubectl exec -i 'cat >
+  file'` is reliable (checksum it to confirm).
+* **`pg_restore` of a custom-format dump needs a seekable file** — it can't read
+  one from a stdin pipe (same EOF error). Always restore from a file on disk.
+
+Verify success by comparing per-table row counts between source and target
+(`SELECT relname, n_live_tup ...`, or exact `count(*)` for each table) before
+cutting the app over. To stop application writes during the dump, use
+`--set deployment.disableDeployments=true` (this also removes the KEDA
+`ScaledObject`s — a plain `kubectl scale` is reverted by KEDA min replicas).
 
