@@ -28,6 +28,10 @@
     "user": "उपयोगकर्ता",
     "projects": "परियोजनाएँ",
     "project": "परियोजना",
+    "projectUsers": "Users",
+    "projectUser": "User",
+    "projectTeams": "Teams",
+    "projectTeam": "Team",
     "settings": "सेटिंग्स",
     "authentication": "प्रमाणीकरण",
     "emailSettings": "ईमेल सेटिंग्स",
@@ -41,11 +45,7 @@
     "apiKey": "API कुंजी",
     "more": "अधिक",
     "sendEmail": "ईमेल भेजें",
-    "logout": "लॉग आउट",
-    "projectUsers": "Users",
-    "projectUser": "User",
-    "projectTeams": "Teams",
-    "projectTeam": "Team"
+    "logout": "लॉग आउट"
   },
   "topAlert": {
     "title": "OneUptime एडमिन डैशबोर्ड",
@@ -83,6 +83,9 @@
   },
   "sideMenu": {
     "basic": "मूल",
+    "members": "Members",
+    "users": "Users",
+    "teams": "Teams",
     "advanced": "उन्नत",
     "overview": "अवलोकन",
     "settings": "सेटिंग्स",
@@ -96,16 +99,13 @@
     "settingsMonitoring": "निगरानी",
     "settingsGlobalProbes": "वैश्विक प्रोब",
     "settingsDataRetention": "डेटा प्रतिधारण",
-    "settingsAi": "AI",
+    "settingsAi": "एआई",
     "settingsGlobalAiAgents": "वैश्विक AI एजेंट",
     "settingsGlobalLlmProviders": "वैश्विक LLM प्रदाता",
     "settingsApiIntegrations": "API और एकीकरण",
     "settingsApiKey": "API कुंजी",
     "moreCommunication": "संचार",
-    "moreSendEmail": "ईमेल भेजें",
-    "members": "Members",
-    "users": "Users",
-    "teams": "Teams"
+    "moreSendEmail": "ईमेल भेजें"
   },
   "pages": {
     "users": {
@@ -139,6 +139,40 @@
       "cardTitle": "परियोजना",
       "cardDescription": "परियोजना का विवरण",
       "editButton": "परियोजना संपादित करें"
+    },
+    "projectUsers": {
+      "title": "Project Users",
+      "cardTitle": "Users",
+      "cardDescription": "Here is a list of all the users in this project.",
+      "noItems": "No users found in this project.",
+      "noItemsFiltered": "No users matched the filter.",
+      "inviteUser": "Invite User",
+      "inviteUserTitle": "Invite New User",
+      "inviteUserDescription": "Invite a new user to this project.",
+      "inviteUserSubmit": "Invite"
+    },
+    "projectUserView": {
+      "title": "Project User",
+      "cardTitle": "User",
+      "cardDescription": "User details and team memberships in this project.",
+      "teamsCardTitle": "Teams",
+      "teamsCardDescription": "Teams this user belongs to in this project.",
+      "teamsNoItems": "This user is not a member of any team in this project."
+    },
+    "projectTeams": {
+      "title": "Project Teams",
+      "cardTitle": "Teams",
+      "cardDescription": "Here is a list of all the teams in this project.",
+      "noItems": "No teams found in this project."
+    },
+    "projectTeamView": {
+      "title": "Project Team",
+      "cardTitle": "Team Details",
+      "cardDescription": "Details about this team.",
+      "editButton": "Edit Team",
+      "membersCardTitle": "Team Members",
+      "membersCardDescription": "Manage members of this team. Invite new users by email.",
+      "membersNoItems": "No members in this team yet."
     },
     "logout": {
       "title": "लॉग आउट"
@@ -289,40 +323,6 @@
         "stepProviderSettings": "प्रदाता सेटिंग्स",
         "stepCostSettings": "लागत सेटिंग्स"
       }
-    },
-    "projectUsers": {
-      "title": "Project Users",
-      "cardTitle": "Users",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
-      "noItemsFiltered": "No users matched the filter.",
-      "inviteUser": "Invite User",
-      "inviteUserTitle": "Invite New User",
-      "inviteUserDescription": "Invite a new user to this project.",
-      "inviteUserSubmit": "Invite"
-    },
-    "projectUserView": {
-      "title": "Project User",
-      "cardTitle": "User",
-      "cardDescription": "User details and team memberships in this project.",
-      "teamsCardTitle": "Teams",
-      "teamsCardDescription": "Teams this user belongs to in this project.",
-      "teamsNoItems": "This user is not a member of any team in this project."
-    },
-    "projectTeams": {
-      "title": "Project Teams",
-      "cardTitle": "Teams",
-      "cardDescription": "Here is a list of all the teams in this project.",
-      "noItems": "No teams found in this project."
-    },
-    "projectTeamView": {
-      "title": "Project Team",
-      "cardTitle": "Team Details",
-      "cardDescription": "Details about this team.",
-      "editButton": "Edit Team",
-      "membersCardTitle": "Team Members",
-      "membersCardDescription": "Manage members of this team. Invite new users by email.",
-      "membersNoItems": "No members in this team yet."
     }
   },
   "Basic": "बेसिक",
@@ -347,7 +347,7 @@
   "Monitoring": "निगरानी",
   "Global Probes": "ग्लोबल प्रोब",
   "Data Retention": "डेटा प्रतिधारण",
-  "AI": "AI",
+  "AI": "एआई",
   "Global AI Agents": "ग्लोबल AI एजेंट",
   "Global LLM Providers": "ग्लोबल LLM प्रदाता",
   "API and Integrations": "API और एकीकरण",

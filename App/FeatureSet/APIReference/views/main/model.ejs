@@ -333,6 +333,62 @@
       </div>
 
 
+      <% if(pageData.showAggregate){ %>
+      <div class="mt-12">
+         <div class="border-t border-slate-200 pt-10">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-x-3 mb-6">
+               <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-emerald-300 bg-emerald-400/10 text-emerald-600">GET</span>
+               <span class="font-mono text-xs text-slate-400"><%= t('ui.or') %></span>
+               <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-sky-300 bg-sky-400/10 text-sky-600">POST</span>
+               <span class="hidden sm:block h-1 w-1 rounded-full bg-slate-300"></span>
+               <code class="font-mono text-xs sm:text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded break-all w-full sm:w-auto mt-2 sm:mt-0"><%= pageData.apiPath -%>/aggregate</code>
+            </div>
+            <h2 id="aggregate" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32"><%= t('pages.model.aggregateHeading') %></h2>
+
+            <div class="space-y-8">
+               <div>
+                  <p class="text-slate-600 leading-relaxed"><%= t('pages.model.aggregateIntro', { title: pageData.title }) %></p>
+                  <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3"><%= t('pages.model.requestBody') %></h3>
+                  <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
+                     <ul role="list" class="m-0 list-none divide-y divide-slate-100 p-0">
+                        <li class="m-0 px-4 py-3">
+                           <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                              <dt class="sr-only">aggregateBy</dt>
+                              <dd><code class="inline-code">aggregateBy</code></dd>
+                              <dt class="sr-only"><%= t('ui.srType') %></dt>
+                              <dd class="font-mono text-xs text-slate-500">JSON</dd>
+                              <dt class="sr-only"><%= t('ui.srDescription') %></dt>
+                              <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.model.aggregateByDescription') %></dd>
+                           </dl>
+                        </li>
+                     </ul>
+                  </div>
+               </div>
+
+               <div class="w-full">
+                  <%- include('../partials/code-tabs', {
+                     title: t('pages.model.aggregateRequestTitle'),
+                     requestUrl: pageData.apiPath + "/aggregate",
+                     requestType: "POST",
+                     codeExamples: pageData.codeExamples.aggregate
+                  }) -%>
+
+                  <%
+                  const aggregateResponseCode = JSON.stringify({
+                      data: [
+                          { timestamp: "2024-01-15T00:00:00.000Z", value: 42 },
+                          { timestamp: "2024-01-15T01:00:00.000Z", value: 57 }
+                      ]
+                  }, null, 4);
+                  %>
+                  <%- include('../partials/code', {title: t('pages.model.responseTitle'), code: aggregateResponseCode, requestType: "", requestUrl: "" }) -%>
+               </div>
+            </div>
+         </div>
+      </div>
+      <% } %>
+
+
       <% if(pageData.tablePermissions.create && pageData.tablePermissions.create.length > 0) { %>
       <div class="mt-12">
          <div class="border-t border-slate-200 pt-10">

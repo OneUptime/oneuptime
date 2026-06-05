@@ -15,7 +15,6 @@ import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Page from "Common/UI/Components/Page/Page";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
@@ -23,7 +22,7 @@ import ResourceUsageBar from "Common/UI/Components/ResourceUsageBar/ResourceUsag
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
-import { APP_API_URL, IS_ENTERPRISE_EDITION, VERSION } from "Common/UI/Config";
+import { APP_API_URL, IS_ENTERPRISE_EDITION } from "Common/UI/Config";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import React, {
   FunctionComponent,
@@ -175,7 +174,6 @@ const Health: FunctionComponent = (): ReactElement => {
   const clickhouse: JSONObject = (data?.["clickhouse"] || {}) as JSONObject;
   const redis: JSONObject = (data?.["redis"] || {}) as JSONObject;
   const queues: JSONArray = (data?.["queues"] || []) as JSONArray;
-  const counts: JSONObject = (data?.["counts"] || {}) as JSONObject;
   const topTables: JSONArray = (clickhouse["topTables"] || []) as JSONArray;
 
   // ClickHouse disk utilization (the one datastore that reports volume capacity directly).
@@ -233,35 +231,6 @@ const Health: FunctionComponent = (): ReactElement => {
 
     return (
       <div>
-        {/* KPI row */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5 mb-5">
-          <InfoCard
-            title="Version"
-            value={VERSION.toString()}
-            textClassName="text-2xl font-semibold text-gray-900"
-          />
-          <InfoCard
-            title="Projects"
-            value={countLabel(counts["projects"])}
-            textClassName="text-2xl font-semibold text-gray-900"
-          />
-          <InfoCard
-            title="Users"
-            value={countLabel(counts["users"])}
-            textClassName="text-2xl font-semibold text-gray-900"
-          />
-          <InfoCard
-            title="Monitors"
-            value={countLabel(counts["monitors"])}
-            textClassName="text-2xl font-semibold text-gray-900"
-          />
-          <InfoCard
-            title="Incidents"
-            value={countLabel(counts["incidents"])}
-            textClassName="text-2xl font-semibold text-gray-900"
-          />
-        </div>
-
         {/* System components */}
         <Card
           title="System components"

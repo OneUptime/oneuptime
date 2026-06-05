@@ -58,12 +58,16 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
       <tr>
         {props.enableDragAndDrop && (
           <th scope="col">
-            <span className="sr-only">Drag to reorder</span>
+            <span className="sr-only">
+              {translateString("Drag to reorder")}
+            </span>
           </th>
         )}
         {props.isBulkActionsEnabled && (
           <th scope="col">
-            <span className="sr-only">Select all items</span>
+            <span className="sr-only">
+              {translateString("Select all items")}
+            </span>
             <div className="ml-5">
               <CheckboxElement
                 disabled={!props.hasTableItems}

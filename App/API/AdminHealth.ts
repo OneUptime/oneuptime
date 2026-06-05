@@ -4,10 +4,6 @@ import Redis from "Common/Server/Infrastructure/Redis";
 import Queue, { QueueName } from "Common/Server/Infrastructure/Queue";
 import { IsEnterpriseEdition } from "Common/Server/EnvironmentConfig";
 import MasterAdminAuthorization from "Common/Server/Middleware/MasterAdminAuthorization";
-import IncidentService from "Common/Server/Services/IncidentService";
-import MonitorService from "Common/Server/Services/MonitorService";
-import ProjectService from "Common/Server/Services/ProjectService";
-import UserService from "Common/Server/Services/UserService";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -219,34 +215,6 @@ async function getQueueStats(): Promise<JSONArray> {
   return stats;
 }
 
-async function getCounts(): Promise<JSONObject> {
-  const result: JSONObject = {
-    projects: null,
-    users: null,
-    monitors: null,
-    incidents: null,
-  };
-
-  try {
-    const [projects, users, monitors, incidents] = await Promise.all([
-      ProjectService.countBy({ query: {}, props: { isRoot: true } }),
-      UserService.countBy({ query: {}, props: { isRoot: true } }),
-      MonitorService.countBy({ query: {}, props: { isRoot: true } }),
-      IncidentService.countBy({ query: {}, props: { isRoot: true } }),
-    ]);
-
-    result["projects"] = projects.toNumber();
-    result["users"] = users.toNumber();
-    result["monitors"] = monitors.toNumber();
-    result["incidents"] = incidents.toNumber();
-  } catch (err) {
-    logger.error("AdminHealth: failed to read instance counts");
-    logger.error(err);
-  }
-
-  return result;
-}
-
 router.get(
   "/overview",
   MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
@@ -269,12 +237,11 @@ router.get(
         return Response.sendJsonObjectResponse(req, res, overviewCache.data);
       }
 
-      const [postgres, clickhouse, redis, queues, counts] = await Promise.all([
+      const [postgres, clickhouse, redis, queues] = await Promise.all([
         getPostgresStats(),
         getClickhouseStats(),
         getRedisStats(),
         getQueueStats(),
-        getCounts(),
       ]);
 
       const data: JSONObject = {
@@ -282,7 +249,6 @@ router.get(
         clickhouse,
         redis,
         queues,
-        counts,
       };
 
       overviewCache = {
