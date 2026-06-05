@@ -44,12 +44,21 @@ spec:
     storageClass: {{ .Values.global.storageClass | quote }}
     {{- end }}
 
-  {{- with $cnpg.parameters }}
+  {{- $syncReplicas := int (default 0 $cnpg.synchronousReplicas) }}
+  {{- if or $cnpg.parameters (gt $syncReplicas 0) }}
   postgresql:
+    {{- with $cnpg.parameters }}
     parameters:
       {{- range $key, $val := . }}
       {{ $key }}: {{ $val | quote }}
       {{- end }}
+    {{- end }}
+    {{- if gt $syncReplicas 0 }}
+    # Quorum-based synchronous replication (commits wait for the standbys below).
+    synchronous:
+      method: any
+      number: {{ $syncReplicas }}
+    {{- end }}
   {{- end }}
 
   {{- with $cnpg.resources }}

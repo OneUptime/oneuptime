@@ -134,6 +134,37 @@ echo $(kubectl get secret --namespace "default" oneuptime-postgresql-cnpg-superu
 > first. If you already run CloudNativePG cluster-wide, do not use the bundled
 > mode.
 
+### Replication, failover, and scaling (CloudNativePG)
+
+When `postgresOperator.cnpg.enabled` is set, replication and failover are managed
+by the operator:
+
+* **Replication** — `postgresOperator.cnpg.instances` is the total number of
+  PostgreSQL pods. `instances: 3` = 1 primary + 2 streaming hot-standby replicas.
+  Scaling is online: change `instances` and `helm upgrade`.
+* **Automatic failover** — if the primary becomes unhealthy the operator promotes
+  a replica and re-points the `-rw` service. No application change is needed.
+* **Synchronous replication** — set `postgresOperator.cnpg.synchronousReplicas: N`
+  for quorum-based synchronous commits (zero data loss). Keep
+  `instances >= synchronousReplicas + 2` so a single standby outage does not block
+  writes.
+* **Read scaling** — send read-only/reporting traffic to the
+  `<release>-postgresql-cnpg-ro` service (replicas only). The OneUptime app uses
+  the `-rw` (primary) service.
+
+Inspect cluster and replication status:
+
+```
+kubectl cnpg status <release>-postgresql-cnpg
+# or, without the cnpg kubectl plugin:
+kubectl get cluster <release>-postgresql-cnpg -o wide
+```
+
+**Sharding is not supported** by CloudNativePG or this chart. Scale via vertical
+sizing, read replicas, connection pooling, and PostgreSQL table partitioning for
+very large tables. Distributed sharding requires the Citus extension (or an
+operator that wraps it) — a separate architecture, out of scope here.
+
 ### Migrating existing StatefulSet data into CloudNativePG
 
 Turning on `postgresOperator.cnpg.enabled` bootstraps a **fresh, empty**

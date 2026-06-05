@@ -454,6 +454,7 @@
                     "properties": {
                         "enabled": { "type": "boolean" },
                         "instances": { "type": "integer" },
+                        "synchronousReplicas": { "type": "integer" },
                         "imageName": { "type": "string" },
                         "database": { "type": "string" },
                         "owner": { "type": "string" },

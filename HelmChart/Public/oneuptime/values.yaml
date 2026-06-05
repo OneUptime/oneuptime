@@ -168,6 +168,11 @@ postgresOperator:
     enabled: false
     # 1 = single primary. >1 = primary + (N-1) hot standbys for HA.
     instances: 1
+    # Synchronous (quorum) replication. 0 = async streaming (default).
+    # When > 0, every commit waits for this many standbys to confirm the write
+    # (zero data loss on failover). Requires instances >= synchronousReplicas + 1
+    # (ideally + 2, so writes don't block when a single standby is unavailable).
+    synchronousReplicas: 0
     # PostgreSQL operand image. Pin a specific minor for production
     imageName: "ghcr.io/cloudnative-pg/postgresql:latest"
     # Application database and its owner role, created at bootstrap.

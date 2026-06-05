@@ -202,6 +202,50 @@ externalPostgres:
     key:
 ```
 
+#### Operator-managed PostgreSQL (High Availability)
+
+The built-in PostgreSQL above is a single, standalone instance — no replication or automatic failover. For production high availability, you can instead run PostgreSQL under the [CloudNativePG](https://cloudnative-pg.io) operator, which is **bundled** with this chart and installed automatically when you enable it. This gives you streaming replication, automatic failover, rolling minor upgrades, and a dedicated read-only service.
+
+This is a separate, self-contained `postgresOperator` object — it does **not** read any `postgresql.*` values. Enabling it replaces the built-in StatefulSet:
+
+```yaml
+postgresOperator:
+  cnpg:
+    enabled: true               # installs the operator + an operator-managed cluster
+    instances: 3                # 1 primary + 2 hot-standby replicas
+    imageName: "ghcr.io/cloudnative-pg/postgresql:17.4"   # pin a minor version
+    database: oneuptimedb
+    persistence:
+      size: 50Gi
+```
+
+When `postgresOperator.cnpg.enabled` is `true`, the built-in `postgresql` StatefulSet/Service/ConfigMaps are not rendered, and the OneUptime app connects (as the `postgres` superuser) to the cluster's read-write service `<release>-postgresql-cnpg-rw`.
+
+**Replication** is controlled by `instances`:
+
+- `instances: 1` — a single primary, no replicas.
+- `instances: 3` — one primary plus two hot-standby replicas kept current by PostgreSQL streaming replication. If the primary fails, the operator automatically promotes a healthy replica and re-points the `-rw` service. This is **asynchronous** replication by default. Scaling is online — change `instances` and `helm upgrade`.
+
+For **synchronous** replication (a commit is not acknowledged until standbys confirm it — zero data loss on failover), set `synchronousReplicas`:
+
+```yaml
+postgresOperator:
+  cnpg:
+    enabled: true
+    instances: 3
+    synchronousReplicas: 1      # quorum: every commit waits for >=1 standby
+```
+
+Keep `instances >= synchronousReplicas + 2` so writes don't block when a single standby is briefly unavailable.
+
+**Read scaling.** The operator also creates `<release>-postgresql-cnpg-ro` (load-balanced across replicas) and `<release>-postgresql-cnpg-r` (any instance). Point read-heavy/reporting workloads at `-ro`; the OneUptime app itself uses the `-rw` (primary) endpoint.
+
+**Sharding is not supported.** Neither CloudNativePG nor this chart shards PostgreSQL horizontally, and OneUptime does not need it at typical scale. Scale PostgreSQL with a larger node (vertical), read replicas (above), connection pooling, and PostgreSQL table partitioning for very large tables. True distributed sharding would require the Citus extension (or an operator such as StackGres that wraps it) — a different architecture that is out of scope for this chart.
+
+> **Bundled-operator notes.** The CloudNativePG operator is cluster-scoped and owns the CloudNativePG CRDs. Do not enable it in more than one OneUptime release per cluster, and note that `helm uninstall` can remove the CRDs (and cascade-delete clusters) — back up first. Tune the operator itself under the top-level `cloudnative-pg:` values.
+
+Enabling the operator bootstraps a **fresh, empty** cluster — it does not migrate data from an existing StatefulSet. See [Docs/Postgres.md](../../Docs/Postgres.md) for the migration runbook and day-2 operations.
+
 ### Redis
 
 OneUptime includes a built-in Redis deployment using the official Redis Docker image. Redis is used for caching and session management.
@@ -465,6 +509,7 @@ We use these charts as dependencies for some components. You dont need to instal
 | Chart | Description | Repository | 
 | ----- | ----------- | ---------- | 
 | `keda` | Kubernetes Event-driven Autoscaling | https://kedacore.github.io/charts |
+| `cloudnative-pg` | CloudNativePG operator — only installed when `postgresOperator.cnpg.enabled` is `true` | https://cloudnative-pg.github.io/charts |
 
 
 ## Uninstalling OneUptime
