@@ -171,8 +171,11 @@ system-log tables are already capped with a 6-hour TTL (see
 #### Migrating existing StatefulSet data into the operator
 
 Turning on `clickhouseOperator.altinity.enabled` bootstraps a **fresh, empty**
-ClickHouse — it does not copy data from the existing `StatefulSet`. To migrate,
-keep the old `StatefulSet` running (`clickhouse.enabled: true`,
-`clickhouseOperator.altinity.enabled: false`) and copy data over with
-`clickhouse-backup` or `remoteSecure()`/`INSERT ... SELECT remote(...)` from the
-old service into the new CHI, then cut the app over by enabling the operator.
+ClickHouse — it does **not** copy data from the existing standalone `StatefulSet`.
+Because OneUptime stores append-only telemetry here, the simplest migration is
+often a fresh start (no copy); when you must keep history, copy it with
+`clickhouse-backup` or `INSERT … SELECT remote(...)`. The full step-by-step
+runbook — fresh-start vs. data-retaining paths, quiescing, verification,
+rollback, and cleanup — lives in its own doc:
+
+➡️ **[Migrating ClickHouse: Standalone → Altinity Operator](./MigrateClickhouseStandaloneToOperator.md)**
