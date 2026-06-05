@@ -178,10 +178,10 @@ export default class KubernetesResourceAPI extends BaseAPI<
       string,
       { cpuPercent: number; memoryBytes: number; memoryPercent: number }
     > = await this.service.getLatestMetricsByNamespace({
-        projectId,
-        kubernetesClusterId,
-        staleAfter,
-      });
+      projectId,
+      kubernetesClusterId,
+      staleAfter,
+    });
 
     return Response.sendJsonObjectResponse(req, res, {
       aggregates: this.mapAggregatesToJson(aggregates),
@@ -221,11 +221,11 @@ export default class KubernetesResourceAPI extends BaseAPI<
       string,
       { cpuPercent: number; memoryBytes: number; memoryPercent: number }
     > = await this.service.getLatestMetricsByOwner({
-        projectId,
-        kubernetesClusterId,
-        ownerKind,
-        staleAfter,
-      });
+      projectId,
+      kubernetesClusterId,
+      ownerKind,
+      staleAfter,
+    });
 
     return Response.sendJsonObjectResponse(req, res, {
       aggregates: this.mapAggregatesToJson(aggregates),
