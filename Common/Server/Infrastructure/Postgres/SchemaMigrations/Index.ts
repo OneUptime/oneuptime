@@ -365,6 +365,8 @@ import { MigrationName1780381124553 } from "./1780381124553-MigrationName";
 import { MigrationName1780382837019 } from "./1780382837019-MigrationName";
 import { MigrationName1780387560604 } from "./1780387560604-MigrationName";
 import { MigrationName1780388219225 } from "./1780388219225-MigrationName";
+import { AddMetricAndTraceSavedView1780645560183 } from "./1780645560183-AddMetricAndTraceSavedView";
+import { AddKubernetesLatestMemoryPercent1780651429467 } from "./1780651429467-AddKubernetesLatestMemoryPercent";
 
 export default [
   InitialMigration,
@@ -734,4 +736,6 @@ export default [
   MigrationName1780382837019,
   MigrationName1780387560604,
   MigrationName1780388219225,
+  AddMetricAndTraceSavedView1780645560183,
+  AddKubernetesLatestMemoryPercent1780651429467,
 ];

@@ -216,6 +216,16 @@ const WorkersFeatureSet: FeatureSet = {
       await AnalyticsTableManagement.createTables();
 
       /*
+       * Ensure ClickHouse materialized views exist. Runs every boot and
+       * is idempotent (CREATE ... IF NOT EXISTS + existence check), so a
+       * wiped/recreated ClickHouse volume self-heals even when the
+       * one-time DataMigrations that originally created the MVs are
+       * already recorded as executed in Postgres. Must run after
+       * createTables() so the source/target tables exist.
+       */
+      await AnalyticsTableManagement.createMaterializedViews();
+
+      /*
        * Job process. Skipped in the "api" role (DISABLE_QUEUE_WORKERS=true) —
        * the dedicated worker deployment drains the Worker queue (cron jobs,
        * notifications, incident/alert state reconciliation, etc.). Cron

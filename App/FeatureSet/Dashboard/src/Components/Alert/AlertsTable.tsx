@@ -323,6 +323,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
     facetSaveState,
     restoreFacetState,
   } = useResourceOwners<Alert>({
+    persistKey: props.saveFilterProps?.tableId,
     ownerUserModelType: AlertOwnerUser,
     ownerTeamModelType: AlertOwnerTeam,
     resourceIdField: "alertId",

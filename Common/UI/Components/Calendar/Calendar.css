@@ -241,7 +241,11 @@
 .oneuptime-calendar .rbc-agenda-view table.rbc-agenda-table tbody > tr > td {
   padding: 0.625rem 0.75rem;
   font-size: 0.8125rem;
-  color: #374151;
+  /* react-big-calendar applies the per-event color (set by eventPropGetter) to
+     the agenda <tr>. Inherit it here instead of forcing a fixed dark gray so the
+     agenda view uses the same contrast text (e.g. white on dark event colors)
+     as the month/week/day views. */
+  color: inherit;
   border-top: 1px solid #f3f4f6;
 }
 

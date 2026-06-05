@@ -368,6 +368,27 @@ Get-WinEvent -ProviderName otelcol-contrib -MaxEvents 50 | Format-Table -AutoSiz
 \`\`\`
 
 > **Note:** The MSI registers \`otelcol-contrib\` as a Windows service that starts automatically on boot. The \`load\` scraper isn't supported on Windows — the rest of the \`hostmetrics\` config above runs unchanged.
+
+## Step 3 — Collect Windows services (optional)
+
+To populate this host's **Services** tab with the running state and startup type of each Windows service, add the \`windows_service\` receiver and include it in the metrics pipeline. Append to the \`config.yaml\` from Step 1:
+
+\`\`\`yaml
+receivers:
+  windows_service:
+    collection_interval: 30s
+    # Leave include_services unset to collect every service, or list
+    # specific ones to cut volume and avoid access-denied noise:
+    # include_services: [Spooler, W3SVC, MSSQLSERVER]
+
+service:
+  pipelines:
+    metrics:
+      # Add windows_service alongside the hostmetrics receiver from Step 1.
+      receivers: [hostmetrics, windows_service]
+\`\`\`
+
+This receiver ships only in the **contrib** distribution and runs **only on Windows** — don't add it to a Linux or macOS collector, or the collector will fail to start. Keep the service running as \`LocalSystem\` (the MSI default) so it can read every service; any service it can't open is skipped. Once these metrics arrive, the **Services** tab appears automatically on the host.
 `;
 
     case "kubernetes":

@@ -28,6 +28,10 @@
     "user": "Usuário",
     "projects": "Projetos",
     "project": "Projeto",
+    "projectUsers": "Users",
+    "projectUser": "User",
+    "projectTeams": "Teams",
+    "projectTeam": "Team",
     "settings": "Configurações",
     "authentication": "Autenticação",
     "emailSettings": "Configurações de e-mail",
@@ -41,11 +45,7 @@
     "apiKey": "Chave API",
     "more": "Mais",
     "sendEmail": "Enviar e-mail",
-    "logout": "Sair",
-    "projectUsers": "Users",
-    "projectUser": "User",
-    "projectTeams": "Teams",
-    "projectTeam": "Team"
+    "logout": "Sair"
   },
   "topAlert": {
     "title": "Painel do administrador do OneUptime",
@@ -68,7 +68,7 @@
   "footer": {
     "copyright": "HackerBay, Inc.",
     "helpSupport": "Ajuda e suporte",
-    "legal": "Legal",
+    "legal": "Jurídico",
     "version": "Versão",
     "versionModalTitle": "Versão do OneUptime",
     "versionLabel": "Versão",
@@ -83,6 +83,9 @@
   },
   "sideMenu": {
     "basic": "Básico",
+    "members": "Members",
+    "users": "Users",
+    "teams": "Teams",
     "advanced": "Avançado",
     "overview": "Visão geral",
     "settings": "Configurações",
@@ -102,10 +105,7 @@
     "settingsApiIntegrations": "API e integrações",
     "settingsApiKey": "Chave API",
     "moreCommunication": "Comunicação",
-    "moreSendEmail": "Enviar e-mail",
-    "members": "Members",
-    "users": "Users",
-    "teams": "Teams"
+    "moreSendEmail": "Enviar e-mail"
   },
   "pages": {
     "users": {
@@ -139,6 +139,40 @@
       "cardTitle": "Projeto",
       "cardDescription": "Detalhes do projeto",
       "editButton": "Editar projeto"
+    },
+    "projectUsers": {
+      "title": "Project Users",
+      "cardTitle": "Users",
+      "cardDescription": "Here is a list of all the users in this project.",
+      "noItems": "No users found in this project.",
+      "noItemsFiltered": "No users matched the filter.",
+      "inviteUser": "Invite User",
+      "inviteUserTitle": "Invite New User",
+      "inviteUserDescription": "Invite a new user to this project.",
+      "inviteUserSubmit": "Invite"
+    },
+    "projectUserView": {
+      "title": "Project User",
+      "cardTitle": "User",
+      "cardDescription": "User details and team memberships in this project.",
+      "teamsCardTitle": "Teams",
+      "teamsCardDescription": "Teams this user belongs to in this project.",
+      "teamsNoItems": "This user is not a member of any team in this project."
+    },
+    "projectTeams": {
+      "title": "Project Teams",
+      "cardTitle": "Teams",
+      "cardDescription": "Here is a list of all the teams in this project.",
+      "noItems": "No teams found in this project."
+    },
+    "projectTeamView": {
+      "title": "Project Team",
+      "cardTitle": "Team Details",
+      "cardDescription": "Details about this team.",
+      "editButton": "Edit Team",
+      "membersCardTitle": "Team Members",
+      "membersCardDescription": "Manage members of this team. Invite new users by email.",
+      "membersNoItems": "No members in this team yet."
     },
     "logout": {
       "title": "Sair"
@@ -289,40 +323,6 @@
         "stepProviderSettings": "Configurações do provedor",
         "stepCostSettings": "Configurações de custo"
       }
-    },
-    "projectUsers": {
-      "title": "Project Users",
-      "cardTitle": "Users",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
-      "noItemsFiltered": "No users matched the filter.",
-      "inviteUser": "Invite User",
-      "inviteUserTitle": "Invite New User",
-      "inviteUserDescription": "Invite a new user to this project.",
-      "inviteUserSubmit": "Invite"
-    },
-    "projectUserView": {
-      "title": "Project User",
-      "cardTitle": "User",
-      "cardDescription": "User details and team memberships in this project.",
-      "teamsCardTitle": "Teams",
-      "teamsCardDescription": "Teams this user belongs to in this project.",
-      "teamsNoItems": "This user is not a member of any team in this project."
-    },
-    "projectTeams": {
-      "title": "Project Teams",
-      "cardTitle": "Teams",
-      "cardDescription": "Here is a list of all the teams in this project.",
-      "noItems": "No teams found in this project."
-    },
-    "projectTeamView": {
-      "title": "Project Team",
-      "cardTitle": "Team Details",
-      "cardDescription": "Details about this team.",
-      "editButton": "Edit Team",
-      "membersCardTitle": "Team Members",
-      "membersCardDescription": "Manage members of this team. Invite new users by email.",
-      "membersNoItems": "No members in this team yet."
     }
   },
   "Basic": "Básico",

@@ -8,11 +8,12 @@ import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
  * Per-minute pre-aggregated rollup of `MetricItemV2` value samples.
  *
  * Populated by the attached materialized view `MetricItemAggMV1m_mv`
- * (defined in the `AddMetricMinuteAggregateMaterializedView` data
- * migration), which fires on every insert into `MetricItemV2`. Each
- * row holds AggregateFunction *states* — partial intermediate values
- * combined by background merges and finalized at read time via
- * `*Merge()` (e.g. `sumMerge(valueSumState)`).
+ * (declared below in `materializedViews` and applied idempotently by
+ * the analytics schema-sync on every boot), which fires on every
+ * insert into `MetricItemV2`. Each row holds AggregateFunction
+ * *states* — partial intermediate values combined by background merges
+ * and finalized at read time via `*Merge()` (e.g.
+ * `sumMerge(valueSumState)`).
  *
  * Read access goes through `MetricService.tryBuildMinuteAggregateMVStatement`
  * for chart aggregation queries that span ≥ 1 minute and don't filter
@@ -130,6 +131,35 @@ export default class MetricItemAggMV1m extends AnalyticsBaseModel {
         retentionDateColumn,
       ],
       projections: [],
+      /*
+       * Materialized view that pre-rolls MetricItemV2 value samples into
+       * 1-minute buckets. This is the canonical definition: the analytics
+       * schema-sync (AnalyticsTableManagement.createMaterializedViews)
+       * creates it on every boot if missing, so a wiped/recreated
+       * ClickHouse volume self-heals even when the one-time DataMigration
+       * is already recorded as executed in Postgres. Kept idempotent with
+       * `IF NOT EXISTS`.
+       */
+      materializedViews: [
+        {
+          name: "MetricItemAggMV1m_mv",
+          query: `CREATE MATERIALIZED VIEW IF NOT EXISTS MetricItemAggMV1m_mv
+TO MetricItemAggMV1m
+AS
+SELECT
+  projectId,
+  name,
+  serviceId,
+  toStartOfMinute(time) AS bucketTime,
+  sumState(toFloat64(coalesce(value, sum, 0))) AS valueSumState,
+  countState(toFloat64(coalesce(value, sum, 0))) AS valueCountState,
+  minState(toFloat64(coalesce(value, sum, 0))) AS valueMinState,
+  maxState(toFloat64(coalesce(value, sum, 0))) AS valueMaxState,
+  max(retentionDate) AS retentionDate
+FROM MetricItemV2
+GROUP BY projectId, name, serviceId, bucketTime`,
+        },
+      ],
       sortKeys: ["projectId", "name", "serviceId", "bucketTime"],
       primaryKeys: ["projectId", "name", "serviceId", "bucketTime"],
       partitionKey: "sipHash64(projectId) % 16",

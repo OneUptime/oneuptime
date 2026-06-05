@@ -115,6 +115,13 @@ export default class MonitorAlert {
       telemetryQuery?: TelemetryQuery | undefined;
     };
     matchesPerSeries?: Array<PerSeriesCriteriaMatch> | undefined;
+    /**
+     * Series fingerprints whose underlying resource is inside an
+     * ongoing scheduled maintenance window. Alerts for these series are
+     * suppressed at creation time even though the monitor keeps
+     * evaluating. See MonitorMaintenanceSuppression.
+     */
+    suppressedSeriesFingerprints?: Set<string> | undefined;
   }): Promise<void> {
     const alertLogAttributes: LogAttributes = {
       projectId: input.monitor.projectId?.toString(),
@@ -163,6 +170,33 @@ export default class MonitorAlert {
         const seriesLabels: JSONObject | undefined = seriesMatch?.labels;
         const seriesRootCause: string =
           seriesMatch?.rootCause || input.rootCause;
+
+        /*
+         * Per-series scheduled-maintenance suppression: skip creating an
+         * alert for a series whose resource is inside an ongoing
+         * maintenance window. Other series on the same monitor are
+         * unaffected. Only *new* creation is suppressed — existing open
+         * alerts follow the normal resolve path.
+         */
+        if (
+          seriesFingerprint &&
+          input.suppressedSeriesFingerprints?.has(seriesFingerprint)
+        ) {
+          logger.debug(
+            `${input.monitor.id?.toString()} - Skipping alert for series ${seriesFingerprint}: its resource is under an active scheduled maintenance window.`,
+            alertLogAttributes,
+          );
+
+          input.evaluationSummary?.events.push({
+            type: "alert-skipped",
+            title: "Alert suppressed by scheduled maintenance",
+            message:
+              "Skipped creating an alert because the resource for this series is under an active scheduled maintenance window.",
+            relatedCriteriaId: input.criteriaInstance.data?.id,
+            at: OneUptimeDate.getCurrentDate(),
+          });
+          continue;
+        }
 
         const alreadyOpenAlert: Alert | undefined = openAlerts.find(
           (alert: Alert) => {

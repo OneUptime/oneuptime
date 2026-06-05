@@ -210,6 +210,13 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         throw new BadRequestException("Invalid resourceSpans format");
       }
 
+      /*
+       * Canonicalize host.name casing so the resolved hostIdentifier and
+       * the stored resource.host.name attribute share one casing, keeping
+       * host-scoped trace queries matching via the fast query path.
+       */
+      OtelIngestBaseService.normalizeHostNameAttributesInPlace(resourceSpans);
+
       const dbSpans: Array<JSONObject> = [];
       const dbExceptions: Array<JSONObject> = [];
       /*

@@ -1,5 +1,6 @@
 import MasterPage from "./Components/MasterPage/MasterPage";
 import Init from "./Pages/Init/Init";
+import Health from "./Pages/Health/Index";
 import Logout from "./Pages/Logout/Logout";
 import Projects from "./Pages/Projects/Index";
 import SettingsAPIKey from "./Pages/Settings/APIKey/Index";
@@ -65,6 +66,11 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.INIT]?.toString() || ""}
           element={<Init />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.HEALTH]?.toString() || ""}
+          element={<Health />}
         />
 
         <PageRoute

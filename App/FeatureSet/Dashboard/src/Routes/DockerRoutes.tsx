@@ -15,6 +15,8 @@ import DockerHostContainers from "../Pages/Docker/View/Containers";
 import DockerHostContainerDetail from "../Pages/Docker/View/ContainerDetail";
 import DockerHostMetrics from "../Pages/Docker/View/Metrics";
 import DockerHostLogs from "../Pages/Docker/View/Logs";
+import DockerHostTraces from "../Pages/Docker/View/Traces";
+import DockerHostProfiles from "../Pages/Docker/View/Profiles";
 import DockerHostIncidents from "../Pages/Docker/View/Incidents";
 import DockerHostAlerts from "../Pages/Docker/View/Alerts";
 import DockerHostScheduledMaintenance from "../Pages/Docker/View/ScheduledMaintenance";
@@ -131,6 +133,28 @@ const DockerRoutes: FunctionComponent<ComponentProps> = (
             <DockerHostLogs
               {...props}
               pageRoute={RouteMap[PageMap.DOCKER_HOST_VIEW_LOGS] as Route}
+            />
+          }
+        />
+
+        {/* Traces */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.DOCKER_HOST_VIEW_TRACES)}
+          element={
+            <DockerHostTraces
+              {...props}
+              pageRoute={RouteMap[PageMap.DOCKER_HOST_VIEW_TRACES] as Route}
+            />
+          }
+        />
+
+        {/* Profiles */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.DOCKER_HOST_VIEW_PROFILES)}
+          element={
+            <DockerHostProfiles
+              {...props}
+              pageRoute={RouteMap[PageMap.DOCKER_HOST_VIEW_PROFILES] as Route}
             />
           }
         />

@@ -28,6 +28,10 @@ import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetri
 import { KubernetesJobObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import KubernetesCpuUtils, {
+  NodeAllocatableCpu,
+} from "../Utils/KubernetesCpuUtils";
+import useNodeAllocatableCpu from "../Utils/useNodeAllocatableCpu";
 import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
 import StatusBadge, {
   StatusBadgeType,
@@ -94,6 +98,11 @@ const KubernetesClusterJobDetail: FunctionComponent<
     fetchJobObject().catch(() => {});
   }, [cluster?.clusterIdentifier, jobName]);
 
+  // Per-node allocatable CPU — denominator for the true CPU% transform.
+  const allocatable: NodeAllocatableCpu | null = useNodeAllocatableCpu(
+    cluster?.clusterIdentifier || undefined,
+  );
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -141,6 +150,9 @@ const KubernetesClusterJobDetail: FunctionComponent<
       },
     },
     getSeries: getSeries,
+    transformValue: allocatable
+      ? KubernetesCpuUtils.makeCpuPercentTransform(allocatable)
+      : undefined,
   };
 
   const memoryQuery: MetricQueryConfigData = {

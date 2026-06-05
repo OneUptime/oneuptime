@@ -1,4 +1,4 @@
-{{- if .Values.postgresql.enabled }}
+{{- if and .Values.postgresql.enabled (not .Values.postgresOperator.cnpg.enabled) }}
 apiVersion: v1
 kind: ConfigMap
 metadata:

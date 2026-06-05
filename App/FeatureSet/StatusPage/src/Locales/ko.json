@@ -128,8 +128,8 @@
       "description": "모든 업데이트가 이 Slack 웹훅으로 전송됩니다.",
       "workspaceName": "Slack 워크스페이스 이름",
       "workspaceNameDescription": "검증을 위해 Slack 워크스페이스 이름을 입력해주세요.",
-      "workspaceNamePlaceholder": "my-company-workspace",
-      "webhookUrl": "Slack Incoming Webhook URL",
+      "workspaceNamePlaceholder": "내-회사-워크스페이스",
+      "webhookUrl": "Slack 수신 웹훅 URL",
       "webhookUrlDescription": "상태 페이지 업데이트가 이 Slack 웹훅으로 전송됩니다.",
       "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
       "managePrompt": "구독 시 사용한 Slack 워크스페이스 이름을 입력해주세요",
@@ -140,8 +140,8 @@
       "description": "모든 업데이트가 이 Teams 웹훅으로 전송됩니다.",
       "workspaceName": "Microsoft Teams 워크스페이스 이름",
       "workspaceNameDescription": "검증을 위해 Microsoft Teams 워크스페이스 이름을 입력해주세요.",
-      "workspaceNamePlaceholder": "my-company-workspace",
-      "webhookUrl": "Microsoft Teams Incoming Webhook URL",
+      "workspaceNamePlaceholder": "내-회사-워크스페이스",
+      "webhookUrl": "Microsoft Teams 수신 웹훅 URL",
       "webhookUrlDescription": "상태 페이지 업데이트가 이 Teams 웹훅으로 전송됩니다.",
       "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
       "managePrompt": "구독 시 사용한 Microsoft Teams 워크스페이스 이름을 입력해주세요",
@@ -236,7 +236,7 @@
     "generic": "문제가 발생했습니다. 다시 시도해주세요."
   },
   "footer": {
-    "poweredBy": "Powered by OneUptime"
+    "poweredBy": "OneUptime 제공"
   },
   "statusNames": {
     "identified": "확인됨",

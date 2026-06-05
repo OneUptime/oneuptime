@@ -18,6 +18,17 @@ export default interface MetricQueryConfigData {
   getSeries?: ((data: AggregatedModel) => ChartSeries) | undefined;
   chartType?: MetricChartType | undefined;
   yAxisValueFormatter?: ((value: number) => string) | undefined;
+  /*
+   * Optional post-aggregation transform of each datapoint's plotted
+   * value. Runs before `transformAsRate`. Receives the raw aggregated
+   * value plus the full datapoint (so the transform can read grouped
+   * attributes like `resource.k8s.node.name`). Used, e.g., to turn a
+   * Kubernetes CPU *cores* value into "% of its node's allocatable CPU"
+   * by dividing each point by the node's capacity. Unset = no change.
+   */
+  transformValue?:
+    | ((value: number, dataPoint: AggregatedModel) => number)
+    | undefined;
   warningThreshold?: number | undefined;
   criticalThreshold?: number | undefined;
   /*

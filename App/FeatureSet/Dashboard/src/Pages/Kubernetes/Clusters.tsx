@@ -80,6 +80,7 @@ const KubernetesClusters: FunctionComponent<
     facetSaveState,
     restoreFacetState,
   } = useResourceOwners<KubernetesCluster>({
+    persistKey: "kubernetes-clusters-table",
     ownerUserModelType: KubernetesClusterOwnerUser,
     ownerTeamModelType: KubernetesClusterOwnerTeam,
     resourceIdField: "kubernetesClusterId",
@@ -143,6 +144,7 @@ const KubernetesClusters: FunctionComponent<
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
+        showRefreshButton={true}
         bulkActions={{
           buttons: [...labelBulkActions, ...ownerBulkActions],
         }}

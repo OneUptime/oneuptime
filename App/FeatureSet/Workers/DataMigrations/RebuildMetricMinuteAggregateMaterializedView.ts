@@ -1,4 +1,5 @@
 import DataMigrationBase from "./DataMigrationBase";
+import AnalyticsTableManagement from "../Utils/AnalyticsDatabase/TableManegement";
 import MetricService from "Common/Server/Services/MetricService";
 import logger from "Common/Server/Utils/Logger";
 
@@ -22,6 +23,27 @@ export default class RebuildMetricMinuteAggregateMaterializedView extends DataMi
   }
 
   public override async migrate(): Promise<void> {
+    /*
+     * MV creation is now owned by the model + analytics schema-sync
+     * (AnalyticsTableManagement.createMaterializedViews). This migration
+     * remains only to repair installs that created MetricItemAggMV1m_mv
+     * against the pre-v2 `MetricItem` table. Skip when the view already
+     * exists with the correct source so we never drop a healthy view (and
+     * its accumulated rows) on a fresh or already-fixed install.
+     */
+    const existingDefinition: string | null =
+      await AnalyticsTableManagement.getMaterializedViewCreateQuery(
+        MetricService,
+        "MetricItemAggMV1m_mv",
+      );
+
+    if (existingDefinition && existingDefinition.includes("MetricItemV2")) {
+      logger.info(
+        "MetricItemAggMV1m_mv already exists with the correct source - skipping rebuild.",
+      );
+      return;
+    }
+
     await MetricService.execute(`DROP VIEW IF EXISTS MetricItemAggMV1m_mv`);
     await MetricService.execute(`DROP TABLE IF EXISTS MetricItemAggMV1m`);
 

@@ -102,6 +102,10 @@ export const KubernetesRoutePath: Dictionary<string> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE]: `${RouteParams.ModelID}/control-plane`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_MESH]: `${RouteParams.ModelID}/service-mesh`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
@@ -121,6 +125,8 @@ export const DockerRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_HOST_VIEW_CONTAINER_DETAIL]: `${RouteParams.ModelID}/containers/${RouteParams.SubModelID}`,
   [PageMap.DOCKER_HOST_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.DOCKER_HOST_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.DOCKER_HOST_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+  [PageMap.DOCKER_HOST_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
   [PageMap.DOCKER_HOST_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.DOCKER_HOST_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.DOCKER_HOST_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
@@ -139,7 +145,10 @@ export const HostRoutePath: Dictionary<string> = {
   [PageMap.HOST_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.HOST_VIEW_PROCESSES]: `${RouteParams.ModelID}/processes`,
   [PageMap.HOST_VIEW_PROCESS_VIEW]: `${RouteParams.ModelID}/processes/${RouteParams.SubModelID}`,
+  [PageMap.HOST_VIEW_SERVICES]: `${RouteParams.ModelID}/services`,
   [PageMap.HOST_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.HOST_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+  [PageMap.HOST_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
   [PageMap.HOST_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.HOST_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.HOST_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
@@ -2060,6 +2069,30 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.KUBERNETES_CLUSTER_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_TRACES]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_PROFILES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_PROFILES]
+    }`,
+  ),
+
   [PageMap.KUBERNETES_CLUSTER_VIEW_INCIDENTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/kubernetes/${
       KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_INCIDENTS]
@@ -2166,6 +2199,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DOCKER_HOST_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_TRACES]
+    }`,
+  ),
+
+  [PageMap.DOCKER_HOST_VIEW_PROFILES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_PROFILES]
+    }`,
+  ),
+
   [PageMap.DOCKER_HOST_VIEW_INCIDENTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/docker/${
       DockerRoutePath[PageMap.DOCKER_HOST_VIEW_INCIDENTS]
@@ -2262,9 +2307,27 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.HOST_VIEW_SERVICES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_SERVICES]
+    }`,
+  ),
+
   [PageMap.HOST_VIEW_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/host/${
       HostRoutePath[PageMap.HOST_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.HOST_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_TRACES]
+    }`,
+  ),
+
+  [PageMap.HOST_VIEW_PROFILES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_PROFILES]
     }`,
   ),
 

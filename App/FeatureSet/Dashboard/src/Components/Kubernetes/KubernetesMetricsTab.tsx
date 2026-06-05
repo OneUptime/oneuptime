@@ -16,6 +16,13 @@ import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEnd
 
 export interface ComponentProps {
   queryConfigs: Array<MetricQueryConfigData>;
+  /*
+   * Optional extra charts rendered below the metric views, sharing this
+   * tab's selected time range (e.g. a delta-based network throughput chart).
+   */
+  renderExtraCharts?:
+    | ((dateRange: InBetween<Date>) => ReactElement)
+    | undefined;
 }
 
 const KubernetesMetricsTab: FunctionComponent<ComponentProps> = (
@@ -71,6 +78,9 @@ const KubernetesMetricsTab: FunctionComponent<ComponentProps> = (
           });
         }}
       />
+      {props.renderExtraCharts && metricViewData.startAndEndDate
+        ? props.renderExtraCharts(metricViewData.startAndEndDate)
+        : null}
     </div>
   );
 };

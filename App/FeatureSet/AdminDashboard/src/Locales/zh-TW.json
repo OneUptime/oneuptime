@@ -28,6 +28,10 @@
     "user": "使用者",
     "projects": "專案",
     "project": "專案",
+    "projectUsers": "Users",
+    "projectUser": "User",
+    "projectTeams": "Teams",
+    "projectTeam": "Team",
     "settings": "設定",
     "authentication": "驗證",
     "emailSettings": "電子郵件設定",
@@ -41,11 +45,7 @@
     "apiKey": "API 金鑰",
     "more": "更多",
     "sendEmail": "傳送電子郵件",
-    "logout": "登出",
-    "projectUsers": "Users",
-    "projectUser": "User",
-    "projectTeams": "Teams",
-    "projectTeam": "Team"
+    "logout": "登出"
   },
   "topAlert": {
     "title": "OneUptime 管理員儀表板",
@@ -83,6 +83,9 @@
   },
   "sideMenu": {
     "basic": "基本",
+    "members": "Members",
+    "users": "Users",
+    "teams": "Teams",
     "advanced": "進階",
     "overview": "概覽",
     "settings": "設定",
@@ -96,16 +99,13 @@
     "settingsMonitoring": "監控",
     "settingsGlobalProbes": "全域探針",
     "settingsDataRetention": "資料保留",
-    "settingsAi": "AI",
+    "settingsAi": "人工智慧",
     "settingsGlobalAiAgents": "全域 AI 代理",
     "settingsGlobalLlmProviders": "全域 LLM 供應商",
     "settingsApiIntegrations": "API 與整合",
     "settingsApiKey": "API 金鑰",
     "moreCommunication": "通訊",
-    "moreSendEmail": "傳送電子郵件",
-    "members": "Members",
-    "users": "Users",
-    "teams": "Teams"
+    "moreSendEmail": "傳送電子郵件"
   },
   "pages": {
     "users": {
@@ -139,6 +139,40 @@
       "cardTitle": "專案",
       "cardDescription": "專案詳細資料",
       "editButton": "編輯專案"
+    },
+    "projectUsers": {
+      "title": "Project Users",
+      "cardTitle": "Users",
+      "cardDescription": "Here is a list of all the users in this project.",
+      "noItems": "No users found in this project.",
+      "noItemsFiltered": "No users matched the filter.",
+      "inviteUser": "Invite User",
+      "inviteUserTitle": "Invite New User",
+      "inviteUserDescription": "Invite a new user to this project.",
+      "inviteUserSubmit": "Invite"
+    },
+    "projectUserView": {
+      "title": "Project User",
+      "cardTitle": "User",
+      "cardDescription": "User details and team memberships in this project.",
+      "teamsCardTitle": "Teams",
+      "teamsCardDescription": "Teams this user belongs to in this project.",
+      "teamsNoItems": "This user is not a member of any team in this project."
+    },
+    "projectTeams": {
+      "title": "Project Teams",
+      "cardTitle": "Teams",
+      "cardDescription": "Here is a list of all the teams in this project.",
+      "noItems": "No teams found in this project."
+    },
+    "projectTeamView": {
+      "title": "Project Team",
+      "cardTitle": "Team Details",
+      "cardDescription": "Details about this team.",
+      "editButton": "Edit Team",
+      "membersCardTitle": "Team Members",
+      "membersCardDescription": "Manage members of this team. Invite new users by email.",
+      "membersNoItems": "No members in this team yet."
     },
     "logout": {
       "title": "登出"
@@ -289,40 +323,6 @@
         "stepProviderSettings": "供應商設定",
         "stepCostSettings": "成本設定"
       }
-    },
-    "projectUsers": {
-      "title": "Project Users",
-      "cardTitle": "Users",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
-      "noItemsFiltered": "No users matched the filter.",
-      "inviteUser": "Invite User",
-      "inviteUserTitle": "Invite New User",
-      "inviteUserDescription": "Invite a new user to this project.",
-      "inviteUserSubmit": "Invite"
-    },
-    "projectUserView": {
-      "title": "Project User",
-      "cardTitle": "User",
-      "cardDescription": "User details and team memberships in this project.",
-      "teamsCardTitle": "Teams",
-      "teamsCardDescription": "Teams this user belongs to in this project.",
-      "teamsNoItems": "This user is not a member of any team in this project."
-    },
-    "projectTeams": {
-      "title": "Project Teams",
-      "cardTitle": "Teams",
-      "cardDescription": "Here is a list of all the teams in this project.",
-      "noItems": "No teams found in this project."
-    },
-    "projectTeamView": {
-      "title": "Project Team",
-      "cardTitle": "Team Details",
-      "cardDescription": "Details about this team.",
-      "editButton": "Edit Team",
-      "membersCardTitle": "Team Members",
-      "membersCardDescription": "Manage members of this team. Invite new users by email.",
-      "membersNoItems": "No members in this team yet."
     }
   },
   "Basic": "基本",
@@ -347,7 +347,7 @@
   "Monitoring": "監控",
   "Global Probes": "全域探測器",
   "Data Retention": "資料保留",
-  "AI": "AI",
+  "AI": "人工智慧",
   "Global AI Agents": "全域 AI 代理",
   "Global LLM Providers": "全域 LLM 供應商",
   "API and Integrations": "API 與整合",

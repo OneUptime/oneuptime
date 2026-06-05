@@ -9,6 +9,7 @@ You can run the **OpenTelemetry Collector** as a service directly on your Linux,
 - **systemd journal** (Linux) via the [`journaldreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/journaldreceiver)
 - **Apple Unified Log** (macOS) via the [`logstransformprocessor`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logstransformprocessor) wrapping a tailed `log stream` output
 - **Windows Event Logs** via the [`windowseventlogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowseventlogreceiver)
+- **Windows service status** (powers the host **Services** tab) via the [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver)
 
 > **What about the OneUptime Infrastructure Agent?** That agent is a separate, lightweight Go daemon focused on basic metrics and the *Server / VM Monitor* feature (status, processes, alerting). The OpenTelemetry Collector described here is independent and is the right tool when you want logs (file logs, journald, Windows Event Logs) or richer host metrics ingested as standard OTLP. Both can run on the same host without interfering.
 
@@ -258,6 +259,24 @@ To read a custom or application-specific channel (anything you can see under *Ev
     start_at: end
 ```
 
+### Windows Services (metrics)
+
+Report the running state and startup type of Windows services via the [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver). This is what populates the **Services** tab on the host in OneUptime. It is a *metrics* receiver, so it belongs in the metrics pipeline (not logs):
+
+```yaml
+receivers:
+  windows_service:
+    collection_interval: 30s
+    # Collect every service by default. To cut volume — and avoid the
+    # "access denied" noise from services the collector can't open —
+    # list just the ones you care about:
+    # include_services: [Spooler, W3SVC, MSSQLSERVER]
+    # Or collect everything except a few:
+    # exclude_services: [TrustedInstaller]
+```
+
+The receiver emits one `windows.service.status` gauge per service — the integer is the Win32 service state (`4` = running, `1` = stopped) — with `name` and `startup_mode` attributes. It is **Windows-only** (the collector fails to start if you enable it on Linux or macOS) and is currently **alpha**, so pin a recent `otelcol-contrib` release. Running the service as `LocalSystem` (the default with `sc.exe create`) lets it read every service.
+
 ### Complete example — Linux host
 
 `/etc/otelcol-contrib/config.yaml`:
@@ -381,7 +400,7 @@ receivers:
       disk:
       filesystem:
       network:
-      load:
+      # 'load' is not supported on Windows — omit it or the scraper errors.
       paging:
       processes:
 
@@ -396,6 +415,9 @@ receivers:
   windowseventlog/security:
     channel: Security
     start_at: end
+
+  windows_service:
+    collection_interval: 30s
 
 processors:
   batch:
@@ -416,7 +438,7 @@ exporters:
 service:
   pipelines:
     metrics:
-      receivers: [hostmetrics]
+      receivers: [hostmetrics, windows_service]
       processors: [resource, batch]
       exporters: [otlphttp]
     logs:

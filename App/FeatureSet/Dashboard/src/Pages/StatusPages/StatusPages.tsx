@@ -35,6 +35,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
     facetSaveState,
     restoreFacetState,
   } = useResourceOwners<StatusPage>({
+    persistKey: "all-status-pages-table",
     ownerUserModelType: StatusPageOwnerUser,
     ownerTeamModelType: StatusPageOwnerTeam,
     resourceIdField: "statusPageId",

@@ -37,6 +37,7 @@ const ServicesPage: FunctionComponent<
     facetSaveState,
     restoreFacetState,
   } = useResourceOwners<Service>({
+    persistKey: "service-table",
     ownerUserModelType: ServiceOwnerUser,
     ownerTeamModelType: ServiceOwnerTeam,
     resourceIdField: "serviceId",

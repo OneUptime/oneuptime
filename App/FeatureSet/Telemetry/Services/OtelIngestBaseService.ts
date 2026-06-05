@@ -541,6 +541,65 @@ export default abstract class OtelIngestBaseService {
     );
   }
 
+  /**
+   * Canonical form of the OTel `host.name` resource attribute when it is
+   * used as host identity: trimmed + lower-cased.
+   *
+   * host.name casing is not stable across batches. Windows in particular
+   * surfaces the computer name upper-cased (COMPUTERNAME-style, e.g.
+   * PRIMARY01) from some resource detectors and lower-cased from others,
+   * so the same physical host arrives as both `PRIMARY01` and `primary01`.
+   * This mirrors QueryHelper.findWithSameText — the comparison the Host
+   * unique guard already uses — so identity stays consistent end to end.
+   */
+  public static canonicalizeHostName(hostName: string): string {
+    return hostName.trim().toLowerCase();
+  }
+
+  /**
+   * Canonicalize the `host.name` resource attribute, in place, across a
+   * batch of OTel resource envelopes (resourceMetrics / resourceLogs /
+   * resourceSpans — each element carries `resource.attributes`).
+   *
+   * Run once at the top of each pillar's ingest so that BOTH the host
+   * identity we resolve (HostService.findOrCreateByHostIdentifier) AND the
+   * `resource.host.name` attribute we persist on every analytics row use
+   * the same casing. That keeps the host-detail pages' query
+   * (`resource.host.name = host.hostIdentifier`) matching via ClickHouse's
+   * fast case-sensitive Map subscript rather than forcing a slower
+   * case-insensitive scan (see the StatementGenerator map-filter notes).
+   */
+  public static normalizeHostNameAttributesInPlace(
+    resourceEnvelopes: JSONArray,
+  ): void {
+    if (!resourceEnvelopes || !Array.isArray(resourceEnvelopes)) {
+      return;
+    }
+
+    for (const envelope of resourceEnvelopes) {
+      const attributes: JSONArray | undefined = (
+        (envelope as JSONObject)?.["resource"] as JSONObject | undefined
+      )?.["attributes"] as JSONArray | undefined;
+
+      if (!attributes || !Array.isArray(attributes)) {
+        continue;
+      }
+
+      for (const attribute of attributes) {
+        const attr: JSONObject = attribute as JSONObject;
+        if (attr["key"] !== "host.name" || !attr["value"]) {
+          continue;
+        }
+
+        const value: JSONObject = attr["value"] as JSONObject;
+        const stringValue: JSONValue = value["stringValue"];
+        if (typeof stringValue === "string" && stringValue.length > 0) {
+          value["stringValue"] = this.canonicalizeHostName(stringValue);
+        }
+      }
+    }
+  }
+
   @CaptureSpan()
   protected static getStringAttribute(
     attributes: JSONArray,

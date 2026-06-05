@@ -163,6 +163,13 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         throw new BadRequestException("Invalid resourceLogs format");
       }
 
+      /*
+       * Canonicalize host.name casing so the resolved hostIdentifier and
+       * the stored resource.host.name attribute share one casing and the
+       * host-detail Logs tab keeps matching via the fast query path.
+       */
+      OtelIngestBaseService.normalizeHostNameAttributesInPlace(resourceLogs);
+
       const dbLogs: Array<JSONObject> = [];
       /*
        * Exceptions detected inside logs (explicit OTel exception.* attributes,

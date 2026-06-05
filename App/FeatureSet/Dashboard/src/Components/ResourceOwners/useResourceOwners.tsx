@@ -14,6 +14,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import TableFilterUrlState from "Common/UI/Utils/TableFilterUrlState";
 import React, {
   ReactElement,
   useCallback,
@@ -270,6 +271,13 @@ export interface UseResourceOwnersOptions {
    * Alert Severity, Incident State). Rendered after Owner + Labels.
    */
   extraFacets?: Array<ResourceFacet> | undefined;
+  /**
+   * When set, the current facet selections are mirrored into the URL query
+   * string under this key (typically the table's `saveFilterProps.tableId`).
+   * This keeps facets alive when navigating to a detail page and back, and
+   * makes the filtered view shareable. Omit to disable URL persistence.
+   */
+  persistKey?: string | undefined;
 }
 
 export interface UseResourceOwnersResult<TResource extends BaseModel> {
@@ -339,6 +347,7 @@ const useResourceOwners: <TResource extends BaseModel>(
   const showOwnerFacet: boolean = options.showOwnerFacet !== false;
   const showLabelsFacet: boolean = Boolean(options.showLabelsFacet);
   const extraFacets: Array<ResourceFacet> = options.extraFacets || [];
+  const persistKey: string | undefined = options.persistKey;
 
   const [ownersByResourceId, setOwnersByResourceId] = useState<{
     [resourceId: string]: Array<ResourceOwnerEntry>;
@@ -1693,6 +1702,43 @@ const useResourceOwners: <TResource extends BaseModel>(
       setFacetOperators({});
     }
   };
+
+  /*
+   * URL persistence for facets.
+   *
+   * `hasRestoredFacetUrlState` is intentionally state (not a ref): the persist
+   * effect below depends on it, so it only runs *after* the render in which the
+   * restore has been applied. That guarantees we never write the empty default
+   * back over a snapshot we're about to restore.
+   */
+  const [hasRestoredFacetUrlState, setHasRestoredFacetUrlState] =
+    useState<boolean>(false);
+
+  // On mount, restore facet selections from the URL (Back-button / shared link).
+  useEffect(() => {
+    if (persistKey) {
+      const restored: JSONObject | null = TableFilterUrlState.read(
+        persistKey,
+        "facets",
+      );
+      if (restored) {
+        restoreFacetState(restored);
+      }
+    }
+    setHasRestoredFacetUrlState(true);
+  }, []);
+
+  // Mirror active facet selections into the URL whenever they change.
+  useEffect(() => {
+    if (!persistKey || !hasRestoredFacetUrlState) {
+      return;
+    }
+    TableFilterUrlState.write(
+      persistKey,
+      "facets",
+      hasActiveFilters ? facetSaveState : null,
+    );
+  }, [persistKey, hasRestoredFacetUrlState, hasActiveFilters, facetSaveState]);
 
   const getOwnersForResource: (
     resource: TResource,

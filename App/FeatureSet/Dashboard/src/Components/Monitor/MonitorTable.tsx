@@ -196,6 +196,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
     resourceIdField: "monitorId",
     showLabelsFacet: true,
     extraFacets: monitorExtraFacets,
+    persistKey: props.saveFilterProps?.tableId,
   });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =

@@ -190,6 +190,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     facetSaveState,
     restoreFacetState,
   } = useResourceOwners<ScheduledMaintenance>({
+    persistKey: props.saveFilterProps?.tableId,
     ownerUserModelType: ScheduledMaintenanceOwnerUser,
     ownerTeamModelType: ScheduledMaintenanceOwnerTeam,
     resourceIdField: "scheduledMaintenanceId",

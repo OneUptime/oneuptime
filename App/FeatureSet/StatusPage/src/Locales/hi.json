@@ -110,10 +110,10 @@
       "title": "ईमेल द्वारा सदस्यता लें",
       "description": "हमारे सभी अपडेट इस ईमेल पते पर भेजे जाएँगे।",
       "yourEmail": "आपका ईमेल",
-      "placeholder": "subscriber@company.com",
+      "placeholder": "subscriber@kampani.com",
       "managePrompt": "कृपया वह ईमेल दर्ज करें जिससे आपने सदस्यता ली है",
       "manageDescription": "हम आपको इस ईमेल पर एक प्रबंधन लिंक भेजेंगे।",
-      "managePlaceholder": "email@yourcompany.com"
+      "managePlaceholder": "email@aapkikampani.com"
     },
     "sms": {
       "title": "एसएमएस द्वारा सदस्यता लें",
@@ -128,7 +128,7 @@
       "description": "हमारे सभी अपडेट इस Slack वेबहुक पर भेजे जाएँगे।",
       "workspaceName": "Slack कार्यक्षेत्र का नाम",
       "workspaceNameDescription": "सत्यापन के लिए अपने Slack कार्यक्षेत्र का नाम दर्ज करें।",
-      "workspaceNamePlaceholder": "my-company-workspace",
+      "workspaceNamePlaceholder": "meri-kampani-workspace",
       "webhookUrl": "Slack इनकमिंग वेबहुक URL",
       "webhookUrlDescription": "स्थिति पृष्ठ के अपडेट इस Slack वेबहुक पर भेजे जाएँगे।",
       "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
@@ -140,7 +140,7 @@
       "description": "हमारे सभी अपडेट इस Teams वेबहुक पर भेजे जाएँगे।",
       "workspaceName": "Microsoft Teams कार्यक्षेत्र का नाम",
       "workspaceNameDescription": "सत्यापन के लिए अपने Microsoft Teams कार्यक्षेत्र का नाम दर्ज करें।",
-      "workspaceNamePlaceholder": "my-company-workspace",
+      "workspaceNamePlaceholder": "meri-kampani-workspace",
       "webhookUrl": "Microsoft Teams इनकमिंग वेबहुक URL",
       "webhookUrlDescription": "स्थिति पृष्ठ के अपडेट इस Teams वेबहुक पर भेजे जाएँगे।",
       "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",

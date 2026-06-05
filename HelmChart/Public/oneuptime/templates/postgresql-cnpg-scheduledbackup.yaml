@@ -1,0 +1,26 @@
+{{- $cnpg := .Values.postgresOperator.cnpg }}
+{{- $backup := $cnpg.backup | default dict }}
+{{- if and $cnpg.enabled $backup.enabled }}
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: {{ .Release.Name }}-postgresql-cnpg-backup
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-postgresql
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: postgresql
+    appname: oneuptime
+spec:
+  # 6-field cron WITH a leading seconds field (CloudNativePG / robfig format,
+  # NOT the 5-field Kubernetes CronJob format).
+  schedule: {{ $backup.schedule | default "0 0 3 * * *" | quote }}
+  # Take a backup immediately when this ScheduledBackup is first created.
+  immediate: {{ $backup.immediate }}
+  method: volumeSnapshot
+  # Backup objects are owned by the cluster (garbage-collected with it).
+  backupOwnerReference: self
+  cluster:
+    name: {{ .Release.Name }}-postgresql-cnpg
+{{- end }}

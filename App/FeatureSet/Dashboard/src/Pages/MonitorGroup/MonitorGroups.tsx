@@ -43,6 +43,7 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
     facetSaveState,
     restoreFacetState,
   } = useResourceOwners<MonitorGroup>({
+    persistKey: "monitor-groups-table",
     ownerUserModelType: MonitorGroupOwnerUser,
     ownerTeamModelType: MonitorGroupOwnerTeam,
     resourceIdField: "monitorGroupId",

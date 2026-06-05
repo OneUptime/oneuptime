@@ -59,11 +59,21 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     clusterIdentifier: string;
   }): Promise<Model> {
-    // Try to find existing cluster
+    /*
+     * Look up case-insensitively. The unique guard on name/clusterIdentifier
+     * (checkUniqueColumnBy -> findWithSameText) compares case-insensitively,
+     * so a case-sensitive lookup would miss an existing row on casing drift
+     * (k8s.cluster.name), then fail to create it ("KubernetesCluster with the
+     * same name already exists") and wedge ingest. Mirrors
+     * LabelService.findOrCreateLabelByName. Unlike HostService we keep the
+     * stored casing as-is: k8s.cluster.name is not normalized at ingest, so
+     * lowering the identifier here would desync it from the raw-cased
+     * resource.k8s.cluster.name attribute the detail page filters on.
+     */
     const existingCluster: Model | null = await this.findOneBy({
       query: {
         projectId: data.projectId,
-        clusterIdentifier: data.clusterIdentifier,
+        clusterIdentifier: QueryHelper.findWithSameText(data.clusterIdentifier),
       },
       select: {
         _id: true,
@@ -104,7 +114,9 @@ export class Service extends DatabaseService<Model> {
       const reFetchedCluster: Model | null = await this.findOneBy({
         query: {
           projectId: data.projectId,
-          clusterIdentifier: data.clusterIdentifier,
+          clusterIdentifier: QueryHelper.findWithSameText(
+            data.clusterIdentifier,
+          ),
         },
         select: {
           _id: true,

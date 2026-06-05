@@ -65,6 +65,7 @@ const IncomingCallPoliciesPage: FunctionComponent<
     facetSaveState,
     restoreFacetState,
   } = useResourceOwners<IncomingCallPolicy>({
+    persistKey: "incoming-call-policies-table",
     ownerUserModelType: IncomingCallPolicyOwnerUser,
     ownerTeamModelType: IncomingCallPolicyOwnerTeam,
     resourceIdField: "incomingCallPolicyId",

@@ -51,6 +51,12 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import TraceRow from "./TraceRow";
+import TelemetrySavedViewsControl, {
+  serializeTimeRange,
+  deserializeTimeRange,
+} from "../Telemetry/TelemetrySavedViewsControl";
+import TraceSavedView from "Common/Models/DatabaseModels/TraceSavedView";
+import TelemetrySavedViewState from "Common/Types/Telemetry/TelemetrySavedViewState";
 import Search from "Common/Types/BaseDatabase/Search";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import LessThan from "Common/Types/BaseDatabase/LessThan";
@@ -284,6 +290,14 @@ function readInitialUrlState(): InitialUrlState {
 
 interface Props {
   serviceId?: ObjectID | undefined;
+  /*
+   * Scope traces to a resource by OTel resource attribute (e.g.
+   * { "resource.k8s.cluster.name": "<clusterIdentifier>" }). Used by the
+   * Host / Docker / Kubernetes views, which key telemetry off resource
+   * attributes rather than a serviceId. Applied as a read-only scope chip.
+   */
+  attributeFilters?: Record<string, string> | undefined;
+  attributeFilterDisplayKeys?: Record<string, string> | undefined;
 }
 
 const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
@@ -643,17 +657,28 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       }
     }
 
-    // Apply attribute filters (@attribute:value) — merge chip + search sources
+    /*
+     * Apply attribute filters — merge chip + search sources with the
+     * prop-level resource scope (Host / Docker / Kubernetes views).
+     */
     const mergedAttributes: Record<string, string> = {
       ...attributeChips,
       ...attributes,
+      ...(props.attributeFilters || {}),
     };
     if (Object.keys(mergedAttributes).length > 0) {
       (query as Record<string, unknown>)["attributes"] = mergedAttributes;
     }
 
     return query;
-  }, [props.serviceId, timeRange, activeFilters, submittedSearch, parseSearch]);
+  }, [
+    props.serviceId,
+    props.attributeFilters,
+    timeRange,
+    activeFilters,
+    submittedSearch,
+    parseSearch,
+  ]);
 
   const listSelect: Select<Span> = useMemo(() => {
     return {
@@ -927,10 +952,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       groups[key]!.push(...fieldFilters[key]!);
     }
 
-    // Pass attribute filters (chip + parsed) to aggregation
+    // Pass attribute filters (chip + parsed + prop scope) to aggregation
     const mergedAttributes: Record<string, string> = {
       ...attributeChips,
       ...attributes,
+      ...(props.attributeFilters || {}),
     };
     if (Object.keys(mergedAttributes).length > 0) {
       payload["attributes"] = mergedAttributes;
@@ -1028,7 +1054,14 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
 
     return payload;
-  }, [timeRange, activeFilters, submittedSearch, parseSearch, props.serviceId]);
+  }, [
+    timeRange,
+    activeFilters,
+    submittedSearch,
+    parseSearch,
+    props.serviceId,
+    props.attributeFilters,
+  ]);
 
   // Fetch histogram + facets from dedicated backend endpoints
   const fetchHistogramAndFacets: () => Promise<void> = useCallback(async () => {
@@ -1354,8 +1387,30 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         }),
       );
     }
+    if (props.attributeFilters) {
+      for (const [key, value] of Object.entries(props.attributeFilters)) {
+        if (!value) {
+          continue;
+        }
+        const displayKey: string =
+          props.attributeFilterDisplayKeys?.[key] || key;
+        base.push({
+          facetKey: `attributes.${key}`,
+          value,
+          displayKey,
+          displayValue: value,
+          readOnly: true,
+        });
+      }
+    }
     return [...base, ...activeFilters.map(resolveDisplay)];
-  }, [props.serviceId, activeFilters, facetConfigs]);
+  }, [
+    props.serviceId,
+    props.attributeFilters,
+    props.attributeFilterDisplayKeys,
+    activeFilters,
+    facetConfigs,
+  ]);
 
   // Histogram drag-to-zoom
   const handleHistogramTimeRangeSelect: (start: Date, end: Date) => void =
@@ -1383,6 +1438,62 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     [],
   );
 
+  /*
+   * Saved views are only offered on the top-level traces explorer — not when
+   * the viewer is scoped to a resource (service / host / docker / k8s detail).
+   */
+  const enableSavedViews: boolean =
+    !props.serviceId &&
+    (!props.attributeFilters ||
+      Object.keys(props.attributeFilters).length === 0);
+
+  // Whether the URL already carried filter state (deep link) on first mount.
+  const hasInitialUrlState: boolean = useMemo((): boolean => {
+    return (
+      initialUrlState.search.length > 0 ||
+      initialUrlState.filters.length > 0 ||
+      initialUrlState.timeRange.range !== TimeRange.PAST_ONE_HOUR
+    );
+  }, [initialUrlState]);
+
+  // Capture the current explorer state for Save / Update of a saved view.
+  const captureCurrentState: () => TelemetrySavedViewState =
+    useCallback((): TelemetrySavedViewState => {
+      return {
+        search: submittedSearch,
+        filters: activeFilters.map((filter: ActiveFilter): [string, string] => {
+          return [filter.facetKey, filter.value];
+        }),
+        timeRange: serializeTimeRange(timeRange),
+        pageSize: pageSize,
+      };
+    }, [submittedSearch, activeFilters, timeRange, pageSize]);
+
+  // Apply a saved view's state back into the explorer.
+  const applySavedViewState: (state: TelemetrySavedViewState) => void =
+    useCallback((state: TelemetrySavedViewState): void => {
+      const nextSearch: string = state.search || "";
+      setSearchValue(nextSearch);
+      setSubmittedSearch(nextSearch);
+      setActiveFilters(
+        (state.filters || []).map(
+          ([facetKey, value]: [string, string]): ActiveFilter => {
+            return {
+              facetKey: facetKey,
+              value: value,
+              displayKey: facetKey,
+              displayValue: value,
+            };
+          },
+        ),
+      );
+      setTimeRange(deserializeTimeRange(state.timeRange));
+      if (state.pageSize) {
+        setPageSize(state.pageSize);
+      }
+      setPage(1);
+    }, []);
+
   return (
     <TelemetryViewer<Span>
       items={spans}
@@ -1392,6 +1503,19 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         void fetchSpans();
         void fetchHistogramAndFacets();
       }}
+      toolbarLeadingActions={
+        enableSavedViews ? (
+          <TelemetrySavedViewsControl<TraceSavedView>
+            modelType={TraceSavedView}
+            savedViewNoun="Trace"
+            explorerLabel="traces"
+            hasInitialUrlState={hasInitialUrlState}
+            captureCurrentState={captureCurrentState}
+            applyState={applySavedViewState}
+            onError={setError}
+          />
+        ) : undefined
+      }
       emptyMessage="No traces found"
       itemLabel="traces"
       renderRow={(span: Span): ReactElement => {

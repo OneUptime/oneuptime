@@ -347,6 +347,40 @@ const KubernetesResourceTable: FunctionComponent<ComponentProps> = (
             return <span className="text-gray-400">N/A</span>;
           }
 
+          /*
+           * Aggregate views (Deployments / Namespaces / ...) supply a
+           * pre-summed memory percentage (memoryUtilization), parallel
+           * to cpuUtilization. Render it like the CPU bar, with summed
+           * usage bytes as the sub-line. Can exceed 100% the same way
+           * summed CPU% does, so clamp the bar but keep the real number.
+           */
+          if (
+            resource.memoryUtilization !== null &&
+            resource.memoryUtilization !== undefined
+          ) {
+            const pct: number = Math.min(resource.memoryUtilization, 100);
+            return (
+              <div className="min-w-[140px]">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 bg-gray-200 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full ${getMemoryBarColor(pct)}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <span className="text-xs text-gray-600 whitespace-nowrap">
+                    {resource.memoryUtilization.toFixed(1)}%
+                  </span>
+                </div>
+                <div className="text-xs text-gray-500 mt-0.5">
+                  {KubernetesResourceUtils.formatMemoryValue(
+                    resource.memoryUsageBytes,
+                  )}
+                </div>
+              </div>
+            );
+          }
+
           if (
             resource.memoryLimitBytes !== null &&
             resource.memoryLimitBytes !== undefined &&

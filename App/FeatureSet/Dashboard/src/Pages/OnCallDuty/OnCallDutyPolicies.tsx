@@ -37,6 +37,7 @@ const OnCallDutyPage: FunctionComponent<
     facetSaveState,
     restoreFacetState,
   } = useResourceOwners<OnCallDutyPolicy>({
+    persistKey: "on-call-policies-table",
     ownerUserModelType: OnCallDutyPolicyOwnerUser,
     ownerTeamModelType: OnCallDutyPolicyOwnerTeam,
     resourceIdField: "onCallDutyPolicyId",

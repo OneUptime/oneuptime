@@ -31,6 +31,10 @@ import KubernetesVolumeMountsTab from "../../../Components/Kubernetes/Kubernetes
 import { KubernetesPodObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import KubernetesCpuUtils, {
+  NodeAllocatableCpu,
+} from "../Utils/KubernetesCpuUtils";
+import useNodeAllocatableCpu from "../Utils/useNodeAllocatableCpu";
 import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
 import StatusBadge, {
   StatusBadgeType,
@@ -97,6 +101,11 @@ const KubernetesClusterPodDetail: FunctionComponent<
     fetchPodObject().catch(() => {});
   }, [cluster?.clusterIdentifier, podName]);
 
+  // Per-node allocatable CPU — denominator for the true CPU% transform.
+  const allocatable: NodeAllocatableCpu | null = useNodeAllocatableCpu(
+    cluster?.clusterIdentifier || undefined,
+  );
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -145,6 +154,9 @@ const KubernetesClusterPodDetail: FunctionComponent<
       },
     },
     getSeries: getContainerSeries,
+    transformValue: allocatable
+      ? KubernetesCpuUtils.makeCpuPercentTransform(allocatable)
+      : undefined,
   };
 
   const memoryQuery: MetricQueryConfigData = {
@@ -195,6 +207,9 @@ const KubernetesClusterPodDetail: FunctionComponent<
         attributes: true,
       },
     },
+    transformValue: allocatable
+      ? KubernetesCpuUtils.makeCpuPercentTransform(allocatable)
+      : undefined,
   };
 
   const podMemoryQuery: MetricQueryConfigData = {

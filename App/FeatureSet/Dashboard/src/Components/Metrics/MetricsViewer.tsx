@@ -47,6 +47,12 @@ import PageMap from "../../Utils/PageMap";
 import MetricRow from "./MetricRow";
 import { SparklinePoint } from "./MetricSparkline";
 import MetricUtil from "./Utils/Metrics";
+import TelemetrySavedViewsControl, {
+  serializeTimeRange,
+  deserializeTimeRange,
+} from "../Telemetry/TelemetrySavedViewsControl";
+import MetricSavedView from "Common/Models/DatabaseModels/MetricSavedView";
+import TelemetrySavedViewState from "Common/Types/Telemetry/TelemetrySavedViewState";
 import Search from "Common/Types/BaseDatabase/Search";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -1050,6 +1056,53 @@ const MetricsViewer: FunctionComponent<Props> = (
     [props.attributeFilters],
   );
 
+  // Whether the URL already carried filter state (deep link) on first mount.
+  const hasInitialUrlState: boolean = useMemo((): boolean => {
+    return (
+      initialUrlState.search.length > 0 ||
+      initialUrlState.filters.length > 0 ||
+      initialUrlState.timeRange.range !== TimeRange.PAST_ONE_HOUR
+    );
+  }, [initialUrlState]);
+
+  // Capture the current explorer state for Save / Update of a saved view.
+  const captureCurrentState: () => TelemetrySavedViewState =
+    useCallback((): TelemetrySavedViewState => {
+      return {
+        search: submittedSearch,
+        filters: activeFilters.map((filter: ActiveFilter): [string, string] => {
+          return [filter.facetKey, filter.value];
+        }),
+        timeRange: serializeTimeRange(timeRange),
+        pageSize: pageSize,
+      };
+    }, [submittedSearch, activeFilters, timeRange, pageSize]);
+
+  // Apply a saved view's state back into the explorer.
+  const applySavedViewState: (state: TelemetrySavedViewState) => void =
+    useCallback((state: TelemetrySavedViewState): void => {
+      const nextSearch: string = state.search || "";
+      setSearchValue(nextSearch);
+      setSubmittedSearch(nextSearch);
+      setActiveFilters(
+        (state.filters || []).map(
+          ([facetKey, value]: [string, string]): ActiveFilter => {
+            return {
+              facetKey: facetKey,
+              value: value,
+              displayKey: facetKey,
+              displayValue: value,
+            };
+          },
+        ),
+      );
+      setTimeRange(deserializeTimeRange(state.timeRange));
+      if (state.pageSize) {
+        setPageSize(state.pageSize);
+      }
+      setPage(1);
+    }, []);
+
   return (
     <TelemetryViewer<MetricType>
       items={metrics}
@@ -1058,6 +1111,19 @@ const MetricsViewer: FunctionComponent<Props> = (
       onRefresh={() => {
         void fetchMetrics();
       }}
+      toolbarLeadingActions={
+        !isScoped ? (
+          <TelemetrySavedViewsControl<MetricSavedView>
+            modelType={MetricSavedView}
+            savedViewNoun="Metric"
+            explorerLabel="metrics"
+            hasInitialUrlState={hasInitialUrlState}
+            captureCurrentState={captureCurrentState}
+            applyState={applySavedViewState}
+            onError={setError}
+          />
+        ) : undefined
+      }
       emptyMessage="No metrics found"
       itemLabel="metrics"
       renderRow={(metric: MetricType): ReactElement => {

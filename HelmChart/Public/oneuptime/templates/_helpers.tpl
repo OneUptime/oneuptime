@@ -436,27 +436,37 @@ Usage:
 {{- end }}
 
 # Postgres configuration
+{{- $cnpg := $.Values.postgresOperator.cnpg }}
 
 - name: DATABASE_HOST
-  {{- if $.Values.postgresql.enabled }}
+  {{- if $cnpg.enabled }}
+  value: {{ $.Release.Name }}-postgresql-cnpg-rw.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+  {{- else if $.Values.postgresql.enabled }}
   value: {{ $.Release.Name }}-postgresql.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
   {{- else }}
   value: {{ $.Values.externalPostgres.host }}
   {{- end }}
 - name: DATABASE_PORT
-  {{- if $.Values.postgresql.enabled }}
+  {{- if $cnpg.enabled }}
+  value: '5432'
+  {{- else if $.Values.postgresql.enabled }}
   value: {{ printf "%s" $.Values.postgresql.primary.service.ports.postgresql | squote }}
   {{- else }}
   value: {{ $.Values.externalPostgres.port | quote }}
   {{- end }}
 - name: DATABASE_USERNAME
-  {{- if $.Values.postgresql.enabled }}
+  {{- if or $cnpg.enabled $.Values.postgresql.enabled }}
   value: postgres
   {{- else }}
   value: {{ $.Values.externalPostgres.username }}
   {{- end }}
 - name: DATABASE_PASSWORD
-  {{- if $.Values.postgresql.enabled }}
+  {{- if $cnpg.enabled }}
+  valueFrom:
+    secretKeyRef:
+        name: {{ printf "%s-postgresql-cnpg-superuser" $.Release.Name }}
+        key: password
+  {{- else if $.Values.postgresql.enabled }}
   valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "postgresql"  }}
@@ -476,7 +486,9 @@ Usage:
   {{- end }}
   {{- end }}
 - name: DATABASE_NAME
-  {{- if $.Values.postgresql.enabled }}
+  {{- if $cnpg.enabled }}
+  value: {{ $cnpg.database | default "oneuptimedb" }}
+  {{- else if $.Values.postgresql.enabled }}
   value: {{ $.Values.postgresql.auth.database }}
   {{- else }}
   value: {{ $.Values.externalPostgres.database }}
@@ -484,7 +496,7 @@ Usage:
 
 
 ## DATABASE SSL BLOCK
-{{- if $.Values.postgresql.enabled }}
+{{- if or $cnpg.enabled $.Values.postgresql.enabled }}
 # do nothing here.
 {{- else }}
 {{- if $.Values.externalPostgres.ssl.enabled }}

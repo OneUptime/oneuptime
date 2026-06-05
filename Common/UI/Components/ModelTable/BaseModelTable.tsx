@@ -12,6 +12,7 @@ import Sort from "../../../Types/BaseDatabase/Sort";
 import Select from "../../../Types/BaseDatabase/Select";
 import { Logger } from "../../Utils/Logger";
 import Navigation from "../../Utils/Navigation";
+import TableFilterUrlState from "../../Utils/TableFilterUrlState";
 import PermissionUtil from "../../Utils/Permission";
 import ProjectUtil from "../../Utils/Project";
 import User from "../../Utils/User";
@@ -1861,6 +1862,43 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
     setQuery({ ...newQuery });
   };
+
+  /*
+   * URL persistence for classic (column) filters, keyed by the table's
+   * `saveFilterProps.tableId`. Mirrors the facet persistence in
+   * `useResourceOwners` so filters survive navigating to a detail page and
+   * back, and so a filtered view is shareable. `hasRestoredUrlFilters` is
+   * state (not a ref) so the persist effect only runs after the restore has
+   * been applied — never clobbering the snapshot with the empty default.
+   */
+  const [hasRestoredUrlFilters, setHasRestoredUrlFilters] =
+    useState<boolean>(false);
+
+  useEffect(() => {
+    const restored: JSONObject | null = TableFilterUrlState.read(
+      props.saveFilterProps?.tableId,
+      "filter",
+    );
+    if (restored) {
+      /*
+       * Re-run through onFilterChanged so the derived query is rebuilt and the
+       * first fetch uses the restored filters.
+       */
+      onFilterChanged(restored as unknown as FilterData<TBaseModel>);
+    }
+    setHasRestoredUrlFilters(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hasRestoredUrlFilters) {
+      return;
+    }
+    TableFilterUrlState.write(
+      props.saveFilterProps?.tableId,
+      "filter",
+      filterData as unknown as JSONObject,
+    );
+  }, [hasRestoredUrlFilters, filterData]);
 
   type GetDeleteBulkActionFunction = () => BulkActionButtonSchema<TBaseModel>;
 

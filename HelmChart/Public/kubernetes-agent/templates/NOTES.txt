@@ -73,3 +73,11 @@ To turn eBPF auto-instrumentation off:
 
 Your cluster should appear in OneUptime within a few minutes at:
   {{ .Values.oneuptime.url }}/dashboard/<project-id>/kubernetes
+
+If it stays "Disconnected" or no data shows up (most often a wrong/revoked
+ingestion key — which is silently dropped, so the collector logs look clean),
+run the diagnostic script for a one-shot root-cause verdict:
+  curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh | bash -s -- -n {{ .Release.Namespace }}
+
+Or validate your ingestion key directly (200 = valid, 401 = unknown/revoked):
+  curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" {{ .Values.oneuptime.url }}/otlp/v1/validate

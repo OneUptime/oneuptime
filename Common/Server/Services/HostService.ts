@@ -60,10 +60,31 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     hostIdentifier: string;
   }): Promise<Model> {
+    /*
+     * Canonicalize the identifier (trim + lowercase, matching
+     * QueryHelper.findWithSameText). Host identity comes from the OTel
+     * `host.name` resource attribute, whose casing is not stable across
+     * batches — Windows in particular surfaces the hostname uppercased
+     * (`COMPUTERNAME`-style, e.g. PRIMARY01) from some resource detectors
+     * and lowercased from others, so the same physical host arrives as
+     * both `PRIMARY01` and `primary01`. Ingest already canonicalizes
+     * host.name (OtelIngestBaseService.normalizeHostNameAttributesInPlace);
+     * we repeat it here so the method is correct for any caller.
+     */
+    const hostIdentifier: string = data.hostIdentifier.trim().toLowerCase();
+
+    /*
+     * Look up case-insensitively. The unique guard on name/hostIdentifier
+     * (DatabaseService.checkUniqueColumnBy -> QueryHelper.findWithSameText)
+     * already compares case-insensitively, so a case-sensitive lookup here
+     * would miss an existing row, then fail to create it ("Host with the
+     * same name already exists"), and permanently wedge ingest for that
+     * host. Mirrors LabelService.findOrCreateLabelByName.
+     */
     const existingHost: Model | null = await this.findOneBy({
       query: {
         projectId: data.projectId,
-        hostIdentifier: data.hostIdentifier,
+        hostIdentifier: QueryHelper.findWithSameText(hostIdentifier),
       },
       select: {
         _id: true,
@@ -76,14 +97,46 @@ export class Service extends DatabaseService<Model> {
     });
 
     if (existingHost) {
+      /*
+       * Converge a legacy mixed-case identifier onto the canonical form so
+       * the stored resource.host.name (also canonicalized at ingest) keeps
+       * matching the host-detail page filter. Best-effort — never block
+       * ingest on it. Updates don't re-run the unique guard, so writing the
+       * host's own canonical identifier cannot collide.
+       */
+      if (
+        existingHost._id &&
+        existingHost.hostIdentifier &&
+        existingHost.hostIdentifier !== hostIdentifier
+      ) {
+        try {
+          await this.updateOneById({
+            id: new ObjectID(existingHost._id.toString()),
+            data: {
+              hostIdentifier: hostIdentifier,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+          existingHost.hostIdentifier = hostIdentifier;
+        } catch (err) {
+          logger.warn(
+            `HostService: failed to canonicalize hostIdentifier for host ${existingHost._id.toString()}: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          );
+        }
+      }
+
       return existingHost;
     }
 
     try {
       const newHost: Model = new Model();
       newHost.projectId = data.projectId;
-      newHost.name = data.hostIdentifier;
-      newHost.hostIdentifier = data.hostIdentifier;
+      newHost.name = hostIdentifier;
+      newHost.hostIdentifier = hostIdentifier;
       newHost.otelCollectorStatus = "connected";
       newHost.lastSeenAt = OneUptimeDate.getCurrentDate();
 
@@ -96,10 +149,16 @@ export class Service extends DatabaseService<Model> {
 
       return createdHost;
     } catch {
+      /*
+       * Either two ingest workers raced to create the same host, or a
+       * host with this identifier in a different case already existed and
+       * the unique guard rejected the insert. Re-resolve case-insensitively
+       * so the caller still gets the existing row instead of throwing.
+       */
       const reFetchedHost: Model | null = await this.findOneBy({
         query: {
           projectId: data.projectId,
-          hostIdentifier: data.hostIdentifier,
+          hostIdentifier: QueryHelper.findWithSameText(hostIdentifier),
         },
         select: {
           _id: true,
@@ -115,7 +174,7 @@ export class Service extends DatabaseService<Model> {
         return reFetchedHost;
       }
 
-      throw new Error("Failed to create or find host: " + data.hostIdentifier);
+      throw new Error("Failed to create or find host: " + hostIdentifier);
     }
   }
 

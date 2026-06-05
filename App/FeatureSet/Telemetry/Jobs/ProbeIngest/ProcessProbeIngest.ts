@@ -85,6 +85,9 @@ export async function processIncomingEmailFromQueue(
     select: {
       _id: true,
       projectId: true,
+      disableActiveMonitoring: true,
+      disableActiveMonitoringBecauseOfManualIncident: true,
+      disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
     },
     props: {
       isRoot: true,
@@ -131,6 +134,27 @@ export async function processIncomingEmailFromQueue(
       isRoot: true,
     },
   });
+
+  /*
+   * Skip disabled monitors before invoking monitorResource(). Incoming Email
+   * monitors keep receiving mail from an external sender regardless of being
+   * disabled in OneUptime, and monitorResource() would only re-fetch the
+   * monitor, take a per-monitor Redis lock, and throw MonitorDisabled — pure
+   * waste. The last-email-received update above is intentionally left in place
+   * so heartbeat tracking stays accurate across maintenance/incident windows:
+   * the CheckOnlineStatus cron skips disabled monitors and resumes afterwards,
+   * relying on that timestamp.
+   */
+  if (
+    monitor.disableActiveMonitoring ||
+    monitor.disableActiveMonitoringBecauseOfManualIncident ||
+    monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent
+  ) {
+    logger.debug(
+      `Incoming email received for disabled monitor ${monitor._id.toString()}. Skipping evaluation.`,
+    );
+    return;
+  }
 
   // Process monitor resource
   await MonitorResourceUtil.monitorResource(incomingEmailRequest);

@@ -15,7 +15,10 @@ import HostOverview from "../Pages/Host/View/Overview";
 import HostMetrics from "../Pages/Host/View/Metrics";
 import HostProcesses from "../Pages/Host/View/Processes";
 import HostProcessView from "../Pages/Host/View/ProcessView";
+import HostServices from "../Pages/Host/View/Services";
 import HostLogs from "../Pages/Host/View/Logs";
+import HostTraces from "../Pages/Host/View/Traces";
+import HostProfiles from "../Pages/Host/View/Profiles";
 import HostIncidents from "../Pages/Host/View/Incidents";
 import HostAlerts from "../Pages/Host/View/Alerts";
 import HostScheduledMaintenance from "../Pages/Host/View/ScheduledMaintenance";
@@ -111,11 +114,41 @@ const HostRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.HOST_VIEW_SERVICES)}
+          element={
+            <HostServices
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_VIEW_SERVICES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.HOST_VIEW_LOGS)}
           element={
             <HostLogs
               {...props}
               pageRoute={RouteMap[PageMap.HOST_VIEW_LOGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.HOST_VIEW_TRACES)}
+          element={
+            <HostTraces
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_VIEW_TRACES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.HOST_VIEW_PROFILES)}
+          element={
+            <HostProfiles
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_VIEW_PROFILES] as Route}
             />
           }
         />

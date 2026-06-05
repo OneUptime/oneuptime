@@ -1,4 +1,5 @@
 import DataMigrationBase from "./DataMigrationBase";
+import AnalyticsTableManagement from "../Utils/AnalyticsDatabase/TableManegement";
 import MetricService from "Common/Server/Services/MetricService";
 import logger from "Common/Server/Utils/Logger";
 
@@ -41,6 +42,23 @@ export default class AddMetricMinuteAggregateByHostMaterializedView extends Data
   }
 
   public override async migrate(): Promise<void> {
+    /*
+     * MV creation is now owned by the model + analytics schema-sync
+     * (AnalyticsTableManagement.createMaterializedViews). Skip if the
+     * view already exists so this one-time migration doesn't redo work.
+     */
+    if (
+      await AnalyticsTableManagement.doesMaterializedViewExist(
+        MetricService,
+        "MetricItemAggMV1mByHost_mv",
+      )
+    ) {
+      logger.info(
+        "MetricItemAggMV1mByHost_mv already exists - skipping migration.",
+      );
+      return;
+    }
+
     /*
      * Destination table. Keyed by hostIdentifier directly after
      * (projectId, name) so a query like

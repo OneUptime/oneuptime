@@ -1,6 +1,7 @@
 enum PageMap {
   INIT = "INIT",
   HOME = "HOME",
+  HEALTH = "HEALTH",
   LOGOUT = "LOGOUT",
   SETTINGS = "SETTINGS",
 

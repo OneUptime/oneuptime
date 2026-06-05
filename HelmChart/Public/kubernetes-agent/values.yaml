@@ -62,6 +62,57 @@ image:
   tag: "0.96.0"
   pullPolicy: IfNotPresent
 
+# Debug sidecar — drops a shell + network tools (curl, dig, nc, tcpdump, …)
+# into the agent pods so you can `kubectl exec` in to troubleshoot.
+#
+# The collector images above are distroless (built FROM scratch): they ship
+# ONLY the collector binary, so there is no /bin/sh, bash, or curl and you
+# cannot `kubectl exec` into them. Enabling this injects a sidecar container
+# (default: nicolaka/netshoot) into the metrics Deployment and the logs
+# DaemonSet, and turns on shareProcessNamespace so that sidecar can see the
+# collector's processes and /proc. The network namespace is already shared by
+# every container in a pod, so a curl from the sidecar follows the exact same
+# egress path — NetworkPolicy, DNS, proxy, TLS — that the collector uses:
+#
+#   kubectl exec -it <agent-pod> -c debug -- bash
+#   curl -v "$ONEUPTIME_URL/otlp/v1/metrics"
+#
+# OFF by default. When enabled it adds an always-running container to every
+# agent pod (extra resources + attack surface), so turn it on to reproduce an
+# issue, then turn it back off. For a one-off you usually don't need this at
+# all — prefer an ephemeral container, which leaves no permanent footprint:
+#
+#   kubectl debug -it <agent-pod> --image=nicolaka/netshoot \
+#     --target=otel-collector -- bash
+debug:
+  enabled: false
+  image:
+    repository: nicolaka/netshoot
+    tag: "v0.13"
+    pullPolicy: IfNotPresent
+  # Share the pod's PID namespace so the sidecar can see and inspect the
+  # collector process (ps, /proc/<pid>/root, strace). The network namespace is
+  # shared by all pod containers regardless, so curl already follows the
+  # collector's egress path. Set false if your Pod Security policy forbids it.
+  shareProcessNamespace: true
+  # The sidecar idles on this command until you exec in (see the note in
+  # _helpers.tpl). Overridable if you swap in an image without `sleep`.
+  command: ["sleep", "infinity"]
+  # curl/dig/nslookup need nothing special. ping/traceroute/tcpdump need raw
+  # sockets — uncomment to grant them:
+  #   securityContext:
+  #     capabilities:
+  #       add: ["NET_RAW", "NET_ADMIN"]
+  securityContext: {}
+  # The sidecar sits near-idle; it only does work while you're exec'd in.
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
 # Deployment (metrics + events collector) resource configuration
 deployment:
   replicas: 1
