@@ -1,4 +1,5 @@
-{{- if and .Values.postgresql.enabled .Values.postgresql.cnpg.enabled }}
+{{- $cnpg := (index .Values "postgres-operator" | default dict).cnpg | default dict }}
+{{- if $cnpg.enabled }}
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
@@ -13,8 +14,8 @@ metadata:
     helm.sh/release-name: {{ .Release.Name }}
     helm.sh/release-namespace: {{ .Release.Namespace }}
 spec:
-  instances: {{ .Values.postgresql.cnpg.instances }}
-  imageName: {{ .Values.postgresql.cnpg.imageName | quote }}
+  instances: {{ $cnpg.instances | default 1 }}
+  imageName: {{ $cnpg.imageName | default "ghcr.io/cloudnative-pg/postgresql:17" | quote }}
 
   # The OneUptime app connects as the "postgres" superuser (parity with the
   # built-in StatefulSet). CloudNativePG disables superuser access by default;
@@ -23,26 +24,27 @@ spec:
   superuserSecret:
     name: {{ .Release.Name }}-postgresql-cnpg-superuser
 
-  # Bootstrap a fresh, empty cluster. This does NOT migrate data from an
-  # existing StatefulSet — see the migration runbook in the chart docs.
+  # Bootstrap a fresh, empty cluster. This does NOT migrate data from an existing
+  # StatefulSet — see HelmChart/Docs/Postgres.md for the migration runbook.
   bootstrap:
     initdb:
-      database: {{ .Values.postgresql.auth.database | quote }}
-      owner: {{ .Values.postgresql.cnpg.owner | quote }}
+      database: {{ $cnpg.database | default "oneuptimedb" | quote }}
+      owner: {{ $cnpg.owner | default "oneuptime" | quote }}
 
+  {{- $persistence := $cnpg.persistence | default dict }}
   storage:
-    size: {{ .Values.postgresql.primary.persistence.size | quote }}
-    {{- if .Values.postgresql.primary.persistence.storageClass }}
-    {{- if (eq "-" .Values.postgresql.primary.persistence.storageClass) }}
+    size: {{ $persistence.size | default "25Gi" | quote }}
+    {{- if $persistence.storageClass }}
+    {{- if (eq "-" $persistence.storageClass) }}
     storageClass: ""
     {{- else }}
-    storageClass: {{ .Values.postgresql.primary.persistence.storageClass | quote }}
+    storageClass: {{ $persistence.storageClass | quote }}
     {{- end }}
     {{- else if .Values.global.storageClass }}
     storageClass: {{ .Values.global.storageClass | quote }}
     {{- end }}
 
-  {{- with .Values.postgresql.cnpg.parameters }}
+  {{- with $cnpg.parameters }}
   postgresql:
     parameters:
       {{- range $key, $val := . }}
@@ -50,22 +52,22 @@ spec:
       {{- end }}
   {{- end }}
 
-  {{- with .Values.postgresql.primary.resources }}
+  {{- with $cnpg.resources }}
   resources:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 
-  {{- if or .Values.postgresql.primary.nodeSelector .Values.postgresql.primary.tolerations .Values.postgresql.cnpg.affinity }}
+  {{- if or $cnpg.nodeSelector $cnpg.tolerations $cnpg.affinity }}
   affinity:
-    {{- with .Values.postgresql.primary.nodeSelector }}
+    {{- with $cnpg.nodeSelector }}
     nodeSelector:
       {{- toYaml . | nindent 6 }}
     {{- end }}
-    {{- with .Values.postgresql.primary.tolerations }}
+    {{- with $cnpg.tolerations }}
     tolerations:
       {{- toYaml . | nindent 6 }}
     {{- end }}
-    {{- with .Values.postgresql.cnpg.affinity }}
+    {{- with $cnpg.affinity }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
   {{- end }}

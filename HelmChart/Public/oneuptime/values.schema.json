@@ -442,28 +442,35 @@
                         }
                     },
                     "additionalProperties": false
-                },
+                }
+            },
+            "additionalProperties": false
+        },
+        "postgres-operator": {
+            "type": "object",
+            "properties": {
                 "cnpg": {
                     "type": "object",
                     "properties": {
-                        "enabled": {
-                            "type": "boolean"
+                        "enabled": { "type": "boolean" },
+                        "instances": { "type": "integer" },
+                        "imageName": { "type": "string" },
+                        "database": { "type": "string" },
+                        "owner": { "type": "string" },
+                        "postgresPassword": { "type": ["string", "null"] },
+                        "persistence": {
+                            "type": "object",
+                            "properties": {
+                                "size": { "type": "string" },
+                                "storageClass": { "type": "string" }
+                            },
+                            "additionalProperties": false
                         },
-                        "instances": {
-                            "type": "integer"
-                        },
-                        "imageName": {
-                            "type": "string"
-                        },
-                        "owner": {
-                            "type": "string"
-                        },
-                        "parameters": {
-                            "type": "object"
-                        },
-                        "affinity": {
-                            "type": "object"
-                        }
+                        "parameters": { "type": "object" },
+                        "resources": { "type": ["object", "null"] },
+                        "nodeSelector": { "type": "object" },
+                        "tolerations": { "type": "array" },
+                        "affinity": { "type": "object" }
                     },
                     "additionalProperties": false
                 }

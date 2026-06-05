@@ -436,9 +436,10 @@ Usage:
 {{- end }}
 
 # Postgres configuration
+{{- $cnpg := (index $.Values "postgres-operator" | default dict).cnpg | default dict }}
 
 - name: DATABASE_HOST
-  {{- if and $.Values.postgresql.enabled $.Values.postgresql.cnpg.enabled }}
+  {{- if $cnpg.enabled }}
   value: {{ $.Release.Name }}-postgresql-cnpg-rw.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
   {{- else if $.Values.postgresql.enabled }}
   value: {{ $.Release.Name }}-postgresql.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
@@ -446,7 +447,7 @@ Usage:
   value: {{ $.Values.externalPostgres.host }}
   {{- end }}
 - name: DATABASE_PORT
-  {{- if and $.Values.postgresql.enabled $.Values.postgresql.cnpg.enabled }}
+  {{- if $cnpg.enabled }}
   value: '5432'
   {{- else if $.Values.postgresql.enabled }}
   value: {{ printf "%s" $.Values.postgresql.primary.service.ports.postgresql | squote }}
@@ -454,13 +455,13 @@ Usage:
   value: {{ $.Values.externalPostgres.port | quote }}
   {{- end }}
 - name: DATABASE_USERNAME
-  {{- if $.Values.postgresql.enabled }}
+  {{- if or $cnpg.enabled $.Values.postgresql.enabled }}
   value: postgres
   {{- else }}
   value: {{ $.Values.externalPostgres.username }}
   {{- end }}
 - name: DATABASE_PASSWORD
-  {{- if and $.Values.postgresql.enabled $.Values.postgresql.cnpg.enabled }}
+  {{- if $cnpg.enabled }}
   valueFrom:
     secretKeyRef:
         name: {{ printf "%s-postgresql-cnpg-superuser" $.Release.Name }}
@@ -485,7 +486,9 @@ Usage:
   {{- end }}
   {{- end }}
 - name: DATABASE_NAME
-  {{- if $.Values.postgresql.enabled }}
+  {{- if $cnpg.enabled }}
+  value: {{ $cnpg.database | default "oneuptimedb" }}
+  {{- else if $.Values.postgresql.enabled }}
   value: {{ $.Values.postgresql.auth.database }}
   {{- else }}
   value: {{ $.Values.externalPostgres.database }}
@@ -493,7 +496,7 @@ Usage:
 
 
 ## DATABASE SSL BLOCK
-{{- if $.Values.postgresql.enabled }}
+{{- if or $cnpg.enabled $.Values.postgresql.enabled }}
 # do nothing here.
 {{- else }}
 {{- if $.Values.externalPostgres.ssl.enabled }}
@@ -915,3 +918,14 @@ spec:
     {{- end }}
 {{- end }}
 {{- end }}
+
+{{/*
+Returns "true" when the bundled CloudNativePG operator + cluster is enabled
+(values key "postgres-operator.cnpg.enabled"); empty string otherwise.
+Usage: {{- if include "oneuptime.cnpgEnabled" . }} ... {{- end }}
+*/}}
+{{- define "oneuptime.cnpgEnabled" -}}
+{{- $op := index .Values "postgres-operator" | default dict -}}
+{{- $cnpg := $op.cnpg | default dict -}}
+{{- if $cnpg.enabled -}}true{{- end -}}
+{{- end -}}

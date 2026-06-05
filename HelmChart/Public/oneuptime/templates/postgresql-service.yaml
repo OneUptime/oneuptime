@@ -1,4 +1,4 @@
-{{- if and .Values.postgresql.enabled (not .Values.postgresql.cnpg.enabled) }}
+{{- if and .Values.postgresql.enabled (not (include "oneuptime.cnpgEnabled" .)) }}
 ---
 apiVersion: v1
 kind: Service

@@ -89,11 +89,19 @@ const formatUserLabel: (info: UserInfo | undefined) => string = (
 const LayersPreview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  /*
+   * Seed the visible range to the current week so the initial render generates
+   * events for the whole week the calendar actually shows. The calendar below
+   * uses react-big-calendar's default "week" view, but react-big-calendar does
+   * not fire onRangeChange on initial mount (only on navigation / view switch).
+   * Initializing to a single day made the calendar show just one occurrence
+   * until a view was toggled. https://github.com/OneUptime/oneuptime/issues/2466
+   */
   const [startTime, setStartTime] = useState<Date>(
-    OneUptimeDate.getStartOfDay(OneUptimeDate.getCurrentDate()),
+    OneUptimeDate.getStartOfTheWeek(OneUptimeDate.getCurrentDate()),
   );
   const [endTime, setEndTime] = useState<Date>(
-    OneUptimeDate.getEndOfDay(OneUptimeDate.getCurrentDate()),
+    OneUptimeDate.getEndOfTheWeek(OneUptimeDate.getCurrentDate()),
   );
 
   const [calendarEvents, setCalendarEvents] = useState<Array<CalendarEvent>>(

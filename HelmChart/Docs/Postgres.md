@@ -91,32 +91,34 @@ the [CloudNativePG](https://cloudnative-pg.io) operator, which adds HA
 backup/PITR.
 
 Enabling it is a single switch. The CloudNativePG operator is **bundled** as a
-chart dependency and installed together with the release:
+chart dependency and installed together with the release. The config lives in a
+self-contained, top-level `postgres-operator` object (**not** nested under
+`postgresql`); `cnpg` is nested so other operators can be added later:
 
 ```yaml
 # values.yaml
-postgresql:
-  enabled: true
-  auth:
-    database: oneuptimedb
+postgres-operator:
   cnpg:
     enabled: true        # turns on the operator + an operator-managed Cluster
     instances: 3         # 1 primary + 2 hot standbys (use 1 for single node)
     imageName: "ghcr.io/cloudnative-pg/postgresql:17.4"   # pin a minor version
+    database: oneuptimedb
 ```
 
-When `postgresql.cnpg.enabled` is `true`:
+When `postgres-operator.cnpg.enabled` is `true`:
 
 * The built-in `StatefulSet`, its `Service`s and `ConfigMap`s are **not**
-  rendered.
+  rendered (regardless of `postgresql.enabled`; the operator path takes
+  precedence).
 * A CloudNativePG `Cluster` named `<release>-postgresql-cnpg` is created.
 * The app connects as the `postgres` superuser to the read-write service
   `<release>-postgresql-cnpg-rw` on port `5432`, using the password in the
   `<release>-postgresql-cnpg-superuser` secret (auto-generated, or set
-  `postgresql.auth.postgresPassword`). The password is preserved across upgrades.
-* It reuses `postgresql.auth.database`, `postgresql.primary.persistence.size`,
-  `storageClass`, `resources`, `nodeSelector` and `tolerations`. CloudNativePG
-  parameters live under `postgresql.cnpg.parameters`.
+  `postgres-operator.cnpg.postgresPassword`). The password is preserved across
+  upgrades.
+* The object is self-contained — `database`, `persistence`, `resources`,
+  `nodeSelector`, `tolerations` and CloudNativePG `parameters` all live under
+  `postgres-operator.cnpg.*`. It does not read any `postgresql.*` values.
 
 Read the superuser password:
 
@@ -134,8 +136,8 @@ echo $(kubectl get secret --namespace "default" oneuptime-postgresql-cnpg-superu
 
 ### Migrating existing StatefulSet data into CloudNativePG
 
-Turning on `cnpg.enabled` bootstraps a **fresh, empty** cluster — it does not
-copy data from the existing `StatefulSet`. There is no supported way to hand the
+Turning on `postgres-operator.cnpg.enabled` bootstraps a **fresh, empty**
+cluster — it does not copy data from the existing `StatefulSet`. There is no supported way to hand the
 operator your existing PV in place (different PVC ownership, a `pgdata`
 sub-directory layout, and a different runtime UID). Use one of these one-time
 migrations instead, keeping the old `StatefulSet` running until cutover.
@@ -143,7 +145,8 @@ migrations instead, keeping the old `StatefulSet` running until cutover.
 **Option A — logical import (recommended).** Apply a one-off `Cluster` that
 imports over the network with `pg_dump`/`pg_restore`. Version-flexible; downtime
 ≈ dump/restore time. Keep the old StatefulSet (`postgresql.enabled: true`,
-`cnpg.enabled: false`) running while this completes, then cut the app over.
+`postgres-operator.cnpg.enabled: false`) running while this completes, then cut
+the app over.
 
 ```yaml
 apiVersion: postgresql.cnpg.io/v1
@@ -185,7 +188,7 @@ replication connections — add `host replication all 0.0.0.0/0 md5` to
 rejected.
 
 After either migration completes and the new cluster is healthy, switch the
-release to operator mode (`postgresql.cnpg.enabled: true`) so the app points at
-`<release>-postgresql-cnpg-rw`, scale `instances` up for HA, then decommission
-the old StatefulSet and its PVC.
+release to operator mode (`postgres-operator.cnpg.enabled: true`) so the app
+points at `<release>-postgresql-cnpg-rw`, scale `instances` up for HA, then
+decommission the old StatefulSet and its PVC.
 
