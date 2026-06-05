@@ -76,10 +76,16 @@
       "dashboardsDescription": "Visualisez toutes vos données.",
       "workflowsTitle": "Workflows",
       "workflowsDescription": "Constructeur d'automatisation sans code.",
+      "runbooksTitle": "Runbooks",
+      "runbooksDescription": "Procédures de réponse réutilisables : listes de contrôle manuelles ou scripts.",
       "aiAgentTitle": "Agent IA",
       "aiAgentDescription": "Résolution de problèmes par IA.",
       "codeRepositoriesTitle": "Dépôts de code",
       "codeRepositoriesDescription": "Intégrations GitHub et GitLab.",
+      "usersTitle": "Utilisateurs",
+      "usersDescription": "Gérez les utilisateurs et les invitations du projet.",
+      "teamsTitle": "Équipes",
+      "teamsDescription": "Organisez les utilisateurs en équipes et attribuez des autorisations.",
       "projectSettingsTitle": "Paramètres du projet",
       "projectSettingsDescription": "Configurez votre projet."
     },
@@ -1293,5 +1299,8 @@
   "Refresh?": "Actualiser ?",
   "No options found": "Aucune option trouvée",
   "Create": "Créer",
+  "Drag to reorder": "Glisser pour réorganiser",
+  "Select all items": "Sélectionner tous les éléments",
+  "filter results": "filtrer les résultats",
   "Type": "Type"
 }

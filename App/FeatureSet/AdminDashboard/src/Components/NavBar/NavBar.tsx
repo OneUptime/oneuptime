@@ -24,16 +24,18 @@ const DashboardNavbar: FunctionComponent = (): ReactElement => {
     },
   ];
 
+  /*
+   * Only top-level pages go in the menu. Sections that have their own side menu
+   * (Settings, with all its notification/auth/AI/data sub-pages) are
+   * represented by a single entry — the side menu handles the rest, same as the
+   * main dashboard.
+   */
   const managementCategory: string = "Management";
   const monitoringCategory: string = "Monitoring";
-  const notificationsCategory: string = "Notifications";
-  const authenticationCategory: string = "Authentication";
-  const aiCategory: string = "AI";
-  const dataCategory: string = "Data";
   const toolsCategory: string = "Tools";
+  const settingsCategory: string = "Settings";
 
   const moreMenuItems: MoreMenuItem[] = [
-    // Management
     {
       title: "Users",
       description: "Manage all users across the instance.",
@@ -52,7 +54,6 @@ const DashboardNavbar: FunctionComponent = (): ReactElement => {
       iconColor: "emerald",
       category: managementCategory,
     },
-    // Monitoring
     {
       title: "Instance Health",
       description: "Live status, datastore capacity and queue backlogs.",
@@ -63,141 +64,27 @@ const DashboardNavbar: FunctionComponent = (): ReactElement => {
       category: monitoringCategory,
     },
     {
-      title: "Global Probes",
-      description: "Manage global monitoring probes.",
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SETTINGS_PROBES] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.SETTINGS_PROBES],
-      icon: IconProp.Signal,
-      iconColor: "indigo",
-      category: monitoringCategory,
-    },
-    // Notifications
-    {
-      title: "Email",
-      description: "Configure SMTP and email delivery.",
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SETTINGS_SMTP] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.SETTINGS_SMTP],
-      icon: IconProp.Email,
-      iconColor: "blue",
-      category: notificationsCategory,
-    },
-    {
-      title: "Call & SMS",
-      description: "Configure call and SMS notifications.",
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SETTINGS_CALL_AND_SMS] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.SETTINGS_CALL_AND_SMS],
-      icon: IconProp.Call,
-      iconColor: "stone",
-      category: notificationsCategory,
-    },
-    {
-      title: "WhatsApp",
-      description: "Configure WhatsApp notifications.",
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SETTINGS_WHATSAPP] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.SETTINGS_WHATSAPP],
-      icon: IconProp.WhatsApp,
-      iconColor: "emerald",
-      category: notificationsCategory,
-    },
-    {
-      title: "Telegram",
-      description: "Configure Telegram notifications.",
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SETTINGS_TELEGRAM] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.SETTINGS_TELEGRAM],
-      icon: IconProp.Telegram,
-      iconColor: "sky",
-      category: notificationsCategory,
-    },
-    // Authentication
-    {
-      title: "Authentication",
-      description: "Single sign-on and sign-in configuration.",
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SETTINGS_AUTHENTICATION] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.SETTINGS_AUTHENTICATION],
-      icon: IconProp.Lock,
-      iconColor: "amber",
-      category: authenticationCategory,
-    },
-    {
-      title: "API Keys",
-      description: "Manage global API keys.",
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SETTINGS_API_KEY] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.SETTINGS_API_KEY],
-      icon: IconProp.Code,
-      iconColor: "gray",
-      category: authenticationCategory,
-    },
-    // AI
-    {
-      title: "AI Agents",
-      description: "Configure global AI agents.",
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SETTINGS_AI_AGENTS] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.SETTINGS_AI_AGENTS],
-      icon: IconProp.Automation,
-      iconColor: "violet",
-      category: aiCategory,
-    },
-    {
-      title: "LLM Providers",
-      description: "Configure large language model providers.",
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.SETTINGS_LLM_PROVIDERS],
-      icon: IconProp.Brain,
-      iconColor: "purple",
-      category: aiCategory,
-    },
-    // Data
-    {
-      title: "Data Retention",
-      description: "Set telemetry and log retention windows.",
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SETTINGS_DATA_RETENTION] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.SETTINGS_DATA_RETENTION],
-      icon: IconProp.Database,
-      iconColor: "teal",
-      category: dataCategory,
-    },
-    // Tools
-    {
       title: "Send Email",
       description: "Send a broadcast email to all users.",
       route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SEND_EMAIL] as Route,
+        RouteMap[PageMap.MORE_EMAIL] as Route,
       ),
-      activeRoute: RouteMap[PageMap.SEND_EMAIL],
+      activeRoute: RouteMap[PageMap.MORE_EMAIL],
       icon: IconProp.Email,
       iconColor: "cyan",
       category: toolsCategory,
     },
+    {
+      title: "Settings",
+      description:
+        "Authentication, notifications, probes, AI, data retention and more.",
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS] as Route),
+      activeRoute: new Route("/admin/settings"),
+      icon: IconProp.Settings,
+      iconColor: "slate",
+      category: settingsCategory,
+    },
   ];
-
-  // Right-aligned shortcut to the settings hub (highlights across all settings pages).
-  const rightElement: NavItem = {
-    id: "settings-nav-bar-item",
-    title: "Settings",
-    icon: IconProp.Settings,
-    route: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS] as Route),
-    activeRoute: new Route("/admin/settings"),
-  };
 
   const moreMenuFooter: {
     title: string;
@@ -214,7 +101,6 @@ const DashboardNavbar: FunctionComponent = (): ReactElement => {
   return (
     <NavBar
       items={navItems}
-      rightElement={rightElement}
       moreMenuItems={moreMenuItems}
       moreMenuFooter={moreMenuFooter}
     />

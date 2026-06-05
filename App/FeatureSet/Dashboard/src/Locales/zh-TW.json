@@ -76,10 +76,16 @@
       "dashboardsDescription": "視覺化您的所有資料。",
       "workflowsTitle": "工作流程",
       "workflowsDescription": "無程式碼自動化建構器。",
+      "runbooksTitle": "運行手冊",
+      "runbooksDescription": "可重複使用的回應流程：手動檢查清單或指令碼。",
       "aiAgentTitle": "AI 代理",
       "aiAgentDescription": "AI 驅動的問題解決。",
       "codeRepositoriesTitle": "程式碼儲存庫",
       "codeRepositoriesDescription": "GitHub 與 GitLab 整合。",
+      "usersTitle": "使用者",
+      "usersDescription": "管理專案使用者與邀請。",
+      "teamsTitle": "團隊",
+      "teamsDescription": "將使用者組織成團隊並指派權限。",
       "projectSettingsTitle": "專案設定",
       "projectSettingsDescription": "設定您的專案。"
     },
@@ -1293,5 +1299,8 @@
   "Refresh?": "重新整理？",
   "No options found": "找不到選項",
   "Create": "建立",
+  "Drag to reorder": "拖曳以重新排序",
+  "Select all items": "選取所有項目",
+  "filter results": "篩選結果",
   "Type": "類型"
 }
