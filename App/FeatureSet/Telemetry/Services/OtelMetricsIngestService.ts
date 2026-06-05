@@ -83,6 +83,15 @@ type MetricTimestamp = {
  */
 const K8S_NODE_ALLOCATABLE_CPU_METRIC: string = "k8s.node.allocatable_cpu";
 
+/*
+ * The k8s_cluster receiver's per-node allocatable memory (bytes). Like
+ * allocatable CPU, not a displayed metric — its latest value is cached
+ * per node and used as the denominator that turns the bytes-valued
+ * `*.memory.usage` metrics into a true "% of node allocatable memory".
+ */
+const K8S_NODE_ALLOCATABLE_MEMORY_METRIC: string =
+  "k8s.node.allocatable_memory";
+
 const K8S_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "k8s.pod.cpu.utilization",
   "k8s.pod.memory.usage",
@@ -91,6 +100,7 @@ const K8S_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "container.cpu.utilization",
   "container.memory.usage",
   K8S_NODE_ALLOCATABLE_CPU_METRIC,
+  K8S_NODE_ALLOCATABLE_MEMORY_METRIC,
 ]);
 
 /*
@@ -110,6 +120,7 @@ interface ResourceMetricBufferEntry {
   name: string;
   cpuPercent: number | null;
   memoryBytes: number | null;
+  memoryPercent: number | null;
   observedAt: Date;
   controllerDeploymentName: string | null;
   controllerCronJobName: string | null;
@@ -1133,6 +1144,93 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
   }
 
   /*
+   * Per-(cluster, node) allocatable memory (bytes), learned from the
+   * `k8s.node.allocatable_memory` metric (k8s_cluster receiver). The
+   * memory analogue of the allocatable-CPU cache above: the denominator
+   * that turns bytes-valued `*.memory.usage` metrics into a true
+   * percentage. In-memory, best-effort, shared across this worker's
+   * batches.
+   */
+  private static nodeAllocatableMemoryByCluster: Map<
+    string,
+    Map<string, { bytes: number; at: number }>
+  > = new Map();
+
+  private static updateNodeAllocatableMemory(
+    clusterIdStr: string,
+    nodeName: string,
+    bytes: number,
+    atMs: number,
+  ): void {
+    if (!nodeName || !Number.isFinite(bytes) || bytes <= 0) {
+      return;
+    }
+    let byNode: Map<string, { bytes: number; at: number }> | undefined =
+      this.nodeAllocatableMemoryByCluster.get(clusterIdStr);
+    if (!byNode) {
+      byNode = new Map();
+      this.nodeAllocatableMemoryByCluster.set(clusterIdStr, byNode);
+    }
+    byNode.set(nodeName, { bytes: bytes, at: atMs });
+  }
+
+  /*
+   * Resolve the allocatable memory bytes to divide by. Prefers the
+   * exact node; falls back to the cluster's average node size when the
+   * node hasn't been seen yet. Returns 0 when nothing is known,
+   * signalling the caller to leave the stored memory% untouched.
+   */
+  private static lookupNodeAllocatableMemory(
+    clusterIdStr: string,
+    nodeName: string,
+    nowMs: number,
+  ): number {
+    const byNode: Map<string, { bytes: number; at: number }> | undefined =
+      this.nodeAllocatableMemoryByCluster.get(clusterIdStr);
+    if (!byNode || byNode.size === 0) {
+      return 0;
+    }
+    const exact: { bytes: number; at: number } | undefined = nodeName
+      ? byNode.get(nodeName)
+      : undefined;
+    if (exact && nowMs - exact.at <= this.NODE_ALLOCATABLE_TTL_MS) {
+      return exact.bytes;
+    }
+    let sum: number = 0;
+    let count: number = 0;
+    for (const entry of byNode.values()) {
+      if (nowMs - entry.at <= this.NODE_ALLOCATABLE_TTL_MS) {
+        sum += entry.bytes;
+        count++;
+      }
+    }
+    return count > 0 ? sum / count : 0;
+  }
+
+  /*
+   * Convert a raw Kubernetes memory-usage datapoint (bytes) to "% of the
+   * node's allocatable memory". Mirrors `cpuCoresToPercent`. Returns
+   * null when allocatable memory is unknown so the snapshot keeps its
+   * previous memory% instead of writing a wrong one.
+   */
+  private static memoryBytesToPercent(
+    rawValue: number,
+    clusterIdStr: string,
+    nodeName: string,
+    nowMs: number,
+  ): number | null {
+    const allocatableBytes: number = this.lookupNodeAllocatableMemory(
+      clusterIdStr,
+      nodeName,
+      nowMs,
+    );
+    if (allocatableBytes <= 0) {
+      return null;
+    }
+    return (rawValue / allocatableBytes) * 100;
+  }
+
+  /*
    * Match an allow-listed Kubernetes metric to its target snapshot
    * row, fold the latest CPU/memory point into the per-cluster
    * buffer. Cheap: every check is a string compare against attrs.
@@ -1178,6 +1276,20 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
      */
     if (data.metricName === K8S_NODE_ALLOCATABLE_CPU_METRIC) {
       this.updateNodeAllocatableCpu(
+        data.clusterIdStr,
+        this.readSnapshotAttr(attrs, "resource.k8s.node.name"),
+        rawValue,
+        nowMs,
+      );
+      return;
+    }
+
+    /*
+     * `k8s.node.allocatable_memory` is the memory% denominator, not a
+     * displayed Node row. Cache its latest value per node and stop.
+     */
+    if (data.metricName === K8S_NODE_ALLOCATABLE_MEMORY_METRIC) {
+      this.updateNodeAllocatableMemory(
         data.clusterIdStr,
         this.readSnapshotAttr(attrs, "resource.k8s.node.name"),
         rawValue,
@@ -1270,6 +1382,15 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             )
           : null,
         memoryBytes: isMem ? Math.max(0, Math.trunc(rawValue)) : null,
+        memoryPercent:
+          isMem && rawValue >= 0
+            ? this.memoryBytesToPercent(
+                rawValue,
+                data.clusterIdStr,
+                nodeName,
+                nowMs,
+              )
+            : null,
         observedAt: ts.date,
         controllerDeploymentName: deployName || null,
         controllerCronJobName: cronName || null,
@@ -1297,6 +1418,15 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             )
           : null,
         memoryBytes: isMem ? Math.max(0, Math.trunc(rawValue)) : null,
+        memoryPercent:
+          isMem && rawValue >= 0
+            ? this.memoryBytesToPercent(
+                rawValue,
+                data.clusterIdStr,
+                nodeName,
+                nowMs,
+              )
+            : null,
         observedAt: ts.date,
         controllerDeploymentName: null,
         controllerCronJobName: null,
@@ -1313,6 +1443,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     name: string;
     cpuPercent: number | null;
     memoryBytes: number | null;
+    memoryPercent: number | null;
     observedAt: Date;
     controllerDeploymentName: string | null;
     controllerCronJobName: string | null;
@@ -1332,6 +1463,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         name: data.name,
         cpuPercent: data.cpuPercent,
         memoryBytes: data.memoryBytes,
+        memoryPercent: data.memoryPercent,
         observedAt: data.observedAt,
         controllerDeploymentName: data.controllerDeploymentName,
         controllerCronJobName: data.controllerCronJobName,
@@ -1343,6 +1475,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     }
     if (data.memoryBytes !== null && data.observedAt >= existing.observedAt) {
       existing.memoryBytes = data.memoryBytes;
+    }
+    if (data.memoryPercent !== null && data.observedAt >= existing.observedAt) {
+      existing.memoryPercent = data.memoryPercent;
     }
     if (data.observedAt > existing.observedAt) {
       existing.observedAt = data.observedAt;
@@ -1425,6 +1560,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               name: e.name,
               cpuPercent: e.cpuPercent,
               memoryBytes: e.memoryBytes,
+              memoryPercent: e.memoryPercent,
               observedAt: e.observedAt,
               controllerDeploymentName: e.controllerDeploymentName,
               controllerCronJobName: e.controllerCronJobName,

@@ -21,6 +21,7 @@ import { JSONObject } from "Common/Types/JSON";
 export interface PodMetricAggregate {
   cpuPercent: number;
   memoryBytes: number;
+  memoryPercent: number;
 }
 
 export interface KubernetesResource {
@@ -29,6 +30,14 @@ export interface KubernetesResource {
   cpuUtilization: number | null;
   memoryUsageBytes: number | null;
   memoryLimitBytes: number | null;
+  /*
+   * Memory usage as a percent of a denominator, used by the aggregate
+   * list views (Deployments / Namespaces / ...) where memory is a
+   * summed "% of node allocatable" coming off the server — parallel to
+   * cpuUtilization. Pod/Node/Container lists leave this undefined and
+   * render from memoryUsageBytes + memoryLimitBytes instead.
+   */
+  memoryUtilization?: number | null;
   status: string;
   age: string;
   additionalAttributes: Record<string, string>;
@@ -650,7 +659,16 @@ export default class KubernetesResourceUtils {
         typeof memRaw === "number"
           ? memRaw
           : parseInt((memRaw as string) || "0", 10) || 0;
-      out.set(key, { cpuPercent: cpu, memoryBytes: mem });
+      const memPctRaw: unknown = v["memoryPercent"];
+      const memPct: number =
+        typeof memPctRaw === "number"
+          ? memPctRaw
+          : parseFloat((memPctRaw as string) || "0") || 0;
+      out.set(key, {
+        cpuPercent: cpu,
+        memoryBytes: mem,
+        memoryPercent: memPct,
+      });
     }
     return out;
   }
@@ -673,6 +691,7 @@ export default class KubernetesResourceUtils {
       }
       resource.cpuUtilization = agg.cpuPercent;
       resource.memoryUsageBytes = agg.memoryBytes;
+      resource.memoryUtilization = agg.memoryPercent;
     }
   }
 

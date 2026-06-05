@@ -560,6 +560,43 @@ export default class KubernetesResource extends BaseModel {
   })
   @TableColumn({
     required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Latest Memory Percent",
+    description:
+      "Most recent memory usage as a percent of the resource's node allocatable memory (Pod or Node). Stored as decimal — mirrors latestCpuPercent — so the workload/namespace list views can SUM a per-pod percentage. Null until the first metric arrives or while the node's allocatable memory is still unknown.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Decimal,
+    transformer: {
+      to: (value: number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        return value;
+      },
+      from: (value: string | number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        if (typeof value === "number") {
+          return value;
+        }
+        const parsed: number = parseFloat(value);
+        return isNaN(parsed) ? null : parsed;
+      },
+    },
+  })
+  public latestMemoryPercent?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
     type: TableColumnType.Date,
     canReadOnRelationQuery: true,
     title: "Metrics Updated At",
