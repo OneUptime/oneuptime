@@ -248,6 +248,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     facetSaveState,
     restoreFacetState,
   } = useResourceOwners<Host>({
+    persistKey: "hosts-table",
     ownerUserModelType: HostOwnerUser,
     ownerTeamModelType: HostOwnerTeam,
     resourceIdField: "hostId",

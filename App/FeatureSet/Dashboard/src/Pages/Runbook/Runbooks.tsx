@@ -57,6 +57,7 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
     facetSaveState,
     restoreFacetState,
   } = useResourceOwners<Runbook>({
+    persistKey: "runbooks-table",
     ownerUserModelType: RunbookOwnerUser,
     ownerTeamModelType: RunbookOwnerTeam,
     resourceIdField: "runbookId",

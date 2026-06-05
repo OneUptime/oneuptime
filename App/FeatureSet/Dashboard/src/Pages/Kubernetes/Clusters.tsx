@@ -80,6 +80,7 @@ const KubernetesClusters: FunctionComponent<
     facetSaveState,
     restoreFacetState,
   } = useResourceOwners<KubernetesCluster>({
+    persistKey: "kubernetes-clusters-table",
     ownerUserModelType: KubernetesClusterOwnerUser,
     ownerTeamModelType: KubernetesClusterOwnerTeam,
     resourceIdField: "kubernetesClusterId",

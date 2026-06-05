@@ -53,6 +53,7 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
     facetSaveState,
     restoreFacetState,
   } = useResourceOwners<Dashboard>({
+    persistKey: "all-dashboards-table",
     ownerUserModelType: DashboardOwnerUser,
     ownerTeamModelType: DashboardOwnerTeam,
     resourceIdField: "dashboardId",

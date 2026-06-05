@@ -141,6 +141,7 @@ const Users: FunctionComponent<PageComponentProps> = (
     restoreFacetState,
     hasActiveFilters,
   } = useResourceOwners<TeamMember>({
+    persistKey: "settings-users-table",
     showOwnerFacet: false,
     extraFacets: userExtraFacets,
   });
