@@ -329,6 +329,12 @@ import TableViewService, {
 import LogSavedViewService, {
   Service as LogSavedViewServiceType,
 } from "Common/Server/Services/LogSavedViewService";
+import MetricSavedViewService, {
+  Service as MetricSavedViewServiceType,
+} from "Common/Server/Services/MetricSavedViewService";
+import TraceSavedViewService, {
+  Service as TraceSavedViewServiceType,
+} from "Common/Server/Services/TraceSavedViewService";
 import LogPipelineService, {
   Service as LogPipelineServiceType,
 } from "Common/Server/Services/LogPipelineService";
@@ -928,6 +934,8 @@ import ScheduledMaintenanceTemplateOwnerUserService, {
 } from "Common/Server/Services/ScheduledMaintenanceTemplateOwnerUserService";
 import TableView from "Common/Models/DatabaseModels/TableView";
 import LogSavedView from "Common/Models/DatabaseModels/LogSavedView";
+import MetricSavedView from "Common/Models/DatabaseModels/MetricSavedView";
+import TraceSavedView from "Common/Models/DatabaseModels/TraceSavedView";
 import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
 import LogPipelineProcessor from "Common/Models/DatabaseModels/LogPipelineProcessor";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
@@ -2267,6 +2275,22 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<LogSavedView, LogSavedViewServiceType>(
         LogSavedView,
         LogSavedViewService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MetricSavedView, MetricSavedViewServiceType>(
+        MetricSavedView,
+        MetricSavedViewService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TraceSavedView, TraceSavedViewServiceType>(
+        TraceSavedView,
+        TraceSavedViewService,
       ).getRouter(),
     );
 
