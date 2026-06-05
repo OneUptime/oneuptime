@@ -787,6 +787,9 @@ export default class Span extends AnalyticsBaseModel {
       singularName: "Span",
       pluralName: "Spans",
       crudApiPath: new Route("/span"),
+      enableDocumentation: true,
+      tableDescription:
+        "OpenTelemetry distributed-tracing spans. Each span is one operation within a trace; query and aggregate them to analyze latency and errors.",
       accessControl: {
         read: [
           Permission.ProjectOwner,

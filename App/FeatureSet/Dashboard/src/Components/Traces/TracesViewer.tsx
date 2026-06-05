@@ -51,6 +51,12 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import TraceRow from "./TraceRow";
+import TelemetrySavedViewsControl, {
+  serializeTimeRange,
+  deserializeTimeRange,
+} from "../Telemetry/TelemetrySavedViewsControl";
+import TraceSavedView from "Common/Models/DatabaseModels/TraceSavedView";
+import TelemetrySavedViewState from "Common/Types/Telemetry/TelemetrySavedViewState";
 import Search from "Common/Types/BaseDatabase/Search";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import LessThan from "Common/Types/BaseDatabase/LessThan";
@@ -1432,6 +1438,62 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     [],
   );
 
+  /*
+   * Saved views are only offered on the top-level traces explorer — not when
+   * the viewer is scoped to a resource (service / host / docker / k8s detail).
+   */
+  const enableSavedViews: boolean =
+    !props.serviceId &&
+    (!props.attributeFilters ||
+      Object.keys(props.attributeFilters).length === 0);
+
+  // Whether the URL already carried filter state (deep link) on first mount.
+  const hasInitialUrlState: boolean = useMemo((): boolean => {
+    return (
+      initialUrlState.search.length > 0 ||
+      initialUrlState.filters.length > 0 ||
+      initialUrlState.timeRange.range !== TimeRange.PAST_ONE_HOUR
+    );
+  }, [initialUrlState]);
+
+  // Capture the current explorer state for Save / Update of a saved view.
+  const captureCurrentState: () => TelemetrySavedViewState =
+    useCallback((): TelemetrySavedViewState => {
+      return {
+        search: submittedSearch,
+        filters: activeFilters.map((filter: ActiveFilter): [string, string] => {
+          return [filter.facetKey, filter.value];
+        }),
+        timeRange: serializeTimeRange(timeRange),
+        pageSize: pageSize,
+      };
+    }, [submittedSearch, activeFilters, timeRange, pageSize]);
+
+  // Apply a saved view's state back into the explorer.
+  const applySavedViewState: (state: TelemetrySavedViewState) => void =
+    useCallback((state: TelemetrySavedViewState): void => {
+      const nextSearch: string = state.search || "";
+      setSearchValue(nextSearch);
+      setSubmittedSearch(nextSearch);
+      setActiveFilters(
+        (state.filters || []).map(
+          ([facetKey, value]: [string, string]): ActiveFilter => {
+            return {
+              facetKey: facetKey,
+              value: value,
+              displayKey: facetKey,
+              displayValue: value,
+            };
+          },
+        ),
+      );
+      setTimeRange(deserializeTimeRange(state.timeRange));
+      if (state.pageSize) {
+        setPageSize(state.pageSize);
+      }
+      setPage(1);
+    }, []);
+
   return (
     <TelemetryViewer<Span>
       items={spans}
@@ -1441,6 +1503,19 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         void fetchSpans();
         void fetchHistogramAndFacets();
       }}
+      toolbarLeadingActions={
+        enableSavedViews ? (
+          <TelemetrySavedViewsControl<TraceSavedView>
+            modelType={TraceSavedView}
+            savedViewNoun="Trace"
+            explorerLabel="traces"
+            hasInitialUrlState={hasInitialUrlState}
+            captureCurrentState={captureCurrentState}
+            applyState={applySavedViewState}
+            onError={setError}
+          />
+        ) : undefined
+      }
       emptyMessage="No traces found"
       itemLabel="traces"
       renderRow={(span: Span): ReactElement => {
