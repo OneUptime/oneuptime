@@ -528,6 +528,15 @@ export class ProfileAggregationService {
       }}`,
     );
 
+    /*
+     * Cap runtime below the client's 58s request_timeout; a flamegraph
+     * over a busy project can pull MAX_SAMPLE_FETCH raw samples. 'break'
+     * yields a partial flamegraph rather than holding a pool connection.
+     */
+    statement.append(
+      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+    );
+
     return statement;
   }
 
@@ -561,6 +570,14 @@ export class ProfileAggregationService {
         type: TableColumnType.Number,
         value: ProfileAggregationService.MAX_SAMPLE_FETCH,
       }}`,
+    );
+
+    /*
+     * Cap runtime below the client's 58s request_timeout; 'break' yields
+     * a partial function list rather than holding a pool connection.
+     */
+    statement.append(
+      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
     );
 
     return statement;
@@ -620,6 +637,14 @@ export class ProfileAggregationService {
       SQL` GROUP BY serviceId
            ORDER BY sampleCount DESC
            LIMIT 10000`,
+    );
+
+    /*
+     * Cap runtime below the client's 58s request_timeout; 'break' yields
+     * partial service activity rather than holding a pool connection.
+     */
+    statement.append(
+      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
     );
 
     return statement;
