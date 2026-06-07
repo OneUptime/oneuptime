@@ -6,6 +6,7 @@ import ClickhouseDatabase, {
 } from "../Infrastructure/ClickhouseDatabase";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
 import CountBy from "../Types/AnalyticsDatabase/CountBy";
+import ExistsBy from "../Types/AnalyticsDatabase/ExistsBy";
 import CreateBy from "../Types/AnalyticsDatabase/CreateBy";
 import CreateManyBy from "../Types/AnalyticsDatabase/CreateManyBy";
 import DeleteBy from "../Types/AnalyticsDatabase/DeleteBy";
@@ -263,6 +264,46 @@ export default class AnalyticsDatabaseService<
       return countPositive;
     } catch (error) {
       await this.onCountError(error as Exception);
+      throw this.getException(error as Exception);
+    }
+  }
+
+  /**
+   * Returns whether at least one row matches the query, without counting
+   * every match. Prefer this over `countBy(...).toNumber() === 0` for
+   * existence checks: `count()` scans every matching row, whereas this
+   * issues `SELECT 1 ... LIMIT 1`, which lets ClickHouse short-circuit at
+   * the first matching granule — dramatically cheaper on large tables
+   * (Metric / Span / Log).
+   */
+  @CaptureSpan()
+  public async existsBy(existsBy: ExistsBy<TBaseModel>): Promise<boolean> {
+    try {
+      const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
+        await ModelPermission.checkReadPermission(
+          this.modelType,
+          existsBy.query,
+          null,
+          existsBy.props,
+        );
+
+      existsBy.query = checkReadPermissionType.query;
+
+      const existsStatement: Statement = this.toExistsStatement(existsBy);
+
+      const dbResult: ResultSet<"JSON"> =
+        await this.executeQuery(existsStatement);
+
+      const resultInJSON: ResponseJSON<JSONObject> =
+        await dbResult.json<JSONObject>();
+
+      return Boolean(
+        resultInJSON.data &&
+          Array.isArray(resultInJSON.data) &&
+          resultInJSON.data.length > 0,
+      );
+    } catch (error) {
+      await this.onFindError(error as Exception);
       throw this.getException(error as Exception);
     }
   }
@@ -836,6 +877,44 @@ export default class AnalyticsDatabaseService<
     );
 
     logger.debug(`${this.model.tableName} Count Statement`, { tableName: this.model.tableName } as LogAttributes);
+    logger.debug(statement, { tableName: this.model.tableName } as LogAttributes);
+
+    return statement;
+  }
+
+  public toExistsStatement(existsBy: ExistsBy<TBaseModel>): Statement {
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string = this.database.getDatasourceOptions().database!;
+
+    const whereStatement: Statement = this.statementGenerator.toWhereStatement(
+      existsBy.query,
+    );
+
+    /*
+     * `SELECT 1 ... LIMIT 1` so ClickHouse stops at the first matching
+     * row instead of scanning every match like count() does. The
+     * max_execution_time cap is defense in depth; unlike the count and
+     * find statements we deliberately do NOT set timeout_overflow_mode
+     * = 'break' here, because a partial (empty) result would be read as
+     * "does not exist" — a false negative that could, for example, let a
+     * caller insert a duplicate. A LIMIT 1 over the sort key never gets
+     * near this cap in practice; if it ever did, throwing is the safe
+     * outcome.
+     */
+    /* eslint-disable prettier/prettier */
+    const statement: Statement = SQL`
+            SELECT 1 as existsFlag
+            FROM ${databaseName}.${this.model.tableName}
+            WHERE TRUE `.append(whereStatement);
+
+    statement.append(SQL` LIMIT 1`);
+
+    statement.append(" SETTINGS max_execution_time = 45");
+
+    logger.debug(`${this.model.tableName} Exists Statement`, { tableName: this.model.tableName } as LogAttributes);
     logger.debug(statement, { tableName: this.model.tableName } as LogAttributes);
 
     return statement;

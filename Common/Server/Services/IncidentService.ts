@@ -2796,20 +2796,18 @@ ${incidentSeverity.name}
      * re-emitting, the dashboard Sum stays equal to the true count of
      * distinct incidents.
      */
-    const existingIncidentCount: PositiveNumber = await MetricService.countBy({
+    const incidentCountMetricExists: boolean = await MetricService.existsBy({
       query: {
         projectId: incident.projectId,
         serviceId: data.incidentId,
         name: IncidentMetricType.IncidentCount,
       },
-      skip: 0,
-      limit: 1,
       props: {
         isRoot: true,
       },
     });
 
-    if (existingIncidentCount.toNumber() === 0) {
+    if (!incidentCountMetricExists) {
       const incidentCountMetric: Metric = new Metric();
 
       incidentCountMetric.projectId = incident.projectId;
