@@ -275,6 +275,13 @@ The design for entities:
 6. **Optional grant-through (opt-in, off by default).** For customers who explicitly want infra owners to read all telemetry on their infra, a per-project, per-entity-type policy can add that type to the auth predicate: `serviceId IN (:allowed) OR hasAny(:typeKeyColumn, :allowedTypeKeys)`. Auditable, scoped to chosen types, never implicit.
 7. **Entity catalog & relationships** — `TelemetryEntity` and `TelemetryEntityRelationship` are `@OperationalResource()` and read-scoped so the entity explorer/topology respects the same boundary (you see entities you own, or whose primary-owned telemetry you can see).
 
+**Worked example — one signal connected to two resources A and B; caller owns A but not B.** Access depends solely on which resource is the signal's *primary* entity (`serviceId`), not on the fact that it is connected to both:
+
+- **A is primary** (`serviceId = A`): the caller **sees it** — even though it also references B — because the authorizing predicate `serviceId IN (:allowed)` matches (caller owns A).
+- **B is primary** (`serviceId = B`): the caller does **not** see it — *not even on Resource A's page* — because `serviceId = B ∉ allowed`. On A's page the query is `has(entityKeys, :A) = true AND serviceId IN (:allowed) = false` → excluded. The membership predicate narrows; it cannot authorize.
+
+Consequence: **owning a *secondary* entity of a signal does not grant access to it.** In the common cases this is exactly right — the primary entity is the natural owner (the service for app telemetry, the host for infra telemetry). The deliberate trade is that a resource owner does not automatically see *every* signal that merely *touched* their resource — only those it *primarily* belongs to. The escape hatch for "infra owner sees all telemetry on their infra" is `scope=All` (platform teams) or the opt-in per-entity-type grant-through (point 6).
+
 Net: keep `serviceId` as the authorization key (also the performant choice — it sits in the primary key), treat `entityKeys` as filtering only, and grow coverage by registering new primary-entity owner tables. No rewrite of `ModelPermission`.
 
 ---
