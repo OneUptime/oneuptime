@@ -480,10 +480,12 @@ const highCpuTemplate: KubernetesAlertTemplate = {
         resultLegend: "Node CPU Utilization (%)",
         resourceScope: KubernetesResourceScope.Node,
         rollingTime: RollingTime.Past5Minutes,
-        // Single series per node from two DIFFERENT receivers (usage =
-        // kubeletstats, allocatable = k8s_cluster) — Avg keeps the per-minute
-        // ratio correct regardless of each receiver's scrape count. See
-        // buildKubernetesRatioMonitorConfig.
+        /*
+         * Single series per node from two DIFFERENT receivers (usage =
+         * kubeletstats, allocatable = k8s_cluster) — Avg keeps the per-minute
+         * ratio correct regardless of each receiver's scrape count. See
+         * buildKubernetesRatioMonitorConfig.
+         */
         aggregationType: MetricsAggregationType.Avg,
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
@@ -532,10 +534,12 @@ const highMemoryTemplate: KubernetesAlertTemplate = {
         resultLegend: "Node Memory Utilization (%)",
         resourceScope: KubernetesResourceScope.Node,
         rollingTime: RollingTime.Past5Minutes,
-        // Single series per node from two DIFFERENT receivers (usage =
-        // kubeletstats, allocatable = k8s_cluster) — Avg keeps the per-minute
-        // ratio correct regardless of each receiver's scrape count. See
-        // buildKubernetesRatioMonitorConfig.
+        /*
+         * Single series per node from two DIFFERENT receivers (usage =
+         * kubeletstats, allocatable = k8s_cluster) — Avg keeps the per-minute
+         * ratio correct regardless of each receiver's scrape count. See
+         * buildKubernetesRatioMonitorConfig.
+         */
         aggregationType: MetricsAggregationType.Avg,
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
