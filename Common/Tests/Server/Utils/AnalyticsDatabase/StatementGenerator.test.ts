@@ -440,6 +440,58 @@ describe("StatementGenerator", () => {
         SQL`column_1 Array(String), column_2 Nullable(Array(Int32))`,
       );
     });
+
+    test("wraps LowCardinality columns and respects nullability", () => {
+      const statement: Statement = generator.toColumnsCreateStatement([
+        new AnalyticsTableColumn({
+          key: "col_lc_req",
+          title: "<title>",
+          description: "<description>",
+          required: true,
+          type: TableColumnType.Text,
+          isLowCardinality: true,
+        }),
+        new AnalyticsTableColumn({
+          key: "col_lc_null",
+          title: "<title>",
+          description: "<description>",
+          required: false,
+          type: TableColumnType.Text,
+          isLowCardinality: true,
+        }),
+      ]);
+
+      expectStatement(
+        statement,
+        SQL`col_lc_req LowCardinality(String), col_lc_null LowCardinality(Nullable(String))`,
+      );
+    });
+
+    test("emits single and pipelined CODEC clauses", () => {
+      const statement: Statement = generator.toColumnsCreateStatement([
+        new AnalyticsTableColumn({
+          key: "col_zstd",
+          title: "<title>",
+          description: "<description>",
+          required: true,
+          type: TableColumnType.Text,
+          codec: { codec: "ZSTD", level: 1 },
+        }),
+        new AnalyticsTableColumn({
+          key: "col_pipe",
+          title: "<title>",
+          description: "<description>",
+          required: true,
+          type: TableColumnType.DateTime64,
+          codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
+        }),
+      ]);
+
+      expectStatement(
+        statement,
+        SQL`col_zstd String CODEC(ZSTD(1)), col_pipe DateTime64(9) CODEC(DoubleDelta, ZSTD(1))`,
+      );
+    });
   });
 
   describe("toTableCreateStatement", () => {

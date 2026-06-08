@@ -182,6 +182,16 @@ export default class AnalyticsDatabaseService<
       dbResult.stream,
     );
 
+    /*
+     * Unwrap LowCardinality(...) first so dictionary-encoded columns
+     * (e.g. LowCardinality(String), LowCardinality(Nullable(String)))
+     * map back to their logical type instead of falling through to null.
+     */
+    if (strResult.includes("LowCardinality(")) {
+      const inner: string = strResult.split("LowCardinality(")[1] as string;
+      strResult = inner.substring(0, inner.lastIndexOf(")"));
+    }
+
     // if strResult includes Nullable(type) then extract type.
 
     if (strResult.includes("Nullable")) {
@@ -333,6 +343,29 @@ export default class AnalyticsDatabaseService<
     }
 
     return (rows[0]!["compression_codec"] as string) || "";
+  }
+
+  /**
+   * The exact ClickHouse type string for a column as stored in the DB
+   * (e.g. "String", "Nullable(Int32)", "LowCardinality(Nullable(String))").
+   * Returns "" if the column does not exist. Used by migrations that need to
+   * re-state a column's type in a MODIFY COLUMN without guessing it.
+   */
+  public async getColumnDatabaseType(columnName: string): Promise<string> {
+    const tableName: string = this.model.tableName;
+    const result: { data: Array<JSONObject> } = await (
+      await this.executeQuery(
+        `SELECT type FROM system.columns WHERE database = currentDatabase() AND table = '${tableName}' AND name = '${columnName}'`,
+      )
+    ).json();
+
+    const rows: Array<JSONObject> = result.data || [];
+
+    if (rows.length === 0) {
+      return "";
+    }
+
+    return (rows[0]!["type"] as string) || "";
   }
 
   public async setColumnCodecIfNotSet(data: {
