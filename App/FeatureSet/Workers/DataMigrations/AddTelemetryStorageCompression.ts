@@ -15,7 +15,11 @@ import logger from "Common/Server/Utils/Logger";
  *
  *   1. Column CODECs on the Metric table (every numeric/array/map/timestamp
  *      column was uncompressed) and on the Log `attributes` map.
- *   2. LowCardinality(...) on the low-distinct-value String columns
+ *   2. Column CODECs on the Span table. The Span model already declares these
+ *      codecs, but the migration that was meant to apply them to existing
+ *      tables was never registered, so existing SpanItemV2 tables are still
+ *      uncompressed on those columns.
+ *   3. LowCardinality(...) on the low-distinct-value String columns
  *      (serviceType, severityText, span kind, metricPointType) across the
  *      telemetry tables — dictionary-encodes them, which shrinks storage and,
  *      more importantly, slashes the memory cost of GROUP BY / filters on
@@ -27,11 +31,15 @@ import logger from "Common/Server/Utils/Logger";
  * run — schedule the deploy that carries this migration for an off-peak
  * window and make sure ClickHouse has free disk headroom.
  *
- * NOTE: this only retrofits CODECs on columns WITHOUT a skip index (a codec
- * change on an indexed column requires the drop/re-add dance). Indexed columns
- * such as Metric.traceId/spanId/name/attributeKeys get their codecs on newly
- * created tables via the model definitions; retrofitting them on existing
- * tables can be done as a follow-up if needed.
+ * NOTE on indexes: a CODEC-only change leaves the column TYPE unchanged, so it
+ * does NOT require dropping the column's skip index — that is why the
+ * bloom-indexed Span columns (traceId / spanId / parentSpanId) are handled by
+ * the same plain codec path as everything else. Only a TYPE change needs the
+ * index dance, which is why the LowCardinality conversions below drop,
+ * re-create and re-materialize their set index. Metric's own indexed columns
+ * (name / traceId / spanId / attributeKeys) get their codecs on newly created
+ * tables via the model; retrofitting them onto existing tables is a trivial
+ * follow-up (same plain codec path) if desired.
  */
 export default class AddTelemetryStorageCompression extends DataMigrationBase {
   public constructor() {
@@ -41,6 +49,7 @@ export default class AddTelemetryStorageCompression extends DataMigrationBase {
   public override async migrate(): Promise<void> {
     await this.applyMetricCodecs();
     await this.applyLogCodecs();
+    await this.applySpanCodecs();
     await this.applyLowCardinalityColumns();
   }
 
@@ -87,6 +96,32 @@ export default class AddTelemetryStorageCompression extends DataMigrationBase {
   private async applyLogCodecs(): Promise<void> {
     // attributes has no skip index, so this is a plain codec change.
     await this.applyCodec(LogService, "attributes", "ZSTD(3)");
+  }
+
+  private async applySpanCodecs(): Promise<void> {
+    /*
+     * Matches the codecs declared on the Span model. traceId / spanId /
+     * parentSpanId carry bloom_filter skip indexes, but because these are
+     * CODEC-only changes (type unchanged) the index does not need to be
+     * dropped first.
+     */
+    const zstd1Columns: Array<string> = [
+      "startTimeUnixNano",
+      "endTimeUnixNano",
+      "durationUnixNano",
+      "traceId",
+      "spanId",
+      "parentSpanId",
+      "statusMessage",
+    ];
+
+    for (const columnName of zstd1Columns) {
+      await this.applyCodec(SpanService, columnName, "ZSTD(1)");
+    }
+
+    // events / links are JSON-as-String blobs that compress well at level 3.
+    await this.applyCodec(SpanService, "events", "ZSTD(3)");
+    await this.applyCodec(SpanService, "links", "ZSTD(3)");
   }
 
   private async applyLowCardinalityColumns(): Promise<void> {
