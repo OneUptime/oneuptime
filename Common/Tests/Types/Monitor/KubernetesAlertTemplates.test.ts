@@ -38,9 +38,7 @@ function buildArgs(): KubernetesAlertTemplateArgs {
   };
 }
 
-function getKubernetesMonitor(
-  step: MonitorStep,
-): MonitorStepKubernetesMonitor {
+function getKubernetesMonitor(step: MonitorStep): MonitorStepKubernetesMonitor {
   const kubernetesMonitor: MonitorStepKubernetesMonitor | undefined =
     step.data?.kubernetesMonitor;
   if (!kubernetesMonitor) {
@@ -94,10 +92,10 @@ describe("KubernetesAlertTemplates - node request utilization", () => {
       const step: MonitorStep = template!.getMonitorStep(buildArgs());
       const monitor: MonitorStepKubernetesMonitor = getKubernetesMonitor(step);
 
-      const queryConfigs: Array<any> =
-        monitor.metricViewConfig.queryConfigs as Array<any>;
-      const formulaConfigs: Array<any> =
-        monitor.metricViewConfig.formulaConfigs as Array<any>;
+      const queryConfigs: Array<any> = monitor.metricViewConfig
+        .queryConfigs as Array<any>;
+      const formulaConfigs: Array<any> = monitor.metricViewConfig
+        .formulaConfigs as Array<any>;
 
       // Two queries (numerator + denominator) and one formula.
       expect(queryConfigs).toHaveLength(2);
@@ -121,8 +119,10 @@ describe("KubernetesAlertTemplates - node request utilization", () => {
         MetricsAggregationType.Sum,
       );
 
-      // Decision (1): group by the resource-prefixed node attribute on BOTH
-      // queries so the per-series fingerprints line up for the formula join.
+      /*
+       * Decision (1): group by the resource-prefixed node attribute on BOTH
+       * queries so the per-series fingerprints line up for the formula join.
+       */
       expect(numerator.metricQueryData.groupByAttributeKeys).toEqual([
         "resource.k8s.node.name",
       ]);
@@ -135,11 +135,12 @@ describe("KubernetesAlertTemplates - node request utilization", () => {
         `(${tc.numAlias} / ${tc.denAlias}) * 100`,
       );
 
-      // The criteria must reference the FORMULA alias (not a raw query), so
-      // the threshold is evaluated against the computed percentage.
-      const offlineFilters: Array<any> =
-        step.data?.monitorCriteria.data?.monitorCriteriaInstanceArray?.[0]?.data
-          ?.filters as Array<any>;
+      /*
+       * The criteria must reference the FORMULA alias (not a raw query), so
+       * the threshold is evaluated against the computed percentage.
+       */
+      const offlineFilters: Array<any> = step.data?.monitorCriteria.data
+        ?.monitorCriteriaInstanceArray?.[0]?.data?.filters as Array<any>;
       expect(offlineFilters[0].metricMonitorOptions.metricAlias).toBe(
         tc.resultAlias,
       );
