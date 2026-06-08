@@ -216,7 +216,7 @@ data:
             routes:
               - output: parse-ebpf-trace-json
                 expr: 'body matches "\"trace_id\""'
-            default: move-stream
+            default: recombine-multiline
           - type: json_parser
             id: parse-ebpf-trace-json
             parse_from: body
@@ -233,8 +233,27 @@ data:
           - type: remove
             id: cleanup-obi-attrs
             field: attributes._obi
-            output: move-stream
+            output: recombine-multiline
           {{- end }}
+          # Container runtimes write one log entry per newline, so a multi-line
+          # event (a Java/Python/Node/.NET stack trace, a pretty-printed JSON
+          # blob) arrives as many separate records and renders as many separate
+          # lines on the OneUptime Logs page. Recombine continuation lines back
+          # into the record they belong to so each exception is a single log.
+          # A line starts a new record unless it begins with whitespace or a
+          # closing bracket/brace/paren, which covers stack frames and wrapped
+          # structured output. source_identifier keys on the per-container log
+          # file path so records from different pods/containers never merge.
+          # This mirrors the recombine operator the Docker agent already ships.
+          - type: recombine
+            id: recombine-multiline
+            output: move-stream
+            combine_field: body
+            combine_with: "\n"
+            is_first_entry: 'body matches "^[^\\s\\}\\)\\]]"'
+            source_identifier: attributes["log.file.path"]
+            force_flush_period: 5s
+            max_log_size: 1048576
           - type: move
             id: move-stream
             from: attributes.stream

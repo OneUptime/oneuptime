@@ -1,7 +1,12 @@
 import * as k8s from "@kubernetes/client-node";
 import Logger from "./Logger";
 import OTLPBatcher, { LogEntry } from "./OTLPBatcher";
-import { SINCE_SECONDS_ON_START } from "./Config";
+import {
+  LOG_RECOMBINE_ENABLED,
+  LOG_RECOMBINE_FLUSH_MS,
+  LOG_RECOMBINE_MAX_BYTES,
+  SINCE_SECONDS_ON_START,
+} from "./Config";
 
 /*
  * Kubernetes pod log lines, when requested with timestamps=true, look like:
@@ -9,6 +14,16 @@ import { SINCE_SECONDS_ON_START } from "./Config";
  * We split off the leading RFC3339Nano timestamp and the rest becomes the body.
  */
 const TS_SPLIT_REGEX: RegExp = /^(\S+)\s(.*)$/s;
+
+/*
+ * A line begins a new log record unless it starts with whitespace or a closing
+ * bracket/brace/paren. Continuation lines — stack frames ("    at ..."), wrapped
+ * structured output, trailing "}"/"]"/")" — are merged into the preceding
+ * record. Mirrors the collector's `is_first_entry` expression
+ * (`^[^\s}\)\]]`) so the API-mode tailer recombines the same way the DaemonSet
+ * collector does.
+ */
+const FIRST_ENTRY_REGEX: RegExp = /^[^\s})\]]/;
 
 export type StreamKey = string;
 
@@ -49,6 +64,13 @@ export class LogStream {
   private reconnectTimer: NodeJS.Timeout | null = null;
   private consecutiveFailures: number = 0;
   private firstStart: boolean = true;
+  /*
+   * In-progress multi-line record being recombined, plus the timer that
+   * force-flushes it after a period of stream silence. Each LogStream follows
+   * exactly one container, so no per-source keying is needed here.
+   */
+  private pending: LogEntry | null = null;
+  private recombineTimer: NodeJS.Timeout | null = null;
 
   public constructor(
     kubeConfig: k8s.KubeConfig,
@@ -74,6 +96,9 @@ export class LogStream {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
+    // Flush any in-progress multi-line record into the batcher before we tear
+    // down. PodWatcher stops streams before the batcher drains, so this lands.
+    this.flushPending();
     if (this.activeRequest) {
       try {
         this.activeRequest.abort();
@@ -213,11 +238,71 @@ export class LogStream {
       serviceName: this.context.serviceName,
       labels: this.context.labels,
     };
-    this.batcher.enqueue(entry);
+    this.recombine(entry);
+  }
+
+  /*
+   * Recombine multi-line log events. The Kubernetes API emits one line per
+   * newline, so a stack trace or pretty-printed JSON arrives as several lines.
+   * We hold an in-progress record and append continuation lines — those that do
+   * not start a new entry — onto its body, keeping the first line's timestamp,
+   * so each event becomes a single log in OneUptime. A following first-entry
+   * line (or a period of silence) flushes it. This mirrors the recombine
+   * operator the DaemonSet collector and Docker agent use.
+   */
+  private recombine(entry: LogEntry): void {
+    if (!LOG_RECOMBINE_ENABLED) {
+      this.batcher.enqueue(entry);
+      return;
+    }
+
+    const startsNewEntry: boolean = FIRST_ENTRY_REGEX.test(entry.body);
+    if (
+      !startsNewEntry &&
+      this.pending &&
+      this.pending.body.length + 1 + entry.body.length <=
+        LOG_RECOMBINE_MAX_BYTES
+    ) {
+      // Continuation line: fold it into the in-progress record.
+      this.pending.body += "\n" + entry.body;
+      return;
+    }
+
+    // New entry, nothing to merge into, or the record hit the size cap: flush
+    // what we have and start a fresh record from this line.
+    this.flushPending();
+    this.pending = entry;
+    this.armRecombineTimer();
+  }
+
+  private armRecombineTimer(): void {
+    if (this.recombineTimer) {
+      // Already counting down from when this record started; do not reset, so a
+      // record is held at most LOG_RECOMBINE_FLUSH_MS regardless of trickle.
+      return;
+    }
+    this.recombineTimer = setTimeout((): void => {
+      this.recombineTimer = null;
+      this.flushPending();
+    }, LOG_RECOMBINE_FLUSH_MS);
+  }
+
+  private flushPending(): void {
+    if (this.recombineTimer) {
+      clearTimeout(this.recombineTimer);
+      this.recombineTimer = null;
+    }
+    if (this.pending) {
+      this.batcher.enqueue(this.pending);
+      this.pending = null;
+    }
   }
 
   private handleClose(err: Error | null): void {
     this.activeRequest = null;
+    // The stream ended (container exited, rotated, or a network blip). Flush any
+    // in-progress record rather than holding it across the reconnect backoff.
+    this.flushPending();
     if (this.stopped) {
       return;
     }
