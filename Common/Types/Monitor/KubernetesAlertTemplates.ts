@@ -221,6 +221,98 @@ export function buildKubernetesMonitorConfig(args: {
   };
 }
 
+/**
+ * Build a per-series ratio monitor: `(numerator / denominator) * 100`,
+ * grouped by a single OpenTelemetry attribute so one incident fires per
+ * group (e.g. per node).
+ *
+ * Used for saturation metrics that aren't emitted as a single series —
+ * notably node request utilization, which the kubeletstats receiver does
+ * NOT expose at the node level (it only has container/pod request
+ * utilization). We derive it from two metrics the `k8s_cluster` receiver
+ * already collects by default: summed container requests over node
+ * allocatable.
+ *
+ * IMPORTANT — both queries MUST use `Sum`. The per-series worker buckets
+ * raw rows by (group, minute) and sums every row in the bucket, which
+ * counts each series once per scrape in that minute. Using `Sum` on both
+ * the numerator (one row per container per scrape) and the denominator
+ * (one row per node per scrape) makes the scrape multiple cancel in the
+ * ratio: `(Σrequests × scrapes) / (allocatable × scrapes)`. Any other
+ * aggregation on the denominator would leave the scrape factor in and
+ * inflate the percentage. Both metrics ride the same `k8s_cluster`
+ * scrape, so their per-minute row counts match.
+ *
+ * The group-by key is the ClickHouse-stored attribute name, which carries
+ * the `resource.` prefix for OTel resource attributes (see
+ * OtelMetricsIngestService — resource attributes are stamped with
+ * `prefixKeysWithString: "resource"`). So node grouping is
+ * `resource.k8s.node.name`, not the bare `k8s.node.name`.
+ */
+export function buildKubernetesRatioMonitorConfig(args: {
+  clusterIdentifier: string;
+  numeratorMetricName: string;
+  denominatorMetricName: string;
+  groupByAttributeKey: string;
+  numeratorAlias: string;
+  denominatorAlias: string;
+  resultAlias: string;
+  resultLegend: string;
+  resourceScope: KubernetesResourceScope;
+  rollingTime: RollingTime;
+}): MonitorStepKubernetesMonitor {
+  const buildQueryConfig: (alias: string, metricName: string) => any = (
+    alias: string,
+    metricName: string,
+  ): any => {
+    return {
+      metricAliasData: {
+        metricVariable: alias,
+        title: alias,
+        description: alias,
+        legend: alias,
+        legendUnit: undefined,
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: metricName,
+          attributes: {},
+          aggegationType: MetricsAggregationType.Sum,
+          aggregateBy: {},
+        },
+        groupByAttributeKeys: [args.groupByAttributeKey],
+      },
+    };
+  };
+
+  return {
+    clusterIdentifier: args.clusterIdentifier,
+    resourceScope: args.resourceScope,
+    resourceFilters: {},
+    metricViewConfig: {
+      queryConfigs: [
+        buildQueryConfig(args.numeratorAlias, args.numeratorMetricName),
+        buildQueryConfig(args.denominatorAlias, args.denominatorMetricName),
+      ],
+      formulaConfigs: [
+        {
+          metricAliasData: {
+            metricVariable: args.resultAlias,
+            title: args.resultLegend,
+            description: args.resultLegend,
+            legend: args.resultLegend,
+            legendUnit: "%",
+          },
+          metricFormulaData: {
+            metricFormula: `(${args.numeratorAlias} / ${args.denominatorAlias}) * 100`,
+          },
+        },
+      ],
+    },
+    rollingTime: args.rollingTime,
+  };
+}
+
 // --- Template Definitions ---
 
 const crashLoopBackOffTemplate: KubernetesAlertTemplate = {
@@ -736,6 +828,100 @@ const daemonSetUnavailableTemplate: KubernetesAlertTemplate = {
   },
 };
 
+const nodeCpuRequestUtilizationTemplate: KubernetesAlertTemplate = {
+  id: "k8s-node-cpu-request-utilization",
+  name: "High Node CPU Request Commitment",
+  description:
+    "Alert when a node's committed CPU requests exceed 90% of its allocatable CPU. Derived per node from summed container CPU requests over node allocatable CPU — both collected by default via the k8s_cluster receiver. A near-full node can't schedule new pods even if actual CPU usage is low.",
+  category: "Node",
+  severity: "Warning",
+  getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "node_cpu_request_utilization";
+
+    return buildKubernetesMonitorStep({
+      kubernetesMonitor: buildKubernetesRatioMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        numeratorMetricName: "k8s.container.cpu_request",
+        denominatorMetricName: "k8s.node.allocatable_cpu",
+        groupByAttributeKey: "resource.k8s.node.name",
+        numeratorAlias: "req_cpu",
+        denominatorAlias: "alloc_cpu",
+        resultAlias: metricAlias,
+        resultLegend: "Node CPU Request Utilization (%)",
+        resourceScope: KubernetesResourceScope.Node,
+        rollingTime: RollingTime.Past5Minutes,
+      }),
+      offlineCriteriaInstance: buildOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 90,
+        incidentTitle: `[K8s] High Node CPU Request Commitment (>90%) - ${args.monitorName}`,
+        incidentDescription: `A node's committed CPU requests have exceeded 90% of its allocatable CPU. The node is nearly full from a scheduling standpoint and may be unable to place new pods, even if current CPU usage is low. Check the root cause for the specific node and its top CPU-requesting workloads.`,
+        criteriaName: "High CPU Request Commitment - Utilization > 90%",
+        criteriaDescription:
+          "Triggers when any node's summed container CPU requests exceed 90% of its allocatable CPU.",
+      }),
+      onlineCriteriaInstance: buildOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: 90,
+      }),
+    });
+  },
+};
+
+const nodeMemoryRequestUtilizationTemplate: KubernetesAlertTemplate = {
+  id: "k8s-node-memory-request-utilization",
+  name: "High Node Memory Request Commitment",
+  description:
+    "Alert when a node's committed memory requests exceed 90% of its allocatable memory. Derived per node from summed container memory requests over node allocatable memory — both collected by default via the k8s_cluster receiver. A near-full node can't schedule new pods even if actual memory usage is low.",
+  category: "Node",
+  severity: "Warning",
+  getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "node_memory_request_utilization";
+
+    return buildKubernetesMonitorStep({
+      kubernetesMonitor: buildKubernetesRatioMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        numeratorMetricName: "k8s.container.memory_request",
+        denominatorMetricName: "k8s.node.allocatable_memory",
+        groupByAttributeKey: "resource.k8s.node.name",
+        numeratorAlias: "req_mem",
+        denominatorAlias: "alloc_mem",
+        resultAlias: metricAlias,
+        resultLegend: "Node Memory Request Utilization (%)",
+        resourceScope: KubernetesResourceScope.Node,
+        rollingTime: RollingTime.Past5Minutes,
+      }),
+      offlineCriteriaInstance: buildOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 90,
+        incidentTitle: `[K8s] High Node Memory Request Commitment (>90%) - ${args.monitorName}`,
+        incidentDescription: `A node's committed memory requests have exceeded 90% of its allocatable memory. The node is nearly full from a scheduling standpoint and may be unable to place new pods, even if current memory usage is low. Check the root cause for the specific node and its top memory-requesting workloads.`,
+        criteriaName: "High Memory Request Commitment - Utilization > 90%",
+        criteriaDescription:
+          "Triggers when any node's summed container memory requests exceed 90% of its allocatable memory.",
+      }),
+      onlineCriteriaInstance: buildOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: 90,
+      }),
+    });
+  },
+};
+
 export function getAllKubernetesAlertTemplates(): Array<KubernetesAlertTemplate> {
   return [
     crashLoopBackOffTemplate,
@@ -750,6 +936,8 @@ export function getAllKubernetesAlertTemplates(): Array<KubernetesAlertTemplate>
     schedulerBacklogTemplate,
     highDiskUsageTemplate,
     daemonSetUnavailableTemplate,
+    nodeCpuRequestUtilizationTemplate,
+    nodeMemoryRequestUtilizationTemplate,
   ];
 }
 
