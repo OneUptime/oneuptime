@@ -10,8 +10,8 @@ import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationTyp
 import ObjectID from "../../../Types/ObjectID";
 
 /*
- * These tests lock in two subtle, easy-to-regress decisions in the node
- * request-utilization templates:
+ * These tests lock in the subtle, easy-to-regress decisions in the per-node
+ * ratio alert templates (request utilization + usage utilization):
  *
  *   1. Group-by uses the ClickHouse-stored `resource.`-prefixed attribute
  *      name (`resource.k8s.node.name`), not the bare `k8s.node.name`.
@@ -19,13 +19,74 @@ import ObjectID from "../../../Types/ObjectID";
  *      at ingest, so the bare key would match nothing and collapse every
  *      node into one mislabeled series.
  *
- *   2. BOTH the numerator and denominator queries aggregate with `Sum`.
- *      The per-series worker buckets raw rows by (node, minute) and sums
- *      every row in the bucket, counting each series once per scrape.
- *      Using Sum on both sides makes the scrape multiple cancel in the
- *      ratio. Any other aggregation on the denominator would leave the
- *      scrape factor in and inflate the percentage.
+ *   2. The aggregation differs by numerator shape:
+ *        - Request utilization sums MANY container series per node, and both
+ *          metrics come from the same `k8s_cluster` scrape, so `Sum` on both
+ *          sides totals the containers and the scrape multiple cancels.
+ *        - Usage utilization has ONE series per node, and numerator
+ *          (kubeletstats) and denominator (k8s_cluster) come from different
+ *          receivers, so `Avg` on both sides gives the correct per-minute
+ *          ratio regardless of each receiver's scrape count.
+ *
+ *   3. The criteria reference the FORMULA alias (the computed percentage),
+ *      not a raw query alias.
  */
+
+interface RatioTemplateCase {
+  id: string;
+  numerator: string;
+  denominator: string;
+  numAlias: string;
+  denAlias: string;
+  resultAlias: string;
+  aggregation: MetricsAggregationType;
+  threshold: number;
+}
+
+const RATIO_TEMPLATES: Array<RatioTemplateCase> = [
+  // Request utilization — Sum/Sum (numerator totals many containers per node).
+  {
+    id: "k8s-node-cpu-request-utilization",
+    numerator: "k8s.container.cpu_request",
+    denominator: "k8s.node.allocatable_cpu",
+    numAlias: "req_cpu",
+    denAlias: "alloc_cpu",
+    resultAlias: "node_cpu_request_utilization",
+    aggregation: MetricsAggregationType.Sum,
+    threshold: 90,
+  },
+  {
+    id: "k8s-node-memory-request-utilization",
+    numerator: "k8s.container.memory_request",
+    denominator: "k8s.node.allocatable_memory",
+    numAlias: "req_mem",
+    denAlias: "alloc_mem",
+    resultAlias: "node_memory_request_utilization",
+    aggregation: MetricsAggregationType.Sum,
+    threshold: 90,
+  },
+  // Usage utilization — Avg/Avg (one series per node, cross-receiver).
+  {
+    id: "k8s-high-cpu",
+    numerator: "k8s.node.cpu.usage",
+    denominator: "k8s.node.allocatable_cpu",
+    numAlias: "used_cpu",
+    denAlias: "alloc_cpu",
+    resultAlias: "node_cpu_utilization",
+    aggregation: MetricsAggregationType.Avg,
+    threshold: 90,
+  },
+  {
+    id: "k8s-high-memory",
+    numerator: "k8s.node.memory.usage",
+    denominator: "k8s.node.allocatable_memory",
+    numAlias: "used_mem",
+    denAlias: "alloc_mem",
+    resultAlias: "node_memory_utilization",
+    aggregation: MetricsAggregationType.Avg,
+    threshold: 85,
+  },
+];
 
 function buildArgs(): KubernetesAlertTemplateArgs {
   return {
@@ -47,44 +108,21 @@ function getKubernetesMonitor(step: MonitorStep): MonitorStepKubernetesMonitor {
   return kubernetesMonitor;
 }
 
-describe("KubernetesAlertTemplates - node request utilization", () => {
-  test("both node request-utilization templates are registered", () => {
+describe("KubernetesAlertTemplates - per-node ratio templates", () => {
+  test("all four ratio templates are registered", () => {
     const ids: Array<string> = getAllKubernetesAlertTemplates().map(
       (t: KubernetesAlertTemplate) => {
         return t.id;
       },
     );
-    expect(ids).toContain("k8s-node-cpu-request-utilization");
-    expect(ids).toContain("k8s-node-memory-request-utilization");
+    for (const tc of RATIO_TEMPLATES) {
+      expect(ids).toContain(tc.id);
+    }
   });
 
-  test.each([
-    {
-      id: "k8s-node-cpu-request-utilization",
-      numerator: "k8s.container.cpu_request",
-      denominator: "k8s.node.allocatable_cpu",
-      numAlias: "req_cpu",
-      denAlias: "alloc_cpu",
-      resultAlias: "node_cpu_request_utilization",
-    },
-    {
-      id: "k8s-node-memory-request-utilization",
-      numerator: "k8s.container.memory_request",
-      denominator: "k8s.node.allocatable_memory",
-      numAlias: "req_mem",
-      denAlias: "alloc_mem",
-      resultAlias: "node_memory_request_utilization",
-    },
-  ])(
-    "$id derives a per-node ratio with Sum/Sum and the resource-prefixed node key",
-    (tc: {
-      id: string;
-      numerator: string;
-      denominator: string;
-      numAlias: string;
-      denAlias: string;
-      resultAlias: string;
-    }) => {
+  test.each(RATIO_TEMPLATES)(
+    "$id is a per-node ($aggregation/$aggregation) ratio keyed on resource.k8s.node.name",
+    (tc: RatioTemplateCase) => {
       const template: KubernetesAlertTemplate | undefined =
         getKubernetesAlertTemplateById(tc.id);
       expect(template).toBeDefined();
@@ -111,12 +149,16 @@ describe("KubernetesAlertTemplates - node request utilization", () => {
         tc.denominator,
       );
 
-      // Decision (2): both sides aggregate with Sum so the scrape factor cancels.
+      /*
+       * Decision (2): both sides use the same aggregation — Sum for request
+       * utilization (totals containers, cancels scrape factor) or Avg for
+       * usage utilization (one series per node, cross-receiver).
+       */
       expect(numerator.metricQueryData.filterData.aggegationType).toBe(
-        MetricsAggregationType.Sum,
+        tc.aggregation,
       );
       expect(denominator.metricQueryData.filterData.aggegationType).toBe(
-        MetricsAggregationType.Sum,
+        tc.aggregation,
       );
 
       /*
@@ -136,15 +178,16 @@ describe("KubernetesAlertTemplates - node request utilization", () => {
       );
 
       /*
-       * The criteria must reference the FORMULA alias (not a raw query), so
-       * the threshold is evaluated against the computed percentage.
+       * Decision (3): the criteria must reference the FORMULA alias (not a
+       * raw query), so the threshold is evaluated against the computed
+       * percentage.
        */
       const offlineFilters: Array<any> = step.data?.monitorCriteria.data
         ?.monitorCriteriaInstanceArray?.[0]?.data?.filters as Array<any>;
       expect(offlineFilters[0].metricMonitorOptions.metricAlias).toBe(
         tc.resultAlias,
       );
-      expect(offlineFilters[0].value).toBe(90);
+      expect(offlineFilters[0].value).toBe(tc.threshold);
     },
   );
 });
