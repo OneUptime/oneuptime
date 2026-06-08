@@ -370,6 +370,7 @@ import { AddKubernetesLatestMemoryPercent1780651429467 } from "./1780651429467-A
 import { AddResumeStateToWorkflowLog1780931746908 } from "./1780931746908-AddResumeStateToWorkflowLog";
 import { AddTelemetryResourceMetadataColumns1780931863719 } from "./1780931863719-AddTelemetryResourceMetadataColumns";
 import { AddServerlessFunctionTables1780933132562 } from "./1780933132562-AddServerlessFunctionTables";
+import { AddCloudResourceTables1780935387827 } from "./1780935387827-AddCloudResourceTables";
 
 export default [
   InitialMigration,
@@ -744,4 +745,5 @@ export default [
   AddResumeStateToWorkflowLog1780931746908,
   AddTelemetryResourceMetadataColumns1780931863719,
   AddServerlessFunctionTables1780933132562,
+  AddCloudResourceTables1780935387827,
 ];

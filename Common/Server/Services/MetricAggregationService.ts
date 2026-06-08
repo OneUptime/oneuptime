@@ -49,6 +49,7 @@ export class MetricAggregationService {
       ["dockerHostId", ServiceType.DockerHost],
       ["kubernetesClusterId", ServiceType.KubernetesCluster],
       ["serverlessFunctionId", ServiceType.ServerlessFunction],
+      ["cloudResourceId", ServiceType.CloudResource],
     ]);
   private static readonly ATTRIBUTE_KEY_PATTERN: RegExp = /^[a-zA-Z0-9._:/-]+$/;
   private static readonly MAX_FACET_KEY_LENGTH: number = 256;

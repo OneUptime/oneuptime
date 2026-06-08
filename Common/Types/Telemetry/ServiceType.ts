@@ -15,6 +15,8 @@ enum ServiceType {
   DockerHost = "DockerHost",
   KubernetesCluster = "KubernetesCluster",
   ServerlessFunction = "ServerlessFunction",
+  CloudResource = "CloudResource",
+  RealUserMonitor = "RealUserMonitor",
   /*
    * Telemetry that arrived without an OTel service.name and with no
    * host / docker / k8s resource signal. Instead of synthesising a

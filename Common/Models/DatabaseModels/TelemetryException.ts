@@ -25,6 +25,7 @@ import Host from "./Host";
 import DockerHost from "./DockerHost";
 import KubernetesCluster from "./KubernetesCluster";
 import ServerlessFunction from "./ServerlessFunction";
+import CloudResource from "./CloudResource";
 
 @EnableDocumentation()
 @CanAccessIfCanReadOn("service")
@@ -74,7 +75,14 @@ import ServerlessFunction from "./ServerlessFunction";
  */
 @OwnedThrough(
   "serviceId",
-  [Service, Host, DockerHost, KubernetesCluster, ServerlessFunction],
+  [
+    Service,
+    Host,
+    DockerHost,
+    KubernetesCluster,
+    ServerlessFunction,
+    CloudResource,
+  ],
   {
   includeProjectScope: true,
 })

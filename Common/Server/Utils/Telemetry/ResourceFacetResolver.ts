@@ -7,11 +7,13 @@ import HostModel from "../../../Models/DatabaseModels/Host";
 import DockerHostModel from "../../../Models/DatabaseModels/DockerHost";
 import KubernetesClusterModel from "../../../Models/DatabaseModels/KubernetesCluster";
 import ServerlessFunctionModel from "../../../Models/DatabaseModels/ServerlessFunction";
+import CloudResourceModel from "../../../Models/DatabaseModels/CloudResource";
 import ServiceService from "../../Services/ServiceService";
 import HostService from "../../Services/HostService";
 import DockerHostService from "../../Services/DockerHostService";
 import KubernetesClusterService from "../../Services/KubernetesClusterService";
 import ServerlessFunctionService from "../../Services/ServerlessFunctionService";
+import CloudResourceService from "../../Services/CloudResourceService";
 import CaptureSpan from "./CaptureSpan";
 
 /*
@@ -28,6 +30,7 @@ export const RESOURCE_FACET_KEYS: ReadonlySet<string> = new Set([
   "dockerHostId",
   "kubernetesClusterId",
   "serverlessFunctionId",
+  "cloudResourceId",
 ]);
 
 export interface ResourceFacetSpec {
@@ -116,6 +119,13 @@ export default class ResourceFacetResolver {
         );
       case "serverlessFunctionId":
         return ResourceFacetResolver.queryServerlessFunctions(
+          projectId,
+          spec.counts,
+          searchText,
+          limit,
+        );
+      case "cloudResourceId":
+        return ResourceFacetResolver.queryCloudResources(
           projectId,
           spec.counts,
           searchText,
@@ -308,6 +318,46 @@ export default class ResourceFacetResolver {
           return {
             id: f._id ? f._id.toString() : "",
             displayName: f.name || f.functionIdentifier || "Unknown",
+          };
+        },
+      ),
+      counts,
+    );
+  }
+
+  private static async queryCloudResources(
+    projectId: ObjectID,
+    counts: Map<string, number>,
+    searchText: string | undefined,
+    limit: number,
+  ): Promise<Array<ResolvedFacetValue>> {
+    const query: Record<string, unknown> = { projectId };
+    if (searchText) {
+      query["name"] = new MultiSearch({
+        fields: ["name", "resourceIdentifier"],
+        value: searchText,
+      });
+    }
+
+    const resources: Array<CloudResourceModel> =
+      await CloudResourceService.findBy({
+        query: query as any,
+        select: {
+          _id: true,
+          name: true,
+          resourceIdentifier: true,
+        },
+        limit: new PositiveNumber(limit),
+        skip: new PositiveNumber(0),
+        props: { isRoot: true },
+      });
+
+    return ResourceFacetResolver.mergeCounts(
+      resources.map(
+        (r: CloudResourceModel): { id: string; displayName: string } => {
+          return {
+            id: r._id ? r._id.toString() : "",
+            displayName: r.name || r.resourceIdentifier || "Unknown",
           };
         },
       ),

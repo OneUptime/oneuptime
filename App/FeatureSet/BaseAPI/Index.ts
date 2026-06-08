@@ -419,6 +419,15 @@ import ServerlessFunctionOwnerTeamService, {
 import ServerlessFunctionOwnerUserService, {
   Service as ServerlessFunctionOwnerUserServiceType,
 } from "Common/Server/Services/ServerlessFunctionOwnerUserService";
+import CloudResourceService, {
+  Service as CloudResourceServiceType,
+} from "Common/Server/Services/CloudResourceService";
+import CloudResourceOwnerTeamService, {
+  Service as CloudResourceOwnerTeamServiceType,
+} from "Common/Server/Services/CloudResourceOwnerTeamService";
+import CloudResourceOwnerUserService, {
+  Service as CloudResourceOwnerUserServiceType,
+} from "Common/Server/Services/CloudResourceOwnerUserService";
 import DockerHostService, {
   Service as DockerHostServiceType,
 } from "Common/Server/Services/DockerHostService";
@@ -835,6 +844,9 @@ import KubernetesClusterOwnerUser from "Common/Models/DatabaseModels/KubernetesC
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import ServerlessFunctionOwnerTeam from "Common/Models/DatabaseModels/ServerlessFunctionOwnerTeam";
 import ServerlessFunctionOwnerUser from "Common/Models/DatabaseModels/ServerlessFunctionOwnerUser";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
+import CloudResourceOwnerTeam from "Common/Models/DatabaseModels/CloudResourceOwnerTeam";
+import CloudResourceOwnerUser from "Common/Models/DatabaseModels/CloudResourceOwnerUser";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerHostOwnerTeam from "Common/Models/DatabaseModels/DockerHostOwnerTeam";
 import DockerHostOwnerUser from "Common/Models/DatabaseModels/DockerHostOwnerUser";
@@ -2841,6 +2853,30 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         ServerlessFunctionOwnerUser,
         ServerlessFunctionOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudResource, CloudResourceServiceType>(
+        CloudResource,
+        CloudResourceService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudResourceOwnerTeam, CloudResourceOwnerTeamServiceType>(
+        CloudResourceOwnerTeam,
+        CloudResourceOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudResourceOwnerUser, CloudResourceOwnerUserServiceType>(
+        CloudResourceOwnerUser,
+        CloudResourceOwnerUserService,
       ).getRouter(),
     );
 

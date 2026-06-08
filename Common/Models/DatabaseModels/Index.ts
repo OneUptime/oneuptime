@@ -15,6 +15,9 @@ import HostOwnerUser from "./HostOwnerUser";
 import ServerlessFunction from "./ServerlessFunction";
 import ServerlessFunctionOwnerTeam from "./ServerlessFunctionOwnerTeam";
 import ServerlessFunctionOwnerUser from "./ServerlessFunctionOwnerUser";
+import CloudResource from "./CloudResource";
+import CloudResourceOwnerTeam from "./CloudResourceOwnerTeam";
+import CloudResourceOwnerUser from "./CloudResourceOwnerUser";
 // API Keys
 import ApiKey from "./ApiKey";
 import ApiKeyPermission from "./ApiKeyPermission";
@@ -691,6 +694,9 @@ const AllModelTypes: Array<{
   ServerlessFunction,
   ServerlessFunctionOwnerTeam,
   ServerlessFunctionOwnerUser,
+  CloudResource,
+  CloudResourceOwnerTeam,
+  CloudResourceOwnerUser,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

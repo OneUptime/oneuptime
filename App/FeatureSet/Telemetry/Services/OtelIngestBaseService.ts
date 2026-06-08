@@ -10,6 +10,8 @@ import HostService from "Common/Server/Services/HostService";
 import Host from "Common/Models/DatabaseModels/Host";
 import ServerlessFunctionService from "Common/Server/Services/ServerlessFunctionService";
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
+import CloudResourceService from "Common/Server/Services/CloudResourceService";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import LabelService from "Common/Server/Services/LabelService";
 import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
 import logger from "Common/Server/Utils/Logger";
@@ -191,6 +193,7 @@ export default abstract class OtelIngestBaseService {
     dockerHostId?: ObjectID | null;
     kubernetesClusterId?: ObjectID | null;
     serverlessFunctionId?: ObjectID | null;
+    cloudResourceId?: ObjectID | null;
   }): Promise<TelemetryServiceMetadata> {
     const serviceName: string | null = await this.getServiceNameFromAttributes(
       data.req,
@@ -249,6 +252,20 @@ export default abstract class OtelIngestBaseService {
           : "Serverless Function",
         resourceId: data.serverlessFunctionId,
         serviceType: ServiceType.ServerlessFunction,
+        projectId: data.projectId,
+      });
+    }
+
+    if (data.cloudResourceId) {
+      const resourceName: string | null =
+        this.getStringAttribute(data.attributes, "service.name") ||
+        this.getStringAttribute(data.attributes, "host.name");
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: resourceName
+          ? `cloud/${resourceName}`
+          : "Cloud Resource",
+        resourceId: data.cloudResourceId,
+        serviceType: ServiceType.CloudResource,
         projectId: data.projectId,
       });
     }
@@ -709,6 +726,163 @@ export default abstract class OtelIngestBaseService {
     }
   }
 
+  private static readonly CLOUD_RESOURCE_ID_CACHE_NAMESPACE: string =
+    "cloud-resource-id";
+  private static readonly CLOUD_RESOURCE_ID_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  /*
+   * cloud.platform values that denote managed compute (containers / PaaS that
+   * are neither plain Docker, Kubernetes, a raw VM, nor FaaS). Raw VM
+   * platforms (aws_ec2, gcp_compute_engine, azure_vm) are intentionally
+   * excluded so they remain Hosts; k8s platforms route via k8s.* attributes.
+   */
+  private static readonly CLOUD_COMPUTE_PLATFORMS: ReadonlySet<string> =
+    new Set([
+      "aws_ecs",
+      "aws_elastic_beanstalk",
+      "aws_app_runner",
+      "gcp_cloud_run",
+      "gcp_app_engine",
+      "azure_container_apps",
+      "azure_container_instances",
+      "azure_app_service",
+    ]);
+
+  /*
+   * Auto-discover a managed cloud-compute resource from OTel resource
+   * attributes. Gated on cloud.platform being in the managed-compute set;
+   * identity is service.name (falling back to host.name). Runs on every
+   * ingest path so the resource's telemetry tabs work even when service.name
+   * is also set — the discriminator choice happens in resolveTelemetryResource.
+   */
+  @CaptureSpan()
+  protected static async autoDiscoverCloudResource(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    try {
+      const cloudPlatform: string | null = this.getStringAttribute(
+        data.attributes,
+        "cloud.platform",
+      );
+      if (!cloudPlatform || !this.CLOUD_COMPUTE_PLATFORMS.has(cloudPlatform)) {
+        return null;
+      }
+
+      const resourceIdentifier: string | null =
+        this.getStringAttribute(data.attributes, "service.name") ||
+        this.getStringAttribute(data.attributes, "host.name");
+
+      if (!resourceIdentifier) {
+        return null;
+      }
+
+      const cacheKey: string = `${data.projectId.toString()}:${resourceIdentifier}`;
+      let resourceIdStr: string | null = await GlobalCache.getString(
+        this.CLOUD_RESOURCE_ID_CACHE_NAMESPACE,
+        cacheKey,
+      );
+
+      if (!resourceIdStr) {
+        const cloudResource: CloudResource =
+          await CloudResourceService.findOrCreateByResourceIdentifier({
+            projectId: data.projectId,
+            resourceIdentifier,
+          });
+        if (cloudResource._id) {
+          resourceIdStr = cloudResource._id.toString();
+          await GlobalCache.setString(
+            this.CLOUD_RESOURCE_ID_CACHE_NAMESPACE,
+            cacheKey,
+            resourceIdStr,
+            { expiresInSeconds: this.CLOUD_RESOURCE_ID_CACHE_EXPIRY_SECONDS },
+          );
+        }
+      }
+
+      if (resourceIdStr) {
+        const cloudResourceId: ObjectID = new ObjectID(resourceIdStr);
+        if (await this.shouldRunMaintenance("cloud-resource", resourceIdStr)) {
+          const agentVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "oneuptime.agent.version",
+          );
+          await CloudResourceService.updateLastSeen(cloudResourceId, {
+            agentVersion: agentVersion || undefined,
+            cloudPlatform: cloudPlatform || undefined,
+            cloudProvider:
+              this.getStringAttribute(data.attributes, "cloud.provider") ||
+              undefined,
+            cloudRegion:
+              this.getStringAttribute(data.attributes, "cloud.region") ||
+              undefined,
+            cloudAccountId:
+              this.getStringAttribute(data.attributes, "cloud.account.id") ||
+              undefined,
+            runtimeName:
+              this.getStringAttribute(
+                data.attributes,
+                "process.runtime.name",
+              ) || undefined,
+            runtimeVersion:
+              this.getStringAttribute(
+                data.attributes,
+                "process.runtime.version",
+              ) || undefined,
+          });
+          await this.promoteOneuptimeLabelsToCloudResource({
+            projectId: data.projectId,
+            cloudResourceId,
+            attributes: data.attributes,
+          });
+        }
+        return cloudResourceId;
+      }
+
+      return null;
+    } catch (err) {
+      logger.error(
+        "Error auto-discovering Cloud resource: " + (err as Error).message,
+      );
+      return null;
+    }
+  }
+
+  @CaptureSpan()
+  protected static async promoteOneuptimeLabelsToCloudResource(data: {
+    projectId: ObjectID;
+    cloudResourceId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      const labelNames: Array<string> = extractOneuptimeLabelNames(
+        data.attributes,
+      );
+      if (labelNames.length === 0) {
+        return;
+      }
+      const labelIds: Array<ObjectID> =
+        await LabelService.findOrCreateLabelsByNames({
+          projectId: data.projectId,
+          labelNames,
+        });
+      if (labelIds.length === 0) {
+        return;
+      }
+      await CloudResourceService.attachLabels({
+        cloudResourceId: data.cloudResourceId,
+        labelIds,
+      });
+    } catch (err) {
+      logger.warn(
+        `Cloud resource label promotion failed for ${data.cloudResourceId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
   @CaptureSpan()
   protected static getHostNameFromAttributes(
     attributes: JSONArray,
@@ -1099,6 +1273,25 @@ export default abstract class OtelIngestBaseService {
       );
 
       if (k8sPodName || k8sNodeName || k8sClusterName) {
+        return null;
+      }
+
+      /*
+       * Managed / serverless compute (ECS, Fargate, Cloud Run, App Engine,
+       * Lambda, …) is owned by the CloudResource / ServerlessFunction tables,
+       * not Host. Skip so we don't also create a phantom Host row for those
+       * platforms. Raw VM platforms (aws_ec2, gcp_compute_engine, azure_vm)
+       * are intentionally NOT in these sets, so VMs still become Hosts.
+       */
+      const hostCloudPlatform: string | null = this.getStringAttribute(
+        data.attributes,
+        "cloud.platform",
+      );
+      if (
+        hostCloudPlatform &&
+        (this.SERVERLESS_CLOUD_PLATFORMS.has(hostCloudPlatform) ||
+          this.CLOUD_COMPUTE_PLATFORMS.has(hostCloudPlatform))
+      ) {
         return null;
       }
 
