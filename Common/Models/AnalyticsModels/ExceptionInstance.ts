@@ -13,6 +13,7 @@ import Permission from "../../Types/Permission";
 import Service from "../DatabaseModels/Service";
 import { SpanStatus } from "./Span";
 import ServiceType from "../../Types/Telemetry/ServiceType";
+import { getEntityMembershipColumns } from "./EntityMembershipColumns";
 
 @OperationalResource()
 @OwnedThrough("serviceId", Service, { includeProjectScope: true })
@@ -615,6 +616,31 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
       defaultValue: undefined,
     });
 
+    const entityMembershipColumns: Array<AnalyticsTableColumn> =
+      getEntityMembershipColumns({
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
+            Permission.ReadTelemetryException,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.CreateTelemetryException,
+          ],
+          update: [],
+        },
+      });
+
     super({
       tableName: AnalyticsTableName.ExceptionInstance,
       tableEngine: AnalyticsTableEngine.MergeTree,
@@ -682,6 +708,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
         environmentColumn,
         parsedFramesColumn,
         attributesColumn,
+        ...entityMembershipColumns,
         retentionDateColumn,
       ],
       projections: [

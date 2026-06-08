@@ -13,6 +13,7 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import Service from "../DatabaseModels/Service";
 import ServiceType from "../../Types/Telemetry/ServiceType";
+import { getEntityMembershipColumns } from "./EntityMembershipColumns";
 
 export enum SpanKind {
   Server = "SPAN_KIND_SERVER",
@@ -783,6 +784,31 @@ export default class Span extends AnalyticsBaseModel {
       defaultValue: undefined,
     });
 
+    const entityMembershipColumns: Array<AnalyticsTableColumn> =
+      getEntityMembershipColumns({
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
+            Permission.ReadTelemetryServiceTraces,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.CreateTelemetryServiceTraces,
+          ],
+          update: [],
+        },
+      });
+
     super({
       tableName: AnalyticsTableName.Span,
       tableEngine: AnalyticsTableEngine.MergeTree,
@@ -843,6 +869,7 @@ export default class Span extends AnalyticsBaseModel {
         traceStateColumn,
         attributesColumn,
         attributeKeysColumn,
+        ...entityMembershipColumns,
         eventsColumn,
         linksColumn,
         statusCodeColumn,

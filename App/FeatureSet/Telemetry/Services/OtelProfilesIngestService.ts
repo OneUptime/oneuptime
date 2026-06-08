@@ -26,6 +26,11 @@ import Text from "Common/Types/Text";
 import ProfilesQueueService from "./Queue/ProfilesQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
+import EntityExtractor from "Common/Server/Utils/Telemetry/EntityExtractor";
+import ExtractedEntity, {
+  EntityMembership,
+} from "Common/Types/Telemetry/ExtractedEntity";
+import TelemetryEntityService from "Common/Server/Services/TelemetryEntityService";
 import {
   TELEMETRY_PROFILE_FLUSH_BATCH_SIZE,
   TELEMETRY_PROFILE_SAMPLE_FLUSH_BATCH_SIZE,
@@ -239,6 +244,32 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
           const serviceName: string = resolvedServiceMetadata.serviceName;
 
           serviceDictionary[serviceName] = resolvedServiceMetadata;
+
+          /*
+           * Derive ALL OpenTelemetry entities present in this resource and
+           * reduce to the membership stamped onto every profile/sample row.
+           * Additive — the primary serviceId/serviceType is unchanged.
+           */
+          const extractedEntities: Array<ExtractedEntity> =
+            EntityExtractor.extractEntities({
+              projectId: (req as TelemetryRequest).projectId,
+              resourceAttributes: resourceAttributes_raw,
+            });
+          const entityMembership: EntityMembership =
+            EntityExtractor.toMembership(extractedEntities);
+
+          /*
+           * Reconcile the entity registry + topology graph in the
+           * background — never block signal ingest on it.
+           */
+          TelemetryEntityService.reconcileResource({
+            projectId: (req as TelemetryRequest).projectId,
+            entities: extractedEntities,
+            primaryServiceType: resolvedServiceMetadata.serviceType,
+            primaryServiceId: resolvedServiceMetadata.serviceId,
+          }).catch(() => {
+            // best-effort; errors are logged inside the service
+          });
 
           const stampHostName: string | null =
             OtelIngestBaseService.getStringAttribute(
@@ -615,7 +646,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                         serviceMetadata: profileServiceMetadata,
                       });
 
-                      dbSamples.push(sampleRow);
+                      dbSamples.push({ ...sampleRow, ...entityMembership });
 
                       if (
                         dbSamples.length >=
@@ -702,7 +733,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                     serviceMetadata: profileServiceMetadata,
                   });
 
-                  dbProfiles.push(profileRow);
+                  dbProfiles.push({ ...profileRow, ...entityMembership });
                   totalProfilesProcessed++;
 
                   if (dbProfiles.length >= TELEMETRY_PROFILE_FLUSH_BATCH_SIZE) {

@@ -27,6 +27,11 @@ import Service from "Common/Models/DatabaseModels/Service";
 import MetricsQueueService from "./Queue/MetricsQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
+import EntityExtractor from "Common/Server/Utils/Telemetry/EntityExtractor";
+import ExtractedEntity, {
+  EntityMembership,
+} from "Common/Types/Telemetry/ExtractedEntity";
+import TelemetryEntityService from "Common/Server/Services/TelemetryEntityService";
 import { TELEMETRY_METRIC_FLUSH_BATCH_SIZE } from "../Config";
 import MetricPipelineRuleService, {
   MetricRulesForProject,
@@ -587,6 +592,32 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
           serviceDictionary[serviceName] = serviceMetadata;
 
+          /*
+           * Derive ALL OpenTelemetry entities present in this resource and
+           * reduce to the membership stamped onto every metric row below.
+           * Additive — the primary serviceId/serviceType is unchanged.
+           */
+          const extractedEntities: Array<ExtractedEntity> =
+            EntityExtractor.extractEntities({
+              projectId,
+              resourceAttributes: resourceAttributes_raw,
+            });
+          const entityMembership: EntityMembership =
+            EntityExtractor.toMembership(extractedEntities);
+
+          /*
+           * Reconcile the entity registry + topology graph in the
+           * background — never block signal ingest on it.
+           */
+          TelemetryEntityService.reconcileResource({
+            projectId,
+            entities: extractedEntities,
+            primaryServiceType: serviceMetadata.serviceType,
+            primaryServiceId: serviceMetadata.serviceId,
+          }).catch(() => {
+            // best-effort; errors are logged inside the service
+          });
+
           const stampHostName: string | null =
             OtelIngestBaseService.getStringAttribute(
               resourceAttributes_raw,
@@ -698,7 +729,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               metricPointType: MetricPointType.Gauge,
               serviceMetadata: serviceMetadata,
             });
-            dbMetrics.push(heartbeatRow);
+            dbMetrics.push({ ...heartbeatRow, ...entityMembership });
             totalMetricsProcessed++;
           }
 
@@ -918,7 +949,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                           continue;
                         }
 
-                        dbMetrics.push(transformed);
+                        dbMetrics.push({ ...transformed, ...entityMembership });
                         totalMetricsProcessed++;
 
                         if (

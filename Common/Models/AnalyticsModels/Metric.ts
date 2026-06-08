@@ -13,6 +13,7 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import Service from "../DatabaseModels/Service";
 import ServiceType from "../../Types/Telemetry/ServiceType";
+import { getEntityMembershipColumns } from "./EntityMembershipColumns";
 
 export enum AggregationTemporality {
   Delta = "Delta",
@@ -1024,6 +1025,31 @@ export default class Metric extends AnalyticsBaseModel {
       defaultValue: undefined,
     });
 
+    const entityMembershipColumns: Array<AnalyticsTableColumn> =
+      getEntityMembershipColumns({
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
+            Permission.ReadTelemetryServiceLog,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.CreateTelemetryServiceLog,
+          ],
+          update: [],
+        },
+      });
+
     super({
       tableName: AnalyticsTableName.Metric,
       tableEngine: AnalyticsTableEngine.MergeTree,
@@ -1082,6 +1108,7 @@ export default class Metric extends AnalyticsBaseModel {
         startTimeUnixNanoColumn,
         attributesColumn,
         attributeKeysColumn,
+        ...entityMembershipColumns,
         isMonotonicColumn,
         countColumn,
         sumColumn,

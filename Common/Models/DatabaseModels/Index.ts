@@ -8,6 +8,8 @@ import KubernetesContainer from "./KubernetesContainer";
 import DockerHost from "./DockerHost";
 import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
 import DockerHostOwnerUser from "./DockerHostOwnerUser";
+import TelemetryEntity from "./TelemetryEntity";
+import TelemetryEntityRelationship from "./TelemetryEntityRelationship";
 import DockerResource from "./DockerResource";
 import Host from "./Host";
 import HostOwnerTeam from "./HostOwnerTeam";
@@ -685,6 +687,8 @@ const AllModelTypes: Array<{
   Host,
   HostOwnerTeam,
   HostOwnerUser,
+  TelemetryEntity,
+  TelemetryEntityRelationship,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

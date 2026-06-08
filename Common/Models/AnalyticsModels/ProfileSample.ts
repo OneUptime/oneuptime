@@ -13,6 +13,7 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import Service from "../DatabaseModels/Service";
 import ServiceType from "../../Types/Telemetry/ServiceType";
+import { getEntityMembershipColumns } from "./EntityMembershipColumns";
 
 @OperationalResource()
 @OwnedThrough("serviceId", Service, { includeProjectScope: true })
@@ -488,6 +489,31 @@ export default class ProfileSample extends AnalyticsBaseModel {
       defaultValue: undefined,
     });
 
+    const entityMembershipColumns: Array<AnalyticsTableColumn> =
+      getEntityMembershipColumns({
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
+            Permission.ReadTelemetryServiceProfiles,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.CreateTelemetryServiceProfiles,
+          ],
+          update: [],
+        },
+      });
+
     super({
       tableName: AnalyticsTableName.ProfileSample,
       tableEngine: AnalyticsTableEngine.MergeTree,
@@ -545,6 +571,7 @@ export default class ProfileSample extends AnalyticsBaseModel {
         valueColumn,
         profileTypeColumn,
         labelsColumn,
+        ...entityMembershipColumns,
         retentionDateColumn,
       ],
       sortKeys: [

@@ -1,6 +1,6 @@
 # OpenTelemetry Entities in OneUptime
 
-Status: Proposal
+Status: Partially implemented — phases 1–3 and 5 (+ backfill) landed; phases 4 and 6 pending
 Owner: TBD
 Last updated: 2026-06-08
 
@@ -19,6 +19,26 @@ This document proposes:
 5. Reading OTLP **`entity_refs`** when producers emit them, falling back to the existing heuristic detectors otherwise.
 
 The single-owner `(serviceId, serviceType)` path stays for backward compatibility; everything here is additive.
+
+---
+
+## Implementation Status (2026-06-08)
+
+Phases 1–3 and 5 are implemented and compile + lint clean; the single-owner path and all existing behavior are untouched. Phases 4 and 6 are deliberately deferred (see notes).
+
+| Phase | Status | Key files |
+|---|---|---|
+| **1. Identity layer** | ✅ Done | [`EntityType.ts`](../../Common/Types/Telemetry/EntityType.ts), [`EntityRelationshipType.ts`](../../Common/Types/Telemetry/EntityRelationshipType.ts), [`ExtractedEntity.ts`](../../Common/Types/Telemetry/ExtractedEntity.ts), [`EntityExtractor.ts`](../../Common/Server/Utils/Telemetry/EntityExtractor.ts) (`entityKey()`, `extractEntities()`, `toMembership()`, `inferRelationships()`) |
+| **2. Registry** | ✅ Done | [`TelemetryEntity.ts`](../../Common/Models/DatabaseModels/TelemetryEntity.ts) (`@OwnedThrough` polymorphic pointer), [`TelemetryEntityService.ts`](../../Common/Server/Services/TelemetryEntityService.ts) (throttled upsert + `reconcileResource`), Postgres migration `1780900000000-AddTelemetryEntityTables`, backfill `BackfillTelemetryEntitiesFromTypedResources`, `ReadTelemetryEntity` perms, BaseAPI registration |
+| **3. Membership column** | ✅ Done | `entityKeys Array(String)` + bloom index and 6 scalar key columns added to Span/Log/Metric/ExceptionInstance/Profile/ProfileSample via [`EntityMembershipColumns.ts`](../../Common/Models/AnalyticsModels/EntityMembershipColumns.ts); ClickHouse migration `AddEntityMembershipColumnsToTelemetryTables`; stamped at ingest across all 4 OTLP pillars |
+| **5. Relationships** | ✅ Done (co-occurrence) | [`TelemetryEntityRelationship.ts`](../../Common/Models/DatabaseModels/TelemetryEntityRelationship.ts), [`TelemetryEntityRelationshipService.ts`](../../Common/Server/Services/TelemetryEntityRelationshipService.ts) (throttled `reconcileEdges`), written from `inferRelationships()` at ingest. Service→service dependency derivation from spans is the remaining fast-follow. |
+| **4. Switch reads** | ⏳ Pending | Move Host/Docker/K8s/Service infra views to `has(entityKeys, …)` (keep the `attributes['resource.host.name']` predicate as a fallback for pre-migration data). Deferred: entangled with the host-MV path (phase 6), benefits forward-only data, and needs a running stack to validate without regressing working dashboards. |
+| **6. MV re-key + `entity_refs`** | ⏳ Pending | Re-key `MetricItemAggMV1mByHost` on the host entity key (new MV table + backfill + cutover — the one invasive change). Parse OTLP `entity_refs` (needs the Resource proto extended in `ProtoFiles/OTel/v1/` + `OtelPayloadDecoder`; not emitted by current SDKs). |
+
+Notes:
+- The membership column makes "one signal, many entities" real for **new** data immediately. Historical ClickHouse rows are not backfilled (forward-only + attribute fallback, per Migration §). 
+- The registry/graph converge behind a Redis throttle fence (`reconcileResource` is fired without `await` from ingest), so signal writes never block on registry resolution.
+- The Postgres migration `1780900000000-AddTelemetryEntityTables` was hand-written because the local DB was unavailable to run `generate-postgres-migration`; it mirrors the generator's DDL and is safe to regenerate against a live DB.
 
 ---
 

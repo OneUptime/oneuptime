@@ -25,6 +25,11 @@ import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import LogsQueueService from "./Queue/LogsQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
+import EntityExtractor from "Common/Server/Utils/Telemetry/EntityExtractor";
+import ExtractedEntity, {
+  EntityMembership,
+} from "Common/Types/Telemetry/ExtractedEntity";
+import TelemetryEntityService from "Common/Server/Services/TelemetryEntityService";
 import {
   TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE,
   TELEMETRY_LOG_EXCEPTION_EXTRACTION_ENABLED,
@@ -306,6 +311,32 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           const serviceName: string = serviceMetadata.serviceName;
 
           serviceDictionary[serviceName] = serviceMetadata;
+
+          /*
+           * Derive ALL OpenTelemetry entities present in this resource and
+           * reduce to the membership stamped onto every log/exception row.
+           * Additive — the primary serviceId/serviceType is unchanged.
+           */
+          const extractedEntities: Array<ExtractedEntity> =
+            EntityExtractor.extractEntities({
+              projectId,
+              resourceAttributes: resourceAttributes_raw,
+            });
+          const entityMembership: EntityMembership =
+            EntityExtractor.toMembership(extractedEntities);
+
+          /*
+           * Reconcile the entity registry + topology graph in the
+           * background — never block signal ingest on it.
+           */
+          TelemetryEntityService.reconcileResource({
+            projectId,
+            entities: extractedEntities,
+            primaryServiceType: serviceMetadata.serviceType,
+            primaryServiceId: serviceMetadata.serviceId,
+          }).catch(() => {
+            // best-effort; errors are logged inside the service
+          });
 
           const stampHostName: string | null =
             OtelIngestBaseService.getStringAttribute(
@@ -720,6 +751,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                         projectId,
                         serviceId,
                         serviceMetadata,
+                        entityMembership,
                         severityNumber: logSeverityNumber,
                         severityText,
                         timeDate,
@@ -740,7 +772,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     }
                   }
 
-                  dbLogs.push(logRow);
+                  dbLogs.push({ ...logRow, ...entityMembership });
                   totalLogsProcessed++;
 
                   if (dbLogs.length >= TELEMETRY_LOG_FLUSH_BATCH_SIZE) {
@@ -901,6 +933,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
     projectId: ObjectID;
     serviceId: ObjectID;
     serviceMetadata: TelemetryServiceMetadata;
+    entityMembership: EntityMembership;
     severityNumber: number;
     severityText: LogSeverity;
     timeDate: Date;
@@ -969,6 +1002,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         "exception.source": "log",
         "log.severityText": String(data.severityText),
       },
+      ...data.entityMembership,
       retentionDate: OneUptimeDate.toClickhouseDateTime(data.retentionDate),
     });
 

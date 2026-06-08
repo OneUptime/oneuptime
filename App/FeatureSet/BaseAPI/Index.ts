@@ -413,6 +413,12 @@ import KubernetesClusterOwnerUserService, {
 import DockerHostService, {
   Service as DockerHostServiceType,
 } from "Common/Server/Services/DockerHostService";
+import TelemetryEntityService, {
+  Service as TelemetryEntityServiceType,
+} from "Common/Server/Services/TelemetryEntityService";
+import TelemetryEntityRelationshipService, {
+  Service as TelemetryEntityRelationshipServiceType,
+} from "Common/Server/Services/TelemetryEntityRelationshipService";
 import DockerHostOwnerTeamService, {
   Service as DockerHostOwnerTeamServiceType,
 } from "Common/Server/Services/DockerHostOwnerTeamService";
@@ -824,6 +830,8 @@ import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import KubernetesClusterOwnerTeam from "Common/Models/DatabaseModels/KubernetesClusterOwnerTeam";
 import KubernetesClusterOwnerUser from "Common/Models/DatabaseModels/KubernetesClusterOwnerUser";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
+import TelemetryEntityRelationship from "Common/Models/DatabaseModels/TelemetryEntityRelationship";
 import DockerHostOwnerTeam from "Common/Models/DatabaseModels/DockerHostOwnerTeam";
 import DockerHostOwnerUser from "Common/Models/DatabaseModels/DockerHostOwnerUser";
 import DockerResource from "Common/Models/DatabaseModels/DockerResource";
@@ -2807,6 +2815,25 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DockerHost, DockerHostServiceType>(
         DockerHost,
         DockerHostService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TelemetryEntity, TelemetryEntityServiceType>(
+        TelemetryEntity,
+        TelemetryEntityService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        TelemetryEntityRelationship,
+        TelemetryEntityRelationshipServiceType
+      >(
+        TelemetryEntityRelationship,
+        TelemetryEntityRelationshipService,
       ).getRouter(),
     );
 

@@ -71,6 +71,8 @@ import AddMetricBaselineHourlyMV from "./AddMetricBaselineHourlyMV";
 import AddIdAndTimestampsToMVTargetTables from "./AddIdAndTimestampsToMVTargetTables";
 import ExtendMetricBaselineHourlyTTL from "./ExtendMetricBaselineHourlyTTL";
 import AddTelemetryStorageCompression from "./AddTelemetryStorageCompression";
+import AddEntityMembershipColumnsToTelemetryTables from "./AddEntityMembershipColumnsToTelemetryTables";
+import BackfillTelemetryEntitiesFromTypedResources from "./BackfillTelemetryEntitiesFromTypedResources";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -146,6 +148,8 @@ const DataMigrations: Array<DataMigrationBase> = [
   new ExtendMetricBaselineHourlyTTL(),
   new AddServiceTypeColumnToTelemetryTables(),
   new AddTelemetryStorageCompression(),
+  new AddEntityMembershipColumnsToTelemetryTables(),
+  new BackfillTelemetryEntitiesFromTypedResources(),
 ];
 
 export default DataMigrations;

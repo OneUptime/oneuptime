@@ -14,6 +14,7 @@ import Permission from "../../Types/Permission";
 import LogSeverity from "../../Types/Log/LogSeverity";
 import Service from "../DatabaseModels/Service";
 import ServiceType from "../../Types/Telemetry/ServiceType";
+import { getEntityMembershipColumns } from "./EntityMembershipColumns";
 
 @OperationalResource()
 @OwnedThrough("serviceId", Service, { includeProjectScope: true })
@@ -518,6 +519,31 @@ export default class Log extends AnalyticsBaseModel {
       defaultValue: undefined,
     });
 
+    const entityMembershipColumns: Array<AnalyticsTableColumn> =
+      getEntityMembershipColumns({
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
+            Permission.ReadTelemetryServiceLog,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.CreateTelemetryServiceLog,
+          ],
+          update: [],
+        },
+      });
+
     super({
       tableName: AnalyticsTableName.Log,
       tableEngine: AnalyticsTableEngine.MergeTree,
@@ -573,6 +599,7 @@ export default class Log extends AnalyticsBaseModel {
         severityNumberColumn,
         attributesColumn,
         attributeKeysColumn,
+        ...entityMembershipColumns,
         traceIdColumn,
         spanIdColumn,
         bodyColumn,

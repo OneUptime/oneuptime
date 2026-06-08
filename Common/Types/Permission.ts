@@ -1099,6 +1099,12 @@ enum Permission {
   EditDockerHost = "EditDockerHost",
   ReadDockerHost = "ReadDockerHost",
 
+  // OpenTelemetry entity registry + relationship graph (one catalog).
+  CreateTelemetryEntity = "CreateTelemetryEntity",
+  DeleteTelemetryEntity = "DeleteTelemetryEntity",
+  EditTelemetryEntity = "EditTelemetryEntity",
+  ReadTelemetryEntity = "ReadTelemetryEntity",
+
   CreateDockerHostOwnerTeam = "CreateDockerHostOwnerTeam",
   DeleteDockerHostOwnerTeam = "DeleteDockerHostOwnerTeam",
   EditDockerHostOwnerTeam = "EditDockerHostOwnerTeam",
@@ -7271,6 +7277,47 @@ export class PermissionHelper {
         permission: Permission.ReadDockerHost,
         title: "Read Docker Host",
         description: "This permission can read Docker Host of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateTelemetryEntity,
+        title: "Create Telemetry Entity",
+        description:
+          "This permission can create Telemetry Entity in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteTelemetryEntity,
+        title: "Delete Telemetry Entity",
+        description:
+          "This permission can delete Telemetry Entity of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditTelemetryEntity,
+        title: "Edit Telemetry Entity",
+        description:
+          "This permission can edit Telemetry Entity of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadTelemetryEntity,
+        title: "Read Telemetry Entity",
+        description:
+          "This permission can read Telemetry Entity of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,

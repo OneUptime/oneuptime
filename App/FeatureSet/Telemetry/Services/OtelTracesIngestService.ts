@@ -35,6 +35,11 @@ import Text from "Common/Types/Text";
 import TracesQueueService from "./Queue/TracesQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
+import EntityExtractor from "Common/Server/Utils/Telemetry/EntityExtractor";
+import ExtractedEntity, {
+  EntityMembership,
+} from "Common/Types/Telemetry/ExtractedEntity";
+import TelemetryEntityService from "Common/Server/Services/TelemetryEntityService";
 import TraceDropFilterService, {
   LoadedTraceDropFilter,
 } from "./TraceDropFilterService";
@@ -321,6 +326,36 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
 
           serviceDictionary[serviceName] = serviceMetadata;
 
+          /*
+           * Derive ALL OpenTelemetry entities present in this resource
+           * (service, host, k8s.pod/node/cluster, container, …) and reduce
+           * to the membership stamped onto every span/exception row below.
+           * The primary (serviceId/serviceType) selection above is
+           * unchanged; this is purely additive. No DB round trip — keys are
+           * content-derived hashes.
+           */
+          const extractedEntities: Array<ExtractedEntity> =
+            EntityExtractor.extractEntities({
+              projectId,
+              resourceAttributes: resourceAttributes_raw,
+            });
+          const entityMembership: EntityMembership =
+            EntityExtractor.toMembership(extractedEntities);
+
+          /*
+           * Reconcile the entity registry + topology graph in the
+           * background — never block signal ingest on it (membership above
+           * is already correct).
+           */
+          TelemetryEntityService.reconcileResource({
+            projectId,
+            entities: extractedEntities,
+            primaryServiceType: serviceMetadata.serviceType,
+            primaryServiceId: serviceMetadata.serviceId,
+          }).catch(() => {
+            // best-effort; errors are logged inside the service
+          });
+
           const stampHostName: string | null =
             OtelIngestBaseService.getStringAttribute(
               resourceAttributes_raw,
@@ -498,6 +533,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                         spanName: spanName,
                         resourceAttributes: resourceAttributes,
                         serviceMetadata: serviceDictionary[serviceName]!,
+                        entityMembership: entityMembership,
                       },
                       dbExceptions,
                       pendingExceptionUpserts,
@@ -569,7 +605,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                     );
                   }
 
-                  dbSpans.push(spanRow);
+                  dbSpans.push({ ...spanRow, ...entityMembership });
                   totalSpansProcessed++;
 
                   if (dbSpans.length >= TELEMETRY_TRACE_FLUSH_BATCH_SIZE) {
@@ -684,6 +720,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       spanName: string;
       resourceAttributes: Dictionary<AttributeType | Array<AttributeType>>;
       serviceMetadata: TelemetryServiceMetadata;
+      entityMembership: EntityMembership;
     },
     dbExceptions: Array<JSONObject>,
     pendingExceptionUpserts: Array<TelemetryExceptionPayload>,
@@ -787,7 +824,10 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                 serviceMetadata: spanContext.serviceMetadata,
               };
 
-              dbExceptions.push(this.buildExceptionRow(exceptionData));
+              dbExceptions.push({
+                ...this.buildExceptionRow(exceptionData),
+                ...spanContext.entityMembership,
+              });
 
               /*
                * Buffer the Postgres upsert payload for the batched
