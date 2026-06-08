@@ -33,13 +33,11 @@ import logger from "Common/Server/Utils/Logger";
  *
  * NOTE on indexes: a CODEC-only change leaves the column TYPE unchanged, so it
  * does NOT require dropping the column's skip index — that is why the
- * bloom-indexed Span columns (traceId / spanId / parentSpanId) are handled by
- * the same plain codec path as everything else. Only a TYPE change needs the
- * index dance, which is why the LowCardinality conversions below drop,
- * re-create and re-materialize their set index. Metric's own indexed columns
- * (name / traceId / spanId / attributeKeys) get their codecs on newly created
- * tables via the model; retrofitting them onto existing tables is a trivial
- * follow-up (same plain codec path) if desired.
+ * skip-indexed columns (Span traceId / spanId / parentSpanId; Metric name /
+ * traceId / spanId / attributeKeys) are handled by the same plain codec path
+ * as everything else. Only a TYPE change needs the index dance, which is why
+ * the LowCardinality conversions below drop, re-create and re-materialize
+ * their set index.
  */
 export default class AddTelemetryStorageCompression extends DataMigrationBase {
   public constructor() {
@@ -83,14 +81,23 @@ export default class AddTelemetryStorageCompression extends DataMigrationBase {
       "negativeBucketCounts",
       "summaryQuantiles",
       "summaryValues",
+      /*
+       * These carry skip indexes (idx_name tokenbf, idx_trace_id /
+       * idx_span_id bloom). A CODEC-only change leaves the type unchanged, so
+       * the index does not need to be dropped.
+       */
+      "name",
+      "traceId",
+      "spanId",
     ];
 
     for (const columnName of zstd1Columns) {
       await this.applyCodec(MetricService, columnName, "ZSTD(1)");
     }
 
-    // The attributes map compresses well at a higher level.
+    // The attributes map + attribute-keys array compress well at a higher level.
     await this.applyCodec(MetricService, "attributes", "ZSTD(3)");
+    await this.applyCodec(MetricService, "attributeKeys", "ZSTD(3)");
   }
 
   private async applyLogCodecs(): Promise<void> {
