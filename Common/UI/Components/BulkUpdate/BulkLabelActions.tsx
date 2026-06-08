@@ -7,12 +7,14 @@ import IconProp from "../../../Types/Icon/IconProp";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import ObjectID from "../../../Types/ObjectID";
 import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../Utils/Project";
 import { ButtonStyleType } from "../Button/Button";
 import BasicFormModal from "../FormModal/BasicFormModal";
+import Modal from "../Modal/Modal";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import {
   BulkActionButtonSchema,
@@ -49,6 +51,17 @@ function useBulkLabelActions<T extends BaseModel>(
   const [showRemoveModal, setShowRemoveModal] = useState<boolean>(false);
   const [bulkActionProps, setBulkActionProps] =
     useState<BulkActionOnClickProps<T> | null>(null);
+
+  /*
+   * For "Remove Labels" we only want to offer labels that are actually
+   * attached to the selected items (not every label in the project). These
+   * are computed from the selected items each time the remove modal opens.
+   */
+  const [removeLabelDropdownOptions, setRemoveLabelDropdownOptions] = useState<
+    Array<{ label: string; value: string }>
+  >([]);
+  const [isLoadingRemoveLabels, setIsLoadingRemoveLabels] =
+    useState<boolean>(false);
 
   useEffect(() => {
     const fetchLabels: () => Promise<void> = async (): Promise<void> => {
@@ -187,6 +200,90 @@ function useBulkLabelActions<T extends BaseModel>(
     setBulkActionProps(null);
   };
 
+  /*
+   * Build the dropdown options for the "Remove Labels" modal from only the
+   * labels actually attached to the selected items. We fetch the selected
+   * items (by id) with their labels and take the de-duplicated union, so the
+   * modal offers only labels that can really be removed instead of every
+   * label in the project.
+   */
+  const loadLabelsForSelectedItems: (
+    items: Array<T>,
+  ) => Promise<void> = async (items: Array<T>): Promise<void> => {
+    setIsLoadingRemoveLabels(true);
+
+    try {
+      const itemIds: Array<string> = items
+        .map((item: T) => {
+          return item.id?.toString() || "";
+        })
+        .filter((id: string) => {
+          return id.length > 0;
+        });
+
+      if (itemIds.length === 0) {
+        setRemoveLabelDropdownOptions([]);
+        return;
+      }
+
+      const result: ListResult<T> = await ModelAPI.getList<T>({
+        modelType: config.modelType,
+        query: {
+          _id: new Includes(itemIds),
+        } as any,
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          labels: {
+            _id: true,
+            name: true,
+          },
+        } as any,
+        sort: {},
+      });
+
+      // Union of labels across all selected items, de-duplicated by id.
+      const labelNameById: Map<string, string> = new Map<string, string>();
+
+      for (const item of result.data) {
+        const itemLabels: Array<Label> =
+          ((item as any).labels as Array<Label> | undefined) || [];
+
+        for (const label of itemLabels) {
+          const id: string = label._id?.toString() || "";
+          if (id.length > 0) {
+            labelNameById.set(id, label.name || "");
+          }
+        }
+      }
+
+      const options: Array<{ label: string; value: string }> = Array.from(
+        labelNameById.entries(),
+      ).map((entry: [string, string]) => {
+        return {
+          label: entry[1] || "",
+          value: entry[0],
+        };
+      });
+
+      options.sort(
+        (
+          a: { label: string; value: string },
+          b: { label: string; value: string },
+        ) => {
+          return a.label.localeCompare(b.label);
+        },
+      );
+
+      setRemoveLabelDropdownOptions(options);
+    } catch {
+      // on error, show no options rather than every label in the project
+      setRemoveLabelDropdownOptions([]);
+    } finally {
+      setIsLoadingRemoveLabels(false);
+    }
+  };
+
   const labelDropdownOptions: Array<{ label: string; value: string }> =
     labels.map((label: Label) => {
       return {
@@ -211,9 +308,20 @@ function useBulkLabelActions<T extends BaseModel>(
     icon: IconProp.Close,
     onClick: async (actionProps: BulkActionOnClickProps<T>): Promise<void> => {
       setBulkActionProps(actionProps);
+      setRemoveLabelDropdownOptions([]);
       setShowRemoveModal(true);
+      await loadLabelsForSelectedItems(actionProps.items);
     },
   };
+
+  const closeRemoveModal: () => void = (): void => {
+    setShowRemoveModal(false);
+    setBulkActionProps(null);
+    setRemoveLabelDropdownOptions([]);
+  };
+
+  const hasNoLabelsToRemove: boolean =
+    !isLoadingRemoveLabels && removeLabelDropdownOptions.length === 0;
 
   const modals: ReactElement = (
     <>
@@ -247,35 +355,44 @@ function useBulkLabelActions<T extends BaseModel>(
         />
       )}
 
-      {showRemoveModal && (
-        <BasicFormModal
-          title="Remove Labels"
-          description="Select labels to remove from the selected items. Items that do not have any of these labels will be skipped."
-          onClose={() => {
-            setShowRemoveModal(false);
-            setBulkActionProps(null);
-          }}
-          submitButtonText="Remove Labels"
-          onSubmit={async (formData: { labelIds: Array<string> }) => {
-            await applyLabels(formData.labelIds || [], "remove");
-          }}
-          formProps={{
-            fields: [
-              {
-                field: {
-                  labelIds: true,
+      {showRemoveModal &&
+        (hasNoLabelsToRemove ? (
+          <Modal
+            title="No Labels to Remove"
+            description="The selected items don't have any labels to remove."
+            icon={IconProp.Label}
+            onClose={closeRemoveModal}
+            closeButtonText="Close"
+          >
+            <></>
+          </Modal>
+        ) : (
+          <BasicFormModal
+            title="Remove Labels"
+            description="Select labels to remove from the selected items. Only labels currently applied to the selected items are shown."
+            isLoading={isLoadingRemoveLabels}
+            onClose={closeRemoveModal}
+            submitButtonText="Remove Labels"
+            onSubmit={async (formData: { labelIds: Array<string> }) => {
+              await applyLabels(formData.labelIds || [], "remove");
+            }}
+            formProps={{
+              fields: [
+                {
+                  field: {
+                    labelIds: true,
+                  },
+                  title: "Select Labels",
+                  description:
+                    "These labels will be removed from each selected item.",
+                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                  required: true,
+                  dropdownOptions: removeLabelDropdownOptions,
                 },
-                title: "Select Labels",
-                description:
-                  "These labels will be removed from each selected item.",
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                required: true,
-                dropdownOptions: labelDropdownOptions,
-              },
-            ],
-          }}
-        />
-      )}
+              ],
+            }}
+          />
+        ))}
     </>
   );
 
