@@ -24,6 +24,7 @@ import Service from "./Service";
 import Host from "./Host";
 import DockerHost from "./DockerHost";
 import KubernetesCluster from "./KubernetesCluster";
+import ServerlessFunction from "./ServerlessFunction";
 
 @EnableDocumentation()
 @CanAccessIfCanReadOn("service")
@@ -71,7 +72,10 @@ import KubernetesCluster from "./KubernetesCluster";
  * of those resource types, and includeProjectScope lets in-project users
  * see the unattributed bucket (which has no owner resource).
  */
-@OwnedThrough("serviceId", [Service, Host, DockerHost, KubernetesCluster], {
+@OwnedThrough(
+  "serviceId",
+  [Service, Host, DockerHost, KubernetesCluster, ServerlessFunction],
+  {
   includeProjectScope: true,
 })
 @Entity({

@@ -224,6 +224,15 @@ const HostRoutes: React.LazyExoticComponent<AllRoutesModule["HostRoutes"]> =
       };
     });
   });
+const ServerlessRoutes: React.LazyExoticComponent<
+  AllRoutesModule["ServerlessRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+    return {
+      default: m.ServerlessRoutes,
+    };
+  });
+});
 const CodeRepositoryRoutes: React.LazyExoticComponent<
   AllRoutesModule["CodeRepositoryRoutes"]
 > = lazy(() => {
@@ -615,6 +624,12 @@ const App: () => JSX.Element = () => {
           <PageRoute
             path={RouteMap[PageMap.HOST_ROOT]?.toString() || ""}
             element={<HostRoutes {...commonPageProps} />}
+          />
+
+          {/* Serverless Functions */}
+          <PageRoute
+            path={RouteMap[PageMap.SERVERLESS_ROOT]?.toString() || ""}
+            element={<ServerlessRoutes {...commonPageProps} />}
           />
 
           {/* Code Repository */}

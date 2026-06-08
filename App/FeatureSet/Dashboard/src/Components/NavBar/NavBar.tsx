@@ -195,6 +195,17 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       iconColor: "slate",
       category: resourcesCategory,
     },
+    {
+      title: t("navbar.items.serverlessTitle"),
+      description: t("navbar.items.serverlessDescription"),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SERVERLESS_FUNCTIONS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.SERVERLESS_FUNCTIONS],
+      icon: IconProp.Bolt,
+      iconColor: "blue",
+      category: resourcesCategory,
+    },
     // Automation & Analytics
     {
       title: t("navbar.items.dashboardsTitle"),

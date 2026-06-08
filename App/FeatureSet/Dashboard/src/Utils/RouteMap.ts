@@ -162,6 +162,14 @@ export const HostRoutePath: Dictionary<string> = {
   [PageMap.HOST_SETTINGS_LABEL_RULES]: `settings/label-rules`,
 };
 
+export const ServerlessRoutePath: Dictionary<string> = {
+  [PageMap.SERVERLESS_FUNCTION_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.SERVERLESS_FUNCTION_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.SERVERLESS_FUNCTION_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.SERVERLESS_FUNCTION_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+  [PageMap.SERVERLESS_FUNCTION_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+};
+
 export const WorkflowRoutePath: Dictionary<string> = {
   [PageMap.WORKFLOWS_LOGS]: "logs",
   [PageMap.WORKFLOWS_VARIABLES]: "variables",
@@ -2394,6 +2402,45 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.HOST_SETTINGS_LABEL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/host/${
       HostRoutePath[PageMap.HOST_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  // Serverless Functions
+  [PageMap.SERVERLESS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/*`,
+  ),
+
+  [PageMap.SERVERLESS_FUNCTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless`,
+  ),
+
+  [PageMap.SERVERLESS_FUNCTION_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW]
+    }`,
+  ),
+
+  [PageMap.SERVERLESS_FUNCTION_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.SERVERLESS_FUNCTION_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.SERVERLESS_FUNCTION_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_TRACES]
+    }`,
+  ),
+
+  [PageMap.SERVERLESS_FUNCTION_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_DELETE]
     }`,
   ),
 

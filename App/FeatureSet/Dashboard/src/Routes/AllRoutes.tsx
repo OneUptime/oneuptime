@@ -25,6 +25,7 @@ export { default as CodeRepositoryRoutes } from "./CodeRepositoryRoutes";
 export { default as KubernetesRoutes } from "./KubernetesRoutes";
 export { default as DockerRoutes } from "./DockerRoutes";
 export { default as HostRoutes } from "./HostRoutes";
+export { default as ServerlessRoutes } from "./ServerlessRoutes";
 export { default as AIAgentTasksRoutes } from "./AIAgentTasksRoutes";
 
 // Settings
