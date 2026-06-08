@@ -226,22 +226,31 @@ export function buildKubernetesMonitorConfig(args: {
  * grouped by a single OpenTelemetry attribute so one incident fires per
  * group (e.g. per node).
  *
- * Used for saturation metrics that aren't emitted as a single series —
- * notably node request utilization, which the kubeletstats receiver does
- * NOT expose at the node level (it only has container/pod request
- * utilization). We derive it from two metrics the `k8s_cluster` receiver
- * already collects by default: summed container requests over node
- * allocatable.
+ * Used for saturation metrics that aren't emitted as a single ready-made
+ * series — e.g. node request utilization (summed pod requests ÷ node
+ * allocatable) and node usage utilization (node usage ÷ node allocatable),
+ * neither of which the kubeletstats receiver exposes as a percentage.
  *
- * IMPORTANT — both queries MUST use `Sum`. The per-series worker buckets
- * raw rows by (group, minute) and sums every row in the bucket, which
- * counts each series once per scrape in that minute. Using `Sum` on both
- * the numerator (one row per container per scrape) and the denominator
- * (one row per node per scrape) makes the scrape multiple cancel in the
- * ratio: `(Σrequests × scrapes) / (allocatable × scrapes)`. Any other
- * aggregation on the denominator would leave the scrape factor in and
- * inflate the percentage. Both metrics ride the same `k8s_cluster`
- * scrape, so their per-minute row counts match.
+ * Aggregation (`aggregationType`, default `Sum`) — the per-series worker
+ * buckets raw rows by (group, minute) and applies this aggregation to
+ * EVERY row in the bucket, i.e. across both the grouped entities AND the
+ * scrapes in that minute. Pick it based on the numerator:
+ *
+ *   - `Sum` when the numerator must be totalled across multiple series per
+ *     group (e.g. summing every container's request on a node). The scrape
+ *     multiple then has to cancel, so numerator and denominator must ride
+ *     the SAME receiver/scrape — true for the request-utilization
+ *     templates, where both metrics come from `k8s_cluster`:
+ *     `(Σrequests × scrapes) / (allocatable × scrapes)`.
+ *
+ *   - `Avg` when the numerator is already ONE series per group (e.g.
+ *     `k8s.node.cpu.usage`). Avg yields the representative per-minute value
+ *     independent of scrape count, so it stays correct even when numerator
+ *     and denominator come from DIFFERENT receivers on independent scrape
+ *     cycles (node usage is from the kubeletstats DaemonSet; allocatable is
+ *     from the `k8s_cluster` Deployment). `Sum` there would only cancel if
+ *     both reported the same row count every minute — fragile across
+ *     restarts / missed scrapes / minute-boundary jitter.
  *
  * The group-by key is the ClickHouse-stored attribute name, which carries
  * the `resource.` prefix for OTel resource attributes (see
@@ -260,7 +269,11 @@ export function buildKubernetesRatioMonitorConfig(args: {
   resultLegend: string;
   resourceScope: KubernetesResourceScope;
   rollingTime: RollingTime;
+  aggregationType?: MetricsAggregationType | undefined;
 }): MonitorStepKubernetesMonitor {
+  const aggregationType: MetricsAggregationType =
+    args.aggregationType || MetricsAggregationType.Sum;
+
   const buildQueryConfig: (alias: string, metricName: string) => any = (
     alias: string,
     metricName: string,
@@ -277,7 +290,7 @@ export function buildKubernetesRatioMonitorConfig(args: {
         filterData: {
           metricName: metricName,
           attributes: {},
-          aggegationType: MetricsAggregationType.Sum,
+          aggegationType: aggregationType,
           aggregateBy: {},
         },
         groupByAttributeKeys: [args.groupByAttributeKey],
@@ -448,19 +461,29 @@ const nodeNotReadyTemplate: KubernetesAlertTemplate = {
 const highCpuTemplate: KubernetesAlertTemplate = {
   id: "k8s-high-cpu",
   name: "High Node CPU Utilization",
-  description: "Alert when node CPU utilization exceeds 90% sustained.",
+  description:
+    "Alert when a node's average CPU usage exceeds 90% of its allocatable CPU. Computed per node as k8s.node.cpu.usage ÷ k8s.node.allocatable_cpu × 100 — both are cores, so this is a true percentage (the raw k8s.node.cpu.utilization metric is a misnamed cores gauge, not a percent).",
   category: "Node",
   severity: "Warning",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
-    const metricAlias: string = "node_cpu";
+    const metricAlias: string = "node_cpu_utilization";
 
     return buildKubernetesMonitorStep({
-      kubernetesMonitor: buildKubernetesMonitorConfig({
+      kubernetesMonitor: buildKubernetesRatioMonitorConfig({
         clusterIdentifier: args.clusterIdentifier,
-        metricName: "k8s.node.cpu.utilization",
-        metricAlias,
+        numeratorMetricName: "k8s.node.cpu.usage",
+        denominatorMetricName: "k8s.node.allocatable_cpu",
+        groupByAttributeKey: "resource.k8s.node.name",
+        numeratorAlias: "used_cpu",
+        denominatorAlias: "alloc_cpu",
+        resultAlias: metricAlias,
+        resultLegend: "Node CPU Utilization (%)",
         resourceScope: KubernetesResourceScope.Node,
         rollingTime: RollingTime.Past5Minutes,
+        // Single series per node from two DIFFERENT receivers (usage =
+        // kubeletstats, allocatable = k8s_cluster) — Avg keeps the per-minute
+        // ratio correct regardless of each receiver's scrape count. See
+        // buildKubernetesRatioMonitorConfig.
         aggregationType: MetricsAggregationType.Avg,
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
@@ -472,10 +495,10 @@ const highCpuTemplate: KubernetesAlertTemplate = {
         filterType: FilterType.GreaterThan,
         value: 90,
         incidentTitle: `[K8s] High CPU Utilization (>90%) - ${args.monitorName}`,
-        incidentDescription: `Node CPU utilization has exceeded 90% in the Kubernetes cluster. Sustained high CPU usage can cause pod throttling, increased latency, and potential node instability. Check the root cause for the specific node and top CPU-consuming workloads.`,
+        incidentDescription: `A node's average CPU usage has exceeded 90% of its allocatable CPU. Sustained high CPU usage can cause pod throttling, increased latency, and potential node instability. Check the root cause for the specific node and top CPU-consuming workloads.`,
         criteriaName: "High CPU - Utilization > 90%",
         criteriaDescription:
-          "Triggers when average node CPU utilization exceeds 90% over the monitoring window.",
+          "Triggers when a node's average CPU usage exceeds 90% of its allocatable CPU over the monitoring window.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -490,19 +513,29 @@ const highCpuTemplate: KubernetesAlertTemplate = {
 const highMemoryTemplate: KubernetesAlertTemplate = {
   id: "k8s-high-memory",
   name: "High Node Memory Utilization",
-  description: "Alert when node memory utilization exceeds 85% sustained.",
+  description:
+    "Alert when a node's average memory usage exceeds 85% of its allocatable memory. Computed per node as k8s.node.memory.usage ÷ k8s.node.allocatable_memory × 100 — both are bytes, so this is a true percentage (the raw k8s.node.memory.usage metric is bytes, not a percent).",
   category: "Node",
   severity: "Warning",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
-    const metricAlias: string = "node_memory";
+    const metricAlias: string = "node_memory_utilization";
 
     return buildKubernetesMonitorStep({
-      kubernetesMonitor: buildKubernetesMonitorConfig({
+      kubernetesMonitor: buildKubernetesRatioMonitorConfig({
         clusterIdentifier: args.clusterIdentifier,
-        metricName: "k8s.node.memory.usage",
-        metricAlias,
+        numeratorMetricName: "k8s.node.memory.usage",
+        denominatorMetricName: "k8s.node.allocatable_memory",
+        groupByAttributeKey: "resource.k8s.node.name",
+        numeratorAlias: "used_mem",
+        denominatorAlias: "alloc_mem",
+        resultAlias: metricAlias,
+        resultLegend: "Node Memory Utilization (%)",
         resourceScope: KubernetesResourceScope.Node,
         rollingTime: RollingTime.Past5Minutes,
+        // Single series per node from two DIFFERENT receivers (usage =
+        // kubeletstats, allocatable = k8s_cluster) — Avg keeps the per-minute
+        // ratio correct regardless of each receiver's scrape count. See
+        // buildKubernetesRatioMonitorConfig.
         aggregationType: MetricsAggregationType.Avg,
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
@@ -514,10 +547,10 @@ const highMemoryTemplate: KubernetesAlertTemplate = {
         filterType: FilterType.GreaterThan,
         value: 85,
         incidentTitle: `[K8s] High Memory Utilization (>85%) - ${args.monitorName}`,
-        incidentDescription: `Node memory utilization has exceeded 85% in the Kubernetes cluster. High memory usage can lead to OOMKilled pods, node instability, and potential evictions. Check the root cause for the specific node and top memory-consuming workloads.`,
+        incidentDescription: `A node's average memory usage has exceeded 85% of its allocatable memory. High memory usage can lead to OOMKilled pods, node instability, and potential evictions. Check the root cause for the specific node and top memory-consuming workloads.`,
         criteriaName: "High Memory - Utilization > 85%",
         criteriaDescription:
-          "Triggers when average node memory utilization exceeds 85% over the monitoring window.",
+          "Triggers when a node's average memory usage exceeds 85% of its allocatable memory over the monitoring window.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
