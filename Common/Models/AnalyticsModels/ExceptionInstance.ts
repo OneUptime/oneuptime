@@ -80,6 +80,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
 
     const serviceTypeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "serviceType",
+      isLowCardinality: true,
       title: "Service Type",
       description:
         "Discriminator for serviceId — tells the read side which resource table to dispatch to",

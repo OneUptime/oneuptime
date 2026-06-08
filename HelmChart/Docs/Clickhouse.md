@@ -165,8 +165,9 @@ The Altinity operator has **no built-in snapshot backup** (unlike the Postgres /
 CloudNativePG path). For backups, use
 [clickhouse-backup](https://github.com/Altinity/clickhouse-backup) (full/incremental
 backups to object storage), run as a sidecar or CronJob against the CHI pods. The
-system-log tables are already capped with a 6-hour TTL (see
-`clickhouseOperator.altinity.settings`) so they do not grow unbounded.
+operator defines the system-log tables with a bounded (~30-day) TTL `<engine>`, and the
+chart additionally disables `processors_profile_log` by default (see
+`clickhouseOperator.altinity.files`), so they do not grow unbounded.
 
 #### Migrating existing StatefulSet data into the operator
 

@@ -6,6 +6,7 @@ import ClickhouseDatabase, {
 } from "../Infrastructure/ClickhouseDatabase";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
 import CountBy from "../Types/AnalyticsDatabase/CountBy";
+import ExistsBy from "../Types/AnalyticsDatabase/ExistsBy";
 import CreateBy from "../Types/AnalyticsDatabase/CreateBy";
 import CreateManyBy from "../Types/AnalyticsDatabase/CreateManyBy";
 import DeleteBy from "../Types/AnalyticsDatabase/DeleteBy";
@@ -182,6 +183,16 @@ export default class AnalyticsDatabaseService<
       dbResult.stream,
     );
 
+    /*
+     * Unwrap LowCardinality(...) first so dictionary-encoded columns
+     * (e.g. LowCardinality(String), LowCardinality(Nullable(String)))
+     * map back to their logical type instead of falling through to null.
+     */
+    if (strResult.includes("LowCardinality(")) {
+      const inner: string = strResult.split("LowCardinality(")[1] as string;
+      strResult = inner.substring(0, inner.lastIndexOf(")"));
+    }
+
     // if strResult includes Nullable(type) then extract type.
 
     if (strResult.includes("Nullable")) {
@@ -267,6 +278,46 @@ export default class AnalyticsDatabaseService<
     }
   }
 
+  /**
+   * Returns whether at least one row matches the query, without counting
+   * every match. Prefer this over `countBy(...).toNumber() === 0` for
+   * existence checks: `count()` scans every matching row, whereas this
+   * issues `SELECT 1 ... LIMIT 1`, which lets ClickHouse short-circuit at
+   * the first matching granule — dramatically cheaper on large tables
+   * (Metric / Span / Log).
+   */
+  @CaptureSpan()
+  public async existsBy(existsBy: ExistsBy<TBaseModel>): Promise<boolean> {
+    try {
+      const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
+        await ModelPermission.checkReadPermission(
+          this.modelType,
+          existsBy.query,
+          null,
+          existsBy.props,
+        );
+
+      existsBy.query = checkReadPermissionType.query;
+
+      const existsStatement: Statement = this.toExistsStatement(existsBy);
+
+      const dbResult: ResultSet<"JSON"> =
+        await this.executeQuery(existsStatement);
+
+      const resultInJSON: ResponseJSON<JSONObject> =
+        await dbResult.json<JSONObject>();
+
+      return Boolean(
+        resultInJSON.data &&
+          Array.isArray(resultInJSON.data) &&
+          resultInJSON.data.length > 0,
+      );
+    } catch (error) {
+      await this.onFindError(error as Exception);
+      throw this.getException(error as Exception);
+    }
+  }
+
   @CaptureSpan()
   public async addColumnInDatabase(
     column: AnalyticsTableColumn,
@@ -333,6 +384,29 @@ export default class AnalyticsDatabaseService<
     }
 
     return (rows[0]!["compression_codec"] as string) || "";
+  }
+
+  /**
+   * The exact ClickHouse type string for a column as stored in the DB
+   * (e.g. "String", "Nullable(Int32)", "LowCardinality(Nullable(String))").
+   * Returns "" if the column does not exist. Used by migrations that need to
+   * re-state a column's type in a MODIFY COLUMN without guessing it.
+   */
+  public async getColumnDatabaseType(columnName: string): Promise<string> {
+    const tableName: string = this.model.tableName;
+    const result: { data: Array<JSONObject> } = await (
+      await this.executeQuery(
+        `SELECT type FROM system.columns WHERE database = currentDatabase() AND table = '${tableName}' AND name = '${columnName}'`,
+      )
+    ).json();
+
+    const rows: Array<JSONObject> = result.data || [];
+
+    if (rows.length === 0) {
+      return "";
+    }
+
+    return (rows[0]!["type"] as string) || "";
   }
 
   public async setColumnCodecIfNotSet(data: {
@@ -836,6 +910,44 @@ export default class AnalyticsDatabaseService<
     );
 
     logger.debug(`${this.model.tableName} Count Statement`, { tableName: this.model.tableName } as LogAttributes);
+    logger.debug(statement, { tableName: this.model.tableName } as LogAttributes);
+
+    return statement;
+  }
+
+  public toExistsStatement(existsBy: ExistsBy<TBaseModel>): Statement {
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string = this.database.getDatasourceOptions().database!;
+
+    const whereStatement: Statement = this.statementGenerator.toWhereStatement(
+      existsBy.query,
+    );
+
+    /*
+     * `SELECT 1 ... LIMIT 1` so ClickHouse stops at the first matching
+     * row instead of scanning every match like count() does. The
+     * max_execution_time cap is defense in depth; unlike the count and
+     * find statements we deliberately do NOT set timeout_overflow_mode
+     * = 'break' here, because a partial (empty) result would be read as
+     * "does not exist" — a false negative that could, for example, let a
+     * caller insert a duplicate. A LIMIT 1 over the sort key never gets
+     * near this cap in practice; if it ever did, throwing is the safe
+     * outcome.
+     */
+    /* eslint-disable prettier/prettier */
+    const statement: Statement = SQL`
+            SELECT 1 as existsFlag
+            FROM ${databaseName}.${this.model.tableName}
+            WHERE TRUE `.append(whereStatement);
+
+    statement.append(SQL` LIMIT 1`);
+
+    statement.append(" SETTINGS max_execution_time = 45");
+
+    logger.debug(`${this.model.tableName} Exists Statement`, { tableName: this.model.tableName } as LogAttributes);
     logger.debug(statement, { tableName: this.model.tableName } as LogAttributes);
 
     return statement;

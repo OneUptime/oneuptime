@@ -256,84 +256,12 @@ continuous WAL archiving (full PITR).
 ### Migrating existing StatefulSet data into CloudNativePG
 
 Turning on `postgresOperator.cnpg.enabled` bootstraps a **fresh, empty**
-cluster — it does not copy data from the existing `StatefulSet`. There is no supported way to hand the
-operator your existing PV in place (different PVC ownership, a `pgdata`
-sub-directory layout, and a different runtime UID). Use one of these one-time
-migrations instead, keeping the old `StatefulSet` running until cutover.
+cluster — it does **not** copy data from the existing standalone `StatefulSet`
+(different PVC ownership, a `pgdata` sub-directory layout, and a different runtime
+UID mean there's no supported in-place PV hand-off). The full step-by-step
+migration runbook — operator-native logical import, `pg_basebackup`, and manual
+`pg_dump`/`pg_restore`, plus quiescing, verification, rollback, and cleanup —
+lives in its own doc:
 
-**Option A — logical import (recommended).** Apply a one-off `Cluster` that
-imports over the network with `pg_dump`/`pg_restore`. Version-flexible; downtime
-≈ dump/restore time. Keep the old StatefulSet (`postgresql.enabled: true`,
-`postgresOperator.cnpg.enabled: false`) running while this completes, then cut
-the app over.
-
-```yaml
-apiVersion: postgresql.cnpg.io/v1
-kind: Cluster
-metadata:
-  name: oneuptime-postgresql-cnpg
-spec:
-  instances: 1                       # scale up AFTER recovery is healthy
-  imageName: ghcr.io/cloudnative-pg/postgresql:17.4   # match/upgrade your major
-  storage:
-    size: 25Gi
-  superuserSecret:
-    name: oneuptime-postgresql-cnpg-superuser
-  enableSuperuserAccess: true
-  bootstrap:
-    initdb:
-      import:
-        type: microservice
-        databases: ["oneuptimedb"]
-        source:
-          externalCluster: old-statefulset
-  externalClusters:
-    - name: old-statefulset
-      connectionParameters:
-        host: oneuptime-postgresql      # the existing StatefulSet service
-        user: postgres
-        dbname: oneuptimedb
-      password:
-        name: oneuptime-postgresql      # existing secret
-        key: postgres-password
-```
-
-**Option B — `pg_basebackup` (minimal downtime, physical clone).** Requires the
-**same major version** as the source. Set `bootstrap.pg_basebackup` instead of
-`initdb.import`, pointing at the same `externalClusters` entry. Note: the
-StatefulSet's `pg_hba.conf` uses `host all all ...`, which does **not** match
-replication connections — add `host replication all 0.0.0.0/0 md5` to
-`postgresql.primary.hbaConfiguration` on the source first, or basebackup is
-rejected.
-
-After either migration completes and the new cluster is healthy, switch the
-release to operator mode (`postgresOperator.cnpg.enabled: true`) so the app
-points at `<release>-postgresql-cnpg-rw`, scale `instances` up for HA, then
-decommission the old StatefulSet and its PVC.
-
-**Option C — manual logical dump/restore (when both ends can't talk directly).**
-If the operator can't reach the old StatefulSet over the network (e.g. you've
-already torn it down and only the PVC remains), bring the old data up in a throw-
-away pod that mounts the retained PVC (`postgres:<old-tag>`, `PGDATA=/var/lib/
-postgresql/data/data`, same `runAsUser`), expose it as a `Service`, then
-`pg_dump`/`pg_restore` between the two. Two pitfalls that silently corrupt the
-migration:
-
-* **Never pipe `pg_dump` through `kubectl exec` stdout** (`kubectl exec ...
-  pg_dump -Fc > local.dump`). Large binary stdout gets its tail **silently
-  truncated** — the archive looks fine to `pg_restore --list` (TOC is at the
-  front) but fails partway through restore with `could not read from input file:
-  end of file`. Instead run `pg_dump -Fc -f <file>` writing to a file *inside* a
-  pod, reading the source over a normal libpq TCP connection, and verify the
-  archive end-to-end with `pg_restore -f /dev/null <file>` (exit 0 = complete)
-  before restoring. Streaming data *into* a pod via `kubectl exec -i 'cat >
-  file'` is reliable (checksum it to confirm).
-* **`pg_restore` of a custom-format dump needs a seekable file** — it can't read
-  one from a stdin pipe (same EOF error). Always restore from a file on disk.
-
-Verify success by comparing per-table row counts between source and target
-(`SELECT relname, n_live_tup ...`, or exact `count(*)` for each table) before
-cutting the app over. To stop application writes during the dump, use
-`--set deployment.disableDeployments=true` (this also removes the KEDA
-`ScaledObject`s — a plain `kubectl scale` is reverted by KEDA min replicas).
+➡️ **[Migrating PostgreSQL: Standalone → CloudNativePG Operator](./MigratePostgresStandaloneToOperator.md)**
 

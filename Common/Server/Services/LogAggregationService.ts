@@ -524,6 +524,15 @@ export class LogAggregationService {
 
     statement.append(" ORDER BY bucket ASC");
 
+    /*
+     * Defense in depth: cap runtime below the client's 58s request_timeout
+     * (matches the histogram / facet paths above). 'break' returns partial
+     * aggregated results rather than holding a pool connection.
+     */
+    statement.append(
+      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+    );
+
     return statement;
   }
 
@@ -591,6 +600,14 @@ export class LogAggregationService {
       }}`,
     );
 
+    /*
+     * Cap runtime below the client's 58s request_timeout; 'break' returns
+     * partial results (matches the histogram / facet paths).
+     */
+    statement.append(
+      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+    );
+
     return statement;
   }
 
@@ -645,6 +662,14 @@ export class LogAggregationService {
         type: TableColumnType.Number,
         value: limit,
       }}`,
+    );
+
+    /*
+     * Cap runtime below the client's 58s request_timeout; 'break' returns
+     * partial results (matches the histogram / facet paths).
+     */
+    statement.append(
+      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
     );
 
     return statement;
@@ -782,6 +807,14 @@ export class LogAggregationService {
         type: TableColumnType.Number,
         value: maxLimit,
       }}`,
+    );
+
+    /*
+     * Cap runtime below the client's 58s request_timeout; 'break' returns
+     * partial rows rather than holding a pool connection on a large export.
+     */
+    statement.append(
+      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
     );
 
     const dbResult: Results = await LogDatabaseService.executeQuery(statement);
@@ -926,6 +959,14 @@ export class LogAggregationService {
 
     LogAggregationService.appendCommonFilters(totalStatement, request);
 
+    /*
+     * Cap the count scan below the client's 58s request_timeout; 'break'
+     * returns a partial (lower-bound) count, acceptable for an estimate.
+     */
+    totalStatement.append(
+      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+    );
+
     // Get matching count using the filter query as body search
     const matchStatement: Statement = SQL`
       SELECT count() AS cnt
@@ -948,6 +989,14 @@ export class LogAggregationService {
       ...request,
       bodySearchText: request.filterQuery,
     });
+
+    /*
+     * Cap the count scan below the client's 58s request_timeout; 'break'
+     * returns a partial (lower-bound) count, acceptable for an estimate.
+     */
+    matchStatement.append(
+      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+    );
 
     const [totalResult, matchResult] = await Promise.all([
       LogDatabaseService.executeQuery(totalStatement),

@@ -81,6 +81,7 @@ export default class Log extends AnalyticsBaseModel {
 
     const serviceTypeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "serviceType",
+      isLowCardinality: true,
       title: "Service Type",
       description:
         "Discriminator for serviceId — tells the read side which resource table to dispatch to",
@@ -175,6 +176,7 @@ export default class Log extends AnalyticsBaseModel {
 
     const severityTextColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "severityText",
+      isLowCardinality: true,
       title: "Severity Text",
       description: "Log Severity Text",
       required: true,
@@ -241,6 +243,7 @@ export default class Log extends AnalyticsBaseModel {
 
     const attributesColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "attributes",
+      codec: { codec: "ZSTD", level: 3 },
       title: "Attributes",
       description: "Attributes",
       required: true,
@@ -271,6 +274,7 @@ export default class Log extends AnalyticsBaseModel {
 
     const attributeKeysColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "attributeKeys",
+      codec: { codec: "ZSTD", level: 3 },
       title: "Attribute Keys",
       description: "Attribute keys extracted from attributes",
       required: true,

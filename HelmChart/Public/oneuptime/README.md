@@ -128,6 +128,10 @@ The following table lists the configurable parameters of the OneUptime chart and
 
 ## Using External Databases
 
+> **Migrating from a standalone database to an operator?** Step-by-step runbooks:
+> [PostgreSQL: Standalone → CloudNativePG](../../Docs/MigratePostgresStandaloneToOperator.md)
+> and [ClickHouse: Standalone → Altinity operator](../../Docs/MigrateClickhouseStandaloneToOperator.md).
+
 ### PostgreSQL
 
 OneUptime includes a built-in PostgreSQL deployment using the official PostgreSQL Docker image. PostgreSQL is used for storing application data, user data, and configuration.
@@ -258,7 +262,7 @@ This configures the cluster for CSI snapshot backups and creates a `ScheduledBac
 
 > **Bundled-operator notes.** The CloudNativePG operator is cluster-scoped and owns the CloudNativePG CRDs. Do not enable it in more than one OneUptime release per cluster, and note that `helm uninstall` can remove the CRDs (and cascade-delete clusters) — back up first. Tune the operator itself under the top-level `cloudnative-pg:` values.
 
-Enabling the operator bootstraps a **fresh, empty** cluster — it does not migrate data from an existing StatefulSet. See [Docs/Postgres.md](../../Docs/Postgres.md) for the migration runbook and day-2 operations.
+Enabling the operator bootstraps a **fresh, empty** cluster — it does not migrate data from an existing StatefulSet. Follow the step-by-step [Standalone → CloudNativePG migration runbook](../../Docs/MigratePostgresStandaloneToOperator.md) to move your data, and see [Docs/Postgres.md](../../Docs/Postgres.md) for day-2 operations.
 
 ### Redis
 
@@ -383,7 +387,7 @@ clickhouseOperator:
       replicas: 3        # Keeper quorum (1 for dev, 3/5 for production)
 ```
 
-When `clickhouseOperator.altinity.enabled` is `true`, the built-in `clickhouse` StatefulSet/Service/ConfigMap are not rendered, and the OneUptime app connects (as the `oneuptime` user) to the operator-managed `ClickHouseInstallation`'s root service `<release>-clickhouse-altinity` on port `8123`. A ClickHouse Keeper ensemble (`<release>-clickhouse-keeper`) is created to coordinate replication; bring your own ZooKeeper/Keeper instead with `clickhouseOperator.altinity.zookeeper.nodes`. See [Docs/Clickhouse.md](../../Docs/Clickhouse.md) for scaling, backups (via [clickhouse-backup](https://github.com/Altinity/clickhouse-backup)), and migration.
+When `clickhouseOperator.altinity.enabled` is `true`, the built-in `clickhouse` StatefulSet/Service/ConfigMap are not rendered, and the OneUptime app connects (as the `oneuptime` user) to the operator-managed `ClickHouseInstallation`'s root service `<release>-clickhouse-altinity` on port `8123`. A ClickHouse Keeper ensemble (`<release>-clickhouse-keeper`) is created to coordinate replication; bring your own ZooKeeper/Keeper instead with `clickhouseOperator.altinity.zookeeper.nodes`. Follow the step-by-step [Standalone → Altinity operator migration runbook](../../Docs/MigrateClickhouseStandaloneToOperator.md) to move your data, and see [Docs/Clickhouse.md](../../Docs/Clickhouse.md) for scaling and backups (via [clickhouse-backup](https://github.com/Altinity/clickhouse-backup)).
 
 > **Bundled-operator notes.** The Altinity operator is cluster-scoped and owns the ClickHouse CRDs. Do not enable it in more than one OneUptime release per cluster. Tune the operator itself (including its management-user credentials) under the top-level `altinity-clickhouse-operator:` values.
 
