@@ -112,6 +112,7 @@ export default class Span extends AnalyticsBaseModel {
 
     const serviceTypeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "serviceType",
+      isLowCardinality: true,
       title: "Service Type",
       description:
         "Discriminator for serviceId — tells the read side which resource table to dispatch to",
@@ -664,6 +665,7 @@ export default class Span extends AnalyticsBaseModel {
 
     const kindColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "kind",
+      isLowCardinality: true,
       title: "Kind",
       description: "Kind of the span",
       required: false,

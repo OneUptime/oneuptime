@@ -12,6 +12,8 @@ import CommonModel, {
   RecordValue,
 } from "../../../Models/AnalyticsModels/AnalyticsBaseModel/CommonModel";
 import AnalyticsTableColumn, {
+  ColumnCodecConfig,
+  ColumnCodecValue,
   SkipIndexType,
 } from "../../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
@@ -986,30 +988,16 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
        */
       const keyStatement: string = column.key;
 
-      /*
-       * ClickHouse rejects `Nullable(AggregateFunction(...))`, so
-       * AggregateFunction columns always emit unwrapped — the engine
-       * already handles "no state yet" cases via the empty initial
-       * state of each aggregate function.
-       */
-      const isAggregateFunction: boolean =
-        column.type === TableColumnType.AggregateFunction;
       columns
         .append(keyStatement)
         .append(SQL` `)
-        .append(
-          column.required || isAggregateFunction
-            ? this.toColumnType(column)
-            : SQL`Nullable(`.append(this.toColumnType(column)).append(SQL`)`),
-        );
+        .append(this.toFullColumnType(column));
 
       // Append CODEC if specified
       if (column.codec) {
-        const codecStr: string =
-          column.codec.level !== undefined
-            ? `${column.codec.codec}(${column.codec.level})`
-            : column.codec.codec;
-        columns.append(` CODEC(${codecStr})`);
+        columns.append(
+          ` CODEC(${StatementGenerator.buildCodecString(column.codec)})`,
+        );
       }
     }
 
@@ -1120,6 +1108,51 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     return statement;
   }
 
+  /**
+   * Full ClickHouse type for a column, including the Nullable and
+   * LowCardinality wrappers. Wrapping order matters:
+   * `LowCardinality(Nullable(String))` — LowCardinality is the outermost
+   * wrapper. AggregateFunction columns are never wrapped (ClickHouse rejects
+   * `Nullable(AggregateFunction(...))`, and the engine already handles the
+   * empty initial state).
+   */
+  public toFullColumnType(column: AnalyticsTableColumn): Statement {
+    const isAggregateFunction: boolean =
+      column.type === TableColumnType.AggregateFunction;
+
+    let typeStatement: Statement = this.toColumnType(column);
+
+    if (!(column.required || isAggregateFunction)) {
+      typeStatement = SQL`Nullable(`.append(typeStatement).append(SQL`)`);
+    }
+
+    if (column.isLowCardinality && !isAggregateFunction) {
+      typeStatement = SQL`LowCardinality(`.append(typeStatement).append(SQL`)`);
+    }
+
+    return typeStatement;
+  }
+
+  /**
+   * Renders a column's codec into the string that goes inside CODEC(...).
+   * Accepts a single codec or an ordered pipeline; the pipeline is joined
+   * with ", " so [{codec:"DoubleDelta"},{codec:"ZSTD",level:1}] becomes
+   * "DoubleDelta, ZSTD(1)".
+   */
+  public static buildCodecString(codec: ColumnCodecValue): string {
+    const specs: Array<ColumnCodecConfig> = Array.isArray(codec)
+      ? codec
+      : [codec];
+
+    return specs
+      .map((spec: ColumnCodecConfig) => {
+        return spec.level !== undefined
+          ? `${spec.codec}(${spec.level})`
+          : spec.codec;
+      })
+      .join(", ");
+  }
+
   public toDoesColumnExistStatement(columnName: string): string {
     const statement: string = `SELECT name FROM system.columns WHERE table = '${
       this.model.tableName
@@ -1136,23 +1169,15 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     // Build column definition without skip index (indexes must be added separately via ADD INDEX)
     const columnDef: Statement = new Statement();
 
-    const isAggregateFunction: boolean =
-      column.type === TableColumnType.AggregateFunction;
     columnDef
       .append(column.key)
       .append(SQL` `)
-      .append(
-        column.required || isAggregateFunction
-          ? this.toColumnType(column)
-          : SQL`Nullable(`.append(this.toColumnType(column)).append(SQL`)`),
-      );
+      .append(this.toFullColumnType(column));
 
     if (column.codec) {
-      const codecStr: string =
-        column.codec.level !== undefined
-          ? `${column.codec.codec}(${column.codec.level})`
-          : column.codec.codec;
-      columnDef.append(` CODEC(${codecStr})`);
+      columnDef.append(
+        ` CODEC(${StatementGenerator.buildCodecString(column.codec)})`,
+      );
     }
 
     const statement: Statement = SQL`

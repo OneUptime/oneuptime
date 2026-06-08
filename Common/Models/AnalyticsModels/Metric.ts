@@ -94,6 +94,7 @@ export default class Metric extends AnalyticsBaseModel {
     // this can also be the monitor id or the telemetry service id.
     const serviceTypeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "serviceType",
+      isLowCardinality: true,
       title: "Service Type",
       description: "Type of the service that this telemetry belongs to",
       required: false,
@@ -130,6 +131,7 @@ export default class Metric extends AnalyticsBaseModel {
     // add name and description
     const nameColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "name",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Name",
       description: "Name of the Metric",
       required: true,
@@ -196,6 +198,7 @@ export default class Metric extends AnalyticsBaseModel {
     const metricPointTypeColumn: AnalyticsTableColumn =
       new AnalyticsTableColumn({
         key: "metricPointType",
+        isLowCardinality: true,
         title: "Metric Point Type",
         description: "Metric Point Type of this Metric",
         required: false,
@@ -232,6 +235,7 @@ export default class Metric extends AnalyticsBaseModel {
     // this is end time.
     const timeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "time",
+      codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
       title: "Time",
       description: "When did the Metric happen?",
       required: true,
@@ -261,6 +265,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const startTimeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "startTime",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Start Time",
       description: "When did the Metric happen?",
       required: false,
@@ -291,6 +296,7 @@ export default class Metric extends AnalyticsBaseModel {
     // end time.
     const timeUnixNanoColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "timeUnixNano",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Time (in Unix Nano)",
       description: "When did the Metric happen?",
       required: true,
@@ -321,6 +327,7 @@ export default class Metric extends AnalyticsBaseModel {
     const startTimeUnixNanoColumn: AnalyticsTableColumn =
       new AnalyticsTableColumn({
         key: "startTimeUnixNano",
+        codec: { codec: "ZSTD", level: 1 },
         title: "Start Time (in Unix Nano)",
         description: "When did the Metric happen?",
         required: false,
@@ -350,6 +357,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const attributesColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "attributes",
+      codec: { codec: "ZSTD", level: 3 },
       title: "Attributes",
       description: "Attributes",
       required: true,
@@ -380,6 +388,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const attributeKeysColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "attributeKeys",
+      codec: { codec: "ZSTD", level: 3 },
       title: "Attribute Keys",
       description: "Attribute keys extracted from attributes",
       required: true,
@@ -445,6 +454,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const countColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "count",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Count",
       description: "Count",
       required: false,
@@ -474,6 +484,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const sumColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "sum",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Sum",
       description: "Sum",
       required: false,
@@ -503,6 +514,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const valueColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "value",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Value",
       description: "Value",
       required: false,
@@ -532,6 +544,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const minColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "min",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Min",
       description: "Min",
       required: false,
@@ -561,6 +574,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const maxColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "max",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Max",
       description: "Max",
       required: false,
@@ -590,6 +604,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const bucketCountsColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "bucketCounts",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Bucket Counts",
       description: "Bucket Counts",
       required: true,
@@ -621,6 +636,7 @@ export default class Metric extends AnalyticsBaseModel {
     const explicitBoundsColumn: AnalyticsTableColumn = new AnalyticsTableColumn(
       {
         key: "explicitBounds",
+        codec: { codec: "ZSTD", level: 1 },
         title: "Explicit Bounds",
         description:
           "Upper bounds (exclusive of the +inf overflow bucket) for each explicit-bucket histogram bucket. Stored as Float64 so sub-integer boundaries (e.g. 0.005, 0.01) survive ingest — the previous Array(Int64) representation silently truncated those to 0.",
@@ -659,6 +675,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const scaleColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "scale",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Scale",
       description:
         "ExponentialHistogram resolution. base = 2^(2^-scale); bucket index `i` covers (base^i, base^(i+1)].",
@@ -689,6 +706,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const zeroCountColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "zeroCount",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Zero Count",
       description:
         "ExponentialHistogram count of values within the zero region (|v| <= zeroThreshold).",
@@ -720,6 +738,7 @@ export default class Metric extends AnalyticsBaseModel {
     const positiveOffsetColumn: AnalyticsTableColumn = new AnalyticsTableColumn(
       {
         key: "positiveOffset",
+        codec: { codec: "ZSTD", level: 1 },
         title: "Positive Bucket Offset",
         description:
           "Bucket index of the first entry in positiveBucketCounts (ExponentialHistogram).",
@@ -752,6 +771,7 @@ export default class Metric extends AnalyticsBaseModel {
     const positiveBucketCountsColumn: AnalyticsTableColumn =
       new AnalyticsTableColumn({
         key: "positiveBucketCounts",
+        codec: { codec: "ZSTD", level: 1 },
         title: "Positive Bucket Counts",
         description:
           "Counts for the positive range of an ExponentialHistogram, indexed from positiveOffset.",
@@ -784,6 +804,7 @@ export default class Metric extends AnalyticsBaseModel {
     const negativeOffsetColumn: AnalyticsTableColumn = new AnalyticsTableColumn(
       {
         key: "negativeOffset",
+        codec: { codec: "ZSTD", level: 1 },
         title: "Negative Bucket Offset",
         description:
           "Bucket index of the first entry in negativeBucketCounts (ExponentialHistogram).",
@@ -816,6 +837,7 @@ export default class Metric extends AnalyticsBaseModel {
     const negativeBucketCountsColumn: AnalyticsTableColumn =
       new AnalyticsTableColumn({
         key: "negativeBucketCounts",
+        codec: { codec: "ZSTD", level: 1 },
         title: "Negative Bucket Counts",
         description:
           "Counts for the negative range of an ExponentialHistogram, indexed from negativeOffset.",
@@ -855,6 +877,7 @@ export default class Metric extends AnalyticsBaseModel {
     const summaryQuantilesColumn: AnalyticsTableColumn =
       new AnalyticsTableColumn({
         key: "summaryQuantiles",
+        codec: { codec: "ZSTD", level: 1 },
         title: "Summary Quantiles",
         description:
           "Quantile percentages in [0,1] for a Summary metric (parallel to summaryValues).",
@@ -886,6 +909,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const summaryValuesColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "summaryValues",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Summary Values",
       description:
         "Values corresponding to each quantile in summaryQuantiles for a Summary metric.",
@@ -917,6 +941,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const traceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "traceId",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Trace ID",
       description:
         "Trace ID from an exemplar associated with this metric data point",
@@ -953,6 +978,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const spanIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "spanId",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Span ID",
       description:
         "Span ID from an exemplar associated with this metric data point",
@@ -989,6 +1015,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const retentionDateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "retentionDate",
+      codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
       title: "Retention Date",
       description:
         "Date after which this row is eligible for TTL deletion, computed at ingest time as time + service.retainTelemetryDataForDays",

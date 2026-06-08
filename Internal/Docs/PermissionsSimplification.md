@@ -206,6 +206,17 @@ One Postgres roundtrip resolves access for the whole request; the ClickHouse pre
 
 Existing per-data-type permissions stay (`ReadTelemetryServiceLog`, `ReadTelemetryServiceTraces`, `ReadTelemetryServiceMetrics`). `*AllOperationalResources` is additive on top — both paths grant access. Existing label-mode rows continue to work because the analytics path always evaluates scope before returning rows.
 
+### Interaction with the OpenTelemetry entity model (proposed)
+
+`OpenTelemetryEntities.md` proposes that each telemetry signal additionally carry an `entityKeys Array(String)` — the set of *all* OpenTelemetry entities (service, host, k8s.pod, container, ...) the row belongs to, not just its single primary owner. This does **not** change anything in this document:
+
+- **Authorization stays on `serviceId`.** The primary entity (`serviceId` / `serviceType`) remains the sole owner that governs access, via the same `@OwnedThrough("serviceId", Service, { includeProjectScope: true })` → `OwnerTableRegistry` (`canOwnTelemetry`) → `addOwnedScopeToQuery` path. The owner-scope filter is unchanged: `WHERE serviceId IN (:allowedIds)`.
+- **`entityKeys` is filter-only, never an authorization surface.** Cross-cutting reads (e.g. "all telemetry on host X") compile to `has(entityKeys, :entityKey) AND serviceId IN (:allowedIds)` — the membership predicate *narrows*, the owner-scope predicate *authorizes*. Owning a secondary entity (e.g. a host) does not grant read access to another team's service spans that merely ran on it.
+- **New primary-entity types are a registry change only.** If a new entity type can be a *primary* owner of telemetry, it is added to `OwnerTableRegistry` with `canOwnTelemetry: true`; `addOwnedScopeToQuery` needs no edit. Secondary-only types (pods/containers/processes that merely co-occur) own nothing.
+- An opt-in, per-entity-type *grant-through* mode (infra owners see all telemetry on their infra) is possible but **off by default**, for the security and performance reasons in `OpenTelemetryEntities.md` (§Permissions & Access Control).
+
+In short: entities add a query/filtering dimension on top of the owner model; they do not alter who owns a telemetry row.
+
 ---
 
 ## Edge Cases & Rules
