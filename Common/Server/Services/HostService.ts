@@ -195,6 +195,13 @@ export class Service extends DatabaseService<Model> {
       dockerHostId?: ObjectID | undefined;
       kubernetesClusterId?: ObjectID | undefined;
       agentVersion?: string | undefined;
+      deploymentEnvironment?: string | undefined;
+      runtimeName?: string | undefined;
+      runtimeVersion?: string | undefined;
+      cloudProvider?: string | undefined;
+      cloudPlatform?: string | undefined;
+      cloudRegion?: string | undefined;
+      cloudAccountId?: string | undefined;
     },
   ): Promise<void> {
     /*
@@ -267,6 +274,27 @@ export class Service extends DatabaseService<Model> {
     if (extra?.agentVersion) {
       data.agentVersion = extra.agentVersion;
     }
+    if (extra?.deploymentEnvironment) {
+      data.deploymentEnvironment = extra.deploymentEnvironment;
+    }
+    if (extra?.runtimeName) {
+      data.runtimeName = extra.runtimeName;
+    }
+    if (extra?.runtimeVersion) {
+      data.runtimeVersion = extra.runtimeVersion;
+    }
+    if (extra?.cloudProvider) {
+      data.cloudProvider = extra.cloudProvider;
+    }
+    if (extra?.cloudPlatform) {
+      data.cloudPlatform = extra.cloudPlatform;
+    }
+    if (extra?.cloudRegion) {
+      data.cloudRegion = extra.cloudRegion;
+    }
+    if (extra?.cloudAccountId) {
+      data.cloudAccountId = extra.cloudAccountId;
+    }
 
     await this.updateOneById({
       id: hostId,
@@ -291,6 +319,13 @@ export class Service extends DatabaseService<Model> {
     dockerHostId?: ObjectID | undefined;
     kubernetesClusterId?: ObjectID | undefined;
     agentVersion?: string | undefined;
+    deploymentEnvironment?: string | undefined;
+    runtimeName?: string | undefined;
+    runtimeVersion?: string | undefined;
+    cloudProvider?: string | undefined;
+    cloudPlatform?: string | undefined;
+    cloudRegion?: string | undefined;
+    cloudAccountId?: string | undefined;
   }): string {
     const normalized: Record<string, string | number | null> = {
       osType: extra?.osType ?? null,
@@ -306,6 +341,13 @@ export class Service extends DatabaseService<Model> {
       dockerHostId: extra?.dockerHostId?.toString() ?? null,
       kubernetesClusterId: extra?.kubernetesClusterId?.toString() ?? null,
       agentVersion: extra?.agentVersion ?? null,
+      deploymentEnvironment: extra?.deploymentEnvironment ?? null,
+      runtimeName: extra?.runtimeName ?? null,
+      runtimeVersion: extra?.runtimeVersion ?? null,
+      cloudProvider: extra?.cloudProvider ?? null,
+      cloudPlatform: extra?.cloudPlatform ?? null,
+      cloudRegion: extra?.cloudRegion ?? null,
+      cloudAccountId: extra?.cloudAccountId ?? null,
     };
 
     return crypto

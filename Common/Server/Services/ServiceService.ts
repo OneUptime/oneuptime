@@ -119,30 +119,117 @@ export class Service extends DatabaseService<Model> {
    * per batch instead of a DB write.
    */
   @CaptureSpan()
-  public async updateLastSeen(serviceId: ObjectID): Promise<void> {
+  public async updateLastSeen(
+    serviceId: ObjectID,
+    extra?: {
+      serviceVersion?: string | undefined;
+      deploymentEnvironment?: string | undefined;
+      serviceNamespace?: string | undefined;
+      runtimeName?: string | undefined;
+      runtimeVersion?: string | undefined;
+      cloudProvider?: string | undefined;
+      cloudPlatform?: string | undefined;
+      cloudRegion?: string | undefined;
+      cloudAccountId?: string | undefined;
+    },
+  ): Promise<void> {
+    /*
+     * Throttle keyed on a fingerprint of the metadata so the steady-state
+     * firehose (the same serviceId re-resolved every batch) costs one
+     * in-memory cache lookup, but a changed attribute (e.g. a new
+     * service.version after a deploy) busts the cache and writes
+     * immediately. With no extras the fingerprint is constant, preserving
+     * the original "refresh lastSeenAt at most once per window" behaviour.
+     */
     const cacheKey: string = serviceId.toString();
+    const fingerprint: string = this.fingerprintLastSeenExtras(extra);
     const cached: string | null = await GlobalCache.getString(
       LAST_SEEN_CACHE_NAMESPACE,
       cacheKey,
     );
 
-    if (cached) {
+    if (cached === fingerprint) {
       return;
     }
 
-    await GlobalCache.setString(LAST_SEEN_CACHE_NAMESPACE, cacheKey, "1", {
-      expiresInSeconds: LAST_SEEN_THROTTLE_SECONDS,
-    });
+    await GlobalCache.setString(
+      LAST_SEEN_CACHE_NAMESPACE,
+      cacheKey,
+      fingerprint,
+      {
+        expiresInSeconds: LAST_SEEN_THROTTLE_SECONDS,
+      },
+    );
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: any = {
+      lastSeenAt: OneUptimeDate.getCurrentDate(),
+    };
+
+    if (extra?.serviceVersion) {
+      data.serviceVersion = extra.serviceVersion;
+    }
+    if (extra?.deploymentEnvironment) {
+      data.deploymentEnvironment = extra.deploymentEnvironment;
+    }
+    if (extra?.serviceNamespace) {
+      data.serviceNamespace = extra.serviceNamespace;
+    }
+    if (extra?.runtimeName) {
+      data.runtimeName = extra.runtimeName;
+    }
+    if (extra?.runtimeVersion) {
+      data.runtimeVersion = extra.runtimeVersion;
+    }
+    if (extra?.cloudProvider) {
+      data.cloudProvider = extra.cloudProvider;
+    }
+    if (extra?.cloudPlatform) {
+      data.cloudPlatform = extra.cloudPlatform;
+    }
+    if (extra?.cloudRegion) {
+      data.cloudRegion = extra.cloudRegion;
+    }
+    if (extra?.cloudAccountId) {
+      data.cloudAccountId = extra.cloudAccountId;
+    }
 
     await this.updateOneById({
       id: serviceId,
-      data: {
-        lastSeenAt: OneUptimeDate.getCurrentDate(),
-      },
+      data: data,
       props: {
         isRoot: true,
       },
     });
+  }
+
+  private fingerprintLastSeenExtras(extra?: {
+    serviceVersion?: string | undefined;
+    deploymentEnvironment?: string | undefined;
+    serviceNamespace?: string | undefined;
+    runtimeName?: string | undefined;
+    runtimeVersion?: string | undefined;
+    cloudProvider?: string | undefined;
+    cloudPlatform?: string | undefined;
+    cloudRegion?: string | undefined;
+    cloudAccountId?: string | undefined;
+  }): string {
+    const normalized: Record<string, string | null> = {
+      serviceVersion: extra?.serviceVersion ?? null,
+      deploymentEnvironment: extra?.deploymentEnvironment ?? null,
+      serviceNamespace: extra?.serviceNamespace ?? null,
+      runtimeName: extra?.runtimeName ?? null,
+      runtimeVersion: extra?.runtimeVersion ?? null,
+      cloudProvider: extra?.cloudProvider ?? null,
+      cloudPlatform: extra?.cloudPlatform ?? null,
+      cloudRegion: extra?.cloudRegion ?? null,
+      cloudAccountId: extra?.cloudAccountId ?? null,
+    };
+
+    return crypto
+      .createHash("sha1")
+      .update(JSON.stringify(normalized))
+      .digest("hex");
   }
 
   /**

@@ -85,6 +85,93 @@ const projectRetentionInProcessCache: Map<string, CachedRetentionContext> =
   new Map();
 
 export default class OTelIngestService {
+  /*
+   * Read a single string-valued OTel resource attribute out of the raw
+   * OTLP attribute array (shape: [{ key, value: { stringValue } }]).
+   * Mirrors OtelIngestBaseService.getStringAttribute — duplicated here
+   * because that one is on the ingest-side base class and this read path
+   * (Service resolution) lives in Common.
+   */
+  private static getResourceStringAttribute(
+    attributes: JSONArray,
+    key: string,
+  ): string | null {
+    for (const attribute of attributes) {
+      if (
+        attribute["key"] === key &&
+        attribute["value"] &&
+        (attribute["value"] as JSONObject)["stringValue"]
+      ) {
+        const value: unknown = (attribute["value"] as JSONObject)["stringValue"];
+        if (typeof value === "string" && value.trim()) {
+          return value.trim();
+        }
+      }
+    }
+    return null;
+  }
+
+  /*
+   * Build the metadata captured onto the Service row from OTel resource
+   * attributes (service.version, deployment.environment, cloud.*, runtime.*).
+   * Returns undefined when no resource attributes are available so the
+   * caller falls back to a plain lastSeenAt touch.
+   */
+  private static buildServiceMetadataFromAttributes(
+    attributes: JSONArray | undefined,
+  ):
+    | {
+        serviceVersion?: string | undefined;
+        deploymentEnvironment?: string | undefined;
+        serviceNamespace?: string | undefined;
+        runtimeName?: string | undefined;
+        runtimeVersion?: string | undefined;
+        cloudProvider?: string | undefined;
+        cloudPlatform?: string | undefined;
+        cloudRegion?: string | undefined;
+        cloudAccountId?: string | undefined;
+      }
+    | undefined {
+    if (!attributes) {
+      return undefined;
+    }
+    return {
+      serviceVersion:
+        this.getResourceStringAttribute(attributes, "service.version") ||
+        undefined,
+      deploymentEnvironment:
+        this.getResourceStringAttribute(
+          attributes,
+          "deployment.environment.name",
+        ) ||
+        this.getResourceStringAttribute(attributes, "deployment.environment") ||
+        undefined,
+      serviceNamespace:
+        this.getResourceStringAttribute(attributes, "service.namespace") ||
+        undefined,
+      runtimeName:
+        this.getResourceStringAttribute(attributes, "process.runtime.name") ||
+        undefined,
+      runtimeVersion:
+        this.getResourceStringAttribute(
+          attributes,
+          "process.runtime.version",
+        ) || undefined,
+      cloudProvider:
+        this.getResourceStringAttribute(attributes, "cloud.provider") ||
+        undefined,
+      cloudPlatform:
+        this.getResourceStringAttribute(attributes, "cloud.platform") ||
+        undefined,
+      cloudRegion:
+        this.getResourceStringAttribute(attributes, "cloud.region") ||
+        undefined,
+      cloudAccountId:
+        this.getResourceStringAttribute(attributes, "cloud.account.id") ||
+        undefined,
+    };
+  }
+
   @CaptureSpan()
   private static async getProjectRetentionContext(
     projectId: ObjectID,
@@ -194,7 +281,10 @@ export default class OTelIngestService {
      * one in-memory cache lookup per batch.
      */
     try {
-      await ServiceService.updateLastSeen(result.serviceId);
+      await ServiceService.updateLastSeen(
+        result.serviceId,
+        this.buildServiceMetadataFromAttributes(data.resourceAttributes),
+      );
     } catch (err) {
       logger.warn(
         `telemetryServiceFromName lastSeen update failed for "${data.serviceName}": ${

@@ -211,4 +211,41 @@ export default class QueueWorkflow {
       });
     }
   }
+
+  /**
+   * Re-enqueue an in-flight workflow run after a Wait step, to be resumed once
+   * the delay elapses.
+   *
+   * Unlike `addWorkflowToQueue`, this does NOT create a new WorkflowLog (the
+   * run continues on the same log) and does NOT re-check plan limits — the run
+   * was already counted when it first started. The execution state to resume
+   * from is persisted on the WorkflowLog row (`resumeData`).
+   *
+   * The job id is suffixed with `jobIdDiscriminator` so it never collides with
+   * the currently-executing job (whose id is the bare workflowLogId) nor with
+   * resume jobs from earlier Wait steps in the same run.
+   */
+  public static async addResumeJobToQueue(props: {
+    workflowId: ObjectID;
+    workflowLogId: ObjectID;
+    delayInMs: number;
+    jobIdDiscriminator: string;
+  }): Promise<void> {
+    const workflowLogIdStr: string = props.workflowLogId.toString();
+
+    await Queue.addJob(
+      QueueName.Workflow,
+      `${workflowLogIdStr}-resume-${props.jobIdDiscriminator}`,
+      `${workflowLogIdStr}-resume`,
+      {
+        data: {},
+        workflowId: props.workflowId.toString(),
+        workflowLogId: workflowLogIdStr,
+        isResume: true,
+      },
+      {
+        delayInMs: props.delayInMs,
+      },
+    );
+  }
 }

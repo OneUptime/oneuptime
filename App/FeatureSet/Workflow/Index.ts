@@ -86,6 +86,7 @@ const WorkflowFeatureSet: FeatureSet = {
               timeout: WorkflowTimeoutInMs || 5000,
               callChain:
                 (job.data["callChain"] as Array<string> | undefined) || [],
+              isResume: job.data["isResume"] === true,
             });
           },
           { concurrency: 100 },

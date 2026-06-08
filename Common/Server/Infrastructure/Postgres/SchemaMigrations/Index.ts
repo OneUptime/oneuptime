@@ -367,6 +367,8 @@ import { MigrationName1780387560604 } from "./1780387560604-MigrationName";
 import { MigrationName1780388219225 } from "./1780388219225-MigrationName";
 import { AddMetricAndTraceSavedView1780645560183 } from "./1780645560183-AddMetricAndTraceSavedView";
 import { AddKubernetesLatestMemoryPercent1780651429467 } from "./1780651429467-AddKubernetesLatestMemoryPercent";
+import { AddResumeStateToWorkflowLog1780931746908 } from "./1780931746908-AddResumeStateToWorkflowLog";
+import { AddTelemetryResourceMetadataColumns1780931863719 } from "./1780931863719-AddTelemetryResourceMetadataColumns";
 
 export default [
   InitialMigration,
@@ -738,4 +740,6 @@ export default [
   MigrationName1780388219225,
   AddMetricAndTraceSavedView1780645560183,
   AddKubernetesLatestMemoryPercent1780651429467,
+  AddResumeStateToWorkflowLog1780931746908,
+  AddTelemetryResourceMetadataColumns1780931863719,
 ];

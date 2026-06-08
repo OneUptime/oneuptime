@@ -1124,6 +1124,21 @@ enum Permission {
   EditHostOwnerUser = "EditHostOwnerUser",
   ReadHostOwnerUser = "ReadHostOwnerUser",
 
+  CreateServerlessFunction = "CreateServerlessFunction",
+  DeleteServerlessFunction = "DeleteServerlessFunction",
+  EditServerlessFunction = "EditServerlessFunction",
+  ReadServerlessFunction = "ReadServerlessFunction",
+
+  CreateServerlessFunctionOwnerTeam = "CreateServerlessFunctionOwnerTeam",
+  DeleteServerlessFunctionOwnerTeam = "DeleteServerlessFunctionOwnerTeam",
+  EditServerlessFunctionOwnerTeam = "EditServerlessFunctionOwnerTeam",
+  ReadServerlessFunctionOwnerTeam = "ReadServerlessFunctionOwnerTeam",
+
+  CreateServerlessFunctionOwnerUser = "CreateServerlessFunctionOwnerUser",
+  DeleteServerlessFunctionOwnerUser = "DeleteServerlessFunctionOwnerUser",
+  EditServerlessFunctionOwnerUser = "EditServerlessFunctionOwnerUser",
+  ReadServerlessFunctionOwnerUser = "ReadServerlessFunctionOwnerUser",
+
   CreateService = "CreateService",
   DeleteService = "DeleteService",
   EditService = "EditService",
@@ -7273,6 +7288,129 @@ export class PermissionHelper {
         description: "This permission can read Docker Host of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateServerlessFunction,
+        title: "Create Serverless Function",
+        description:
+          "This permission can create Serverless Function of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteServerlessFunction,
+        title: "Delete Serverless Function",
+        description:
+          "This permission can delete Serverless Function of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditServerlessFunction,
+        title: "Edit Serverless Function",
+        description:
+          "This permission can edit Serverless Function of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadServerlessFunction,
+        title: "Read Serverless Function",
+        description:
+          "This permission can read Serverless Function of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateServerlessFunctionOwnerTeam,
+        title: "Create Serverless Function Team Owner",
+        description:
+          "This permission can create Serverless Function Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteServerlessFunctionOwnerTeam,
+        title: "Delete Serverless Function Team Owner",
+        description:
+          "This permission can delete Serverless Function Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditServerlessFunctionOwnerTeam,
+        title: "Edit Serverless Function Team Owner",
+        description:
+          "This permission can edit Serverless Function Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadServerlessFunctionOwnerTeam,
+        title: "Read Serverless Function Team Owner",
+        description:
+          "This permission can read Serverless Function Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateServerlessFunctionOwnerUser,
+        title: "Create Serverless Function User Owner",
+        description:
+          "This permission can create Serverless Function User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteServerlessFunctionOwnerUser,
+        title: "Delete Serverless Function User Owner",
+        description:
+          "This permission can delete Serverless Function User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditServerlessFunctionOwnerUser,
+        title: "Edit Serverless Function User Owner",
+        description:
+          "This permission can edit Serverless Function User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadServerlessFunctionOwnerUser,
+        title: "Read Serverless Function User Owner",
+        description:
+          "This permission can read Serverless Function User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },

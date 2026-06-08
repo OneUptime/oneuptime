@@ -15,6 +15,7 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import WorkflowStatus from "../../Types/Workflow/WorkflowStatus";
@@ -295,6 +296,57 @@ export default class WorkflowLog extends BaseModel {
     unique: false,
   })
   public completedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflowLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    title: "Resume At",
+    description:
+      "When this workflow run is scheduled to resume after a Wait step (only set while the run is Waiting).",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+    unique: false,
+  })
+  public resumeAt?: Date = undefined;
+
+  /*
+   * Internal. Serialized execution state (pending steps, executed steps and
+   * accumulated component return values) used to resume a workflow run after a
+   * Wait step. Never exposed via the API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    isDefaultValueColumn: false,
+    type: TableColumnType.JSON,
+    title: "Resume Data",
+    description:
+      "Internal serialized execution state used to resume a workflow run after a Wait step.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public resumeData?: JSONObject = undefined;
 
   @ColumnAccessControl({
     create: [],

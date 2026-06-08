@@ -984,6 +984,36 @@ export default abstract class OtelIngestBaseService {
             data.attributes,
             "oneuptime.agent.version",
           );
+          const deploymentEnvironment: string | null =
+            this.getStringAttribute(
+              data.attributes,
+              "deployment.environment.name",
+            ) ||
+            this.getStringAttribute(data.attributes, "deployment.environment");
+          const runtimeName: string | null = this.getStringAttribute(
+            data.attributes,
+            "process.runtime.name",
+          );
+          const runtimeVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "process.runtime.version",
+          );
+          const cloudProvider: string | null = this.getStringAttribute(
+            data.attributes,
+            "cloud.provider",
+          );
+          const cloudPlatform: string | null = this.getStringAttribute(
+            data.attributes,
+            "cloud.platform",
+          );
+          const cloudRegion: string | null = this.getStringAttribute(
+            data.attributes,
+            "cloud.region",
+          );
+          const cloudAccountId: string | null = this.getStringAttribute(
+            data.attributes,
+            "cloud.account.id",
+          );
           await HostService.updateLastSeen(new ObjectID(hostIdStr), {
             osType: osType || undefined,
             osVersion: osVersion || undefined,
@@ -998,6 +1028,13 @@ export default abstract class OtelIngestBaseService {
             dockerHostId: data.dockerHostId || undefined,
             kubernetesClusterId: data.kubernetesClusterId || undefined,
             agentVersion: agentVersion || undefined,
+            deploymentEnvironment: deploymentEnvironment || undefined,
+            runtimeName: runtimeName || undefined,
+            runtimeVersion: runtimeVersion || undefined,
+            cloudProvider: cloudProvider || undefined,
+            cloudPlatform: cloudPlatform || undefined,
+            cloudRegion: cloudRegion || undefined,
+            cloudAccountId: cloudAccountId || undefined,
           });
         }
         return new ObjectID(hostIdStr);
