@@ -1,6 +1,6 @@
 {
     "name": "@oneuptime/cli",
-    "version": "10.6.38",
+    "version": "10.7.0",
     "description": "OneUptime CLI - Command-line interface for managing OneUptime resources",
     "repository": {
         "type": "git",
