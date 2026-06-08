@@ -8,6 +8,8 @@ import DockerHostService from "Common/Server/Services/DockerHostService";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import HostService from "Common/Server/Services/HostService";
 import Host from "Common/Models/DatabaseModels/Host";
+import ServerlessFunctionService from "Common/Server/Services/ServerlessFunctionService";
+import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import LabelService from "Common/Server/Services/LabelService";
 import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
 import logger from "Common/Server/Utils/Logger";
@@ -188,6 +190,7 @@ export default abstract class OtelIngestBaseService {
     hostId?: ObjectID | null;
     dockerHostId?: ObjectID | null;
     kubernetesClusterId?: ObjectID | null;
+    serverlessFunctionId?: ObjectID | null;
   }): Promise<TelemetryServiceMetadata> {
     const serviceName: string | null = await this.getServiceNameFromAttributes(
       data.req,
@@ -232,6 +235,20 @@ export default abstract class OtelIngestBaseService {
         serviceName: clusterName ? `k8s/${clusterName}` : "Kubernetes Cluster",
         resourceId: data.kubernetesClusterId,
         serviceType: ServiceType.KubernetesCluster,
+        projectId: data.projectId,
+      });
+    }
+
+    if (data.serverlessFunctionId) {
+      const faasName: string | null =
+        this.getStringAttribute(data.attributes, "faas.name") ||
+        this.getStringAttribute(data.attributes, "service.name");
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: faasName
+          ? `serverless/${faasName}`
+          : "Serverless Function",
+        resourceId: data.serverlessFunctionId,
+        serviceType: ServiceType.ServerlessFunction,
         projectId: data.projectId,
       });
     }
@@ -513,6 +530,179 @@ export default abstract class OtelIngestBaseService {
     } catch (err) {
       logger.warn(
         `Kubernetes cluster label promotion failed for ${data.kubernetesClusterId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  private static readonly SERVERLESS_FUNCTION_ID_CACHE_NAMESPACE: string =
+    "serverless-function-id";
+  private static readonly SERVERLESS_FUNCTION_ID_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  /*
+   * cloud.platform values that denote a Function-as-a-Service runtime.
+   * An explicit faas.name, or a cloud.platform in this set, routes the
+   * batch to a ServerlessFunction resource.
+   */
+  private static readonly SERVERLESS_CLOUD_PLATFORMS: ReadonlySet<string> =
+    new Set([
+      "aws_lambda",
+      "gcp_cloud_functions",
+      "azure_functions",
+      "tencent_cloud_scf",
+      "alibaba_cloud_fc",
+    ]);
+
+  /*
+   * Auto-discover a Serverless / FaaS function from OTel resource
+   * attributes. Gated on an explicit faas.name, or a cloud.platform in the
+   * FaaS set (falling back to service.name as the function identity). Runs
+   * on every ingest path so the function's telemetry tabs (which filter by
+   * resource.faas.name) work even when service.name is also set — the
+   * discriminator choice happens in resolveTelemetryResource.
+   */
+  @CaptureSpan()
+  protected static async autoDiscoverServerless(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    try {
+      const faasName: string | null = this.getStringAttribute(
+        data.attributes,
+        "faas.name",
+      );
+      const cloudPlatform: string | null = this.getStringAttribute(
+        data.attributes,
+        "cloud.platform",
+      );
+      const isFaasPlatform: boolean = cloudPlatform
+        ? this.SERVERLESS_CLOUD_PLATFORMS.has(cloudPlatform)
+        : false;
+
+      // Identity: prefer faas.name; on a FaaS platform fall back to service.name.
+      let functionIdentifier: string | null = faasName;
+      if (!functionIdentifier && isFaasPlatform) {
+        functionIdentifier = this.getStringAttribute(
+          data.attributes,
+          "service.name",
+        );
+      }
+
+      // Gate: need a function identity AND a FaaS signal (faas.name or platform).
+      if (!functionIdentifier || (!faasName && !isFaasPlatform)) {
+        return null;
+      }
+
+      const cacheKey: string = `${data.projectId.toString()}:${functionIdentifier}`;
+      let functionIdStr: string | null = await GlobalCache.getString(
+        this.SERVERLESS_FUNCTION_ID_CACHE_NAMESPACE,
+        cacheKey,
+      );
+
+      if (!functionIdStr) {
+        const serverlessFunction: ServerlessFunction =
+          await ServerlessFunctionService.findOrCreateByFunctionIdentifier({
+            projectId: data.projectId,
+            functionIdentifier,
+          });
+
+        if (serverlessFunction._id) {
+          functionIdStr = serverlessFunction._id.toString();
+          await GlobalCache.setString(
+            this.SERVERLESS_FUNCTION_ID_CACHE_NAMESPACE,
+            cacheKey,
+            functionIdStr,
+            {
+              expiresInSeconds:
+                this.SERVERLESS_FUNCTION_ID_CACHE_EXPIRY_SECONDS,
+            },
+          );
+        }
+      }
+
+      if (functionIdStr) {
+        const functionId: ObjectID = new ObjectID(functionIdStr);
+        if (
+          await this.shouldRunMaintenance("serverless-function", functionIdStr)
+        ) {
+          const agentVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "oneuptime.agent.version",
+          );
+          await ServerlessFunctionService.updateLastSeen(functionId, {
+            agentVersion: agentVersion || undefined,
+            cloudPlatform: cloudPlatform || undefined,
+            cloudProvider:
+              this.getStringAttribute(data.attributes, "cloud.provider") ||
+              undefined,
+            cloudRegion:
+              this.getStringAttribute(data.attributes, "cloud.region") ||
+              undefined,
+            cloudAccountId:
+              this.getStringAttribute(data.attributes, "cloud.account.id") ||
+              undefined,
+            functionVersion:
+              this.getStringAttribute(data.attributes, "faas.version") ||
+              undefined,
+            runtimeName:
+              this.getStringAttribute(
+                data.attributes,
+                "process.runtime.name",
+              ) || undefined,
+            runtimeVersion:
+              this.getStringAttribute(
+                data.attributes,
+                "process.runtime.version",
+              ) || undefined,
+          });
+          await this.promoteOneuptimeLabelsToServerlessFunction({
+            projectId: data.projectId,
+            serverlessFunctionId: functionId,
+            attributes: data.attributes,
+          });
+        }
+        return functionId;
+      }
+
+      return null;
+    } catch (err) {
+      logger.error(
+        "Error auto-discovering Serverless function: " + (err as Error).message,
+      );
+      return null;
+    }
+  }
+
+  @CaptureSpan()
+  protected static async promoteOneuptimeLabelsToServerlessFunction(data: {
+    projectId: ObjectID;
+    serverlessFunctionId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      const labelNames: Array<string> = extractOneuptimeLabelNames(
+        data.attributes,
+      );
+      if (labelNames.length === 0) {
+        return;
+      }
+      const labelIds: Array<ObjectID> =
+        await LabelService.findOrCreateLabelsByNames({
+          projectId: data.projectId,
+          labelNames,
+        });
+      if (labelIds.length === 0) {
+        return;
+      }
+      await ServerlessFunctionService.attachLabels({
+        serverlessFunctionId: data.serverlessFunctionId,
+        labelIds,
+      });
+    } catch (err) {
+      logger.warn(
+        `Serverless function label promotion failed for ${data.serverlessFunctionId.toString()}: ${
           err instanceof Error ? err.message : String(err)
         }`,
       );

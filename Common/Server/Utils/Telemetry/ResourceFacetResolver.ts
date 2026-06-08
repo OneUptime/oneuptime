@@ -6,10 +6,12 @@ import ServiceModel from "../../../Models/DatabaseModels/Service";
 import HostModel from "../../../Models/DatabaseModels/Host";
 import DockerHostModel from "../../../Models/DatabaseModels/DockerHost";
 import KubernetesClusterModel from "../../../Models/DatabaseModels/KubernetesCluster";
+import ServerlessFunctionModel from "../../../Models/DatabaseModels/ServerlessFunction";
 import ServiceService from "../../Services/ServiceService";
 import HostService from "../../Services/HostService";
 import DockerHostService from "../../Services/DockerHostService";
 import KubernetesClusterService from "../../Services/KubernetesClusterService";
+import ServerlessFunctionService from "../../Services/ServerlessFunctionService";
 import CaptureSpan from "./CaptureSpan";
 
 /*
@@ -25,6 +27,7 @@ export const RESOURCE_FACET_KEYS: ReadonlySet<string> = new Set([
   "hostId",
   "dockerHostId",
   "kubernetesClusterId",
+  "serverlessFunctionId",
 ]);
 
 export interface ResourceFacetSpec {
@@ -106,6 +109,13 @@ export default class ResourceFacetResolver {
         );
       case "kubernetesClusterId":
         return ResourceFacetResolver.queryKubernetesClusters(
+          projectId,
+          spec.counts,
+          searchText,
+          limit,
+        );
+      case "serverlessFunctionId":
+        return ResourceFacetResolver.queryServerlessFunctions(
           projectId,
           spec.counts,
           searchText,
@@ -258,6 +268,46 @@ export default class ResourceFacetResolver {
           return {
             id: c._id ? c._id.toString() : "",
             displayName: c.name || c.clusterIdentifier || "Unknown",
+          };
+        },
+      ),
+      counts,
+    );
+  }
+
+  private static async queryServerlessFunctions(
+    projectId: ObjectID,
+    counts: Map<string, number>,
+    searchText: string | undefined,
+    limit: number,
+  ): Promise<Array<ResolvedFacetValue>> {
+    const query: Record<string, unknown> = { projectId };
+    if (searchText) {
+      query["name"] = new MultiSearch({
+        fields: ["name", "functionIdentifier"],
+        value: searchText,
+      });
+    }
+
+    const functions: Array<ServerlessFunctionModel> =
+      await ServerlessFunctionService.findBy({
+        query: query as any,
+        select: {
+          _id: true,
+          name: true,
+          functionIdentifier: true,
+        },
+        limit: new PositiveNumber(limit),
+        skip: new PositiveNumber(0),
+        props: { isRoot: true },
+      });
+
+    return ResourceFacetResolver.mergeCounts(
+      functions.map(
+        (f: ServerlessFunctionModel): { id: string; displayName: string } => {
+          return {
+            id: f._id ? f._id.toString() : "",
+            displayName: f.name || f.functionIdentifier || "Unknown",
           };
         },
       ),

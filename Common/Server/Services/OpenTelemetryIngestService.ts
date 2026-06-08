@@ -21,9 +21,11 @@ import ServiceType from "../../Types/Telemetry/ServiceType";
 import Host from "../../Models/DatabaseModels/Host";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
+import ServerlessFunction from "../../Models/DatabaseModels/ServerlessFunction";
 import HostService from "./HostService";
 import DockerHostService from "./DockerHostService";
 import KubernetesClusterService from "./KubernetesClusterService";
+import ServerlessFunctionService from "./ServerlessFunctionService";
 import GlobalCache from "../Infrastructure/GlobalCache";
 
 export enum OtelAggregationTemporality {
@@ -541,6 +543,23 @@ export default class OTelIngestService {
           retainTelemetryDataForDays:
             cluster?.retainTelemetryDataForDays ?? null,
           telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
+        };
+      }
+      if (serviceType === ServiceType.ServerlessFunction) {
+        const serverlessFunction: ServerlessFunction | null =
+          await ServerlessFunctionService.findOneById({
+            id: resourceId,
+            select: {
+              retainTelemetryDataForDays: true,
+              telemetryRetentionConfig: true,
+            },
+            props: { isRoot: true },
+          });
+        return {
+          retainTelemetryDataForDays:
+            serverlessFunction?.retainTelemetryDataForDays ?? null,
+          telemetryRetentionConfig:
+            serverlessFunction?.telemetryRetentionConfig ?? null,
         };
       }
     } catch (err) {

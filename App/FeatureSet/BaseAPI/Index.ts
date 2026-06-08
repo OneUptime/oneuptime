@@ -410,6 +410,15 @@ import KubernetesClusterOwnerTeamService, {
 import KubernetesClusterOwnerUserService, {
   Service as KubernetesClusterOwnerUserServiceType,
 } from "Common/Server/Services/KubernetesClusterOwnerUserService";
+import ServerlessFunctionService, {
+  Service as ServerlessFunctionServiceType,
+} from "Common/Server/Services/ServerlessFunctionService";
+import ServerlessFunctionOwnerTeamService, {
+  Service as ServerlessFunctionOwnerTeamServiceType,
+} from "Common/Server/Services/ServerlessFunctionOwnerTeamService";
+import ServerlessFunctionOwnerUserService, {
+  Service as ServerlessFunctionOwnerUserServiceType,
+} from "Common/Server/Services/ServerlessFunctionOwnerUserService";
 import DockerHostService, {
   Service as DockerHostServiceType,
 } from "Common/Server/Services/DockerHostService";
@@ -823,6 +832,9 @@ import IncidentTemplateOwnerUser from "Common/Models/DatabaseModels/IncidentTemp
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import KubernetesClusterOwnerTeam from "Common/Models/DatabaseModels/KubernetesClusterOwnerTeam";
 import KubernetesClusterOwnerUser from "Common/Models/DatabaseModels/KubernetesClusterOwnerUser";
+import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
+import ServerlessFunctionOwnerTeam from "Common/Models/DatabaseModels/ServerlessFunctionOwnerTeam";
+import ServerlessFunctionOwnerUser from "Common/Models/DatabaseModels/ServerlessFunctionOwnerUser";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerHostOwnerTeam from "Common/Models/DatabaseModels/DockerHostOwnerTeam";
 import DockerHostOwnerUser from "Common/Models/DatabaseModels/DockerHostOwnerUser";
@@ -2799,6 +2811,36 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         KubernetesClusterOwnerUser,
         KubernetesClusterOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ServerlessFunction, ServerlessFunctionServiceType>(
+        ServerlessFunction,
+        ServerlessFunctionService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServerlessFunctionOwnerTeam,
+        ServerlessFunctionOwnerTeamServiceType
+      >(
+        ServerlessFunctionOwnerTeam,
+        ServerlessFunctionOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServerlessFunctionOwnerUser,
+        ServerlessFunctionOwnerUserServiceType
+      >(
+        ServerlessFunctionOwnerUser,
+        ServerlessFunctionOwnerUserService,
       ).getRouter(),
     );
 

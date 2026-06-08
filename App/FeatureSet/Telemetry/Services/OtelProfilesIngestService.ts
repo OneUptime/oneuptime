@@ -227,6 +227,12 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
             kubernetesClusterId,
           });
 
+          const serverlessFunctionId: ObjectID | null =
+            await this.autoDiscoverServerless({
+              projectId: (req as TelemetryRequest).projectId,
+              attributes: resourceAttributes_raw,
+            });
+
           const resolvedServiceMetadata: TelemetryServiceMetadata =
             await this.resolveTelemetryResource({
               req,
@@ -235,6 +241,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
               hostId,
               dockerHostId,
               kubernetesClusterId,
+              serverlessFunctionId,
             });
           const serviceName: string = resolvedServiceMetadata.serviceName;
 
