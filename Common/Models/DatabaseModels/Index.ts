@@ -18,6 +18,9 @@ import ServerlessFunctionOwnerUser from "./ServerlessFunctionOwnerUser";
 import CloudResource from "./CloudResource";
 import CloudResourceOwnerTeam from "./CloudResourceOwnerTeam";
 import CloudResourceOwnerUser from "./CloudResourceOwnerUser";
+import RumApplication from "./RumApplication";
+import RumApplicationOwnerTeam from "./RumApplicationOwnerTeam";
+import RumApplicationOwnerUser from "./RumApplicationOwnerUser";
 // API Keys
 import ApiKey from "./ApiKey";
 import ApiKeyPermission from "./ApiKeyPermission";
@@ -697,6 +700,9 @@ const AllModelTypes: Array<{
   CloudResource,
   CloudResourceOwnerTeam,
   CloudResourceOwnerUser,
+  RumApplication,
+  RumApplicationOwnerTeam,
+  RumApplicationOwnerUser,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

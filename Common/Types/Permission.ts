@@ -7321,7 +7321,15 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },
+    ];
 
+    /*
+     * Split into a second array (concatenated below) so the single array
+     * literal stays under TypeScript's union-complexity ceiling (TS2590).
+     * The full list had grown large enough that adding the FaaS / Cloud / RUM
+     * telemetry-resource permissions tipped one giant literal over the limit.
+     */
+    const morePermissionProps: Array<PermissionProps> = [
       {
         permission: Permission.CreateServerlessFunction,
         title: "Create Serverless Function",
@@ -12049,7 +12057,7 @@ export class PermissionHelper {
       },
     ];
 
-    return permissions;
+    return [...permissions, ...morePermissionProps];
   }
 
   public static getPermissionsByGroup(

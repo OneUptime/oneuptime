@@ -8,12 +8,14 @@ import DockerHostModel from "../../../Models/DatabaseModels/DockerHost";
 import KubernetesClusterModel from "../../../Models/DatabaseModels/KubernetesCluster";
 import ServerlessFunctionModel from "../../../Models/DatabaseModels/ServerlessFunction";
 import CloudResourceModel from "../../../Models/DatabaseModels/CloudResource";
+import RumApplicationModel from "../../../Models/DatabaseModels/RumApplication";
 import ServiceService from "../../Services/ServiceService";
 import HostService from "../../Services/HostService";
 import DockerHostService from "../../Services/DockerHostService";
 import KubernetesClusterService from "../../Services/KubernetesClusterService";
 import ServerlessFunctionService from "../../Services/ServerlessFunctionService";
 import CloudResourceService from "../../Services/CloudResourceService";
+import RumApplicationService from "../../Services/RumApplicationService";
 import CaptureSpan from "./CaptureSpan";
 
 /*
@@ -31,6 +33,7 @@ export const RESOURCE_FACET_KEYS: ReadonlySet<string> = new Set([
   "kubernetesClusterId",
   "serverlessFunctionId",
   "cloudResourceId",
+  "rumApplicationId",
 ]);
 
 export interface ResourceFacetSpec {
@@ -126,6 +129,13 @@ export default class ResourceFacetResolver {
         );
       case "cloudResourceId":
         return ResourceFacetResolver.queryCloudResources(
+          projectId,
+          spec.counts,
+          searchText,
+          limit,
+        );
+      case "rumApplicationId":
+        return ResourceFacetResolver.queryRumApplications(
           projectId,
           spec.counts,
           searchText,
@@ -358,6 +368,46 @@ export default class ResourceFacetResolver {
           return {
             id: r._id ? r._id.toString() : "",
             displayName: r.name || r.resourceIdentifier || "Unknown",
+          };
+        },
+      ),
+      counts,
+    );
+  }
+
+  private static async queryRumApplications(
+    projectId: ObjectID,
+    counts: Map<string, number>,
+    searchText: string | undefined,
+    limit: number,
+  ): Promise<Array<ResolvedFacetValue>> {
+    const query: Record<string, unknown> = { projectId };
+    if (searchText) {
+      query["name"] = new MultiSearch({
+        fields: ["name", "appIdentifier"],
+        value: searchText,
+      });
+    }
+
+    const apps: Array<RumApplicationModel> =
+      await RumApplicationService.findBy({
+        query: query as any,
+        select: {
+          _id: true,
+          name: true,
+          appIdentifier: true,
+        },
+        limit: new PositiveNumber(limit),
+        skip: new PositiveNumber(0),
+        props: { isRoot: true },
+      });
+
+    return ResourceFacetResolver.mergeCounts(
+      apps.map(
+        (a: RumApplicationModel): { id: string; displayName: string } => {
+          return {
+            id: a._id ? a._id.toString() : "",
+            displayName: a.name || a.appIdentifier || "Unknown",
           };
         },
       ),

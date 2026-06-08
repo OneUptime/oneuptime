@@ -26,6 +26,7 @@ import DockerHost from "./DockerHost";
 import KubernetesCluster from "./KubernetesCluster";
 import ServerlessFunction from "./ServerlessFunction";
 import CloudResource from "./CloudResource";
+import RumApplication from "./RumApplication";
 
 @EnableDocumentation()
 @CanAccessIfCanReadOn("service")
@@ -82,6 +83,7 @@ import CloudResource from "./CloudResource";
     KubernetesCluster,
     ServerlessFunction,
     CloudResource,
+    RumApplication,
   ],
   {
   includeProjectScope: true,

@@ -74,6 +74,7 @@ export class ExceptionAggregationService {
       ["kubernetesClusterId", ServiceType.KubernetesCluster],
       ["serverlessFunctionId", ServiceType.ServerlessFunction],
       ["cloudResourceId", ServiceType.CloudResource],
+      ["rumApplicationId", ServiceType.RealUserMonitor],
     ]);
   private static readonly ATTRIBUTE_KEY_PATTERN: RegExp = /^[a-zA-Z0-9._:/-]+$/;
   private static readonly MAX_FACET_KEY_LENGTH: number = 256;

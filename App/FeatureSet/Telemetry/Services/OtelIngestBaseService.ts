@@ -12,6 +12,8 @@ import ServerlessFunctionService from "Common/Server/Services/ServerlessFunction
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import CloudResourceService from "Common/Server/Services/CloudResourceService";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
+import RumApplicationService from "Common/Server/Services/RumApplicationService";
+import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import LabelService from "Common/Server/Services/LabelService";
 import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
 import logger from "Common/Server/Utils/Logger";
@@ -194,6 +196,7 @@ export default abstract class OtelIngestBaseService {
     kubernetesClusterId?: ObjectID | null;
     serverlessFunctionId?: ObjectID | null;
     cloudResourceId?: ObjectID | null;
+    rumApplicationId?: ObjectID | null;
   }): Promise<TelemetryServiceMetadata> {
     const serviceName: string | null = await this.getServiceNameFromAttributes(
       data.req,
@@ -266,6 +269,19 @@ export default abstract class OtelIngestBaseService {
           : "Cloud Resource",
         resourceId: data.cloudResourceId,
         serviceType: ServiceType.CloudResource,
+        projectId: data.projectId,
+      });
+    }
+
+    if (data.rumApplicationId) {
+      const appName: string | null = this.getStringAttribute(
+        data.attributes,
+        "service.name",
+      );
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: appName ? `rum/${appName}` : "RUM Application",
+        resourceId: data.rumApplicationId,
+        serviceType: ServiceType.RealUserMonitor,
         projectId: data.projectId,
       });
     }
@@ -877,6 +893,148 @@ export default abstract class OtelIngestBaseService {
     } catch (err) {
       logger.warn(
         `Cloud resource label promotion failed for ${data.cloudResourceId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  private static readonly RUM_APPLICATION_ID_CACHE_NAMESPACE: string =
+    "rum-application-id";
+  private static readonly RUM_APPLICATION_ID_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  /*
+   * Classify a batch as browser- or mobile-RUM from its resource
+   * attributes, or null when it's not client-side telemetry. Backend
+   * services never set browser.* / device.*, so this is a clean signal.
+   */
+  protected static getRumClientType(attributes: JSONArray): string | null {
+    const hasBrowser: boolean = Boolean(
+      this.getStringAttribute(attributes, "browser.platform") ||
+        this.getStringAttribute(attributes, "browser.language") ||
+        this.getStringArrayAttribute(attributes, "browser.brands").length > 0,
+    );
+    if (hasBrowser) {
+      return "browser";
+    }
+    const hasDevice: boolean = Boolean(
+      this.getStringAttribute(attributes, "device.id") ||
+        this.getStringAttribute(attributes, "device.model.identifier") ||
+        this.getStringAttribute(attributes, "device.manufacturer"),
+    );
+    if (hasDevice) {
+      return "mobile";
+    }
+    return null;
+  }
+
+  /*
+   * Auto-discover a Browser / Mobile RUM application from OTel resource
+   * attributes. Gated on a browser.* / device.* client signal; identity is
+   * the application (service.name), NEVER the per-end-user device. Runs on
+   * every ingest path so the app's telemetry tabs work even when service.name
+   * is also a backend service — the discriminator choice happens in
+   * resolveTelemetryResource.
+   */
+  @CaptureSpan()
+  protected static async autoDiscoverRum(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    try {
+      const clientType: string | null = this.getRumClientType(data.attributes);
+      if (!clientType) {
+        return null;
+      }
+
+      const appIdentifier: string | null = this.getStringAttribute(
+        data.attributes,
+        "service.name",
+      );
+      if (!appIdentifier) {
+        return null;
+      }
+
+      const cacheKey: string = `${data.projectId.toString()}:${appIdentifier}`;
+      let appIdStr: string | null = await GlobalCache.getString(
+        this.RUM_APPLICATION_ID_CACHE_NAMESPACE,
+        cacheKey,
+      );
+
+      if (!appIdStr) {
+        const rumApplication: RumApplication =
+          await RumApplicationService.findOrCreateByAppIdentifier({
+            projectId: data.projectId,
+            appIdentifier,
+          });
+        if (rumApplication._id) {
+          appIdStr = rumApplication._id.toString();
+          await GlobalCache.setString(
+            this.RUM_APPLICATION_ID_CACHE_NAMESPACE,
+            cacheKey,
+            appIdStr,
+            { expiresInSeconds: this.RUM_APPLICATION_ID_CACHE_EXPIRY_SECONDS },
+          );
+        }
+      }
+
+      if (appIdStr) {
+        const rumApplicationId: ObjectID = new ObjectID(appIdStr);
+        if (await this.shouldRunMaintenance("rum-application", appIdStr)) {
+          const agentVersion: string | null =
+            this.getStringAttribute(data.attributes, "telemetry.sdk.version") ||
+            this.getStringAttribute(data.attributes, "oneuptime.agent.version");
+          await RumApplicationService.updateLastSeen(rumApplicationId, {
+            agentVersion: agentVersion || undefined,
+            clientType: clientType || undefined,
+          });
+          await this.promoteOneuptimeLabelsToRumApplication({
+            projectId: data.projectId,
+            rumApplicationId,
+            attributes: data.attributes,
+          });
+        }
+        return rumApplicationId;
+      }
+
+      return null;
+    } catch (err) {
+      logger.error(
+        "Error auto-discovering RUM application: " + (err as Error).message,
+      );
+      return null;
+    }
+  }
+
+  @CaptureSpan()
+  protected static async promoteOneuptimeLabelsToRumApplication(data: {
+    projectId: ObjectID;
+    rumApplicationId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      const labelNames: Array<string> = extractOneuptimeLabelNames(
+        data.attributes,
+      );
+      if (labelNames.length === 0) {
+        return;
+      }
+      const labelIds: Array<ObjectID> =
+        await LabelService.findOrCreateLabelsByNames({
+          projectId: data.projectId,
+          labelNames,
+        });
+      if (labelIds.length === 0) {
+        return;
+      }
+      await RumApplicationService.attachLabels({
+        rumApplicationId: data.rumApplicationId,
+        labelIds,
+      });
+    } catch (err) {
+      logger.warn(
+        `RUM application label promotion failed for ${data.rumApplicationId.toString()}: ${
           err instanceof Error ? err.message : String(err)
         }`,
       );

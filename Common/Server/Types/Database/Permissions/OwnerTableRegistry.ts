@@ -24,6 +24,8 @@ import ServerlessFunctionOwnerTeamService from "../../../Services/ServerlessFunc
 import ServerlessFunctionOwnerUserService from "../../../Services/ServerlessFunctionOwnerUserService";
 import CloudResourceOwnerTeamService from "../../../Services/CloudResourceOwnerTeamService";
 import CloudResourceOwnerUserService from "../../../Services/CloudResourceOwnerUserService";
+import RumApplicationOwnerTeamService from "../../../Services/RumApplicationOwnerTeamService";
+import RumApplicationOwnerUserService from "../../../Services/RumApplicationOwnerUserService";
 import StatusPageOwnerTeamService from "../../../Services/StatusPageOwnerTeamService";
 import StatusPageOwnerUserService from "../../../Services/StatusPageOwnerUserService";
 import WorkflowOwnerTeamService from "../../../Services/WorkflowOwnerTeamService";
@@ -41,6 +43,7 @@ import DockerHostService from "../../../Services/DockerHostService";
 import KubernetesClusterService from "../../../Services/KubernetesClusterService";
 import ServerlessFunctionService from "../../../Services/ServerlessFunctionService";
 import CloudResourceService from "../../../Services/CloudResourceService";
+import RumApplicationService from "../../../Services/RumApplicationService";
 
 /*
  * Maps an operational model name (e.g. "Monitor") to the two services that
@@ -204,6 +207,16 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
       fkColumn: "cloudResourceId",
       canOwnTelemetry: true,
       modelService: CloudResourceService,
+    },
+  ],
+  [
+    "RumApplication",
+    {
+      ownerUserService: RumApplicationOwnerUserService,
+      ownerTeamService: RumApplicationOwnerTeamService,
+      fkColumn: "rumApplicationId",
+      canOwnTelemetry: true,
+      modelService: RumApplicationService,
     },
   ],
   [

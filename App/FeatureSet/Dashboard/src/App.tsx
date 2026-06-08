@@ -233,6 +233,24 @@ const ServerlessRoutes: React.LazyExoticComponent<
     };
   });
 });
+const CloudResourceRoutes: React.LazyExoticComponent<
+  AllRoutesModule["CloudResourceRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+    return {
+      default: m.CloudResourceRoutes,
+    };
+  });
+});
+const RumApplicationRoutes: React.LazyExoticComponent<
+  AllRoutesModule["RumApplicationRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+    return {
+      default: m.RumApplicationRoutes,
+    };
+  });
+});
 const CodeRepositoryRoutes: React.LazyExoticComponent<
   AllRoutesModule["CodeRepositoryRoutes"]
 > = lazy(() => {
@@ -630,6 +648,18 @@ const App: () => JSX.Element = () => {
           <PageRoute
             path={RouteMap[PageMap.SERVERLESS_ROOT]?.toString() || ""}
             element={<ServerlessRoutes {...commonPageProps} />}
+          />
+
+          {/* Cloud Resources */}
+          <PageRoute
+            path={RouteMap[PageMap.CLOUD_ROOT]?.toString() || ""}
+            element={<CloudResourceRoutes {...commonPageProps} />}
+          />
+
+          {/* Real User Monitoring */}
+          <PageRoute
+            path={RouteMap[PageMap.RUM_ROOT]?.toString() || ""}
+            element={<RumApplicationRoutes {...commonPageProps} />}
           />
 
           {/* Code Repository */}

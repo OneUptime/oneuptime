@@ -428,6 +428,15 @@ import CloudResourceOwnerTeamService, {
 import CloudResourceOwnerUserService, {
   Service as CloudResourceOwnerUserServiceType,
 } from "Common/Server/Services/CloudResourceOwnerUserService";
+import RumApplicationService, {
+  Service as RumApplicationServiceType,
+} from "Common/Server/Services/RumApplicationService";
+import RumApplicationOwnerTeamService, {
+  Service as RumApplicationOwnerTeamServiceType,
+} from "Common/Server/Services/RumApplicationOwnerTeamService";
+import RumApplicationOwnerUserService, {
+  Service as RumApplicationOwnerUserServiceType,
+} from "Common/Server/Services/RumApplicationOwnerUserService";
 import DockerHostService, {
   Service as DockerHostServiceType,
 } from "Common/Server/Services/DockerHostService";
@@ -847,6 +856,9 @@ import ServerlessFunctionOwnerUser from "Common/Models/DatabaseModels/Serverless
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import CloudResourceOwnerTeam from "Common/Models/DatabaseModels/CloudResourceOwnerTeam";
 import CloudResourceOwnerUser from "Common/Models/DatabaseModels/CloudResourceOwnerUser";
+import RumApplication from "Common/Models/DatabaseModels/RumApplication";
+import RumApplicationOwnerTeam from "Common/Models/DatabaseModels/RumApplicationOwnerTeam";
+import RumApplicationOwnerUser from "Common/Models/DatabaseModels/RumApplicationOwnerUser";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerHostOwnerTeam from "Common/Models/DatabaseModels/DockerHostOwnerTeam";
 import DockerHostOwnerUser from "Common/Models/DatabaseModels/DockerHostOwnerUser";
@@ -2877,6 +2889,30 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<CloudResourceOwnerUser, CloudResourceOwnerUserServiceType>(
         CloudResourceOwnerUser,
         CloudResourceOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RumApplication, RumApplicationServiceType>(
+        RumApplication,
+        RumApplicationService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RumApplicationOwnerTeam, RumApplicationOwnerTeamServiceType>(
+        RumApplicationOwnerTeam,
+        RumApplicationOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RumApplicationOwnerUser, RumApplicationOwnerUserServiceType>(
+        RumApplicationOwnerUser,
+        RumApplicationOwnerUserService,
       ).getRouter(),
     );
 

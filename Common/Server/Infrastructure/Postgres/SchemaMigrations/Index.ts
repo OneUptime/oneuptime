@@ -371,6 +371,7 @@ import { AddResumeStateToWorkflowLog1780931746908 } from "./1780931746908-AddRes
 import { AddTelemetryResourceMetadataColumns1780931863719 } from "./1780931863719-AddTelemetryResourceMetadataColumns";
 import { AddServerlessFunctionTables1780933132562 } from "./1780933132562-AddServerlessFunctionTables";
 import { AddCloudResourceTables1780935387827 } from "./1780935387827-AddCloudResourceTables";
+import { AddRumApplicationTables1780936579718 } from "./1780936579718-AddRumApplicationTables";
 
 export default [
   InitialMigration,
@@ -746,4 +747,5 @@ export default [
   AddTelemetryResourceMetadataColumns1780931863719,
   AddServerlessFunctionTables1780933132562,
   AddCloudResourceTables1780935387827,
+  AddRumApplicationTables1780936579718,
 ];

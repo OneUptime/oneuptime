@@ -23,11 +23,13 @@ import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import ServerlessFunction from "../../Models/DatabaseModels/ServerlessFunction";
 import CloudResource from "../../Models/DatabaseModels/CloudResource";
+import RumApplication from "../../Models/DatabaseModels/RumApplication";
 import HostService from "./HostService";
 import DockerHostService from "./DockerHostService";
 import KubernetesClusterService from "./KubernetesClusterService";
 import ServerlessFunctionService from "./ServerlessFunctionService";
 import CloudResourceService from "./CloudResourceService";
+import RumApplicationService from "./RumApplicationService";
 import GlobalCache from "../Infrastructure/GlobalCache";
 
 export enum OtelAggregationTemporality {
@@ -579,6 +581,23 @@ export default class OTelIngestService {
             cloudResource?.retainTelemetryDataForDays ?? null,
           telemetryRetentionConfig:
             cloudResource?.telemetryRetentionConfig ?? null,
+        };
+      }
+      if (serviceType === ServiceType.RealUserMonitor) {
+        const rumApplication: RumApplication | null =
+          await RumApplicationService.findOneById({
+            id: resourceId,
+            select: {
+              retainTelemetryDataForDays: true,
+              telemetryRetentionConfig: true,
+            },
+            props: { isRoot: true },
+          });
+        return {
+          retainTelemetryDataForDays:
+            rumApplication?.retainTelemetryDataForDays ?? null,
+          telemetryRetentionConfig:
+            rumApplication?.telemetryRetentionConfig ?? null,
         };
       }
     } catch (err) {

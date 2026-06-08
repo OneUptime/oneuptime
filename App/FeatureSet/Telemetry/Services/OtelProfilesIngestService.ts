@@ -239,6 +239,11 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
               attributes: resourceAttributes_raw,
             });
 
+          const rumApplicationId: ObjectID | null = await this.autoDiscoverRum({
+            projectId: (req as TelemetryRequest).projectId,
+            attributes: resourceAttributes_raw,
+          });
+
           const resolvedServiceMetadata: TelemetryServiceMetadata =
             await this.resolveTelemetryResource({
               req,
@@ -249,6 +254,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
               kubernetesClusterId,
               serverlessFunctionId,
               cloudResourceId,
+              rumApplicationId,
             });
           const serviceName: string = resolvedServiceMetadata.serviceName;
 

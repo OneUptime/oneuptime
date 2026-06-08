@@ -15,6 +15,7 @@ import ProjectUtil from "../../Utils/Project";
 import { ButtonStyleType } from "../Button/Button";
 import BasicFormModal from "../FormModal/BasicFormModal";
 import Modal from "../Modal/Modal";
+import { DropdownOption } from "../Dropdown/Dropdown";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import {
   BulkActionButtonSchema,
@@ -58,7 +59,7 @@ function useBulkLabelActions<T extends BaseModel>(
    * are computed from the selected items each time the remove modal opens.
    */
   const [removeLabelDropdownOptions, setRemoveLabelDropdownOptions] = useState<
-    Array<{ label: string; value: string }>
+    Array<DropdownOption>
   >([]);
   const [isLoadingRemoveLabels, setIsLoadingRemoveLabels] =
     useState<boolean>(false);
@@ -237,13 +238,14 @@ function useBulkLabelActions<T extends BaseModel>(
           labels: {
             _id: true,
             name: true,
+            color: true,
           },
         } as any,
         sort: {},
       });
 
       // Union of labels across all selected items, de-duplicated by id.
-      const labelNameById: Map<string, string> = new Map<string, string>();
+      const labelById: Map<string, Label> = new Map<string, Label>();
 
       for (const item of result.data) {
         const itemLabels: Array<Label> =
@@ -252,28 +254,29 @@ function useBulkLabelActions<T extends BaseModel>(
         for (const label of itemLabels) {
           const id: string = label._id?.toString() || "";
           if (id.length > 0) {
-            labelNameById.set(id, label.name || "");
+            labelById.set(id, label);
           }
         }
       }
 
-      const options: Array<{ label: string; value: string }> = Array.from(
-        labelNameById.entries(),
-      ).map((entry: [string, string]) => {
-        return {
-          label: entry[1] || "",
-          value: entry[0],
+      const options: Array<DropdownOption> = Array.from(
+        labelById.values(),
+      ).map((label: Label) => {
+        const option: DropdownOption = {
+          label: label.name || "",
+          value: label._id?.toString() || "",
         };
+
+        if (label.color) {
+          option.color = label.color;
+        }
+
+        return option;
       });
 
-      options.sort(
-        (
-          a: { label: string; value: string },
-          b: { label: string; value: string },
-        ) => {
-          return a.label.localeCompare(b.label);
-        },
-      );
+      options.sort((a: DropdownOption, b: DropdownOption) => {
+        return a.label.localeCompare(b.label);
+      });
 
       setRemoveLabelDropdownOptions(options);
     } catch {
@@ -284,13 +287,20 @@ function useBulkLabelActions<T extends BaseModel>(
     }
   };
 
-  const labelDropdownOptions: Array<{ label: string; value: string }> =
-    labels.map((label: Label) => {
-      return {
+  const labelDropdownOptions: Array<DropdownOption> = labels.map(
+    (label: Label) => {
+      const option: DropdownOption = {
         label: label.name || "",
         value: label._id?.toString() || "",
       };
-    });
+
+      if (label.color) {
+        option.color = label.color;
+      }
+
+      return option;
+    },
+  );
 
   const addLabelsAction: BulkActionButtonSchema<T> = {
     title: "Add Labels",

@@ -206,6 +206,28 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       iconColor: "blue",
       category: resourcesCategory,
     },
+    {
+      title: t("navbar.items.cloudTitle"),
+      description: t("navbar.items.cloudDescription"),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.CLOUD_RESOURCES] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.CLOUD_RESOURCES],
+      icon: IconProp.Cloud,
+      iconColor: "blue",
+      category: resourcesCategory,
+    },
+    {
+      title: t("navbar.items.rumTitle"),
+      description: t("navbar.items.rumDescription"),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.RUM_APPLICATIONS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.RUM_APPLICATIONS],
+      icon: IconProp.Globe,
+      iconColor: "blue",
+      category: resourcesCategory,
+    },
     // Automation & Analytics
     {
       title: t("navbar.items.dashboardsTitle"),
