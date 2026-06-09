@@ -83,7 +83,7 @@
   },
   "sideMenu": {
     "basic": "基本",
-    "members": "Members",
+    "members": "成员",
     "users": "用户",
     "teams": "团队",
     "advanced": "高级",
@@ -146,10 +146,10 @@
       "cardDescription": "Here is a list of all the users in this project.",
       "noItems": "No users found in this project.",
       "noItemsFiltered": "No users matched the filter.",
-      "inviteUser": "Invite User",
-      "inviteUserTitle": "Invite New User",
+      "inviteUser": "邀请用户",
+      "inviteUserTitle": "邀请新用户",
       "inviteUserDescription": "Invite a new user to this project.",
-      "inviteUserSubmit": "Invite"
+      "inviteUserSubmit": "邀请"
     },
     "projectUserView": {
       "title": "Project User",
@@ -162,12 +162,12 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "团队",
-      "cardDescription": "Here is a list of all the teams in this project.",
+      "cardDescription": "以下是该项目所有团队的列表。",
       "noItems": "No teams found in this project."
     },
     "projectTeamView": {
       "title": "Project Team",
-      "cardTitle": "Team Details",
+      "cardTitle": "团队详情",
       "cardDescription": "Details about this team.",
       "editButton": "编辑团队",
       "membersCardTitle": "团队 成员",

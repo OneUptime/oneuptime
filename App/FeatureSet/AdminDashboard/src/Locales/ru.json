@@ -83,7 +83,7 @@
   },
   "sideMenu": {
     "basic": "Основное",
-    "members": "Members",
+    "members": "Участники",
     "users": "Пользователи",
     "teams": "Команды",
     "advanced": "Расширенные",
@@ -146,10 +146,10 @@
       "cardDescription": "Here is a list of all the users in this project.",
       "noItems": "No users found in this project.",
       "noItemsFiltered": "No users matched the filter.",
-      "inviteUser": "Invite User",
-      "inviteUserTitle": "Invite New User",
+      "inviteUser": "Пригласить пользователя",
+      "inviteUserTitle": "Пригласить нового пользователя",
       "inviteUserDescription": "Invite a new user to this project.",
-      "inviteUserSubmit": "Invite"
+      "inviteUserSubmit": "Пригласить"
     },
     "projectUserView": {
       "title": "Project User",
@@ -162,12 +162,12 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "Команды",
-      "cardDescription": "Here is a list of all the teams in this project.",
+      "cardDescription": "Список всех команд в этом проекте.",
       "noItems": "No teams found in this project."
     },
     "projectTeamView": {
       "title": "Project Team",
-      "cardTitle": "Team Details",
+      "cardTitle": "Детали команды",
       "cardDescription": "Details about this team.",
       "editButton": "Редактировать команду",
       "membersCardTitle": "Команда Участники",

@@ -83,7 +83,7 @@
   },
   "sideMenu": {
     "basic": "Básico",
-    "members": "Members",
+    "members": "Miembros",
     "users": "Usuarios",
     "teams": "Equipos",
     "advanced": "Avanzado",
@@ -146,10 +146,10 @@
       "cardDescription": "Here is a list of all the users in this project.",
       "noItems": "No users found in this project.",
       "noItemsFiltered": "No users matched the filter.",
-      "inviteUser": "Invite User",
-      "inviteUserTitle": "Invite New User",
+      "inviteUser": "Invitar usuario",
+      "inviteUserTitle": "Invitar a un nuevo usuario",
       "inviteUserDescription": "Invite a new user to this project.",
-      "inviteUserSubmit": "Invite"
+      "inviteUserSubmit": "Invitar"
     },
     "projectUserView": {
       "title": "Project User",
@@ -162,12 +162,12 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "Equipos",
-      "cardDescription": "Here is a list of all the teams in this project.",
+      "cardDescription": "Aquí tienes una lista de todos los equipos de este proyecto.",
       "noItems": "No teams found in this project."
     },
     "projectTeamView": {
       "title": "Project Team",
-      "cardTitle": "Team Details",
+      "cardTitle": "Detalles del equipo",
       "cardDescription": "Details about this team.",
       "editButton": "Editar equipo",
       "membersCardTitle": "Equipo Miembros",

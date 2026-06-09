@@ -83,7 +83,7 @@
   },
   "sideMenu": {
     "basic": "मूल",
-    "members": "Members",
+    "members": "सदस्य",
     "users": "उपयोगकर्ता",
     "teams": "टीमें",
     "advanced": "उन्नत",
@@ -146,10 +146,10 @@
       "cardDescription": "Here is a list of all the users in this project.",
       "noItems": "No users found in this project.",
       "noItemsFiltered": "No users matched the filter.",
-      "inviteUser": "Invite User",
-      "inviteUserTitle": "Invite New User",
+      "inviteUser": "उपयोगकर्ता को आमंत्रित करें",
+      "inviteUserTitle": "नए उपयोगकर्ता को आमंत्रित करें",
       "inviteUserDescription": "Invite a new user to this project.",
-      "inviteUserSubmit": "Invite"
+      "inviteUserSubmit": "आमंत्रित करें"
     },
     "projectUserView": {
       "title": "Project User",
@@ -162,12 +162,12 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "टीमें",
-      "cardDescription": "Here is a list of all the teams in this project.",
+      "cardDescription": "यहां इस प्रोजेक्ट में सभी टीमों की सूची है।",
       "noItems": "No teams found in this project."
     },
     "projectTeamView": {
       "title": "Project Team",
-      "cardTitle": "Team Details",
+      "cardTitle": "टीम विवरण",
       "cardDescription": "Details about this team.",
       "editButton": "टीम संपादित करें",
       "membersCardTitle": "टीम सदस्य",

@@ -83,7 +83,7 @@
   },
   "sideMenu": {
     "basic": "Grundlæggende",
-    "members": "Members",
+    "members": "Medlemmer",
     "users": "Brugere",
     "teams": "Teams",
     "advanced": "Avanceret",
@@ -146,10 +146,10 @@
       "cardDescription": "Here is a list of all the users in this project.",
       "noItems": "No users found in this project.",
       "noItemsFiltered": "No users matched the filter.",
-      "inviteUser": "Invite User",
-      "inviteUserTitle": "Invite New User",
+      "inviteUser": "Inviter bruger",
+      "inviteUserTitle": "Inviter ny bruger",
       "inviteUserDescription": "Invite a new user to this project.",
-      "inviteUserSubmit": "Invite"
+      "inviteUserSubmit": "Inviter"
     },
     "projectUserView": {
       "title": "Project User",
@@ -162,12 +162,12 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "Teams",
-      "cardDescription": "Here is a list of all the teams in this project.",
+      "cardDescription": "Her er en liste over alle teams i dette projekt.",
       "noItems": "No teams found in this project."
     },
     "projectTeamView": {
       "title": "Project Team",
-      "cardTitle": "Team Details",
+      "cardTitle": "Teamdetaljer",
       "cardDescription": "Details about this team.",
       "editButton": "Rediger team",
       "membersCardTitle": "Team Medlemmer",

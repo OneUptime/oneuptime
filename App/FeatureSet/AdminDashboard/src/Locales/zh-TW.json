@@ -83,7 +83,7 @@
   },
   "sideMenu": {
     "basic": "基本",
-    "members": "Members",
+    "members": "成員",
     "users": "使用者",
     "teams": "團隊",
     "advanced": "進階",
@@ -146,10 +146,10 @@
       "cardDescription": "Here is a list of all the users in this project.",
       "noItems": "No users found in this project.",
       "noItemsFiltered": "No users matched the filter.",
-      "inviteUser": "Invite User",
-      "inviteUserTitle": "Invite New User",
+      "inviteUser": "邀請使用者",
+      "inviteUserTitle": "邀請新使用者",
       "inviteUserDescription": "Invite a new user to this project.",
-      "inviteUserSubmit": "Invite"
+      "inviteUserSubmit": "邀請"
     },
     "projectUserView": {
       "title": "Project User",
@@ -162,12 +162,12 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "團隊",
-      "cardDescription": "Here is a list of all the teams in this project.",
+      "cardDescription": "以下是此專案中所有團隊的清單。",
       "noItems": "No teams found in this project."
     },
     "projectTeamView": {
       "title": "Project Team",
-      "cardTitle": "Team Details",
+      "cardTitle": "團隊詳細資料",
       "cardDescription": "Details about this team.",
       "editButton": "編輯團隊",
       "membersCardTitle": "團隊 成員",

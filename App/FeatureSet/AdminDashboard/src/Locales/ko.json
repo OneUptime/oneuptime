@@ -83,7 +83,7 @@
   },
   "sideMenu": {
     "basic": "기본",
-    "members": "Members",
+    "members": "구성원",
     "users": "사용자",
     "teams": "팀",
     "advanced": "고급",
@@ -146,10 +146,10 @@
       "cardDescription": "Here is a list of all the users in this project.",
       "noItems": "No users found in this project.",
       "noItemsFiltered": "No users matched the filter.",
-      "inviteUser": "Invite User",
-      "inviteUserTitle": "Invite New User",
+      "inviteUser": "사용자 초대",
+      "inviteUserTitle": "새 사용자 초대",
       "inviteUserDescription": "Invite a new user to this project.",
-      "inviteUserSubmit": "Invite"
+      "inviteUserSubmit": "초대"
     },
     "projectUserView": {
       "title": "Project User",
@@ -162,12 +162,12 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "팀",
-      "cardDescription": "Here is a list of all the teams in this project.",
+      "cardDescription": "이 프로젝트의 모든 팀 목록입니다.",
       "noItems": "No teams found in this project."
     },
     "projectTeamView": {
       "title": "Project Team",
-      "cardTitle": "Team Details",
+      "cardTitle": "팀 세부 정보",
       "cardDescription": "Details about this team.",
       "editButton": "팀 편집",
       "membersCardTitle": "팀 멤버",

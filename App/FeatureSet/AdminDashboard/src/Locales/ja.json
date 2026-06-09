@@ -83,7 +83,7 @@
   },
   "sideMenu": {
     "basic": "基本",
-    "members": "Members",
+    "members": "メンバー",
     "users": "ユーザー",
     "teams": "チーム",
     "advanced": "詳細",
@@ -146,10 +146,10 @@
       "cardDescription": "Here is a list of all the users in this project.",
       "noItems": "No users found in this project.",
       "noItemsFiltered": "No users matched the filter.",
-      "inviteUser": "Invite User",
-      "inviteUserTitle": "Invite New User",
+      "inviteUser": "ユーザーを招待",
+      "inviteUserTitle": "新しいユーザーを招待",
       "inviteUserDescription": "Invite a new user to this project.",
-      "inviteUserSubmit": "Invite"
+      "inviteUserSubmit": "招待"
     },
     "projectUserView": {
       "title": "Project User",
@@ -162,12 +162,12 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "チーム",
-      "cardDescription": "Here is a list of all the teams in this project.",
+      "cardDescription": "このプロジェクトのすべてのチームの一覧です。",
       "noItems": "No teams found in this project."
     },
     "projectTeamView": {
       "title": "Project Team",
-      "cardTitle": "Team Details",
+      "cardTitle": "チームの詳細",
       "cardDescription": "Details about this team.",
       "editButton": "チームを編集",
       "membersCardTitle": "チーム メンバー",
