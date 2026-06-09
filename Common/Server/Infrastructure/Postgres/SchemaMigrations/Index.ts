@@ -376,6 +376,8 @@ import { AddServerlessFunctionRuleTables1780938407319 } from "./1780938407319-Ad
 import { AddCloudResourceRuleTables1780940721814 } from "./1780940721814-AddCloudResourceRuleTables";
 import { AddRumApplicationRuleTables1780940998002 } from "./1780940998002-AddRumApplicationRuleTables";
 import { AddTelemetryResourceInventoryTables1780941762204 } from "./1780941762204-AddTelemetryResourceInventoryTables";
+import { AddRumApplicationSdkLanguage1780985763463 } from "./1780985763463-AddRumApplicationSdkLanguage";
+import { RecastCloudResourcesByEnvironment1780987192743 } from "./1780987192743-RecastCloudResourcesByEnvironment";
 
 export default [
   InitialMigration,
@@ -756,4 +758,6 @@ export default [
   AddCloudResourceRuleTables1780940721814,
   AddRumApplicationRuleTables1780940998002,
   AddTelemetryResourceInventoryTables1780941762204,
+  AddRumApplicationSdkLanguage1780985763463,
+  RecastCloudResourcesByEnvironment1780987192743,
 ];

@@ -6,6 +6,7 @@ import React, {
   useState,
 } from "react";
 import Route from "Common/Types/API/Route";
+import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Card from "Common/UI/Components/Card/Card";
@@ -48,8 +49,13 @@ export interface ResourceOverviewProps {
   lastSeenAt: Date | undefined;
   description?: string | undefined;
   chips: Array<ResourceOverviewChip>;
-  telemetryAttributeKey: string;
-  telemetryAttributeValue: string;
+  /*
+   * Resource attributes that scope this resource's telemetry. ANDed together,
+   * so a compound filter (e.g. service.name + cloud.platform) narrows the
+   * counts to just this resource — not every workload sharing the service name.
+   * Empty values are dropped.
+   */
+  telemetryAttributes: Record<string, string>;
   metricsRoute: Route;
   logsRoute: Route;
   tracesRoute: Route;
@@ -120,18 +126,23 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
   const [metricCount, setMetricCount] = useState<number | null>(null);
 
   const fetchCounts: PromiseVoidFunction = async (): Promise<void> => {
-    const projectId: string | undefined =
-      ProjectUtil.getCurrentProjectId()?.toString();
-    if (!projectId || !props.telemetryAttributeValue) {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    const attributes: Record<string, string> = {};
+    for (const [key, value] of Object.entries(props.telemetryAttributes)) {
+      if (value) {
+        attributes[key] = value;
+      }
+    }
+
+    if (!projectId || Object.keys(attributes).length === 0) {
       return;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const baseQuery: any = {
-      projectId: ProjectUtil.getCurrentProjectId()!,
-      attributes: {
-        [props.telemetryAttributeKey]: props.telemetryAttributeValue,
-      },
+      projectId: projectId,
+      attributes: attributes,
     };
 
     const safeCount: (
@@ -166,7 +177,7 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
     fetchCounts().catch(() => {
       // ignore — tiles simply stay blank
     });
-  }, [props.telemetryAttributeValue]);
+  }, [JSON.stringify(props.telemetryAttributes)]);
 
   const status: string = (props.status || "").toLowerCase();
   const isConnected: boolean =

@@ -47,6 +47,7 @@ const RumApplicationOverview: FunctionComponent<
           description: true,
           appIdentifier: true,
           clientType: true,
+          sdkLanguage: true,
           otelCollectorStatus: true,
           lastSeenAt: true,
           agentVersion: true,
@@ -106,6 +107,7 @@ const RumApplicationOverview: FunctionComponent<
   const detailRows: Array<ResourceOverviewDetailRow> = [
     { label: "App Identifier (service.name)", value: a.appIdentifier },
     { label: "Client Type", value: a.clientType },
+    { label: "SDK Language (telemetry.sdk.language)", value: a.sdkLanguage },
     { label: "SDK Version", value: a.agentVersion },
   ];
 
@@ -119,8 +121,12 @@ const RumApplicationOverview: FunctionComponent<
       lastSeenAt={a.lastSeenAt}
       description={a.description as string}
       chips={chips}
-      telemetryAttributeKey="resource.service.name"
-      telemetryAttributeValue={(a.appIdentifier as string) || ""}
+      telemetryAttributes={{
+        "resource.service.name": (a.appIdentifier as string) || "",
+        ...(a.sdkLanguage
+          ? { "resource.telemetry.sdk.language": String(a.sdkLanguage) }
+          : {}),
+      }}
       metricsRoute={RouteUtil.populateRouteParams(
         RouteMap[PageMap.RUM_APPLICATION_VIEW_METRICS] as Route,
         { modelId },

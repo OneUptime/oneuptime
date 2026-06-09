@@ -37,6 +37,7 @@ const RumApplicationTraces: FunctionComponent<
         select: {
           appIdentifier: true,
           name: true,
+          sdkLanguage: true,
         },
       });
 
@@ -76,9 +77,15 @@ const RumApplicationTraces: FunctionComponent<
       <TracesViewer
         attributeFilters={{
           "resource.service.name": rumApplication.appIdentifier,
+          ...(rumApplication.sdkLanguage
+            ? { "resource.telemetry.sdk.language": rumApplication.sdkLanguage }
+            : {}),
         }}
         attributeFilterDisplayKeys={{
           "resource.service.name": "Application",
+          ...(rumApplication.sdkLanguage
+            ? { "resource.telemetry.sdk.language": "SDK" }
+            : {}),
         }}
       />
     </Fragment>

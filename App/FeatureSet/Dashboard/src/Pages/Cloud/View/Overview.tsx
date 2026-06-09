@@ -52,9 +52,6 @@ const CloudResourceOverview: FunctionComponent<
           cloudProvider: true,
           cloudRegion: true,
           cloudAccountId: true,
-          runtimeName: true,
-          runtimeVersion: true,
-          agentVersion: true,
           labels: { name: true, color: true },
         },
       });
@@ -102,45 +99,47 @@ const CloudResourceOverview: FunctionComponent<
   }
 
   const r: CloudResource = cloudResource;
-  const runtime: string = [r.runtimeName, r.runtimeVersion]
-    .filter((s: string | undefined): boolean => {
-      return Boolean(s);
-    })
-    .join(" ");
 
   const chips: Array<ResourceOverviewChip> = [];
-  if (r.cloudPlatform) {
-    chips.push({ icon: IconProp.Cloud, label: String(r.cloudPlatform) });
+  if (r.cloudProvider) {
+    chips.push({ icon: IconProp.Cloud, label: String(r.cloudProvider) });
   }
   if (r.cloudRegion) {
     chips.push({ icon: IconProp.Globe, label: String(r.cloudRegion) });
   }
-  if (runtime) {
-    chips.push({ icon: IconProp.Code, label: runtime });
+  if (r.cloudAccountId) {
+    chips.push({ icon: IconProp.Info, label: String(r.cloudAccountId) });
   }
 
   const detailRows: Array<ResourceOverviewDetailRow> = [
-    { label: "Resource Identifier (service.name)", value: r.resourceIdentifier },
     { label: "Cloud Platform", value: r.cloudPlatform },
     { label: "Cloud Provider", value: r.cloudProvider },
     { label: "Cloud Region", value: r.cloudRegion },
     { label: "Cloud Account ID", value: r.cloudAccountId },
-    { label: "Runtime", value: runtime },
-    { label: "Agent Version", value: r.agentVersion },
+    { label: "Environment Key", value: r.resourceIdentifier },
   ];
 
   return (
     <ResourceOverview
       icon={IconProp.Cloud}
-      title={(r.name as string) || "Cloud Resource"}
-      identifier={(r.resourceIdentifier as string) || ""}
-      identifierLabel="service.name"
+      title={(r.name as string) || "Cloud Environment"}
+      identifier={(r.cloudPlatform as string) || ""}
+      identifierLabel="cloud.platform"
       status={r.otelCollectorStatus}
       lastSeenAt={r.lastSeenAt}
       description={r.description as string}
       chips={chips}
-      telemetryAttributeKey="resource.service.name"
-      telemetryAttributeValue={(r.resourceIdentifier as string) || ""}
+      telemetryAttributes={{
+        ...(r.cloudPlatform
+          ? { "resource.cloud.platform": String(r.cloudPlatform) }
+          : {}),
+        ...(r.cloudAccountId
+          ? { "resource.cloud.account.id": String(r.cloudAccountId) }
+          : {}),
+        ...(r.cloudRegion
+          ? { "resource.cloud.region": String(r.cloudRegion) }
+          : {}),
+      }}
       metricsRoute={RouteUtil.populateRouteParams(
         RouteMap[PageMap.CLOUD_RESOURCE_VIEW_METRICS] as Route,
         { modelId },

@@ -40,6 +40,7 @@ const RumApplicationLogs: FunctionComponent<
         select: {
           appIdentifier: true,
           name: true,
+          sdkLanguage: true,
         },
       });
 
@@ -67,10 +68,13 @@ const RumApplicationLogs: FunctionComponent<
     const q: any = {
       attributes: {
         "resource.service.name": rumApplication?.appIdentifier || "",
+        ...(rumApplication?.sdkLanguage
+          ? { "resource.telemetry.sdk.language": rumApplication.sdkLanguage }
+          : {}),
       },
     };
     return q as Query<Log>;
-  }, [rumApplication?.appIdentifier]);
+  }, [rumApplication?.appIdentifier, rumApplication?.sdkLanguage]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;

@@ -40,6 +40,9 @@ const CloudResourceLogs: FunctionComponent<
         select: {
           resourceIdentifier: true,
           name: true,
+          cloudPlatform: true,
+          cloudAccountId: true,
+          cloudRegion: true,
         },
       });
 
@@ -66,11 +69,23 @@ const CloudResourceLogs: FunctionComponent<
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const q: any = {
       attributes: {
-        "resource.service.name": cloudResource?.resourceIdentifier || "",
+        ...(cloudResource?.cloudPlatform
+          ? { "resource.cloud.platform": cloudResource.cloudPlatform }
+          : {}),
+        ...(cloudResource?.cloudAccountId
+          ? { "resource.cloud.account.id": cloudResource.cloudAccountId }
+          : {}),
+        ...(cloudResource?.cloudRegion
+          ? { "resource.cloud.region": cloudResource.cloudRegion }
+          : {}),
       },
     };
     return q as Query<Log>;
-  }, [cloudResource?.resourceIdentifier]);
+  }, [
+    cloudResource?.cloudPlatform,
+    cloudResource?.cloudAccountId,
+    cloudResource?.cloudRegion,
+  ]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;

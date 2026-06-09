@@ -357,6 +357,35 @@ export default class RumApplication extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "SDK Language",
+    description:
+      "Last-seen telemetry.sdk.language resource attribute (e.g. webjs, swift, android). Used to scope this application's client telemetry apart from a same-named backend service.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public sdkLanguage?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
     title: "OTel Collector Status",
     description:
       "Whether telemetry is currently being received (connected) or has gone stale (disconnected).",

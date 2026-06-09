@@ -143,8 +143,9 @@ const ServerlessFunctionOverview: FunctionComponent<
       lastSeenAt={fn.lastSeenAt}
       description={fn.description as string}
       chips={chips}
-      telemetryAttributeKey="resource.faas.name"
-      telemetryAttributeValue={(fn.functionIdentifier as string) || ""}
+      telemetryAttributes={{
+        "resource.faas.name": (fn.functionIdentifier as string) || "",
+      }}
       metricsRoute={RouteUtil.populateRouteParams(
         RouteMap[PageMap.SERVERLESS_FUNCTION_VIEW_METRICS] as Route,
         { modelId },

@@ -58,6 +58,11 @@ export class Service extends DatabaseService<Model> {
   public async findOrCreateByResourceIdentifier(data: {
     projectId: ObjectID;
     resourceIdentifier: string;
+    name?: string | undefined;
+    cloudPlatform?: string | undefined;
+    cloudProvider?: string | undefined;
+    cloudRegion?: string | undefined;
+    cloudAccountId?: string | undefined;
   }): Promise<Model> {
     const existingResource: Model | null = await this.findOneBy({
       query: {
@@ -83,10 +88,22 @@ export class Service extends DatabaseService<Model> {
     try {
       const newResource: Model = new Model();
       newResource.projectId = data.projectId;
-      newResource.name = data.resourceIdentifier;
+      newResource.name = data.name || data.resourceIdentifier;
       newResource.resourceIdentifier = data.resourceIdentifier;
       newResource.otelCollectorStatus = "connected";
       newResource.lastSeenAt = OneUptimeDate.getCurrentDate();
+      if (data.cloudPlatform) {
+        newResource.cloudPlatform = data.cloudPlatform;
+      }
+      if (data.cloudProvider) {
+        newResource.cloudProvider = data.cloudProvider;
+      }
+      if (data.cloudRegion) {
+        newResource.cloudRegion = data.cloudRegion;
+      }
+      if (data.cloudAccountId) {
+        newResource.cloudAccountId = data.cloudAccountId;
+      }
 
       const createdResource: Model = await this.create({
         data: newResource,

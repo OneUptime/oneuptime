@@ -37,6 +37,9 @@ const CloudResourceMetrics: FunctionComponent<
         select: {
           resourceIdentifier: true,
           name: true,
+          cloudPlatform: true,
+          cloudAccountId: true,
+          cloudRegion: true,
         },
       });
 
@@ -75,10 +78,26 @@ const CloudResourceMetrics: FunctionComponent<
     <Fragment>
       <MetricsViewer
         attributeFilters={{
-          "resource.service.name": cloudResource.resourceIdentifier,
+          ...(cloudResource.cloudPlatform
+            ? { "resource.cloud.platform": cloudResource.cloudPlatform }
+            : {}),
+          ...(cloudResource.cloudAccountId
+            ? { "resource.cloud.account.id": cloudResource.cloudAccountId }
+            : {}),
+          ...(cloudResource.cloudRegion
+            ? { "resource.cloud.region": cloudResource.cloudRegion }
+            : {}),
         }}
         attributeFilterDisplayKeys={{
-          "resource.service.name": "Resource",
+          ...(cloudResource.cloudPlatform
+            ? { "resource.cloud.platform": "Platform" }
+            : {}),
+          ...(cloudResource.cloudAccountId
+            ? { "resource.cloud.account.id": "Account" }
+            : {}),
+          ...(cloudResource.cloudRegion
+            ? { "resource.cloud.region": "Region" }
+            : {}),
         }}
       />
     </Fragment>

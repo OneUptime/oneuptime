@@ -25,22 +25,22 @@ const CloudResources: FunctionComponent<
         userPreferencesKey="cloud-resources-table"
         isDeleteable={false}
         isEditable={false}
-        isCreateable={true}
+        isCreateable={false}
         isViewable={true}
         showRefreshButton={true}
         showViewIdButton={true}
         name="Cloud Resources"
         searchableFields={["name", "description"]}
         selectMoreFields={{
-          resourceIdentifier: true,
           cloudPlatform: true,
           cloudProvider: true,
           cloudRegion: true,
+          cloudAccountId: true,
         }}
         cardProps={{
-          title: "Cloud Resources",
+          title: "Cloud Environments",
           description:
-            "Managed cloud compute auto-discovered from OpenTelemetry cloud.platform (AWS ECS/Fargate, GCP Cloud Run, Azure Container Apps, Elastic Beanstalk, App Runner).",
+            "Managed cloud compute environments auto-discovered from OpenTelemetry — one per cloud.platform + account + region (AWS ECS/Fargate, GCP Cloud Run, Azure Container Apps, Elastic Beanstalk, App Runner). Per-service breakdown lives under Services.",
         }}
         formFields={[
           {
@@ -99,16 +99,23 @@ const CloudResources: FunctionComponent<
           },
           {
             field: {
-              resourceIdentifier: true,
+              cloudPlatform: true,
             },
-            title: "Resource Identifier",
+            title: "Cloud Platform",
             type: FieldType.Text,
           },
           {
             field: {
-              cloudPlatform: true,
+              cloudRegion: true,
             },
-            title: "Cloud Platform",
+            title: "Cloud Region",
+            type: FieldType.Text,
+          },
+          {
+            field: {
+              cloudAccountId: true,
+            },
+            title: "Cloud Account",
             type: FieldType.Text,
           },
           {
@@ -127,9 +134,8 @@ const CloudResources: FunctionComponent<
             title: "Name",
             type: FieldType.Element,
             getElement: (item: CloudResource): ReactElement => {
-              const id: string = (item.resourceIdentifier as string) || "";
+              const account: string = (item.cloudAccountId as string) || "";
               const name: string = (item.name as string) || "";
-              const showId: boolean = id !== "" && id !== name;
               const route: Route = RouteUtil.populateRouteParams(
                 RouteMap[PageMap.CLOUD_RESOURCE_VIEW] as Route,
                 {
@@ -144,9 +150,9 @@ const CloudResources: FunctionComponent<
                   >
                     {name || "—"}
                   </AppLink>
-                  {showId && (
+                  {account && (
                     <div className="text-xs text-gray-500 font-mono truncate">
-                      {id}
+                      account {account}
                     </div>
                   )}
                 </div>

@@ -126,6 +126,7 @@ export class Service extends DatabaseService<Model> {
     extra?: {
       agentVersion?: string | undefined;
       clientType?: string | undefined;
+      sdkLanguage?: string | undefined;
     },
   ): Promise<void> {
     const cacheKey: string = rumApplicationId.toString();
@@ -135,6 +136,7 @@ export class Service extends DatabaseService<Model> {
         JSON.stringify({
           agentVersion: extra?.agentVersion ?? null,
           clientType: extra?.clientType ?? null,
+          sdkLanguage: extra?.sdkLanguage ?? null,
         }),
       )
       .digest("hex");
@@ -166,6 +168,9 @@ export class Service extends DatabaseService<Model> {
     }
     if (extra?.clientType) {
       data.clientType = extra.clientType;
+    }
+    if (extra?.sdkLanguage) {
+      data.sdkLanguage = extra.sdkLanguage;
     }
 
     await this.updateOneById({
