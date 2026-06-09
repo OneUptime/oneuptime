@@ -2472,6 +2472,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
   [PageMap.SERVERLESS_FUNCTION_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/serverless/${
       ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_DELETE]
@@ -2529,6 +2535,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
   [PageMap.CLOUD_RESOURCE_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_DELETE]
@@ -2581,6 +2593,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.RUM_APPLICATION_VIEW_CLIENTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/rum/${
       RumRoutePath[PageMap.RUM_APPLICATION_VIEW_CLIENTS]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION]
     }`,
   ),
 

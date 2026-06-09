@@ -34,6 +34,10 @@ export function getServerlessBreadcrumbs(
       "View Function",
       "Traces",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION,
+      ["Project", "Serverless Functions", "View Function", "Documentation"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVERLESS_FUNCTION_VIEW_DELETE, [
       "Project",
       "Serverless Functions",

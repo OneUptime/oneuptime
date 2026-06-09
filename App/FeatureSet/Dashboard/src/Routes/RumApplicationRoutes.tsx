@@ -13,6 +13,7 @@ import RumApplicationMetrics from "../Pages/Rum/View/Metrics";
 import RumApplicationLogs from "../Pages/Rum/View/Logs";
 import RumApplicationTraces from "../Pages/Rum/View/Traces";
 import RumApplicationClients from "../Pages/Rum/View/Clients";
+import RumApplicationDocumentation from "../Pages/Rum/View/Documentation";
 import RumApplicationDelete from "../Pages/Rum/View/Delete";
 import RumLabelRules from "../Pages/Rum/Settings/LabelRules";
 import RumOwnerRules from "../Pages/Rum/Settings/OwnerRules";
@@ -106,6 +107,20 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
             <RumApplicationClients
               {...props}
               pageRoute={RouteMap[PageMap.RUM_APPLICATION_VIEW_CLIENTS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION,
+          )}
+          element={
+            <RumApplicationDocumentation
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION] as Route
+              }
             />
           }
         />

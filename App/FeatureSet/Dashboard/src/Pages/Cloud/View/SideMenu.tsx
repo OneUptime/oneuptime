@@ -28,6 +28,16 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Info}
         />
+        <SideMenuItem
+          link={{
+            title: "Documentation",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Book}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Observability">
