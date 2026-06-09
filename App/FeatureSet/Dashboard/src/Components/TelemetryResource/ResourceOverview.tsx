@@ -1,25 +1,11 @@
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Route from "Common/Types/API/Route";
-import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Card from "Common/UI/Components/Card/Card";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Label from "Common/Models/DatabaseModels/Label";
 import OneUptimeDate from "Common/Types/Date";
-import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import Query from "Common/Types/BaseDatabase/Query";
-import Log from "Common/Models/AnalyticsModels/Log";
-import Span from "Common/Models/AnalyticsModels/Span";
-import Metric from "Common/Models/AnalyticsModels/Metric";
-import ProjectUtil from "Common/UI/Utils/Project";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AppLink from "../AppLink/AppLink";
 
 export interface ResourceOverviewChip {
@@ -33,11 +19,33 @@ export interface ResourceOverviewDetailRow {
   mono?: boolean | undefined;
 }
 
-export interface ResourceOverviewInventoryTile {
+export type ResourceOverviewTileColor =
+  | "blue"
+  | "violet"
+  | "amber"
+  | "emerald"
+  | "slate"
+  | "sky"
+  | "rose";
+
+export interface ResourceOverviewTile {
   title: string;
+  value: string;
   icon: IconProp;
-  count: number | null;
+  iconColor: ResourceOverviewTileColor;
+  sublabel?: string | undefined;
+  // 0-100 — renders a saturation bar under the value when provided.
+  percent?: number | null | undefined;
+  thresholds?: { warn: number; danger: number } | undefined;
+  higherIsBetter?: boolean | undefined;
+  to?: Route | undefined;
+}
+
+export interface ResourceOverviewQuickLink {
+  title: string;
+  description: string;
   to: Route;
+  icon: IconProp;
 }
 
 export interface ResourceOverviewProps {
@@ -49,74 +57,109 @@ export interface ResourceOverviewProps {
   lastSeenAt: Date | undefined;
   description?: string | undefined;
   chips: Array<ResourceOverviewChip>;
-  /*
-   * Resource attributes that scope this resource's telemetry. ANDed together,
-   * so a compound filter (e.g. service.name + cloud.platform) narrows the
-   * counts to just this resource — not every workload sharing the service name.
-   * Empty values are dropped.
-   */
-  telemetryAttributes?: Record<string, string> | undefined;
-  /*
-   * When set, telemetry is scoped by this resource's own serviceId rather
-   * than by resource.* attributes — used by RUM, whose rows are tagged with
-   * serviceId = rumApplicationId. Takes precedence over telemetryAttributes.
-   */
-  telemetryServiceId?: ObjectID | undefined;
-  metricsRoute: Route;
-  logsRoute: Route;
-  tracesRoute: Route;
-  inventoryTile?: ResourceOverviewInventoryTile | undefined;
+  // Domain-relevant golden metric tiles, computed by the page.
+  tiles: Array<ResourceOverviewTile>;
+  tilesLoading?: boolean | undefined;
+  // Secondary navigation to the raw telemetry tabs.
+  quickLinks?: Array<ResourceOverviewQuickLink> | undefined;
   detailRows: Array<ResourceOverviewDetailRow>;
   labels?: Array<Label> | undefined;
 }
 
-const formatCount: (n: number | null) => string = (n: number | null): string => {
-  if (n === null) {
-    return "…";
-  }
-  if (n < 1000) {
-    return n.toString();
-  }
-  if (n < 1_000_000) {
-    return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`;
-  }
-  return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+const tileColorClasses: Record<
+  ResourceOverviewTileColor,
+  { bg: string; ring: string; text: string }
+> = {
+  blue: { bg: "bg-blue-50", ring: "ring-blue-200", text: "text-blue-600" },
+  violet: {
+    bg: "bg-violet-50",
+    ring: "ring-violet-200",
+    text: "text-violet-600",
+  },
+  amber: { bg: "bg-amber-50", ring: "ring-amber-200", text: "text-amber-600" },
+  emerald: {
+    bg: "bg-emerald-50",
+    ring: "ring-emerald-200",
+    text: "text-emerald-600",
+  },
+  slate: { bg: "bg-slate-50", ring: "ring-slate-200", text: "text-slate-600" },
+  sky: { bg: "bg-sky-50", ring: "ring-sky-200", text: "text-sky-600" },
+  rose: { bg: "bg-rose-50", ring: "ring-rose-200", text: "text-rose-600" },
 };
 
-const StatTile: FunctionComponent<{
-  title: string;
-  value: string;
-  icon: IconProp;
-  iconColor: string;
-  to?: Route | undefined;
-}> = (props: {
-  title: string;
-  value: string;
-  icon: IconProp;
-  iconColor: string;
-  to?: Route | undefined;
-}): ReactElement => {
+const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
+  props: ResourceOverviewTile,
+): ReactElement => {
+  const colors: { bg: string; ring: string; text: string } =
+    tileColorClasses[props.iconColor];
+
+  const barColor: string = (() => {
+    if (props.percent === null || props.percent === undefined) {
+      return "bg-gray-300";
+    }
+    const t: { warn: number; danger: number } = props.thresholds || {
+      warn: 70,
+      danger: 90,
+    };
+    if (props.higherIsBetter) {
+      if (props.percent < t.danger) {
+        return "bg-red-500";
+      }
+      if (props.percent < t.warn) {
+        return "bg-amber-500";
+      }
+      return "bg-emerald-500";
+    }
+    if (props.percent >= t.danger) {
+      return "bg-red-500";
+    }
+    if (props.percent >= t.warn) {
+      return "bg-amber-500";
+    }
+    return "bg-emerald-500";
+  })();
+
+  const safePercent: number =
+    props.percent === null || props.percent === undefined
+      ? 0
+      : Math.min(100, Math.max(0, props.percent));
+
   const inner: ReactElement = (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all hover:border-indigo-300 hover:shadow">
+    <div className="h-full rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all hover:border-indigo-300 hover:shadow">
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
           {props.title}
         </span>
         <div
-          className={`flex h-7 w-7 items-center justify-center rounded-md bg-gray-50 ring-1 ring-inset ring-gray-200`}
+          className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
         >
-          <Icon icon={props.icon} className={`h-3.5 w-3.5 ${props.iconColor}`} />
+          <Icon icon={props.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
         </div>
       </div>
       <div className="text-2xl font-semibold text-gray-900 leading-none">
         {props.value}
       </div>
+      {props.sublabel ? (
+        <div className="mt-1 text-xs text-gray-500 truncate">
+          {props.sublabel}
+        </div>
+      ) : (
+        <div className="mt-1 text-xs text-gray-400">&nbsp;</div>
+      )}
+      {props.percent !== undefined && props.percent !== null && (
+        <div className="mt-3 w-full bg-gray-100 rounded-full h-1.5">
+          <div
+            className={`${barColor} h-1.5 rounded-full transition-all`}
+            style={{ width: `${safePercent}%` }}
+          />
+        </div>
+      )}
     </div>
   );
 
   if (props.to) {
     return (
-      <AppLink to={props.to} className="block">
+      <AppLink to={props.to} className="block h-full">
         {inner}
       </AppLink>
     );
@@ -127,81 +170,8 @@ const StatTile: FunctionComponent<{
 const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
   props: ResourceOverviewProps,
 ): ReactElement => {
-  const [logCount, setLogCount] = useState<number | null>(null);
-  const [traceCount, setTraceCount] = useState<number | null>(null);
-  const [metricCount, setMetricCount] = useState<number | null>(null);
-
-  const fetchCounts: PromiseVoidFunction = async (): Promise<void> => {
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-    if (!projectId) {
-      return;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let baseQuery: any;
-    if (props.telemetryServiceId) {
-      baseQuery = {
-        projectId: projectId,
-        serviceId: props.telemetryServiceId,
-      };
-    } else {
-      const attributes: Record<string, string> = {};
-      for (const [key, value] of Object.entries(
-        props.telemetryAttributes || {},
-      )) {
-        if (value) {
-          attributes[key] = value;
-        }
-      }
-      if (Object.keys(attributes).length === 0) {
-        return;
-      }
-      baseQuery = {
-        projectId: projectId,
-        attributes: attributes,
-      };
-    }
-
-    const safeCount: (
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      modelType: any,
-      setter: (n: number) => void,
-    ) => Promise<void> = async (
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      modelType: any,
-      setter: (n: number) => void,
-    ): Promise<void> => {
-      try {
-        const count: number = await AnalyticsModelAPI.count(
-          modelType,
-          baseQuery as Query<Log>,
-        );
-        setter(count);
-      } catch {
-        // Best-effort — leave the tile blank on error.
-        setter(0);
-      }
-    };
-
-    await Promise.all([
-      safeCount(Log, setLogCount),
-      safeCount(Span, setTraceCount),
-      safeCount(Metric, setMetricCount),
-    ]);
-  };
-
-  useEffect(() => {
-    fetchCounts().catch(() => {
-      // ignore — tiles simply stay blank
-    });
-  }, [
-    JSON.stringify(props.telemetryAttributes || {}),
-    props.telemetryServiceId?.toString(),
-  ]);
-
   const status: string = (props.status || "").toLowerCase();
-  const isConnected: boolean =
-    status === "connected" || status === "active";
+  const isConnected: boolean = status === "connected" || status === "active";
   const lastSeenText: string = props.lastSeenAt
     ? OneUptimeDate.fromNow(props.lastSeenAt)
     : "never";
@@ -277,46 +247,33 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
         </div>
       </div>
 
-      {/* Stat tiles */}
-      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile
-          title="Logs"
-          value={formatCount(logCount)}
-          icon={IconProp.Terminal}
-          iconColor="text-blue-600"
-          to={props.logsRoute}
-        />
-        <StatTile
-          title="Traces"
-          value={formatCount(traceCount)}
-          icon={IconProp.Workflow}
-          iconColor="text-violet-600"
-          to={props.tracesRoute}
-        />
-        <StatTile
-          title="Metrics"
-          value={formatCount(metricCount)}
-          icon={IconProp.ChartBar}
-          iconColor="text-emerald-600"
-          to={props.metricsRoute}
-        />
-        {props.inventoryTile ? (
-          <StatTile
-            title={props.inventoryTile.title}
-            value={formatCount(props.inventoryTile.count)}
-            icon={props.inventoryTile.icon}
-            iconColor="text-amber-600"
-            to={props.inventoryTile.to}
-          />
-        ) : (
-          <StatTile
-            title="Status"
-            value={isConnected ? "Live" : "Stale"}
-            icon={IconProp.Wifi}
-            iconColor="text-slate-600"
-          />
-        )}
-      </div>
+      {/* Golden metric tiles */}
+      {props.tilesLoading && props.tiles.length === 0 ? (
+        <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {Array.from({ length: 4 }, (_: unknown, idx: number) => {
+            return (
+              <div
+                key={`tile-skeleton-${idx}`}
+                className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+              >
+                <div className="h-3 w-16 rounded bg-gray-100 animate-pulse" />
+                <div className="mt-3 h-8 w-20 rounded bg-gray-100 animate-pulse" />
+                <div className="mt-2 h-3 w-24 rounded bg-gray-100 animate-pulse" />
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        props.tiles.length > 0 && (
+          <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {props.tiles.map(
+              (tile: ResourceOverviewTile, idx: number): ReactElement => {
+                return <GoldenMetricTile key={`tile-${idx}`} {...tile} />;
+              },
+            )}
+          </div>
+        )
+      )}
 
       {/* Details */}
       <Card
@@ -350,6 +307,54 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
           )}
         </div>
       </Card>
+
+      {/* Explore telemetry (secondary navigation) */}
+      {props.quickLinks && props.quickLinks.length > 0 ? (
+        <div className="mt-6">
+          <Card
+            title="Explore telemetry"
+            description="Drill into the raw signals for this resource."
+          >
+            <div className="-m-6 -mt-2 border-t border-gray-200 divide-y divide-gray-100">
+              {props.quickLinks.map(
+                (
+                  link: ResourceOverviewQuickLink,
+                  idx: number,
+                ): ReactElement => {
+                  return (
+                    <AppLink
+                      key={`ql-${idx}`}
+                      to={link.to}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50"
+                    >
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-gray-50 ring-1 ring-inset ring-gray-200">
+                        <Icon
+                          icon={link.icon}
+                          className="h-4 w-4 text-gray-500"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium text-gray-900">
+                          {link.title}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate">
+                          {link.description}
+                        </div>
+                      </div>
+                      <Icon
+                        icon={IconProp.ChevronRight}
+                        className="h-4 w-4 flex-shrink-0 text-gray-400"
+                      />
+                    </AppLink>
+                  );
+                },
+              )}
+            </div>
+          </Card>
+        </div>
+      ) : (
+        <></>
+      )}
 
       {/* Labels */}
       {props.labels && props.labels.length > 0 ? (

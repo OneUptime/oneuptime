@@ -4,6 +4,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
+import OneUptimeDate from "Common/Types/Date";
 import Navigation from "Common/UI/Utils/Navigation";
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import ServerlessFunctionInstance from "Common/Models/DatabaseModels/ServerlessFunctionInstance";
@@ -21,7 +22,16 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ResourceOverview, {
   ResourceOverviewChip,
   ResourceOverviewDetailRow,
+  ResourceOverviewQuickLink,
+  ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
+import {
+  fetchSpanRedMetrics,
+  formatCompact,
+  formatDurationMs,
+  formatPercent,
+  SpanRedMetrics,
+} from "../../../Components/TelemetryResource/telemetryMetrics";
 
 const ServerlessFunctionOverview: FunctionComponent<
   PageComponentProps
@@ -31,6 +41,7 @@ const ServerlessFunctionOverview: FunctionComponent<
   const [serverlessFunction, setServerlessFunction] =
     useState<ServerlessFunction | null>(null);
   const [instanceCount, setInstanceCount] = useState<number | null>(null);
+  const [red, setRed] = useState<SpanRedMetrics | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
@@ -66,21 +77,39 @@ const ServerlessFunctionOverview: FunctionComponent<
       }
 
       setServerlessFunction(item);
+      setIsLoading(false);
 
-      try {
-        const count: number = await ModelAPI.count({
-          modelType: ServerlessFunctionInstance,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          query: { serverlessFunctionId: modelId } as any,
+      const end: Date = OneUptimeDate.getCurrentDate();
+      const start: Date = OneUptimeDate.addRemoveMinutes(end, -60);
+
+      fetchSpanRedMetrics({
+        attributes: { "resource.faas.name": item.functionIdentifier as string },
+        start,
+        end,
+      })
+        .then(setRed)
+        .catch(() => {
+          return setRed({
+            total: 0,
+            errors: 0,
+            errorRatePercent: null,
+            p95DurationMs: null,
+          });
         });
-        setInstanceCount(count);
-      } catch {
-        setInstanceCount(0);
-      }
+
+      ModelAPI.count({
+        modelType: ServerlessFunctionInstance,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        query: { serverlessFunctionId: modelId } as any,
+      })
+        .then(setInstanceCount)
+        .catch(() => {
+          return setInstanceCount(0);
+        });
     } catch (err) {
       setError(API.getFriendlyMessage(err));
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -122,6 +151,65 @@ const ServerlessFunctionOverview: FunctionComponent<
     chips.push({ icon: IconProp.Info, label: `v${fn.functionVersion}` });
   }
 
+  const populate: (page: PageMap) => Route = (page: PageMap): Route => {
+    return RouteUtil.populateRouteParams(RouteMap[page] as Route, { modelId });
+  };
+
+  const tiles: Array<ResourceOverviewTile> = [
+    {
+      title: "Invocations",
+      value: red ? formatCompact(red.total) : "…",
+      icon: IconProp.Bolt,
+      iconColor: "blue",
+      sublabel: "last 1 hour",
+    },
+    {
+      title: "Error rate",
+      value: red ? formatPercent(red.errorRatePercent) : "…",
+      icon: IconProp.Alert,
+      iconColor: "rose",
+      sublabel: red ? `${formatCompact(red.errors)} errored` : undefined,
+      percent: red ? red.errorRatePercent : null,
+      thresholds: { warn: 1, danger: 5 },
+    },
+    {
+      title: "p95 duration",
+      value: red ? formatDurationMs(red.p95DurationMs) : "…",
+      icon: IconProp.Clock,
+      iconColor: "violet",
+      sublabel: "last 1 hour",
+    },
+    {
+      title: "Instances",
+      value: instanceCount === null ? "…" : formatCompact(instanceCount),
+      icon: IconProp.Cube,
+      iconColor: "amber",
+      sublabel: "active",
+      to: populate(PageMap.SERVERLESS_FUNCTION_VIEW_INSTANCES),
+    },
+  ];
+
+  const quickLinks: Array<ResourceOverviewQuickLink> = [
+    {
+      title: "Traces",
+      description: "Invocation traces and spans",
+      to: populate(PageMap.SERVERLESS_FUNCTION_VIEW_TRACES),
+      icon: IconProp.Workflow,
+    },
+    {
+      title: "Logs",
+      description: "Function logs",
+      to: populate(PageMap.SERVERLESS_FUNCTION_VIEW_LOGS),
+      icon: IconProp.Terminal,
+    },
+    {
+      title: "Metrics",
+      description: "Function metrics",
+      to: populate(PageMap.SERVERLESS_FUNCTION_VIEW_METRICS),
+      icon: IconProp.ChartBar,
+    },
+  ];
+
   const detailRows: Array<ResourceOverviewDetailRow> = [
     { label: "Function Identifier (faas.name)", value: fn.functionIdentifier },
     { label: "Cloud Platform", value: fn.cloudPlatform },
@@ -143,30 +231,8 @@ const ServerlessFunctionOverview: FunctionComponent<
       lastSeenAt={fn.lastSeenAt}
       description={fn.description as string}
       chips={chips}
-      telemetryAttributes={{
-        "resource.faas.name": (fn.functionIdentifier as string) || "",
-      }}
-      metricsRoute={RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SERVERLESS_FUNCTION_VIEW_METRICS] as Route,
-        { modelId },
-      )}
-      logsRoute={RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SERVERLESS_FUNCTION_VIEW_LOGS] as Route,
-        { modelId },
-      )}
-      tracesRoute={RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SERVERLESS_FUNCTION_VIEW_TRACES] as Route,
-        { modelId },
-      )}
-      inventoryTile={{
-        title: "Instances",
-        icon: IconProp.Cube,
-        count: instanceCount,
-        to: RouteUtil.populateRouteParams(
-          RouteMap[PageMap.SERVERLESS_FUNCTION_VIEW_INSTANCES] as Route,
-          { modelId },
-        ),
-      }}
+      tiles={tiles}
+      quickLinks={quickLinks}
       detailRows={detailRows}
       labels={fn.labels}
     />
