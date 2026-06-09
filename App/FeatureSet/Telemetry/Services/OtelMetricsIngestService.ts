@@ -44,6 +44,7 @@ import KubernetesContainerService, {
 import DockerResourceService, {
   ParsedDockerContainer,
 } from "Common/Server/Services/DockerResourceService";
+import CloudResourceInstanceService from "Common/Server/Services/CloudResourceInstanceService";
 import HostService from "Common/Server/Services/HostService";
 import LabelService from "Common/Server/Services/LabelService";
 import Host from "Common/Models/DatabaseModels/Host";
@@ -114,6 +115,18 @@ const DOCKER_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "container.memory.usage.total",
 ]);
 
+/*
+ * Cloud managed-compute snapshot metrics — ECS/Fargate, Cloud Run, etc.
+ * emit container.cpu.utilization / container.memory.usage with
+ * service.instance.id identifying the running task / instance. The latest
+ * point is mirrored onto the matching CloudResourceInstance row.
+ */
+const CLOUD_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
+  "container.cpu.utilization",
+  "container.memory.usage",
+  "container.memory.usage.total",
+]);
+
 interface ResourceMetricBufferEntry {
   kind: string;
   namespaceKey: string;
@@ -139,6 +152,13 @@ interface DockerContainerMetricBufferEntry {
   containerName: string;
   containerId: string | null;
   imageName: string | null;
+  cpuPercent: number | null;
+  memoryBytes: number | null;
+  observedAt: Date;
+}
+
+interface CloudResourceInstanceMetricBufferEntry {
+  instanceName: string;
   cpuPercent: number | null;
   memoryBytes: number | null;
   observedAt: Date;
@@ -468,6 +488,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       const dockerContainerMetricsBuffer: Map<
         string,
         Map<string, DockerContainerMetricBufferEntry>
+      > = new Map();
+      const cloudResourceInstanceMetricsBuffer: Map<
+        string,
+        Map<string, CloudResourceInstanceMetricBufferEntry>
       > = new Map();
 
       // Load project + service-scoped pipeline rules once per batch (60s cached).
@@ -906,6 +930,20 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                           });
                         }
 
+                        if (
+                          cloudResourceId &&
+                          CLOUD_SNAPSHOT_METRIC_NAMES.has(metricName)
+                        ) {
+                          this.bufferCloudResourceSnapshotMetric({
+                            cloudResourceIdStr: cloudResourceId.toString(),
+                            metricName,
+                            metricUnit,
+                            datapoint: datapoint as JSONObject,
+                            metricAttributes,
+                            buffer: cloudResourceInstanceMetricsBuffer,
+                          });
+                        }
+
                         const metricRow: JSONObject = this.buildMetricRow({
                           datapoint: datapoint as JSONObject,
                           baseAttributes: metricAttributes,
@@ -994,6 +1032,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       await this.flushDockerSnapshotBuffer({
         projectId,
         buffer: dockerContainerMetricsBuffer,
+      });
+
+      await this.flushCloudResourceSnapshotBuffer({
+        projectId,
+        buffer: cloudResourceInstanceMetricsBuffer,
       });
 
       if (totalMetricsProcessed === 0) {
@@ -1778,6 +1821,119 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       } catch (err) {
         logger.warn(
           `Docker snapshot writeback failed for host ${hostIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
+  /*
+   * Buffer the latest CPU / memory point for a managed-compute instance
+   * (service.instance.id) so multiple datapoints across a batch collapse
+   * into a single CloudResourceInstance upsert. Best-effort — anything
+   * unparseable is skipped without affecting ClickHouse ingest.
+   */
+  private static bufferCloudResourceSnapshotMetric(data: {
+    cloudResourceIdStr: string;
+    metricName: string;
+    metricUnit: string | undefined;
+    datapoint: JSONObject;
+    metricAttributes: Dictionary<AttributeType | Array<AttributeType>>;
+    buffer: Map<string, Map<string, CloudResourceInstanceMetricBufferEntry>>;
+  }): void {
+    const valueFromInt: number | null = this.toNumberOrNull(
+      data.datapoint["asInt"],
+    );
+    const valueFromDouble: number | null = this.toNumberOrNull(
+      data.datapoint["asDouble"],
+    );
+    const rawValue: number | null = valueFromDouble ?? valueFromInt;
+    if (rawValue === null) {
+      return;
+    }
+
+    const ts: MetricTimestamp = this.safeParseUnixNano(
+      data.datapoint["timeUnixNano"] as string | number | undefined,
+      "cloud snapshot timeUnixNano",
+    );
+
+    const instanceName: string = this.readSnapshotAttr(
+      data.metricAttributes,
+      "resource.service.instance.id",
+    );
+    if (!instanceName) {
+      return;
+    }
+
+    const isCpu: boolean = data.metricName === "container.cpu.utilization";
+    const isMem: boolean =
+      data.metricName === "container.memory.usage" ||
+      data.metricName === "container.memory.usage.total";
+
+    let perResource:
+      | Map<string, CloudResourceInstanceMetricBufferEntry>
+      | undefined = data.buffer.get(data.cloudResourceIdStr);
+    if (!perResource) {
+      perResource = new Map();
+      data.buffer.set(data.cloudResourceIdStr, perResource);
+    }
+
+    const cpuPercent: number | null = isCpu
+      ? this.cpuValueToPercent(rawValue, data.metricUnit)
+      : null;
+    const memoryBytes: number | null = isMem
+      ? Math.max(0, Math.trunc(rawValue))
+      : null;
+
+    const existing: CloudResourceInstanceMetricBufferEntry | undefined =
+      perResource.get(instanceName);
+    if (!existing) {
+      perResource.set(instanceName, {
+        instanceName,
+        cpuPercent,
+        memoryBytes,
+        observedAt: ts.date,
+      });
+      return;
+    }
+    if (cpuPercent !== null && ts.date >= existing.observedAt) {
+      existing.cpuPercent = cpuPercent;
+    }
+    if (memoryBytes !== null && ts.date >= existing.observedAt) {
+      existing.memoryBytes = memoryBytes;
+    }
+    if (ts.date > existing.observedAt) {
+      existing.observedAt = ts.date;
+    }
+  }
+
+  private static async flushCloudResourceSnapshotBuffer(data: {
+    projectId: ObjectID;
+    buffer: Map<string, Map<string, CloudResourceInstanceMetricBufferEntry>>;
+  }): Promise<void> {
+    if (data.buffer.size === 0) {
+      return;
+    }
+    for (const [
+      cloudResourceIdStr,
+      byInstance,
+    ] of data.buffer.entries()) {
+      if (byInstance.size === 0) {
+        continue;
+      }
+      try {
+        const cloudResourceId: ObjectID = new ObjectID(cloudResourceIdStr);
+        for (const e of byInstance.values()) {
+          await CloudResourceInstanceService.recordInstance({
+            projectId: data.projectId,
+            cloudResourceId,
+            instanceName: e.instanceName,
+            cpuPercent: e.cpuPercent ?? undefined,
+            memoryBytes: e.memoryBytes ?? undefined,
+          });
+        }
+      } catch (err) {
+        logger.warn(
+          `Cloud resource instance snapshot writeback failed for ${cloudResourceIdStr}: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     }
