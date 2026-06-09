@@ -419,6 +419,12 @@ import ServerlessFunctionOwnerTeamService, {
 import ServerlessFunctionOwnerUserService, {
   Service as ServerlessFunctionOwnerUserServiceType,
 } from "Common/Server/Services/ServerlessFunctionOwnerUserService";
+import ServerlessFunctionLabelRuleService, {
+  Service as ServerlessFunctionLabelRuleServiceType,
+} from "Common/Server/Services/ServerlessFunctionLabelRuleService";
+import ServerlessFunctionOwnerRuleService, {
+  Service as ServerlessFunctionOwnerRuleServiceType,
+} from "Common/Server/Services/ServerlessFunctionOwnerRuleService";
 import CloudResourceService, {
   Service as CloudResourceServiceType,
 } from "Common/Server/Services/CloudResourceService";
@@ -428,6 +434,12 @@ import CloudResourceOwnerTeamService, {
 import CloudResourceOwnerUserService, {
   Service as CloudResourceOwnerUserServiceType,
 } from "Common/Server/Services/CloudResourceOwnerUserService";
+import CloudResourceLabelRuleService, {
+  Service as CloudResourceLabelRuleServiceType,
+} from "Common/Server/Services/CloudResourceLabelRuleService";
+import CloudResourceOwnerRuleService, {
+  Service as CloudResourceOwnerRuleServiceType,
+} from "Common/Server/Services/CloudResourceOwnerRuleService";
 import RumApplicationService, {
   Service as RumApplicationServiceType,
 } from "Common/Server/Services/RumApplicationService";
@@ -437,6 +449,21 @@ import RumApplicationOwnerTeamService, {
 import RumApplicationOwnerUserService, {
   Service as RumApplicationOwnerUserServiceType,
 } from "Common/Server/Services/RumApplicationOwnerUserService";
+import RumApplicationLabelRuleService, {
+  Service as RumApplicationLabelRuleServiceType,
+} from "Common/Server/Services/RumApplicationLabelRuleService";
+import RumApplicationOwnerRuleService, {
+  Service as RumApplicationOwnerRuleServiceType,
+} from "Common/Server/Services/RumApplicationOwnerRuleService";
+import ServerlessFunctionInstanceService, {
+  Service as ServerlessFunctionInstanceServiceType,
+} from "Common/Server/Services/ServerlessFunctionInstanceService";
+import CloudResourceInstanceService, {
+  Service as CloudResourceInstanceServiceType,
+} from "Common/Server/Services/CloudResourceInstanceService";
+import RumApplicationClientService, {
+  Service as RumApplicationClientServiceType,
+} from "Common/Server/Services/RumApplicationClientService";
 import DockerHostService, {
   Service as DockerHostServiceType,
 } from "Common/Server/Services/DockerHostService";
@@ -853,12 +880,21 @@ import KubernetesClusterOwnerUser from "Common/Models/DatabaseModels/KubernetesC
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import ServerlessFunctionOwnerTeam from "Common/Models/DatabaseModels/ServerlessFunctionOwnerTeam";
 import ServerlessFunctionOwnerUser from "Common/Models/DatabaseModels/ServerlessFunctionOwnerUser";
+import ServerlessFunctionLabelRule from "Common/Models/DatabaseModels/ServerlessFunctionLabelRule";
+import ServerlessFunctionOwnerRule from "Common/Models/DatabaseModels/ServerlessFunctionOwnerRule";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import CloudResourceOwnerTeam from "Common/Models/DatabaseModels/CloudResourceOwnerTeam";
 import CloudResourceOwnerUser from "Common/Models/DatabaseModels/CloudResourceOwnerUser";
+import CloudResourceLabelRule from "Common/Models/DatabaseModels/CloudResourceLabelRule";
+import CloudResourceOwnerRule from "Common/Models/DatabaseModels/CloudResourceOwnerRule";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import RumApplicationOwnerTeam from "Common/Models/DatabaseModels/RumApplicationOwnerTeam";
 import RumApplicationOwnerUser from "Common/Models/DatabaseModels/RumApplicationOwnerUser";
+import RumApplicationLabelRule from "Common/Models/DatabaseModels/RumApplicationLabelRule";
+import RumApplicationOwnerRule from "Common/Models/DatabaseModels/RumApplicationOwnerRule";
+import ServerlessFunctionInstance from "Common/Models/DatabaseModels/ServerlessFunctionInstance";
+import CloudResourceInstance from "Common/Models/DatabaseModels/CloudResourceInstance";
+import RumApplicationClient from "Common/Models/DatabaseModels/RumApplicationClient";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerHostOwnerTeam from "Common/Models/DatabaseModels/DockerHostOwnerTeam";
 import DockerHostOwnerUser from "Common/Models/DatabaseModels/DockerHostOwnerUser";
@@ -2870,6 +2906,28 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServerlessFunctionLabelRule,
+        ServerlessFunctionLabelRuleServiceType
+      >(
+        ServerlessFunctionLabelRule,
+        ServerlessFunctionLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServerlessFunctionOwnerRule,
+        ServerlessFunctionOwnerRuleServiceType
+      >(
+        ServerlessFunctionOwnerRule,
+        ServerlessFunctionOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<CloudResource, CloudResourceServiceType>(
         CloudResource,
         CloudResourceService,
@@ -2894,6 +2952,22 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudResourceLabelRule, CloudResourceLabelRuleServiceType>(
+        CloudResourceLabelRule,
+        CloudResourceLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudResourceOwnerRule, CloudResourceOwnerRuleServiceType>(
+        CloudResourceOwnerRule,
+        CloudResourceOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<RumApplication, RumApplicationServiceType>(
         RumApplication,
         RumApplicationService,
@@ -2913,6 +2987,49 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<RumApplicationOwnerUser, RumApplicationOwnerUserServiceType>(
         RumApplicationOwnerUser,
         RumApplicationOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RumApplicationLabelRule, RumApplicationLabelRuleServiceType>(
+        RumApplicationLabelRule,
+        RumApplicationLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RumApplicationOwnerRule, RumApplicationOwnerRuleServiceType>(
+        RumApplicationOwnerRule,
+        RumApplicationOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServerlessFunctionInstance,
+        ServerlessFunctionInstanceServiceType
+      >(
+        ServerlessFunctionInstance,
+        ServerlessFunctionInstanceService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudResourceInstance, CloudResourceInstanceServiceType>(
+        CloudResourceInstance,
+        CloudResourceInstanceService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RumApplicationClient, RumApplicationClientServiceType>(
+        RumApplicationClient,
+        RumApplicationClientService,
       ).getRouter(),
     );
 

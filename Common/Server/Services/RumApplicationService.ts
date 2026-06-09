@@ -7,8 +7,11 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "../../Types/Date";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import GlobalCache from "../Infrastructure/GlobalCache";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
+import { OnCreate } from "../Types/Database/Hooks";
+import RumApplicationLabelRuleEngineService from "./RumApplicationLabelRuleEngineService";
+import RumApplicationOwnerRuleEngineService from "./RumApplicationOwnerRuleEngineService";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "rum-application-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -19,6 +22,36 @@ const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    if (createdItem.projectId && createdItem.id) {
+      Promise.resolve()
+        .then(async () => {
+          await RumApplicationLabelRuleEngineService.applyRulesToRumApplication(
+            createdItem,
+          );
+        })
+        .then(async () => {
+          await RumApplicationOwnerRuleEngineService.applyRulesToRumApplication(
+            createdItem,
+          );
+        })
+        .catch((error: Error) => {
+          logger.error(
+            `Error applying RUM application rules in RumApplicationService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              rumApplicationId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        });
+    }
+    return createdItem;
   }
 
   @CaptureSpan()

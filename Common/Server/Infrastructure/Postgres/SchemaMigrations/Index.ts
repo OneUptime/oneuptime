@@ -372,6 +372,10 @@ import { AddTelemetryResourceMetadataColumns1780931863719 } from "./178093186371
 import { AddServerlessFunctionTables1780933132562 } from "./1780933132562-AddServerlessFunctionTables";
 import { AddCloudResourceTables1780935387827 } from "./1780935387827-AddCloudResourceTables";
 import { AddRumApplicationTables1780936579718 } from "./1780936579718-AddRumApplicationTables";
+import { AddServerlessFunctionRuleTables1780938407319 } from "./1780938407319-AddServerlessFunctionRuleTables";
+import { AddCloudResourceRuleTables1780940721814 } from "./1780940721814-AddCloudResourceRuleTables";
+import { AddRumApplicationRuleTables1780940998002 } from "./1780940998002-AddRumApplicationRuleTables";
+import { AddTelemetryResourceInventoryTables1780941762204 } from "./1780941762204-AddTelemetryResourceInventoryTables";
 
 export default [
   InitialMigration,
@@ -748,4 +752,8 @@ export default [
   AddServerlessFunctionTables1780933132562,
   AddCloudResourceTables1780935387827,
   AddRumApplicationTables1780936579718,
+  AddServerlessFunctionRuleTables1780938407319,
+  AddCloudResourceRuleTables1780940721814,
+  AddRumApplicationRuleTables1780940998002,
+  AddTelemetryResourceInventoryTables1780941762204,
 ];

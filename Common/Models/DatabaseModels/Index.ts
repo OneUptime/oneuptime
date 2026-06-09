@@ -15,12 +15,21 @@ import HostOwnerUser from "./HostOwnerUser";
 import ServerlessFunction from "./ServerlessFunction";
 import ServerlessFunctionOwnerTeam from "./ServerlessFunctionOwnerTeam";
 import ServerlessFunctionOwnerUser from "./ServerlessFunctionOwnerUser";
+import ServerlessFunctionLabelRule from "./ServerlessFunctionLabelRule";
+import ServerlessFunctionOwnerRule from "./ServerlessFunctionOwnerRule";
 import CloudResource from "./CloudResource";
 import CloudResourceOwnerTeam from "./CloudResourceOwnerTeam";
 import CloudResourceOwnerUser from "./CloudResourceOwnerUser";
+import CloudResourceLabelRule from "./CloudResourceLabelRule";
+import CloudResourceOwnerRule from "./CloudResourceOwnerRule";
 import RumApplication from "./RumApplication";
 import RumApplicationOwnerTeam from "./RumApplicationOwnerTeam";
 import RumApplicationOwnerUser from "./RumApplicationOwnerUser";
+import RumApplicationLabelRule from "./RumApplicationLabelRule";
+import RumApplicationOwnerRule from "./RumApplicationOwnerRule";
+import ServerlessFunctionInstance from "./ServerlessFunctionInstance";
+import CloudResourceInstance from "./CloudResourceInstance";
+import RumApplicationClient from "./RumApplicationClient";
 // API Keys
 import ApiKey from "./ApiKey";
 import ApiKeyPermission from "./ApiKeyPermission";
@@ -697,12 +706,21 @@ const AllModelTypes: Array<{
   ServerlessFunction,
   ServerlessFunctionOwnerTeam,
   ServerlessFunctionOwnerUser,
+  ServerlessFunctionLabelRule,
+  ServerlessFunctionOwnerRule,
   CloudResource,
   CloudResourceOwnerTeam,
   CloudResourceOwnerUser,
+  CloudResourceLabelRule,
+  CloudResourceOwnerRule,
   RumApplication,
   RumApplicationOwnerTeam,
   RumApplicationOwnerUser,
+  RumApplicationLabelRule,
+  RumApplicationOwnerRule,
+  ServerlessFunctionInstance,
+  CloudResourceInstance,
+  RumApplicationClient,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

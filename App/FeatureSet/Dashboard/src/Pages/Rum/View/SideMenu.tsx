@@ -61,6 +61,16 @@ const RumApplicationViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Workflow}
         />
+        <SideMenuItem
+          link={{
+            title: "Clients",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.RUM_APPLICATION_VIEW_CLIENTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Globe}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">

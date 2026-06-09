@@ -14,6 +14,9 @@ import CloudResourceService from "Common/Server/Services/CloudResourceService";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import RumApplicationService from "Common/Server/Services/RumApplicationService";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
+import ServerlessFunctionInstanceService from "Common/Server/Services/ServerlessFunctionInstanceService";
+import CloudResourceInstanceService from "Common/Server/Services/CloudResourceInstanceService";
+import RumApplicationClientService from "Common/Server/Services/RumApplicationClientService";
 import LabelService from "Common/Server/Services/LabelService";
 import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
 import logger from "Common/Server/Utils/Logger";
@@ -696,6 +699,25 @@ export default abstract class OtelIngestBaseService {
             attributes: data.attributes,
           });
         }
+
+        // Live inventory: record this function instance (faas.instance).
+        const faasInstance: string | null = this.getStringAttribute(
+          data.attributes,
+          "faas.instance",
+        );
+        if (
+          faasInstance &&
+          (await this.shouldRunMaintenance(
+            "serverless-fn-instance",
+            `${functionIdStr}:${faasInstance}`,
+          ))
+        ) {
+          await ServerlessFunctionInstanceService.recordInstance({
+            projectId: data.projectId,
+            serverlessFunctionId: functionId,
+            instanceName: faasInstance,
+          });
+        }
         return functionId;
       }
 
@@ -853,6 +875,25 @@ export default abstract class OtelIngestBaseService {
             attributes: data.attributes,
           });
         }
+
+        // Live inventory: record this instance / task (service.instance.id).
+        const instanceName: string | null = this.getStringAttribute(
+          data.attributes,
+          "service.instance.id",
+        );
+        if (
+          instanceName &&
+          (await this.shouldRunMaintenance(
+            "cloud-resource-instance",
+            `${resourceIdStr}:${instanceName}`,
+          ))
+        ) {
+          await CloudResourceInstanceService.recordInstance({
+            projectId: data.projectId,
+            cloudResourceId,
+            instanceName,
+          });
+        }
         return cloudResourceId;
       }
 
@@ -993,6 +1034,25 @@ export default abstract class OtelIngestBaseService {
             projectId: data.projectId,
             rumApplicationId,
             attributes: data.attributes,
+          });
+        }
+
+        // Live inventory: record this client platform (coarse, not per-device).
+        const clientName: string | null =
+          this.getStringAttribute(data.attributes, "browser.platform") ||
+          this.getStringAttribute(data.attributes, "device.model.identifier");
+        if (
+          clientName &&
+          (await this.shouldRunMaintenance(
+            "rum-client",
+            `${appIdStr}:${clientName}`,
+          ))
+        ) {
+          await RumApplicationClientService.recordClient({
+            projectId: data.projectId,
+            rumApplicationId,
+            clientName,
+            clientType: clientType || undefined,
           });
         }
         return rumApplicationId;

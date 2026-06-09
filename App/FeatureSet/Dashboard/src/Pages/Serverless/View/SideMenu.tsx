@@ -61,6 +61,16 @@ const ServerlessFunctionViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Workflow}
         />
+        <SideMenuItem
+          link={{
+            title: "Instances",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVERLESS_FUNCTION_VIEW_INSTANCES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Cube}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">

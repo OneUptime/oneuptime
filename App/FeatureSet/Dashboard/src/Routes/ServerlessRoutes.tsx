@@ -12,7 +12,10 @@ import ServerlessFunctionOverview from "../Pages/Serverless/View/Overview";
 import ServerlessFunctionMetrics from "../Pages/Serverless/View/Metrics";
 import ServerlessFunctionLogs from "../Pages/Serverless/View/Logs";
 import ServerlessFunctionTraces from "../Pages/Serverless/View/Traces";
+import ServerlessFunctionInstances from "../Pages/Serverless/View/Instances";
 import ServerlessFunctionDelete from "../Pages/Serverless/View/Delete";
+import ServerlessLabelRules from "../Pages/Serverless/Settings/LabelRules";
+import ServerlessOwnerRules from "../Pages/Serverless/Settings/OwnerRules";
 
 const ServerlessRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -26,6 +29,28 @@ const ServerlessRoutes: FunctionComponent<ComponentProps> = (
             <ServerlessFunctions
               {...props}
               pageRoute={RouteMap[PageMap.SERVERLESS_FUNCTIONS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={ServerlessRoutePath[PageMap.SERVERLESS_SETTINGS_LABEL_RULES] || ""}
+          element={
+            <ServerlessLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SERVERLESS_SETTINGS_LABEL_RULES] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={ServerlessRoutePath[PageMap.SERVERLESS_SETTINGS_OWNER_RULES] || ""}
+          element={
+            <ServerlessOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SERVERLESS_SETTINGS_OWNER_RULES] as Route
+              }
             />
           }
         />
@@ -82,6 +107,20 @@ const ServerlessRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.SERVERLESS_FUNCTION_VIEW_TRACES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SERVERLESS_FUNCTION_VIEW_INSTANCES,
+          )}
+          element={
+            <ServerlessFunctionInstances
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SERVERLESS_FUNCTION_VIEW_INSTANCES] as Route
               }
             />
           }

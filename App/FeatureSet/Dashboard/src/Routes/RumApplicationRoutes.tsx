@@ -12,7 +12,10 @@ import RumApplicationOverview from "../Pages/Rum/View/Overview";
 import RumApplicationMetrics from "../Pages/Rum/View/Metrics";
 import RumApplicationLogs from "../Pages/Rum/View/Logs";
 import RumApplicationTraces from "../Pages/Rum/View/Traces";
+import RumApplicationClients from "../Pages/Rum/View/Clients";
 import RumApplicationDelete from "../Pages/Rum/View/Delete";
+import RumLabelRules from "../Pages/Rum/Settings/LabelRules";
+import RumOwnerRules from "../Pages/Rum/Settings/OwnerRules";
 
 const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -26,6 +29,24 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
             <RumApplications
               {...props}
               pageRoute={RouteMap[PageMap.RUM_APPLICATIONS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RumRoutePath[PageMap.RUM_SETTINGS_LABEL_RULES] || ""}
+          element={
+            <RumLabelRules
+              {...props}
+              pageRoute={RouteMap[PageMap.RUM_SETTINGS_LABEL_RULES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RumRoutePath[PageMap.RUM_SETTINGS_OWNER_RULES] || ""}
+          element={
+            <RumOwnerRules
+              {...props}
+              pageRoute={RouteMap[PageMap.RUM_SETTINGS_OWNER_RULES] as Route}
             />
           }
         />
@@ -73,6 +94,18 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
             <RumApplicationTraces
               {...props}
               pageRoute={RouteMap[PageMap.RUM_APPLICATION_VIEW_TRACES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_CLIENTS,
+          )}
+          element={
+            <RumApplicationClients
+              {...props}
+              pageRoute={RouteMap[PageMap.RUM_APPLICATION_VIEW_CLIENTS] as Route}
             />
           }
         />

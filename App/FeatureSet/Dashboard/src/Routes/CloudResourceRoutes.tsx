@@ -12,7 +12,10 @@ import CloudResourceOverview from "../Pages/Cloud/View/Overview";
 import CloudResourceMetrics from "../Pages/Cloud/View/Metrics";
 import CloudResourceLogs from "../Pages/Cloud/View/Logs";
 import CloudResourceTraces from "../Pages/Cloud/View/Traces";
+import CloudResourceInstances from "../Pages/Cloud/View/Instances";
 import CloudResourceDelete from "../Pages/Cloud/View/Delete";
+import CloudLabelRules from "../Pages/Cloud/Settings/LabelRules";
+import CloudOwnerRules from "../Pages/Cloud/Settings/OwnerRules";
 
 const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -26,6 +29,24 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
             <CloudResources
               {...props}
               pageRoute={RouteMap[PageMap.CLOUD_RESOURCES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_SETTINGS_LABEL_RULES] || ""}
+          element={
+            <CloudLabelRules
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_SETTINGS_LABEL_RULES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_SETTINGS_OWNER_RULES] || ""}
+          element={
+            <CloudOwnerRules
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_SETTINGS_OWNER_RULES] as Route}
             />
           }
         />
@@ -73,6 +94,20 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
             <CloudResourceTraces
               {...props}
               pageRoute={RouteMap[PageMap.CLOUD_RESOURCE_VIEW_TRACES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.CLOUD_RESOURCE_VIEW_INSTANCES,
+          )}
+          element={
+            <CloudResourceInstances
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.CLOUD_RESOURCE_VIEW_INSTANCES] as Route
+              }
             />
           }
         />

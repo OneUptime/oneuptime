@@ -1,11 +1,11 @@
-import ServerlessFunction from "./ServerlessFunction";
+import Label from "./Label";
 import Project from "./Project";
-import Team from "./Team";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
@@ -17,7 +17,15 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
-import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+} from "typeorm";
 
 @EnableDocumentation()
 @TenantColumn("projectId")
@@ -25,37 +33,29 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   create: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.SettingsAdmin,
-    Permission.SettingsMember,
-    Permission.CreateServerlessFunctionOwnerTeam,
+    Permission.CreateCloudResourceLabelRule,
   ],
   read: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.SettingsAdmin,
-    Permission.SettingsMember,
-    Permission.SettingsViewer,
-    Permission.ReadServerlessFunctionOwnerTeam,
+    Permission.ReadCloudResourceLabelRule,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.SettingsAdmin,
-    Permission.SettingsMember,
-    Permission.DeleteServerlessFunctionOwnerTeam,
+    Permission.DeleteCloudResourceLabelRule,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.SettingsAdmin,
-    Permission.SettingsMember,
-    Permission.EditServerlessFunctionOwnerTeam,
+    Permission.EditCloudResourceLabelRule,
   ],
+})
+@CrudApiEndpoint(new Route("/cloud-resource-label-rule"))
+@Entity({
+  name: "CloudResourceLabelRule",
 })
 @EnableWorkflow({
   create: true,
@@ -63,36 +63,27 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   update: true,
   read: true,
 })
-@CrudApiEndpoint(new Route("/serverless-function-owner-team"))
 @TableMetadata({
-  tableName: "ServerlessFunctionOwnerTeam",
-  singularName: "Serverless Function Team Owner",
-  pluralName: "Serverless Function Team Owners",
-  icon: IconProp.Bolt,
-  tableDescription: "Add teams as owners to your serverless functions.",
+  tableName: "CloudResourceLabelRule",
+  singularName: "Cloud Resource Label Rule",
+  pluralName: "Cloud Resource Label Rules",
+  icon: IconProp.Tag,
+  tableDescription:
+    "Rules for automatically attaching labels to cloud resources when matching resources are created.",
 })
-@Entity({
-  name: "ServerlessFunctionOwnerTeam",
-})
-export default class ServerlessFunctionOwnerTeam extends BaseModel {
+export default class CloudResourceLabelRule extends BaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.CreateServerlessFunctionOwnerTeam,
+      Permission.CreateCloudResourceLabelRule,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadServerlessFunctionOwnerTeam,
+      Permission.ReadCloudResourceLabelRule,
     ],
     update: [],
   })
@@ -109,7 +100,7 @@ export default class ServerlessFunctionOwnerTeam extends BaseModel {
     },
     {
       eager: false,
-      nullable: false,
+      nullable: true,
       onDelete: "CASCADE",
       orphanedRowAction: "nullify",
     },
@@ -121,20 +112,14 @@ export default class ServerlessFunctionOwnerTeam extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.CreateServerlessFunctionOwnerTeam,
+      Permission.CreateCloudResourceLabelRule,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadServerlessFunctionOwnerTeam,
+      Permission.ReadCloudResourceLabelRule,
     ],
     update: [],
   })
@@ -157,179 +142,273 @@ export default class ServerlessFunctionOwnerTeam extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.CreateServerlessFunctionOwnerTeam,
+      Permission.CreateCloudResourceLabelRule,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadServerlessFunctionOwnerTeam,
+      Permission.ReadCloudResourceLabelRule,
     ],
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "teamId",
-    type: TableColumnType.Entity,
-    modelType: Team,
-    title: "Team",
-    description:
-      "Team that is the owner. All users in this team will receive notifications. ",
-  })
-  @ManyToOne(
-    () => {
-      return Team;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "CASCADE",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "teamId" })
-  public team?: Team = undefined;
-
-  @ColumnAccessControl({
-    create: [
+    update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.CreateServerlessFunctionOwnerTeam,
+      Permission.EditCloudResourceLabelRule,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadServerlessFunctionOwnerTeam,
-    ],
-    update: [],
   })
   @Index()
   @TableColumn({
-    type: TableColumnType.ObjectID,
     required: true,
+    type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
-    title: "Team ID",
-    description: "ID of your OneUptime Team in which this object belongs",
+    title: "Name",
+    description: "Name of this rule",
   })
   @Column({
-    type: ColumnType.ObjectID,
     nullable: false,
-    transformer: ObjectID.getDatabaseTransformer(),
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
   })
-  public teamId?: ObjectID = undefined;
+  public name?: string = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.CreateServerlessFunctionOwnerTeam,
+      Permission.CreateCloudResourceLabelRule,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadServerlessFunctionOwnerTeam,
+      Permission.ReadCloudResourceLabelRule,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditCloudResourceLabelRule,
+    ],
   })
   @TableColumn({
-    manyToOneRelationColumn: "serverlessFunctionId",
-    type: TableColumnType.Entity,
-    modelType: ServerlessFunction,
-    title: "Serverless Function",
-    description:
-      "Relation to Serverless Function Resource in which this object belongs",
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Description",
+    description: "Description of this rule",
   })
-  @ManyToOne(
-    () => {
-      return ServerlessFunction;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "CASCADE",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "serverlessFunctionId" })
-  public serverlessFunction?: ServerlessFunction = undefined;
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public description?: string = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.CreateServerlessFunctionOwnerTeam,
+      Permission.CreateCloudResourceLabelRule,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadServerlessFunctionOwnerTeam,
+      Permission.ReadCloudResourceLabelRule,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditCloudResourceLabelRule,
+    ],
   })
   @Index()
   @TableColumn({
-    type: TableColumnType.ObjectID,
     required: true,
-    canReadOnRelationQuery: true,
-    title: "Serverless Function ID",
-    description:
-      "ID of your OneUptime Serverless Function in which this object belongs",
+    type: TableColumnType.Boolean,
+    title: "Is Enabled",
+    description: "Whether this rule is enabled",
+    defaultValue: true,
+    isDefaultValueColumn: true,
   })
   @Column({
-    type: ColumnType.ObjectID,
+    type: ColumnType.Boolean,
     nullable: false,
-    transformer: ObjectID.getDatabaseTransformer(),
+    default: true,
   })
-  public serverlessFunctionId?: ObjectID = undefined;
+  public isEnabled?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.CreateServerlessFunctionOwnerTeam,
+      Permission.CreateCloudResourceLabelRule,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadServerlessFunctionOwnerTeam,
+      Permission.ReadCloudResourceLabelRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditCloudResourceLabelRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Label,
+    title: "Match Labels",
+    description:
+      "Only trigger for resources that already have at least one of these labels. Leave empty to match regardless of labels.",
+  })
+  @ManyToMany(
+    () => {
+      return Label;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "CloudResLabelRuleMatchLabel",
+    inverseJoinColumn: {
+      name: "labelId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "cloudResourceLabelRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public matchLabels?: Array<Label> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateCloudResourceLabelRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadCloudResourceLabelRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditCloudResourceLabelRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Name Regex Pattern",
+    description:
+      "Regex (case-insensitive) matched against the resource name. Leave empty to match any name.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+    length: ColumnLength.LongText,
+  })
+  public nameRegexPattern?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateCloudResourceLabelRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadCloudResourceLabelRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditCloudResourceLabelRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Description Regex Pattern",
+    description:
+      "Regex (case-insensitive) matched against the resource description. Leave empty to match any description.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+    length: ColumnLength.LongText,
+  })
+  public descriptionRegexPattern?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateCloudResourceLabelRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadCloudResourceLabelRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditCloudResourceLabelRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Label,
+    title: "Labels to Add",
+    description:
+      "Labels to attach to the resource when this rule matches. Already-attached labels are not duplicated.",
+  })
+  @ManyToMany(
+    () => {
+      return Label;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "CloudResLabelRuleAddLabel",
+    inverseJoinColumn: {
+      name: "labelId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "cloudResourceLabelRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public labelsToAdd?: Array<Label> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateCloudResourceLabelRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadCloudResourceLabelRule,
     ],
     update: [],
   })
@@ -359,20 +438,14 @@ export default class ServerlessFunctionOwnerTeam extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.CreateServerlessFunctionOwnerTeam,
+      Permission.CreateCloudResourceLabelRule,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadServerlessFunctionOwnerTeam,
+      Permission.ReadCloudResourceLabelRule,
     ],
     update: [],
   })
@@ -391,16 +464,7 @@ export default class ServerlessFunctionOwnerTeam extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadServerlessFunctionOwnerTeam,
-    ],
+    read: [],
     update: [],
   })
   @TableColumn({
@@ -428,16 +492,7 @@ export default class ServerlessFunctionOwnerTeam extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadServerlessFunctionOwnerTeam,
-    ],
+    read: [],
     update: [],
   })
   @TableColumn({
@@ -452,36 +507,4 @@ export default class ServerlessFunctionOwnerTeam extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public deletedByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadServerlessFunctionOwnerTeam,
-    ],
-    update: [],
-  })
-  @Index()
-  @TableColumn({
-    type: TableColumnType.Boolean,
-    computed: true,
-    hideColumnInDocumentation: true,
-    required: true,
-    isDefaultValueColumn: true,
-    title: "Are Owners Notified",
-    description: "Are owners notified of this resource ownership?",
-    defaultValue: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    nullable: false,
-    default: false,
-  })
-  public isOwnerNotified?: boolean = undefined;
 }

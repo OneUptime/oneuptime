@@ -61,6 +61,16 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Workflow}
         />
+        <SideMenuItem
+          link={{
+            title: "Instances",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_RESOURCE_VIEW_INSTANCES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Cube}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">

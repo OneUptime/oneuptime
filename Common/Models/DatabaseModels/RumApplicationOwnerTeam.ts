@@ -217,6 +217,42 @@ export default class RumApplicationOwnerTeam extends BaseModel {
     ],
     update: [],
   })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: true,
+    canReadOnRelationQuery: true,
+    title: "Team ID",
+    description: "ID of your OneUptime Team in which this object belongs",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: false,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public teamId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplicationOwnerTeam,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplicationOwnerTeam,
+    ],
+    update: [],
+  })
   @TableColumn({
     manyToOneRelationColumn: "rumApplicationId",
     type: TableColumnType.Entity,
