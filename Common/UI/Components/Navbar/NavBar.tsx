@@ -42,6 +42,7 @@ export interface ComponentProps {
   moreMenuSearchPlaceholder?: string; // Placeholder for the menu search box
   moreMenuNoResultsText?: string; // Empty-state text when search matches nothing
   moreMenuKeyboardHint?: string; // Keyboard hint shown in the menu footer
+  moreMenuRecentLabel?: string; // Heading for the recently-visited products row
   moreMenuFooter?: {
     title: string;
     description: string;
@@ -372,6 +373,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
             searchPlaceholder={props.moreMenuSearchPlaceholder}
             noResultsText={props.moreMenuNoResultsText}
             keyboardHint={props.moreMenuKeyboardHint}
+            recentLabel={props.moreMenuRecentLabel}
             onClose={closeMoreMenu}
           />
         )}

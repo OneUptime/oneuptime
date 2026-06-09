@@ -3,7 +3,13 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -13,10 +19,50 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import API from "Common/UI/Utils/API/API";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import ResourceDocumentationCard from "../../Components/TelemetryResource/ResourceDocumentationCard";
+import { getRumDocMarkdown } from "../../Components/TelemetryResource/documentationMarkdown";
 
 const RumApplications: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const [count, setCount] = useState<number | null>(null);
+  const [error, setError] = useState<string>("");
+
+  useEffect(() => {
+    ModelAPI.count({
+      modelType: RumApplication,
+      query: {},
+    })
+      .then(setCount)
+      .catch((err: Error) => {
+        setError(API.getFriendlyMessage(err));
+      });
+  }, []);
+
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
+
+  if (count === null) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (count === 0) {
+    return (
+      <Fragment>
+        <ResourceDocumentationCard
+          title="Getting Started with Real User Monitoring"
+          description="No RUM applications connected yet. Instrument your browser or mobile app with OpenTelemetry using the guide below — it appears here automatically once the first telemetry arrives."
+          buildMarkdown={getRumDocMarkdown}
+        />
+      </Fragment>
+    );
+  }
+
   return (
     <Fragment>
       <ModelTable<RumApplication>

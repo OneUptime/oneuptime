@@ -511,6 +511,18 @@ const DocsNav: NavGroup[] = [
         title: "Docker Agent",
         url: "/docs/telemetry/docker-host",
       },
+      {
+        title: "Serverless Functions",
+        url: "/docs/telemetry/serverless-functions",
+      },
+      {
+        title: "Cloud Environments",
+        url: "/docs/telemetry/cloud-environments",
+      },
+      {
+        title: "Real User Monitoring",
+        url: "/docs/telemetry/real-user-monitoring",
+      },
     ],
   },
   {

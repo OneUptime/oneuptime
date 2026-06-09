@@ -8,40 +8,109 @@ import React, {
   FunctionComponent,
   ReactElement,
   ReactNode,
-  useEffect,
   useMemo,
   useRef,
   useState,
+  useEffect,
 } from "react";
 
 interface IconColorClasses {
   bg: string;
   ring: string;
+  text: string;
 }
 
 /*
  * Icon color map carried over from the former NavBarMenuItem, extended with the
- * few colors the dashboard items use (yellow/red/teal) so every product renders
- * with its intended color. Unknown colors fall back to indigo.
+ * few colors the dashboard items use (yellow/red/teal) plus a glyph text color
+ * so every product renders in its intended color. Unknown colors fall back to
+ * indigo.
  */
 const ICON_COLOR_CLASSES: Record<string, IconColorClasses> = {
-  purple: { bg: "bg-purple-50", ring: "ring-purple-200" },
-  blue: { bg: "bg-blue-50", ring: "ring-blue-200" },
-  gray: { bg: "bg-gray-100", ring: "ring-gray-300" },
-  amber: { bg: "bg-amber-50", ring: "ring-amber-200" },
-  green: { bg: "bg-green-50", ring: "ring-green-200" },
-  cyan: { bg: "bg-cyan-50", ring: "ring-cyan-200" },
-  slate: { bg: "bg-slate-100", ring: "ring-slate-300" },
-  indigo: { bg: "bg-indigo-50", ring: "ring-indigo-200" },
-  rose: { bg: "bg-rose-50", ring: "ring-rose-200" },
-  violet: { bg: "bg-violet-50", ring: "ring-violet-200" },
-  orange: { bg: "bg-orange-50", ring: "ring-orange-200" },
-  stone: { bg: "bg-stone-100", ring: "ring-stone-300" },
-  sky: { bg: "bg-sky-50", ring: "ring-sky-200" },
-  emerald: { bg: "bg-emerald-50", ring: "ring-emerald-200" },
-  yellow: { bg: "bg-yellow-50", ring: "ring-yellow-200" },
-  red: { bg: "bg-red-50", ring: "ring-red-200" },
-  teal: { bg: "bg-teal-50", ring: "ring-teal-200" },
+  purple: {
+    bg: "bg-purple-50",
+    ring: "ring-purple-200",
+    text: "text-purple-600",
+  },
+  blue: { bg: "bg-blue-50", ring: "ring-blue-200", text: "text-blue-600" },
+  gray: { bg: "bg-gray-100", ring: "ring-gray-300", text: "text-gray-600" },
+  amber: { bg: "bg-amber-50", ring: "ring-amber-200", text: "text-amber-600" },
+  green: { bg: "bg-green-50", ring: "ring-green-200", text: "text-green-600" },
+  cyan: { bg: "bg-cyan-50", ring: "ring-cyan-200", text: "text-cyan-600" },
+  slate: { bg: "bg-slate-100", ring: "ring-slate-300", text: "text-slate-600" },
+  indigo: {
+    bg: "bg-indigo-50",
+    ring: "ring-indigo-200",
+    text: "text-indigo-600",
+  },
+  rose: { bg: "bg-rose-50", ring: "ring-rose-200", text: "text-rose-600" },
+  violet: {
+    bg: "bg-violet-50",
+    ring: "ring-violet-200",
+    text: "text-violet-600",
+  },
+  orange: {
+    bg: "bg-orange-50",
+    ring: "ring-orange-200",
+    text: "text-orange-600",
+  },
+  stone: { bg: "bg-stone-100", ring: "ring-stone-300", text: "text-stone-600" },
+  sky: { bg: "bg-sky-50", ring: "ring-sky-200", text: "text-sky-600" },
+  emerald: {
+    bg: "bg-emerald-50",
+    ring: "ring-emerald-200",
+    text: "text-emerald-600",
+  },
+  yellow: {
+    bg: "bg-yellow-50",
+    ring: "ring-yellow-200",
+    text: "text-yellow-600",
+  },
+  red: { bg: "bg-red-50", ring: "ring-red-200", text: "text-red-600" },
+  teal: { bg: "bg-teal-50", ring: "ring-teal-200", text: "text-teal-600" },
+};
+
+// Persist the handful of most-recently opened products across sessions.
+const RECENT_STORAGE_KEY: string = "oneuptime-navbar-recent-products";
+const RECENT_LIMIT: number = 5;
+
+const readRecentRoutes: () => string[] = (): string[] => {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) {
+      return [];
+    }
+    const raw: string | null = window.localStorage.getItem(RECENT_STORAGE_KEY);
+    if (!raw) {
+      return [];
+    }
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed.filter((value: unknown): value is string => {
+      return typeof value === "string";
+    });
+  } catch {
+    // Ignore storage access / parse errors (e.g. private mode, bad JSON).
+    return [];
+  }
+};
+
+const writeRecentRoute: (routeString: string) => void = (
+  routeString: string,
+): void => {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) {
+      return;
+    }
+    const existing: string[] = readRecentRoutes().filter((route: string) => {
+      return route !== routeString;
+    });
+    const next: string[] = [routeString, ...existing].slice(0, RECENT_LIMIT);
+    window.localStorage.setItem(RECENT_STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // Ignore storage write errors (e.g. private mode, quota exceeded).
+  }
 };
 
 export interface ComponentProps {
@@ -56,6 +125,7 @@ export interface ComponentProps {
   searchPlaceholder?: string | undefined;
   noResultsText?: string | undefined;
   keyboardHint?: string | undefined;
+  recentLabel?: string | undefined;
   onClose: () => void;
 }
 
@@ -69,6 +139,11 @@ interface MenuGroup {
   items: IndexedItem[];
 }
 
+interface RawGroup {
+  category: string;
+  items: MoreMenuItem[];
+}
+
 const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -76,11 +151,17 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   const [activeIndex, setActiveIndex] = useState<number>(0);
   // Drives the open transition (fade + scale-in) on the first paint.
   const [isShown, setIsShown] = useState<boolean>(false);
+  // Recently opened product routes, read once when the modal opens.
+  const [recentRoutes] = useState<string[]>(() => {
+    return readRecentRoutes();
+  });
   const inputRef: React.RefObject<HTMLInputElement> =
     useRef<HTMLInputElement>(null);
   const cellRefs: React.MutableRefObject<Array<HTMLDivElement | null>> = useRef<
     Array<HTMLDivElement | null>
   >([]);
+
+  const recentLabel: string = props.recentLabel || "Recent";
 
   // Show the OS-appropriate shortcut hint (⌘K on macOS, Ctrl K elsewhere).
   const shortcutLabel: string = useMemo(() => {
@@ -115,10 +196,29 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   }, [props.items, query]);
 
   /*
-   * Group filtered items by category (preserving first-seen order) and stamp
-   * each item with its index in the flattened, grouped render order.
+   * The "Recent" row: resolve stored routes to current items, skip the page
+   * we're already on, and cap the count. Only shown while idle (no query).
    */
-  const groups: MenuGroup[] = useMemo(() => {
+  const recentItems: MoreMenuItem[] = useMemo(() => {
+    if (recentRoutes.length === 0) {
+      return [];
+    }
+    const itemByRoute: Map<string, MoreMenuItem> = new Map();
+    props.items.forEach((item: MoreMenuItem) => {
+      itemByRoute.set(item.route.toString(), item);
+    });
+    const resolved: MoreMenuItem[] = [];
+    recentRoutes.forEach((route: string) => {
+      const item: MoreMenuItem | undefined = itemByRoute.get(route);
+      if (item && !Navigation.isStartWith(item.activeRoute || item.route)) {
+        resolved.push(item);
+      }
+    });
+    return resolved.slice(0, RECENT_LIMIT);
+  }, [recentRoutes, props.items]);
+
+  // Group filtered items by category, preserving first-seen order.
+  const categoryGroups: RawGroup[] = useMemo(() => {
     const order: string[] = [];
     const byCategory: Map<string, MoreMenuItem[]> = new Map();
     filteredItems.forEach((item: MoreMenuItem) => {
@@ -129,29 +229,43 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
       }
       byCategory.get(category)!.push(item);
     });
-
-    let flatIndex: number = 0;
     return order.map((category: string) => {
-      const indexed: IndexedItem[] = byCategory
-        .get(category)!
-        .map((item: MoreMenuItem) => {
-          const entry: IndexedItem = { item, flatIndex };
-          flatIndex++;
-          return entry;
-        });
-      return { category, items: indexed };
+      return { category, items: byCategory.get(category)! };
     });
   }, [filteredItems]);
 
+  /*
+   * Final render order: a "Recent" group (idle only) followed by the category
+   * groups, with every item stamped with its index in the flattened order so
+   * keyboard navigation and cell refs stay in sync.
+   */
+  const displayGroups: MenuGroup[] = useMemo(() => {
+    const raw: RawGroup[] = [];
+    if (!query.trim() && recentItems.length > 0) {
+      raw.push({ category: recentLabel, items: recentItems });
+    }
+    raw.push(...categoryGroups);
+
+    let flatIndex: number = 0;
+    return raw.map((group: RawGroup) => {
+      const items: IndexedItem[] = group.items.map((item: MoreMenuItem) => {
+        const entry: IndexedItem = { item, flatIndex };
+        flatIndex++;
+        return entry;
+      });
+      return { category: group.category, items };
+    });
+  }, [query, recentItems, categoryGroups, recentLabel]);
+
   // Flattened list in render order — used for keyboard navigation.
   const flatItems: MoreMenuItem[] = useMemo(() => {
-    return groups.reduce((acc: MoreMenuItem[], group: MenuGroup) => {
+    return displayGroups.reduce((acc: MoreMenuItem[], group: MenuGroup) => {
       group.items.forEach((entry: IndexedItem) => {
         acc.push(entry.item);
       });
       return acc;
     }, []);
-  }, [groups]);
+  }, [displayGroups]);
 
   // Index of the product matching the current page (the "you are here" item).
   const currentFlatIndex: number = useMemo(() => {
@@ -182,6 +296,14 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     cellRefs.current[activeIndex]?.scrollIntoView({ block: "nearest" });
   }, [activeIndex]);
+
+  // Record a selection and close the modal.
+  const selectItem: (item: MoreMenuItem) => void = (
+    item: MoreMenuItem,
+  ): void => {
+    writeRecentRoute(item.route.toString());
+    props.onClose();
+  };
 
   // Wrap the portions of text that match the query in a highlight.
   const highlightMatch: (text: string) => ReactNode = (
@@ -304,11 +426,14 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
       event.preventDefault();
       const item: MoreMenuItem | undefined = flatItems[activeIndex];
       if (item) {
-        props.onClose();
+        selectItem(item);
         Navigation.navigate(item.route);
       }
     }
   };
+
+  const keycapClass: string =
+    "inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded border border-gray-200 bg-white px-1 text-[11px] font-medium text-gray-500 shadow-sm";
 
   return (
     <div
@@ -393,7 +518,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                   )}
                 </div>
               ) : (
-                groups.map((group: MenuGroup) => {
+                displayGroups.map((group: MenuGroup) => {
                   return (
                     <div key={group.category} className="mb-6 last:mb-1">
                       <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-gray-500">
@@ -411,7 +536,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                             ICON_COLOR_CLASSES["indigo"]!;
                           return (
                             <div
-                              key={item.title}
+                              key={entry.flatIndex}
                               id={`navbar-menu-option-${flatIndex}`}
                               role="option"
                               aria-selected={isActive}
@@ -431,10 +556,12 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                               )}
                               <Link
                                 to={item.route}
-                                onClick={props.onClose}
+                                onClick={() => {
+                                  selectItem(item);
+                                }}
                                 className={`flex h-full flex-col items-center gap-2 rounded-xl p-3 text-center transition-all duration-150 ${
                                   isActive
-                                    ? "scale-[1.03] bg-gray-100 shadow-sm ring-2 ring-indigo-400"
+                                    ? "scale-[1.03] bg-indigo-50 shadow-sm ring-2 ring-indigo-400"
                                     : isCurrent
                                       ? "bg-indigo-50/60 ring-1 ring-indigo-200 hover:bg-indigo-50"
                                       : "hover:bg-gray-50"
@@ -445,7 +572,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                                 >
                                   <Icon
                                     icon={item.icon}
-                                    className="h-6 w-6 text-gray-700"
+                                    className={`h-6 w-6 ${colors.text}`}
                                   />
                                 </div>
                                 <div className="w-full">
@@ -491,9 +618,17 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                   </div>
                 </Link>
                 {props.keyboardHint && (
-                  <span className="hidden flex-shrink-0 text-xs text-gray-400 md:inline">
-                    {props.keyboardHint}
-                  </span>
+                  <div
+                    aria-label={props.keyboardHint}
+                    className="hidden flex-shrink-0 items-center gap-2 text-xs text-gray-400 md:flex"
+                  >
+                    <span className="flex items-center gap-1">
+                      <kbd className={keycapClass}>↑</kbd>
+                      <kbd className={keycapClass}>↓</kbd>
+                    </span>
+                    <kbd className={keycapClass}>↵</kbd>
+                    <kbd className={keycapClass}>esc</kbd>
+                  </div>
                 )}
               </div>
             )}
