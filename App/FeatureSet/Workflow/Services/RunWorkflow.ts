@@ -114,7 +114,7 @@ export default class RunWorkflow {
       this.projectId = workflow.projectId || null;
 
       /*
-       * Resume path: this run was previously suspended by a Wait step. Load the
+       * Resume path: this run was previously suspended by a Sleep step. Load the
        * persisted execution state and prior logs from the WorkflowLog so we can
        * continue from where we left off instead of starting at the trigger.
        */
@@ -377,7 +377,7 @@ export default class RunWorkflow {
         }
 
         /*
-         * Durable wait: if the component asked to suspend (i.e. the Wait
+         * Durable suspend: if the component asked to suspend (i.e. the Sleep
          * component), persist the remaining execution state and re-enqueue a
          * delayed job to resume once the duration elapses. We stop this run
          * here — a parked run consumes no worker. Only suspend when there is

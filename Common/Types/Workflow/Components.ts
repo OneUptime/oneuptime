@@ -11,8 +11,8 @@ import ManualComponents from "./Components/Manual";
 import MicrosoftTeamsComponents from "./Components/MicrosoftTeams";
 import ScheduleComponents from "./Components/Schedule";
 import SlackComponents from "./Components/Slack";
+import SleepComponents from "./Components/Sleep";
 import TelegramComponents from "./Components/Telegram";
-import WaitComponents from "./Components/Wait";
 import WebhookComponents from "./Components/Webhook";
 import WorkflowComponents from "./Components/Workflow";
 
@@ -31,7 +31,7 @@ const components: Array<ComponentMetadata> = [
   ...WorkflowComponents,
   ...ManualComponents,
   ...MicrosoftTeamsComponents,
-  ...WaitComponents,
+  ...SleepComponents,
 ];
 
 export default components;

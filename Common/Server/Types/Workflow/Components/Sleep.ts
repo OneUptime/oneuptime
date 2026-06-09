@@ -3,30 +3,30 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ComponentMetadata, { Port } from "../../../../Types/Workflow/Component";
 import ComponentID from "../../../../Types/Workflow/ComponentID";
-import WaitComponents from "../../../../Types/Workflow/Components/Wait";
+import SleepComponents from "../../../../Types/Workflow/Components/Sleep";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 /**
- * Maximum duration a single Wait component may suspend for. Bounds how far in
+ * Maximum duration a single Sleep component may suspend for. Bounds how far in
  * the future a delayed resume job can be parked.
  */
-export const MAX_WAIT_IN_MS: number = 30 * 24 * 60 * 60 * 1000; // 30 days
+export const MAX_SLEEP_IN_MS: number = 30 * 24 * 60 * 60 * 1000; // 30 days
 
-export default class Wait extends ComponentCode {
+export default class Sleep extends ComponentCode {
   public constructor() {
     super();
 
-    const WaitComponent: ComponentMetadata | undefined = WaitComponents.find(
+    const SleepComponent: ComponentMetadata | undefined = SleepComponents.find(
       (i: ComponentMetadata) => {
-        return i.id === ComponentID.Wait;
+        return i.id === ComponentID.Sleep;
       },
     );
 
-    if (!WaitComponent) {
+    if (!SleepComponent) {
       throw new BadDataException("Component not found.");
     }
 
-    this.setMetadata(WaitComponent);
+    this.setMetadata(SleepComponent);
   }
 
   /**
@@ -65,25 +65,25 @@ export default class Wait extends ComponentCode {
     const minutes: number = this.toNonNegativeNumber(args["minutes"]);
     const seconds: number = this.toNonNegativeNumber(args["seconds"]);
 
-    let waitForMs: number =
+    let sleepForMs: number =
       days * 24 * 60 * 60 * 1000 +
       hours * 60 * 60 * 1000 +
       minutes * 60 * 1000 +
       seconds * 1000;
 
-    waitForMs = Math.round(waitForMs);
+    sleepForMs = Math.round(sleepForMs);
 
-    if (waitForMs > MAX_WAIT_IN_MS) {
+    if (sleepForMs > MAX_SLEEP_IN_MS) {
       options.log(
-        `Requested wait of ${waitForMs}ms exceeds the maximum of ${MAX_WAIT_IN_MS}ms. Clamping to the maximum.`,
+        `Requested sleep of ${sleepForMs}ms exceeds the maximum of ${MAX_SLEEP_IN_MS}ms. Clamping to the maximum.`,
       );
-      waitForMs = MAX_WAIT_IN_MS;
+      sleepForMs = MAX_SLEEP_IN_MS;
     }
 
-    if (waitForMs <= 0) {
-      // Nothing to wait for — behave as a pass-through.
+    if (sleepForMs <= 0) {
+      // Nothing to sleep for — behave as a pass-through.
       options.log(
-        "Wait duration is zero. Continuing to the next step immediately.",
+        "Sleep duration is zero. Continuing to the next step immediately.",
       );
 
       return Promise.resolve({
@@ -93,13 +93,13 @@ export default class Wait extends ComponentCode {
     }
 
     options.log(
-      `Workflow will wait for ${waitForMs}ms and then continue to the next step.`,
+      `Workflow will sleep for ${sleepForMs}ms and then continue to the next step.`,
     );
 
     return Promise.resolve({
       returnValues: {},
       executePort: outPort,
-      suspendForMs: waitForMs,
+      suspendForMs: sleepForMs,
     });
   }
 }

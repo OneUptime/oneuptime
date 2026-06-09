@@ -45,7 +45,7 @@ RunCron(
     }
 
     /*
-     * Fail runs that have been Waiting (suspended by a Wait step) well past
+     * Fail runs that have been Waiting (suspended by a Sleep step) well past
      * their scheduled resume time. This guards against a dropped/lost delayed
      * resume job (e.g. Redis was flushed) leaving a run parked forever. The 10
      * minute grace beyond resumeAt avoids racing the normal resume.

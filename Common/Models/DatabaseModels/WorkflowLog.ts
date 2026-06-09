@@ -315,7 +315,7 @@ export default class WorkflowLog extends BaseModel {
     type: TableColumnType.Date,
     title: "Resume At",
     description:
-      "When this workflow run is scheduled to resume after a Wait step (only set while the run is Waiting).",
+      "When this workflow run is scheduled to resume after a Sleep step (only set while the run is Waiting).",
   })
   @Column({
     type: ColumnType.Date,
@@ -327,7 +327,7 @@ export default class WorkflowLog extends BaseModel {
   /*
    * Internal. Serialized execution state (pending steps, executed steps and
    * accumulated component return values) used to resume a workflow run after a
-   * Wait step. Never exposed via the API.
+   * Sleep step. Never exposed via the API.
    */
   @ColumnAccessControl({
     create: [],
@@ -340,7 +340,7 @@ export default class WorkflowLog extends BaseModel {
     type: TableColumnType.JSON,
     title: "Resume Data",
     description:
-      "Internal serialized execution state used to resume a workflow run after a Wait step.",
+      "Internal serialized execution state used to resume a workflow run after a Sleep step.",
   })
   @Column({
     type: ColumnType.JSON,

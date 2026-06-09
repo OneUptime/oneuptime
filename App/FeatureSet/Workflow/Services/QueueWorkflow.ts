@@ -213,7 +213,7 @@ export default class QueueWorkflow {
   }
 
   /**
-   * Re-enqueue an in-flight workflow run after a Wait step, to be resumed once
+   * Re-enqueue an in-flight workflow run after a Sleep step, to be resumed once
    * the delay elapses.
    *
    * Unlike `addWorkflowToQueue`, this does NOT create a new WorkflowLog (the
@@ -223,7 +223,7 @@ export default class QueueWorkflow {
    *
    * The job id is suffixed with `jobIdDiscriminator` so it never collides with
    * the currently-executing job (whose id is the bare workflowLogId) nor with
-   * resume jobs from earlier Wait steps in the same run.
+   * resume jobs from earlier Sleep steps in the same run.
    */
   public static async addResumeJobToQueue(props: {
     workflowId: ObjectID;
