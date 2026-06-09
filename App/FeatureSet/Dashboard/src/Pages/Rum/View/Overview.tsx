@@ -1,9 +1,13 @@
 import PageComponentProps from "../../PageComponentProps";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
+import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
+import RumApplicationClient from "Common/Models/DatabaseModels/RumApplicationClient";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -14,22 +18,10 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import Card from "Common/UI/Components/Card/Card";
-import OneUptimeDate from "Common/Types/Date";
-
-const DetailRow: FunctionComponent<{
-  label: string;
-  value: string | undefined;
-}> = (props: { label: string; value: string | undefined }): ReactElement => {
-  return (
-    <div className="px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4">
-      <dt className="text-sm font-medium text-gray-500">{props.label}</dt>
-      <dd className="mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0 font-mono break-all">
-        {props.value && props.value.length > 0 ? props.value : "—"}
-      </dd>
-    </div>
-  );
-};
+import ResourceOverview, {
+  ResourceOverviewChip,
+  ResourceOverviewDetailRow,
+} from "../../../Components/TelemetryResource/ResourceOverview";
 
 const RumApplicationOverview: FunctionComponent<
   PageComponentProps
@@ -39,6 +31,7 @@ const RumApplicationOverview: FunctionComponent<
   const [rumApplication, setRumApplication] = useState<RumApplication | null>(
     null,
   );
+  const [clientCount, setClientCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
@@ -57,6 +50,7 @@ const RumApplicationOverview: FunctionComponent<
           otelCollectorStatus: true,
           lastSeenAt: true,
           agentVersion: true,
+          labels: { name: true, color: true },
         },
       });
 
@@ -67,6 +61,17 @@ const RumApplicationOverview: FunctionComponent<
       }
 
       setRumApplication(item);
+
+      try {
+        const count: number = await ModelAPI.count({
+          modelType: RumApplicationClient,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          query: { rumApplicationId: modelId } as any,
+        });
+        setClientCount(count);
+      } catch {
+        setClientCount(0);
+      }
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -92,38 +97,54 @@ const RumApplicationOverview: FunctionComponent<
   }
 
   const a: RumApplication = rumApplication;
-  const lastSeen: string = a.lastSeenAt
-    ? OneUptimeDate.fromNow(a.lastSeenAt)
-    : "never";
+
+  const chips: Array<ResourceOverviewChip> = [];
+  if (a.clientType) {
+    chips.push({ icon: IconProp.Window, label: String(a.clientType) });
+  }
+
+  const detailRows: Array<ResourceOverviewDetailRow> = [
+    { label: "App Identifier (service.name)", value: a.appIdentifier },
+    { label: "Client Type", value: a.clientType },
+    { label: "SDK Version", value: a.agentVersion },
+  ];
 
   return (
-    <Fragment>
-      <Card
-        title={(a.name as string) || "RUM Application"}
-        description={
-          (a.description as string) ||
-          "Browser / mobile application auto-discovered from OpenTelemetry RUM telemetry."
-        }
-      >
-        <div className="border-t border-gray-200 divide-y divide-gray-100 -m-6 -mt-2">
-          <DetailRow
-            label="App Identifier (service.name)"
-            value={a.appIdentifier as string}
-          />
-          <DetailRow label="Client Type" value={a.clientType as string} />
-          <DetailRow
-            label="Status"
-            value={
-              a.otelCollectorStatus === "connected"
-                ? "Connected"
-                : "Disconnected"
-            }
-          />
-          <DetailRow label="Last Seen" value={lastSeen} />
-          <DetailRow label="SDK Version" value={a.agentVersion as string} />
-        </div>
-      </Card>
-    </Fragment>
+    <ResourceOverview
+      icon={IconProp.Globe}
+      title={(a.name as string) || "RUM Application"}
+      identifier={(a.appIdentifier as string) || ""}
+      identifierLabel="service.name"
+      status={a.otelCollectorStatus}
+      lastSeenAt={a.lastSeenAt}
+      description={a.description as string}
+      chips={chips}
+      telemetryAttributeKey="resource.service.name"
+      telemetryAttributeValue={(a.appIdentifier as string) || ""}
+      metricsRoute={RouteUtil.populateRouteParams(
+        RouteMap[PageMap.RUM_APPLICATION_VIEW_METRICS] as Route,
+        { modelId },
+      )}
+      logsRoute={RouteUtil.populateRouteParams(
+        RouteMap[PageMap.RUM_APPLICATION_VIEW_LOGS] as Route,
+        { modelId },
+      )}
+      tracesRoute={RouteUtil.populateRouteParams(
+        RouteMap[PageMap.RUM_APPLICATION_VIEW_TRACES] as Route,
+        { modelId },
+      )}
+      inventoryTile={{
+        title: "Clients",
+        icon: IconProp.Globe,
+        count: clientCount,
+        to: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.RUM_APPLICATION_VIEW_CLIENTS] as Route,
+          { modelId },
+        ),
+      }}
+      detailRows={detailRows}
+      labels={a.labels}
+    />
   );
 };
 
