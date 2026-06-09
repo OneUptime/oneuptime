@@ -44,6 +44,7 @@
         "lint": "export NODE_OPTIONS='--max-old-space-size=32768' && npx eslint . --cache",
         "fix-lint": "export NODE_OPTIONS='--max-old-space-size=32768' && npx eslint . --fix --cache --debug",
         "fix": "npm run fix-lint",
+        "i18n:validate": "node ./Scripts/I18n/ValidateLocales.js",
         "status-check": "bash ./Tests/Scripts/status-check.sh $npm_config_services",
         "start": "export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d $npm_config_services && npm run status-check",
         "dev-llm": "npm run prerun && export $(grep -v '^#' config.env | xargs) && docker compose -f docker-compose.llm.yml up --remove-orphans -d $npm_config_services",

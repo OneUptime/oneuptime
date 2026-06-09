@@ -364,6 +364,8 @@ These are table-stakes features without which the metrics product is fundamental
 
 ## ClickHouse Storage Improvements
 
+> **Cross-cutting storage work** — the time-based partition key, `serviceId → primaryEntityId` rename, sort-key review, `UInt64` timestamps, **`Float64`+Gorilla for metric `value`/`sum`/`min`/`max`**, coarser rollups, and sharding are tracked in [`TelemetryStorageAndScale.md`](./TelemetryStorageAndScale.md). They apply across all signal tables (Metrics included) and are batched into a single `…V3` rewrite.
+
 ### S.4 Evaluate Map Type for Attributes (MEDIUM)
 
 **Current**: Attributes stored as JSON.

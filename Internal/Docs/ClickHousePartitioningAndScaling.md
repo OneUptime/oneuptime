@@ -116,7 +116,7 @@ A common shape: a self-hosted org with **one project** generating a lot of telem
 
 1. **Vertical scaling — first and usually sufficient.** ClickHouse is built for it: a single well-specced node (NVMe, ample RAM for mark cache + queries, cores for merges) sustains 1M+ rows/sec and tens of TB compressed. Most single-project installs never hit this ceiling.
 2. **Cut the volume.** Retention (`retainTelemetryDataForDays`) is the biggest dial. Then sampling at ingest (trace head/tail sampling, log-level filtering), rollups (the `MetricItemAggMV1m` MVs already let dashboards read aggregates), and compression (ZSTD codecs + LowCardinality, already shipped).
-3. **Tiered storage (hot/cold) — the biggest current gap.** Keep recent data on NVMe and move older parts to a large cheap disk or S3 via a storage policy + `TTL … TO VOLUME 'cold'`. ClickHouse supports this; OneUptime does not wire it up yet. With the per-row `retentionDate` already present, a `TO VOLUME` tier is a natural, high-leverage feature for "drowning in disk, not CPU."
+3. **Tiered storage (hot/cold) — available lever, not pursued for now (2026-06-09).** ClickHouse can keep recent data on NVMe and age older parts to a cheap disk or S3 via a storage policy + `TTL … TO VOLUME 'cold'`, and the per-row `retentionDate` would make it straightforward. Not currently needed — revisit only if a deployment becomes disk-bound.
 4. **Write-path tuning.** `async_insert` is already on (coalesces small inserts → fewer parts → less merge pressure). Beyond that, `background_pool_size`. Note: for a single project all "now" writes inherently target the current time-partition; ClickHouse runs concurrent merges *within* it, and a single hot write-partition is the normal, healthy pattern — you cannot partition-key your way to more write capacity.
 5. **Horizontal sharding — the real ceiling-raiser, needs product work.** Multi-node via `ReplicatedMergeTree` + a `Distributed` front table. **OneUptime does not support this today.** When built, the shard key must be high-cardinality (e.g. `sipHash64(traceId)` / `rand()`), **not** `projectId`, so a single project spreads across all nodes; each shard's local table still partitions by `toYYYYMMDD(time)`.
 
@@ -131,6 +131,28 @@ A common shape: a self-hosted org with **one project** generating a lot of telem
 - `serviceId` is **renamed** `primaryEntityId` (and `serviceType` → `primaryEntityType`) as part of this same `V3` rewrite (Option B) — the column stays in the sort key under the new name, with `serviceId` kept as a deprecated API alias. It is *kept*, not dropped: it is the auth + identity anchor, distinct from the additive `entityKeys` filtering column. See the entity doc's decision-update note.
 
 If both ship, sequence the entity *identity/registry* work first (code-only, no schema change), then cut `V3` **once** — new partition key, entity columns, and the `serviceId → primaryEntityId` rename together. One rewrite.
+
+---
+
+## Other structural changes to ride the V3 cut
+
+The `…V3` rewrite is the only cheap window for any change that requires rebuilding a table (sort key, column type, dropped column). Batch these in rather than paying for a second rewrite. *Already shipped (context):* ZSTD codecs, LowCardinality (`serviceType`/`severityText`/`kind`/`metricPointType`), the `attributeKeys[]` bloom index, 1-minute metric rollups.
+
+**Rewrite-gated — fold into V3:**
+
+1. **Sort-key (`ORDER BY`) ordering — decide deliberately.** It's inconsistent: `Log`/`Span` put time second (`projectId, time, serviceId…`); `Metric` puts it last (`projectId, name, serviceId, time`). The primary index prunes only on a *prefix*, so `Metric` can prune on time only when `name`+`serviceId` are pinned. Validate each table's order against real query shapes while the rebuild is free; align or justify.
+2. **`timeUnixNano`/`startTimeUnixNano`/`observedTimeUnixNano`: `LongNumber` (Int128, 16B) → `UInt64`.** They get plain `ZSTD` today because Delta needs ≤8-byte types. `UInt64` (good past year 2500) halves the column and unlocks `DoubleDelta` (often 10×+ on monotonic timestamps). Also question whether both `time` (DateTime64) *and* `timeUnixNano` are needed per row.
+3. **Metric `value`/`sum`/`min`/`max`: `Decimal`+`ZSTD` → `Float64`+`Gorilla`** (`DoubleDelta` for counters). Gorilla is built for float time-series; `Metric` is the highest-volume table. Trade-off: `Float64` vs `Decimal` exactness (OTel metrics are doubles).
+4. **Drop dead base columns on append-only rows.** Every signal row carries `_id`, `createdAt`, `updatedAt` (added by `AnalyticsBaseModel`, **uncodec'd**). `updatedAt` is meaningless on append-only telemetry — drop it. `createdAt` largely duplicates `time` — drop or justify. Confirm `_id` earns its per-row cost (may back `GET /…/:id` + dedup); if kept, codec it.
+
+**Additive — anytime (no rewrite):**
+
+5. Codec the surviving base columns (`_id` → `ZSTD`; dates → `DoubleDelta, ZSTD`) via `MODIFY COLUMN … CODEC`.
+6. Coarser rollups (hourly/daily metric MVs; log error-rate / span-latency rollups) + read-routing to the coarsest covering the range.
+7. `attributes Map(String,String)` value-filtering is a full-map scan — evaluate the `JSON` type (rewrite → fold into V3 if chosen) or hot-key promotion to materialized typed columns (additive).
+8. More projections for alternate access patterns (pairs with the entity-key orderings in the entity doc).
+
+Phased/prioritized view: [`Internal/Roadmap/TelemetryStorageAndScale.md`](../Roadmap/TelemetryStorageAndScale.md).
 
 ---
 
@@ -166,10 +188,9 @@ Pragmatic rollout: land the model change (step 1) so every new install/table ben
 1. **Daily vs monthly cutoff.** Confirm typical `retainTelemetryDataForDays` distributions in the field to validate daily for raw signals (vs weekly) and the monthly choice for AuditLog/MVs.
 2. **`ttl_only_drop_parts` default.** On by default, or opt-in per deployment given mixed-retention storage overhang?
 3. **Historical data on existing installs.** Is the `…V3` copy worth it for large installs, or forward-only (new installs get the new key, existing keep `V2`) until a customer needs it?
-4. **Tiered S3 storage.** Prioritize the `TTL … TO VOLUME` storage-policy feature independently — it may relieve more pressure than repartitioning for disk-bound single-project installs.
-
 ## Non-Goals
 
+- Tiered hot/cold (S3) storage — a known lever, **not pursued for now** (2026-06-09); revisit only if a deployment becomes disk-bound.
 - *Moving* `serviceId` out of the sort/primary key. (It is *renamed* to `primaryEntityId` in the same V3 cut — see the entity doc — but keeps its position and meaning.)
 - Adding a `Distributed`/`ReplicatedMergeTree` layer (separate, larger effort; only the shard-key guidance is recorded here).
 - Changing retention semantics, billing, or access control.
