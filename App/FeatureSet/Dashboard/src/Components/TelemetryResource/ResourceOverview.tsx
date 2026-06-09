@@ -60,6 +60,10 @@ export interface ResourceOverviewProps {
   // Domain-relevant golden metric tiles, computed by the page.
   tiles: Array<ResourceOverviewTile>;
   tilesLoading?: boolean | undefined;
+  // Hero top-right controls (e.g. a time-range picker).
+  controls?: ReactElement | undefined;
+  // Trend charts rendered between the tiles and the details card.
+  charts?: ReactElement | undefined;
   // Secondary navigation to the raw telemetry tabs.
   quickLinks?: Array<ResourceOverviewQuickLink> | undefined;
   detailRows: Array<ResourceOverviewDetailRow>;
@@ -193,10 +197,11 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
           />
         </div>
         <div className="relative px-6 py-5">
-          <div className="flex items-start gap-4 min-w-0">
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-indigo-200 shadow-sm">
-              <Icon icon={props.icon} className="h-6 w-6 text-indigo-600" />
-            </div>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4 min-w-0">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-indigo-200 shadow-sm">
+                <Icon icon={props.icon} className="h-6 w-6 text-indigo-600" />
+              </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-xl font-semibold text-gray-900 truncate">
@@ -222,6 +227,12 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                 Last seen {lastSeenText}
               </div>
             </div>
+            </div>
+            {props.controls ? (
+              <div className="ml-auto flex-shrink-0">{props.controls}</div>
+            ) : (
+              <></>
+            )}
           </div>
 
           {props.chips.length > 0 && (
@@ -274,6 +285,9 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
           </div>
         )
       )}
+
+      {/* Trend charts */}
+      {props.charts ? <div className="mb-6">{props.charts}</div> : <></>}
 
       {/* Details */}
       <Card

@@ -7,6 +7,7 @@ import type { MoreMenuItem } from "./NavBar";
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useEffect,
   useMemo,
   useRef,
@@ -73,11 +74,31 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [query, setQuery] = useState<string>("");
   const [activeIndex, setActiveIndex] = useState<number>(0);
+  // Drives the open transition (fade + scale-in) on the first paint.
+  const [isShown, setIsShown] = useState<boolean>(false);
   const inputRef: React.RefObject<HTMLInputElement> =
     useRef<HTMLInputElement>(null);
   const cellRefs: React.MutableRefObject<Array<HTMLDivElement | null>> = useRef<
     Array<HTMLDivElement | null>
   >([]);
+
+  // Show the OS-appropriate shortcut hint (⌘K on macOS, Ctrl K elsewhere).
+  const shortcutLabel: string = useMemo(() => {
+    if (typeof navigator === "undefined") {
+      return "⌘K";
+    }
+    const platform: string = (
+      navigator.platform ||
+      navigator.userAgent ||
+      ""
+    ).toLowerCase();
+    const isApplePlatform: boolean =
+      platform.includes("mac") ||
+      platform.includes("iphone") ||
+      platform.includes("ipad") ||
+      platform.includes("ipod");
+    return isApplePlatform ? "⌘K" : "Ctrl K";
+  }, []);
 
   // Filter items by the search query (title + description + category).
   const filteredItems: MoreMenuItem[] = useMemo(() => {
@@ -132,25 +153,71 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
     }, []);
   }, [groups]);
 
-  // Focus the search box when the modal mounts.
+  // Index of the product matching the current page (the "you are here" item).
+  const currentFlatIndex: number = useMemo(() => {
+    return flatItems.findIndex((item: MoreMenuItem) => {
+      return Navigation.isStartWith(item.activeRoute || item.route);
+    });
+  }, [flatItems]);
+
+  // Play the open animation and focus the search box on mount.
   useEffect(() => {
+    setIsShown(true);
     inputRef.current?.focus();
   }, []);
 
-  // Reset the selection to the top whenever the query changes.
+  /*
+   * When idle, pre-select the current page so the modal opens "where you are";
+   * while searching, snap the selection to the first result.
+   */
   useEffect(() => {
-    setActiveIndex(0);
-  }, [query]);
+    if (query) {
+      setActiveIndex(0);
+      return;
+    }
+    setActiveIndex(currentFlatIndex >= 0 ? currentFlatIndex : 0);
+  }, [query, currentFlatIndex]);
 
   // Keep the active cell scrolled into view as the selection moves.
   useEffect(() => {
     cellRefs.current[activeIndex]?.scrollIntoView({ block: "nearest" });
   }, [activeIndex]);
 
-  /*
-   * Move the selection one visual row up or down. Uses the rendered cell
-   * positions so it works across category gaps and any column count.
-   */
+  // Wrap the portions of text that match the query in a highlight.
+  const highlightMatch: (text: string) => ReactNode = (
+    text: string,
+  ): ReactNode => {
+    const needle: string = query.trim().toLowerCase();
+    if (!needle) {
+      return text;
+    }
+    const haystack: string = text.toLowerCase();
+    const parts: ReactNode[] = [];
+    let cursor: number = 0;
+    let matchAt: number = haystack.indexOf(needle, cursor);
+    let key: number = 0;
+    while (matchAt !== -1) {
+      if (matchAt > cursor) {
+        parts.push(text.slice(cursor, matchAt));
+      }
+      parts.push(
+        <mark
+          key={`m-${key}`}
+          className="rounded-sm bg-yellow-100 px-0.5 text-inherit"
+        >
+          {text.slice(matchAt, matchAt + needle.length)}
+        </mark>,
+      );
+      key++;
+      cursor = matchAt + needle.length;
+      matchAt = haystack.indexOf(needle, cursor);
+    }
+    if (cursor < text.length) {
+      parts.push(text.slice(cursor));
+    }
+    return parts;
+  };
+
   const moveVertical: (direction: "up" | "down") => void = (
     direction: "up" | "down",
   ): void => {
@@ -251,7 +318,11 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
       aria-label="Products menu"
     >
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm transition-opacity" />
+      <div
+        className={`fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm transition-opacity duration-200 ${
+          isShown ? "opacity-100" : "opacity-0"
+        }`}
+      />
 
       {/* Scroll + click-away container */}
       <div
@@ -260,7 +331,9 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
       >
         <div className="flex min-h-full items-start justify-center p-4 sm:p-6">
           <div
-            className="relative mt-[6vh] flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black ring-opacity-5"
+            className={`relative mt-[6vh] flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black ring-opacity-5 transition-all duration-200 ease-out ${
+              isShown ? "scale-100 opacity-100" : "scale-95 opacity-0"
+            }`}
             style={{ maxHeight: "80vh" }}
             onClick={(event: React.MouseEvent<HTMLDivElement>) => {
               event.stopPropagation();
@@ -275,6 +348,15 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
               <input
                 ref={inputRef}
                 type="text"
+                role="combobox"
+                aria-expanded={true}
+                aria-controls="navbar-menu-listbox"
+                aria-activedescendant={
+                  flatItems.length > 0
+                    ? `navbar-menu-option-${activeIndex}`
+                    : undefined
+                }
+                aria-label={props.searchPlaceholder || "Search products"}
                 value={query}
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                   setQuery(event.target.value);
@@ -284,12 +366,17 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                 className="flex-1 border-0 bg-transparent p-0 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0"
               />
               <kbd className="hidden items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-xs font-medium text-gray-400 sm:inline-flex">
-                ⌘K
+                {shortcutLabel}
               </kbd>
             </div>
 
             {/* Body */}
-            <div className="flex-1 overflow-y-auto px-4 py-4">
+            <div
+              id="navbar-menu-listbox"
+              role="listbox"
+              aria-label="Products"
+              className="flex-1 overflow-y-auto px-4 py-4"
+            >
               {flatItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <Icon
@@ -299,6 +386,11 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                   <p className="text-sm text-gray-500">
                     {props.noResultsText || "No results found."}
                   </p>
+                  {query && (
+                    <p className="mt-1 text-xs text-gray-400">
+                      &ldquo;{query}&rdquo;
+                    </p>
+                  )}
                 </div>
               ) : (
                 groups.map((group: MenuGroup) => {
@@ -312,26 +404,40 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                           const item: MoreMenuItem = entry.item;
                           const flatIndex: number = entry.flatIndex;
                           const isActive: boolean = flatIndex === activeIndex;
+                          const isCurrent: boolean =
+                            flatIndex === currentFlatIndex;
                           const colors: IconColorClasses =
                             ICON_COLOR_CLASSES[item.iconColor || "indigo"] ||
                             ICON_COLOR_CLASSES["indigo"]!;
                           return (
                             <div
                               key={item.title}
+                              id={`navbar-menu-option-${flatIndex}`}
+                              role="option"
+                              aria-selected={isActive}
                               ref={(element: HTMLDivElement | null) => {
                                 cellRefs.current[flatIndex] = element;
                               }}
                               onMouseEnter={() => {
                                 setActiveIndex(flatIndex);
                               }}
+                              className="relative"
                             >
+                              {isCurrent && (
+                                <span
+                                  aria-hidden="true"
+                                  className="absolute right-2 top-2 z-10 h-2 w-2 rounded-full bg-indigo-500 ring-2 ring-white"
+                                />
+                              )}
                               <Link
                                 to={item.route}
                                 onClick={props.onClose}
-                                className={`flex h-full flex-col items-center gap-2 rounded-xl p-3 text-center transition-colors ${
+                                className={`flex h-full flex-col items-center gap-2 rounded-xl p-3 text-center transition-all duration-150 ${
                                   isActive
-                                    ? "bg-gray-100 ring-2 ring-indigo-400"
-                                    : "hover:bg-gray-50"
+                                    ? "scale-[1.03] bg-gray-100 shadow-sm ring-2 ring-indigo-400"
+                                    : isCurrent
+                                      ? "bg-indigo-50/60 ring-1 ring-indigo-200 hover:bg-indigo-50"
+                                      : "hover:bg-gray-50"
                                 }`}
                               >
                                 <div
@@ -344,10 +450,10 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                                 </div>
                                 <div className="w-full">
                                   <p className="text-sm font-medium text-gray-900">
-                                    {item.title}
+                                    {highlightMatch(item.title)}
                                   </p>
                                   <p className="mt-0.5 text-xs leading-snug text-gray-500 line-clamp-2">
-                                    {item.description}
+                                    {highlightMatch(item.description)}
                                   </p>
                                 </div>
                               </Link>

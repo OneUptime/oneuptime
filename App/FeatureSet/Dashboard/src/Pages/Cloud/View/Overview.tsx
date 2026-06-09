@@ -4,11 +4,11 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
-import OneUptimeDate from "Common/Types/Date";
 import Navigation from "Common/UI/Utils/Navigation";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import CloudResourceInstance from "Common/Models/DatabaseModels/CloudResourceInstance";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import React, {
   Fragment,
@@ -23,19 +23,33 @@ import Card from "Common/UI/Components/Card/Card";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import RangeStartAndEndDateTime, {
+  RangeStartAndEndDateTimeUtil,
+} from "Common/Types/Time/RangeStartAndEndDateTime";
+import TimeRange from "Common/Types/Time/TimeRange";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import ResourceOverview, {
   ResourceOverviewChip,
   ResourceOverviewDetailRow,
   ResourceOverviewQuickLink,
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
+import ChartCard from "../../../Components/TelemetryResource/ChartCard";
 import {
-  fetchSpanRedMetrics,
+  fetchMetricSeries,
+  fetchSpanMetrics,
   formatBytes,
   formatCompact,
   formatPercent,
-  SpanRedMetrics,
+  SpanMetrics,
+  TimePoint,
 } from "../../../Components/TelemetryResource/telemetryMetrics";
+
+const DEFAULT_RANGE: RangeStartAndEndDateTime = {
+  range: TimeRange.PAST_ONE_HOUR,
+};
 
 const CloudResourceOverview: FunctionComponent<
   PageComponentProps
@@ -47,11 +61,19 @@ const CloudResourceOverview: FunctionComponent<
   );
   const [instances, setInstances] = useState<Array<CloudResourceInstance>>([]);
   const [instancesLoaded, setInstancesLoaded] = useState<boolean>(false);
-  const [red, setRed] = useState<SpanRedMetrics | null>(null);
+  const [metrics, setMetrics] = useState<SpanMetrics | null>(null);
+  const [memorySeries, setMemorySeries] = useState<Array<TimePoint>>([]);
+  const [metricsLoading, setMetricsLoading] = useState<boolean>(true);
+  const [chartWindow, setChartWindow] = useState<{
+    start: Date;
+    end: Date;
+  } | null>(null);
+  const [timeRange, setTimeRange] =
+    useState<RangeStartAndEndDateTime>(DEFAULT_RANGE);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
-  const fetchData: PromiseVoidFunction = async (): Promise<void> => {
+  const fetchModel: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     setError("");
     try {
@@ -102,29 +124,6 @@ const CloudResourceOverview: FunctionComponent<
         .catch(() => {
           setInstancesLoaded(true);
         });
-
-      const attributes: Record<string, string> = {};
-      if (item.cloudPlatform) {
-        attributes["resource.cloud.platform"] = String(item.cloudPlatform);
-      }
-      if (item.cloudAccountId) {
-        attributes["resource.cloud.account.id"] = String(item.cloudAccountId);
-      }
-      if (item.cloudRegion) {
-        attributes["resource.cloud.region"] = String(item.cloudRegion);
-      }
-      const end: Date = OneUptimeDate.getCurrentDate();
-      const start: Date = OneUptimeDate.addRemoveMinutes(end, -60);
-      fetchSpanRedMetrics({ attributes, start, end })
-        .then(setRed)
-        .catch(() => {
-          return setRed({
-            total: 0,
-            errors: 0,
-            errorRatePercent: null,
-            p95DurationMs: null,
-          });
-        });
     } catch (err) {
       setError(API.getFriendlyMessage(err));
       setIsLoading(false);
@@ -132,10 +131,53 @@ const CloudResourceOverview: FunctionComponent<
   };
 
   useEffect(() => {
-    fetchData().catch((err: Error) => {
+    fetchModel().catch((err: Error) => {
       setError(API.getFriendlyMessage(err));
     });
   }, []);
+
+  useEffect(() => {
+    const item: CloudResource | null = cloudResource;
+    if (!item?.resourceIdentifier) {
+      return;
+    }
+    const attributes: Record<string, string> = {};
+    if (item.cloudPlatform) {
+      attributes["resource.cloud.platform"] = String(item.cloudPlatform);
+    }
+    if (item.cloudAccountId) {
+      attributes["resource.cloud.account.id"] = String(item.cloudAccountId);
+    }
+    if (item.cloudRegion) {
+      attributes["resource.cloud.region"] = String(item.cloudRegion);
+    }
+
+    setMetricsLoading(true);
+    const range: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+    const start: Date = range.startValue;
+    const end: Date = range.endValue;
+    setChartWindow({ start, end });
+
+    Promise.all([
+      fetchSpanMetrics({ attributes, start, end }),
+      fetchMetricSeries({
+        name: "container.memory.usage",
+        attributes,
+        aggregationType: AggregationType.Sum,
+        start,
+        end,
+      }),
+    ])
+      .then(([m, mem]: [SpanMetrics, Array<TimePoint>]) => {
+        setMetrics(m);
+        setMemorySeries(mem);
+        setMetricsLoading(false);
+      })
+      .catch(() => {
+        setMetricsLoading(false);
+      });
+  }, [cloudResource, timeRange]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -150,6 +192,7 @@ const CloudResourceOverview: FunctionComponent<
   }
 
   const r: CloudResource = cloudResource;
+  const m: SpanMetrics | null = metrics;
 
   const cpuValues: Array<number> = instances
     .map((i: CloudResourceInstance): number | undefined => {
@@ -212,12 +255,49 @@ const CloudResourceOverview: FunctionComponent<
     },
     {
       title: "Requests",
-      value: red ? formatCompact(red.total) : "…",
+      value: m ? formatCompact(m.total) : "…",
       icon: IconProp.Workflow,
       iconColor: "sky",
-      sublabel: "spans, last 1 hour",
+      sublabel: "spans, selected range",
     },
   ];
+
+  const charts: ReactElement = (
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <ChartCard
+        title="Requests"
+        icon={IconProp.Workflow}
+        iconColor="sky"
+        series={
+          [
+            { seriesName: "Requests", data: m?.countSeries ?? [] },
+            { seriesName: "Errors", data: m?.errorSeries ?? [] },
+          ] as Array<SeriesPoint>
+        }
+        windowStart={chartWindow?.start ?? null}
+        windowEnd={chartWindow?.end ?? null}
+        syncId={`cloud-${modelId.toString()}`}
+        showLegend={true}
+        loading={metricsLoading && !m}
+      />
+      <ChartCard
+        title="Memory"
+        icon={IconProp.SquareStack}
+        iconColor="violet"
+        series={
+          [{ seriesName: "Memory", data: memorySeries }] as Array<SeriesPoint>
+        }
+        windowStart={chartWindow?.start ?? null}
+        windowEnd={chartWindow?.end ?? null}
+        syncId={`cloud-${modelId.toString()}`}
+        yLegend="Bytes"
+        yFormatter={(n: number): string => {
+          return formatBytes(n);
+        }}
+        loading={metricsLoading && memorySeries.length === 0}
+      />
+    </div>
+  );
 
   const quickLinks: Array<ResourceOverviewQuickLink> = [
     {
@@ -262,6 +342,15 @@ const CloudResourceOverview: FunctionComponent<
         description={r.description as string}
         chips={chips}
         tiles={tiles}
+        charts={charts}
+        controls={
+          <TelemetryTimeRangePicker
+            value={timeRange}
+            onChange={(value: RangeStartAndEndDateTime): void => {
+              setTimeRange(value);
+            }}
+          />
+        }
         quickLinks={quickLinks}
         detailRows={detailRows}
         labels={r.labels}
