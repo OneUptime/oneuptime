@@ -267,6 +267,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       value = `CAST(${this.escapeStringLiteral(value.toString())} AS Int128)`;
     }
 
+    if (column.type === TableColumnType.UInt64) {
+      value = `CAST(${this.escapeStringLiteral(value.toString())} AS UInt64)`;
+    }
+
     if (column.type === TableColumnType.BigNumber) {
       if (typeof value === "string") {
         value = parseInt(value);
@@ -1046,6 +1050,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       Int32: TableColumnType.Number,
       Int64: TableColumnType.BigNumber,
       Int128: TableColumnType.LongNumber,
+      UInt64: TableColumnType.UInt64,
       Float32: TableColumnType.Decimal,
       Float64: TableColumnType.Decimal,
       DateTime: TableColumnType.Date,
@@ -1097,6 +1102,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       [TableColumnType.BigNumber]: SQL`Int64`,
       [TableColumnType.MapStringString]: SQL`Map(String, String)`,
       [TableColumnType.UInt8]: SQL`UInt8`,
+      [TableColumnType.UInt64]: SQL`UInt64`,
     }[column.type];
 
     if (!statement) {

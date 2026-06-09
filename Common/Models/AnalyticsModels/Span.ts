@@ -211,8 +211,8 @@ export default class Span extends AnalyticsBaseModel {
         title: "Start Time in Unix Nano",
         description: "When did the span start?",
         required: true,
-        type: TableColumnType.LongNumber,
-        codec: { codec: "ZSTD", level: 1 },
+        type: TableColumnType.UInt64,
+        codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
         accessControl: {
           read: [
             Permission.ProjectOwner,

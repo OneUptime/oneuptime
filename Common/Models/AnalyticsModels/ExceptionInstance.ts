@@ -146,10 +146,11 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
 
     const timeUnixNanoColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "timeUnixNano",
+      codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
       title: "Time (in Unix Nano)",
       description: "When was the log created?",
       required: true,
-      type: TableColumnType.LongNumber,
+      type: TableColumnType.UInt64,
       accessControl: {
         read: [
           Permission.ProjectOwner,
