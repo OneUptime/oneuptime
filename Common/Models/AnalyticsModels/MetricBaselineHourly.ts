@@ -197,7 +197,7 @@ SELECT
   quantileState(0.95)(toFloat64(coalesce(value, sum, 0))) AS p95State,
   minState(toFloat64(coalesce(value, sum, 0))) AS minObsState,
   maxState(toFloat64(coalesce(value, sum, 0))) AS maxObsState
-FROM MetricItemV2
+FROM MetricItemV3
 GROUP BY projectId, name, primaryEntityId, day, hourOfWeek`,
         },
       ],
@@ -208,7 +208,8 @@ GROUP BY projectId, name, primaryEntityId, day, hourOfWeek`,
        */
       sortKeys: ["projectId", "name", "primaryEntityId", "hourOfWeek", "day"],
       primaryKeys: ["projectId", "name", "primaryEntityId", "hourOfWeek", "day"],
-      partitionKey: "sipHash64(projectId) % 16",
+      partitionKey: "toYYYYMM(day)",
+      tableSettings: "ttl_only_drop_parts = 1",
       ttlExpression: "day + INTERVAL 90 DAY",
     });
   }

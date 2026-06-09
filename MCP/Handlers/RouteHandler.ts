@@ -1,10 +1,24 @@
 /**
  * Route Handler
- * Sets up Express routes for the MCP server
+ * Sets up Express routes for the MCP server.
+ *
+ * The Streamable HTTP transport runs in STATELESS mode: every POST creates a
+ * fresh McpServer + StreamableHTTPServerTransport, handles that single request,
+ * and tears it down. No session state is kept in process memory, so the server
+ * works correctly behind a horizontally-scaled / multi-replica deployment where
+ * consecutive requests from the same client land on different workers.
+ *
+ * The previous implementation kept sessions in a per-process in-memory Map, so
+ * with more than one replica `initialize` created the session on one worker and
+ * every subsequent request was routed to another worker that had no record of
+ * it, failing with "404 MCP session not found" — see GitHub issue #2459.
+ *
+ * Stateless mode is safe here because the OneUptime tools carry no per-session
+ * state: `tools/list` is derived from a process-global tool list and every
+ * `tools/call` authenticates with the API key supplied on that same request.
  */
 
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { randomUUID } from "node:crypto";
 import {
   ExpressApplication,
   ExpressRequest,
@@ -12,15 +26,14 @@ import {
   NextFunction,
   ExpressJson,
 } from "Common/Server/Utils/Express";
-import { getMCPServer, McpServer } from "../Server/MCPServer";
-import SessionManager, { SessionData } from "../Server/SessionManager";
+import { createMCPServerInstance, McpServer } from "../Server/MCPServer";
+import { registerToolHandlers } from "./ToolHandler";
 import { McpToolInfo } from "../Types/McpTypes";
-import {
-  ROUTE_PREFIXES,
-  SESSION_HEADER,
-  API_KEY_HEADERS,
-} from "../Config/ServerConfig";
+import { ROUTE_PREFIXES, API_KEY_HEADERS } from "../Config/ServerConfig";
 import logger from "Common/Server/Utils/Logger";
+
+// Tools list stored at setup time for per-request server initialization
+let registeredTools: McpToolInfo[] = [];
 
 // Type for MCP handler function
 type McpHandlerFunction = (
@@ -53,12 +66,13 @@ export function setupMCPRoutes(
   app: ExpressApplication,
   tools: McpToolInfo[],
 ): void {
+  registeredTools = tools;
   ROUTE_PREFIXES.forEach((prefix: string) => {
     setupRoutesForPrefix(app, prefix, tools);
   });
 
   logger.info(
-    `MCP routes setup complete for prefixes: ${ROUTE_PREFIXES.join(", ")}`,
+    `MCP routes setup complete (stateless mode) for prefixes: ${ROUTE_PREFIXES.join(", ")}`,
   );
 }
 
@@ -101,47 +115,6 @@ function setupRoutesForPrefix(
 }
 
 /**
- * Returns true if the JSON-RPC body (single message or batch) contains a
- * message with method === "initialize".
- */
-function containsInitializeMessage(body: unknown): boolean {
-  if (!body) {
-    return false;
-  }
-  const messages: Array<unknown> = Array.isArray(body) ? body : [body];
-  return messages.some((msg: unknown) => {
-    return (
-      typeof msg === "object" &&
-      msg !== null &&
-      (msg as Record<string, unknown>)["method"] === "initialize"
-    );
-  });
-}
-
-/**
- * Returns true if every message in the JSON-RPC body is a notification.
- * Notifications expect no response and can be safely accepted with HTTP 202
- * even without a session ID — several MCP clients send
- * `notifications/initialized` without the session header.
- */
-function isNotificationOnly(body: unknown): boolean {
-  if (!body) {
-    return false;
-  }
-  const messages: Array<unknown> = Array.isArray(body) ? body : [body];
-  if (messages.length === 0) {
-    return false;
-  }
-  return messages.every((msg: unknown) => {
-    if (typeof msg !== "object" || msg === null) {
-      return false;
-    }
-    const method: unknown = (msg as Record<string, unknown>)["method"];
-    return typeof method === "string" && method.startsWith("notifications/");
-  });
-}
-
-/**
  * Create the main MCP request handler
  */
 function createMCPHandler(): McpHandlerFunction {
@@ -151,58 +124,53 @@ function createMCPHandler(): McpHandlerFunction {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      // Extract API key (optional - public tools work without it)
-      const apiKey: string | undefined = extractApiKey(req);
-
-      // Set the current API key for tool calls (may be undefined for public tools)
-      SessionManager.setCurrentApiKey(apiKey || "");
-
-      // Check for existing session
-      const sessionId: string | undefined = req.headers[
-        SESSION_HEADER
-      ] as string;
-
-      if (sessionId && SessionManager.hasSession(sessionId)) {
-        await handleExistingSession(req, res, sessionId, apiKey || "");
+      if (req.method === "POST") {
+        await handleStatelessRequest(req, res);
         return;
       }
 
-      // Session ID provided but unknown - tell client to re-initialize.
-      if (sessionId) {
-        if (req.method === "DELETE") {
-          res.status(200).end();
+      if (req.method === "GET") {
+        const acceptHeader: string = (req.headers["accept"] as string) || "";
+
+        // Non-SSE GET (browser / probe): return a friendly discovery payload.
+        if (!acceptHeader.includes("text/event-stream")) {
+          res.status(200).json({
+            name: "oneuptime-mcp",
+            status: "running",
+            message:
+              "This is a Model Context Protocol (MCP) server endpoint. Use an MCP client to connect.",
+          });
           return;
         }
-        res.status(404).json({
-          error: "Not Found",
-          message:
-            "MCP session not found. Please re-initialize the connection.",
+
+        /*
+         * SSE GET (server -> client stream). In stateless mode the server does
+         * not offer a standalone notification stream. Per the MCP spec the
+         * server returns 405 here; compliant clients simply proceed without the
+         * optional stream rather than tearing the connection down.
+         */
+        res.status(405).json({
+          jsonrpc: "2.0",
+          error: {
+            code: -32000,
+            message:
+              "Method Not Allowed: this server does not offer a standalone SSE stream (stateless mode).",
+          },
+          id: null,
         });
         return;
       }
 
-      // No session ID. Only accept POSTs that initialize or are notifications.
-      if (req.method === "POST") {
-        if (containsInitializeMessage(req.body)) {
-          await handleNewSession(req, res, apiKey || "");
-          return;
-        }
-        if (isNotificationOnly(req.body)) {
-          res.status(202).end();
-          return;
-        }
-      }
-
-      // For GET (SSE) and DELETE without session: nothing meaningful to do.
-      if (req.method === "GET" || req.method === "DELETE") {
-        await handleNewSession(req, res, apiKey || "");
+      if (req.method === "DELETE") {
+        // No server-side session to terminate in stateless mode.
+        res.status(200).end();
         return;
       }
 
-      res.status(400).json({
-        error: "Bad Request",
-        message:
-          "Missing Mcp-Session-Id header. Initialize the connection before sending requests.",
+      res.status(405).json({
+        jsonrpc: "2.0",
+        error: { code: -32000, message: "Method Not Allowed." },
+        id: null,
       });
     } catch (error) {
       next(error);
@@ -211,66 +179,49 @@ function createMCPHandler(): McpHandlerFunction {
 }
 
 /**
- * Handle request for an existing session
+ * Handle a single MCP POST request in stateless mode.
+ *
+ * A new McpServer and transport are created per request to guarantee isolation
+ * (a shared transport would let concurrent clients collide on JSON-RPC request
+ * IDs). The transport is created with `sessionIdGenerator: undefined`, which
+ * disables session-id issuance and session validation entirely.
  */
-async function handleExistingSession(
+async function handleStatelessRequest(
   req: ExpressRequest,
   res: ExpressResponse,
-  sessionId: string,
-  apiKey: string,
 ): Promise<void> {
-  const sessionData: SessionData | undefined =
-    SessionManager.getSession(sessionId);
+  // API key is read fresh from this request's headers (optional for public tools).
+  const apiKey: string = extractApiKey(req) || "";
 
-  if (!sessionData) {
-    return;
-  }
+  const mcpServer: McpServer = createMCPServerInstance();
 
-  // Update API key in case it changed
-  sessionData.apiKey = apiKey;
-  await sessionData.transport.handleRequest(req, res, req.body);
-}
-
-/**
- * Handle request for a new session (initialization)
- */
-async function handleNewSession(
-  req: ExpressRequest,
-  res: ExpressResponse,
-  apiKey: string,
-): Promise<void> {
-  const mcpServer: McpServer = getMCPServer();
-
+  /*
+   * Stateless mode: omit `sessionIdGenerator` entirely. The SDK treats an absent
+   * generator as undefined and disables session-id issuance and validation, so
+   * no `mcp-session-id` is emitted and every request is self-contained. (We omit
+   * rather than pass `undefined` explicitly because the tsconfig enables
+   * exactOptionalPropertyTypes.)
+   */
   const transport: StreamableHTTPServerTransport =
-    new StreamableHTTPServerTransport({
-      sessionIdGenerator: (): string => {
-        return randomUUID();
-      },
-      onsessioninitialized: (newSessionId: string): void => {
-        // Store the transport with the new session ID and API key
-        SessionManager.setSession(newSessionId, { transport, apiKey });
-        logger.info(`New MCP session initialized: ${newSessionId}`);
-      },
-    });
+    new StreamableHTTPServerTransport({});
 
-  // Handle transport close
-  transport.onclose = (): void => {
-    const transportSessionId: string | undefined = transport.sessionId;
-    if (transportSessionId) {
-      logger.info(`MCP session closed: ${transportSessionId}`);
-      SessionManager.removeSession(transportSessionId);
-    }
-  };
+  registerToolHandlers(mcpServer, registeredTools, apiKey);
 
-  // Handle transport errors
   transport.onerror = (error: Error): void => {
     logger.error(`MCP transport error: ${error.message}`);
   };
 
-  // Connect the MCP server to this transport
-  await mcpServer.connect(transport as Parameters<typeof mcpServer.connect>[0]);
+  // Tear down the ephemeral server + transport once the response is finished.
+  res.on("close", () => {
+    transport.close().catch((error: Error) => {
+      logger.error(`Error closing MCP transport: ${error.message}`);
+    });
+    mcpServer.close().catch((error: Error) => {
+      logger.error(`Error closing MCP server: ${error.message}`);
+    });
+  });
 
-  // Handle the request
+  await mcpServer.connect(transport as Parameters<typeof mcpServer.connect>[0]);
   await transport.handleRequest(req, res, req.body);
 }
 
@@ -311,8 +262,10 @@ function setupHealthEndpoint(
     res.json({
       status: "healthy",
       service: "oneuptime-mcp",
+      mode: "stateless",
       tools: tools.length,
-      activeSessions: SessionManager.getSessionCount(),
+      // Stateless mode keeps no sessions in memory; retained for response-shape compatibility.
+      activeSessions: 0,
     });
   });
 }

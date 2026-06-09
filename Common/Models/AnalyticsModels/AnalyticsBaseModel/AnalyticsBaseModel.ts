@@ -58,6 +58,7 @@ export default class AnalyticsBaseModel extends CommonModel {
     enableWorkflowOn?: EnableWorkflowOn | undefined;
     enableRealtimeEventsOn?: EnableRealtimeEventsOn | undefined;
     partitionKey: string;
+    tableSettings?: string | undefined;
     projections?: Array<Projection> | undefined;
     materializedViews?: Array<MaterializedView> | undefined;
     enableMCP?: boolean | undefined;
@@ -175,6 +176,7 @@ export default class AnalyticsBaseModel extends CommonModel {
     this.isMasterAdminApiDocs = data.isMasterAdminApiDocs || false;
     this.enableRealtimeEventsOn = data.enableRealtimeEventsOn;
     this.partitionKey = data.partitionKey;
+    this.tableSettings = data.tableSettings;
     this.projections = data.projections || [];
     this.materializedViews = data.materializedViews || [];
     this.enableMCP = data.enableMCP || false;
@@ -250,6 +252,14 @@ export default class AnalyticsBaseModel extends CommonModel {
   }
   public set partitionKey(v: string) {
     this._partitionKey = v;
+  }
+
+  private _tableSettings: string | undefined = undefined;
+  public get tableSettings(): string | undefined {
+    return this._tableSettings;
+  }
+  public set tableSettings(v: string | undefined) {
+    this._tableSettings = v;
   }
 
   private _sortKeys: Array<string> = [];

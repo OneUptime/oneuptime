@@ -1105,7 +1105,8 @@ export default class Metric extends AnalyticsBaseModel {
       projections: [],
       sortKeys: ["projectId", "name", "primaryEntityId", "time"],
       primaryKeys: ["projectId", "name", "primaryEntityId", "time"],
-      partitionKey: "sipHash64(projectId) % 16",
+      partitionKey: "toYYYYMMDD(time)",
+      tableSettings: "ttl_only_drop_parts = 1",
       ttlExpression: "retentionDate DELETE",
       /*
        * `time` is the 4th column of the Metric sort key (after

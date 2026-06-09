@@ -693,7 +693,8 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
       ],
       sortKeys: ["projectId", "time", "primaryEntityId", "fingerprint"],
       primaryKeys: ["projectId", "time", "primaryEntityId", "fingerprint"],
-      partitionKey: "sipHash64(projectId) % 16",
+      partitionKey: "toYYYYMMDD(time)",
+      tableSettings: "ttl_only_drop_parts = 1",
       ttlExpression: "retentionDate DELETE",
       defaultSortColumn: "time",
     });

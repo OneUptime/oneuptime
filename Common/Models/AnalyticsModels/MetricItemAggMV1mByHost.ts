@@ -154,14 +154,15 @@ SELECT
   minState(toFloat64(coalesce(value, sum, 0))) AS valueMinState,
   maxState(toFloat64(coalesce(value, sum, 0))) AS valueMaxState,
   max(retentionDate) AS retentionDate
-FROM MetricItemV2
+FROM MetricItemV3
 WHERE attributes['resource.host.name'] != ''
 GROUP BY projectId, name, hostIdentifier, bucketTime`,
         },
       ],
       sortKeys: ["projectId", "name", "hostIdentifier", "bucketTime"],
       primaryKeys: ["projectId", "name", "hostIdentifier", "bucketTime"],
-      partitionKey: "sipHash64(projectId) % 16",
+      partitionKey: "toYYYYMM(bucketTime)",
+      tableSettings: "ttl_only_drop_parts = 1",
       ttlExpression: "retentionDate DELETE",
     });
   }

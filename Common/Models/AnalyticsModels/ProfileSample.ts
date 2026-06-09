@@ -561,7 +561,8 @@ export default class ProfileSample extends AnalyticsBaseModel {
         "profileType",
         "stacktraceHash",
       ],
-      partitionKey: "sipHash64(projectId) % 16",
+      partitionKey: "toYYYYMMDD(time)",
+      tableSettings: "ttl_only_drop_parts = 1",
       ttlExpression: "retentionDate DELETE",
       defaultSortColumn: "time",
     });
