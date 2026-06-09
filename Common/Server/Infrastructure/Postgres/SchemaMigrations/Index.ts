@@ -378,6 +378,7 @@ import { AddRumApplicationRuleTables1780940998002 } from "./1780940998002-AddRum
 import { AddTelemetryResourceInventoryTables1780941762204 } from "./1780941762204-AddTelemetryResourceInventoryTables";
 import { AddRumApplicationSdkLanguage1780985763463 } from "./1780985763463-AddRumApplicationSdkLanguage";
 import { RecastCloudResourcesByEnvironment1780987192743 } from "./1780987192743-RecastCloudResourcesByEnvironment";
+import { MigrationName1781011482945 } from "./1781011482945-MigrationName";
 
 export default [
   InitialMigration,
@@ -760,4 +761,5 @@ export default [
   AddTelemetryResourceInventoryTables1780941762204,
   AddRumApplicationSdkLanguage1780985763463,
   RecastCloudResourcesByEnvironment1780987192743,
+  MigrationName1781011482945
 ];
