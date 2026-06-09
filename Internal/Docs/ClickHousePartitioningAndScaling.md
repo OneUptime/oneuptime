@@ -128,9 +128,9 @@ A common shape: a self-hosted org with **one project** generating a lot of telem
 
 - This proposal **changes the partition key**, which (unlike `ADD COLUMN`) cannot be done in place and forces a new `…V3` table + copy + swap (below).
 - That table cut is the **natural moment to also land the entity columns** (`entityKeys`, the scalar per-type key columns) directly in the `V3` schema, instead of a later `ADD COLUMN`. One migration, one rewrite.
-- Neither proposal moves `serviceId`: it stays the first-class primary-entity anchor in the sort key, partition-independent. See the entity doc's §3c and Permissions section.
+- `serviceId` is **renamed** `primaryEntityId` (and `serviceType` → `primaryEntityType`) as part of this same `V3` rewrite (Option B) — the column stays in the sort key under the new name, with `serviceId` kept as a deprecated API alias. It is *kept*, not dropped: it is the auth + identity anchor, distinct from the additive `entityKeys` filtering column. See the entity doc's decision-update note.
 
-If both ship, sequence the entity *identity/registry* work first (code-only, no schema change), then cut `V3` with the new partition key **and** the entity columns together.
+If both ship, sequence the entity *identity/registry* work first (code-only, no schema change), then cut `V3` **once** — new partition key, entity columns, and the `serviceId → primaryEntityId` rename together. One rewrite.
 
 ---
 
@@ -170,7 +170,7 @@ Pragmatic rollout: land the model change (step 1) so every new install/table ben
 
 ## Non-Goals
 
-- Moving `serviceId` or any sort/primary key (see the entity doc for the membership-column approach).
+- *Moving* `serviceId` out of the sort/primary key. (It is *renamed* to `primaryEntityId` in the same V3 cut — see the entity doc — but keeps its position and meaning.)
 - Adding a `Distributed`/`ReplicatedMergeTree` layer (separate, larger effort; only the shard-key guidance is recorded here).
 - Changing retention semantics, billing, or access control.
 - Backfilling `entityKeys` on historical rows (covered by the entity doc).

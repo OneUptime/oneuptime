@@ -2,7 +2,11 @@
 
 Status: Proposal
 Owner: TBD
-Last updated: 2026-06-08
+Last updated: 2026-06-09
+
+> **Decision update (2026-06-09) — rename `serviceId` → `primaryEntityId` (Option B).**
+> The single-primary-owner *concept and mechanics* described below are unchanged, but the two columns are being **renamed** `serviceId → primaryEntityId` and `serviceType → primaryEntityType`, executed during the ClickHouse `…V3` table cut in [`ClickHousePartitioningAndScaling.md`](./ClickHousePartitioningAndScaling.md). `serviceId`/`serviceType` are retained as **deprecated API aliases** (accepted and emitted by the analytics API) so external consumers, saved dashboards, and alert rules don't break. **Read every `serviceId`/`serviceType` below as `primaryEntityId`/`primaryEntityType`.**
+> The columns are **kept — not dropped, not replaced by `entityKeys`**: `primaryEntityId` (ObjectID) is the authorization anchor (`primaryEntityId IN (:allowed)`), the sort-key locality anchor, and the stable link to the rich Postgres entity for UI routing; `entityKeys Array(String)` is additive membership/filtering only and can never authorize. No separate `primaryEntityKey` hash column is added — the primary's hash already lives in `entityKeys` and in its matching per-type scalar key. This supersedes the "keep the name / relabel only" language in §3c and Decision 4.
 
 ## Summary
 
@@ -362,7 +366,7 @@ Recorded so future readers don't relitigate them.
 1. **Keep typed tables; add a registry.** Do not replace `Service`/`Host`/`DockerHost`/`KubernetesCluster` with one unified table. They hold rich columns and UI; the registry generalizes around them via a polymorphic `(resourceType, resourceId)` pointer.
 2. **Membership is the keystone.** The `entityKeys Array(String)` column is the one change that makes "one signal, many entities" real. Land it early; everything else supports it.
 3. **Stable hash, not ObjectID, on signals.** Store the payload-derived `entityKey` hash so signal writes never block on registry resolution; reconcile the registry asynchronously.
-4. **Keep single-owner for back-compat.** `(serviceId, serviceType)` stays as the primary entity and in the sort/partition keys. No migration of existing semantics.
+4. **Keep single-owner; rename the columns (Option B, 2026-06-09).** The single primary-entity concept and its role in the sort key are unchanged, but the columns are renamed `serviceId → primaryEntityId` / `serviceType → primaryEntityType` during the `…V3` cut, with `serviceId`/`serviceType` kept as deprecated API aliases. Semantics are byte-for-byte; only the name changes. The columns are *kept* (auth + identity anchor), distinct from the additive `entityKeys`. See the decision-update note at the top.
 5. **Co-occurrence relationships only, for now.** The upstream relationship taxonomy is undefined; infer `relType` from type pairs and don't over-build.
 6. **Treat the wire spec as unstable.** Model entities on our terms via heuristic detectors; consume `entity_refs` as an optional authoritative input when producers emit it.
 7. **High-churn types are membership-only by default.** Containers/processes flow as membership keys but are not promoted to registry rows without an opt-in, governed by an entity budget + TTL.
