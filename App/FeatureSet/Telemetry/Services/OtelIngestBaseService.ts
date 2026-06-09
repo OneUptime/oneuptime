@@ -88,6 +88,20 @@ export default abstract class OtelIngestBaseService {
     req: ExpressRequest,
     attributes: JSONArray,
   ): Promise<string | null> {
+    /*
+     * Client / RUM telemetry (browser.* / device.*) is owned by its
+     * RumApplication, not a Service. Return null so
+     * resolveTelemetryResource routes the batch to the RealUserMonitor
+     * branch (serviceId = rumApplicationId) instead of synthesising a
+     * duplicate Service row for the same browser / mobile app. There is no
+     * OTel attribute that identifies a RUM app other than service.name, so
+     * we keep service.name as the RumApplication's dedup key but never let
+     * it create a Service.
+     */
+    if (this.getRumClientType(attributes)) {
+      return null;
+    }
+
     for (const attribute of attributes) {
       if (
         attribute["key"] === "service.name" &&

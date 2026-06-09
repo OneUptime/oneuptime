@@ -55,7 +55,13 @@ export interface ResourceOverviewProps {
    * counts to just this resource — not every workload sharing the service name.
    * Empty values are dropped.
    */
-  telemetryAttributes: Record<string, string>;
+  telemetryAttributes?: Record<string, string> | undefined;
+  /*
+   * When set, telemetry is scoped by this resource's own serviceId rather
+   * than by resource.* attributes — used by RUM, whose rows are tagged with
+   * serviceId = rumApplicationId. Takes precedence over telemetryAttributes.
+   */
+  telemetryServiceId?: ObjectID | undefined;
   metricsRoute: Route;
   logsRoute: Route;
   tracesRoute: Route;
@@ -127,23 +133,34 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
 
   const fetchCounts: PromiseVoidFunction = async (): Promise<void> => {
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-
-    const attributes: Record<string, string> = {};
-    for (const [key, value] of Object.entries(props.telemetryAttributes)) {
-      if (value) {
-        attributes[key] = value;
-      }
-    }
-
-    if (!projectId || Object.keys(attributes).length === 0) {
+    if (!projectId) {
       return;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const baseQuery: any = {
-      projectId: projectId,
-      attributes: attributes,
-    };
+    let baseQuery: any;
+    if (props.telemetryServiceId) {
+      baseQuery = {
+        projectId: projectId,
+        serviceId: props.telemetryServiceId,
+      };
+    } else {
+      const attributes: Record<string, string> = {};
+      for (const [key, value] of Object.entries(
+        props.telemetryAttributes || {},
+      )) {
+        if (value) {
+          attributes[key] = value;
+        }
+      }
+      if (Object.keys(attributes).length === 0) {
+        return;
+      }
+      baseQuery = {
+        projectId: projectId,
+        attributes: attributes,
+      };
+    }
 
     const safeCount: (
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -177,7 +194,10 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
     fetchCounts().catch(() => {
       // ignore — tiles simply stay blank
     });
-  }, [JSON.stringify(props.telemetryAttributes)]);
+  }, [
+    JSON.stringify(props.telemetryAttributes || {}),
+    props.telemetryServiceId?.toString(),
+  ]);
 
   const status: string = (props.status || "").toLowerCase();
   const isConnected: boolean =

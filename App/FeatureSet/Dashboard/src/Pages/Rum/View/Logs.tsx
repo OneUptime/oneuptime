@@ -6,7 +6,6 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
-  useMemo,
   useState,
 } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -16,8 +15,6 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Card from "Common/UI/Components/Card/Card";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
-import Query from "Common/Types/BaseDatabase/Query";
-import Log from "Common/Models/AnalyticsModels/Log";
 
 const RumApplicationLogs: FunctionComponent<
   PageComponentProps
@@ -40,7 +37,6 @@ const RumApplicationLogs: FunctionComponent<
         select: {
           appIdentifier: true,
           name: true,
-          sdkLanguage: true,
         },
       });
 
@@ -63,19 +59,6 @@ const RumApplicationLogs: FunctionComponent<
     });
   }, []);
 
-  const logQuery: Query<Log> = useMemo(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const q: any = {
-      attributes: {
-        "resource.service.name": rumApplication?.appIdentifier || "",
-        ...(rumApplication?.sdkLanguage
-          ? { "resource.telemetry.sdk.language": rumApplication.sdkLanguage }
-          : {}),
-      },
-    };
-    return q as Query<Log>;
-  }, [rumApplication?.appIdentifier, rumApplication?.sdkLanguage]);
-
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -95,7 +78,7 @@ const RumApplicationLogs: FunctionComponent<
     >
       <DashboardLogsViewer
         id={`rum-application-logs-${modelId.toString()}`}
-        logQuery={logQuery}
+        serviceIds={[modelId]}
         showFilters={true}
         enableRealtime={true}
         noLogsMessage="No logs found for this application."

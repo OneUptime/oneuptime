@@ -121,12 +121,7 @@ const RumApplicationOverview: FunctionComponent<
       lastSeenAt={a.lastSeenAt}
       description={a.description as string}
       chips={chips}
-      telemetryAttributes={{
-        "resource.service.name": (a.appIdentifier as string) || "",
-        ...(a.sdkLanguage
-          ? { "resource.telemetry.sdk.language": String(a.sdkLanguage) }
-          : {}),
-      }}
+      telemetryServiceId={modelId}
       metricsRoute={RouteUtil.populateRouteParams(
         RouteMap[PageMap.RUM_APPLICATION_VIEW_METRICS] as Route,
         { modelId },
