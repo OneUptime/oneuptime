@@ -242,6 +242,9 @@ export default class Span extends AnalyticsBaseModel {
         title: "Duration in Unix Nano",
         description: "How long did the span last?",
         required: true,
+        // Kept as LongNumber (Int128): it is aggregated as
+        // AggregateFunction(avg, Int128) in proj_agg_by_service, which
+        // ClickHouse cannot convert to UInt64 in place.
         type: TableColumnType.LongNumber,
         codec: { codec: "ZSTD", level: 1 },
         accessControl: {
@@ -273,8 +276,8 @@ export default class Span extends AnalyticsBaseModel {
         title: "End Time",
         description: "When did the span end?",
         required: true,
-        type: TableColumnType.LongNumber,
-        codec: { codec: "ZSTD", level: 1 },
+        type: TableColumnType.UInt64,
+        codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
         accessControl: {
           read: [
             Permission.ProjectOwner,

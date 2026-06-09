@@ -318,8 +318,8 @@ export default class Profile extends AnalyticsBaseModel {
         title: "End Time in Unix Nano",
         description: "Profile end timestamp in unix nanoseconds",
         required: true,
-        type: TableColumnType.LongNumber,
-        codec: { codec: "ZSTD", level: 1 },
+        type: TableColumnType.UInt64,
+        codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
         accessControl: {
           read: [
             Permission.ProjectOwner,
@@ -348,7 +348,7 @@ export default class Profile extends AnalyticsBaseModel {
       title: "Duration in Nanoseconds",
       description: "Duration of the profile in nanoseconds",
       required: true,
-      type: TableColumnType.LongNumber,
+      type: TableColumnType.UInt64,
       codec: { codec: "ZSTD", level: 1 },
       accessControl: {
         read: [
@@ -469,10 +469,11 @@ export default class Profile extends AnalyticsBaseModel {
 
     const periodColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "period",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Period",
       description: "Sampling period value",
       required: false,
-      type: TableColumnType.LongNumber,
+      type: TableColumnType.UInt64,
       accessControl: {
         read: [
           Permission.ProjectOwner,

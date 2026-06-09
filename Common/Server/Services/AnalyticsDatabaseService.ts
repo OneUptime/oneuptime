@@ -1603,7 +1603,6 @@ export default class AnalyticsDatabaseService<
     }
 
     data.createdAt = OneUptimeDate.getCurrentDate();
-    data.updatedAt = OneUptimeDate.getCurrentDate();
 
     return data;
   }

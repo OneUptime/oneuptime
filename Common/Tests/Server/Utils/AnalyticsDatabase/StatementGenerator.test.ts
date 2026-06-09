@@ -175,7 +175,7 @@ describe("StatementGenerator", () => {
 
       const statement: Statement = generator.toWhereStatement({
         _id: "<value>",
-        updatedAt: date,
+        createdAt: date,
       });
       expect(statement.query).toBe(
         "AND {p0:Identifier} = {p1:String} AND {p2:Identifier} = {p3:DateTime}",
@@ -183,7 +183,7 @@ describe("StatementGenerator", () => {
       expect(statement.query_params).toStrictEqual({
         p0: "_id",
         p1: "<value>",
-        p2: "updatedAt",
+        p2: "createdAt",
         p3: OneUptimeDate.toClickhouseDateTime(date),
       });
     });
@@ -378,17 +378,13 @@ describe("StatementGenerator", () => {
       const { statement, columns } = generator.toSelectStatement({
         _id: true,
         createdAt: true,
-        updatedAt: true,
       });
-      expect(statement.query).toBe(
-        "{p0:Identifier}, {p1:Identifier}, {p2:Identifier}",
-      );
+      expect(statement.query).toBe("{p0:Identifier}, {p1:Identifier}");
       expect(statement.query_params).toStrictEqual({
         p0: "_id",
         p1: "createdAt",
-        p2: "updatedAt",
       });
-      expect(columns).toStrictEqual(["_id", "createdAt", "updatedAt"]);
+      expect(columns).toStrictEqual(["_id", "createdAt"]);
     });
   });
 

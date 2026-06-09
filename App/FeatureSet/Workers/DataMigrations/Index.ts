@@ -76,6 +76,8 @@ import AddTtlOnlyDropPartsToTelemetryV3 from "./AddTtlOnlyDropPartsToTelemetryV3
 import MigrateMonitorAndAuditLogToV3 from "./MigrateMonitorAndAuditLogToV3";
 import AddGorillaCodecToMetricValues from "./AddGorillaCodecToMetricValues";
 import AddUInt64TimestampsToTelemetryV3 from "./AddUInt64TimestampsToTelemetryV3";
+import AddUInt64ToRemainingTelemetryColumns from "./AddUInt64ToRemainingTelemetryColumns";
+import DropUpdatedAtFromTelemetryTables from "./DropUpdatedAtFromTelemetryTables";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -156,6 +158,8 @@ const DataMigrations: Array<DataMigrationBase> = [
   new MigrateMonitorAndAuditLogToV3(),
   new AddGorillaCodecToMetricValues(),
   new AddUInt64TimestampsToTelemetryV3(),
+  new AddUInt64ToRemainingTelemetryColumns(),
+  new DropUpdatedAtFromTelemetryTables(),
 ];
 
 export default DataMigrations;

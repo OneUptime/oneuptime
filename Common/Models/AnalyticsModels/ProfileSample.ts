@@ -385,10 +385,11 @@ export default class ProfileSample extends AnalyticsBaseModel {
 
     const valueColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "value",
+      codec: { codec: "ZSTD", level: 1 },
       title: "Value",
       description: "Sample value (CPU time, bytes, count)",
       required: true,
-      type: TableColumnType.LongNumber,
+      type: TableColumnType.UInt64,
       accessControl: {
         read: [
           Permission.ProjectOwner,

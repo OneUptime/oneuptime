@@ -106,16 +106,6 @@ export default class AnalyticsBaseModel extends CommonModel {
       }),
     );
 
-    columns.push(
-      new AnalyticsTableColumn({
-        key: "updatedAt",
-        title: "Updated",
-        description: "Date and Time when the object was updated.",
-        required: true,
-        type: TableColumnType.Date,
-      }),
-    );
-
     if (!data.primaryKeys || data.primaryKeys.length === 0) {
       throw new BadDataException("Primary keys are required");
     }
@@ -476,14 +466,6 @@ export default class AnalyticsBaseModel extends CommonModel {
 
   public set createdAt(v: Date | undefined) {
     this.setColumnValue("createdAt", v);
-  }
-
-  public get updatedAt(): Date | undefined {
-    return this.getColumnValue("updatedAt") as Date | undefined;
-  }
-
-  public set updatedAt(v: Date | undefined) {
-    this.setColumnValue("updatedAt", v);
   }
 
   public getAPIDocumentationPath(): string {

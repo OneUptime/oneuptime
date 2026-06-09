@@ -422,11 +422,12 @@ export default class Log extends AnalyticsBaseModel {
     const observedTimeUnixNanoColumn: AnalyticsTableColumn =
       new AnalyticsTableColumn({
         key: "observedTimeUnixNano",
+        codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
         title: "Observed Time (in Unix Nano)",
         description:
           "When the log was observed/collected by the telemetry pipeline",
         required: false,
-        type: TableColumnType.LongNumber,
+        type: TableColumnType.UInt64,
         accessControl: {
           read: [
             Permission.ProjectOwner,
