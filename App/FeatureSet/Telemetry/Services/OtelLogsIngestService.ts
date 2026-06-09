@@ -340,9 +340,9 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
           > = {
-            ...(serviceMetadata.serviceType === ServiceType.OpenTelemetry
+            ...(serviceMetadata.primaryEntityType === ServiceType.OpenTelemetry
               ? TelemetryUtil.getAttributesForServiceIdAndServiceName({
-                  serviceId: serviceMetadata.serviceId!,
+                  serviceId: serviceMetadata.primaryEntityId!,
                   serviceName: serviceName,
                 })
               : {}),
@@ -437,8 +437,8 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
                   const projectId: ObjectID = (req as TelemetryRequest)
                     .projectId;
-                  const serviceId: ObjectID =
-                    serviceDictionary[serviceName]!.serviceId!;
+                  const primaryEntityId: ObjectID =
+                    serviceDictionary[serviceName]!.primaryEntityId!;
 
                   let timeUnixNanoNumeric: number =
                     OneUptimeDate.getCurrentDateAsUnixNano();
@@ -680,8 +680,8 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     createdAt: ingestionTimestamp,
                     updatedAt: ingestionTimestamp,
                     projectId: projectId.toString(),
-                    serviceId: serviceId.toString(),
-                    serviceType: serviceMetadata.serviceType,
+                    primaryEntityId: primaryEntityId.toString(),
+                    primaryEntityType: serviceMetadata.primaryEntityType,
                     time: logTimestamp,
                     timeUnixNano: Math.trunc(timeUnixNanoNumeric).toString(),
                     severityNumber: logSeverityNumber,
@@ -738,7 +738,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                       this.collectExceptionFromLog({
                         logRow,
                         projectId,
-                        serviceId,
+                        primaryEntityId,
                         serviceMetadata,
                         severityNumber: logSeverityNumber,
                         severityText,
@@ -919,7 +919,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
   private static collectExceptionFromLog(data: {
     logRow: JSONObject;
     projectId: ObjectID;
-    serviceId: ObjectID;
+    primaryEntityId: ObjectID;
     serviceMetadata: TelemetryServiceMetadata;
     severityNumber: number;
     severityText: LogSeverity;
@@ -949,7 +949,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
     const fingerprint: string = ExceptionUtil.getFingerprint({
       projectId: data.projectId,
-      serviceId: data.serviceId,
+      primaryEntityId: data.primaryEntityId,
       message: extracted.message,
       stackTrace: extracted.stackTrace,
       exceptionType: extracted.exceptionType,
@@ -969,8 +969,8 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       createdAt: ingestionTimestamp,
       updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
-      serviceId: data.serviceId.toString(),
-      serviceType: data.serviceMetadata.serviceType,
+      primaryEntityId: data.primaryEntityId.toString(),
+      primaryEntityType: data.serviceMetadata.primaryEntityType,
       time: OneUptimeDate.toClickhouseDateTime(data.timeDate),
       timeUnixNano: Math.trunc(data.timeUnixNano).toString(),
       exceptionType: extracted.exceptionType || "",
@@ -995,8 +995,8 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
     data.pendingExceptionUpserts.push({
       fingerprint: fingerprint,
       projectId: data.projectId,
-      serviceId: data.serviceId,
-      serviceType: data.serviceMetadata.serviceType,
+      primaryEntityId: data.primaryEntityId,
+      primaryEntityType: data.serviceMetadata.primaryEntityType,
       ...(extracted.exceptionType
         ? { exceptionType: extracted.exceptionType }
         : {}),

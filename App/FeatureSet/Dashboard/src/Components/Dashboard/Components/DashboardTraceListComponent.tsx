@@ -154,7 +154,7 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
             traceId: true,
             spanId: true,
             kind: true,
-            serviceId: true,
+            primaryEntityId: true,
           },
           sort: {
             startTime: SortOrder.Descending,

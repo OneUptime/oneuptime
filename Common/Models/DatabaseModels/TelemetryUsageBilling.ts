@@ -257,7 +257,7 @@ export default class TelemetryUsageBilling extends BaseModel {
     update: [],
   })
   @TableColumn({
-    manyToOneRelationColumn: "serviceId",
+    manyToOneRelationColumn: "primaryEntityId",
     type: TableColumnType.Entity,
     modelType: Service,
     title: "Service",
@@ -274,7 +274,7 @@ export default class TelemetryUsageBilling extends BaseModel {
       /*
        * No DB-level foreign key. Telemetry that arrives without a
        * service.name is metered against a synthetic "unattributed"
-       * bucket whose serviceId is the projectId (ServiceType.Unknown),
+       * bucket whose primaryEntityId is the projectId (ServiceType.Unknown),
        * which has no matching Service row — a FK would reject those
        * billing rows. The relation is kept for read-side joins; it
        * resolves to null for the unattributed bucket and the UI renders
@@ -283,7 +283,7 @@ export default class TelemetryUsageBilling extends BaseModel {
       createForeignKeyConstraints: false,
     },
   )
-  @JoinColumn({ name: "serviceId" })
+  @JoinColumn({ name: "primaryEntityId" })
   public service?: Service = undefined;
 
   @ColumnAccessControl({
@@ -308,7 +308,7 @@ export default class TelemetryUsageBilling extends BaseModel {
     nullable: false,
     transformer: ObjectID.getDatabaseTransformer(),
   })
-  public serviceId?: ObjectID = undefined;
+  public primaryEntityId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -332,7 +332,7 @@ export default class TelemetryUsageBilling extends BaseModel {
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
   })
-  public serviceType?: ServiceType = undefined;
+  public primaryEntityType?: ServiceType = undefined;
 
   @ColumnAccessControl({
     create: [],

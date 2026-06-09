@@ -441,13 +441,13 @@ export default class AnalyticsDatabaseService<
   }
 
   /**
-   * Group telemetry rows by (serviceId, serviceType) for a project over a
+   * Group telemetry rows by (primaryEntityId, primaryEntityType) for a project over a
    * time window, returning the row count and an estimate of the ingested
    * byte size (ClickHouse `byteSize(*)`, the uncompressed in-memory size of
    * each row's columns). This is the enumeration source for usage billing:
    * a single aggregation scan surfaces EVERY resource that emitted
    * telemetry — real Services, Hosts, Docker hosts, Kubernetes clusters,
-   * Monitors and unattributed (serviceId = projectId) — without needing a
+   * Monitors and unattributed (primaryEntityId = projectId) — without needing a
    * Postgres row per resource. The caller decides which serviceTypes to
    * bill and how to attribute retention.
    */
@@ -459,8 +459,8 @@ export default class AnalyticsDatabaseService<
     endDate: Date;
   }): Promise<
     Array<{
-      serviceId: string;
-      serviceType: string | null;
+      primaryEntityId: string;
+      primaryEntityType: string | null;
       rowCount: number;
       estimatedBytes: number;
     }>
@@ -479,7 +479,7 @@ export default class AnalyticsDatabaseService<
     const databaseName: string =
       this.database!.getDatasourceOptions().database!;
 
-    const statement: Statement = SQL`SELECT serviceId AS serviceId, serviceType AS serviceType, count() AS rowCount, sum(byteSize(*)) AS estimatedBytes FROM ${databaseName}.${this.model.tableName} WHERE projectId = ${{
+    const statement: Statement = SQL`SELECT primaryEntityId AS primaryEntityId, primaryEntityType AS primaryEntityType, count() AS rowCount, sum(byteSize(*)) AS estimatedBytes FROM ${databaseName}.${this.model.tableName} WHERE projectId = ${{
       type: TableColumnType.ObjectID,
       value: data.projectId,
     }} AND ${timestampColumnName} >= ${{
@@ -488,7 +488,7 @@ export default class AnalyticsDatabaseService<
     }} AND ${timestampColumnName} <= ${{
       type: TableColumnType.DateTime64,
       value: data.endDate,
-    }} GROUP BY serviceId, serviceType`;
+    }} GROUP BY primaryEntityId, primaryEntityType`;
 
     statement.append(
       " SETTINGS max_execution_time = 60, timeout_overflow_mode = 'break'",
@@ -500,25 +500,25 @@ export default class AnalyticsDatabaseService<
     const items: Array<JSONObject> = responseJSON.data ? responseJSON.data : [];
 
     const results: Array<{
-      serviceId: string;
-      serviceType: string | null;
+      primaryEntityId: string;
+      primaryEntityType: string | null;
       rowCount: number;
       estimatedBytes: number;
     }> = [];
 
     for (const item of items) {
-      const serviceId: string = (item["serviceId"] as string) || "";
-      if (!serviceId) {
+      const primaryEntityId: string = (item["primaryEntityId"] as string) || "";
+      if (!primaryEntityId) {
         continue;
       }
-      const serviceTypeRaw: unknown = item["serviceType"];
-      const serviceType: string | null =
+      const serviceTypeRaw: unknown = item["primaryEntityType"];
+      const primaryEntityType: string | null =
         typeof serviceTypeRaw === "string" && serviceTypeRaw.trim()
           ? serviceTypeRaw
           : null;
       results.push({
-        serviceId,
-        serviceType,
+        primaryEntityId,
+        primaryEntityType,
         rowCount: Number(item["rowCount"]) || 0,
         estimatedBytes: Number(item["estimatedBytes"]) || 0,
       });

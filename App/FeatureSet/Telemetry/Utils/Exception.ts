@@ -10,14 +10,14 @@ export interface ExceptionFingerprintInput {
   stackTrace?: string;
   exceptionType?: string;
   projectId?: ObjectID;
-  serviceId?: ObjectID;
+  primaryEntityId?: ObjectID;
 }
 
 export interface TelemetryExceptionPayload {
   fingerprint: string;
   projectId: ObjectID;
-  serviceId: ObjectID;
-  serviceType?: ServiceType;
+  primaryEntityId: ObjectID;
+  primaryEntityType?: ServiceType;
   exceptionType?: string;
   stackTrace?: string;
   message?: string;
@@ -202,7 +202,7 @@ export default class ExceptionUtil {
     const stackTrace: string = data.stackTrace || "";
     const type: string = data.exceptionType || "";
     const projectId: string = data.projectId?.toString() || "";
-    const serviceId: string = data.serviceId?.toString() || "";
+    const primaryEntityId: string = data.primaryEntityId?.toString() || "";
 
     /*
      * Normalize message and stack trace to group similar exceptions together
@@ -214,7 +214,7 @@ export default class ExceptionUtil {
       ExceptionUtil.normalizeForFingerprint(stackTrace);
 
     const hash: string = Crypto.getSha256Hash(
-      projectId + serviceId + normalizedMessage + normalizedStackTrace + type,
+      projectId + primaryEntityId + normalizedMessage + normalizedStackTrace + type,
     );
 
     return hash;
@@ -249,10 +249,10 @@ export default class ExceptionUtil {
    * This implementation:
    *
    *   - Pre-aggregates the incoming payloads by
-   *     (projectId, serviceId, fingerprint) so N events for one
+   *     (projectId, primaryEntityId, fingerprint) so N events for one
    *     fingerprint cost one VALUES row, not N.
    *   - Issues `INSERT … VALUES (…), (…), … ON CONFLICT
-   *     ("projectId", "serviceId", "fingerprint") DO UPDATE SET …`
+   *     ("projectId", "primaryEntityId", "fingerprint") DO UPDATE SET …`
    *     so the count merge happens atomically inside Postgres and
    *     concurrent workers cannot lose increments.
    *   - Uses GREATEST / LEAST on the timestamps so out-of-order
@@ -300,10 +300,10 @@ export default class ExceptionUtil {
         /*
          * Column order must stay in lockstep with the INSERT
          * column list below. 13 placeholders per row: projectId,
-         * serviceId, fingerprint, message, stackTrace,
+         * primaryEntityId, fingerprint, message, stackTrace,
          * exceptionType, firstSeenAt, lastSeenAt, occuranceCount,
          * firstSeenInRelease, lastSeenInRelease, environment,
-         * serviceType.
+         * primaryEntityType.
          */
         const placeholders: Array<string> = [];
         for (let c: number = 0; c < 13; c++) {
@@ -313,7 +313,7 @@ export default class ExceptionUtil {
 
         params.push(
           row.projectId.toString(),
-          row.serviceId.toString(),
+          row.primaryEntityId.toString(),
           row.fingerprint,
           row.message,
           row.stackTrace,
@@ -324,36 +324,36 @@ export default class ExceptionUtil {
           row.firstSeenInRelease,
           row.lastSeenInRelease,
           row.environment,
-          row.serviceType ?? ServiceType.OpenTelemetry,
+          row.primaryEntityType ?? ServiceType.OpenTelemetry,
         );
       }
 
       const sql: string = `
         INSERT INTO "TelemetryException" (
-          "projectId", "serviceId", "fingerprint",
+          "projectId", "primaryEntityId", "fingerprint",
           "message", "stackTrace", "exceptionType",
           "firstSeenAt", "lastSeenAt", "occuranceCount",
           "firstSeenInRelease", "lastSeenInRelease", "environment",
-          "serviceType",
+          "primaryEntityType",
           "isResolved", "isArchived", "version"
         )
         SELECT
-          v."projectId"::uuid, v."serviceId"::uuid, v."fingerprint",
+          v."projectId"::uuid, v."primaryEntityId"::uuid, v."fingerprint",
           v."message", v."stackTrace", v."exceptionType",
           v."firstSeenAt"::timestamptz, v."lastSeenAt"::timestamptz,
           v."occuranceCount"::int,
           v."firstSeenInRelease", v."lastSeenInRelease", v."environment",
-          v."serviceType",
+          v."primaryEntityType",
           false, false, 0
         FROM (VALUES ${valueFragments.join(", ")})
           AS v(
-            "projectId", "serviceId", "fingerprint",
+            "projectId", "primaryEntityId", "fingerprint",
             "message", "stackTrace", "exceptionType",
             "firstSeenAt", "lastSeenAt", "occuranceCount",
             "firstSeenInRelease", "lastSeenInRelease", "environment",
-            "serviceType"
+            "primaryEntityType"
           )
-        ON CONFLICT ("projectId", "serviceId", "fingerprint")
+        ON CONFLICT ("projectId", "primaryEntityId", "fingerprint")
         DO UPDATE SET
           "occuranceCount" =
             "TelemetryException"."occuranceCount" + EXCLUDED."occuranceCount",
@@ -381,9 +381,9 @@ export default class ExceptionUtil {
             NULLIF(EXCLUDED."environment", ''),
             "TelemetryException"."environment"
           ),
-          "serviceType" = COALESCE(
-            "TelemetryException"."serviceType",
-            EXCLUDED."serviceType"
+          "primaryEntityType" = COALESCE(
+            "TelemetryException"."primaryEntityType",
+            EXCLUDED."primaryEntityType"
           ),
           "markedAsResolvedByUserId" = NULL,
           "markedAsResolvedAt" = NULL,
@@ -412,7 +412,7 @@ export default class ExceptionUtil {
   }
 
   /*
-   * Group payloads by (projectId, serviceId, fingerprint), sum
+   * Group payloads by (projectId, primaryEntityId, fingerprint), sum
    * occurrence counts, and pick the most-informative metadata to
    * carry into the INSERT/UPDATE. We prefer non-empty message /
    * stackTrace / exceptionType from later events because earlier
@@ -434,7 +434,7 @@ export default class ExceptionUtil {
       if (
         !exception.fingerprint ||
         !exception.projectId ||
-        !exception.serviceId
+        !exception.primaryEntityId
       ) {
         /*
          * Mirror the legacy validation but skip the bad row instead
@@ -442,18 +442,18 @@ export default class ExceptionUtil {
          * worker batch.
          */
         logger.warn(
-          "Skipping telemetry exception payload missing fingerprint / projectId / serviceId",
+          "Skipping telemetry exception payload missing fingerprint / projectId / primaryEntityId",
         );
         continue;
       }
 
-      const key: string = `${exception.projectId.toString()}|${exception.serviceId.toString()}|${exception.fingerprint}`;
+      const key: string = `${exception.projectId.toString()}|${exception.primaryEntityId.toString()}|${exception.fingerprint}`;
 
       const existing: AggregatedException | undefined = out.get(key);
       if (existing) {
         existing.occuranceCount += 1;
-        if (!existing.serviceType && exception.serviceType) {
-          existing.serviceType = exception.serviceType;
+        if (!existing.primaryEntityType && exception.primaryEntityType) {
+          existing.primaryEntityType = exception.primaryEntityType;
         }
         existing.message = pickNonEmpty(existing.message, exception.message);
         existing.stackTrace = pickNonEmpty(
@@ -481,8 +481,8 @@ export default class ExceptionUtil {
 
       out.set(key, {
         projectId: exception.projectId,
-        serviceId: exception.serviceId,
-        serviceType: exception.serviceType ?? null,
+        primaryEntityId: exception.primaryEntityId,
+        primaryEntityType: exception.primaryEntityType ?? null,
         fingerprint: exception.fingerprint,
         message: exception.message || "",
         stackTrace: exception.stackTrace || "",
@@ -502,8 +502,8 @@ export default class ExceptionUtil {
 
 interface AggregatedException {
   projectId: ObjectID;
-  serviceId: ObjectID;
-  serviceType: ServiceType | null;
+  primaryEntityId: ObjectID;
+  primaryEntityType: ServiceType | null;
   fingerprint: string;
   message: string;
   stackTrace: string;

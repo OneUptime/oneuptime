@@ -104,7 +104,7 @@ const TraceFilterConfig: FilterBuilderConfig = {
       valuePlaceholder: "e.g. Internal Error",
     },
     {
-      key: "serviceId",
+      key: "primaryEntityId",
       label: "Service ID",
       description: "The telemetry service that produced the span",
       valueType: "text",

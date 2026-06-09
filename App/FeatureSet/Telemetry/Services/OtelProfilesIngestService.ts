@@ -273,10 +273,10 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
           const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
           > = {
-            ...(resolvedServiceMetadata.serviceType ===
+            ...(resolvedServiceMetadata.primaryEntityType ===
             ServiceType.OpenTelemetry
               ? TelemetryUtil.getAttributesForServiceIdAndServiceName({
-                  serviceId: resolvedServiceMetadata.serviceId!,
+                  serviceId: resolvedServiceMetadata.primaryEntityId!,
                   serviceName: serviceName,
                 })
               : {}),
@@ -344,7 +344,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                     .projectId;
                   const profileServiceMetadata: TelemetryServiceMetadata =
                     serviceDictionary[serviceName]!;
-                  const serviceId: ObjectID = profileServiceMetadata.serviceId!;
+                  const primaryEntityId: ObjectID = profileServiceMetadata.primaryEntityId!;
 
                   const frame: NormalizedProfileFrame =
                     this.normalizeProfileItem(
@@ -621,7 +621,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
 
                       const sampleRow: JSONObject = this.buildSampleRow({
                         projectId: projectId,
-                        serviceId: serviceId,
+                        primaryEntityId: primaryEntityId,
                         profileId: profileId,
                         traceId: traceId,
                         spanId: spanId,
@@ -704,7 +704,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
 
                   const profileRow: JSONObject = this.buildProfileRow({
                     projectId: projectId,
-                    serviceId: serviceId,
+                    primaryEntityId: primaryEntityId,
                     profileId: profileId,
                     traceId: profileTraceId,
                     spanId: profileSpanId,
@@ -943,7 +943,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
 
   private static buildProfileRow(data: {
     projectId: ObjectID;
-    serviceId: ObjectID;
+    primaryEntityId: ObjectID;
     profileId: string;
     traceId: string;
     spanId: string;
@@ -980,8 +980,8 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
       createdAt: ingestionTimestamp,
       updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
-      serviceId: data.serviceId.toString(),
-      serviceType: data.serviceMetadata.serviceType,
+      primaryEntityId: data.primaryEntityId.toString(),
+      primaryEntityType: data.serviceMetadata.primaryEntityType,
       profileId: data.profileId,
       traceId: data.traceId || "",
       spanId: data.spanId || "",
@@ -1004,7 +1004,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
 
   private static buildSampleRow(data: {
     projectId: ObjectID;
-    serviceId: ObjectID;
+    primaryEntityId: ObjectID;
     profileId: string;
     traceId: string;
     spanId: string;
@@ -1037,8 +1037,8 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
       createdAt: ingestionTimestamp,
       updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
-      serviceId: data.serviceId.toString(),
-      serviceType: data.serviceMetadata.serviceType,
+      primaryEntityId: data.primaryEntityId.toString(),
+      primaryEntityType: data.serviceMetadata.primaryEntityType,
       profileId: data.profileId,
       traceId: data.traceId || "",
       spanId: data.spanId || "",

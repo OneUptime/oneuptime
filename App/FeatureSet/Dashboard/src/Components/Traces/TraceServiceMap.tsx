@@ -9,7 +9,7 @@ export interface TraceServiceMapProps {
 }
 
 interface ServiceNode {
-  serviceId: string;
+  primaryEntityId: string;
   serviceName: string;
   serviceColor: string;
   spanCount: number;
@@ -34,14 +34,14 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
   const { nodes, edges } = React.useMemo(() => {
     const nodeMap: Map<string, ServiceNode> = new Map();
     const edgeMap: Map<string, ServiceEdge> = new Map();
-    const spanServiceMap: Map<string, string> = new Map(); // spanId -> serviceId
+    const spanServiceMap: Map<string, string> = new Map(); // spanId -> primaryEntityId
 
     // First pass: build span -> service mapping and service nodes
     for (const span of spans) {
-      const serviceId: string = span.serviceId?.toString() || "unknown";
-      spanServiceMap.set(span.spanId!, serviceId);
+      const primaryEntityId: string = span.primaryEntityId?.toString() || "unknown";
+      spanServiceMap.set(span.spanId!, primaryEntityId);
 
-      const existing: ServiceNode | undefined = nodeMap.get(serviceId);
+      const existing: ServiceNode | undefined = nodeMap.get(primaryEntityId);
       if (existing) {
         existing.spanCount += 1;
         existing.totalDurationUnixNano += span.durationUnixNano!;
@@ -51,11 +51,11 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
       } else {
         const service: Service | undefined = telemetryServices.find(
           (s: Service) => {
-            return s._id?.toString() === serviceId;
+            return s._id?.toString() === primaryEntityId;
           },
         );
-        nodeMap.set(serviceId, {
-          serviceId,
+        nodeMap.set(primaryEntityId, {
+          primaryEntityId,
           serviceName: service?.name || "Unknown",
           serviceColor: String(
             (service?.serviceColor as unknown as string) || "#6366f1",
@@ -76,7 +76,7 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
       const parentServiceId: string | undefined = spanServiceMap.get(
         span.parentSpanId,
       );
-      const childServiceId: string = span.serviceId?.toString() || "unknown";
+      const childServiceId: string = span.primaryEntityId?.toString() || "unknown";
 
       if (!parentServiceId || parentServiceId === childServiceId) {
         continue; // Skip same-service calls
@@ -146,8 +146,8 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
     const inDegree: Map<string, number> = new Map();
 
     for (const node of nodes) {
-      adjList.set(node.serviceId, []);
-      inDegree.set(node.serviceId, 0);
+      adjList.set(node.primaryEntityId, []);
+      inDegree.set(node.primaryEntityId, 0);
     }
 
     for (const edge of edges) {
@@ -194,12 +194,12 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
 
     // Handle cycles - place unvisited nodes at the end
     for (const node of nodes) {
-      if (!levels.has(node.serviceId)) {
+      if (!levels.has(node.primaryEntityId)) {
         if (levelNodes.length === 0) {
           levelNodes.push([]);
         }
-        levelNodes[levelNodes.length - 1]!.push(node.serviceId);
-        levels.set(node.serviceId, levelNodes.length - 1);
+        levelNodes[levelNodes.length - 1]!.push(node.primaryEntityId);
+        levels.set(node.primaryEntityId, levelNodes.length - 1);
       }
     }
 
@@ -341,7 +341,7 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
         {/* Render nodes */}
         {nodes.map((node: ServiceNode) => {
           const pos: { x: number; y: number } | undefined = nodePositions.get(
-            node.serviceId,
+            node.primaryEntityId,
           );
           if (!pos) {
             return null;
@@ -351,7 +351,7 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
 
           return (
             <div
-              key={node.serviceId}
+              key={node.primaryEntityId}
               className={`absolute rounded-lg border-2 bg-white shadow-sm p-3 ${
                 hasErrors ? "border-red-300" : "border-gray-200"
               }`}

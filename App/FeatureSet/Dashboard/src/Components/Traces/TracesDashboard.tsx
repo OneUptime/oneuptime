@@ -54,7 +54,7 @@ interface ServiceTraceSummary {
 interface RecentTrace {
   traceId: string;
   name: string;
-  serviceId: string;
+  primaryEntityId: string;
   startTime: Date;
   statusCode: SpanStatus;
   durationNano: number;
@@ -146,7 +146,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
               traceId: true,
               spanId: true,
               parentSpanId: true,
-              serviceId: true,
+              primaryEntityId: true,
               name: true,
               startTime: true,
               statusCode: true,
@@ -171,7 +171,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
         const referencedServiceIds: Set<string> = new Set(
           allSpans
             .map((span: Span) => {
-              return span.serviceId?.toString() || "";
+              return span.primaryEntityId?.toString() || "";
             })
             .filter((id: string) => {
               return Boolean(id);
@@ -189,8 +189,8 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
         const summaryMap: Map<string, ServiceTraceSummary> = new Map();
 
         for (const service of loadedServices) {
-          const serviceId: string = service.id?.toString() || "";
-          summaryMap.set(serviceId, {
+          const primaryEntityId: string = service.id?.toString() || "";
+          summaryMap.set(primaryEntityId, {
             service,
             totalTraces: 0,
             errorTraces: 0,
@@ -210,25 +210,25 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
         const allDurations: Array<number> = [];
 
         for (const span of allSpans) {
-          const serviceId: string = span.serviceId?.toString() || "";
+          const primaryEntityId: string = span.primaryEntityId?.toString() || "";
           const traceId: string = span.traceId?.toString() || "";
           const duration: number = (span.durationUnixNano as number) || 0;
           const summary: ServiceTraceSummary | undefined =
-            summaryMap.get(serviceId);
+            summaryMap.get(primaryEntityId);
 
           if (duration > 0) {
             allDurations.push(duration);
           }
 
           if (summary) {
-            if (!serviceTraceIds.has(serviceId)) {
-              serviceTraceIds.set(serviceId, new Set());
+            if (!serviceTraceIds.has(primaryEntityId)) {
+              serviceTraceIds.set(primaryEntityId, new Set());
             }
-            if (!serviceErrorTraceIds.has(serviceId)) {
-              serviceErrorTraceIds.set(serviceId, new Set());
+            if (!serviceErrorTraceIds.has(primaryEntityId)) {
+              serviceErrorTraceIds.set(primaryEntityId, new Set());
             }
 
-            const traceSet: Set<string> = serviceTraceIds.get(serviceId)!;
+            const traceSet: Set<string> = serviceTraceIds.get(primaryEntityId)!;
             if (!traceSet.has(traceId)) {
               traceSet.add(traceId);
               summary.totalTraces += 1;
@@ -240,7 +240,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
 
             if (span.statusCode === SpanStatus.Error) {
               const errorSet: Set<string> =
-                serviceErrorTraceIds.get(serviceId)!;
+                serviceErrorTraceIds.get(primaryEntityId)!;
               if (!errorSet.has(traceId)) {
                 errorSet.add(traceId);
                 summary.errorTraces += 1;
@@ -263,7 +263,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
             allTraces.push({
               traceId,
               name: span.name?.toString() || "Unknown",
-              serviceId,
+              primaryEntityId,
               startTime: span.startTime
                 ? OneUptimeDate.fromString(span.startTime)
                 : new Date(),
@@ -281,7 +281,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
             errorTraces.push({
               traceId,
               name: span.name?.toString() || "Unknown",
-              serviceId,
+              primaryEntityId,
               startTime: span.startTime
                 ? OneUptimeDate.fromString(span.startTime)
                 : new Date(),
@@ -354,11 +354,11 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
     void loadDashboard();
   }, [loadDashboard]);
 
-  const getServiceName: (serviceId: string) => string = (
-    serviceId: string,
+  const getServiceName: (primaryEntityId: string) => string = (
+    primaryEntityId: string,
   ): string => {
     const service: Service | undefined = services.find((s: Service) => {
-      return s.id?.toString() === serviceId;
+      return s.id?.toString() === primaryEntityId;
     });
     return service?.name?.toString() || "Unknown";
   };
@@ -743,7 +743,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
                               {trace.name}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {getServiceName(trace.serviceId)}
+                              {getServiceName(trace.primaryEntityId)}
                             </p>
                           </div>
                         </div>
@@ -805,7 +805,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
                               {trace.name}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {getServiceName(trace.serviceId)}
+                              {getServiceName(trace.primaryEntityId)}
                             </p>
                           </div>
                         </div>

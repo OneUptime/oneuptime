@@ -55,7 +55,7 @@ const LogFilterConfig: FilterBuilderConfig = {
       valuePlaceholder: "Enter text to match...",
     },
     {
-      key: "serviceId",
+      key: "primaryEntityId",
       label: "Service ID",
       description: "The service that produced the log",
       valueType: "text",

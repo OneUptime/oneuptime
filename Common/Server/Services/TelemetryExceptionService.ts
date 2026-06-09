@@ -25,10 +25,10 @@ export interface DashboardServiceSummary {
   /*
    * Polymorphic: a real Service, a Host/DockerHost/KubernetesCluster id, or
    * the projectId for unattributed telemetry. The client resolves the
-   * display name per serviceType.
+   * display name per primaryEntityType.
    */
-  serviceId: string;
-  serviceType: ServiceType | null;
+  primaryEntityId: string;
+  primaryEntityType: ServiceType | null;
   unresolvedCount: number;
   totalOccurrences: number;
 }
@@ -61,7 +61,7 @@ export class Service extends DatabaseService<Model> {
         projectId: true,
         message: true,
         stackTrace: true,
-        serviceId: true,
+        primaryEntityId: true,
         exceptionType: true,
       },
       props,
@@ -186,9 +186,9 @@ export class Service extends DatabaseService<Model> {
       lastSeenAt: true,
       firstSeenAt: true,
       environment: true,
-      // serviceId is polymorphic; the client resolves it per serviceType.
-      serviceId: true,
-      serviceType: true,
+      // primaryEntityId is polymorphic; the client resolves it per primaryEntityType.
+      primaryEntityId: true,
+      primaryEntityType: true,
     };
 
     const [
@@ -285,8 +285,8 @@ export class Service extends DatabaseService<Model> {
     );
 
     interface AggregateRow {
-      serviceId: string | null;
-      serviceType: string | null;
+      primaryEntityId: string | null;
+      primaryEntityType: string | null;
       unresolvedCount: string;
       totalOccurrences: string | null;
     }
@@ -294,8 +294,8 @@ export class Service extends DatabaseService<Model> {
     const rows: Array<AggregateRow> = (await this.getQueryBuilder(
       "TelemetryException",
     )
-      .select(`"TelemetryException"."serviceId"`, "serviceId")
-      .addSelect(`"TelemetryException"."serviceType"`, "serviceType")
+      .select(`"TelemetryException"."primaryEntityId"`, "primaryEntityId")
+      .addSelect(`"TelemetryException"."primaryEntityType"`, "primaryEntityType")
       .addSelect(`COUNT(*)`, "unresolvedCount")
       .addSelect(
         `COALESCE(SUM("TelemetryException"."occuranceCount"), 0)`,
@@ -307,9 +307,9 @@ export class Service extends DatabaseService<Model> {
       .andWhere(`"TelemetryException"."isResolved" = false`)
       .andWhere(`"TelemetryException"."isArchived" = false`)
       .andWhere(`"TelemetryException"."deletedAt" IS NULL`)
-      .andWhere(`"TelemetryException"."serviceId" IS NOT NULL`)
-      .groupBy(`"TelemetryException"."serviceId"`)
-      .addGroupBy(`"TelemetryException"."serviceType"`)
+      .andWhere(`"TelemetryException"."primaryEntityId" IS NOT NULL`)
+      .groupBy(`"TelemetryException"."primaryEntityId"`)
+      .addGroupBy(`"TelemetryException"."primaryEntityType"`)
       .orderBy(`"unresolvedCount"`, "DESC")
       .getRawMany()) as Array<AggregateRow>;
 
@@ -318,21 +318,21 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * serviceId is polymorphic — do NOT resolve it to a Service here. The
-     * old code looked each serviceId up in the Service table and dropped
+     * primaryEntityId is polymorphic — do NOT resolve it to a Service here. The
+     * old code looked each primaryEntityId up in the Service table and dropped
      * any that didn't match, which silently excluded Host / DockerHost /
      * KubernetesCluster and unattributed (Unknown) telemetry. Return the
-     * raw (serviceId, serviceType) + counts; the client resolves the
-     * display name per serviceType.
+     * raw (primaryEntityId, primaryEntityType) + counts; the client resolves the
+     * display name per primaryEntityType.
      */
     const summaries: Array<DashboardServiceSummary> = [];
     for (const row of rows) {
-      if (!row.serviceId) {
+      if (!row.primaryEntityId) {
         continue;
       }
       summaries.push({
-        serviceId: row.serviceId,
-        serviceType: (row.serviceType as ServiceType | null) ?? null,
+        primaryEntityId: row.primaryEntityId,
+        primaryEntityType: (row.primaryEntityType as ServiceType | null) ?? null,
         unresolvedCount: parseInt(row.unresolvedCount, 10) || 0,
         totalOccurrences: parseInt(row.totalOccurrences || "0", 10) || 0,
       });
@@ -360,8 +360,8 @@ export class Service extends DatabaseService<Model> {
       metadata.errorMessage = telemetryException.message;
     }
 
-    if (telemetryException.serviceId) {
-      metadata.serviceId = telemetryException.serviceId.toString();
+    if (telemetryException.primaryEntityId) {
+      metadata.serviceId = telemetryException.primaryEntityId.toString();
     }
 
     return metadata;

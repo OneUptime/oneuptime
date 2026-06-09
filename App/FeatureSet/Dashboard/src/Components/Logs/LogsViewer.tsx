@@ -87,7 +87,7 @@ const LIVE_POLL_INTERVAL_MS: number = 10000;
 const SAVED_VIEWS_LIMIT: number = 100;
 const FACET_FILTER_KEYS: Array<string> = [
   "severityText",
-  "serviceId",
+  "primaryEntityId",
   "traceId",
   "spanId",
 ];
@@ -264,7 +264,7 @@ function buildBaseQuery(props: ComponentProps): Query<Log> {
   const query: Query<Log> = {};
 
   if (props.serviceIds && props.serviceIds.length > 0) {
-    query.serviceId = new Includes(props.serviceIds);
+    query.primaryEntityId = new Includes(props.serviceIds);
   }
 
   if (props.traceIds && props.traceIds.length > 0) {
@@ -385,7 +385,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   // Facet state
   const [facetData, setFacetData] = useState<FacetData>({});
   /*
-   * Per-facet search text for resource facets (serviceId / hostId / etc.).
+   * Per-facet search text for resource facets (primaryEntityId / hostId / etc.).
    * When the user types into a facet's search box, this updates and triggers
    * fetchFacets, which forwards the text to /telemetry/logs/facets so the
    * backend can scan the full Postgres source-of-truth, not just the loaded
@@ -475,7 +475,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       body: true,
       time: true,
       projectId: true,
-      serviceId: true,
+      primaryEntityId: true,
       spanId: true,
       traceId: true,
       severityText: true,
@@ -735,14 +735,14 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         }
 
         /*
-         * serviceId and the virtual resource facets (hostId / dockerHostId /
-         * kubernetesClusterId) all read out of the same `serviceId` column —
+         * primaryEntityId and the virtual resource facets (hostId / dockerHostId /
+         * kubernetesClusterId) all read out of the same `primaryEntityId` column —
          * merge them into a single serviceIds list so the histogram applies
          * the union of selected resources.
          */
         const resourceFilterIds: Set<string> = new Set<string>();
         for (const facetKey of [
-          "serviceId",
+          "primaryEntityId",
           "hostId",
           "dockerHostId",
           "kubernetesClusterId",
@@ -818,7 +818,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           endTime: dateRange.endValue.toISOString(),
           facetKeys: [
             "severityText",
-            "serviceId",
+            "primaryEntityId",
             "hostId",
             "dockerHostId",
             "kubernetesClusterId",
@@ -1172,15 +1172,15 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       );
 
       /*
-       * serviceId, hostId, dockerHostId and kubernetesClusterId facets
-       * all filter the same underlying `serviceId` column — the
+       * primaryEntityId, hostId, dockerHostId and kubernetesClusterId facets
+       * all filter the same underlying `primaryEntityId` column — the
        * discriminator only matters at facet computation time. Coalesce
        * any selected values across these facets into a single
-       * `serviceId IN (...)` predicate.
+       * `primaryEntityId IN (...)` predicate.
        */
       const resourceIds: Set<string> = new Set<string>();
       const resourceFacetKeys: Set<string> = new Set<string>([
-        "serviceId",
+        "primaryEntityId",
         "hostId",
         "dockerHostId",
         "kubernetesClusterId",
@@ -1227,9 +1227,9 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       }
 
       if (resourceIds.size === 1) {
-        (updatedFilter as any).serviceId = Array.from(resourceIds)[0]!;
+        (updatedFilter as any).primaryEntityId = Array.from(resourceIds)[0]!;
       } else if (resourceIds.size > 1) {
-        (updatedFilter as any).serviceId = new Includes(
+        (updatedFilter as any).primaryEntityId = new Includes(
           Array.from(resourceIds),
         );
       }
@@ -1376,8 +1376,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     };
 
     // Add service IDs from facet data
-    if (facetData["serviceId"]) {
-      suggestions["serviceId"] = facetData["serviceId"].map(
+    if (facetData["primaryEntityId"]) {
+      suggestions["primaryEntityId"] = facetData["primaryEntityId"].map(
         (fv: { value: string; count: number }) => {
           return fv.value;
         },
@@ -1395,7 +1395,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         const fieldAliases: Record<string, string> = {
           severity: "severityText",
           level: "severityText",
-          service: "serviceId",
+          service: "primaryEntityId",
           trace: "traceId",
           span: "spanId",
         };
@@ -1424,12 +1424,12 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     const filters: Array<ActiveFilter> = [];
 
     if (props.serviceIds && props.serviceIds.length > 0) {
-      for (const serviceId of props.serviceIds) {
+      for (const primaryEntityId of props.serviceIds) {
         filters.push({
-          facetKey: "serviceId",
-          value: serviceId.toString(),
+          facetKey: "primaryEntityId",
+          value: primaryEntityId.toString(),
           displayKey: "Service",
-          displayValue: serviceId.toString(),
+          displayValue: primaryEntityId.toString(),
           readOnly: true,
         });
       }
@@ -1487,7 +1487,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
     const facetKeyDisplayNames: Record<string, string> = {
       severityText: "Severity",
-      serviceId: "Service",
+      primaryEntityId: "Service",
       hostId: "Host",
       dockerHostId: "Docker Host",
       kubernetesClusterId: "Kubernetes Cluster",

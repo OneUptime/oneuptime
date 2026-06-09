@@ -182,7 +182,7 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
 
       const baseAttributes: Dictionary<AttributeType | Array<AttributeType>> =
         TelemetryUtil.getAttributesForServiceIdAndServiceName({
-          serviceId: serviceMetadata.serviceId,
+          serviceId: serviceMetadata.primaryEntityId,
           serviceName,
         });
 
@@ -233,8 +233,8 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
             createdAt: ingestionDateTime,
             updatedAt: ingestionDateTime,
             projectId: projectId.toString(),
-            serviceId: serviceMetadata.serviceId.toString(),
-            serviceType: serviceMetadata.serviceType,
+            primaryEntityId: serviceMetadata.primaryEntityId.toString(),
+            primaryEntityType: serviceMetadata.primaryEntityType,
             time: OneUptimeDate.toClickhouseDateTime64(ingestionDate),
             timeUnixNano,
             severityNumber: severityInfo.number,

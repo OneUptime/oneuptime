@@ -49,7 +49,7 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
         startTimeUnixNano: span.startTimeUnixNano!,
         endTimeUnixNano: span.endTimeUnixNano!,
         durationUnixNano: span.durationUnixNano!,
-        serviceId: span.serviceId?.toString(),
+        primaryEntityId: span.primaryEntityId?.toString(),
         name: span.name,
       };
     });
@@ -96,7 +96,7 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
     ): { color: Color; name: string } => {
       const service: Service | undefined = telemetryServices.find(
         (s: Service) => {
-          return s._id?.toString() === span.serviceId?.toString();
+          return s._id?.toString() === span.primaryEntityId?.toString();
         },
       );
       return {

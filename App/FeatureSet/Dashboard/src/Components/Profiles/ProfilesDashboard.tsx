@@ -242,9 +242,9 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
          */
         const fresh: Set<string> = new Set<string>();
         for (const fn of fns) {
-          if ((fn as unknown as { serviceId?: string }).serviceId) {
+          if ((fn as unknown as { primaryEntityId?: string }).primaryEntityId) {
             fresh.add(
-              (fn as unknown as { serviceId: string }).serviceId.toString(),
+              (fn as unknown as { primaryEntityId: string }).primaryEntityId.toString(),
             );
           }
         }
@@ -315,16 +315,16 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
           throw response;
         }
         const rows: Array<{
-          serviceId: string;
+          primaryEntityId: string;
           sampleCount: number;
         }> = (response.data["activity"] || []) as unknown as Array<{
-          serviceId: string;
+          primaryEntityId: string;
           sampleCount: number;
         }>;
         const next: Record<string, number> = {};
         for (const r of rows) {
-          if (r && r.serviceId) {
-            next[r.serviceId] = Number(r.sampleCount) || 0;
+          if (r && r.primaryEntityId) {
+            next[r.primaryEntityId] = Number(r.sampleCount) || 0;
           }
         }
         setServiceActivity(next);

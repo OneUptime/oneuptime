@@ -186,7 +186,7 @@ export default class SyslogIngestService extends OtelIngestBaseService {
           const attributes: Dictionary<AttributeType | Array<AttributeType>> =
             this.buildAttributes({
               parsed,
-              serviceId: serviceMetadata.serviceId,
+              primaryEntityId: serviceMetadata.primaryEntityId,
               serviceName,
             });
 
@@ -208,8 +208,8 @@ export default class SyslogIngestService extends OtelIngestBaseService {
             createdAt: OneUptimeDate.toClickhouseDateTime(ingestionDate),
             updatedAt: OneUptimeDate.toClickhouseDateTime(ingestionDate),
             projectId: projectId.toString(),
-            serviceId: serviceMetadata.serviceId.toString(),
-            serviceType: serviceMetadata.serviceType,
+            primaryEntityId: serviceMetadata.primaryEntityId.toString(),
+            primaryEntityType: serviceMetadata.primaryEntityType,
             time: OneUptimeDate.toClickhouseDateTime64(timestamp),
             timeUnixNano: Math.trunc(
               OneUptimeDate.toUnixNano(timestamp),
@@ -290,14 +290,14 @@ export default class SyslogIngestService extends OtelIngestBaseService {
 
   private static buildAttributes(data: {
     parsed: ParsedSyslogMessage;
-    serviceId: ObjectID;
+    primaryEntityId: ObjectID;
     serviceName: string;
   }): Dictionary<AttributeType | Array<AttributeType>> {
     const { parsed } = data;
 
     const attributes: Dictionary<AttributeType | Array<AttributeType>> = {
       ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
-        serviceId: data.serviceId,
+        serviceId: data.primaryEntityId,
         serviceName: data.serviceName,
       }),
       "syslog.raw": parsed.raw,

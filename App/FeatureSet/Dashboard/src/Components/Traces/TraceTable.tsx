@@ -128,7 +128,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
     }
 
     if (modelId) {
-      baseQuery.serviceId = modelId;
+      baseQuery.primaryEntityId = modelId;
     }
 
     if (activeTab === "root") {
@@ -338,7 +338,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
           filters={[
             {
               field: {
-                serviceId: true,
+                primaryEntityId: true,
               },
               type: FieldType.MultiSelectDropdown,
               filterDropdownOptions: telemetryServices.map(
@@ -444,7 +444,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
             },
             {
               field: {
-                serviceId: true,
+                primaryEntityId: true,
               },
               title: "Service",
               type: FieldType.Element,
@@ -452,7 +452,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
                 const telemetryService: Service | undefined =
                   telemetryServices.find((service: Service) => {
                     return (
-                      service.id?.toString() === span.serviceId?.toString()
+                      service.id?.toString() === span.primaryEntityId?.toString()
                     );
                   });
 

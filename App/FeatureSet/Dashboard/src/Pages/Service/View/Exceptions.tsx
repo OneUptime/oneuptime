@@ -11,7 +11,7 @@ const ServiceExceptions: FunctionComponent<
 
   return (
     <Fragment>
-      <ExceptionsViewer serviceId={modelId} />
+      <ExceptionsViewer primaryEntityId={modelId} />
     </Fragment>
   );
 };

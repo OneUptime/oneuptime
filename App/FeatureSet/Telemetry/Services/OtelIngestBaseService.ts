@@ -73,7 +73,7 @@ export default abstract class OtelIngestBaseService {
    * Resolves a real (user-facing) service name from OTel resource
    * attributes. Returns null when the batch is host- / docker-host-
    * level telemetry that should be routed to the matching Host or
-   * DockerHost record via `serviceId` instead of synthesising a
+   * DockerHost record via `primaryEntityId` instead of synthesising a
    * phantom Service row. The caller (OTelIngestService.resolveTelemetryResource)
    * is responsible for that routing decision and picks the right
    * `ServiceType` discriminator for the analytics row.
@@ -92,7 +92,7 @@ export default abstract class OtelIngestBaseService {
      * Client / RUM telemetry (browser.* / device.*) is owned by its
      * RumApplication, not a Service. Return null so
      * resolveTelemetryResource routes the batch to the RealUserMonitor
-     * branch (serviceId = rumApplicationId) instead of synthesising a
+     * branch (primaryEntityId = rumApplicationId) instead of synthesising a
      * duplicate Service row for the same browser / mobile app. There is no
      * OTel attribute that identifies a RUM app other than service.name, so
      * we keep service.name as the RumApplication's dedup key but never let
@@ -183,20 +183,20 @@ export default abstract class OtelIngestBaseService {
    *
    *   1. Explicit service.name / x-oneuptime-service-name header
    *      / docker container name  →  ServiceType.OpenTelemetry,
-   *      serviceId = Service._id (created on first contact via
+   *      primaryEntityId = Service._id (created on first contact via
    *      `telemetryServiceFromName`).
    *   2. Else if a Host was auto-discovered for this batch →
-   *      ServiceType.Host, serviceId = Host._id. Avoids the old
+   *      ServiceType.Host, primaryEntityId = Host._id. Avoids the old
    *      `host/<name>` phantom-Service duplication.
    *   3. Else if a DockerHost was discovered →
-   *      ServiceType.DockerHost, serviceId = DockerHost._id.
+   *      ServiceType.DockerHost, primaryEntityId = DockerHost._id.
    *      Catches docker batches that carry only container.id but
    *      no resolvable container name.
    *   4. Else if a KubernetesCluster was discovered →
-   *      ServiceType.KubernetesCluster, serviceId = Cluster._id.
+   *      ServiceType.KubernetesCluster, primaryEntityId = Cluster._id.
    *      Rare in practice — most k8s batches also carry host.name
    *      and route via #2.
-   *   5. Fallback: no Service row at all. serviceId = projectId,
+   *   5. Fallback: no Service row at all. primaryEntityId = projectId,
    *      ServiceType.Unknown. The read side groups these under a
    *      synthetic "Unknown Service" bucket. No oneuptime.label.*
    *      promotion happens here — there is no owning resource, which
@@ -236,7 +236,7 @@ export default abstract class OtelIngestBaseService {
       return await OTelIngestService.buildResourceMetadataForNonService({
         serviceName: hostName ? `host/${hostName}` : "Host",
         resourceId: data.hostId,
-        serviceType: ServiceType.Host,
+        primaryEntityType: ServiceType.Host,
         projectId: data.projectId,
       });
     }
@@ -245,7 +245,7 @@ export default abstract class OtelIngestBaseService {
       return await OTelIngestService.buildResourceMetadataForNonService({
         serviceName: hostName ? `docker-host/${hostName}` : "Docker Host",
         resourceId: data.dockerHostId,
-        serviceType: ServiceType.DockerHost,
+        primaryEntityType: ServiceType.DockerHost,
         projectId: data.projectId,
       });
     }
@@ -257,7 +257,7 @@ export default abstract class OtelIngestBaseService {
       return await OTelIngestService.buildResourceMetadataForNonService({
         serviceName: clusterName ? `k8s/${clusterName}` : "Kubernetes Cluster",
         resourceId: data.kubernetesClusterId,
-        serviceType: ServiceType.KubernetesCluster,
+        primaryEntityType: ServiceType.KubernetesCluster,
         projectId: data.projectId,
       });
     }
@@ -271,7 +271,7 @@ export default abstract class OtelIngestBaseService {
           ? `serverless/${faasName}`
           : "Serverless Function",
         resourceId: data.serverlessFunctionId,
-        serviceType: ServiceType.ServerlessFunction,
+        primaryEntityType: ServiceType.ServerlessFunction,
         projectId: data.projectId,
       });
     }
@@ -283,7 +283,7 @@ export default abstract class OtelIngestBaseService {
       return await OTelIngestService.buildResourceMetadataForNonService({
         serviceName: resourceName ? `cloud/${resourceName}` : "Cloud Resource",
         resourceId: data.cloudResourceId,
-        serviceType: ServiceType.CloudResource,
+        primaryEntityType: ServiceType.CloudResource,
         projectId: data.projectId,
       });
     }
@@ -296,7 +296,7 @@ export default abstract class OtelIngestBaseService {
       return await OTelIngestService.buildResourceMetadataForNonService({
         serviceName: appName ? `rum/${appName}` : "RUM Application",
         resourceId: data.rumApplicationId,
-        serviceType: ServiceType.RealUserMonitor,
+        primaryEntityType: ServiceType.RealUserMonitor,
         projectId: data.projectId,
       });
     }
@@ -304,7 +304,7 @@ export default abstract class OtelIngestBaseService {
     /*
      * Truly nameless telemetry: no service.name, no docker container,
      * and no host / docker / k8s resource was discovered for this
-     * batch. Tag it with the projectId in the serviceId slot under
+     * batch. Tag it with the projectId in the primaryEntityId slot under
      * ServiceType.Unknown and create no Service row. Crucially we go
      * through buildResourceMetadataForNonService (not
      * telemetryServiceFromName), so no oneuptime.label.* attributes are
@@ -315,7 +315,7 @@ export default abstract class OtelIngestBaseService {
     return await OTelIngestService.buildResourceMetadataForNonService({
       serviceName: "Unknown Service",
       resourceId: data.projectId,
-      serviceType: ServiceType.Unknown,
+      primaryEntityType: ServiceType.Unknown,
       projectId: data.projectId,
     });
   }

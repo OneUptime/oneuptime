@@ -88,7 +88,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
     }
 
     if (modelId) {
-      baseQuery.serviceId = modelId;
+      baseQuery.primaryEntityId = modelId;
     }
 
     return baseQuery;
@@ -255,7 +255,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
           filters={[
             {
               field: {
-                serviceId: true,
+                primaryEntityId: true,
               },
               type: FieldType.MultiSelectDropdown,
               filterDropdownOptions: telemetryServices.map(
@@ -304,7 +304,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
           columns={[
             {
               field: {
-                serviceId: true,
+                primaryEntityId: true,
               },
               title: "Service",
               type: FieldType.Element,
@@ -312,7 +312,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                 const telemetryService: Service | undefined =
                   telemetryServices.find((service: Service) => {
                     return (
-                      service.id?.toString() === profile.serviceId?.toString()
+                      service.id?.toString() === profile.primaryEntityId?.toString()
                     );
                   });
 

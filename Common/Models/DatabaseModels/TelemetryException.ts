@@ -68,14 +68,14 @@ import RumApplication from "./RumApplication";
     "List of all Telemetry Exceptions created for the telemetry service for this OneUptime project and it's status.",
 })
 /*
- * serviceId is polymorphic (see the column below) — it may reference a
+ * primaryEntityId is polymorphic (see the column below) — it may reference a
  * Service, Host, DockerHost or KubernetesCluster, or be the projectId for
  * unattributed (Unknown) telemetry. Owned scope unions ownership across all
  * of those resource types, and includeProjectScope lets in-project users
  * see the unattributed bucket (which has no owner resource).
  */
 @OwnedThrough(
-  "serviceId",
+  "primaryEntityId",
   [
     Service,
     Host,
@@ -97,12 +97,12 @@ import RumApplication from "./RumApplication";
  * Composite uniqueness on the dedup key used by the OTel traces ingest
  * batched upsert. The ingest path collapses every exception event in a
  * worker batch into a single INSERT … ON CONFLICT (projectId,
- * serviceId, fingerprint) DO UPDATE statement; this index is what makes
+ * primaryEntityId, fingerprint) DO UPDATE statement; this index is what makes
  * that conflict target resolvable and stops two concurrent workers from
  * racing the old findOneBy + update path into duplicate rows or lost
  * occuranceCount increments.
  */
-@Index(["projectId", "serviceId", "fingerprint"], { unique: true })
+@Index(["projectId", "primaryEntityId", "fingerprint"], { unique: true })
 export default class TelemetryException extends DatabaseBaseModel {
   @ColumnAccessControl({
     create: [
@@ -179,13 +179,13 @@ export default class TelemetryException extends DatabaseBaseModel {
   public projectId?: ObjectID = undefined;
 
   /*
-   * serviceId is polymorphic (disambiguated by serviceType, mirroring the
+   * primaryEntityId is polymorphic (disambiguated by primaryEntityType, mirroring the
    * ClickHouse ExceptionInstance rows): it can be a real Service, a Host /
    * DockerHost / KubernetesCluster id, or the projectId for unattributed
    * (Unknown) telemetry. There is intentionally NO @ManyToOne(Service)
    * relation — a Service join would only resolve OpenTelemetry rows and
-   * silently null out everything else. The read side resolves serviceId +
-   * serviceType to a resource per type (TelemetryServiceUtil) instead.
+   * silently null out everything else. The read side resolves primaryEntityId +
+   * primaryEntityType to a resource per type (TelemetryServiceUtil) instead.
    */
   @ColumnAccessControl({
     create: [
@@ -215,7 +215,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     required: true,
     title: "Service ID",
     description:
-      "ID of the resource this exception belongs to (Service / Host / DockerHost / KubernetesCluster, or the projectId for unattributed telemetry — disambiguated by serviceType).",
+      "ID of the resource this exception belongs to (Service / Host / DockerHost / KubernetesCluster, or the projectId for unattributed telemetry — disambiguated by primaryEntityType).",
     example: "d4e5f6a7-b8c9-0123-def1-234567890123",
   })
   @Column({
@@ -223,7 +223,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     nullable: false,
     transformer: ObjectID.getDatabaseTransformer(),
   })
-  public serviceId?: ObjectID = undefined;
+  public primaryEntityId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -256,7 +256,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
   })
-  public serviceType?: ServiceType = undefined;
+  public primaryEntityType?: ServiceType = undefined;
 
   @ColumnAccessControl({
     create: [

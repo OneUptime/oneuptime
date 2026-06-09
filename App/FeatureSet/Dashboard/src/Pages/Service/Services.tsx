@@ -25,7 +25,7 @@ const ServicesPage: FunctionComponent<
     useBulkOwnerActions<Service>({
       ownerUserModelType: ServiceOwnerUser,
       ownerTeamModelType: ServiceOwnerTeam,
-      resourceIdField: "serviceId",
+      resourceIdField: "primaryEntityId",
     });
 
   const {
@@ -40,7 +40,7 @@ const ServicesPage: FunctionComponent<
     persistKey: "service-table",
     ownerUserModelType: ServiceOwnerUser,
     ownerTeamModelType: ServiceOwnerTeam,
-    resourceIdField: "serviceId",
+    resourceIdField: "primaryEntityId",
     showLabelsFacet: true,
   });
 

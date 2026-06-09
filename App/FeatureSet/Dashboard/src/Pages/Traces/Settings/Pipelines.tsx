@@ -35,7 +35,7 @@ Trace pipelines let you transform and enrich spans **at ingest time** — before
 | \`IN\` | \`kind IN ('SPAN_KIND_CLIENT', 'SPAN_KIND_PRODUCER')\` | Match any value in list |
 | \`AND\` / \`OR\` | combine conditions |
 
-**Available fields:** \`name\`, \`kind\`, \`statusCode\`, \`serviceId\`, \`attributes.<key>\`
+**Available fields:** \`name\`, \`kind\`, \`statusCode\`, \`primaryEntityId\`, \`attributes.<key>\`
 `;
 
 const TracePipelines: FunctionComponent<

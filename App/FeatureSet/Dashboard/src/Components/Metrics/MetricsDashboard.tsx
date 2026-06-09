@@ -194,7 +194,7 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
             skip: 0,
             select: {
               name: true,
-              serviceId: true,
+              primaryEntityId: true,
               time: true,
             } as Select<Metric>,
             sort: { time: SortOrder.Descending } as Record<string, SortOrder>,
@@ -234,13 +234,13 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
 
     for (const m of activeMetrics) {
       const name: string | undefined = m.name as unknown as string | undefined;
-      const serviceId: ObjectID | undefined = m.serviceId;
+      const primaryEntityId: ObjectID | undefined = m.primaryEntityId;
       if (!name) {
         continue;
       }
       activeMetricNames.add(name);
-      if (serviceId) {
-        const sid: string = serviceId.toString();
+      if (primaryEntityId) {
+        const sid: string = primaryEntityId.toString();
         activeServiceIds.add(sid);
         if (!metricNamesByService.has(sid)) {
           metricNamesByService.set(sid, new Set());

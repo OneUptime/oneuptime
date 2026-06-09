@@ -175,8 +175,8 @@ export default class AIAgentDataAPI {
                 stackTrace: true,
                 exceptionType: true,
                 fingerprint: true,
-                serviceId: true,
-                serviceType: true,
+                primaryEntityId: true,
+                primaryEntityType: true,
               },
               props: {
                 isRoot: true,
@@ -197,15 +197,15 @@ export default class AIAgentDataAPI {
           );
 
           /*
-           * serviceId is polymorphic — resolve the Service only when it is
+           * primaryEntityId is polymorphic — resolve the Service only when it is
            * a real Service. findOneById returns null for Host / DockerHost /
            * KubernetesCluster / unattributed serviceIds (they aren't
            * Services), preserving the previous "name only for real
            * services" behaviour without the dropped ORM relation.
            */
-          const exceptionService: Service | null = exception.serviceId
+          const exceptionService: Service | null = exception.primaryEntityId
             ? await ServiceService.findOneById({
-                id: exception.serviceId,
+                id: exception.primaryEntityId,
                 select: {
                   name: true,
                   description: true,
@@ -224,9 +224,9 @@ export default class AIAgentDataAPI {
               exceptionType: exception.exceptionType,
               fingerprint: exception.fingerprint,
             },
-            service: exception.serviceId
+            service: exception.primaryEntityId
               ? {
-                  id: exception.serviceId.toString(),
+                  id: exception.primaryEntityId.toString(),
                   name: exceptionService?.name,
                   description: exceptionService?.description,
                 }
@@ -260,20 +260,20 @@ export default class AIAgentDataAPI {
             );
           }
 
-          // Get service ID (supports both serviceId and legacy telemetryServiceId)
+          // Get service ID (supports both primaryEntityId and legacy telemetryServiceId)
           const serviceIdParam: string | undefined =
-            (data["serviceId"] as string) ||
+            (data["primaryEntityId"] as string) ||
             (data["telemetryServiceId"] as string);
 
           if (!serviceIdParam) {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("serviceId is required"),
+              new BadDataException("primaryEntityId is required"),
             );
           }
 
-          const serviceId: ObjectID = new ObjectID(serviceIdParam);
+          const primaryEntityId: ObjectID = new ObjectID(serviceIdParam);
 
           // Find CodeRepositories linked to this Service
           const repositories: Array<{
@@ -290,7 +290,7 @@ export default class AIAgentDataAPI {
           const serviceCodeRepositories: Array<ServiceCodeRepository> =
             await ServiceCodeRepositoryService.findBy({
               query: {
-                serviceId: serviceId,
+                serviceId: primaryEntityId,
               },
               select: {
                 codeRepositoryId: true,
@@ -347,7 +347,7 @@ export default class AIAgentDataAPI {
           }
 
           logger.debug(
-            `Found ${repositories.length} code repositories for service ${serviceId.toString()}`,
+            `Found ${repositories.length} code repositories for service ${primaryEntityId.toString()}`,
             getLogAttributesFromRequest(req as any),
           );
 

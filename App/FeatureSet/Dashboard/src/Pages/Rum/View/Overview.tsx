@@ -132,8 +132,8 @@ const RumApplicationOverview: FunctionComponent<
     const end: Date = range.endValue;
     setChartWindow({ start, end });
 
-    // RUM telemetry is tagged with serviceId = this application's id.
-    fetchSpanMetrics({ serviceId: modelId, start, end })
+    // RUM telemetry is tagged with primaryEntityId = this application's id.
+    fetchSpanMetrics({ primaryEntityId: modelId, start, end })
       .then((m: SpanMetrics) => {
         setMetrics(m);
         setMetricsLoading(false);
@@ -142,7 +142,7 @@ const RumApplicationOverview: FunctionComponent<
         setMetricsLoading(false);
       });
 
-    fetchWebVitals({ serviceId: modelId, start, end })
+    fetchWebVitals({ primaryEntityId: modelId, start, end })
       .then((v: Array<WebVital>) => {
         setWebVitals(v);
         setWebVitalsLoading(false);

@@ -229,7 +229,7 @@ const MetricsViewer: FunctionComponent<Props> = (
   const [facetData, setFacetData] = useState<FacetData>({});
   const [facetLoading, setFacetLoading] = useState<boolean>(false);
   /*
-   * Per-facet search text for resource facets (serviceId / etc.). Updates
+   * Per-facet search text for resource facets (primaryEntityId / etc.). Updates
    * trigger a backend refetch so the sidebar can show services beyond the
    * loaded subset.
    */
@@ -646,7 +646,7 @@ const MetricsViewer: FunctionComponent<Props> = (
     // Active facet filters for service
     const facetServiceIds: Array<ObjectID> = [];
     for (const filter of activeFilters) {
-      if (filter.facetKey === "serviceId") {
+      if (filter.facetKey === "primaryEntityId") {
         facetServiceIds.push(new ObjectID(filter.value));
       }
     }
@@ -849,7 +849,7 @@ const MetricsViewer: FunctionComponent<Props> = (
     }
     return [
       {
-        key: "serviceId",
+        key: "primaryEntityId",
         title: "Service",
         valueDisplayMap: serviceNameMap,
         valueColorMap: serviceColorMap,
@@ -879,7 +879,7 @@ const MetricsViewer: FunctionComponent<Props> = (
     const payload: JSONObject = {
       startTime: dateRange.startValue.toISOString(),
       endTime: dateRange.endValue.toISOString(),
-      facetKeys: ["serviceId"],
+      facetKeys: ["primaryEntityId"],
     };
 
     const facetSearchTextActive: Record<string, string> = {};
@@ -979,13 +979,13 @@ const MetricsViewer: FunctionComponent<Props> = (
 
     const base: Array<ActiveFilter> = [];
     if (props.serviceIds && props.serviceIds.length > 0) {
-      for (const serviceId of props.serviceIds) {
+      for (const primaryEntityId of props.serviceIds) {
         base.push(
           resolveDisplay({
-            facetKey: "serviceId",
-            value: serviceId.toString(),
+            facetKey: "primaryEntityId",
+            value: primaryEntityId.toString(),
             displayKey: "Service",
-            displayValue: serviceId.toString(),
+            displayValue: primaryEntityId.toString(),
             readOnly: true,
           }),
         );

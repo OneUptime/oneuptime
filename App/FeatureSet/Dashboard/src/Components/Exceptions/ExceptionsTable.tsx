@@ -29,7 +29,7 @@ import OneUptimeDate from "Common/Types/Date";
 import UserUtil from "Common/UI/Utils/User";
 
 export interface ComponentProps {
-  serviceId?: ObjectID | undefined;
+  primaryEntityId?: ObjectID | undefined;
   query: Query<TelemetryException>;
   title: string;
   description: string;
@@ -46,7 +46,7 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
   );
 
   /*
-   * An exception's serviceId is polymorphic (no Service relation). Load the
+   * An exception's primaryEntityId is polymorphic (no Service relation). Load the
    * project's Services once so the Service column can resolve real
    * OpenTelemetry services to their name/colour; Host/Docker/K8s and
    * unattributed rows resolve to a label / synthetic via
@@ -67,7 +67,7 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
         });
         setServices(result.data);
       } catch {
-        // Non-fatal: rows fall back to a serviceType label / "Unknown".
+        // Non-fatal: rows fall back to a primaryEntityType label / "Unknown".
       }
     };
     void loadServices();
@@ -95,7 +95,7 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
         }}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
-          serviceId: props.serviceId ? props.serviceId : undefined,
+          primaryEntityId: props.primaryEntityId ? props.primaryEntityId : undefined,
           ...props.query,
         }}
         bulkActions={{
@@ -488,16 +488,16 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              serviceId: true,
-              serviceType: true,
+              primaryEntityId: true,
+              primaryEntityType: true,
             },
             title: "Service",
             type: FieldType.Entity,
             getElement: (exception: TelemetryException): ReactElement => {
               const { service, label } =
                 TelemetryServiceUtil.resolveTelemetryResource({
-                  serviceId: exception.serviceId,
-                  serviceType: exception.serviceType,
+                  primaryEntityId: exception.primaryEntityId,
+                  primaryEntityType: exception.primaryEntityType,
                   services: services,
                   projectId: ProjectUtil.getCurrentProjectId(),
                 });
