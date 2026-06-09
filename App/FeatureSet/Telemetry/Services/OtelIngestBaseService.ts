@@ -281,9 +281,7 @@ export default abstract class OtelIngestBaseService {
         this.getStringAttribute(data.attributes, "service.name") ||
         this.getStringAttribute(data.attributes, "host.name");
       return await OTelIngestService.buildResourceMetadataForNonService({
-        serviceName: resourceName
-          ? `cloud/${resourceName}`
-          : "Cloud Resource",
+        serviceName: resourceName ? `cloud/${resourceName}` : "Cloud Resource",
         resourceId: data.cloudResourceId,
         serviceType: ServiceType.CloudResource,
         projectId: data.projectId,

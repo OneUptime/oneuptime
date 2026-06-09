@@ -389,8 +389,8 @@ export default class ResourceFacetResolver {
       });
     }
 
-    const apps: Array<RumApplicationModel> =
-      await RumApplicationService.findBy({
+    const apps: Array<RumApplicationModel> = await RumApplicationService.findBy(
+      {
         query: query as any,
         select: {
           _id: true,
@@ -400,7 +400,8 @@ export default class ResourceFacetResolver {
         limit: new PositiveNumber(limit),
         skip: new PositiveNumber(0),
         props: { isRoot: true },
-      });
+      },
+    );
 
     return ResourceFacetResolver.mergeCounts(
       apps.map(

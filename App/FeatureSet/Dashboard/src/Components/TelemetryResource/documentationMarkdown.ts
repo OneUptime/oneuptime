@@ -107,7 +107,7 @@ export const getRumDocMarkdown: (vars: DocVars) => string = (
     "//   telemetry.sdk.language = webjs",
     "// OTLP/HTTP exporter:",
     `//   url:     ${vars.oneuptimeUrl}/otlp/v1/traces`,
-    `//   headers: { \"x-oneuptime-token\": \"${vars.apiKey}\" }`,
+    `//   headers: { "x-oneuptime-token": "${vars.apiKey}" }`,
     "```",
     "",
     "### Mobile (Swift / Android)",

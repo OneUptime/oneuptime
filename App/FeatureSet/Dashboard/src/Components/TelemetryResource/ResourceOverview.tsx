@@ -183,7 +183,9 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
   const statusBadgeClass: string = isConnected
     ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
     : "bg-amber-50 text-amber-700 ring-amber-200";
-  const statusDotClass: string = isConnected ? "bg-emerald-500" : "bg-amber-500";
+  const statusDotClass: string = isConnected
+    ? "bg-emerald-500"
+    : "bg-amber-500";
   const statusLabel: string = isConnected ? "Connected" : "Disconnected";
 
   return (
@@ -202,31 +204,31 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
               <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-indigo-200 shadow-sm">
                 <Icon icon={props.icon} className="h-6 w-6 text-indigo-600" />
               </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl font-semibold text-gray-900 truncate">
-                  {props.title}
-                </h1>
-                <span
-                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${statusBadgeClass}`}
-                >
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-xl font-semibold text-gray-900 truncate">
+                    {props.title}
+                  </h1>
                   <span
-                    className={`h-1.5 w-1.5 rounded-full ${statusDotClass}`}
-                  />
-                  {statusLabel}
-                </span>
-              </div>
-              {props.identifier ? (
-                <div className="mt-1 truncate font-mono text-sm text-gray-500">
-                  {props.identifierLabel}: {props.identifier}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${statusBadgeClass}`}
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${statusDotClass}`}
+                    />
+                    {statusLabel}
+                  </span>
                 </div>
-              ) : (
-                <></>
-              )}
-              <div className="mt-1 text-xs text-gray-400">
-                Last seen {lastSeenText}
+                {props.identifier ? (
+                  <div className="mt-1 truncate font-mono text-sm text-gray-500">
+                    {props.identifierLabel}: {props.identifier}
+                  </div>
+                ) : (
+                  <></>
+                )}
+                <div className="mt-1 text-xs text-gray-400">
+                  Last seen {lastSeenText}
+                </div>
               </div>
-            </div>
             </div>
             {props.controls ? (
               <div className="ml-auto flex-shrink-0">{props.controls}</div>

@@ -140,8 +140,7 @@ export default class CloudResourceInstance extends BaseModel {
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "Instance Name",
-    description:
-      "service.instance.id value identifying this instance / task.",
+    description: "service.instance.id value identifying this instance / task.",
   })
   @Column({
     nullable: false,

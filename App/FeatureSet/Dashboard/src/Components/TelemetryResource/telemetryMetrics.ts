@@ -92,105 +92,109 @@ const meanY: (series: Array<TimePoint>) => number | null = (
   return sumY(series) / series.length;
 };
 
-export const fetchSpanMetrics: (scope: SpanScope) => Promise<SpanMetrics> =
-  async (scope: SpanScope): Promise<SpanMetrics> => {
-    const empty: SpanMetrics = {
-      total: 0,
-      errors: 0,
-      errorRatePercent: null,
-      p95DurationMs: null,
-      countSeries: [],
-      errorSeries: [],
-      p95Series: [],
-    };
-
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-    if (!projectId) {
-      return empty;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const baseQuery: any = {
-      projectId: projectId,
-      startTime: new InBetween<Date>(scope.start, scope.end),
-    };
-    if (scope.serviceId) {
-      baseQuery.serviceId = scope.serviceId;
-    }
-    if (scope.attributes && Object.keys(scope.attributes).length > 0) {
-      baseQuery.attributes = scope.attributes;
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const errorQuery: any = { ...baseQuery, statusCode: SpanStatus.Error };
-
-    const build: (
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      query: any,
-      aggregationType: AggregationType,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ) => any = (
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      query: any,
-      aggregationType: AggregationType,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ): any => {
-      return {
-        query: query,
-        aggregationType: aggregationType,
-        aggregateColumnName: "durationUnixNano",
-        aggregationTimestampColumnName: "startTime",
-        startTimestamp: scope.start,
-        endTimestamp: scope.end,
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        sort: { startTime: SortOrder.Descending },
-      };
-    };
-
-    try {
-      const [countResult, errorResult, p95Result]: [
-        AggregatedResult,
-        AggregatedResult,
-        AggregatedResult,
-      ] = await Promise.all([
-        AnalyticsModelAPI.aggregate<Span>({
-          modelType: Span,
-          aggregateBy: build(baseQuery, AggregationType.Count) as AggregateBy<Span>,
-        }),
-        AnalyticsModelAPI.aggregate<Span>({
-          modelType: Span,
-          aggregateBy: build(
-            errorQuery,
-            AggregationType.Count,
-          ) as AggregateBy<Span>,
-        }),
-        AnalyticsModelAPI.aggregate<Span>({
-          modelType: Span,
-          aggregateBy: build(baseQuery, AggregationType.P95) as AggregateBy<Span>,
-        }),
-      ]);
-
-      const countSeries: Array<TimePoint> = toTimePoints(countResult);
-      const errorSeries: Array<TimePoint> = toTimePoints(errorResult);
-      // durationUnixNano (nanoseconds) → milliseconds for display.
-      const p95Series: Array<TimePoint> = toTimePoints(p95Result, 1 / 1_000_000);
-
-      const total: number = sumY(countSeries);
-      const errors: number = sumY(errorSeries);
-
-      return {
-        total: total,
-        errors: errors,
-        errorRatePercent: total > 0 ? (errors / total) * 100 : null,
-        p95DurationMs: meanY(p95Series),
-        countSeries: countSeries,
-        errorSeries: errorSeries,
-        p95Series: p95Series,
-      };
-    } catch {
-      return empty;
-    }
+export const fetchSpanMetrics: (
+  scope: SpanScope,
+) => Promise<SpanMetrics> = async (scope: SpanScope): Promise<SpanMetrics> => {
+  const empty: SpanMetrics = {
+    total: 0,
+    errors: 0,
+    errorRatePercent: null,
+    p95DurationMs: null,
+    countSeries: [],
+    errorSeries: [],
+    p95Series: [],
   };
+
+  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  if (!projectId) {
+    return empty;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const baseQuery: any = {
+    projectId: projectId,
+    startTime: new InBetween<Date>(scope.start, scope.end),
+  };
+  if (scope.serviceId) {
+    baseQuery.serviceId = scope.serviceId;
+  }
+  if (scope.attributes && Object.keys(scope.attributes).length > 0) {
+    baseQuery.attributes = scope.attributes;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const errorQuery: any = { ...baseQuery, statusCode: SpanStatus.Error };
+
+  const build: (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    query: any,
+    aggregationType: AggregationType,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ) => any = (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    query: any,
+    aggregationType: AggregationType,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ): any => {
+    return {
+      query: query,
+      aggregationType: aggregationType,
+      aggregateColumnName: "durationUnixNano",
+      aggregationTimestampColumnName: "startTime",
+      startTimestamp: scope.start,
+      endTimestamp: scope.end,
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      sort: { startTime: SortOrder.Descending },
+    };
+  };
+
+  try {
+    const [countResult, errorResult, p95Result]: [
+      AggregatedResult,
+      AggregatedResult,
+      AggregatedResult,
+    ] = await Promise.all([
+      AnalyticsModelAPI.aggregate<Span>({
+        modelType: Span,
+        aggregateBy: build(
+          baseQuery,
+          AggregationType.Count,
+        ) as AggregateBy<Span>,
+      }),
+      AnalyticsModelAPI.aggregate<Span>({
+        modelType: Span,
+        aggregateBy: build(
+          errorQuery,
+          AggregationType.Count,
+        ) as AggregateBy<Span>,
+      }),
+      AnalyticsModelAPI.aggregate<Span>({
+        modelType: Span,
+        aggregateBy: build(baseQuery, AggregationType.P95) as AggregateBy<Span>,
+      }),
+    ]);
+
+    const countSeries: Array<TimePoint> = toTimePoints(countResult);
+    const errorSeries: Array<TimePoint> = toTimePoints(errorResult);
+    // durationUnixNano (nanoseconds) → milliseconds for display.
+    const p95Series: Array<TimePoint> = toTimePoints(p95Result, 1 / 1_000_000);
+
+    const total: number = sumY(countSeries);
+    const errors: number = sumY(errorSeries);
+
+    return {
+      total: total,
+      errors: errors,
+      errorRatePercent: total > 0 ? (errors / total) * 100 : null,
+      p95DurationMs: meanY(p95Series),
+      countSeries: countSeries,
+      errorSeries: errorSeries,
+      p95Series: p95Series,
+    };
+  } catch {
+    return empty;
+  }
+};
 
 export interface MetricScope {
   name: string;

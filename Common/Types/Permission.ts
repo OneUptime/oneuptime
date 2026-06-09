@@ -7627,7 +7627,8 @@ export class PermissionHelper {
       {
         permission: Permission.EditRumApplication,
         title: "Edit RUM Application",
-        description: "This permission can edit RUM Application of this project.",
+        description:
+          "This permission can edit RUM Application of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -7636,7 +7637,8 @@ export class PermissionHelper {
       {
         permission: Permission.ReadRumApplication,
         title: "Read RUM Application",
-        description: "This permission can read RUM Application of this project.",
+        description:
+          "This permission can read RUM Application of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,

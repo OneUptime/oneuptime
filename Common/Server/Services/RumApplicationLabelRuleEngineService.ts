@@ -153,7 +153,10 @@ class RumApplicationLabelRuleEngineServiceClass {
     if (
       rule.descriptionRegexPattern &&
       (!rumApplication.description ||
-        !this.testRegex(rule.descriptionRegexPattern, rumApplication.description))
+        !this.testRegex(
+          rule.descriptionRegexPattern,
+          rumApplication.description,
+        ))
     ) {
       return false;
     }

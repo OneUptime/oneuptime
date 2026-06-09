@@ -166,13 +166,19 @@ export class AddCloudResourceTables1780935387827 implements MigrationInterface {
     await queryRunner.query(
       `DROP INDEX "public"."IDX_CloudResourceLabel_labelId"`,
     );
-    await queryRunner.query(`DROP INDEX "public"."IDX_CloudResourceLabel_resId"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResourceLabel_resId"`,
+    );
     await queryRunner.query(`DROP TABLE "CloudResourceLabel"`);
     await queryRunner.query(
       `DROP INDEX "public"."IDX_CloudResOwnerUser_notified"`,
     );
-    await queryRunner.query(`DROP INDEX "public"."IDX_CloudResOwnerUser_resId"`);
-    await queryRunner.query(`DROP INDEX "public"."IDX_CloudResOwnerUser_userId"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResOwnerUser_resId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResOwnerUser_userId"`,
+    );
     await queryRunner.query(
       `DROP INDEX "public"."IDX_CloudResOwnerUser_projectId"`,
     );
@@ -180,8 +186,12 @@ export class AddCloudResourceTables1780935387827 implements MigrationInterface {
     await queryRunner.query(
       `DROP INDEX "public"."IDX_CloudResOwnerTeam_notified"`,
     );
-    await queryRunner.query(`DROP INDEX "public"."IDX_CloudResOwnerTeam_resId"`);
-    await queryRunner.query(`DROP INDEX "public"."IDX_CloudResOwnerTeam_teamId"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResOwnerTeam_resId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResOwnerTeam_teamId"`,
+    );
     await queryRunner.query(
       `DROP INDEX "public"."IDX_CloudResOwnerTeam_projectId"`,
     );
@@ -189,7 +199,9 @@ export class AddCloudResourceTables1780935387827 implements MigrationInterface {
     await queryRunner.query(
       `DROP INDEX "public"."UQ_CloudResource_project_resId"`,
     );
-    await queryRunner.query(`DROP INDEX "public"."IDX_CloudResource_projectId"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResource_projectId"`,
+    );
     await queryRunner.query(`DROP TABLE "CloudResource"`);
   }
 }

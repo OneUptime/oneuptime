@@ -34,7 +34,9 @@ const ServerlessRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
-          path={ServerlessRoutePath[PageMap.SERVERLESS_SETTINGS_LABEL_RULES] || ""}
+          path={
+            ServerlessRoutePath[PageMap.SERVERLESS_SETTINGS_LABEL_RULES] || ""
+          }
           element={
             <ServerlessLabelRules
               {...props}
@@ -45,7 +47,9 @@ const ServerlessRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
-          path={ServerlessRoutePath[PageMap.SERVERLESS_SETTINGS_OWNER_RULES] || ""}
+          path={
+            ServerlessRoutePath[PageMap.SERVERLESS_SETTINGS_OWNER_RULES] || ""
+          }
           element={
             <ServerlessOwnerRules
               {...props}

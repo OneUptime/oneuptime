@@ -21,6 +21,7 @@ import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
+import useTranslateValue from "Common/UI/Utils/Translation";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { JSONObject } from "Common/Types/JSON";
@@ -370,6 +371,7 @@ interface NotificationMatrixProps {
 const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
   props: NotificationMatrixProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
   const eventTypes: Array<NotificationSettingEventType> = useMemo(() => {
     return props.section.events.map((event: EventDef) => {
       return event.type;
@@ -540,7 +542,7 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
                     scope="col"
                     className="sticky left-0 z-0 bg-white py-3 pr-4 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500"
                   >
-                    Event
+                    {translateString("Event")}
                   </th>
                   {CHANNELS.map((channel: ChannelDef) => {
                     return (
@@ -556,7 +558,7 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
                             size={SizeProp.Regular}
                           />
                           <span className="text-[11px] font-medium text-gray-600">
-                            {channel.label}
+                            {translateString(channel.label)}
                           </span>
                         </div>
                       </th>
@@ -575,10 +577,10 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
                     >
                       <td className="sticky left-0 z-0 bg-white py-4 pr-4 align-top group-hover:bg-gray-50/60 transition-colors">
                         <div className="text-sm font-medium text-gray-900">
-                          {event.label}
+                          {translateString(event.label)}
                         </div>
                         <div className="mt-0.5 text-xs text-gray-500 max-w-md">
-                          {event.description}
+                          {translateString(event.description)}
                         </div>
                       </td>
                       {CHANNELS.map((channel: ChannelDef) => {

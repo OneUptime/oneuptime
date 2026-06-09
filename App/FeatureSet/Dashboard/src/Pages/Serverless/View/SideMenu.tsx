@@ -32,9 +32,7 @@ const ServerlessFunctionViewSideMenu: FunctionComponent<ComponentProps> = (
           link={{
             title: "Documentation",
             to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION
-              ] as Route,
+              RouteMap[PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION] as Route,
               { modelId: props.modelId },
             ),
           }}

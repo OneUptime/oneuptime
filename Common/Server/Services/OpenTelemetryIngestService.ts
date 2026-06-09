@@ -108,7 +108,9 @@ export default class OTelIngestService {
         attribute["value"] &&
         (attribute["value"] as JSONObject)["stringValue"]
       ) {
-        const value: unknown = (attribute["value"] as JSONObject)["stringValue"];
+        const value: unknown = (attribute["value"] as JSONObject)[
+          "stringValue"
+        ];
         if (typeof value === "string" && value.trim()) {
           return value.trim();
         }

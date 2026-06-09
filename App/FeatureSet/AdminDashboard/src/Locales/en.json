@@ -601,5 +601,11 @@
   "Who would you like the owner of this project to be? If you leave this blank - you will be the owner of the project": "Who would you like the owner of this project to be? If you leave this blank - you will be the owner of the project",
   "Yearly Plan": "Yearly Plan",
   "You can find this in your Twilio console.": "You can find this in your Twilio console.",
-  "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.": "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'."
+  "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.": "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.",
+  "ClickHouse disk": "ClickHouse disk",
+  "Postgres, ClickHouse, Redis and queue health at a glance.": "Postgres, ClickHouse, Redis and queue health at a glance.",
+  "Projects, users, monitors and incidents across the instance.": "Projects, users, monitors and incidents across the instance.",
+  "Redis memory": "Redis memory",
+  "Spot job backlogs and failures before they cause incidents.": "Spot job backlogs and failures before they cause incidents.",
+  "Track database disk and memory utilization before you run out.": "Track database disk and memory utilization before you run out."
 }

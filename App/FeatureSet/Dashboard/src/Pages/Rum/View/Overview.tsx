@@ -236,7 +236,9 @@ const RumApplicationOverview: FunctionComponent<
         icon={IconProp.Clock}
         iconColor="violet"
         series={
-          [{ seriesName: "p95", data: m?.p95Series ?? [] }] as Array<SeriesPoint>
+          [
+            { seriesName: "p95", data: m?.p95Series ?? [] },
+          ] as Array<SeriesPoint>
         }
         windowStart={chartWindow?.start ?? null}
         windowEnd={chartWindow?.end ?? null}

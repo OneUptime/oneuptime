@@ -1913,10 +1913,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     if (data.buffer.size === 0) {
       return;
     }
-    for (const [
-      cloudResourceIdStr,
-      byInstance,
-    ] of data.buffer.entries()) {
+    for (const [cloudResourceIdStr, byInstance] of data.buffer.entries()) {
       if (byInstance.size === 0) {
         continue;
       }

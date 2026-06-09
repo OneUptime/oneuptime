@@ -258,8 +258,7 @@ export default class CloudResourceOwnerTeam extends BaseModel {
     type: TableColumnType.Entity,
     modelType: CloudResource,
     title: "Cloud Resource",
-    description:
-      "Relation to Cloud Resource in which this object belongs",
+    description: "Relation to Cloud Resource in which this object belongs",
   })
   @ManyToOne(
     () => {

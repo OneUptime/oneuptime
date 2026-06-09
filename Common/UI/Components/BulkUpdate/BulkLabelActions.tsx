@@ -208,9 +208,9 @@ function useBulkLabelActions<T extends BaseModel>(
    * modal offers only labels that can really be removed instead of every
    * label in the project.
    */
-  const loadLabelsForSelectedItems: (
+  const loadLabelsForSelectedItems: (items: Array<T>) => Promise<void> = async (
     items: Array<T>,
-  ) => Promise<void> = async (items: Array<T>): Promise<void> => {
+  ): Promise<void> => {
     setIsLoadingRemoveLabels(true);
 
     try {
@@ -259,20 +259,20 @@ function useBulkLabelActions<T extends BaseModel>(
         }
       }
 
-      const options: Array<DropdownOption> = Array.from(
-        labelById.values(),
-      ).map((label: Label) => {
-        const option: DropdownOption = {
-          label: label.name || "",
-          value: label._id?.toString() || "",
-        };
+      const options: Array<DropdownOption> = Array.from(labelById.values()).map(
+        (label: Label) => {
+          const option: DropdownOption = {
+            label: label.name || "",
+            value: label._id?.toString() || "",
+          };
 
-        if (label.color) {
-          option.color = label.color;
-        }
+          if (label.color) {
+            option.color = label.color;
+          }
 
-        return option;
-      });
+          return option;
+        },
+      );
 
       options.sort((a: DropdownOption, b: DropdownOption) => {
         return a.label.localeCompare(b.label);

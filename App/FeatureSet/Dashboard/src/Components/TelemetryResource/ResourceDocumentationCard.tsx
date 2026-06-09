@@ -152,7 +152,9 @@ const ResourceDocumentationCard: FunctionComponent<ComponentProps> = (
                     };
                   })[0]
               }
-              onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
                 if (value) {
                   setSelectedKeyId(value.toString());
                 }
@@ -178,7 +180,10 @@ const ResourceDocumentationCard: FunctionComponent<ComponentProps> = (
             <div className="grid grid-cols-1 divide-y divide-gray-100">
               <div className="px-4 py-3 flex items-start gap-3">
                 <div className="w-8 h-8 rounded-md bg-blue-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Icon icon={IconProp.Globe} className="w-4 h-4 text-blue-600" />
+                  <Icon
+                    icon={IconProp.Globe}
+                    className="w-4 h-4 text-blue-600"
+                  />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -191,7 +196,10 @@ const ResourceDocumentationCard: FunctionComponent<ComponentProps> = (
               </div>
               <div className="px-4 py-3 flex items-start gap-3">
                 <div className="w-8 h-8 rounded-md bg-amber-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Icon icon={IconProp.Key} className="w-4 h-4 text-amber-600" />
+                  <Icon
+                    icon={IconProp.Key}
+                    className="w-4 h-4 text-amber-600"
+                  />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">

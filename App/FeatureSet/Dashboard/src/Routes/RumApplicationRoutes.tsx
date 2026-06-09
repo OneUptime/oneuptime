@@ -74,7 +74,9 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
           element={
             <RumApplicationMetrics
               {...props}
-              pageRoute={RouteMap[PageMap.RUM_APPLICATION_VIEW_METRICS] as Route}
+              pageRoute={
+                RouteMap[PageMap.RUM_APPLICATION_VIEW_METRICS] as Route
+              }
             />
           }
         />
@@ -90,7 +92,9 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.RUM_APPLICATION_VIEW_TRACES)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_TRACES,
+          )}
           element={
             <RumApplicationTraces
               {...props}
@@ -106,7 +110,9 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
           element={
             <RumApplicationClients
               {...props}
-              pageRoute={RouteMap[PageMap.RUM_APPLICATION_VIEW_CLIENTS] as Route}
+              pageRoute={
+                RouteMap[PageMap.RUM_APPLICATION_VIEW_CLIENTS] as Route
+              }
             />
           }
         />
@@ -126,7 +132,9 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.RUM_APPLICATION_VIEW_DELETE)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_DELETE,
+          )}
           element={
             <RumApplicationDelete
               {...props}

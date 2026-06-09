@@ -170,7 +170,10 @@ class CloudResourceOwnerRuleEngineServiceClass {
     if (
       rule.descriptionRegexPattern &&
       (!cloudResource.description ||
-        !this.testRegex(rule.descriptionRegexPattern, cloudResource.description))
+        !this.testRegex(
+          rule.descriptionRegexPattern,
+          cloudResource.description,
+        ))
     ) {
       return false;
     }

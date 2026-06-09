@@ -47,8 +47,10 @@ export class Service extends DatabaseService<Model> {
       item.lastSeenAt = OneUptimeDate.getCurrentDate();
       await this.create({ data: item, props: { isRoot: true } });
     } catch (err) {
-      // Inventory is best-effort — a unique-violation race or transient error
-      // must never fail ingest.
+      /*
+       * Inventory is best-effort — a unique-violation race or transient error
+       * must never fail ingest.
+       */
       logger.warn(
         `ServerlessFunctionInstanceService.recordInstance failed: ${
           err instanceof Error ? err.message : String(err)

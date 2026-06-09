@@ -175,7 +175,9 @@ export class AddServerlessFunctionTables1780933132562
     await queryRunner.query(
       `DROP INDEX "public"."IDX_SrvlessFnOwnerUser_notified"`,
     );
-    await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnOwnerUser_fnId"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_SrvlessFnOwnerUser_fnId"`,
+    );
     await queryRunner.query(
       `DROP INDEX "public"."IDX_SrvlessFnOwnerUser_userId"`,
     );
@@ -186,7 +188,9 @@ export class AddServerlessFunctionTables1780933132562
     await queryRunner.query(
       `DROP INDEX "public"."IDX_SrvlessFnOwnerTeam_notified"`,
     );
-    await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnOwnerTeam_fnId"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_SrvlessFnOwnerTeam_fnId"`,
+    );
     await queryRunner.query(
       `DROP INDEX "public"."IDX_SrvlessFnOwnerTeam_teamId"`,
     );

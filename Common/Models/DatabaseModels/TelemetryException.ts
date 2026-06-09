@@ -86,8 +86,9 @@ import RumApplication from "./RumApplication";
     RumApplication,
   ],
   {
-  includeProjectScope: true,
-})
+    includeProjectScope: true,
+  },
+)
 @Entity({
   name: "TelemetryException",
 })

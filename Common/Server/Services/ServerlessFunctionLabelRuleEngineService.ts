@@ -126,7 +126,10 @@ class ServerlessFunctionLabelRuleEngineServiceClass {
     rule: ServerlessFunctionLabelRule,
   ): boolean {
     if (rule.matchLabels && rule.matchLabels.length > 0) {
-      if (!serverlessFunction.labels || serverlessFunction.labels.length === 0) {
+      if (
+        !serverlessFunction.labels ||
+        serverlessFunction.labels.length === 0
+      ) {
         return false;
       }
       const ruleLabelIds: Array<string> = rule.matchLabels.map((l: Label) => {
@@ -173,7 +176,9 @@ class ServerlessFunctionLabelRuleEngineServiceClass {
       const regex: RegExp = new RegExp(pattern, "i");
       return regex.test(value);
     } catch {
-      logger.warn(`Invalid regex in serverless function label rule: ${pattern}`);
+      logger.warn(
+        `Invalid regex in serverless function label rule: ${pattern}`,
+      );
       return false;
     }
   }

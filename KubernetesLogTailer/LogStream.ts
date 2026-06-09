@@ -96,8 +96,10 @@ export class LogStream {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
-    // Flush any in-progress multi-line record into the batcher before we tear
-    // down. PodWatcher stops streams before the batcher drains, so this lands.
+    /*
+     * Flush any in-progress multi-line record into the batcher before we tear
+     * down. PodWatcher stops streams before the batcher drains, so this lands.
+     */
     this.flushPending();
     if (this.activeRequest) {
       try {
@@ -268,8 +270,10 @@ export class LogStream {
       return;
     }
 
-    // New entry, nothing to merge into, or the record hit the size cap: flush
-    // what we have and start a fresh record from this line.
+    /*
+     * New entry, nothing to merge into, or the record hit the size cap: flush
+     * what we have and start a fresh record from this line.
+     */
     this.flushPending();
     this.pending = entry;
     this.armRecombineTimer();
@@ -277,8 +281,10 @@ export class LogStream {
 
   private armRecombineTimer(): void {
     if (this.recombineTimer) {
-      // Already counting down from when this record started; do not reset, so a
-      // record is held at most LOG_RECOMBINE_FLUSH_MS regardless of trickle.
+      /*
+       * Already counting down from when this record started; do not reset, so a
+       * record is held at most LOG_RECOMBINE_FLUSH_MS regardless of trickle.
+       */
       return;
     }
     this.recombineTimer = setTimeout((): void => {
@@ -300,8 +306,10 @@ export class LogStream {
 
   private handleClose(err: Error | null): void {
     this.activeRequest = null;
-    // The stream ended (container exited, rotated, or a network blip). Flush any
-    // in-progress record rather than holding it across the reconnect backoff.
+    /*
+     * The stream ended (container exited, rotated, or a network blip). Flush any
+     * in-progress record rather than holding it across the reconnect backoff.
+     */
     this.flushPending();
     if (this.stopped) {
       return;

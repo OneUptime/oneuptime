@@ -68,9 +68,7 @@ export class AddTelemetryResourceMetadataColumns1780931863719
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Host
-    await queryRunner.query(
-      `ALTER TABLE "Host" DROP COLUMN "cloudAccountId"`,
-    );
+    await queryRunner.query(`ALTER TABLE "Host" DROP COLUMN "cloudAccountId"`);
     await queryRunner.query(`ALTER TABLE "Host" DROP COLUMN "cloudRegion"`);
     await queryRunner.query(`ALTER TABLE "Host" DROP COLUMN "cloudPlatform"`);
     await queryRunner.query(`ALTER TABLE "Host" DROP COLUMN "cloudProvider"`);
