@@ -1,800 +1,2317 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
 export class MigrationName1781011482945 implements MigrationInterface {
-    public name = 'MigrationName1781011482945'
+  public name = "MigrationName1781011482945";
 
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "ServerlessFunction" DROP CONSTRAINT "FK_ServerlessFunction_projectId"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunction" DROP CONSTRAINT "FK_ServerlessFunction_createdBy"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunction" DROP CONSTRAINT "FK_ServerlessFunction_deletedBy"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerTeam" DROP CONSTRAINT "FK_SrvlessFnOwnerTeam_projectId"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerTeam" DROP CONSTRAINT "FK_SrvlessFnOwnerTeam_teamId"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerTeam" DROP CONSTRAINT "FK_SrvlessFnOwnerTeam_fnId"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerTeam" DROP CONSTRAINT "FK_SrvlessFnOwnerTeam_createdBy"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerTeam" DROP CONSTRAINT "FK_SrvlessFnOwnerTeam_deletedBy"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerUser" DROP CONSTRAINT "FK_SrvlessFnOwnerUser_projectId"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerUser" DROP CONSTRAINT "FK_SrvlessFnOwnerUser_userId"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerUser" DROP CONSTRAINT "FK_SrvlessFnOwnerUser_fnId"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerUser" DROP CONSTRAINT "FK_SrvlessFnOwnerUser_createdBy"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerUser" DROP CONSTRAINT "FK_SrvlessFnOwnerUser_deletedBy"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionLabelRule" DROP CONSTRAINT "FK_SrvlessFnLabelRule_project"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionLabelRule" DROP CONSTRAINT "FK_SrvlessFnLabelRule_createdBy"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionLabelRule" DROP CONSTRAINT "FK_SrvlessFnLabelRule_deletedBy"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerRule" DROP CONSTRAINT "FK_SrvlessFnOwnerRule_project"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerRule" DROP CONSTRAINT "FK_SrvlessFnOwnerRule_createdBy"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerRule" DROP CONSTRAINT "FK_SrvlessFnOwnerRule_deletedBy"`);
-        await queryRunner.query(`ALTER TABLE "CloudResource" DROP CONSTRAINT "FK_CloudResource_projectId"`);
-        await queryRunner.query(`ALTER TABLE "CloudResource" DROP CONSTRAINT "FK_CloudResource_createdBy"`);
-        await queryRunner.query(`ALTER TABLE "CloudResource" DROP CONSTRAINT "FK_CloudResource_deletedBy"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerTeam" DROP CONSTRAINT "FK_CloudResOwnerTeam_projectId"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerTeam" DROP CONSTRAINT "FK_CloudResOwnerTeam_teamId"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerTeam" DROP CONSTRAINT "FK_CloudResOwnerTeam_resId"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerTeam" DROP CONSTRAINT "FK_CloudResOwnerTeam_createdBy"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerTeam" DROP CONSTRAINT "FK_CloudResOwnerTeam_deletedBy"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerUser" DROP CONSTRAINT "FK_CloudResOwnerUser_projectId"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerUser" DROP CONSTRAINT "FK_CloudResOwnerUser_userId"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerUser" DROP CONSTRAINT "FK_CloudResOwnerUser_resId"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerUser" DROP CONSTRAINT "FK_CloudResOwnerUser_createdBy"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerUser" DROP CONSTRAINT "FK_CloudResOwnerUser_deletedBy"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceLabelRule" DROP CONSTRAINT "FK_CloudResLabelRule_project"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceLabelRule" DROP CONSTRAINT "FK_CloudResLabelRule_createdBy"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceLabelRule" DROP CONSTRAINT "FK_CloudResLabelRule_deletedBy"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerRule" DROP CONSTRAINT "FK_CloudResOwnerRule_project"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerRule" DROP CONSTRAINT "FK_CloudResOwnerRule_createdBy"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerRule" DROP CONSTRAINT "FK_CloudResOwnerRule_deletedBy"`);
-        await queryRunner.query(`ALTER TABLE "RumApplication" DROP CONSTRAINT "FK_RumApplication_projectId"`);
-        await queryRunner.query(`ALTER TABLE "RumApplication" DROP CONSTRAINT "FK_RumApplication_createdBy"`);
-        await queryRunner.query(`ALTER TABLE "RumApplication" DROP CONSTRAINT "FK_RumApplication_deletedBy"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerTeam" DROP CONSTRAINT "FK_RumAppOwnerTeam_projectId"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerTeam" DROP CONSTRAINT "FK_RumAppOwnerTeam_teamId"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerTeam" DROP CONSTRAINT "FK_RumAppOwnerTeam_appId"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerTeam" DROP CONSTRAINT "FK_RumAppOwnerTeam_createdBy"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerTeam" DROP CONSTRAINT "FK_RumAppOwnerTeam_deletedBy"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerUser" DROP CONSTRAINT "FK_RumAppOwnerUser_projectId"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerUser" DROP CONSTRAINT "FK_RumAppOwnerUser_userId"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerUser" DROP CONSTRAINT "FK_RumAppOwnerUser_appId"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerUser" DROP CONSTRAINT "FK_RumAppOwnerUser_createdBy"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerUser" DROP CONSTRAINT "FK_RumAppOwnerUser_deletedBy"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationLabelRule" DROP CONSTRAINT "FK_RumAppLabelRule_project"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationLabelRule" DROP CONSTRAINT "FK_RumAppLabelRule_createdBy"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationLabelRule" DROP CONSTRAINT "FK_RumAppLabelRule_deletedBy"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerRule" DROP CONSTRAINT "FK_RumAppOwnerRule_project"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerRule" DROP CONSTRAINT "FK_RumAppOwnerRule_createdBy"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerRule" DROP CONSTRAINT "FK_RumAppOwnerRule_deletedBy"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionInstance" DROP CONSTRAINT "FK_SrvlessFnInstance_project"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionInstance" DROP CONSTRAINT "FK_SrvlessFnInstance_fn"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionInstance" DROP CONSTRAINT "FK_SrvlessFnInstance_deletedBy"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceInstance" DROP CONSTRAINT "FK_CloudResInstance_project"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceInstance" DROP CONSTRAINT "FK_CloudResInstance_res"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceInstance" DROP CONSTRAINT "FK_CloudResInstance_deletedBy"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationClient" DROP CONSTRAINT "FK_RumAppClient_project"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationClient" DROP CONSTRAINT "FK_RumAppClient_app"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationClient" DROP CONSTRAINT "FK_RumAppClient_deletedBy"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionLabel" DROP CONSTRAINT "FK_ServerlessFunctionLabel_fnId"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionLabel" DROP CONSTRAINT "FK_ServerlessFunctionLabel_labelId"`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnLabelRuleMatchLabel" DROP CONSTRAINT "FK_SrvlessFnLRMatchLabel_rule"`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnLabelRuleMatchLabel" DROP CONSTRAINT "FK_SrvlessFnLRMatchLabel_label"`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnLabelRuleAddLabel" DROP CONSTRAINT "FK_SrvlessFnLRAddLabel_rule"`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnLabelRuleAddLabel" DROP CONSTRAINT "FK_SrvlessFnLRAddLabel_label"`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnOwnerRuleMatchLabel" DROP CONSTRAINT "FK_SrvlessFnORMatchLabel_rule"`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnOwnerRuleMatchLabel" DROP CONSTRAINT "FK_SrvlessFnORMatchLabel_label"`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnOwnerRuleUser" DROP CONSTRAINT "FK_SrvlessFnORUser_rule"`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnOwnerRuleUser" DROP CONSTRAINT "FK_SrvlessFnORUser_user"`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnOwnerRuleTeam" DROP CONSTRAINT "FK_SrvlessFnORTeam_rule"`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnOwnerRuleTeam" DROP CONSTRAINT "FK_SrvlessFnORTeam_team"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceLabel" DROP CONSTRAINT "FK_CloudResourceLabel_resId"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceLabel" DROP CONSTRAINT "FK_CloudResourceLabel_labelId"`);
-        await queryRunner.query(`ALTER TABLE "CloudResLabelRuleMatchLabel" DROP CONSTRAINT "FK_CloudResLRMatchLabel_rule"`);
-        await queryRunner.query(`ALTER TABLE "CloudResLabelRuleMatchLabel" DROP CONSTRAINT "FK_CloudResLRMatchLabel_label"`);
-        await queryRunner.query(`ALTER TABLE "CloudResLabelRuleAddLabel" DROP CONSTRAINT "FK_CloudResLRAddLabel_rule"`);
-        await queryRunner.query(`ALTER TABLE "CloudResLabelRuleAddLabel" DROP CONSTRAINT "FK_CloudResLRAddLabel_label"`);
-        await queryRunner.query(`ALTER TABLE "CloudResOwnerRuleMatchLabel" DROP CONSTRAINT "FK_CloudResORMatchLabel_rule"`);
-        await queryRunner.query(`ALTER TABLE "CloudResOwnerRuleMatchLabel" DROP CONSTRAINT "FK_CloudResORMatchLabel_label"`);
-        await queryRunner.query(`ALTER TABLE "CloudResOwnerRuleUser" DROP CONSTRAINT "FK_CloudResORUser_rule"`);
-        await queryRunner.query(`ALTER TABLE "CloudResOwnerRuleUser" DROP CONSTRAINT "FK_CloudResORUser_user"`);
-        await queryRunner.query(`ALTER TABLE "CloudResOwnerRuleTeam" DROP CONSTRAINT "FK_CloudResORTeam_rule"`);
-        await queryRunner.query(`ALTER TABLE "CloudResOwnerRuleTeam" DROP CONSTRAINT "FK_CloudResORTeam_team"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationLabel" DROP CONSTRAINT "FK_RumApplicationLabel_appId"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationLabel" DROP CONSTRAINT "FK_RumApplicationLabel_labelId"`);
-        await queryRunner.query(`ALTER TABLE "RumAppLabelRuleMatchLabel" DROP CONSTRAINT "FK_RumAppLRMatchLabel_rule"`);
-        await queryRunner.query(`ALTER TABLE "RumAppLabelRuleMatchLabel" DROP CONSTRAINT "FK_RumAppLRMatchLabel_label"`);
-        await queryRunner.query(`ALTER TABLE "RumAppLabelRuleAddLabel" DROP CONSTRAINT "FK_RumAppLRAddLabel_rule"`);
-        await queryRunner.query(`ALTER TABLE "RumAppLabelRuleAddLabel" DROP CONSTRAINT "FK_RumAppLRAddLabel_label"`);
-        await queryRunner.query(`ALTER TABLE "RumAppOwnerRuleMatchLabel" DROP CONSTRAINT "FK_RumAppORMatchLabel_rule"`);
-        await queryRunner.query(`ALTER TABLE "RumAppOwnerRuleMatchLabel" DROP CONSTRAINT "FK_RumAppORMatchLabel_label"`);
-        await queryRunner.query(`ALTER TABLE "RumAppOwnerRuleUser" DROP CONSTRAINT "FK_RumAppORUser_rule"`);
-        await queryRunner.query(`ALTER TABLE "RumAppOwnerRuleUser" DROP CONSTRAINT "FK_RumAppORUser_user"`);
-        await queryRunner.query(`ALTER TABLE "RumAppOwnerRuleTeam" DROP CONSTRAINT "FK_RumAppORTeam_rule"`);
-        await queryRunner.query(`ALTER TABLE "RumAppOwnerRuleTeam" DROP CONSTRAINT "FK_RumAppORTeam_team"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_ServerlessFunction_projectId"`);
-        await queryRunner.query(`DROP INDEX "public"."UQ_ServerlessFunction_project_fnId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnOwnerTeam_projectId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnOwnerTeam_teamId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnOwnerTeam_fnId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnOwnerTeam_notified"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnOwnerUser_projectId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnOwnerUser_userId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnOwnerUser_fnId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnOwnerUser_notified"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnLabelRule_projectId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnLabelRule_name"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnLabelRule_enabled"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnOwnerRule_projectId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnOwnerRule_name"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnOwnerRule_enabled"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResource_projectId"`);
-        await queryRunner.query(`DROP INDEX "public"."UQ_CloudResource_project_resId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResOwnerTeam_projectId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResOwnerTeam_teamId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResOwnerTeam_resId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResOwnerTeam_notified"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResOwnerUser_projectId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResOwnerUser_userId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResOwnerUser_resId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResOwnerUser_notified"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResLabelRule_projectId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResLabelRule_name"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResLabelRule_enabled"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResOwnerRule_projectId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResOwnerRule_name"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResOwnerRule_enabled"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumApplication_projectId"`);
-        await queryRunner.query(`DROP INDEX "public"."UQ_RumApplication_project_appId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppOwnerTeam_projectId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppOwnerTeam_teamId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppOwnerTeam_appId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppOwnerTeam_notified"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppOwnerUser_projectId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppOwnerUser_userId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppOwnerUser_appId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppOwnerUser_notified"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppLabelRule_projectId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppLabelRule_name"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppLabelRule_enabled"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppOwnerRule_projectId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppOwnerRule_name"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppOwnerRule_enabled"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnInstance_projectId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnInstance_fnId"`);
-        await queryRunner.query(`DROP INDEX "public"."UQ_SrvlessFnInstance"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResInstance_projectId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResInstance_resId"`);
-        await queryRunner.query(`DROP INDEX "public"."UQ_CloudResInstance"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppClient_projectId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppClient_appId"`);
-        await queryRunner.query(`DROP INDEX "public"."UQ_RumAppClient"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_ServerlessFunctionLabel_fnId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_ServerlessFunctionLabel_labelId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnLRMatchLabel_rule"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnLRMatchLabel_label"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnLRAddLabel_rule"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnLRAddLabel_label"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnORMatchLabel_rule"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnORMatchLabel_label"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnORUser_rule"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnORUser_user"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnORTeam_rule"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnORTeam_team"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResourceLabel_resId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResourceLabel_labelId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResLRMatchLabel_rule"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResLRMatchLabel_label"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResLRAddLabel_rule"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResLRAddLabel_label"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResORMatchLabel_rule"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResORMatchLabel_label"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResORUser_rule"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResORUser_user"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResORTeam_rule"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_CloudResORTeam_team"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumApplicationLabel_appId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumApplicationLabel_labelId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppLRMatchLabel_rule"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppLRMatchLabel_label"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppLRAddLabel_rule"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppLRAddLabel_label"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppORMatchLabel_rule"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppORMatchLabel_label"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppORUser_rule"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppORUser_user"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppORTeam_rule"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_RumAppORTeam_team"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunction" ALTER COLUMN "otelCollectorStatus" DROP DEFAULT`);
-        await queryRunner.query(`ALTER TABLE "CloudResource" ALTER COLUMN "otelCollectorStatus" DROP DEFAULT`);
-        await queryRunner.query(`ALTER TABLE "RumApplication" ALTER COLUMN "otelCollectorStatus" DROP DEFAULT`);
-        await queryRunner.query(`ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "rotation" SET DEFAULT '{"_type":"Recurring","value":{"intervalType":"Day","intervalCount":{"_type":"PositiveNumber","value":1}}}'`);
-        await queryRunner.query(`ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "restrictionTimes" SET DEFAULT '{"_type":"RestrictionTimes","value":{"restictionType":"None","dayRestrictionTimes":null,"weeklyRestrictionTimes":[]}}'`);
-        await queryRunner.query(`CREATE INDEX "IDX_b16b7affeb5793ecd3dc58c4a6" ON "ServerlessFunction" ("projectId") `);
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_4369ad15481f73946bac9ac812" ON "ServerlessFunction" ("projectId", "functionIdentifier") `);
-        await queryRunner.query(`CREATE INDEX "IDX_dd6b1287096882874874c5290c" ON "ServerlessFunctionOwnerTeam" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_43ce78bbb4416dace68a11993c" ON "ServerlessFunctionOwnerTeam" ("teamId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_41fd8c9c97f80d05bae045482d" ON "ServerlessFunctionOwnerTeam" ("serverlessFunctionId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_66975192263d30cf4b21a45224" ON "ServerlessFunctionOwnerTeam" ("isOwnerNotified") `);
-        await queryRunner.query(`CREATE INDEX "IDX_3ea6dea701688f242ae21c92d9" ON "ServerlessFunctionOwnerUser" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_86d34985dc74d32eed518bf99a" ON "ServerlessFunctionOwnerUser" ("userId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_1d4da971fa85b01185a764f9d8" ON "ServerlessFunctionOwnerUser" ("serverlessFunctionId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_39b65c21b58cd2c4577f08a446" ON "ServerlessFunctionOwnerUser" ("isOwnerNotified") `);
-        await queryRunner.query(`CREATE INDEX "IDX_c4e5ffa8f05588b14d643d1292" ON "ServerlessFunctionLabelRule" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_56a931e206b3052295e15bd3e9" ON "ServerlessFunctionLabelRule" ("name") `);
-        await queryRunner.query(`CREATE INDEX "IDX_50ddff960da0506551e94db1e2" ON "ServerlessFunctionLabelRule" ("isEnabled") `);
-        await queryRunner.query(`CREATE INDEX "IDX_b0df24ec5cb628791369383e08" ON "ServerlessFunctionOwnerRule" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_876a6396e3bd67863870ebac17" ON "ServerlessFunctionOwnerRule" ("name") `);
-        await queryRunner.query(`CREATE INDEX "IDX_b6add4e4b269e357e914fe5bc5" ON "ServerlessFunctionOwnerRule" ("isEnabled") `);
-        await queryRunner.query(`CREATE INDEX "IDX_520d345965957dcf8e57197827" ON "CloudResource" ("projectId") `);
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_2334544fb46e862340fde00483" ON "CloudResource" ("projectId", "resourceIdentifier") `);
-        await queryRunner.query(`CREATE INDEX "IDX_e422ec1a117bb98f12495e4ce0" ON "CloudResourceOwnerTeam" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_b91c8744641537e9efda8e55a4" ON "CloudResourceOwnerTeam" ("teamId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_bd531d8a2f001c574356f38ed9" ON "CloudResourceOwnerTeam" ("cloudResourceId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_f8c24a5cdb97d95e182919028c" ON "CloudResourceOwnerTeam" ("isOwnerNotified") `);
-        await queryRunner.query(`CREATE INDEX "IDX_3574eb0a3b64e37597666ccded" ON "CloudResourceOwnerUser" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_e4498bd8d14d91d82e8f4b006c" ON "CloudResourceOwnerUser" ("userId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_82ee3b6363b0299cc2dee56db3" ON "CloudResourceOwnerUser" ("cloudResourceId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_76c9462001cf657a859663a45f" ON "CloudResourceOwnerUser" ("isOwnerNotified") `);
-        await queryRunner.query(`CREATE INDEX "IDX_4e992bb0e3225691ef4df33eea" ON "CloudResourceLabelRule" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_1da7b3acbc60c3ab79e7dc22c3" ON "CloudResourceLabelRule" ("name") `);
-        await queryRunner.query(`CREATE INDEX "IDX_3d53bf33bcd16e18b91342324d" ON "CloudResourceLabelRule" ("isEnabled") `);
-        await queryRunner.query(`CREATE INDEX "IDX_29b58dffe677db582a2884f080" ON "CloudResourceOwnerRule" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_dcadeed4a3ca98dd0f3aa76f9e" ON "CloudResourceOwnerRule" ("name") `);
-        await queryRunner.query(`CREATE INDEX "IDX_eb35d08918fbfc6b55265e4ed3" ON "CloudResourceOwnerRule" ("isEnabled") `);
-        await queryRunner.query(`CREATE INDEX "IDX_2e58512f72e3cc5b73b376f73a" ON "RumApplication" ("projectId") `);
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_69b19243376bdf852486a402e8" ON "RumApplication" ("projectId", "appIdentifier") `);
-        await queryRunner.query(`CREATE INDEX "IDX_7ca109203702272cb8f1f2ff7f" ON "RumApplicationOwnerTeam" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_6f16b56ca482db14e0bad01c0d" ON "RumApplicationOwnerTeam" ("teamId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_cd51acf68bb52fabfc94a8a74f" ON "RumApplicationOwnerTeam" ("rumApplicationId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_22339804d2d11326fb450826d4" ON "RumApplicationOwnerTeam" ("isOwnerNotified") `);
-        await queryRunner.query(`CREATE INDEX "IDX_ba6aa4775c9b25e232d0173da5" ON "RumApplicationOwnerUser" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_f2a95b92634db8c309d61a2ae7" ON "RumApplicationOwnerUser" ("userId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_6f4d3413aec797ac54706cbb7c" ON "RumApplicationOwnerUser" ("isOwnerNotified") `);
-        await queryRunner.query(`CREATE INDEX "IDX_8283886c450a71e437e8e722be" ON "RumApplicationLabelRule" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_5a37a7fa6e523af803396815f1" ON "RumApplicationLabelRule" ("name") `);
-        await queryRunner.query(`CREATE INDEX "IDX_0bb318d5d482445c2f4d7ecd6e" ON "RumApplicationLabelRule" ("isEnabled") `);
-        await queryRunner.query(`CREATE INDEX "IDX_e4ad27bcdabbdb13a13d4da098" ON "RumApplicationOwnerRule" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_54a94c24dbde11134f318c15ef" ON "RumApplicationOwnerRule" ("name") `);
-        await queryRunner.query(`CREATE INDEX "IDX_ae7b75f743b1ef4dc58c60bed0" ON "RumApplicationOwnerRule" ("isEnabled") `);
-        await queryRunner.query(`CREATE INDEX "IDX_c74b4e122cc1ea60e61c36facf" ON "ServerlessFunctionInstance" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_9a8991148ce3874494a5d8a42b" ON "ServerlessFunctionInstance" ("serverlessFunctionId") `);
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_2c2b2a2d6651ded0fa6864a3c5" ON "ServerlessFunctionInstance" ("projectId", "serverlessFunctionId", "instanceName") `);
-        await queryRunner.query(`CREATE INDEX "IDX_f978c1f474e6e6ab22349f4457" ON "CloudResourceInstance" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_123b3426b2f54427a252eb4dfe" ON "CloudResourceInstance" ("cloudResourceId") `);
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_f95daa4bbad123697005d73d4c" ON "CloudResourceInstance" ("projectId", "cloudResourceId", "instanceName") `);
-        await queryRunner.query(`CREATE INDEX "IDX_6a690e73b1eacbf97169b0ab32" ON "RumApplicationClient" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_bb9e794272e9dfb7bd47e05638" ON "RumApplicationClient" ("rumApplicationId") `);
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_a85eab9ddb582dda4c40ebeb5c" ON "RumApplicationClient" ("projectId", "rumApplicationId", "clientName") `);
-        await queryRunner.query(`CREATE INDEX "IDX_27ac0e196f9399f000bb873ed2" ON "ServerlessFunctionLabel" ("serverlessFunctionId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_4e440b48ce1806dfdbc4c695aa" ON "ServerlessFunctionLabel" ("labelId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_224209310828585e6a0b2e46e8" ON "SrvlessFnLabelRuleMatchLabel" ("serverlessFunctionLabelRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_949b3c04e86751b627a14fb8dd" ON "SrvlessFnLabelRuleMatchLabel" ("labelId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_0292257a0a77d326d3bc844658" ON "SrvlessFnLabelRuleAddLabel" ("serverlessFunctionLabelRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_9ef2d85cf810fd75393f81c5bd" ON "SrvlessFnLabelRuleAddLabel" ("labelId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_a8a274f9e75238c0373ee478e7" ON "SrvlessFnOwnerRuleMatchLabel" ("serverlessFunctionOwnerRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_df5e6e60cb26f41e4c2792b1e1" ON "SrvlessFnOwnerRuleMatchLabel" ("labelId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_c30638ff7faab54c44ada4047b" ON "SrvlessFnOwnerRuleUser" ("serverlessFunctionOwnerRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_1fc202ba4489d07dff0d112c71" ON "SrvlessFnOwnerRuleUser" ("userId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_78d35986d93bf9cdf240c782b9" ON "SrvlessFnOwnerRuleTeam" ("serverlessFunctionOwnerRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_4acf525c91af2ae7b7867beb4f" ON "SrvlessFnOwnerRuleTeam" ("teamId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_c89e98391c374e1b3378fe8425" ON "CloudResourceLabel" ("cloudResourceId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_b3b34ca5b8afdcbdc86a4bc0d2" ON "CloudResourceLabel" ("labelId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_ffea71f6530a0fb9ec9e19694a" ON "CloudResLabelRuleMatchLabel" ("cloudResourceLabelRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_880f13095ca1680ae1793cb355" ON "CloudResLabelRuleMatchLabel" ("labelId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_defa63c4e8bf1bec34dd46aeb8" ON "CloudResLabelRuleAddLabel" ("cloudResourceLabelRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_1ff89ef8cae5a792a110179550" ON "CloudResLabelRuleAddLabel" ("labelId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_c7f89bc21b466ef49b3f5c14be" ON "CloudResOwnerRuleMatchLabel" ("cloudResourceOwnerRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_239bef0a8b6cd0088b656a68b7" ON "CloudResOwnerRuleMatchLabel" ("labelId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_c87fad064ffa77ef40bf0cdd4c" ON "CloudResOwnerRuleUser" ("cloudResourceOwnerRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_8e002a24561163eb2235b6dba6" ON "CloudResOwnerRuleUser" ("userId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_2c1859520a617410a9625e4ca7" ON "CloudResOwnerRuleTeam" ("cloudResourceOwnerRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_e009786272f20302f1b9ec74cb" ON "CloudResOwnerRuleTeam" ("teamId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_9a37f628f4e1566d56c437445d" ON "RumApplicationLabel" ("rumApplicationId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_f7f69e366de0e710996810c7b6" ON "RumApplicationLabel" ("labelId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_10b4bb81d96e679c5395698d33" ON "RumAppLabelRuleMatchLabel" ("rumApplicationLabelRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_8fbe82b56d72c3a689d04b8f7e" ON "RumAppLabelRuleMatchLabel" ("labelId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_dd6d82ac7d81c88b65d697b17e" ON "RumAppLabelRuleAddLabel" ("rumApplicationLabelRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_e02e70ad67ec428a68ac2a504c" ON "RumAppLabelRuleAddLabel" ("labelId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_0d2cf7012c960b8bb254215bde" ON "RumAppOwnerRuleMatchLabel" ("rumApplicationOwnerRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_3cadd596f4c75c34cae0727125" ON "RumAppOwnerRuleMatchLabel" ("labelId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_9efa96eaef574540a4bad14ed2" ON "RumAppOwnerRuleUser" ("rumApplicationOwnerRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_48bb8de26ea765cf468fab03ea" ON "RumAppOwnerRuleUser" ("userId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_179bfed0ac10d20802b091375e" ON "RumAppOwnerRuleTeam" ("rumApplicationOwnerRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_5ea0f94c7cde3f415b3a0ef751" ON "RumAppOwnerRuleTeam" ("teamId") `);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunction" ADD CONSTRAINT "FK_b16b7affeb5793ecd3dc58c4a64" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunction" ADD CONSTRAINT "FK_e57c59b51a524087aee73f9bf38" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunction" ADD CONSTRAINT "FK_1bc85c5dbcfc1d8204e6d1ec6dd" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerTeam" ADD CONSTRAINT "FK_dd6b1287096882874874c5290cf" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerTeam" ADD CONSTRAINT "FK_43ce78bbb4416dace68a11993c4" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerTeam" ADD CONSTRAINT "FK_41fd8c9c97f80d05bae045482db" FOREIGN KEY ("serverlessFunctionId") REFERENCES "ServerlessFunction"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerTeam" ADD CONSTRAINT "FK_24ee34a78bc2a3af0cf44d143c8" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerTeam" ADD CONSTRAINT "FK_41aed582e8366e5da5534ca48b2" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerUser" ADD CONSTRAINT "FK_3ea6dea701688f242ae21c92d95" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerUser" ADD CONSTRAINT "FK_86d34985dc74d32eed518bf99ac" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerUser" ADD CONSTRAINT "FK_1d4da971fa85b01185a764f9d88" FOREIGN KEY ("serverlessFunctionId") REFERENCES "ServerlessFunction"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerUser" ADD CONSTRAINT "FK_81552cc473aabaa7a07a41c60f6" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerUser" ADD CONSTRAINT "FK_1b9698f0dcda23603948eae2011" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionLabelRule" ADD CONSTRAINT "FK_c4e5ffa8f05588b14d643d1292f" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionLabelRule" ADD CONSTRAINT "FK_b566753dca8d8dfd519c026f403" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionLabelRule" ADD CONSTRAINT "FK_5d929df6cf765831b0da9dfc05f" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerRule" ADD CONSTRAINT "FK_b0df24ec5cb628791369383e087" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerRule" ADD CONSTRAINT "FK_5502c0539c59ed776f3296f7509" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerRule" ADD CONSTRAINT "FK_8f004744e44a2cb3ebadfae8680" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResource" ADD CONSTRAINT "FK_520d345965957dcf8e571978278" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResource" ADD CONSTRAINT "FK_71509884ac134b4a71a360de157" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResource" ADD CONSTRAINT "FK_44ac71e6f136a8e7be941a059ff" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerTeam" ADD CONSTRAINT "FK_e422ec1a117bb98f12495e4ce0c" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerTeam" ADD CONSTRAINT "FK_b91c8744641537e9efda8e55a46" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerTeam" ADD CONSTRAINT "FK_bd531d8a2f001c574356f38ed90" FOREIGN KEY ("cloudResourceId") REFERENCES "CloudResource"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerTeam" ADD CONSTRAINT "FK_6758f45945d19ed51b1007a6a4b" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerTeam" ADD CONSTRAINT "FK_a4fe1dbdefbd37ace0c5e5393da" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerUser" ADD CONSTRAINT "FK_3574eb0a3b64e37597666ccdede" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerUser" ADD CONSTRAINT "FK_e4498bd8d14d91d82e8f4b006c2" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerUser" ADD CONSTRAINT "FK_82ee3b6363b0299cc2dee56db38" FOREIGN KEY ("cloudResourceId") REFERENCES "CloudResource"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerUser" ADD CONSTRAINT "FK_6ff8050d1357261ae3a937e088c" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerUser" ADD CONSTRAINT "FK_50cf07eb5a5eb5ea2f87785cd8d" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceLabelRule" ADD CONSTRAINT "FK_4e992bb0e3225691ef4df33eead" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceLabelRule" ADD CONSTRAINT "FK_77b758257f62b14dd51060ed1d1" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceLabelRule" ADD CONSTRAINT "FK_33bf43a567e200eccf3f0d51bfd" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerRule" ADD CONSTRAINT "FK_29b58dffe677db582a2884f0806" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerRule" ADD CONSTRAINT "FK_741cd41cd623757722046fd4794" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerRule" ADD CONSTRAINT "FK_3d30c49af5ad8e0df6674ad3886" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplication" ADD CONSTRAINT "FK_2e58512f72e3cc5b73b376f73ae" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplication" ADD CONSTRAINT "FK_5d1615b2466b12a52b463511725" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplication" ADD CONSTRAINT "FK_6124efe14c3afc9213a76e12377" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerTeam" ADD CONSTRAINT "FK_7ca109203702272cb8f1f2ff7fa" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerTeam" ADD CONSTRAINT "FK_6f16b56ca482db14e0bad01c0dd" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerTeam" ADD CONSTRAINT "FK_cd51acf68bb52fabfc94a8a74fe" FOREIGN KEY ("rumApplicationId") REFERENCES "RumApplication"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerTeam" ADD CONSTRAINT "FK_64069956fcfc43ed52a8ef6500b" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerTeam" ADD CONSTRAINT "FK_296719dc20a708045708549d009" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerUser" ADD CONSTRAINT "FK_ba6aa4775c9b25e232d0173da52" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerUser" ADD CONSTRAINT "FK_f2a95b92634db8c309d61a2ae71" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerUser" ADD CONSTRAINT "FK_8a90e1be14c17fac33a421aa63d" FOREIGN KEY ("rumApplicationId") REFERENCES "RumApplication"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerUser" ADD CONSTRAINT "FK_0963f7e2c6050ec8299ef2b9a60" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerUser" ADD CONSTRAINT "FK_5342e8e7a9971da2c707f1d97e7" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationLabelRule" ADD CONSTRAINT "FK_8283886c450a71e437e8e722be1" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationLabelRule" ADD CONSTRAINT "FK_84d7c31ca8724b3d3d3d73a0ef4" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationLabelRule" ADD CONSTRAINT "FK_6479e0950c80c9e18095a977439" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerRule" ADD CONSTRAINT "FK_e4ad27bcdabbdb13a13d4da0981" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerRule" ADD CONSTRAINT "FK_382e8fbae0bb2a3445f920c553f" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerRule" ADD CONSTRAINT "FK_93a410a831bc0ed2700303451a0" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionInstance" ADD CONSTRAINT "FK_c74b4e122cc1ea60e61c36facf1" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionInstance" ADD CONSTRAINT "FK_9a8991148ce3874494a5d8a42bd" FOREIGN KEY ("serverlessFunctionId") REFERENCES "ServerlessFunction"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionInstance" ADD CONSTRAINT "FK_98359c94195808b927ae380e507" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceInstance" ADD CONSTRAINT "FK_f978c1f474e6e6ab22349f44570" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceInstance" ADD CONSTRAINT "FK_123b3426b2f54427a252eb4dfe1" FOREIGN KEY ("cloudResourceId") REFERENCES "CloudResource"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceInstance" ADD CONSTRAINT "FK_0e6004f3ae827f08ea33b39f888" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationClient" ADD CONSTRAINT "FK_6a690e73b1eacbf97169b0ab32e" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationClient" ADD CONSTRAINT "FK_bb9e794272e9dfb7bd47e05638f" FOREIGN KEY ("rumApplicationId") REFERENCES "RumApplication"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationClient" ADD CONSTRAINT "FK_b3f923b134abc79fbfa784e8330" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionLabel" ADD CONSTRAINT "FK_27ac0e196f9399f000bb873ed29" FOREIGN KEY ("serverlessFunctionId") REFERENCES "ServerlessFunction"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionLabel" ADD CONSTRAINT "FK_4e440b48ce1806dfdbc4c695aa8" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnLabelRuleMatchLabel" ADD CONSTRAINT "FK_224209310828585e6a0b2e46e87" FOREIGN KEY ("serverlessFunctionLabelRuleId") REFERENCES "ServerlessFunctionLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnLabelRuleMatchLabel" ADD CONSTRAINT "FK_949b3c04e86751b627a14fb8dd5" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnLabelRuleAddLabel" ADD CONSTRAINT "FK_0292257a0a77d326d3bc844658c" FOREIGN KEY ("serverlessFunctionLabelRuleId") REFERENCES "ServerlessFunctionLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnLabelRuleAddLabel" ADD CONSTRAINT "FK_9ef2d85cf810fd75393f81c5bd2" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnOwnerRuleMatchLabel" ADD CONSTRAINT "FK_a8a274f9e75238c0373ee478e76" FOREIGN KEY ("serverlessFunctionOwnerRuleId") REFERENCES "ServerlessFunctionOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnOwnerRuleMatchLabel" ADD CONSTRAINT "FK_df5e6e60cb26f41e4c2792b1e1c" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnOwnerRuleUser" ADD CONSTRAINT "FK_c30638ff7faab54c44ada4047bc" FOREIGN KEY ("serverlessFunctionOwnerRuleId") REFERENCES "ServerlessFunctionOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnOwnerRuleUser" ADD CONSTRAINT "FK_1fc202ba4489d07dff0d112c71e" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnOwnerRuleTeam" ADD CONSTRAINT "FK_78d35986d93bf9cdf240c782b98" FOREIGN KEY ("serverlessFunctionOwnerRuleId") REFERENCES "ServerlessFunctionOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnOwnerRuleTeam" ADD CONSTRAINT "FK_4acf525c91af2ae7b7867beb4fe" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceLabel" ADD CONSTRAINT "FK_c89e98391c374e1b3378fe84253" FOREIGN KEY ("cloudResourceId") REFERENCES "CloudResource"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceLabel" ADD CONSTRAINT "FK_b3b34ca5b8afdcbdc86a4bc0d27" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "CloudResLabelRuleMatchLabel" ADD CONSTRAINT "FK_ffea71f6530a0fb9ec9e19694aa" FOREIGN KEY ("cloudResourceLabelRuleId") REFERENCES "CloudResourceLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "CloudResLabelRuleMatchLabel" ADD CONSTRAINT "FK_880f13095ca1680ae1793cb355f" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "CloudResLabelRuleAddLabel" ADD CONSTRAINT "FK_defa63c4e8bf1bec34dd46aeb84" FOREIGN KEY ("cloudResourceLabelRuleId") REFERENCES "CloudResourceLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "CloudResLabelRuleAddLabel" ADD CONSTRAINT "FK_1ff89ef8cae5a792a110179550b" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "CloudResOwnerRuleMatchLabel" ADD CONSTRAINT "FK_c7f89bc21b466ef49b3f5c14be0" FOREIGN KEY ("cloudResourceOwnerRuleId") REFERENCES "CloudResourceOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "CloudResOwnerRuleMatchLabel" ADD CONSTRAINT "FK_239bef0a8b6cd0088b656a68b7e" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "CloudResOwnerRuleUser" ADD CONSTRAINT "FK_c87fad064ffa77ef40bf0cdd4c1" FOREIGN KEY ("cloudResourceOwnerRuleId") REFERENCES "CloudResourceOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "CloudResOwnerRuleUser" ADD CONSTRAINT "FK_8e002a24561163eb2235b6dba6e" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "CloudResOwnerRuleTeam" ADD CONSTRAINT "FK_2c1859520a617410a9625e4ca70" FOREIGN KEY ("cloudResourceOwnerRuleId") REFERENCES "CloudResourceOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "CloudResOwnerRuleTeam" ADD CONSTRAINT "FK_e009786272f20302f1b9ec74cb2" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationLabel" ADD CONSTRAINT "FK_9a37f628f4e1566d56c437445d3" FOREIGN KEY ("rumApplicationId") REFERENCES "RumApplication"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationLabel" ADD CONSTRAINT "FK_f7f69e366de0e710996810c7b6f" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "RumAppLabelRuleMatchLabel" ADD CONSTRAINT "FK_10b4bb81d96e679c5395698d33b" FOREIGN KEY ("rumApplicationLabelRuleId") REFERENCES "RumApplicationLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "RumAppLabelRuleMatchLabel" ADD CONSTRAINT "FK_8fbe82b56d72c3a689d04b8f7eb" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "RumAppLabelRuleAddLabel" ADD CONSTRAINT "FK_dd6d82ac7d81c88b65d697b17e6" FOREIGN KEY ("rumApplicationLabelRuleId") REFERENCES "RumApplicationLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "RumAppLabelRuleAddLabel" ADD CONSTRAINT "FK_e02e70ad67ec428a68ac2a504c2" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "RumAppOwnerRuleMatchLabel" ADD CONSTRAINT "FK_0d2cf7012c960b8bb254215bdec" FOREIGN KEY ("rumApplicationOwnerRuleId") REFERENCES "RumApplicationOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "RumAppOwnerRuleMatchLabel" ADD CONSTRAINT "FK_3cadd596f4c75c34cae07271250" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "RumAppOwnerRuleUser" ADD CONSTRAINT "FK_9efa96eaef574540a4bad14ed2c" FOREIGN KEY ("rumApplicationOwnerRuleId") REFERENCES "RumApplicationOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "RumAppOwnerRuleUser" ADD CONSTRAINT "FK_48bb8de26ea765cf468fab03ea0" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "RumAppOwnerRuleTeam" ADD CONSTRAINT "FK_179bfed0ac10d20802b091375ea" FOREIGN KEY ("rumApplicationOwnerRuleId") REFERENCES "RumApplicationOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "RumAppOwnerRuleTeam" ADD CONSTRAINT "FK_5ea0f94c7cde3f415b3a0ef7512" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-    }
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunction" DROP CONSTRAINT "FK_ServerlessFunction_projectId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunction" DROP CONSTRAINT "FK_ServerlessFunction_createdBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunction" DROP CONSTRAINT "FK_ServerlessFunction_deletedBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerTeam" DROP CONSTRAINT "FK_SrvlessFnOwnerTeam_projectId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerTeam" DROP CONSTRAINT "FK_SrvlessFnOwnerTeam_teamId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerTeam" DROP CONSTRAINT "FK_SrvlessFnOwnerTeam_fnId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerTeam" DROP CONSTRAINT "FK_SrvlessFnOwnerTeam_createdBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerTeam" DROP CONSTRAINT "FK_SrvlessFnOwnerTeam_deletedBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerUser" DROP CONSTRAINT "FK_SrvlessFnOwnerUser_projectId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerUser" DROP CONSTRAINT "FK_SrvlessFnOwnerUser_userId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerUser" DROP CONSTRAINT "FK_SrvlessFnOwnerUser_fnId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerUser" DROP CONSTRAINT "FK_SrvlessFnOwnerUser_createdBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerUser" DROP CONSTRAINT "FK_SrvlessFnOwnerUser_deletedBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionLabelRule" DROP CONSTRAINT "FK_SrvlessFnLabelRule_project"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionLabelRule" DROP CONSTRAINT "FK_SrvlessFnLabelRule_createdBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionLabelRule" DROP CONSTRAINT "FK_SrvlessFnLabelRule_deletedBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerRule" DROP CONSTRAINT "FK_SrvlessFnOwnerRule_project"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerRule" DROP CONSTRAINT "FK_SrvlessFnOwnerRule_createdBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerRule" DROP CONSTRAINT "FK_SrvlessFnOwnerRule_deletedBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResource" DROP CONSTRAINT "FK_CloudResource_projectId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResource" DROP CONSTRAINT "FK_CloudResource_createdBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResource" DROP CONSTRAINT "FK_CloudResource_deletedBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerTeam" DROP CONSTRAINT "FK_CloudResOwnerTeam_projectId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerTeam" DROP CONSTRAINT "FK_CloudResOwnerTeam_teamId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerTeam" DROP CONSTRAINT "FK_CloudResOwnerTeam_resId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerTeam" DROP CONSTRAINT "FK_CloudResOwnerTeam_createdBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerTeam" DROP CONSTRAINT "FK_CloudResOwnerTeam_deletedBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerUser" DROP CONSTRAINT "FK_CloudResOwnerUser_projectId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerUser" DROP CONSTRAINT "FK_CloudResOwnerUser_userId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerUser" DROP CONSTRAINT "FK_CloudResOwnerUser_resId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerUser" DROP CONSTRAINT "FK_CloudResOwnerUser_createdBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerUser" DROP CONSTRAINT "FK_CloudResOwnerUser_deletedBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceLabelRule" DROP CONSTRAINT "FK_CloudResLabelRule_project"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceLabelRule" DROP CONSTRAINT "FK_CloudResLabelRule_createdBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceLabelRule" DROP CONSTRAINT "FK_CloudResLabelRule_deletedBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerRule" DROP CONSTRAINT "FK_CloudResOwnerRule_project"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerRule" DROP CONSTRAINT "FK_CloudResOwnerRule_createdBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerRule" DROP CONSTRAINT "FK_CloudResOwnerRule_deletedBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplication" DROP CONSTRAINT "FK_RumApplication_projectId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplication" DROP CONSTRAINT "FK_RumApplication_createdBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplication" DROP CONSTRAINT "FK_RumApplication_deletedBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerTeam" DROP CONSTRAINT "FK_RumAppOwnerTeam_projectId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerTeam" DROP CONSTRAINT "FK_RumAppOwnerTeam_teamId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerTeam" DROP CONSTRAINT "FK_RumAppOwnerTeam_appId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerTeam" DROP CONSTRAINT "FK_RumAppOwnerTeam_createdBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerTeam" DROP CONSTRAINT "FK_RumAppOwnerTeam_deletedBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerUser" DROP CONSTRAINT "FK_RumAppOwnerUser_projectId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerUser" DROP CONSTRAINT "FK_RumAppOwnerUser_userId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerUser" DROP CONSTRAINT "FK_RumAppOwnerUser_appId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerUser" DROP CONSTRAINT "FK_RumAppOwnerUser_createdBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerUser" DROP CONSTRAINT "FK_RumAppOwnerUser_deletedBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationLabelRule" DROP CONSTRAINT "FK_RumAppLabelRule_project"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationLabelRule" DROP CONSTRAINT "FK_RumAppLabelRule_createdBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationLabelRule" DROP CONSTRAINT "FK_RumAppLabelRule_deletedBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerRule" DROP CONSTRAINT "FK_RumAppOwnerRule_project"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerRule" DROP CONSTRAINT "FK_RumAppOwnerRule_createdBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerRule" DROP CONSTRAINT "FK_RumAppOwnerRule_deletedBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionInstance" DROP CONSTRAINT "FK_SrvlessFnInstance_project"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionInstance" DROP CONSTRAINT "FK_SrvlessFnInstance_fn"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionInstance" DROP CONSTRAINT "FK_SrvlessFnInstance_deletedBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceInstance" DROP CONSTRAINT "FK_CloudResInstance_project"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceInstance" DROP CONSTRAINT "FK_CloudResInstance_res"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceInstance" DROP CONSTRAINT "FK_CloudResInstance_deletedBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationClient" DROP CONSTRAINT "FK_RumAppClient_project"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationClient" DROP CONSTRAINT "FK_RumAppClient_app"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationClient" DROP CONSTRAINT "FK_RumAppClient_deletedBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionLabel" DROP CONSTRAINT "FK_ServerlessFunctionLabel_fnId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionLabel" DROP CONSTRAINT "FK_ServerlessFunctionLabel_labelId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnLabelRuleMatchLabel" DROP CONSTRAINT "FK_SrvlessFnLRMatchLabel_rule"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnLabelRuleMatchLabel" DROP CONSTRAINT "FK_SrvlessFnLRMatchLabel_label"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnLabelRuleAddLabel" DROP CONSTRAINT "FK_SrvlessFnLRAddLabel_rule"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnLabelRuleAddLabel" DROP CONSTRAINT "FK_SrvlessFnLRAddLabel_label"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnOwnerRuleMatchLabel" DROP CONSTRAINT "FK_SrvlessFnORMatchLabel_rule"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnOwnerRuleMatchLabel" DROP CONSTRAINT "FK_SrvlessFnORMatchLabel_label"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnOwnerRuleUser" DROP CONSTRAINT "FK_SrvlessFnORUser_rule"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnOwnerRuleUser" DROP CONSTRAINT "FK_SrvlessFnORUser_user"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnOwnerRuleTeam" DROP CONSTRAINT "FK_SrvlessFnORTeam_rule"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnOwnerRuleTeam" DROP CONSTRAINT "FK_SrvlessFnORTeam_team"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceLabel" DROP CONSTRAINT "FK_CloudResourceLabel_resId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceLabel" DROP CONSTRAINT "FK_CloudResourceLabel_labelId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResLabelRuleMatchLabel" DROP CONSTRAINT "FK_CloudResLRMatchLabel_rule"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResLabelRuleMatchLabel" DROP CONSTRAINT "FK_CloudResLRMatchLabel_label"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResLabelRuleAddLabel" DROP CONSTRAINT "FK_CloudResLRAddLabel_rule"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResLabelRuleAddLabel" DROP CONSTRAINT "FK_CloudResLRAddLabel_label"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResOwnerRuleMatchLabel" DROP CONSTRAINT "FK_CloudResORMatchLabel_rule"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResOwnerRuleMatchLabel" DROP CONSTRAINT "FK_CloudResORMatchLabel_label"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResOwnerRuleUser" DROP CONSTRAINT "FK_CloudResORUser_rule"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResOwnerRuleUser" DROP CONSTRAINT "FK_CloudResORUser_user"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResOwnerRuleTeam" DROP CONSTRAINT "FK_CloudResORTeam_rule"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResOwnerRuleTeam" DROP CONSTRAINT "FK_CloudResORTeam_team"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationLabel" DROP CONSTRAINT "FK_RumApplicationLabel_appId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationLabel" DROP CONSTRAINT "FK_RumApplicationLabel_labelId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppLabelRuleMatchLabel" DROP CONSTRAINT "FK_RumAppLRMatchLabel_rule"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppLabelRuleMatchLabel" DROP CONSTRAINT "FK_RumAppLRMatchLabel_label"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppLabelRuleAddLabel" DROP CONSTRAINT "FK_RumAppLRAddLabel_rule"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppLabelRuleAddLabel" DROP CONSTRAINT "FK_RumAppLRAddLabel_label"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppOwnerRuleMatchLabel" DROP CONSTRAINT "FK_RumAppORMatchLabel_rule"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppOwnerRuleMatchLabel" DROP CONSTRAINT "FK_RumAppORMatchLabel_label"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppOwnerRuleUser" DROP CONSTRAINT "FK_RumAppORUser_rule"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppOwnerRuleUser" DROP CONSTRAINT "FK_RumAppORUser_user"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppOwnerRuleTeam" DROP CONSTRAINT "FK_RumAppORTeam_rule"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppOwnerRuleTeam" DROP CONSTRAINT "FK_RumAppORTeam_team"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_ServerlessFunction_projectId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."UQ_ServerlessFunction_project_fnId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_SrvlessFnOwnerTeam_projectId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_SrvlessFnOwnerTeam_teamId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_SrvlessFnOwnerTeam_fnId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_SrvlessFnOwnerTeam_notified"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_SrvlessFnOwnerUser_projectId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_SrvlessFnOwnerUser_userId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_SrvlessFnOwnerUser_fnId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_SrvlessFnOwnerUser_notified"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_SrvlessFnLabelRule_projectId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_SrvlessFnLabelRule_name"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_SrvlessFnLabelRule_enabled"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_SrvlessFnOwnerRule_projectId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_SrvlessFnOwnerRule_name"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_SrvlessFnOwnerRule_enabled"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResource_projectId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."UQ_CloudResource_project_resId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResOwnerTeam_projectId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResOwnerTeam_teamId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResOwnerTeam_resId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResOwnerTeam_notified"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResOwnerUser_projectId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResOwnerUser_userId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResOwnerUser_resId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResOwnerUser_notified"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResLabelRule_projectId"`,
+    );
+    await queryRunner.query(`DROP INDEX "public"."IDX_CloudResLabelRule_name"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResLabelRule_enabled"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResOwnerRule_projectId"`,
+    );
+    await queryRunner.query(`DROP INDEX "public"."IDX_CloudResOwnerRule_name"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResOwnerRule_enabled"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_RumApplication_projectId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."UQ_RumApplication_project_appId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_RumAppOwnerTeam_projectId"`,
+    );
+    await queryRunner.query(`DROP INDEX "public"."IDX_RumAppOwnerTeam_teamId"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_RumAppOwnerTeam_appId"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_RumAppOwnerTeam_notified"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_RumAppOwnerUser_projectId"`,
+    );
+    await queryRunner.query(`DROP INDEX "public"."IDX_RumAppOwnerUser_userId"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_RumAppOwnerUser_appId"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_RumAppOwnerUser_notified"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_RumAppLabelRule_projectId"`,
+    );
+    await queryRunner.query(`DROP INDEX "public"."IDX_RumAppLabelRule_name"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_RumAppLabelRule_enabled"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_RumAppOwnerRule_projectId"`,
+    );
+    await queryRunner.query(`DROP INDEX "public"."IDX_RumAppOwnerRule_name"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_RumAppOwnerRule_enabled"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_SrvlessFnInstance_projectId"`,
+    );
+    await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnInstance_fnId"`);
+    await queryRunner.query(`DROP INDEX "public"."UQ_SrvlessFnInstance"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResInstance_projectId"`,
+    );
+    await queryRunner.query(`DROP INDEX "public"."IDX_CloudResInstance_resId"`);
+    await queryRunner.query(`DROP INDEX "public"."UQ_CloudResInstance"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_RumAppClient_projectId"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_RumAppClient_appId"`);
+    await queryRunner.query(`DROP INDEX "public"."UQ_RumAppClient"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_ServerlessFunctionLabel_fnId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_ServerlessFunctionLabel_labelId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_SrvlessFnLRMatchLabel_rule"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_SrvlessFnLRMatchLabel_label"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_SrvlessFnLRAddLabel_rule"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_SrvlessFnLRAddLabel_label"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_SrvlessFnORMatchLabel_rule"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_SrvlessFnORMatchLabel_label"`,
+    );
+    await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnORUser_rule"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnORUser_user"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnORTeam_rule"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_SrvlessFnORTeam_team"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResourceLabel_resId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResourceLabel_labelId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResLRMatchLabel_rule"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResLRMatchLabel_label"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResLRAddLabel_rule"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResLRAddLabel_label"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResORMatchLabel_rule"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_CloudResORMatchLabel_label"`,
+    );
+    await queryRunner.query(`DROP INDEX "public"."IDX_CloudResORUser_rule"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_CloudResORUser_user"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_CloudResORTeam_rule"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_CloudResORTeam_team"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_RumApplicationLabel_appId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_RumApplicationLabel_labelId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_RumAppLRMatchLabel_rule"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_RumAppLRMatchLabel_label"`,
+    );
+    await queryRunner.query(`DROP INDEX "public"."IDX_RumAppLRAddLabel_rule"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_RumAppLRAddLabel_label"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_RumAppORMatchLabel_rule"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_RumAppORMatchLabel_label"`,
+    );
+    await queryRunner.query(`DROP INDEX "public"."IDX_RumAppORUser_rule"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_RumAppORUser_user"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_RumAppORTeam_rule"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_RumAppORTeam_team"`);
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunction" ALTER COLUMN "otelCollectorStatus" DROP DEFAULT`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResource" ALTER COLUMN "otelCollectorStatus" DROP DEFAULT`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplication" ALTER COLUMN "otelCollectorStatus" DROP DEFAULT`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "rotation" SET DEFAULT '{"_type":"Recurring","value":{"intervalType":"Day","intervalCount":{"_type":"PositiveNumber","value":1}}}'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "restrictionTimes" SET DEFAULT '{"_type":"RestrictionTimes","value":{"restictionType":"None","dayRestrictionTimes":null,"weeklyRestrictionTimes":[]}}'`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_b16b7affeb5793ecd3dc58c4a6" ON "ServerlessFunction" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_4369ad15481f73946bac9ac812" ON "ServerlessFunction" ("projectId", "functionIdentifier") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_dd6b1287096882874874c5290c" ON "ServerlessFunctionOwnerTeam" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_43ce78bbb4416dace68a11993c" ON "ServerlessFunctionOwnerTeam" ("teamId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_41fd8c9c97f80d05bae045482d" ON "ServerlessFunctionOwnerTeam" ("serverlessFunctionId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_66975192263d30cf4b21a45224" ON "ServerlessFunctionOwnerTeam" ("isOwnerNotified") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_3ea6dea701688f242ae21c92d9" ON "ServerlessFunctionOwnerUser" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_86d34985dc74d32eed518bf99a" ON "ServerlessFunctionOwnerUser" ("userId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_1d4da971fa85b01185a764f9d8" ON "ServerlessFunctionOwnerUser" ("serverlessFunctionId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_39b65c21b58cd2c4577f08a446" ON "ServerlessFunctionOwnerUser" ("isOwnerNotified") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_c4e5ffa8f05588b14d643d1292" ON "ServerlessFunctionLabelRule" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_56a931e206b3052295e15bd3e9" ON "ServerlessFunctionLabelRule" ("name") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_50ddff960da0506551e94db1e2" ON "ServerlessFunctionLabelRule" ("isEnabled") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_b0df24ec5cb628791369383e08" ON "ServerlessFunctionOwnerRule" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_876a6396e3bd67863870ebac17" ON "ServerlessFunctionOwnerRule" ("name") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_b6add4e4b269e357e914fe5bc5" ON "ServerlessFunctionOwnerRule" ("isEnabled") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_520d345965957dcf8e57197827" ON "CloudResource" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_2334544fb46e862340fde00483" ON "CloudResource" ("projectId", "resourceIdentifier") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_e422ec1a117bb98f12495e4ce0" ON "CloudResourceOwnerTeam" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_b91c8744641537e9efda8e55a4" ON "CloudResourceOwnerTeam" ("teamId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_bd531d8a2f001c574356f38ed9" ON "CloudResourceOwnerTeam" ("cloudResourceId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_f8c24a5cdb97d95e182919028c" ON "CloudResourceOwnerTeam" ("isOwnerNotified") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_3574eb0a3b64e37597666ccded" ON "CloudResourceOwnerUser" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_e4498bd8d14d91d82e8f4b006c" ON "CloudResourceOwnerUser" ("userId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_82ee3b6363b0299cc2dee56db3" ON "CloudResourceOwnerUser" ("cloudResourceId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_76c9462001cf657a859663a45f" ON "CloudResourceOwnerUser" ("isOwnerNotified") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_4e992bb0e3225691ef4df33eea" ON "CloudResourceLabelRule" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_1da7b3acbc60c3ab79e7dc22c3" ON "CloudResourceLabelRule" ("name") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_3d53bf33bcd16e18b91342324d" ON "CloudResourceLabelRule" ("isEnabled") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_29b58dffe677db582a2884f080" ON "CloudResourceOwnerRule" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_dcadeed4a3ca98dd0f3aa76f9e" ON "CloudResourceOwnerRule" ("name") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_eb35d08918fbfc6b55265e4ed3" ON "CloudResourceOwnerRule" ("isEnabled") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_2e58512f72e3cc5b73b376f73a" ON "RumApplication" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_69b19243376bdf852486a402e8" ON "RumApplication" ("projectId", "appIdentifier") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_7ca109203702272cb8f1f2ff7f" ON "RumApplicationOwnerTeam" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_6f16b56ca482db14e0bad01c0d" ON "RumApplicationOwnerTeam" ("teamId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_cd51acf68bb52fabfc94a8a74f" ON "RumApplicationOwnerTeam" ("rumApplicationId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_22339804d2d11326fb450826d4" ON "RumApplicationOwnerTeam" ("isOwnerNotified") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_ba6aa4775c9b25e232d0173da5" ON "RumApplicationOwnerUser" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_f2a95b92634db8c309d61a2ae7" ON "RumApplicationOwnerUser" ("userId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_6f4d3413aec797ac54706cbb7c" ON "RumApplicationOwnerUser" ("isOwnerNotified") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_8283886c450a71e437e8e722be" ON "RumApplicationLabelRule" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_5a37a7fa6e523af803396815f1" ON "RumApplicationLabelRule" ("name") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_0bb318d5d482445c2f4d7ecd6e" ON "RumApplicationLabelRule" ("isEnabled") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_e4ad27bcdabbdb13a13d4da098" ON "RumApplicationOwnerRule" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_54a94c24dbde11134f318c15ef" ON "RumApplicationOwnerRule" ("name") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_ae7b75f743b1ef4dc58c60bed0" ON "RumApplicationOwnerRule" ("isEnabled") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_c74b4e122cc1ea60e61c36facf" ON "ServerlessFunctionInstance" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_9a8991148ce3874494a5d8a42b" ON "ServerlessFunctionInstance" ("serverlessFunctionId") `,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_2c2b2a2d6651ded0fa6864a3c5" ON "ServerlessFunctionInstance" ("projectId", "serverlessFunctionId", "instanceName") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_f978c1f474e6e6ab22349f4457" ON "CloudResourceInstance" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_123b3426b2f54427a252eb4dfe" ON "CloudResourceInstance" ("cloudResourceId") `,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_f95daa4bbad123697005d73d4c" ON "CloudResourceInstance" ("projectId", "cloudResourceId", "instanceName") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_6a690e73b1eacbf97169b0ab32" ON "RumApplicationClient" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_bb9e794272e9dfb7bd47e05638" ON "RumApplicationClient" ("rumApplicationId") `,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_a85eab9ddb582dda4c40ebeb5c" ON "RumApplicationClient" ("projectId", "rumApplicationId", "clientName") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_27ac0e196f9399f000bb873ed2" ON "ServerlessFunctionLabel" ("serverlessFunctionId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_4e440b48ce1806dfdbc4c695aa" ON "ServerlessFunctionLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_224209310828585e6a0b2e46e8" ON "SrvlessFnLabelRuleMatchLabel" ("serverlessFunctionLabelRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_949b3c04e86751b627a14fb8dd" ON "SrvlessFnLabelRuleMatchLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_0292257a0a77d326d3bc844658" ON "SrvlessFnLabelRuleAddLabel" ("serverlessFunctionLabelRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_9ef2d85cf810fd75393f81c5bd" ON "SrvlessFnLabelRuleAddLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_a8a274f9e75238c0373ee478e7" ON "SrvlessFnOwnerRuleMatchLabel" ("serverlessFunctionOwnerRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_df5e6e60cb26f41e4c2792b1e1" ON "SrvlessFnOwnerRuleMatchLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_c30638ff7faab54c44ada4047b" ON "SrvlessFnOwnerRuleUser" ("serverlessFunctionOwnerRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_1fc202ba4489d07dff0d112c71" ON "SrvlessFnOwnerRuleUser" ("userId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_78d35986d93bf9cdf240c782b9" ON "SrvlessFnOwnerRuleTeam" ("serverlessFunctionOwnerRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_4acf525c91af2ae7b7867beb4f" ON "SrvlessFnOwnerRuleTeam" ("teamId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_c89e98391c374e1b3378fe8425" ON "CloudResourceLabel" ("cloudResourceId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_b3b34ca5b8afdcbdc86a4bc0d2" ON "CloudResourceLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_ffea71f6530a0fb9ec9e19694a" ON "CloudResLabelRuleMatchLabel" ("cloudResourceLabelRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_880f13095ca1680ae1793cb355" ON "CloudResLabelRuleMatchLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_defa63c4e8bf1bec34dd46aeb8" ON "CloudResLabelRuleAddLabel" ("cloudResourceLabelRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_1ff89ef8cae5a792a110179550" ON "CloudResLabelRuleAddLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_c7f89bc21b466ef49b3f5c14be" ON "CloudResOwnerRuleMatchLabel" ("cloudResourceOwnerRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_239bef0a8b6cd0088b656a68b7" ON "CloudResOwnerRuleMatchLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_c87fad064ffa77ef40bf0cdd4c" ON "CloudResOwnerRuleUser" ("cloudResourceOwnerRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_8e002a24561163eb2235b6dba6" ON "CloudResOwnerRuleUser" ("userId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_2c1859520a617410a9625e4ca7" ON "CloudResOwnerRuleTeam" ("cloudResourceOwnerRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_e009786272f20302f1b9ec74cb" ON "CloudResOwnerRuleTeam" ("teamId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_9a37f628f4e1566d56c437445d" ON "RumApplicationLabel" ("rumApplicationId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_f7f69e366de0e710996810c7b6" ON "RumApplicationLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_10b4bb81d96e679c5395698d33" ON "RumAppLabelRuleMatchLabel" ("rumApplicationLabelRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_8fbe82b56d72c3a689d04b8f7e" ON "RumAppLabelRuleMatchLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_dd6d82ac7d81c88b65d697b17e" ON "RumAppLabelRuleAddLabel" ("rumApplicationLabelRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_e02e70ad67ec428a68ac2a504c" ON "RumAppLabelRuleAddLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_0d2cf7012c960b8bb254215bde" ON "RumAppOwnerRuleMatchLabel" ("rumApplicationOwnerRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_3cadd596f4c75c34cae0727125" ON "RumAppOwnerRuleMatchLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_9efa96eaef574540a4bad14ed2" ON "RumAppOwnerRuleUser" ("rumApplicationOwnerRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_48bb8de26ea765cf468fab03ea" ON "RumAppOwnerRuleUser" ("userId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_179bfed0ac10d20802b091375e" ON "RumAppOwnerRuleTeam" ("rumApplicationOwnerRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_5ea0f94c7cde3f415b3a0ef751" ON "RumAppOwnerRuleTeam" ("teamId") `,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunction" ADD CONSTRAINT "FK_b16b7affeb5793ecd3dc58c4a64" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunction" ADD CONSTRAINT "FK_e57c59b51a524087aee73f9bf38" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunction" ADD CONSTRAINT "FK_1bc85c5dbcfc1d8204e6d1ec6dd" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerTeam" ADD CONSTRAINT "FK_dd6b1287096882874874c5290cf" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerTeam" ADD CONSTRAINT "FK_43ce78bbb4416dace68a11993c4" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerTeam" ADD CONSTRAINT "FK_41fd8c9c97f80d05bae045482db" FOREIGN KEY ("serverlessFunctionId") REFERENCES "ServerlessFunction"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerTeam" ADD CONSTRAINT "FK_24ee34a78bc2a3af0cf44d143c8" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerTeam" ADD CONSTRAINT "FK_41aed582e8366e5da5534ca48b2" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerUser" ADD CONSTRAINT "FK_3ea6dea701688f242ae21c92d95" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerUser" ADD CONSTRAINT "FK_86d34985dc74d32eed518bf99ac" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerUser" ADD CONSTRAINT "FK_1d4da971fa85b01185a764f9d88" FOREIGN KEY ("serverlessFunctionId") REFERENCES "ServerlessFunction"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerUser" ADD CONSTRAINT "FK_81552cc473aabaa7a07a41c60f6" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerUser" ADD CONSTRAINT "FK_1b9698f0dcda23603948eae2011" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionLabelRule" ADD CONSTRAINT "FK_c4e5ffa8f05588b14d643d1292f" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionLabelRule" ADD CONSTRAINT "FK_b566753dca8d8dfd519c026f403" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionLabelRule" ADD CONSTRAINT "FK_5d929df6cf765831b0da9dfc05f" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerRule" ADD CONSTRAINT "FK_b0df24ec5cb628791369383e087" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerRule" ADD CONSTRAINT "FK_5502c0539c59ed776f3296f7509" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerRule" ADD CONSTRAINT "FK_8f004744e44a2cb3ebadfae8680" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResource" ADD CONSTRAINT "FK_520d345965957dcf8e571978278" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResource" ADD CONSTRAINT "FK_71509884ac134b4a71a360de157" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResource" ADD CONSTRAINT "FK_44ac71e6f136a8e7be941a059ff" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerTeam" ADD CONSTRAINT "FK_e422ec1a117bb98f12495e4ce0c" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerTeam" ADD CONSTRAINT "FK_b91c8744641537e9efda8e55a46" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerTeam" ADD CONSTRAINT "FK_bd531d8a2f001c574356f38ed90" FOREIGN KEY ("cloudResourceId") REFERENCES "CloudResource"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerTeam" ADD CONSTRAINT "FK_6758f45945d19ed51b1007a6a4b" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerTeam" ADD CONSTRAINT "FK_a4fe1dbdefbd37ace0c5e5393da" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerUser" ADD CONSTRAINT "FK_3574eb0a3b64e37597666ccdede" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerUser" ADD CONSTRAINT "FK_e4498bd8d14d91d82e8f4b006c2" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerUser" ADD CONSTRAINT "FK_82ee3b6363b0299cc2dee56db38" FOREIGN KEY ("cloudResourceId") REFERENCES "CloudResource"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerUser" ADD CONSTRAINT "FK_6ff8050d1357261ae3a937e088c" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerUser" ADD CONSTRAINT "FK_50cf07eb5a5eb5ea2f87785cd8d" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceLabelRule" ADD CONSTRAINT "FK_4e992bb0e3225691ef4df33eead" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceLabelRule" ADD CONSTRAINT "FK_77b758257f62b14dd51060ed1d1" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceLabelRule" ADD CONSTRAINT "FK_33bf43a567e200eccf3f0d51bfd" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerRule" ADD CONSTRAINT "FK_29b58dffe677db582a2884f0806" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerRule" ADD CONSTRAINT "FK_741cd41cd623757722046fd4794" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerRule" ADD CONSTRAINT "FK_3d30c49af5ad8e0df6674ad3886" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplication" ADD CONSTRAINT "FK_2e58512f72e3cc5b73b376f73ae" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplication" ADD CONSTRAINT "FK_5d1615b2466b12a52b463511725" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplication" ADD CONSTRAINT "FK_6124efe14c3afc9213a76e12377" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerTeam" ADD CONSTRAINT "FK_7ca109203702272cb8f1f2ff7fa" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerTeam" ADD CONSTRAINT "FK_6f16b56ca482db14e0bad01c0dd" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerTeam" ADD CONSTRAINT "FK_cd51acf68bb52fabfc94a8a74fe" FOREIGN KEY ("rumApplicationId") REFERENCES "RumApplication"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerTeam" ADD CONSTRAINT "FK_64069956fcfc43ed52a8ef6500b" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerTeam" ADD CONSTRAINT "FK_296719dc20a708045708549d009" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerUser" ADD CONSTRAINT "FK_ba6aa4775c9b25e232d0173da52" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerUser" ADD CONSTRAINT "FK_f2a95b92634db8c309d61a2ae71" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerUser" ADD CONSTRAINT "FK_8a90e1be14c17fac33a421aa63d" FOREIGN KEY ("rumApplicationId") REFERENCES "RumApplication"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerUser" ADD CONSTRAINT "FK_0963f7e2c6050ec8299ef2b9a60" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerUser" ADD CONSTRAINT "FK_5342e8e7a9971da2c707f1d97e7" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationLabelRule" ADD CONSTRAINT "FK_8283886c450a71e437e8e722be1" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationLabelRule" ADD CONSTRAINT "FK_84d7c31ca8724b3d3d3d73a0ef4" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationLabelRule" ADD CONSTRAINT "FK_6479e0950c80c9e18095a977439" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerRule" ADD CONSTRAINT "FK_e4ad27bcdabbdb13a13d4da0981" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerRule" ADD CONSTRAINT "FK_382e8fbae0bb2a3445f920c553f" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerRule" ADD CONSTRAINT "FK_93a410a831bc0ed2700303451a0" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionInstance" ADD CONSTRAINT "FK_c74b4e122cc1ea60e61c36facf1" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionInstance" ADD CONSTRAINT "FK_9a8991148ce3874494a5d8a42bd" FOREIGN KEY ("serverlessFunctionId") REFERENCES "ServerlessFunction"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionInstance" ADD CONSTRAINT "FK_98359c94195808b927ae380e507" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceInstance" ADD CONSTRAINT "FK_f978c1f474e6e6ab22349f44570" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceInstance" ADD CONSTRAINT "FK_123b3426b2f54427a252eb4dfe1" FOREIGN KEY ("cloudResourceId") REFERENCES "CloudResource"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceInstance" ADD CONSTRAINT "FK_0e6004f3ae827f08ea33b39f888" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationClient" ADD CONSTRAINT "FK_6a690e73b1eacbf97169b0ab32e" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationClient" ADD CONSTRAINT "FK_bb9e794272e9dfb7bd47e05638f" FOREIGN KEY ("rumApplicationId") REFERENCES "RumApplication"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationClient" ADD CONSTRAINT "FK_b3f923b134abc79fbfa784e8330" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionLabel" ADD CONSTRAINT "FK_27ac0e196f9399f000bb873ed29" FOREIGN KEY ("serverlessFunctionId") REFERENCES "ServerlessFunction"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionLabel" ADD CONSTRAINT "FK_4e440b48ce1806dfdbc4c695aa8" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnLabelRuleMatchLabel" ADD CONSTRAINT "FK_224209310828585e6a0b2e46e87" FOREIGN KEY ("serverlessFunctionLabelRuleId") REFERENCES "ServerlessFunctionLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnLabelRuleMatchLabel" ADD CONSTRAINT "FK_949b3c04e86751b627a14fb8dd5" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnLabelRuleAddLabel" ADD CONSTRAINT "FK_0292257a0a77d326d3bc844658c" FOREIGN KEY ("serverlessFunctionLabelRuleId") REFERENCES "ServerlessFunctionLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnLabelRuleAddLabel" ADD CONSTRAINT "FK_9ef2d85cf810fd75393f81c5bd2" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnOwnerRuleMatchLabel" ADD CONSTRAINT "FK_a8a274f9e75238c0373ee478e76" FOREIGN KEY ("serverlessFunctionOwnerRuleId") REFERENCES "ServerlessFunctionOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnOwnerRuleMatchLabel" ADD CONSTRAINT "FK_df5e6e60cb26f41e4c2792b1e1c" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnOwnerRuleUser" ADD CONSTRAINT "FK_c30638ff7faab54c44ada4047bc" FOREIGN KEY ("serverlessFunctionOwnerRuleId") REFERENCES "ServerlessFunctionOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnOwnerRuleUser" ADD CONSTRAINT "FK_1fc202ba4489d07dff0d112c71e" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnOwnerRuleTeam" ADD CONSTRAINT "FK_78d35986d93bf9cdf240c782b98" FOREIGN KEY ("serverlessFunctionOwnerRuleId") REFERENCES "ServerlessFunctionOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnOwnerRuleTeam" ADD CONSTRAINT "FK_4acf525c91af2ae7b7867beb4fe" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceLabel" ADD CONSTRAINT "FK_c89e98391c374e1b3378fe84253" FOREIGN KEY ("cloudResourceId") REFERENCES "CloudResource"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceLabel" ADD CONSTRAINT "FK_b3b34ca5b8afdcbdc86a4bc0d27" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResLabelRuleMatchLabel" ADD CONSTRAINT "FK_ffea71f6530a0fb9ec9e19694aa" FOREIGN KEY ("cloudResourceLabelRuleId") REFERENCES "CloudResourceLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResLabelRuleMatchLabel" ADD CONSTRAINT "FK_880f13095ca1680ae1793cb355f" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResLabelRuleAddLabel" ADD CONSTRAINT "FK_defa63c4e8bf1bec34dd46aeb84" FOREIGN KEY ("cloudResourceLabelRuleId") REFERENCES "CloudResourceLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResLabelRuleAddLabel" ADD CONSTRAINT "FK_1ff89ef8cae5a792a110179550b" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResOwnerRuleMatchLabel" ADD CONSTRAINT "FK_c7f89bc21b466ef49b3f5c14be0" FOREIGN KEY ("cloudResourceOwnerRuleId") REFERENCES "CloudResourceOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResOwnerRuleMatchLabel" ADD CONSTRAINT "FK_239bef0a8b6cd0088b656a68b7e" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResOwnerRuleUser" ADD CONSTRAINT "FK_c87fad064ffa77ef40bf0cdd4c1" FOREIGN KEY ("cloudResourceOwnerRuleId") REFERENCES "CloudResourceOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResOwnerRuleUser" ADD CONSTRAINT "FK_8e002a24561163eb2235b6dba6e" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResOwnerRuleTeam" ADD CONSTRAINT "FK_2c1859520a617410a9625e4ca70" FOREIGN KEY ("cloudResourceOwnerRuleId") REFERENCES "CloudResourceOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResOwnerRuleTeam" ADD CONSTRAINT "FK_e009786272f20302f1b9ec74cb2" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationLabel" ADD CONSTRAINT "FK_9a37f628f4e1566d56c437445d3" FOREIGN KEY ("rumApplicationId") REFERENCES "RumApplication"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationLabel" ADD CONSTRAINT "FK_f7f69e366de0e710996810c7b6f" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppLabelRuleMatchLabel" ADD CONSTRAINT "FK_10b4bb81d96e679c5395698d33b" FOREIGN KEY ("rumApplicationLabelRuleId") REFERENCES "RumApplicationLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppLabelRuleMatchLabel" ADD CONSTRAINT "FK_8fbe82b56d72c3a689d04b8f7eb" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppLabelRuleAddLabel" ADD CONSTRAINT "FK_dd6d82ac7d81c88b65d697b17e6" FOREIGN KEY ("rumApplicationLabelRuleId") REFERENCES "RumApplicationLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppLabelRuleAddLabel" ADD CONSTRAINT "FK_e02e70ad67ec428a68ac2a504c2" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppOwnerRuleMatchLabel" ADD CONSTRAINT "FK_0d2cf7012c960b8bb254215bdec" FOREIGN KEY ("rumApplicationOwnerRuleId") REFERENCES "RumApplicationOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppOwnerRuleMatchLabel" ADD CONSTRAINT "FK_3cadd596f4c75c34cae07271250" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppOwnerRuleUser" ADD CONSTRAINT "FK_9efa96eaef574540a4bad14ed2c" FOREIGN KEY ("rumApplicationOwnerRuleId") REFERENCES "RumApplicationOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppOwnerRuleUser" ADD CONSTRAINT "FK_48bb8de26ea765cf468fab03ea0" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppOwnerRuleTeam" ADD CONSTRAINT "FK_179bfed0ac10d20802b091375ea" FOREIGN KEY ("rumApplicationOwnerRuleId") REFERENCES "RumApplicationOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppOwnerRuleTeam" ADD CONSTRAINT "FK_5ea0f94c7cde3f415b3a0ef7512" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+  }
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "RumAppOwnerRuleTeam" DROP CONSTRAINT "FK_5ea0f94c7cde3f415b3a0ef7512"`);
-        await queryRunner.query(`ALTER TABLE "RumAppOwnerRuleTeam" DROP CONSTRAINT "FK_179bfed0ac10d20802b091375ea"`);
-        await queryRunner.query(`ALTER TABLE "RumAppOwnerRuleUser" DROP CONSTRAINT "FK_48bb8de26ea765cf468fab03ea0"`);
-        await queryRunner.query(`ALTER TABLE "RumAppOwnerRuleUser" DROP CONSTRAINT "FK_9efa96eaef574540a4bad14ed2c"`);
-        await queryRunner.query(`ALTER TABLE "RumAppOwnerRuleMatchLabel" DROP CONSTRAINT "FK_3cadd596f4c75c34cae07271250"`);
-        await queryRunner.query(`ALTER TABLE "RumAppOwnerRuleMatchLabel" DROP CONSTRAINT "FK_0d2cf7012c960b8bb254215bdec"`);
-        await queryRunner.query(`ALTER TABLE "RumAppLabelRuleAddLabel" DROP CONSTRAINT "FK_e02e70ad67ec428a68ac2a504c2"`);
-        await queryRunner.query(`ALTER TABLE "RumAppLabelRuleAddLabel" DROP CONSTRAINT "FK_dd6d82ac7d81c88b65d697b17e6"`);
-        await queryRunner.query(`ALTER TABLE "RumAppLabelRuleMatchLabel" DROP CONSTRAINT "FK_8fbe82b56d72c3a689d04b8f7eb"`);
-        await queryRunner.query(`ALTER TABLE "RumAppLabelRuleMatchLabel" DROP CONSTRAINT "FK_10b4bb81d96e679c5395698d33b"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationLabel" DROP CONSTRAINT "FK_f7f69e366de0e710996810c7b6f"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationLabel" DROP CONSTRAINT "FK_9a37f628f4e1566d56c437445d3"`);
-        await queryRunner.query(`ALTER TABLE "CloudResOwnerRuleTeam" DROP CONSTRAINT "FK_e009786272f20302f1b9ec74cb2"`);
-        await queryRunner.query(`ALTER TABLE "CloudResOwnerRuleTeam" DROP CONSTRAINT "FK_2c1859520a617410a9625e4ca70"`);
-        await queryRunner.query(`ALTER TABLE "CloudResOwnerRuleUser" DROP CONSTRAINT "FK_8e002a24561163eb2235b6dba6e"`);
-        await queryRunner.query(`ALTER TABLE "CloudResOwnerRuleUser" DROP CONSTRAINT "FK_c87fad064ffa77ef40bf0cdd4c1"`);
-        await queryRunner.query(`ALTER TABLE "CloudResOwnerRuleMatchLabel" DROP CONSTRAINT "FK_239bef0a8b6cd0088b656a68b7e"`);
-        await queryRunner.query(`ALTER TABLE "CloudResOwnerRuleMatchLabel" DROP CONSTRAINT "FK_c7f89bc21b466ef49b3f5c14be0"`);
-        await queryRunner.query(`ALTER TABLE "CloudResLabelRuleAddLabel" DROP CONSTRAINT "FK_1ff89ef8cae5a792a110179550b"`);
-        await queryRunner.query(`ALTER TABLE "CloudResLabelRuleAddLabel" DROP CONSTRAINT "FK_defa63c4e8bf1bec34dd46aeb84"`);
-        await queryRunner.query(`ALTER TABLE "CloudResLabelRuleMatchLabel" DROP CONSTRAINT "FK_880f13095ca1680ae1793cb355f"`);
-        await queryRunner.query(`ALTER TABLE "CloudResLabelRuleMatchLabel" DROP CONSTRAINT "FK_ffea71f6530a0fb9ec9e19694aa"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceLabel" DROP CONSTRAINT "FK_b3b34ca5b8afdcbdc86a4bc0d27"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceLabel" DROP CONSTRAINT "FK_c89e98391c374e1b3378fe84253"`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnOwnerRuleTeam" DROP CONSTRAINT "FK_4acf525c91af2ae7b7867beb4fe"`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnOwnerRuleTeam" DROP CONSTRAINT "FK_78d35986d93bf9cdf240c782b98"`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnOwnerRuleUser" DROP CONSTRAINT "FK_1fc202ba4489d07dff0d112c71e"`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnOwnerRuleUser" DROP CONSTRAINT "FK_c30638ff7faab54c44ada4047bc"`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnOwnerRuleMatchLabel" DROP CONSTRAINT "FK_df5e6e60cb26f41e4c2792b1e1c"`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnOwnerRuleMatchLabel" DROP CONSTRAINT "FK_a8a274f9e75238c0373ee478e76"`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnLabelRuleAddLabel" DROP CONSTRAINT "FK_9ef2d85cf810fd75393f81c5bd2"`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnLabelRuleAddLabel" DROP CONSTRAINT "FK_0292257a0a77d326d3bc844658c"`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnLabelRuleMatchLabel" DROP CONSTRAINT "FK_949b3c04e86751b627a14fb8dd5"`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnLabelRuleMatchLabel" DROP CONSTRAINT "FK_224209310828585e6a0b2e46e87"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionLabel" DROP CONSTRAINT "FK_4e440b48ce1806dfdbc4c695aa8"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionLabel" DROP CONSTRAINT "FK_27ac0e196f9399f000bb873ed29"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationClient" DROP CONSTRAINT "FK_b3f923b134abc79fbfa784e8330"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationClient" DROP CONSTRAINT "FK_bb9e794272e9dfb7bd47e05638f"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationClient" DROP CONSTRAINT "FK_6a690e73b1eacbf97169b0ab32e"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceInstance" DROP CONSTRAINT "FK_0e6004f3ae827f08ea33b39f888"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceInstance" DROP CONSTRAINT "FK_123b3426b2f54427a252eb4dfe1"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceInstance" DROP CONSTRAINT "FK_f978c1f474e6e6ab22349f44570"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionInstance" DROP CONSTRAINT "FK_98359c94195808b927ae380e507"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionInstance" DROP CONSTRAINT "FK_9a8991148ce3874494a5d8a42bd"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionInstance" DROP CONSTRAINT "FK_c74b4e122cc1ea60e61c36facf1"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerRule" DROP CONSTRAINT "FK_93a410a831bc0ed2700303451a0"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerRule" DROP CONSTRAINT "FK_382e8fbae0bb2a3445f920c553f"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerRule" DROP CONSTRAINT "FK_e4ad27bcdabbdb13a13d4da0981"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationLabelRule" DROP CONSTRAINT "FK_6479e0950c80c9e18095a977439"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationLabelRule" DROP CONSTRAINT "FK_84d7c31ca8724b3d3d3d73a0ef4"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationLabelRule" DROP CONSTRAINT "FK_8283886c450a71e437e8e722be1"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerUser" DROP CONSTRAINT "FK_5342e8e7a9971da2c707f1d97e7"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerUser" DROP CONSTRAINT "FK_0963f7e2c6050ec8299ef2b9a60"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerUser" DROP CONSTRAINT "FK_8a90e1be14c17fac33a421aa63d"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerUser" DROP CONSTRAINT "FK_f2a95b92634db8c309d61a2ae71"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerUser" DROP CONSTRAINT "FK_ba6aa4775c9b25e232d0173da52"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerTeam" DROP CONSTRAINT "FK_296719dc20a708045708549d009"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerTeam" DROP CONSTRAINT "FK_64069956fcfc43ed52a8ef6500b"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerTeam" DROP CONSTRAINT "FK_cd51acf68bb52fabfc94a8a74fe"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerTeam" DROP CONSTRAINT "FK_6f16b56ca482db14e0bad01c0dd"`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerTeam" DROP CONSTRAINT "FK_7ca109203702272cb8f1f2ff7fa"`);
-        await queryRunner.query(`ALTER TABLE "RumApplication" DROP CONSTRAINT "FK_6124efe14c3afc9213a76e12377"`);
-        await queryRunner.query(`ALTER TABLE "RumApplication" DROP CONSTRAINT "FK_5d1615b2466b12a52b463511725"`);
-        await queryRunner.query(`ALTER TABLE "RumApplication" DROP CONSTRAINT "FK_2e58512f72e3cc5b73b376f73ae"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerRule" DROP CONSTRAINT "FK_3d30c49af5ad8e0df6674ad3886"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerRule" DROP CONSTRAINT "FK_741cd41cd623757722046fd4794"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerRule" DROP CONSTRAINT "FK_29b58dffe677db582a2884f0806"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceLabelRule" DROP CONSTRAINT "FK_33bf43a567e200eccf3f0d51bfd"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceLabelRule" DROP CONSTRAINT "FK_77b758257f62b14dd51060ed1d1"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceLabelRule" DROP CONSTRAINT "FK_4e992bb0e3225691ef4df33eead"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerUser" DROP CONSTRAINT "FK_50cf07eb5a5eb5ea2f87785cd8d"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerUser" DROP CONSTRAINT "FK_6ff8050d1357261ae3a937e088c"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerUser" DROP CONSTRAINT "FK_82ee3b6363b0299cc2dee56db38"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerUser" DROP CONSTRAINT "FK_e4498bd8d14d91d82e8f4b006c2"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerUser" DROP CONSTRAINT "FK_3574eb0a3b64e37597666ccdede"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerTeam" DROP CONSTRAINT "FK_a4fe1dbdefbd37ace0c5e5393da"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerTeam" DROP CONSTRAINT "FK_6758f45945d19ed51b1007a6a4b"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerTeam" DROP CONSTRAINT "FK_bd531d8a2f001c574356f38ed90"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerTeam" DROP CONSTRAINT "FK_b91c8744641537e9efda8e55a46"`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerTeam" DROP CONSTRAINT "FK_e422ec1a117bb98f12495e4ce0c"`);
-        await queryRunner.query(`ALTER TABLE "CloudResource" DROP CONSTRAINT "FK_44ac71e6f136a8e7be941a059ff"`);
-        await queryRunner.query(`ALTER TABLE "CloudResource" DROP CONSTRAINT "FK_71509884ac134b4a71a360de157"`);
-        await queryRunner.query(`ALTER TABLE "CloudResource" DROP CONSTRAINT "FK_520d345965957dcf8e571978278"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerRule" DROP CONSTRAINT "FK_8f004744e44a2cb3ebadfae8680"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerRule" DROP CONSTRAINT "FK_5502c0539c59ed776f3296f7509"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerRule" DROP CONSTRAINT "FK_b0df24ec5cb628791369383e087"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionLabelRule" DROP CONSTRAINT "FK_5d929df6cf765831b0da9dfc05f"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionLabelRule" DROP CONSTRAINT "FK_b566753dca8d8dfd519c026f403"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionLabelRule" DROP CONSTRAINT "FK_c4e5ffa8f05588b14d643d1292f"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerUser" DROP CONSTRAINT "FK_1b9698f0dcda23603948eae2011"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerUser" DROP CONSTRAINT "FK_81552cc473aabaa7a07a41c60f6"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerUser" DROP CONSTRAINT "FK_1d4da971fa85b01185a764f9d88"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerUser" DROP CONSTRAINT "FK_86d34985dc74d32eed518bf99ac"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerUser" DROP CONSTRAINT "FK_3ea6dea701688f242ae21c92d95"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerTeam" DROP CONSTRAINT "FK_41aed582e8366e5da5534ca48b2"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerTeam" DROP CONSTRAINT "FK_24ee34a78bc2a3af0cf44d143c8"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerTeam" DROP CONSTRAINT "FK_41fd8c9c97f80d05bae045482db"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerTeam" DROP CONSTRAINT "FK_43ce78bbb4416dace68a11993c4"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerTeam" DROP CONSTRAINT "FK_dd6b1287096882874874c5290cf"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunction" DROP CONSTRAINT "FK_1bc85c5dbcfc1d8204e6d1ec6dd"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunction" DROP CONSTRAINT "FK_e57c59b51a524087aee73f9bf38"`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunction" DROP CONSTRAINT "FK_b16b7affeb5793ecd3dc58c4a64"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_5ea0f94c7cde3f415b3a0ef751"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_179bfed0ac10d20802b091375e"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_48bb8de26ea765cf468fab03ea"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_9efa96eaef574540a4bad14ed2"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_3cadd596f4c75c34cae0727125"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_0d2cf7012c960b8bb254215bde"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_e02e70ad67ec428a68ac2a504c"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_dd6d82ac7d81c88b65d697b17e"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_8fbe82b56d72c3a689d04b8f7e"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_10b4bb81d96e679c5395698d33"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_f7f69e366de0e710996810c7b6"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_9a37f628f4e1566d56c437445d"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_e009786272f20302f1b9ec74cb"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_2c1859520a617410a9625e4ca7"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_8e002a24561163eb2235b6dba6"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_c87fad064ffa77ef40bf0cdd4c"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_239bef0a8b6cd0088b656a68b7"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_c7f89bc21b466ef49b3f5c14be"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_1ff89ef8cae5a792a110179550"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_defa63c4e8bf1bec34dd46aeb8"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_880f13095ca1680ae1793cb355"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_ffea71f6530a0fb9ec9e19694a"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_b3b34ca5b8afdcbdc86a4bc0d2"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_c89e98391c374e1b3378fe8425"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_4acf525c91af2ae7b7867beb4f"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_78d35986d93bf9cdf240c782b9"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_1fc202ba4489d07dff0d112c71"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_c30638ff7faab54c44ada4047b"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_df5e6e60cb26f41e4c2792b1e1"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_a8a274f9e75238c0373ee478e7"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_9ef2d85cf810fd75393f81c5bd"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_0292257a0a77d326d3bc844658"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_949b3c04e86751b627a14fb8dd"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_224209310828585e6a0b2e46e8"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_4e440b48ce1806dfdbc4c695aa"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_27ac0e196f9399f000bb873ed2"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_a85eab9ddb582dda4c40ebeb5c"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_bb9e794272e9dfb7bd47e05638"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_6a690e73b1eacbf97169b0ab32"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_f95daa4bbad123697005d73d4c"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_123b3426b2f54427a252eb4dfe"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_f978c1f474e6e6ab22349f4457"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_2c2b2a2d6651ded0fa6864a3c5"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_9a8991148ce3874494a5d8a42b"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_c74b4e122cc1ea60e61c36facf"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_ae7b75f743b1ef4dc58c60bed0"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_54a94c24dbde11134f318c15ef"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_e4ad27bcdabbdb13a13d4da098"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_0bb318d5d482445c2f4d7ecd6e"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_5a37a7fa6e523af803396815f1"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_8283886c450a71e437e8e722be"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_6f4d3413aec797ac54706cbb7c"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_f2a95b92634db8c309d61a2ae7"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_ba6aa4775c9b25e232d0173da5"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_22339804d2d11326fb450826d4"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_cd51acf68bb52fabfc94a8a74f"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_6f16b56ca482db14e0bad01c0d"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_7ca109203702272cb8f1f2ff7f"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_69b19243376bdf852486a402e8"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_2e58512f72e3cc5b73b376f73a"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_eb35d08918fbfc6b55265e4ed3"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_dcadeed4a3ca98dd0f3aa76f9e"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_29b58dffe677db582a2884f080"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_3d53bf33bcd16e18b91342324d"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_1da7b3acbc60c3ab79e7dc22c3"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_4e992bb0e3225691ef4df33eea"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_76c9462001cf657a859663a45f"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_82ee3b6363b0299cc2dee56db3"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_e4498bd8d14d91d82e8f4b006c"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_3574eb0a3b64e37597666ccded"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_f8c24a5cdb97d95e182919028c"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_bd531d8a2f001c574356f38ed9"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_b91c8744641537e9efda8e55a4"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_e422ec1a117bb98f12495e4ce0"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_2334544fb46e862340fde00483"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_520d345965957dcf8e57197827"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_b6add4e4b269e357e914fe5bc5"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_876a6396e3bd67863870ebac17"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_b0df24ec5cb628791369383e08"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_50ddff960da0506551e94db1e2"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_56a931e206b3052295e15bd3e9"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_c4e5ffa8f05588b14d643d1292"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_39b65c21b58cd2c4577f08a446"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_1d4da971fa85b01185a764f9d8"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_86d34985dc74d32eed518bf99a"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_3ea6dea701688f242ae21c92d9"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_66975192263d30cf4b21a45224"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_41fd8c9c97f80d05bae045482d"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_43ce78bbb4416dace68a11993c"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_dd6b1287096882874874c5290c"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_4369ad15481f73946bac9ac812"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_b16b7affeb5793ecd3dc58c4a6"`);
-        await queryRunner.query(`ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "restrictionTimes" SET DEFAULT '{"_type": "RestrictionTimes", "value": {"restictionType": "None", "dayRestrictionTimes": null, "weeklyRestrictionTimes": []}}'`);
-        await queryRunner.query(`ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "rotation" SET DEFAULT '{"_type": "Recurring", "value": {"intervalType": "Day", "intervalCount": {"_type": "PositiveNumber", "value": 1}}}'`);
-        await queryRunner.query(`ALTER TABLE "RumApplication" ALTER COLUMN "otelCollectorStatus" SET DEFAULT 'disconnected'`);
-        await queryRunner.query(`ALTER TABLE "CloudResource" ALTER COLUMN "otelCollectorStatus" SET DEFAULT 'disconnected'`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunction" ALTER COLUMN "otelCollectorStatus" SET DEFAULT 'disconnected'`);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppORTeam_team" ON "RumAppOwnerRuleTeam" ("teamId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppORTeam_rule" ON "RumAppOwnerRuleTeam" ("rumApplicationOwnerRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppORUser_user" ON "RumAppOwnerRuleUser" ("userId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppORUser_rule" ON "RumAppOwnerRuleUser" ("rumApplicationOwnerRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppORMatchLabel_label" ON "RumAppOwnerRuleMatchLabel" ("labelId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppORMatchLabel_rule" ON "RumAppOwnerRuleMatchLabel" ("rumApplicationOwnerRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppLRAddLabel_label" ON "RumAppLabelRuleAddLabel" ("labelId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppLRAddLabel_rule" ON "RumAppLabelRuleAddLabel" ("rumApplicationLabelRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppLRMatchLabel_label" ON "RumAppLabelRuleMatchLabel" ("labelId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppLRMatchLabel_rule" ON "RumAppLabelRuleMatchLabel" ("rumApplicationLabelRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumApplicationLabel_labelId" ON "RumApplicationLabel" ("labelId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumApplicationLabel_appId" ON "RumApplicationLabel" ("rumApplicationId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResORTeam_team" ON "CloudResOwnerRuleTeam" ("teamId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResORTeam_rule" ON "CloudResOwnerRuleTeam" ("cloudResourceOwnerRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResORUser_user" ON "CloudResOwnerRuleUser" ("userId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResORUser_rule" ON "CloudResOwnerRuleUser" ("cloudResourceOwnerRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResORMatchLabel_label" ON "CloudResOwnerRuleMatchLabel" ("labelId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResORMatchLabel_rule" ON "CloudResOwnerRuleMatchLabel" ("cloudResourceOwnerRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResLRAddLabel_label" ON "CloudResLabelRuleAddLabel" ("labelId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResLRAddLabel_rule" ON "CloudResLabelRuleAddLabel" ("cloudResourceLabelRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResLRMatchLabel_label" ON "CloudResLabelRuleMatchLabel" ("labelId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResLRMatchLabel_rule" ON "CloudResLabelRuleMatchLabel" ("cloudResourceLabelRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResourceLabel_labelId" ON "CloudResourceLabel" ("labelId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResourceLabel_resId" ON "CloudResourceLabel" ("cloudResourceId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnORTeam_team" ON "SrvlessFnOwnerRuleTeam" ("teamId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnORTeam_rule" ON "SrvlessFnOwnerRuleTeam" ("serverlessFunctionOwnerRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnORUser_user" ON "SrvlessFnOwnerRuleUser" ("userId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnORUser_rule" ON "SrvlessFnOwnerRuleUser" ("serverlessFunctionOwnerRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnORMatchLabel_label" ON "SrvlessFnOwnerRuleMatchLabel" ("labelId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnORMatchLabel_rule" ON "SrvlessFnOwnerRuleMatchLabel" ("serverlessFunctionOwnerRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnLRAddLabel_label" ON "SrvlessFnLabelRuleAddLabel" ("labelId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnLRAddLabel_rule" ON "SrvlessFnLabelRuleAddLabel" ("serverlessFunctionLabelRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnLRMatchLabel_label" ON "SrvlessFnLabelRuleMatchLabel" ("labelId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnLRMatchLabel_rule" ON "SrvlessFnLabelRuleMatchLabel" ("serverlessFunctionLabelRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_ServerlessFunctionLabel_labelId" ON "ServerlessFunctionLabel" ("labelId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_ServerlessFunctionLabel_fnId" ON "ServerlessFunctionLabel" ("serverlessFunctionId") `);
-        await queryRunner.query(`CREATE UNIQUE INDEX "UQ_RumAppClient" ON "RumApplicationClient" ("projectId", "rumApplicationId", "clientName") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppClient_appId" ON "RumApplicationClient" ("rumApplicationId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppClient_projectId" ON "RumApplicationClient" ("projectId") `);
-        await queryRunner.query(`CREATE UNIQUE INDEX "UQ_CloudResInstance" ON "CloudResourceInstance" ("projectId", "cloudResourceId", "instanceName") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResInstance_resId" ON "CloudResourceInstance" ("cloudResourceId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResInstance_projectId" ON "CloudResourceInstance" ("projectId") `);
-        await queryRunner.query(`CREATE UNIQUE INDEX "UQ_SrvlessFnInstance" ON "ServerlessFunctionInstance" ("projectId", "serverlessFunctionId", "instanceName") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnInstance_fnId" ON "ServerlessFunctionInstance" ("serverlessFunctionId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnInstance_projectId" ON "ServerlessFunctionInstance" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppOwnerRule_enabled" ON "RumApplicationOwnerRule" ("isEnabled") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppOwnerRule_name" ON "RumApplicationOwnerRule" ("name") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppOwnerRule_projectId" ON "RumApplicationOwnerRule" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppLabelRule_enabled" ON "RumApplicationLabelRule" ("isEnabled") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppLabelRule_name" ON "RumApplicationLabelRule" ("name") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppLabelRule_projectId" ON "RumApplicationLabelRule" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppOwnerUser_notified" ON "RumApplicationOwnerUser" ("isOwnerNotified") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppOwnerUser_appId" ON "RumApplicationOwnerUser" ("rumApplicationId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppOwnerUser_userId" ON "RumApplicationOwnerUser" ("userId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppOwnerUser_projectId" ON "RumApplicationOwnerUser" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppOwnerTeam_notified" ON "RumApplicationOwnerTeam" ("isOwnerNotified") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppOwnerTeam_appId" ON "RumApplicationOwnerTeam" ("rumApplicationId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppOwnerTeam_teamId" ON "RumApplicationOwnerTeam" ("teamId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumAppOwnerTeam_projectId" ON "RumApplicationOwnerTeam" ("projectId") `);
-        await queryRunner.query(`CREATE UNIQUE INDEX "UQ_RumApplication_project_appId" ON "RumApplication" ("projectId", "appIdentifier") `);
-        await queryRunner.query(`CREATE INDEX "IDX_RumApplication_projectId" ON "RumApplication" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResOwnerRule_enabled" ON "CloudResourceOwnerRule" ("isEnabled") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResOwnerRule_name" ON "CloudResourceOwnerRule" ("name") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResOwnerRule_projectId" ON "CloudResourceOwnerRule" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResLabelRule_enabled" ON "CloudResourceLabelRule" ("isEnabled") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResLabelRule_name" ON "CloudResourceLabelRule" ("name") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResLabelRule_projectId" ON "CloudResourceLabelRule" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResOwnerUser_notified" ON "CloudResourceOwnerUser" ("isOwnerNotified") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResOwnerUser_resId" ON "CloudResourceOwnerUser" ("cloudResourceId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResOwnerUser_userId" ON "CloudResourceOwnerUser" ("userId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResOwnerUser_projectId" ON "CloudResourceOwnerUser" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResOwnerTeam_notified" ON "CloudResourceOwnerTeam" ("isOwnerNotified") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResOwnerTeam_resId" ON "CloudResourceOwnerTeam" ("cloudResourceId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResOwnerTeam_teamId" ON "CloudResourceOwnerTeam" ("teamId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResOwnerTeam_projectId" ON "CloudResourceOwnerTeam" ("projectId") `);
-        await queryRunner.query(`CREATE UNIQUE INDEX "UQ_CloudResource_project_resId" ON "CloudResource" ("projectId", "resourceIdentifier") `);
-        await queryRunner.query(`CREATE INDEX "IDX_CloudResource_projectId" ON "CloudResource" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnOwnerRule_enabled" ON "ServerlessFunctionOwnerRule" ("isEnabled") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnOwnerRule_name" ON "ServerlessFunctionOwnerRule" ("name") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnOwnerRule_projectId" ON "ServerlessFunctionOwnerRule" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnLabelRule_enabled" ON "ServerlessFunctionLabelRule" ("isEnabled") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnLabelRule_name" ON "ServerlessFunctionLabelRule" ("name") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnLabelRule_projectId" ON "ServerlessFunctionLabelRule" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnOwnerUser_notified" ON "ServerlessFunctionOwnerUser" ("isOwnerNotified") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnOwnerUser_fnId" ON "ServerlessFunctionOwnerUser" ("serverlessFunctionId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnOwnerUser_userId" ON "ServerlessFunctionOwnerUser" ("userId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnOwnerUser_projectId" ON "ServerlessFunctionOwnerUser" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnOwnerTeam_notified" ON "ServerlessFunctionOwnerTeam" ("isOwnerNotified") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnOwnerTeam_fnId" ON "ServerlessFunctionOwnerTeam" ("serverlessFunctionId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnOwnerTeam_teamId" ON "ServerlessFunctionOwnerTeam" ("teamId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_SrvlessFnOwnerTeam_projectId" ON "ServerlessFunctionOwnerTeam" ("projectId") `);
-        await queryRunner.query(`CREATE UNIQUE INDEX "UQ_ServerlessFunction_project_fnId" ON "ServerlessFunction" ("projectId", "functionIdentifier") `);
-        await queryRunner.query(`CREATE INDEX "IDX_ServerlessFunction_projectId" ON "ServerlessFunction" ("projectId") `);
-        await queryRunner.query(`ALTER TABLE "RumAppOwnerRuleTeam" ADD CONSTRAINT "FK_RumAppORTeam_team" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "RumAppOwnerRuleTeam" ADD CONSTRAINT "FK_RumAppORTeam_rule" FOREIGN KEY ("rumApplicationOwnerRuleId") REFERENCES "RumApplicationOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "RumAppOwnerRuleUser" ADD CONSTRAINT "FK_RumAppORUser_user" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "RumAppOwnerRuleUser" ADD CONSTRAINT "FK_RumAppORUser_rule" FOREIGN KEY ("rumApplicationOwnerRuleId") REFERENCES "RumApplicationOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "RumAppOwnerRuleMatchLabel" ADD CONSTRAINT "FK_RumAppORMatchLabel_label" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "RumAppOwnerRuleMatchLabel" ADD CONSTRAINT "FK_RumAppORMatchLabel_rule" FOREIGN KEY ("rumApplicationOwnerRuleId") REFERENCES "RumApplicationOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "RumAppLabelRuleAddLabel" ADD CONSTRAINT "FK_RumAppLRAddLabel_label" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "RumAppLabelRuleAddLabel" ADD CONSTRAINT "FK_RumAppLRAddLabel_rule" FOREIGN KEY ("rumApplicationLabelRuleId") REFERENCES "RumApplicationLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "RumAppLabelRuleMatchLabel" ADD CONSTRAINT "FK_RumAppLRMatchLabel_label" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "RumAppLabelRuleMatchLabel" ADD CONSTRAINT "FK_RumAppLRMatchLabel_rule" FOREIGN KEY ("rumApplicationLabelRuleId") REFERENCES "RumApplicationLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationLabel" ADD CONSTRAINT "FK_RumApplicationLabel_labelId" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationLabel" ADD CONSTRAINT "FK_RumApplicationLabel_appId" FOREIGN KEY ("rumApplicationId") REFERENCES "RumApplication"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "CloudResOwnerRuleTeam" ADD CONSTRAINT "FK_CloudResORTeam_team" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "CloudResOwnerRuleTeam" ADD CONSTRAINT "FK_CloudResORTeam_rule" FOREIGN KEY ("cloudResourceOwnerRuleId") REFERENCES "CloudResourceOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "CloudResOwnerRuleUser" ADD CONSTRAINT "FK_CloudResORUser_user" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "CloudResOwnerRuleUser" ADD CONSTRAINT "FK_CloudResORUser_rule" FOREIGN KEY ("cloudResourceOwnerRuleId") REFERENCES "CloudResourceOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "CloudResOwnerRuleMatchLabel" ADD CONSTRAINT "FK_CloudResORMatchLabel_label" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "CloudResOwnerRuleMatchLabel" ADD CONSTRAINT "FK_CloudResORMatchLabel_rule" FOREIGN KEY ("cloudResourceOwnerRuleId") REFERENCES "CloudResourceOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "CloudResLabelRuleAddLabel" ADD CONSTRAINT "FK_CloudResLRAddLabel_label" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "CloudResLabelRuleAddLabel" ADD CONSTRAINT "FK_CloudResLRAddLabel_rule" FOREIGN KEY ("cloudResourceLabelRuleId") REFERENCES "CloudResourceLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "CloudResLabelRuleMatchLabel" ADD CONSTRAINT "FK_CloudResLRMatchLabel_label" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "CloudResLabelRuleMatchLabel" ADD CONSTRAINT "FK_CloudResLRMatchLabel_rule" FOREIGN KEY ("cloudResourceLabelRuleId") REFERENCES "CloudResourceLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceLabel" ADD CONSTRAINT "FK_CloudResourceLabel_labelId" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceLabel" ADD CONSTRAINT "FK_CloudResourceLabel_resId" FOREIGN KEY ("cloudResourceId") REFERENCES "CloudResource"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnOwnerRuleTeam" ADD CONSTRAINT "FK_SrvlessFnORTeam_team" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnOwnerRuleTeam" ADD CONSTRAINT "FK_SrvlessFnORTeam_rule" FOREIGN KEY ("serverlessFunctionOwnerRuleId") REFERENCES "ServerlessFunctionOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnOwnerRuleUser" ADD CONSTRAINT "FK_SrvlessFnORUser_user" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnOwnerRuleUser" ADD CONSTRAINT "FK_SrvlessFnORUser_rule" FOREIGN KEY ("serverlessFunctionOwnerRuleId") REFERENCES "ServerlessFunctionOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnOwnerRuleMatchLabel" ADD CONSTRAINT "FK_SrvlessFnORMatchLabel_label" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnOwnerRuleMatchLabel" ADD CONSTRAINT "FK_SrvlessFnORMatchLabel_rule" FOREIGN KEY ("serverlessFunctionOwnerRuleId") REFERENCES "ServerlessFunctionOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnLabelRuleAddLabel" ADD CONSTRAINT "FK_SrvlessFnLRAddLabel_label" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnLabelRuleAddLabel" ADD CONSTRAINT "FK_SrvlessFnLRAddLabel_rule" FOREIGN KEY ("serverlessFunctionLabelRuleId") REFERENCES "ServerlessFunctionLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnLabelRuleMatchLabel" ADD CONSTRAINT "FK_SrvlessFnLRMatchLabel_label" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "SrvlessFnLabelRuleMatchLabel" ADD CONSTRAINT "FK_SrvlessFnLRMatchLabel_rule" FOREIGN KEY ("serverlessFunctionLabelRuleId") REFERENCES "ServerlessFunctionLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionLabel" ADD CONSTRAINT "FK_ServerlessFunctionLabel_labelId" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionLabel" ADD CONSTRAINT "FK_ServerlessFunctionLabel_fnId" FOREIGN KEY ("serverlessFunctionId") REFERENCES "ServerlessFunction"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationClient" ADD CONSTRAINT "FK_RumAppClient_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationClient" ADD CONSTRAINT "FK_RumAppClient_app" FOREIGN KEY ("rumApplicationId") REFERENCES "RumApplication"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationClient" ADD CONSTRAINT "FK_RumAppClient_project" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceInstance" ADD CONSTRAINT "FK_CloudResInstance_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceInstance" ADD CONSTRAINT "FK_CloudResInstance_res" FOREIGN KEY ("cloudResourceId") REFERENCES "CloudResource"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceInstance" ADD CONSTRAINT "FK_CloudResInstance_project" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionInstance" ADD CONSTRAINT "FK_SrvlessFnInstance_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionInstance" ADD CONSTRAINT "FK_SrvlessFnInstance_fn" FOREIGN KEY ("serverlessFunctionId") REFERENCES "ServerlessFunction"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionInstance" ADD CONSTRAINT "FK_SrvlessFnInstance_project" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerRule" ADD CONSTRAINT "FK_RumAppOwnerRule_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerRule" ADD CONSTRAINT "FK_RumAppOwnerRule_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerRule" ADD CONSTRAINT "FK_RumAppOwnerRule_project" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationLabelRule" ADD CONSTRAINT "FK_RumAppLabelRule_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationLabelRule" ADD CONSTRAINT "FK_RumAppLabelRule_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationLabelRule" ADD CONSTRAINT "FK_RumAppLabelRule_project" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerUser" ADD CONSTRAINT "FK_RumAppOwnerUser_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerUser" ADD CONSTRAINT "FK_RumAppOwnerUser_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerUser" ADD CONSTRAINT "FK_RumAppOwnerUser_appId" FOREIGN KEY ("rumApplicationId") REFERENCES "RumApplication"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerUser" ADD CONSTRAINT "FK_RumAppOwnerUser_userId" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerUser" ADD CONSTRAINT "FK_RumAppOwnerUser_projectId" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerTeam" ADD CONSTRAINT "FK_RumAppOwnerTeam_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerTeam" ADD CONSTRAINT "FK_RumAppOwnerTeam_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerTeam" ADD CONSTRAINT "FK_RumAppOwnerTeam_appId" FOREIGN KEY ("rumApplicationId") REFERENCES "RumApplication"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerTeam" ADD CONSTRAINT "FK_RumAppOwnerTeam_teamId" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplicationOwnerTeam" ADD CONSTRAINT "FK_RumAppOwnerTeam_projectId" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplication" ADD CONSTRAINT "FK_RumApplication_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplication" ADD CONSTRAINT "FK_RumApplication_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "RumApplication" ADD CONSTRAINT "FK_RumApplication_projectId" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerRule" ADD CONSTRAINT "FK_CloudResOwnerRule_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerRule" ADD CONSTRAINT "FK_CloudResOwnerRule_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerRule" ADD CONSTRAINT "FK_CloudResOwnerRule_project" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceLabelRule" ADD CONSTRAINT "FK_CloudResLabelRule_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceLabelRule" ADD CONSTRAINT "FK_CloudResLabelRule_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceLabelRule" ADD CONSTRAINT "FK_CloudResLabelRule_project" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerUser" ADD CONSTRAINT "FK_CloudResOwnerUser_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerUser" ADD CONSTRAINT "FK_CloudResOwnerUser_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerUser" ADD CONSTRAINT "FK_CloudResOwnerUser_resId" FOREIGN KEY ("cloudResourceId") REFERENCES "CloudResource"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerUser" ADD CONSTRAINT "FK_CloudResOwnerUser_userId" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerUser" ADD CONSTRAINT "FK_CloudResOwnerUser_projectId" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerTeam" ADD CONSTRAINT "FK_CloudResOwnerTeam_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerTeam" ADD CONSTRAINT "FK_CloudResOwnerTeam_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerTeam" ADD CONSTRAINT "FK_CloudResOwnerTeam_resId" FOREIGN KEY ("cloudResourceId") REFERENCES "CloudResource"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerTeam" ADD CONSTRAINT "FK_CloudResOwnerTeam_teamId" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResourceOwnerTeam" ADD CONSTRAINT "FK_CloudResOwnerTeam_projectId" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResource" ADD CONSTRAINT "FK_CloudResource_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResource" ADD CONSTRAINT "FK_CloudResource_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "CloudResource" ADD CONSTRAINT "FK_CloudResource_projectId" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerRule" ADD CONSTRAINT "FK_SrvlessFnOwnerRule_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerRule" ADD CONSTRAINT "FK_SrvlessFnOwnerRule_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerRule" ADD CONSTRAINT "FK_SrvlessFnOwnerRule_project" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionLabelRule" ADD CONSTRAINT "FK_SrvlessFnLabelRule_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionLabelRule" ADD CONSTRAINT "FK_SrvlessFnLabelRule_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionLabelRule" ADD CONSTRAINT "FK_SrvlessFnLabelRule_project" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerUser" ADD CONSTRAINT "FK_SrvlessFnOwnerUser_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerUser" ADD CONSTRAINT "FK_SrvlessFnOwnerUser_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerUser" ADD CONSTRAINT "FK_SrvlessFnOwnerUser_fnId" FOREIGN KEY ("serverlessFunctionId") REFERENCES "ServerlessFunction"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerUser" ADD CONSTRAINT "FK_SrvlessFnOwnerUser_userId" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerUser" ADD CONSTRAINT "FK_SrvlessFnOwnerUser_projectId" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerTeam" ADD CONSTRAINT "FK_SrvlessFnOwnerTeam_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerTeam" ADD CONSTRAINT "FK_SrvlessFnOwnerTeam_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerTeam" ADD CONSTRAINT "FK_SrvlessFnOwnerTeam_fnId" FOREIGN KEY ("serverlessFunctionId") REFERENCES "ServerlessFunction"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerTeam" ADD CONSTRAINT "FK_SrvlessFnOwnerTeam_teamId" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunctionOwnerTeam" ADD CONSTRAINT "FK_SrvlessFnOwnerTeam_projectId" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunction" ADD CONSTRAINT "FK_ServerlessFunction_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunction" ADD CONSTRAINT "FK_ServerlessFunction_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ServerlessFunction" ADD CONSTRAINT "FK_ServerlessFunction_projectId" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-    }
-
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      `ALTER TABLE "RumAppOwnerRuleTeam" DROP CONSTRAINT "FK_5ea0f94c7cde3f415b3a0ef7512"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppOwnerRuleTeam" DROP CONSTRAINT "FK_179bfed0ac10d20802b091375ea"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppOwnerRuleUser" DROP CONSTRAINT "FK_48bb8de26ea765cf468fab03ea0"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppOwnerRuleUser" DROP CONSTRAINT "FK_9efa96eaef574540a4bad14ed2c"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppOwnerRuleMatchLabel" DROP CONSTRAINT "FK_3cadd596f4c75c34cae07271250"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppOwnerRuleMatchLabel" DROP CONSTRAINT "FK_0d2cf7012c960b8bb254215bdec"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppLabelRuleAddLabel" DROP CONSTRAINT "FK_e02e70ad67ec428a68ac2a504c2"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppLabelRuleAddLabel" DROP CONSTRAINT "FK_dd6d82ac7d81c88b65d697b17e6"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppLabelRuleMatchLabel" DROP CONSTRAINT "FK_8fbe82b56d72c3a689d04b8f7eb"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppLabelRuleMatchLabel" DROP CONSTRAINT "FK_10b4bb81d96e679c5395698d33b"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationLabel" DROP CONSTRAINT "FK_f7f69e366de0e710996810c7b6f"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationLabel" DROP CONSTRAINT "FK_9a37f628f4e1566d56c437445d3"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResOwnerRuleTeam" DROP CONSTRAINT "FK_e009786272f20302f1b9ec74cb2"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResOwnerRuleTeam" DROP CONSTRAINT "FK_2c1859520a617410a9625e4ca70"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResOwnerRuleUser" DROP CONSTRAINT "FK_8e002a24561163eb2235b6dba6e"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResOwnerRuleUser" DROP CONSTRAINT "FK_c87fad064ffa77ef40bf0cdd4c1"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResOwnerRuleMatchLabel" DROP CONSTRAINT "FK_239bef0a8b6cd0088b656a68b7e"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResOwnerRuleMatchLabel" DROP CONSTRAINT "FK_c7f89bc21b466ef49b3f5c14be0"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResLabelRuleAddLabel" DROP CONSTRAINT "FK_1ff89ef8cae5a792a110179550b"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResLabelRuleAddLabel" DROP CONSTRAINT "FK_defa63c4e8bf1bec34dd46aeb84"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResLabelRuleMatchLabel" DROP CONSTRAINT "FK_880f13095ca1680ae1793cb355f"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResLabelRuleMatchLabel" DROP CONSTRAINT "FK_ffea71f6530a0fb9ec9e19694aa"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceLabel" DROP CONSTRAINT "FK_b3b34ca5b8afdcbdc86a4bc0d27"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceLabel" DROP CONSTRAINT "FK_c89e98391c374e1b3378fe84253"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnOwnerRuleTeam" DROP CONSTRAINT "FK_4acf525c91af2ae7b7867beb4fe"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnOwnerRuleTeam" DROP CONSTRAINT "FK_78d35986d93bf9cdf240c782b98"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnOwnerRuleUser" DROP CONSTRAINT "FK_1fc202ba4489d07dff0d112c71e"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnOwnerRuleUser" DROP CONSTRAINT "FK_c30638ff7faab54c44ada4047bc"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnOwnerRuleMatchLabel" DROP CONSTRAINT "FK_df5e6e60cb26f41e4c2792b1e1c"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnOwnerRuleMatchLabel" DROP CONSTRAINT "FK_a8a274f9e75238c0373ee478e76"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnLabelRuleAddLabel" DROP CONSTRAINT "FK_9ef2d85cf810fd75393f81c5bd2"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnLabelRuleAddLabel" DROP CONSTRAINT "FK_0292257a0a77d326d3bc844658c"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnLabelRuleMatchLabel" DROP CONSTRAINT "FK_949b3c04e86751b627a14fb8dd5"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnLabelRuleMatchLabel" DROP CONSTRAINT "FK_224209310828585e6a0b2e46e87"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionLabel" DROP CONSTRAINT "FK_4e440b48ce1806dfdbc4c695aa8"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionLabel" DROP CONSTRAINT "FK_27ac0e196f9399f000bb873ed29"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationClient" DROP CONSTRAINT "FK_b3f923b134abc79fbfa784e8330"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationClient" DROP CONSTRAINT "FK_bb9e794272e9dfb7bd47e05638f"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationClient" DROP CONSTRAINT "FK_6a690e73b1eacbf97169b0ab32e"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceInstance" DROP CONSTRAINT "FK_0e6004f3ae827f08ea33b39f888"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceInstance" DROP CONSTRAINT "FK_123b3426b2f54427a252eb4dfe1"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceInstance" DROP CONSTRAINT "FK_f978c1f474e6e6ab22349f44570"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionInstance" DROP CONSTRAINT "FK_98359c94195808b927ae380e507"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionInstance" DROP CONSTRAINT "FK_9a8991148ce3874494a5d8a42bd"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionInstance" DROP CONSTRAINT "FK_c74b4e122cc1ea60e61c36facf1"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerRule" DROP CONSTRAINT "FK_93a410a831bc0ed2700303451a0"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerRule" DROP CONSTRAINT "FK_382e8fbae0bb2a3445f920c553f"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerRule" DROP CONSTRAINT "FK_e4ad27bcdabbdb13a13d4da0981"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationLabelRule" DROP CONSTRAINT "FK_6479e0950c80c9e18095a977439"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationLabelRule" DROP CONSTRAINT "FK_84d7c31ca8724b3d3d3d73a0ef4"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationLabelRule" DROP CONSTRAINT "FK_8283886c450a71e437e8e722be1"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerUser" DROP CONSTRAINT "FK_5342e8e7a9971da2c707f1d97e7"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerUser" DROP CONSTRAINT "FK_0963f7e2c6050ec8299ef2b9a60"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerUser" DROP CONSTRAINT "FK_8a90e1be14c17fac33a421aa63d"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerUser" DROP CONSTRAINT "FK_f2a95b92634db8c309d61a2ae71"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerUser" DROP CONSTRAINT "FK_ba6aa4775c9b25e232d0173da52"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerTeam" DROP CONSTRAINT "FK_296719dc20a708045708549d009"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerTeam" DROP CONSTRAINT "FK_64069956fcfc43ed52a8ef6500b"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerTeam" DROP CONSTRAINT "FK_cd51acf68bb52fabfc94a8a74fe"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerTeam" DROP CONSTRAINT "FK_6f16b56ca482db14e0bad01c0dd"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerTeam" DROP CONSTRAINT "FK_7ca109203702272cb8f1f2ff7fa"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplication" DROP CONSTRAINT "FK_6124efe14c3afc9213a76e12377"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplication" DROP CONSTRAINT "FK_5d1615b2466b12a52b463511725"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplication" DROP CONSTRAINT "FK_2e58512f72e3cc5b73b376f73ae"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerRule" DROP CONSTRAINT "FK_3d30c49af5ad8e0df6674ad3886"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerRule" DROP CONSTRAINT "FK_741cd41cd623757722046fd4794"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerRule" DROP CONSTRAINT "FK_29b58dffe677db582a2884f0806"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceLabelRule" DROP CONSTRAINT "FK_33bf43a567e200eccf3f0d51bfd"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceLabelRule" DROP CONSTRAINT "FK_77b758257f62b14dd51060ed1d1"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceLabelRule" DROP CONSTRAINT "FK_4e992bb0e3225691ef4df33eead"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerUser" DROP CONSTRAINT "FK_50cf07eb5a5eb5ea2f87785cd8d"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerUser" DROP CONSTRAINT "FK_6ff8050d1357261ae3a937e088c"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerUser" DROP CONSTRAINT "FK_82ee3b6363b0299cc2dee56db38"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerUser" DROP CONSTRAINT "FK_e4498bd8d14d91d82e8f4b006c2"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerUser" DROP CONSTRAINT "FK_3574eb0a3b64e37597666ccdede"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerTeam" DROP CONSTRAINT "FK_a4fe1dbdefbd37ace0c5e5393da"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerTeam" DROP CONSTRAINT "FK_6758f45945d19ed51b1007a6a4b"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerTeam" DROP CONSTRAINT "FK_bd531d8a2f001c574356f38ed90"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerTeam" DROP CONSTRAINT "FK_b91c8744641537e9efda8e55a46"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerTeam" DROP CONSTRAINT "FK_e422ec1a117bb98f12495e4ce0c"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResource" DROP CONSTRAINT "FK_44ac71e6f136a8e7be941a059ff"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResource" DROP CONSTRAINT "FK_71509884ac134b4a71a360de157"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResource" DROP CONSTRAINT "FK_520d345965957dcf8e571978278"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerRule" DROP CONSTRAINT "FK_8f004744e44a2cb3ebadfae8680"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerRule" DROP CONSTRAINT "FK_5502c0539c59ed776f3296f7509"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerRule" DROP CONSTRAINT "FK_b0df24ec5cb628791369383e087"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionLabelRule" DROP CONSTRAINT "FK_5d929df6cf765831b0da9dfc05f"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionLabelRule" DROP CONSTRAINT "FK_b566753dca8d8dfd519c026f403"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionLabelRule" DROP CONSTRAINT "FK_c4e5ffa8f05588b14d643d1292f"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerUser" DROP CONSTRAINT "FK_1b9698f0dcda23603948eae2011"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerUser" DROP CONSTRAINT "FK_81552cc473aabaa7a07a41c60f6"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerUser" DROP CONSTRAINT "FK_1d4da971fa85b01185a764f9d88"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerUser" DROP CONSTRAINT "FK_86d34985dc74d32eed518bf99ac"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerUser" DROP CONSTRAINT "FK_3ea6dea701688f242ae21c92d95"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerTeam" DROP CONSTRAINT "FK_41aed582e8366e5da5534ca48b2"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerTeam" DROP CONSTRAINT "FK_24ee34a78bc2a3af0cf44d143c8"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerTeam" DROP CONSTRAINT "FK_41fd8c9c97f80d05bae045482db"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerTeam" DROP CONSTRAINT "FK_43ce78bbb4416dace68a11993c4"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerTeam" DROP CONSTRAINT "FK_dd6b1287096882874874c5290cf"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunction" DROP CONSTRAINT "FK_1bc85c5dbcfc1d8204e6d1ec6dd"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunction" DROP CONSTRAINT "FK_e57c59b51a524087aee73f9bf38"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunction" DROP CONSTRAINT "FK_b16b7affeb5793ecd3dc58c4a64"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_5ea0f94c7cde3f415b3a0ef751"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_179bfed0ac10d20802b091375e"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_48bb8de26ea765cf468fab03ea"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_9efa96eaef574540a4bad14ed2"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_3cadd596f4c75c34cae0727125"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_0d2cf7012c960b8bb254215bde"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_e02e70ad67ec428a68ac2a504c"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_dd6d82ac7d81c88b65d697b17e"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_8fbe82b56d72c3a689d04b8f7e"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_10b4bb81d96e679c5395698d33"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_f7f69e366de0e710996810c7b6"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_9a37f628f4e1566d56c437445d"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_e009786272f20302f1b9ec74cb"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_2c1859520a617410a9625e4ca7"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_8e002a24561163eb2235b6dba6"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_c87fad064ffa77ef40bf0cdd4c"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_239bef0a8b6cd0088b656a68b7"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_c7f89bc21b466ef49b3f5c14be"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_1ff89ef8cae5a792a110179550"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_defa63c4e8bf1bec34dd46aeb8"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_880f13095ca1680ae1793cb355"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_ffea71f6530a0fb9ec9e19694a"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_b3b34ca5b8afdcbdc86a4bc0d2"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_c89e98391c374e1b3378fe8425"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_4acf525c91af2ae7b7867beb4f"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_78d35986d93bf9cdf240c782b9"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_1fc202ba4489d07dff0d112c71"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_c30638ff7faab54c44ada4047b"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_df5e6e60cb26f41e4c2792b1e1"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_a8a274f9e75238c0373ee478e7"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_9ef2d85cf810fd75393f81c5bd"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_0292257a0a77d326d3bc844658"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_949b3c04e86751b627a14fb8dd"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_224209310828585e6a0b2e46e8"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_4e440b48ce1806dfdbc4c695aa"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_27ac0e196f9399f000bb873ed2"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_a85eab9ddb582dda4c40ebeb5c"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_bb9e794272e9dfb7bd47e05638"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_6a690e73b1eacbf97169b0ab32"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_f95daa4bbad123697005d73d4c"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_123b3426b2f54427a252eb4dfe"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_f978c1f474e6e6ab22349f4457"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_2c2b2a2d6651ded0fa6864a3c5"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_9a8991148ce3874494a5d8a42b"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_c74b4e122cc1ea60e61c36facf"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_ae7b75f743b1ef4dc58c60bed0"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_54a94c24dbde11134f318c15ef"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_e4ad27bcdabbdb13a13d4da098"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_0bb318d5d482445c2f4d7ecd6e"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_5a37a7fa6e523af803396815f1"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_8283886c450a71e437e8e722be"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_6f4d3413aec797ac54706cbb7c"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_f2a95b92634db8c309d61a2ae7"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_ba6aa4775c9b25e232d0173da5"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_22339804d2d11326fb450826d4"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_cd51acf68bb52fabfc94a8a74f"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_6f16b56ca482db14e0bad01c0d"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_7ca109203702272cb8f1f2ff7f"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_69b19243376bdf852486a402e8"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_2e58512f72e3cc5b73b376f73a"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_eb35d08918fbfc6b55265e4ed3"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_dcadeed4a3ca98dd0f3aa76f9e"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_29b58dffe677db582a2884f080"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_3d53bf33bcd16e18b91342324d"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_1da7b3acbc60c3ab79e7dc22c3"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_4e992bb0e3225691ef4df33eea"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_76c9462001cf657a859663a45f"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_82ee3b6363b0299cc2dee56db3"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_e4498bd8d14d91d82e8f4b006c"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_3574eb0a3b64e37597666ccded"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_f8c24a5cdb97d95e182919028c"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_bd531d8a2f001c574356f38ed9"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_b91c8744641537e9efda8e55a4"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_e422ec1a117bb98f12495e4ce0"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_2334544fb46e862340fde00483"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_520d345965957dcf8e57197827"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_b6add4e4b269e357e914fe5bc5"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_876a6396e3bd67863870ebac17"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_b0df24ec5cb628791369383e08"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_50ddff960da0506551e94db1e2"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_56a931e206b3052295e15bd3e9"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_c4e5ffa8f05588b14d643d1292"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_39b65c21b58cd2c4577f08a446"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_1d4da971fa85b01185a764f9d8"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_86d34985dc74d32eed518bf99a"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_3ea6dea701688f242ae21c92d9"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_66975192263d30cf4b21a45224"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_41fd8c9c97f80d05bae045482d"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_43ce78bbb4416dace68a11993c"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_dd6b1287096882874874c5290c"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_4369ad15481f73946bac9ac812"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_b16b7affeb5793ecd3dc58c4a6"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "restrictionTimes" SET DEFAULT '{"_type": "RestrictionTimes", "value": {"restictionType": "None", "dayRestrictionTimes": null, "weeklyRestrictionTimes": []}}'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "rotation" SET DEFAULT '{"_type": "Recurring", "value": {"intervalType": "Day", "intervalCount": {"_type": "PositiveNumber", "value": 1}}}'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplication" ALTER COLUMN "otelCollectorStatus" SET DEFAULT 'disconnected'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResource" ALTER COLUMN "otelCollectorStatus" SET DEFAULT 'disconnected'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunction" ALTER COLUMN "otelCollectorStatus" SET DEFAULT 'disconnected'`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppORTeam_team" ON "RumAppOwnerRuleTeam" ("teamId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppORTeam_rule" ON "RumAppOwnerRuleTeam" ("rumApplicationOwnerRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppORUser_user" ON "RumAppOwnerRuleUser" ("userId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppORUser_rule" ON "RumAppOwnerRuleUser" ("rumApplicationOwnerRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppORMatchLabel_label" ON "RumAppOwnerRuleMatchLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppORMatchLabel_rule" ON "RumAppOwnerRuleMatchLabel" ("rumApplicationOwnerRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppLRAddLabel_label" ON "RumAppLabelRuleAddLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppLRAddLabel_rule" ON "RumAppLabelRuleAddLabel" ("rumApplicationLabelRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppLRMatchLabel_label" ON "RumAppLabelRuleMatchLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppLRMatchLabel_rule" ON "RumAppLabelRuleMatchLabel" ("rumApplicationLabelRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumApplicationLabel_labelId" ON "RumApplicationLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumApplicationLabel_appId" ON "RumApplicationLabel" ("rumApplicationId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResORTeam_team" ON "CloudResOwnerRuleTeam" ("teamId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResORTeam_rule" ON "CloudResOwnerRuleTeam" ("cloudResourceOwnerRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResORUser_user" ON "CloudResOwnerRuleUser" ("userId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResORUser_rule" ON "CloudResOwnerRuleUser" ("cloudResourceOwnerRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResORMatchLabel_label" ON "CloudResOwnerRuleMatchLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResORMatchLabel_rule" ON "CloudResOwnerRuleMatchLabel" ("cloudResourceOwnerRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResLRAddLabel_label" ON "CloudResLabelRuleAddLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResLRAddLabel_rule" ON "CloudResLabelRuleAddLabel" ("cloudResourceLabelRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResLRMatchLabel_label" ON "CloudResLabelRuleMatchLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResLRMatchLabel_rule" ON "CloudResLabelRuleMatchLabel" ("cloudResourceLabelRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResourceLabel_labelId" ON "CloudResourceLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResourceLabel_resId" ON "CloudResourceLabel" ("cloudResourceId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnORTeam_team" ON "SrvlessFnOwnerRuleTeam" ("teamId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnORTeam_rule" ON "SrvlessFnOwnerRuleTeam" ("serverlessFunctionOwnerRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnORUser_user" ON "SrvlessFnOwnerRuleUser" ("userId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnORUser_rule" ON "SrvlessFnOwnerRuleUser" ("serverlessFunctionOwnerRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnORMatchLabel_label" ON "SrvlessFnOwnerRuleMatchLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnORMatchLabel_rule" ON "SrvlessFnOwnerRuleMatchLabel" ("serverlessFunctionOwnerRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnLRAddLabel_label" ON "SrvlessFnLabelRuleAddLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnLRAddLabel_rule" ON "SrvlessFnLabelRuleAddLabel" ("serverlessFunctionLabelRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnLRMatchLabel_label" ON "SrvlessFnLabelRuleMatchLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnLRMatchLabel_rule" ON "SrvlessFnLabelRuleMatchLabel" ("serverlessFunctionLabelRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_ServerlessFunctionLabel_labelId" ON "ServerlessFunctionLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_ServerlessFunctionLabel_fnId" ON "ServerlessFunctionLabel" ("serverlessFunctionId") `,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "UQ_RumAppClient" ON "RumApplicationClient" ("projectId", "rumApplicationId", "clientName") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppClient_appId" ON "RumApplicationClient" ("rumApplicationId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppClient_projectId" ON "RumApplicationClient" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "UQ_CloudResInstance" ON "CloudResourceInstance" ("projectId", "cloudResourceId", "instanceName") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResInstance_resId" ON "CloudResourceInstance" ("cloudResourceId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResInstance_projectId" ON "CloudResourceInstance" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "UQ_SrvlessFnInstance" ON "ServerlessFunctionInstance" ("projectId", "serverlessFunctionId", "instanceName") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnInstance_fnId" ON "ServerlessFunctionInstance" ("serverlessFunctionId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnInstance_projectId" ON "ServerlessFunctionInstance" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppOwnerRule_enabled" ON "RumApplicationOwnerRule" ("isEnabled") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppOwnerRule_name" ON "RumApplicationOwnerRule" ("name") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppOwnerRule_projectId" ON "RumApplicationOwnerRule" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppLabelRule_enabled" ON "RumApplicationLabelRule" ("isEnabled") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppLabelRule_name" ON "RumApplicationLabelRule" ("name") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppLabelRule_projectId" ON "RumApplicationLabelRule" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppOwnerUser_notified" ON "RumApplicationOwnerUser" ("isOwnerNotified") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppOwnerUser_appId" ON "RumApplicationOwnerUser" ("rumApplicationId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppOwnerUser_userId" ON "RumApplicationOwnerUser" ("userId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppOwnerUser_projectId" ON "RumApplicationOwnerUser" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppOwnerTeam_notified" ON "RumApplicationOwnerTeam" ("isOwnerNotified") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppOwnerTeam_appId" ON "RumApplicationOwnerTeam" ("rumApplicationId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppOwnerTeam_teamId" ON "RumApplicationOwnerTeam" ("teamId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumAppOwnerTeam_projectId" ON "RumApplicationOwnerTeam" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "UQ_RumApplication_project_appId" ON "RumApplication" ("projectId", "appIdentifier") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_RumApplication_projectId" ON "RumApplication" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResOwnerRule_enabled" ON "CloudResourceOwnerRule" ("isEnabled") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResOwnerRule_name" ON "CloudResourceOwnerRule" ("name") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResOwnerRule_projectId" ON "CloudResourceOwnerRule" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResLabelRule_enabled" ON "CloudResourceLabelRule" ("isEnabled") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResLabelRule_name" ON "CloudResourceLabelRule" ("name") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResLabelRule_projectId" ON "CloudResourceLabelRule" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResOwnerUser_notified" ON "CloudResourceOwnerUser" ("isOwnerNotified") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResOwnerUser_resId" ON "CloudResourceOwnerUser" ("cloudResourceId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResOwnerUser_userId" ON "CloudResourceOwnerUser" ("userId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResOwnerUser_projectId" ON "CloudResourceOwnerUser" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResOwnerTeam_notified" ON "CloudResourceOwnerTeam" ("isOwnerNotified") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResOwnerTeam_resId" ON "CloudResourceOwnerTeam" ("cloudResourceId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResOwnerTeam_teamId" ON "CloudResourceOwnerTeam" ("teamId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResOwnerTeam_projectId" ON "CloudResourceOwnerTeam" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "UQ_CloudResource_project_resId" ON "CloudResource" ("projectId", "resourceIdentifier") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_CloudResource_projectId" ON "CloudResource" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnOwnerRule_enabled" ON "ServerlessFunctionOwnerRule" ("isEnabled") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnOwnerRule_name" ON "ServerlessFunctionOwnerRule" ("name") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnOwnerRule_projectId" ON "ServerlessFunctionOwnerRule" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnLabelRule_enabled" ON "ServerlessFunctionLabelRule" ("isEnabled") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnLabelRule_name" ON "ServerlessFunctionLabelRule" ("name") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnLabelRule_projectId" ON "ServerlessFunctionLabelRule" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnOwnerUser_notified" ON "ServerlessFunctionOwnerUser" ("isOwnerNotified") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnOwnerUser_fnId" ON "ServerlessFunctionOwnerUser" ("serverlessFunctionId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnOwnerUser_userId" ON "ServerlessFunctionOwnerUser" ("userId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnOwnerUser_projectId" ON "ServerlessFunctionOwnerUser" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnOwnerTeam_notified" ON "ServerlessFunctionOwnerTeam" ("isOwnerNotified") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnOwnerTeam_fnId" ON "ServerlessFunctionOwnerTeam" ("serverlessFunctionId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnOwnerTeam_teamId" ON "ServerlessFunctionOwnerTeam" ("teamId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_SrvlessFnOwnerTeam_projectId" ON "ServerlessFunctionOwnerTeam" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "UQ_ServerlessFunction_project_fnId" ON "ServerlessFunction" ("projectId", "functionIdentifier") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_ServerlessFunction_projectId" ON "ServerlessFunction" ("projectId") `,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppOwnerRuleTeam" ADD CONSTRAINT "FK_RumAppORTeam_team" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppOwnerRuleTeam" ADD CONSTRAINT "FK_RumAppORTeam_rule" FOREIGN KEY ("rumApplicationOwnerRuleId") REFERENCES "RumApplicationOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppOwnerRuleUser" ADD CONSTRAINT "FK_RumAppORUser_user" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppOwnerRuleUser" ADD CONSTRAINT "FK_RumAppORUser_rule" FOREIGN KEY ("rumApplicationOwnerRuleId") REFERENCES "RumApplicationOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppOwnerRuleMatchLabel" ADD CONSTRAINT "FK_RumAppORMatchLabel_label" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppOwnerRuleMatchLabel" ADD CONSTRAINT "FK_RumAppORMatchLabel_rule" FOREIGN KEY ("rumApplicationOwnerRuleId") REFERENCES "RumApplicationOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppLabelRuleAddLabel" ADD CONSTRAINT "FK_RumAppLRAddLabel_label" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppLabelRuleAddLabel" ADD CONSTRAINT "FK_RumAppLRAddLabel_rule" FOREIGN KEY ("rumApplicationLabelRuleId") REFERENCES "RumApplicationLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppLabelRuleMatchLabel" ADD CONSTRAINT "FK_RumAppLRMatchLabel_label" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumAppLabelRuleMatchLabel" ADD CONSTRAINT "FK_RumAppLRMatchLabel_rule" FOREIGN KEY ("rumApplicationLabelRuleId") REFERENCES "RumApplicationLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationLabel" ADD CONSTRAINT "FK_RumApplicationLabel_labelId" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationLabel" ADD CONSTRAINT "FK_RumApplicationLabel_appId" FOREIGN KEY ("rumApplicationId") REFERENCES "RumApplication"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResOwnerRuleTeam" ADD CONSTRAINT "FK_CloudResORTeam_team" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResOwnerRuleTeam" ADD CONSTRAINT "FK_CloudResORTeam_rule" FOREIGN KEY ("cloudResourceOwnerRuleId") REFERENCES "CloudResourceOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResOwnerRuleUser" ADD CONSTRAINT "FK_CloudResORUser_user" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResOwnerRuleUser" ADD CONSTRAINT "FK_CloudResORUser_rule" FOREIGN KEY ("cloudResourceOwnerRuleId") REFERENCES "CloudResourceOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResOwnerRuleMatchLabel" ADD CONSTRAINT "FK_CloudResORMatchLabel_label" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResOwnerRuleMatchLabel" ADD CONSTRAINT "FK_CloudResORMatchLabel_rule" FOREIGN KEY ("cloudResourceOwnerRuleId") REFERENCES "CloudResourceOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResLabelRuleAddLabel" ADD CONSTRAINT "FK_CloudResLRAddLabel_label" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResLabelRuleAddLabel" ADD CONSTRAINT "FK_CloudResLRAddLabel_rule" FOREIGN KEY ("cloudResourceLabelRuleId") REFERENCES "CloudResourceLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResLabelRuleMatchLabel" ADD CONSTRAINT "FK_CloudResLRMatchLabel_label" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResLabelRuleMatchLabel" ADD CONSTRAINT "FK_CloudResLRMatchLabel_rule" FOREIGN KEY ("cloudResourceLabelRuleId") REFERENCES "CloudResourceLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceLabel" ADD CONSTRAINT "FK_CloudResourceLabel_labelId" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceLabel" ADD CONSTRAINT "FK_CloudResourceLabel_resId" FOREIGN KEY ("cloudResourceId") REFERENCES "CloudResource"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnOwnerRuleTeam" ADD CONSTRAINT "FK_SrvlessFnORTeam_team" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnOwnerRuleTeam" ADD CONSTRAINT "FK_SrvlessFnORTeam_rule" FOREIGN KEY ("serverlessFunctionOwnerRuleId") REFERENCES "ServerlessFunctionOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnOwnerRuleUser" ADD CONSTRAINT "FK_SrvlessFnORUser_user" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnOwnerRuleUser" ADD CONSTRAINT "FK_SrvlessFnORUser_rule" FOREIGN KEY ("serverlessFunctionOwnerRuleId") REFERENCES "ServerlessFunctionOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnOwnerRuleMatchLabel" ADD CONSTRAINT "FK_SrvlessFnORMatchLabel_label" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnOwnerRuleMatchLabel" ADD CONSTRAINT "FK_SrvlessFnORMatchLabel_rule" FOREIGN KEY ("serverlessFunctionOwnerRuleId") REFERENCES "ServerlessFunctionOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnLabelRuleAddLabel" ADD CONSTRAINT "FK_SrvlessFnLRAddLabel_label" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnLabelRuleAddLabel" ADD CONSTRAINT "FK_SrvlessFnLRAddLabel_rule" FOREIGN KEY ("serverlessFunctionLabelRuleId") REFERENCES "ServerlessFunctionLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnLabelRuleMatchLabel" ADD CONSTRAINT "FK_SrvlessFnLRMatchLabel_label" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SrvlessFnLabelRuleMatchLabel" ADD CONSTRAINT "FK_SrvlessFnLRMatchLabel_rule" FOREIGN KEY ("serverlessFunctionLabelRuleId") REFERENCES "ServerlessFunctionLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionLabel" ADD CONSTRAINT "FK_ServerlessFunctionLabel_labelId" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionLabel" ADD CONSTRAINT "FK_ServerlessFunctionLabel_fnId" FOREIGN KEY ("serverlessFunctionId") REFERENCES "ServerlessFunction"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationClient" ADD CONSTRAINT "FK_RumAppClient_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationClient" ADD CONSTRAINT "FK_RumAppClient_app" FOREIGN KEY ("rumApplicationId") REFERENCES "RumApplication"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationClient" ADD CONSTRAINT "FK_RumAppClient_project" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceInstance" ADD CONSTRAINT "FK_CloudResInstance_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceInstance" ADD CONSTRAINT "FK_CloudResInstance_res" FOREIGN KEY ("cloudResourceId") REFERENCES "CloudResource"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceInstance" ADD CONSTRAINT "FK_CloudResInstance_project" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionInstance" ADD CONSTRAINT "FK_SrvlessFnInstance_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionInstance" ADD CONSTRAINT "FK_SrvlessFnInstance_fn" FOREIGN KEY ("serverlessFunctionId") REFERENCES "ServerlessFunction"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionInstance" ADD CONSTRAINT "FK_SrvlessFnInstance_project" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerRule" ADD CONSTRAINT "FK_RumAppOwnerRule_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerRule" ADD CONSTRAINT "FK_RumAppOwnerRule_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerRule" ADD CONSTRAINT "FK_RumAppOwnerRule_project" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationLabelRule" ADD CONSTRAINT "FK_RumAppLabelRule_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationLabelRule" ADD CONSTRAINT "FK_RumAppLabelRule_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationLabelRule" ADD CONSTRAINT "FK_RumAppLabelRule_project" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerUser" ADD CONSTRAINT "FK_RumAppOwnerUser_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerUser" ADD CONSTRAINT "FK_RumAppOwnerUser_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerUser" ADD CONSTRAINT "FK_RumAppOwnerUser_appId" FOREIGN KEY ("rumApplicationId") REFERENCES "RumApplication"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerUser" ADD CONSTRAINT "FK_RumAppOwnerUser_userId" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerUser" ADD CONSTRAINT "FK_RumAppOwnerUser_projectId" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerTeam" ADD CONSTRAINT "FK_RumAppOwnerTeam_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerTeam" ADD CONSTRAINT "FK_RumAppOwnerTeam_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerTeam" ADD CONSTRAINT "FK_RumAppOwnerTeam_appId" FOREIGN KEY ("rumApplicationId") REFERENCES "RumApplication"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerTeam" ADD CONSTRAINT "FK_RumAppOwnerTeam_teamId" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplicationOwnerTeam" ADD CONSTRAINT "FK_RumAppOwnerTeam_projectId" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplication" ADD CONSTRAINT "FK_RumApplication_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplication" ADD CONSTRAINT "FK_RumApplication_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "RumApplication" ADD CONSTRAINT "FK_RumApplication_projectId" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerRule" ADD CONSTRAINT "FK_CloudResOwnerRule_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerRule" ADD CONSTRAINT "FK_CloudResOwnerRule_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerRule" ADD CONSTRAINT "FK_CloudResOwnerRule_project" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceLabelRule" ADD CONSTRAINT "FK_CloudResLabelRule_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceLabelRule" ADD CONSTRAINT "FK_CloudResLabelRule_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceLabelRule" ADD CONSTRAINT "FK_CloudResLabelRule_project" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerUser" ADD CONSTRAINT "FK_CloudResOwnerUser_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerUser" ADD CONSTRAINT "FK_CloudResOwnerUser_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerUser" ADD CONSTRAINT "FK_CloudResOwnerUser_resId" FOREIGN KEY ("cloudResourceId") REFERENCES "CloudResource"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerUser" ADD CONSTRAINT "FK_CloudResOwnerUser_userId" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerUser" ADD CONSTRAINT "FK_CloudResOwnerUser_projectId" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerTeam" ADD CONSTRAINT "FK_CloudResOwnerTeam_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerTeam" ADD CONSTRAINT "FK_CloudResOwnerTeam_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerTeam" ADD CONSTRAINT "FK_CloudResOwnerTeam_resId" FOREIGN KEY ("cloudResourceId") REFERENCES "CloudResource"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerTeam" ADD CONSTRAINT "FK_CloudResOwnerTeam_teamId" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResourceOwnerTeam" ADD CONSTRAINT "FK_CloudResOwnerTeam_projectId" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResource" ADD CONSTRAINT "FK_CloudResource_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResource" ADD CONSTRAINT "FK_CloudResource_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "CloudResource" ADD CONSTRAINT "FK_CloudResource_projectId" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerRule" ADD CONSTRAINT "FK_SrvlessFnOwnerRule_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerRule" ADD CONSTRAINT "FK_SrvlessFnOwnerRule_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerRule" ADD CONSTRAINT "FK_SrvlessFnOwnerRule_project" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionLabelRule" ADD CONSTRAINT "FK_SrvlessFnLabelRule_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionLabelRule" ADD CONSTRAINT "FK_SrvlessFnLabelRule_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionLabelRule" ADD CONSTRAINT "FK_SrvlessFnLabelRule_project" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerUser" ADD CONSTRAINT "FK_SrvlessFnOwnerUser_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerUser" ADD CONSTRAINT "FK_SrvlessFnOwnerUser_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerUser" ADD CONSTRAINT "FK_SrvlessFnOwnerUser_fnId" FOREIGN KEY ("serverlessFunctionId") REFERENCES "ServerlessFunction"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerUser" ADD CONSTRAINT "FK_SrvlessFnOwnerUser_userId" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerUser" ADD CONSTRAINT "FK_SrvlessFnOwnerUser_projectId" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerTeam" ADD CONSTRAINT "FK_SrvlessFnOwnerTeam_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerTeam" ADD CONSTRAINT "FK_SrvlessFnOwnerTeam_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerTeam" ADD CONSTRAINT "FK_SrvlessFnOwnerTeam_fnId" FOREIGN KEY ("serverlessFunctionId") REFERENCES "ServerlessFunction"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerTeam" ADD CONSTRAINT "FK_SrvlessFnOwnerTeam_teamId" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunctionOwnerTeam" ADD CONSTRAINT "FK_SrvlessFnOwnerTeam_projectId" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunction" ADD CONSTRAINT "FK_ServerlessFunction_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunction" ADD CONSTRAINT "FK_ServerlessFunction_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ServerlessFunction" ADD CONSTRAINT "FK_ServerlessFunction_projectId" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+  }
 }

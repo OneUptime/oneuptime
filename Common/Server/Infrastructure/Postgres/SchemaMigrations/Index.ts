@@ -761,5 +761,5 @@ export default [
   AddTelemetryResourceInventoryTables1780941762204,
   AddRumApplicationSdkLanguage1780985763463,
   RecastCloudResourcesByEnvironment1780987192743,
-  MigrationName1781011482945
+  MigrationName1781011482945,
 ];
