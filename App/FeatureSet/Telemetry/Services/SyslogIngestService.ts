@@ -210,6 +210,7 @@ export default class SyslogIngestService extends OtelIngestBaseService {
             projectId: projectId.toString(),
             primaryEntityId: serviceMetadata.primaryEntityId.toString(),
             primaryEntityType: serviceMetadata.primaryEntityType,
+            entityKeys: serviceMetadata.entityKeys || [],
             time: OneUptimeDate.toClickhouseDateTime64(timestamp),
             timeUnixNano: Math.trunc(
               OneUptimeDate.toUnixNano(timestamp),

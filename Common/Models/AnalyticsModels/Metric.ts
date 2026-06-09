@@ -386,6 +386,43 @@ export default class Metric extends AnalyticsBaseModel {
       },
     });
 
+    const entityKeysColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "entityKeys",
+      title: "Entity Keys",
+      description:
+        "Stable keys of every OpenTelemetry entity (service, host, k8s.pod, container, ...) this signal belongs to. A superset that includes the primary entity. Enables cross-cutting membership queries via has(entityKeys, :key).",
+      required: true,
+      defaultValue: [],
+      type: TableColumnType.ArrayText,
+      skipIndex: {
+        name: "idx_entity_keys",
+        type: SkipIndexType.BloomFilter,
+        params: [0.01],
+        granularity: 1,
+      },
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
+
     const attributeKeysColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "attributeKeys",
       codec: { codec: "ZSTD", level: 3 },
@@ -1082,6 +1119,7 @@ export default class Metric extends AnalyticsBaseModel {
         startTimeUnixNanoColumn,
         attributesColumn,
         attributeKeysColumn,
+        entityKeysColumn,
         isMonotonicColumn,
         countColumn,
         sumColumn,
@@ -1203,6 +1241,14 @@ export default class Metric extends AnalyticsBaseModel {
 
   public set attributeKeys(v: Array<string> | undefined) {
     this.setColumnValue("attributeKeys", v);
+  }
+
+  public get entityKeys(): Array<string> | undefined {
+    return this.getColumnValue("entityKeys") as Array<string> | undefined;
+  }
+
+  public set entityKeys(v: Array<string> | undefined) {
+    this.setColumnValue("entityKeys", v);
   }
 
   public get startTime(): Date | undefined {

@@ -25,6 +25,11 @@ import OTelIngestService, {
   TelemetryServiceMetadata,
 } from "Common/Server/Services/OpenTelemetryIngestService";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
+import TelemetryUtil, {
+  AttributeType,
+} from "Common/Server/Utils/Telemetry/Telemetry";
+import TelemetryEntity from "Common/Server/Utils/Telemetry/TelemetryEntity";
+import Dictionary from "Common/Types/Dictionary";
 
 export default abstract class OtelIngestBaseService {
   private static readonly DOCKER_CONTAINER_NAME_CACHE_NAMESPACE: string =
@@ -205,6 +210,59 @@ export default abstract class OtelIngestBaseService {
    */
   @CaptureSpan()
   protected static async resolveTelemetryResource(data: {
+    req: ExpressRequest;
+    attributes: JSONArray;
+    projectId: ObjectID;
+    hostId?: ObjectID | null;
+    dockerHostId?: ObjectID | null;
+    kubernetesClusterId?: ObjectID | null;
+    serverlessFunctionId?: ObjectID | null;
+    cloudResourceId?: ObjectID | null;
+    rumApplicationId?: ObjectID | null;
+  }): Promise<TelemetryServiceMetadata> {
+    /*
+     * (a) pick the single primary entity via the precedence ladder — the
+     * `primaryEntityId`/`primaryEntityType` contract is unchanged — and
+     * (b) derive the full multi-entity membership set from the same
+     * resource attributes, so the row can belong to many entities
+     * (service + host + k8s.pod + ...) while still being primarily owned
+     * by one. (b) is additive; see OpenTelemetryEntities.md.
+     */
+    const metadata: TelemetryServiceMetadata =
+      await this.selectPrimaryEntity(data);
+    metadata.entityKeys = this.extractEntityKeysFromResourceAttributes(
+      data.projectId,
+      data.attributes,
+    );
+    return metadata;
+  }
+
+  /*
+   * Derive the membership keys for every OpenTelemetry entity present in
+   * the resource attributes. Pure + synchronous (a hash of the attributes
+   * + projectId), so stamping `entityKeys` never blocks ingest on a
+   * registry lookup. Raw resource attributes are flattened with an empty
+   * prefix so keys stay semconv-native (`service.name`, `host.id`,
+   * `k8s.pod.name`, ...) — the form the extractor expects.
+   */
+  private static extractEntityKeysFromResourceAttributes(
+    projectId: ObjectID,
+    attributes: JSONArray,
+  ): Array<string> {
+    const flatAttributes: Dictionary<AttributeType | Array<AttributeType>> =
+      TelemetryUtil.getAttributes({
+        items: attributes,
+        prefixKeysWithString: "",
+      });
+
+    return TelemetryEntity.extractEntityKeys({
+      projectId: projectId.toString(),
+      attributes: flatAttributes,
+    });
+  }
+
+  @CaptureSpan()
+  private static async selectPrimaryEntity(data: {
     req: ExpressRequest;
     attributes: JSONArray;
     projectId: ObjectID;

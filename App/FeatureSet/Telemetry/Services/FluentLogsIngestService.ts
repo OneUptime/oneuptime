@@ -235,6 +235,7 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
             projectId: projectId.toString(),
             primaryEntityId: serviceMetadata.primaryEntityId.toString(),
             primaryEntityType: serviceMetadata.primaryEntityType,
+            entityKeys: serviceMetadata.entityKeys || [],
             time: OneUptimeDate.toClickhouseDateTime64(ingestionDate),
             timeUnixNano,
             severityNumber: severityInfo.number,

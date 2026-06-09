@@ -2115,6 +2115,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       projectId: data.projectId.toString(),
       primaryEntityId: data.primaryEntityId.toString(),
       primaryEntityType: data.serviceMetadata.primaryEntityType,
+      entityKeys: data.serviceMetadata.entityKeys || [],
       name: data.metricName,
       time: timeFields.db,
       timeUnixNano: timeFields.nano,

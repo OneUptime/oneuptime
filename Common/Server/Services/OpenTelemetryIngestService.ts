@@ -48,6 +48,17 @@ export interface TelemetryServiceMetadata {
    * `telemetryServiceFromName`.
    */
   primaryEntityType: ServiceType;
+  /*
+   * Stable keys of every OpenTelemetry entity (service, host, k8s.pod,
+   * container, ...) derived from this batch's resource attributes — the
+   * membership set stamped into each row's `entityKeys` column. A
+   * superset that includes the primary entity's key for OTel-resource
+   * entity types (service / host / k8s.*). Populated by
+   * `OtelIngestBaseService.resolveTelemetryResource`; left undefined by
+   * lower-fidelity sources (syslog / fluent) that resolve metadata
+   * directly, in which case rows stamp an empty array.
+   */
+  entityKeys?: Array<string> | undefined;
   dataRententionInDays: number;
   serviceRetentionConfig: TelemetryRetentionConfig | null;
   serviceRetentionInDays: number | null;
