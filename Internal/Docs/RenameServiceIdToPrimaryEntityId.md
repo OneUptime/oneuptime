@@ -4,232 +4,154 @@ Status: Proposal
 Owner: TBD
 Last updated: 2026-06-09
 
+> **Decisions locked (2026-06-09):**
+> 1. **Hard rename — no deprecated getters.** No `get serviceId()` shim on the models.
+> 2. **No data migrations for now.** No `INSERT…SELECT` copy, no swap. Forward-only via schema-sync; old tables are parked and self-drain via TTL.
+> 3. **No API alias — sunset `serviceId` now.** Clean break: the analytics API speaks only `primaryEntityId`/`primaryEntityType`. This is a **breaking API change** and pulls the **frontend into scope** (it is no longer shielded).
+> 4. **Rename the adjacent Postgres fields too** (`TelemetryException`, `TelemetryUsageBilling`) for consistency — see the migration caveat in [§Postgres](#e-postgres-adjacent-fields-decision-4).
+
 ## Summary
 
-The ClickHouse analytics column `serviceId` (and its discriminator `serviceType`) is a misnomer: it is a **polymorphic primary-entity pointer** (Service / Host / DockerHost / KubernetesCluster / Monitor / RUM app / projectId fallback), not a service id. This plan renames the columns to **`primaryEntityId` / `primaryEntityType`** across the stack, keeping `serviceId` / `serviceType` as **deprecated backward-compat API aliases** so saved dashboards, alert rules, and external API consumers do not break.
+`serviceId` / `serviceType` is a misnomer: it is a **polymorphic primary-entity pointer** (Service / Host / DockerHost / KubernetesCluster / Monitor / RUM app / projectId fallback), not a service id. This plan hard-renames it to **`primaryEntityId` / `primaryEntityType`** across the stack, with **no backward-compat alias** and **no data-migration**. Semantics are byte-for-byte; only the name changes. The column is **kept** (not dropped, not replaced by `entityKeys` — see [`OpenTelemetryEntities.md`](./OpenTelemetryEntities.md)).
 
-This is **Option B** from the design discussion (the alternative — keep the name and relabel conceptually — was rejected in favor of fixing the name while the `…V3` table door is open). The rename is **byte-for-byte semantic-preserving**; only the name changes, and the columns are **kept** (not dropped, not replaced by `entityKeys` — see [`OpenTelemetryEntities.md`](./OpenTelemetryEntities.md) decision-update note).
+The four decisions above make this **simpler in infrastructure** (no alias facility, no copy/swap migration) but **broader in code** (frontend now in scope, external API contract breaks, Postgres models renamed). Net trade: a clean, atomic, breaking rename instead of a long aliased deprecation.
 
-Scope-defining facts established by code audit (verified, citations below):
+**The forward-only principle (from decision 2):** nothing is altered in place and no data is moved. Each ClickHouse object whose shape changes gets a **new versioned name**; boot-time schema-sync (`createTables` / `createMaterializedViews` — these are `CREATE … IF NOT EXISTS`, *not* `DataMigration`s) creates it fresh; the old object is **left in place (parked), not dropped**, and drains itself via its existing `retentionDate` TTL over one retention window. This is self-healing for short-retention telemetry: within ~one retention period, the new table holds a full window and the parked one is empty.
 
-- **Physical ClickHouse column name == model column `key`, always** — `StatementGenerator` emits `column.key` directly into DDL and queries. Renaming the model `key` renames the physical column and all generated SQL.
-- **The permission layer is already column-agnostic** — it reads the FK column name from `@OwnedThrough` metadata / `OwnerTableRegistry`. Exactly **one** hardcoded `"serviceId"` literal exists in that layer.
-- **No existing field-aliasing mechanism** — the alias must be built (small, central).
-- **Generated SQL uses the raw request key string**, so the alias must *rewrite keys* (`serviceId → primaryEntityId`) at well-defined choke points, not merely resolve columns.
-- **All ~200 frontend references are the telemetry `serviceId`** (no collision with the status-page/on-call `Service` model), and **the API alias shields the frontend entirely** — zero frontend changes required initially.
+Scope facts (verified by code audit; citations below):
+- **Physical ClickHouse column name == model column `key`.** Renaming the `key` renames the column and all generated SQL.
+- **Generated SQL injects the raw request key**, so a rename is all-or-nothing per query — there is no partial/aliased middle state (which is consistent with decision 3).
+- **The permission layer is column-agnostic** — one hardcoded `"serviceId"` literal + 6 decorator strings.
 
-Blast radius: ~158 files. The bulk is mechanical and shielded by the alias; the load-bearing work is the alias mechanism, the model/permission rename, the V3 migration, and the MV rebuild.
-
-This rename rides the **single `…V3` table cut** shared with the partition-key change ([`ClickHousePartitioningAndScaling.md`](./ClickHousePartitioningAndScaling.md)) and the entity-membership columns ([`OpenTelemetryEntities.md`](./OpenTelemetryEntities.md)) — one rewrite, sequenced below.
-
-> **Verify line numbers at edit time.** File/function citations below come from a code audit and are accurate at the architecture level; exact line numbers may have drifted. Treat them as starting points, not literals.
+> **Verify line numbers at edit time** — citations are architecture-accurate; exact lines may have drifted.
 
 ---
 
 ## Scope
 
-**In scope — rename across these analytics tables:**
+**Rename `serviceId`→`primaryEntityId`, `serviceType`→`primaryEntityType` in (verified to actually have the column):**
 
-- Signal tables: `Log`, `Metric`, `Span`, `ExceptionInstance`, `Profile`, `ProfileSample`, `MonitorLog`, `AuditLog`.
-- Rollup MV tables: `MetricItemAggMV1m`, `MetricItemAggMV1mByHost`, `MetricBaselineHourly` (serviceId in sort/primary keys + MV SELECT/GROUP BY).
-- All read/write/permission/billing code paths touching those columns.
-- The `serviceId` / `serviceType` deprecated API alias.
+- **Signal tables (6):** `Log`, `Metric`, `Span`, `ExceptionInstance`, `Profile`, `ProfileSample` — each defines the column and carries `@OwnedThrough("serviceId", …)`.
+- **MV tables (2):** `MetricItemAggMV1m`, `MetricBaselineHourly` — `serviceId` in sort/primary keys + the `materializedViews[].query`.
+- **Postgres models (2, decision 4):** `TelemetryException`, `TelemetryUsageBilling`.
+- All read/write/permission/billing/frontend code touching those columns.
 
-**Adjacent but separate (decide independently — not auto-included):**
+**Confirmed NOT affected (no `serviceId` column — do not touch):**
+- `MonitorLog` (keyed by `monitorId`), `AuditLog` (keyed by `resourceType`/`resourceId`), `MetricItemAggMV1mByHost` (keyed by `hostIdentifier`).
 
-- The **Postgres** `TelemetryException` model's own `serviceId`/`serviceType` columns ([`Common/Models/DatabaseModels/TelemetryException.ts`](../../Common/Models/DatabaseModels/TelemetryException.ts)) — a different model; rename only for consistency if desired.
-- The **Postgres** `TelemetryUsageBilling` record's `serviceId`/`serviceType` ([`TelemetryUsageBillingService`](../../Common/Server/Services/TelemetryUsageBillingService.ts)) — a billing artifact; can keep its field names and map at the boundary.
-- The **`ServiceType` enum** ([`Common/Types/Telemetry/ServiceType.ts`](../../Common/Types/Telemetry/ServiceType.ts)) — **keep as-is**. It is a discriminator whose *values* are unchanged; `primaryEntityType` remains typed by it. Renaming the enum to `EntityType` is out of scope (the entity doc keeps `ServiceType` for the primary discriminator and introduces `EntityType` separately for membership).
-
-**Out of scope:** the partition-key change itself, the `entityKeys` membership columns, and any access-control semantics change (those live in the other two docs; this doc only co-sequences with them).
+**Out of scope:** the partition-key change and `entityKeys` columns (separate docs); access-control *semantics*; the `ServiceType` **enum** ([`Common/Types/Telemetry/ServiceType.ts`](../../Common/Types/Telemetry/ServiceType.ts)) — keep as-is; `primaryEntityType` remains typed by it (its values are unchanged).
 
 ---
 
 ## Verified mechanics (the audit)
 
-| Fact | Evidence | Consequence for the plan |
+| Fact | Evidence | Consequence |
 |---|---|---|
-| ClickHouse column name = model column `key` | [`StatementGenerator.ts`](../../Common/Server/Utils/AnalyticsDatabase/StatementGenerator.ts) `toColumnsCreateStatement` (`const keyStatement = column.key`, ≈L989) | Renaming the model `key` renames the physical column + all generated DDL/SQL. No separate DDL rename needed beyond the V3 create. |
-| Query keys are injected raw into SQL | `toSelectStatement` (`SQL\`${key}\``, ≈L878), `toSortStatement` (≈L846), `toWhereStatement` (≈L414 validates via `getTableColumn`), `toGroupByStatement` (≈L821), `toAggregateSelectStatement` (≈L933) | The alias must **rewrite the key string** before SQL generation; alias-aware `getTableColumn` alone is insufficient (it would validate but emit `serviceId` into SQL → error). |
-| Permission scope is dynamic | `OwnedScopePermission.addOwnedScopeToQuery` reads `model.ownedThrough.fkColumn` (≈L128/137); analytics `ModelPermission` reads `fkColumn` from decorator + registry (≈L827/834, L889) | No edits needed in the scope-resolution code. Only the **decorator strings** and **one registry entry** change. |
-| One hardcoded literal in permissions | [`OwnerTableRegistry.ts`](../../Common/Server/Types/Database/Permissions/OwnerTableRegistry.ts) `fkColumn: "serviceId"` (L157, Service entry) | Single-line change. |
-| No existing alias mechanism | (audit found none) | Build a small, central alias facility (below). |
-| Frontend uses only telemetry `serviceId` | 50 files in `App/FeatureSet/Dashboard/src`; no import collision with `DatabaseModels/Service` | API alias shields all of it; defer frontend rename. |
-| V1→V2 was drop-not-copy | [`DeleteOldTelelmetryTable.ts`](../../App/FeatureSet/Workers/DataMigrations/DeleteOldTelelmetryTable.ts) dropped old tables; V2 auto-created at boot | V3 follows the same enum-bump + boot-create pattern, **plus** an explicit data copy (below) since we don't want to silently drop in-retention telemetry. |
+| CH column name = model `key` | [`StatementGenerator`](../../Common/Server/Utils/AnalyticsDatabase/StatementGenerator.ts) `toColumnsCreateStatement` (`const keyStatement = column.key`, ≈L989) | Rename the model `key` → column + DDL + SQL all follow. |
+| Query keys injected raw into SQL | `toSelectStatement` (`SQL\`${key}\``, ≈L878), `toSortStatement` (≈L846), `toWhereStatement` (≈L414), `toGroupByStatement` (≈L821), `toAggregateSelectStatement` (≈L933) | A query referencing `serviceId` after the rename errors with "Unknown column" — so frontend + all callers must switch in lockstep (decision 3). |
+| Permission scope is dynamic | `OwnedScopePermission.addOwnedScopeToQuery` reads `model.ownedThrough.fkColumn` (≈L128/137); analytics `ModelPermission` (≈L827/834/889) | No scope-code edits; just the decorator strings + one registry entry. |
+| One hardcoded literal | [`OwnerTableRegistry`](../../Common/Server/Types/Database/Permissions/OwnerTableRegistry.ts) `fkColumn: "serviceId"` (L157) | Single-line change. |
+| `RENAME COLUMN` impossible here | `serviceId` is in the sort/primary key; ClickHouse forbids renaming a key column | Confirms forward-only **new table** is the only no-migration path (decision 2). |
 
 ---
 
-## The alias mechanism (build first)
+## Approach: hard rename, no alias (decisions 1 & 3)
 
-A signal row exposes `primaryEntityId`/`primaryEntityType` but the API must still accept and emit `serviceId`/`serviceType`. Because generated SQL uses the raw key, the alias is a **bidirectional key remap** at a small number of choke points.
+There is **no `apiAliases` field, no key-remap layer, no dual-emit**. The API speaks `primaryEntityId` only. Consequences, all accepted:
 
-**1. Declare aliases on the column.** Add an optional `apiAliases: Array<string>` to [`AnalyticsTableColumn`](../../Common/Types/AnalyticsDatabase/TableColumn.ts). On the renamed columns:
+- **Breaking API change, effective immediately.** External consumers, saved dashboards, and alert rules that send/read `serviceId` in telemetry queries will break and must update to `primaryEntityId`. Needs a release note / changelog entry.
+- **Frontend is in scope and must ship atomically** with the backend — see [§D](#d-frontend-now-in-scope-decision-3).
+- **No deprecated getters** — `get serviceId()` is removed; all server code uses `.primaryEntityId`.
+- The optional ClickHouse `ALIAS` column escape hatch is **not** used (decision 3 = clean break).
 
-```ts
-// primaryEntityId column
-apiAliases: ["serviceId"],
-// primaryEntityType column
-apiAliases: ["serviceType"],
-```
+---
 
-The model builds a derived `aliasToCanonical: Map<string,string>` (`"serviceId" → "primaryEntityId"`) and `canonicalToAliases`.
+## Forward-only migration model (decision 2)
 
-**2. Inbound key rewrite (request → SQL).** Rewrite keys via `aliasToCanonical` at the **top of each StatementGenerator method** that consumes request keys — this covers every caller (API and internal):
+No `DataMigration` is written. The transition is purely a model/enum change picked up by boot schema-sync:
 
-- `toWhereStatement`, `toSelectStatement`, `toSortStatement`, `toGroupByStatement`, `toAggregateSelectStatement`.
-- Implement once as `private resolveKey(key): string { return this.model.aliasToCanonical.get(key) ?? key; }` and apply where each method reads `key`, before `getTableColumn(key)` and before appending to SQL.
+1. **Bump the table name** in [`AnalyticsTableName`](../../Common/Types/AnalyticsDatabase/AnalyticsTableName.ts) for each renamed table (e.g. `Log = "LogItemV3"`, `Metric = "MetricItemV3"`, … and new MV target/trigger names like `MetricItemAggMV1mV2` / `…_mv2`). *(Enum edit, not a migration.)*
+2. **Update the model** — column `key`s, getters/setters, `sortKeys`/`primaryKeys`, `@OwnedThrough`, and the MV `materializedViews[].query` (new source table + `primaryEntityId`).
+3. **Boot creates the fresh objects** — `AnalyticsTableManagement.createTables()` and `createMaterializedViews()` ([`App/FeatureSet/Workers/Index.ts`](../../App/FeatureSet/Workers/Index.ts) ≈L216/226) run `CREATE … IF NOT EXISTS` from the updated models. No migration code.
+4. **Old objects are parked, not dropped.** The previous `…V2` tables / `…_mv` views remain physically present, stop receiving writes (the model now points at the new name), and **self-drain via their existing `retentionDate` TTL**. A future optional cleanup can `DROP` them once empty.
 
-Also apply at the **facets** endpoint (facet keys) and the **create/update** parse path.
-
-**3. Outbound emit (SQL result → JSON).** In [`CommonModel.toJSON`](../../Common/Models/AnalyticsModels/AnalyticsBaseModel/CommonModel.ts) (≈L201), after emitting `json[column.key]`, also emit each alias: `for (const a of column.apiAliases) json[a] = json[column.key]`. Responses then carry **both** `primaryEntityId` and `serviceId`.
-
-**4. Inbound parse (JSON → model).** In `CommonModel.fromJSON` (≈L193) and the API create/update body handling in [`BaseAnalyticsAPI`](../../Common/Server/API/BaseAnalyticsAPI.ts) (≈L552/523), remap alias keys → canonical before `setColumnValue` (which throws on unknown columns).
-
-**5. Aggregate responses.** In `BaseAnalyticsAPI.getAggregate` (≈L398), the result `groupBy` keys come back canonical (`primaryEntityId`); add the alias key to the response object so dashboards grouping by `serviceId` still find it.
-
-**6. (Complementary, optional) ClickHouse `ALIAS` columns** for raw-SQL / direct-ClickHouse consumers:
-
-```sql
-ALTER TABLE LogItemV3 ADD COLUMN serviceId ALIAS primaryEntityId;
-ALTER TABLE LogItemV3 ADD COLUMN serviceType ALIAS primaryEntityType;
-```
-
-Zero-storage computed columns so ad-hoc `SELECT serviceId …` keeps working. Caveats: not selected by `SELECT *`, cannot be in sort/primary keys, cannot be `INSERT`ed. Use as a safety net, not the primary mechanism.
-
-**Land this mechanism first with an empty alias map (no-op), tested, before any rename** — it de-risks everything downstream.
+**Consequence to confirm:** on existing installs, pre-cutover telemetry history becomes **temporarily invisible** (it's parked in the old table, not deleted) and ages out over one retention window while the new table fills. For these short-retention signal tables this self-heals in ~days–weeks. **Nothing is deleted**, so this is also rollback-friendly. (A copy migration to carry history forward is explicitly **deferred** per decision 2 — it can be added later if a customer needs zero-gap history.)
 
 ---
 
 ## Change inventory by subsystem
 
-### A. Analytics models (8 signal tables)
-`Log`, `Metric`, `Span`, `ExceptionInstance`, `Profile`, `ProfileSample`, `MonitorLog`, `AuditLog` in [`Common/Models/AnalyticsModels/`](../../Common/Models/AnalyticsModels/):
-- `key: "serviceId"` → `"primaryEntityId"` (+ `apiAliases: ["serviceId"]`); `key: "serviceType"` → `"primaryEntityType"` (+ `apiAliases: ["serviceType"]`).
-- Getters/setters `serviceId`/`serviceType` → `primaryEntityId`/`primaryEntityType` (keep deprecated getters delegating, optional).
-- `sortKeys` / `primaryKeys` arrays: `"serviceId"` → `"primaryEntityId"`.
-- `@OwnedThrough("serviceId", …)` → `@OwnedThrough("primaryEntityId", …)` (6 models: Log, Span, Metric, Profile, ProfileSample, ExceptionInstance).
+### A. Analytics models (6 signal + 2 MV)
+[`Common/Models/AnalyticsModels/`](../../Common/Models/AnalyticsModels/): `Log`, `Metric`, `Span`, `ExceptionInstance`, `Profile`, `ProfileSample`, `MetricItemAggMV1m`, `MetricBaselineHourly`:
+- `key: "serviceId"` → `"primaryEntityId"`; `key: "serviceType"` → `"primaryEntityType"` (no `apiAliases`).
+- **Hard-rename** getters/setters (no `serviceId` shim).
+- `sortKeys` / `primaryKeys`: `"serviceId"` → `"primaryEntityId"`.
+- `@OwnedThrough("serviceId", …)` → `@OwnedThrough("primaryEntityId", …)` (6 signal models).
+- MV `materializedViews[].query`: `serviceId` → `primaryEntityId`, source `MetricItemV2` → `MetricItemV3`.
 
-### B. Permissions (single hardcoded reference)
-- [`OwnerTableRegistry.ts`](../../Common/Server/Types/Database/Permissions/OwnerTableRegistry.ts) L157: `fkColumn: "serviceId"` → `"primaryEntityId"` (+ update polymorphism comments ≈L65/68).
-- `OwnedScopePermission.ts` / analytics `ModelPermission.ts`: **no change** (dynamic).
+### B. Permissions
+- [`OwnerTableRegistry`](../../Common/Server/Types/Database/Permissions/OwnerTableRegistry.ts) L157 `fkColumn: "serviceId"` → `"primaryEntityId"` (+ comments). No other permission-code change.
 
-### C. Types & ingest metadata
-- `TelemetryServiceMetadata` interface ([`OpenTelemetryIngestService.ts`](../../Common/Server/Services/OpenTelemetryIngestService.ts) ≈L40-56): rename fields `serviceId`/`serviceType`.
-- `OtelIngestBaseService.resolveTelemetryResource` and callers: rename the produced fields.
+### C. Server: types, ingest, writers, billing
+- `TelemetryServiceMetadata` interface + `OtelIngestBaseService.resolveTelemetryResource` (rename produced fields).
+- Ingest write-sites (build*Row): `OtelMetricsIngestService` (≈L2119), `OtelTracesIngestService` (≈L952/999), `OtelLogsIngestService` (≈L683/972), `OtelProfilesIngestService` (≈L983/1040), `MonitorMetricUtil` (≈L139).
+- Programmatic writers: [`AlertService`](../../Common/Server/Services/AlertService.ts) (4 metrics), [`IncidentService`](../../Common/Server/Services/IncidentService.ts) (7 metrics) — covered by the model setter rename.
+- Billing raw SQL: [`AnalyticsDatabaseService.groupTelemetryUsageByService`](../../Common/Server/Services/AnalyticsDatabaseService.ts) (≈L482) `serviceId`/`serviceType` → `primaryEntityId`/`primaryEntityType`.
 
-### D. Ingest write-sites (set columns on rows)
-| File | ≈Line | Builder |
+### D. Frontend (now in scope — decision 3)
+~50 files in `App/FeatureSet/Dashboard/src` (queries: select/where/sort/groupBy/facetKey; model reads `.serviceId`; navigation). All reference the telemetry `serviceId` (no collision with the status-page `Service` model). Because there is **no alias**, every one must switch to `primaryEntityId` and ship in the **same release** as the backend. High-traffic: `LogsViewer`, `TracesViewer`, `TraceExplorer`, `SpanUtil`, `MetricsViewer`, `TraceTable`, `TraceDetailPanel`, `FlameGraph`.
+
+### E. Postgres adjacent fields (decision 4)
+- [`TelemetryException`](../../Common/Models/DatabaseModels/TelemetryException.ts) and [`TelemetryUsageBilling`](../../Common/Models/DatabaseModels/TelemetryUsageBilling.ts): rename `serviceId`/`serviceType` columns + getters/setters + read/write sites (e.g. `TelemetryExceptionService`, `TelemetryUsageBillingService` write path).
+- **⚠️ Migration caveat vs decision 2:** a Postgres column rename **requires a generated schema migration** (`npm run generate-postgres-migration`, registered in [`SchemaMigrations/Index.ts`](../../Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts)) — there is no schema-sync for Postgres column renames. This is a small, standard, metadata-only migration, **not** the heavy ClickHouse data-copy that decision 2 defers. **Confirm:** does "no migrations for now" permit this small Postgres rename migration (recommended — it's the only way to do #4), or should the Postgres rename also be deferred (leaving those two models on `serviceId` for now)?
+
+---
+
+## Phasing & verification gates
+
+No alias phase. The rename is one coordinated change; ship the code rename and the ClickHouse name-bump together.
+
+| Phase | Work | Gate |
 |---|---|---|
-| `OtelMetricsIngestService` | 2119 | `buildMetricRow` |
-| `OtelTracesIngestService` | 952 / 999 | `buildSpanRow` / `buildExceptionRow` |
-| `OtelLogsIngestService` | 683 / 972 | `saveLog` / `collectExceptionFromLog` |
-| `OtelProfilesIngestService` | 983 / 1040 | `buildProfileRow` / `buildSampleRow` |
-| `MonitorMetricUtil` | 139 | `buildMonitorMetricRow` |
+| **1. Code rename (atomic)** | §A models (keys/getters/sortkeys/`@OwnedThrough`), §B registry, §C server/ingest/writers/billing, §D **frontend**, §E Postgres models + migration. | Build/type-check green; permission tests (`primaryEntityId IN (:allowed)`); no `serviceId` left in analytics read/write paths (grep gate). |
+| **2. ClickHouse name-bump (schema-sync)** | `AnalyticsTableName` → V3 for the 6 signal tables; new MV target/trigger names; new partition key + entity columns may co-land here. Boot creates fresh; old tables parked. | New writes land in V3; reads return post-cutover data; old V2 parked & TTL-draining; sample queries succeed with `primaryEntityId`. |
+| **3. MV recreate** | New-named MV targets/triggers created fresh by `createMaterializedViews()`; old MVs parked. | Dashboard scalar charts repopulate forward (rollup history resets — expected; MVs never backfilled). |
+| **4. Verify & announce** | E2E across traces/logs/metrics/profiles/exceptions UIs (now renamed); confirm permissions/billing; **publish breaking-change note** for the `serviceId` API sunset. | Frontend works on `primaryEntityId`; external API documented as breaking. |
 
-(Files in `App/FeatureSet/Telemetry/Services/` and `Common/Server/Utils/Monitor/`.)
-
-### E. Programmatic metric writers (set `.serviceId` / `.serviceType`)
-- [`AlertService.ts`](../../Common/Server/Services/AlertService.ts): 4 metrics (≈L1345-1502).
-- [`IncidentService.ts`](../../Common/Server/Services/IncidentService.ts): 7 metrics (≈L1720-3010).
-- (These set typed model fields — covered by the model getter/setter rename.)
-
-### F. Materialized views (re-key + rebuild — see next section)
-- [`MetricItemAggMV1m.ts`](../../Common/Models/AnalyticsModels/MetricItemAggMV1m.ts), [`MetricItemAggMV1mByHost.ts`](../../Common/Models/AnalyticsModels/MetricItemAggMV1mByHost.ts), [`MetricBaselineHourly.ts`](../../Common/Models/AnalyticsModels/MetricBaselineHourly.ts): `serviceId` in `sortKeys`, `primaryKeys`, and the `materializedViews[].query` SELECT/GROUP BY → `primaryEntityId`; MV source table `MetricItemV2` → `MetricItemV3`.
-
-### G. Billing (raw SQL)
-- [`AnalyticsDatabaseService.groupTelemetryUsageByService`](../../Common/Server/Services/AnalyticsDatabaseService.ts) ≈L482: raw SQL `SELECT serviceId …, serviceType … GROUP BY serviceId, serviceType` → `primaryEntityId`/`primaryEntityType`. Use `SELECT primaryEntityId AS serviceId` if you want to keep the downstream `TelemetryUsageBilling` write/interface field names unchanged (recommended to keep that scope tight).
-
-### H. Frontend — no change (shielded by alias)
-- ~50 files in `App/FeatureSet/Dashboard/src` (query select/filter/sort, facet keys, model reads, navigation). The API alias makes all of it work unchanged. **Defer** a frontend rename to a later, low-priority, zero-risk cleanup.
-
----
-
-## The `…V3` table migration
-
-ClickHouse cannot `ALTER` a partition key or rename a sort-key column in place, so this is a new versioned table (consistent with the existing `…V2` pattern). One cut carries the **partition change + rename + entity columns**.
-
-1. **`AnalyticsTableName` enum** ([`Common/Types/AnalyticsDatabase/AnalyticsTableName.ts`](../../Common/Types/AnalyticsDatabase/AnalyticsTableName.ts)): bump migrated tables to `…V3` (e.g. `Log = "LogItemV3"`).
-2. **Model schema**: rename columns (§A), set new `partitionKey` (e.g. `toYYYYMMDD(time)`), update sort/primary keys, add entity columns (`entityKeys`, per-type scalars), add `SETTINGS ttl_only_drop_parts = 1` where applicable.
-3. **Boot auto-creates** the empty V3 tables — `AnalyticsTableManagement.createTables()` ([`App/FeatureSet/Workers/Index.ts`](../../App/FeatureSet/Workers/Index.ts) ≈L216) runs `CREATE TABLE IF NOT EXISTS` from the model.
-4. **Data copy migration** (`DataMigrationBase`, registered in [`DataMigrations/Index.ts`](../../App/FeatureSet/Workers/DataMigrations/Index.ts)). Per table, with the rename done in-flight:
-   ```sql
-   INSERT INTO LogItemV3
-   SELECT projectId, primaryEntityId, primaryEntityType, time, /* …all cols… */
-   FROM (SELECT *, serviceId AS primaryEntityId, serviceType AS primaryEntityType FROM LogItemV2);
-   ```
-   - Batch by time window for large tables; track progress so a failed run is resumable (the migration framework records completion in Postgres and runs once — a mid-run failure needs manual/idempotent recovery, so guard with a "V3 row-count / watermark" check).
-   - Writes already go to V3 after deploy (model points to V3), so V2 is read-only at cutover and nothing is missed; `_id` is preserved so the copy is not double-counted on re-run if guarded.
-5. **Drop V2** after a release as a backup window: `DROP TABLE IF EXISTS LogItemV2` (mirrors [`DeleteOldTelelmetryTable.ts`](../../App/FeatureSet/Workers/DataMigrations/DeleteOldTelelmetryTable.ts)).
-
-**Data-preservation choice (per table):**
-- **Copy (default, recommended)** for anything a customer expects to retain — definitely `AuditLog`. Preserves in-retention history; IO-heavy on large tables.
-- **Forward-only (accept loss)** is acceptable only for short-retention signals where history ages out in days and the copy cost isn't worth it — explicit opt-out, never for `AuditLog`. (This is what V1→V2 did.)
-
----
-
-## Materialized view re-key + rebuild
-
-The rollup MVs are `AggregatingMergeTree` with `serviceId` in their sort/primary keys and `MetricItemV2` + `serviceId` in their `materializedViews[].query`. A populated `AggregatingMergeTree` sort key cannot be altered in place, so this is **drop + recreate + let it repopulate forward**, using the established pattern in [`RebuildMetricMinuteAggregateMaterializedView.ts`](../../App/FeatureSet/Workers/DataMigrations/RebuildMetricMinuteAggregateMaterializedView.ts):
-
-1. Guard: skip if the MV already points at `MetricItemV3` / `primaryEntityId`.
-2. `DROP VIEW IF EXISTS …_mv; DROP TABLE IF EXISTS <target>`.
-3. Recreate the target table (new partition `toYYYYMM(bucketTime)`, sort key with `primaryEntityId`).
-4. Recreate the MV `… AS SELECT … primaryEntityId … FROM MetricItemV3 GROUP BY … primaryEntityId`.
-
-MVs do **not** backfill (known behavior — see the metrics-MV note), so rollup history resets at rebuild. This is acceptable and already true of any MV change here; sequence it **last** (it touches the perf-critical aggregate path). Re-keying `MetricItemAggMV1mByHost` from `hostIdentifier` to the host entity key is a related change owned by [`OpenTelemetryEntities.md`](./OpenTelemetryEntities.md) — coordinate so the host MV is rebuilt once.
-
----
-
-## Phasing, sequencing & verification gates
-
-Each phase is independently shippable and backward-compatible.
-
-| Phase | Work | Verification gate |
-|---|---|---|
-| **0. Alias facility** | `apiAliases` on `AnalyticsTableColumn`; central key-rewrite in `StatementGenerator` + facets + create/update; `toJSON`/`fromJSON` emit/parse aliases; aggregate-response alias. Ship with **empty** alias map. | Unit tests: a column with a dummy alias round-trips through where/select/sort/groupBy/aggregate/facets and JSON. No behavior change with empty map. |
-| **1. Rename in models + permissions** | §A model column keys/getters/setters/sort keys + `apiAliases:["serviceId"]`; 6 `@OwnedThrough`; `OwnerTableRegistry:157`; `TelemetryServiceMetadata`; ingest write-sites (§C/D); programmatic writers (§E); billing SQL (§G). | Build/type-check green; permission tests pass (`primaryEntityId IN (:allowed)`); API still accepts/emits `serviceId` via alias. |
-| **2. V3 cut + data copy** | Enum→V3; new partition key + entity columns in models; boot creates V3; copy migration (§Migration); drop V2 (deferred a release). | New + historical rows present in V3; partition pruning + TTL drops observed; sample queries match V2 baselines. |
-| **3. MV re-key + rebuild** | Update + rebuild the 3 MVs (and coordinate host-MV re-key with the entity doc). | Dashboard scalar charts repopulate; per-host charts work; no MV-empty regressions. |
-| **4. Verify & cutover** | End-to-end: traces/logs/metrics/profiles/exceptions UIs (unchanged frontend), alerting rules referencing `serviceId`, saved dashboards. | Frontend works with **zero** changes; external API `serviceId` contract intact. |
-| **5. Deferred (optional)** | Rename frontend `serviceId`→`primaryEntityId` (50 files, low-risk once alias proven); announce a deprecation timeline for the `serviceId` API alias. | n/a (cleanup). |
-
-**Ordering vs. the other two efforts:** entity *identity/registry* code (code-only, no schema) → **this rename + partition change + entity columns in one V3 cut** (Phase 2) → switch reads / MV re-key (Phase 3). Do not cut V3 more than once.
+Co-sequencing: this rename, the partition-key change, and the `entityKeys` columns can all land in the **same V3 name-bump** (Phase 2) since none requires a data migration under decision 2 — one fresh schema, one cutover.
 
 ---
 
 ## Rollback
 
-- **Phase 0–1** are pure code; revert the commit.
-- **Phase 2**: V2 is retained (not dropped) for a full release as the rollback target — revert the enum/model to V2 and the historical data is intact. The copy is additive (V2 untouched until the explicit drop).
-- **Phase 3**: MV rebuild is reversible by re-pointing at the prior source (rollup history resets either way).
+Forward-only makes rollback clean: the old `…V2` tables are **parked, not dropped**, so reverting the enum/model back to V2 restores reads/writes against intact historical data. Code phases revert by reverting the commit. The Postgres rename rolls back with a down-migration.
 
 ---
 
 ## Risks & mitigations
 
-- **Alias coverage gaps break queries.** If any surface (where / select / sort / groupBy / aggregate / facets / response / create-update) misses the remap, a `serviceId` request errors with "Unknown column". *Mitigation:* single shared `resolveKey` helper applied at every choke point; Phase-0 round-trip tests exercise all surfaces.
-- **Data-copy cost / resumability** on large tables. *Mitigation:* batch by time window, watermark guard, run in a maintenance window; offer forward-only for short-retention signals.
-- **MV history reset.** Expected and acceptable (MVs never backfilled). *Mitigation:* communicate; rebuild last.
-- **Two `serviceId` meanings.** The status-page/on-call `Service` model also has ids; confirmed no overlap in the analytics path, but keep the rename strictly within `AnalyticsModels` + their read/write paths.
-- **Partition + rename + entity columns coupled in one cut** increases the size of Phase 2. *Mitigation:* land Phase 0/1 (rename behind alias, still on V2 partition) well ahead, so Phase 2 is "new table + copy" only.
+- **Breaking API change (accepted, decision 3).** External `serviceId` consumers break immediately. *Mitigation:* prominent changelog/release note; this is the explicit trade for a clean break.
+- **Lockstep frontend.** A backend deploy without the matching frontend breaks the UI. *Mitigation:* ship §A–§E in one release; grep-gate for stray `serviceId`.
+- **History gap on existing installs (accepted, decision 2).** Pre-cutover telemetry is parked & invisible until it TTL-drains. *Mitigation:* communicate; it self-heals within one retention window; a copy migration can be added later if needed.
+- **MV rollup reset.** Expected (MVs never backfilled). *Mitigation:* sequence MV recreate last.
+- **Postgres-migration tension (§E).** Needs the open-question answer before that slice proceeds.
 
 ---
 
-## Open questions
+## Open / confirm items
 
-1. **Keep deprecated getters?** Retain `get serviceId()` delegating to `primaryEntityId` on the models for a release, or hard-rename and rely solely on the API alias?
-2. **Copy vs forward-only per table** — confirm which signal tables are short-retention enough to skip the copy (almost certainly copy `AuditLog`, `Metric`; likely copy all).
-3. **`serviceId` API alias sunset** — one release? Two? Tie to a documented deprecation in the API reference.
-4. **Rename the adjacent Postgres `TelemetryException` / `TelemetryUsageBilling` fields** for consistency, or leave them?
+1. **§E Postgres rename vs "no migrations"** — permit the small standard Postgres column-rename migration (recommended), or defer the Postgres rename too?
+2. **Co-land partition + entity columns in the same V3 cut?** (Recommended — one cutover, no extra migration cost under decision 2.)
+3. **Breaking-change comms** — where to announce the `serviceId` API sunset (API reference + changelog + upgrade notes)?
 
 ## Non-Goals
 
-- Changing access-control *semantics* (primary-entity-governs stays; see the entity doc).
-- The partition-key change and `entityKeys` columns themselves (separate docs; only co-sequenced here).
-- Renaming the `ServiceType` enum.
-- Renaming the frontend in this effort (deferred Phase 5).
+- Backward-compat alias / deprecated getters (explicitly rejected — decisions 1 & 3).
+- Data-copy / swap migrations (deferred — decision 2).
+- Partition-key change & `entityKeys` columns themselves (separate docs; co-sequenced only).
+- Renaming the `ServiceType` enum or touching `MonitorLog`/`AuditLog`/`MetricItemAggMV1mByHost`.
 
 ## References
 
-- Internal: [`ClickHousePartitioningAndScaling.md`](./ClickHousePartitioningAndScaling.md) (the V3 partition change this rides with), [`OpenTelemetryEntities.md`](./OpenTelemetryEntities.md) (primary-entity model, `entityKeys`, decision-update note), [`PermissionsSimplification.md`](./PermissionsSimplification.md) (`@OwnedThrough` / `OwnerTableRegistry`).
-- Code: [`StatementGenerator.ts`](../../Common/Server/Utils/AnalyticsDatabase/StatementGenerator.ts), [`BaseAnalyticsAPI.ts`](../../Common/Server/API/BaseAnalyticsAPI.ts), [`CommonModel.ts`](../../Common/Models/AnalyticsModels/AnalyticsBaseModel/CommonModel.ts), [`OwnerTableRegistry.ts`](../../Common/Server/Types/Database/Permissions/OwnerTableRegistry.ts), [`DataMigrations/`](../../App/FeatureSet/Workers/DataMigrations/).
+- Internal: [`ClickHousePartitioningAndScaling.md`](./ClickHousePartitioningAndScaling.md), [`OpenTelemetryEntities.md`](./OpenTelemetryEntities.md), [`PermissionsSimplification.md`](./PermissionsSimplification.md).
+- Code: [`StatementGenerator.ts`](../../Common/Server/Utils/AnalyticsDatabase/StatementGenerator.ts), [`BaseAnalyticsAPI.ts`](../../Common/Server/API/BaseAnalyticsAPI.ts), [`CommonModel.ts`](../../Common/Models/AnalyticsModels/AnalyticsBaseModel/CommonModel.ts), [`OwnerTableRegistry.ts`](../../Common/Server/Types/Database/Permissions/OwnerTableRegistry.ts), [`AnalyticsTableName.ts`](../../Common/Types/AnalyticsDatabase/AnalyticsTableName.ts), [`DataMigrations/`](../../App/FeatureSet/Workers/DataMigrations/).
