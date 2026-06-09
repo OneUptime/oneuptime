@@ -601,5 +601,11 @@
   "Who would you like the owner of this project to be? If you leave this blank - you will be the owner of the project": "Chi vorresti che fosse il proprietario di questo progetto? Se lasci questo campo vuoto - sarai tu il proprietario del progetto",
   "Yearly Plan": "Piano annuale",
   "You can find this in your Twilio console.": "Puoi trovarlo nella tua console Twilio.",
-  "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.": "Il nome utente Telegram del tuo bot, senza la @ iniziale. I nomi utente Telegram terminano con 'bot'."
+  "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.": "Il nome utente Telegram del tuo bot, senza la @ iniziale. I nomi utente Telegram terminano con 'bot'.",
+  "ClickHouse disk": "Disco ClickHouse",
+  "Postgres, ClickHouse, Redis and queue health at a glance.": "Stato di Postgres, ClickHouse, Redis e code a colpo d'occhio.",
+  "Projects, users, monitors and incidents across the instance.": "Progetti, utenti, monitor e incidenti nell'intera istanza.",
+  "Redis memory": "Memoria Redis",
+  "Spot job backlogs and failures before they cause incidents.": "Individua arretrati e fallimenti dei job prima che causino incidenti.",
+  "Track database disk and memory utilization before you run out.": "Monitora l'utilizzo del disco e della memoria del database prima di esaurirli."
 }

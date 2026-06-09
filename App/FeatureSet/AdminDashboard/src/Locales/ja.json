@@ -601,5 +601,11 @@
   "Who would you like the owner of this project to be? If you leave this blank - you will be the owner of the project": "このプロジェクトの所有者を誰にしますか？空白のままにすると、あなたがプロジェクトの所有者になります",
   "Yearly Plan": "年間プラン",
   "You can find this in your Twilio console.": "これはTwilioコンソールで確認できます。",
-  "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.": "先頭の@を除いた、ボットのTelegramユーザー名。Telegramのユーザー名は 'bot' で終わります。"
+  "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.": "先頭の@を除いた、ボットのTelegramユーザー名。Telegramのユーザー名は 'bot' で終わります。",
+  "ClickHouse disk": "ClickHouseディスク",
+  "Postgres, ClickHouse, Redis and queue health at a glance.": "Postgres、ClickHouse、Redis、キューの状態を一目で確認できます。",
+  "Projects, users, monitors and incidents across the instance.": "インスタンス全体のプロジェクト、ユーザー、モニター、インシデント。",
+  "Redis memory": "Redis メモリ",
+  "Spot job backlogs and failures before they cause incidents.": "ジョブのバックログや失敗がインシデントを引き起こす前に発見します。",
+  "Track database disk and memory utilization before you run out.": "枯渇する前にデータベースのディスクとメモリの使用率を追跡します。"
 }

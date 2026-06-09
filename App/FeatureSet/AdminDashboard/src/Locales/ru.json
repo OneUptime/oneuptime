@@ -601,5 +601,11 @@
   "Who would you like the owner of this project to be? If you leave this blank - you will be the owner of the project": "Кого вы хотите назначить владельцем этого проекта? Если оставить это поле пустым, владельцем проекта станете вы",
   "Yearly Plan": "Годовой план",
   "You can find this in your Twilio console.": "Вы можете найти это в вашей консоли Twilio.",
-  "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.": "Имя пользователя вашего бота в Telegram, без ведущего символа @. Имена пользователей в Telegram оканчиваются на «bot»."
+  "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.": "Имя пользователя вашего бота в Telegram, без ведущего символа @. Имена пользователей в Telegram оканчиваются на «bot».",
+  "ClickHouse disk": "Диск ClickHouse",
+  "Postgres, ClickHouse, Redis and queue health at a glance.": "Состояние Postgres, ClickHouse, Redis и очередей с первого взгляда.",
+  "Projects, users, monitors and incidents across the instance.": "Проекты, пользователи, мониторы и инциденты по всему экземпляру.",
+  "Redis memory": "Память Redis",
+  "Spot job backlogs and failures before they cause incidents.": "Выявляйте очереди и сбои заданий до того, как они приведут к инцидентам.",
+  "Track database disk and memory utilization before you run out.": "Отслеживайте использование диска и памяти базы данных, прежде чем они закончатся."
 }

@@ -601,5 +601,11 @@
   "Who would you like the owner of this project to be? If you leave this blank - you will be the owner of the project": "您希望此專案的擁有者是誰？若留空——您將成為此專案的擁有者",
   "Yearly Plan": "年度方案",
   "You can find this in your Twilio console.": "您可以在 Twilio 主控台中找到此項目。",
-  "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.": "您的機器人的 Telegram 使用者名稱，不含開頭的 @。Telegram 使用者名稱以「bot」結尾。"
+  "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.": "您的機器人的 Telegram 使用者名稱，不含開頭的 @。Telegram 使用者名稱以「bot」結尾。",
+  "ClickHouse disk": "ClickHouse 磁碟",
+  "Postgres, ClickHouse, Redis and queue health at a glance.": "一目了然檢視 Postgres、ClickHouse、Redis 與佇列的健康狀態。",
+  "Projects, users, monitors and incidents across the instance.": "整個執行個體中的專案、使用者、監測器與事件。",
+  "Redis memory": "Redis 記憶體",
+  "Spot job backlogs and failures before they cause incidents.": "在工作積壓與失敗造成事件之前及早發現。",
+  "Track database disk and memory utilization before you run out.": "在資源耗盡前追蹤資料庫磁碟與記憶體使用率。"
 }

@@ -601,5 +601,11 @@
   "Who would you like the owner of this project to be? If you leave this blank - you will be the owner of the project": "Hvem vil du have som ejer af dette projekt? Hvis du lader dette være tomt - vil du være ejer af projektet",
   "Yearly Plan": "Årlig plan",
   "You can find this in your Twilio console.": "Du kan finde dette i din Twilio-konsol.",
-  "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.": "Din bots Telegram-brugernavn, uden det indledende @. Telegram-brugernavne ender på 'bot'."
+  "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.": "Din bots Telegram-brugernavn, uden det indledende @. Telegram-brugernavne ender på 'bot'.",
+  "ClickHouse disk": "ClickHouse-disk",
+  "Postgres, ClickHouse, Redis and queue health at a glance.": "Postgres, ClickHouse, Redis og kø-helbred på et øjeblik.",
+  "Projects, users, monitors and incidents across the instance.": "Projekter, brugere, overvågninger og hændelser på tværs af instansen.",
+  "Redis memory": "Redis-hukommelse",
+  "Spot job backlogs and failures before they cause incidents.": "Opdag jobophobninger og fejl, før de forårsager hændelser.",
+  "Track database disk and memory utilization before you run out.": "Hold styr på databasens disk- og hukommelsesforbrug, før du løber tør."
 }
