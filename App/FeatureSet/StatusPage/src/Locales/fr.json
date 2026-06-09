@@ -252,5 +252,7 @@
     "ongoing": "En cours",
     "ended": "Terminé",
     "completed": "Achevé"
-  }
+  },
+  "Subscriber ID is required": "L'ID de l'abonné est requis",
+  "Token is required": "Le jeton est requis"
 }

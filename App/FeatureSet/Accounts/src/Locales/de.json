@@ -104,5 +104,7 @@
       "title": "Seite nicht gefunden",
       "description": "Die gesuchte Seite existiert nicht."
     }
-  }
+  },
+  "Acme, Inc.": "Acme, Inc.",
+  "Jeff Smith": "Jeff Smith"
 }

@@ -160,7 +160,7 @@
       "badge": "Guide",
       "title": "Types de données",
       "intro": "Dans ce guide, nous verrons comment utiliser les types de données OneUptime lors de l'interrogation de l'API OneUptime.",
-      "select": "Select",
+      "select": "Sélectionner",
       "selectBody": "Select peut être utilisé pour sélectionner des champs d'un objet dans les API List ou Get Item. Par défaut, seuls les ID sont renvoyés au client. Pour récupérer davantage de champs, vous devez utiliser :",
       "selectDescription": "Dictionnaire de fieldName - booléen sous forme d'objet JSON. Voici un exemple. Si le booléen est défini sur true, le champ sera récupéré.",
       "exampleSelectTitle": "Exemple de corps de requête Select",
@@ -195,7 +195,7 @@
       "lessThanOrEqual": "Inférieur ou égal à",
       "lessThanOrEqualBody": "Voici comment utiliser `less than or equal` pour effectuer une requête avec l'API List de OneUptime :",
       "lessThanOrEqualDescription": "Voici un exemple de requête less than or equal",
-      "includes": "Includes",
+      "includes": "Inclut",
       "includesBody": "Includes permet d'obtenir les objets qui correspondent à l'une des valeurs du tableau. Il est utilisé pour filtrer les objets dont un champ correspond à l'une des valeurs du tableau. Par exemple, si vous souhaitez obtenir tous les objets ayant une étiquette avec l'ID `aaa00000-aaaa-aaaa-aaaa-aaaaaaaaaaaa` ou `bbb00000-bbbb-bbbb-bbbb-bbbbbbbbbbbb`, vous pouvez utiliser le type de requête `includes`.",
       "includesDescription": "Voici un exemple de requête includes",
       "queryLabel": "Requête"

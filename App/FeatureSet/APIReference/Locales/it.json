@@ -100,7 +100,7 @@
       "exampleRequestTitle": "Esempio di Richiesta di Paginazione",
       "exampleResponseTitle": "Esempio di Risposta di Paginazione",
       "typeNumber": "Numero",
-      "typeJsonArray": "JSON Array"
+      "typeJsonArray": "Array JSON"
     },
     "permissions": {
       "metaTitle": "Autorizzazioni",
@@ -160,7 +160,7 @@
       "badge": "Guida",
       "title": "Tipi di Dato",
       "intro": "In questa guida vedremo come lavorare con i tipi di dato OneUptime quando si interroga l'API OneUptime.",
-      "select": "Select",
+      "select": "Seleziona",
       "selectBody": "Select può essere utilizzato per selezionare i campi da un Oggetto nelle API List o Get Item. Per impostazione predefinita, vengono restituiti al client solo gli ID. Per recuperare più campi è necessario utilizzare:",
       "selectDescription": "Dizionario di fieldName - boolean come oggetto JSON. Ecco un esempio. Se il booleano è impostato su true, il campo verrà recuperato.",
       "exampleSelectTitle": "Esempio di Corpo della Richiesta Select",
@@ -195,7 +195,7 @@
       "lessThanOrEqual": "Minore o Uguale",
       "lessThanOrEqualBody": "Ecco come utilizzare `less than or equal` per interrogare con l'API List di OneUptime:",
       "lessThanOrEqualDescription": "Ecco un esempio di una query less than or equal",
-      "includes": "Includes",
+      "includes": "Include",
       "includesBody": "Includes otterrà gli oggetti che corrispondono a uno qualsiasi dei valori nell'array. Viene utilizzato per filtrare gli oggetti che hanno un campo che corrisponde a uno qualsiasi dei valori nell'array. Ad esempio, se vuoi ottenere tutti gli oggetti che hanno un'etichetta con ID `aaa00000-aaaa-aaaa-aaaa-aaaaaaaaaaaa` o `bbb00000-bbbb-bbbb-bbbb-bbbbbbbbbbbb`, puoi utilizzare il tipo di query `includes`.",
       "includesDescription": "Ecco un esempio di una query includes",
       "queryLabel": "Query"

@@ -160,7 +160,7 @@
       "badge": "Anleitung",
       "title": "Datentypen",
       "intro": "In dieser Anleitung schauen wir uns an, wie man mit OneUptime-Datentypen beim Abfragen der OneUptime-API arbeitet.",
-      "select": "Select",
+      "select": "Auswählen",
       "selectBody": "Select kann verwendet werden, um Felder aus einem Objekt in der List- oder Get-Item-API auszuwählen. Standardmäßig werden nur IDs an den Client zurückgegeben. Um weitere Felder abzurufen, musst du Folgendes verwenden:",
       "selectDescription": "Wörterbuch von fieldName - Boolean als JSON-Objekt. Hier ist ein Beispiel. Wenn der Boolean auf true gesetzt ist, wird das Feld abgerufen.",
       "exampleSelectTitle": "Beispiel Select-Anfragetext",

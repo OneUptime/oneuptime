@@ -160,7 +160,7 @@
       "badge": "指南",
       "title": "数据类型",
       "intro": "在本指南中,我们将了解如何在查询 OneUptime API 时使用 OneUptime 数据类型。",
-      "select": "Select",
+      "select": "选择",
       "selectBody": "Select 可用于在 List 或 Get Item API 中选择对象的字段。默认情况下,只会向客户端返回 ID。要检索更多字段,您需要使用:",
       "selectDescription": "字段名 - 布尔值的字典作为 JSON 对象。这是一个示例。如果布尔值设置为 true,则将检索该字段。",
       "exampleSelectTitle": "Select 请求主体示例",

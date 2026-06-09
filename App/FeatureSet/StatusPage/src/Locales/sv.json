@@ -252,5 +252,7 @@
     "ongoing": "Pågående",
     "ended": "Avslutad",
     "completed": "Slutförd"
-  }
+  },
+  "Subscriber ID is required": "Prenumerant-ID krävs",
+  "Token is required": "Token krävs"
 }

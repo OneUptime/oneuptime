@@ -252,5 +252,7 @@
     "ongoing": "진행 중",
     "ended": "종료됨",
     "completed": "완료됨"
-  }
+  },
+  "Subscriber ID is required": "구독자 ID는 필수입니다",
+  "Token is required": "토큰이 필요합니다"
 }

@@ -104,5 +104,7 @@
       "title": "Page introuvable",
       "description": "La page que vous recherchez n'existe pas."
     }
-  }
+  },
+  "Acme, Inc.": "Acme, Inc.",
+  "Jeff Smith": "Jeff Smith"
 }

@@ -104,5 +104,7 @@
       "title": "ページが見つかりません",
       "description": "お探しのページは存在しません。"
     }
-  }
+  },
+  "Acme, Inc.": "Acme, Inc.",
+  "Jeff Smith": "Jeff Smith"
 }

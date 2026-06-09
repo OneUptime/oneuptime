@@ -44,7 +44,7 @@
     "srName": "Navn",
     "srType": "Type",
     "srDescription": "Beskrivelse",
-    "srEndpoint": "Endpoint",
+    "srEndpoint": "Endepunkt",
     "srValue": "Værdi",
     "srIndex": "Indeks"
   },
@@ -99,8 +99,8 @@
       "countDescription": "Det samlede antal elementer i databasen",
       "exampleRequestTitle": "Eksempel på pagineringsanmodning",
       "exampleResponseTitle": "Eksempel på pagineringssvar",
-      "typeNumber": "Number",
-      "typeJsonArray": "JSON Array"
+      "typeNumber": "Tal",
+      "typeJsonArray": "JSON-array"
     },
     "permissions": {
       "metaTitle": "Tilladelser",
@@ -160,7 +160,7 @@
       "badge": "Vejledning",
       "title": "Datatyper",
       "intro": "I denne vejledning ser vi på, hvordan du arbejder med OneUptime-datatyper, når du forespørger OneUptime API'et.",
-      "select": "Select",
+      "select": "Vælg",
       "selectBody": "Select kan bruges til at vælge felter fra et objekt i List- eller Get Item-API'et. Som standard returneres kun ID'er til klienten. For at hente flere felter skal du bruge:",
       "selectDescription": "Ordbog over fieldName - boolean som JSON-objekt. Her er et eksempel. Hvis boolean er sat til true, vil feltet blive hentet.",
       "exampleSelectTitle": "Eksempel på Select-anmodningsbrødtekst",

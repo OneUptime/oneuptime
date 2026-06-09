@@ -252,5 +252,7 @@
     "ongoing": "Lopend",
     "ended": "Beëindigd",
     "completed": "Voltooid"
-  }
+  },
+  "Subscriber ID is required": "Abonnee-ID is vereist",
+  "Token is required": "Token is vereist"
 }

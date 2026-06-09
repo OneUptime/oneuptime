@@ -252,5 +252,7 @@
     "ongoing": "进行中",
     "ended": "已结束",
     "completed": "已完成"
-  }
+  },
+  "Subscriber ID is required": "订阅者 ID 为必填项",
+  "Token is required": "令牌为必填项"
 }
