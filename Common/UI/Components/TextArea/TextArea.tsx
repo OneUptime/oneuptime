@@ -1,5 +1,6 @@
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
+import useTranslateValue from "../../Utils/Translation";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -25,6 +26,7 @@ export interface ComponentProps {
 const TextArea: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
   const [text, setText] = useState<string>(props.initialValue || "");
 
   let className: string = "";
@@ -61,7 +63,7 @@ const TextArea: FunctionComponent<ComponentProps> = (
       <div className="relative mt-2 mb-1 rounded-md shadow-sm">
         <textarea
           autoFocus={props.autoFocus}
-          placeholder={props.placeholder}
+          placeholder={translateString(props.placeholder)}
           data-testid={props.dataTestId}
           className={`${className || ""}`}
           value={text}
