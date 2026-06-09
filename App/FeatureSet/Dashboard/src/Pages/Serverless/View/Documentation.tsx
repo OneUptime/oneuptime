@@ -1,7 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
-import RumApplication from "Common/Models/DatabaseModels/RumApplication";
+import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import React, {
   Fragment,
   FunctionComponent,
@@ -14,39 +14,31 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import MetricsViewer from "../../../Components/Metrics/MetricsViewer";
+import ResourceDocumentationCard from "../../../Components/TelemetryResource/ResourceDocumentationCard";
+import { getServerlessDocMarkdown } from "../../../Components/TelemetryResource/documentationMarkdown";
 
-const RumApplicationMetrics: FunctionComponent<
+const ServerlessFunctionDocumentation: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const [rumApplication, setRumApplication] = useState<RumApplication | null>(
-    null,
-  );
+  const [serverlessFunction, setServerlessFunction] =
+    useState<ServerlessFunction | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
-  const fetchData: PromiseVoidFunction = async (): Promise<void> => {
+  const fetchModel: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
-    setError("");
     try {
-      const item: RumApplication | null = await ModelAPI.getItem({
-        modelType: RumApplication,
+      const item: ServerlessFunction | null = await ModelAPI.getItem({
+        modelType: ServerlessFunction,
         id: modelId,
         select: {
-          appIdentifier: true,
           name: true,
+          functionIdentifier: true,
         },
       });
-
-      if (!item?.appIdentifier) {
-        setError("RUM application not found.");
-        setIsLoading(false);
-        return;
-      }
-
-      setRumApplication(item);
+      setServerlessFunction(item);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -54,7 +46,7 @@ const RumApplicationMetrics: FunctionComponent<
   };
 
   useEffect(() => {
-    fetchData().catch((err: Error) => {
+    fetchModel().catch((err: Error) => {
       setError(API.getFriendlyMessage(err));
     });
   }, []);
@@ -67,15 +59,24 @@ const RumApplicationMetrics: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
-  if (!rumApplication?.appIdentifier) {
-    return <ErrorMessage message="RUM application not found." />;
+  if (!serverlessFunction) {
+    return <ErrorMessage message="Serverless function not found." />;
   }
+
+  const label: string =
+    (serverlessFunction.functionIdentifier as string) ||
+    (serverlessFunction.name as string) ||
+    "this function";
 
   return (
     <Fragment>
-      <MetricsViewer serviceIds={[modelId]} />
+      <ResourceDocumentationCard
+        title="Send telemetry to this serverless function"
+        description={`Instrument your function with OpenTelemetry so ${label} reports to OneUptime.`}
+        buildMarkdown={getServerlessDocMarkdown}
+      />
     </Fragment>
   );
 };
 
-export default RumApplicationMetrics;
+export default ServerlessFunctionDocumentation;

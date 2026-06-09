@@ -28,6 +28,18 @@ const ServerlessFunctionViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Info}
         />
+        <SideMenuItem
+          link={{
+            title: "Documentation",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Book}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Observability">

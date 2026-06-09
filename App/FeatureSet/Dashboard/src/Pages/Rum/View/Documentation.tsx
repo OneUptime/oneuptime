@@ -14,9 +14,10 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import MetricsViewer from "../../../Components/Metrics/MetricsViewer";
+import ResourceDocumentationCard from "../../../Components/TelemetryResource/ResourceDocumentationCard";
+import { getRumDocMarkdown } from "../../../Components/TelemetryResource/documentationMarkdown";
 
-const RumApplicationMetrics: FunctionComponent<
+const RumApplicationDocumentation: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
@@ -27,25 +28,17 @@ const RumApplicationMetrics: FunctionComponent<
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
-  const fetchData: PromiseVoidFunction = async (): Promise<void> => {
+  const fetchModel: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
-    setError("");
     try {
       const item: RumApplication | null = await ModelAPI.getItem({
         modelType: RumApplication,
         id: modelId,
         select: {
-          appIdentifier: true,
           name: true,
+          appIdentifier: true,
         },
       });
-
-      if (!item?.appIdentifier) {
-        setError("RUM application not found.");
-        setIsLoading(false);
-        return;
-      }
-
       setRumApplication(item);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -54,7 +47,7 @@ const RumApplicationMetrics: FunctionComponent<
   };
 
   useEffect(() => {
-    fetchData().catch((err: Error) => {
+    fetchModel().catch((err: Error) => {
       setError(API.getFriendlyMessage(err));
     });
   }, []);
@@ -67,15 +60,24 @@ const RumApplicationMetrics: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
-  if (!rumApplication?.appIdentifier) {
+  if (!rumApplication) {
     return <ErrorMessage message="RUM application not found." />;
   }
 
+  const label: string =
+    (rumApplication.appIdentifier as string) ||
+    (rumApplication.name as string) ||
+    "this application";
+
   return (
     <Fragment>
-      <MetricsViewer serviceIds={[modelId]} />
+      <ResourceDocumentationCard
+        title="Instrument your app for RUM"
+        description={`Send browser / mobile telemetry so ${label} reports real-user monitoring to OneUptime.`}
+        buildMarkdown={getRumDocMarkdown}
+      />
     </Fragment>
   );
 };
 
-export default RumApplicationMetrics;
+export default RumApplicationDocumentation;

@@ -73,14 +73,7 @@ const RumApplicationTraces: FunctionComponent<
 
   return (
     <Fragment>
-      <TracesViewer
-        attributeFilters={{
-          "resource.service.name": rumApplication.appIdentifier,
-        }}
-        attributeFilterDisplayKeys={{
-          "resource.service.name": "Application",
-        }}
-      />
+      <TracesViewer serviceId={modelId} />
     </Fragment>
   );
 };

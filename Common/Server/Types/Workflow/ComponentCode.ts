@@ -43,7 +43,7 @@ export interface RunReturnType {
    * suspend execution AFTER this component (the components connected to
    * `executePort` are scheduled but not run inline). The run is persisted and
    * a delayed job re-enqueues it once the duration elapses, at which point it
-   * resumes from where it left off. Used by the Wait component to implement a
+   * resumes from where it left off. Used by the Sleep component to implement a
    * durable delay that does not block a worker.
    */
   suspendForMs?: number | undefined;

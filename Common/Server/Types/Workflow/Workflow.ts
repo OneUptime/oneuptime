@@ -8,7 +8,7 @@ export interface RunProps {
   timeout: number;
   /**
    * True when this run is resuming a previously-suspended workflow (e.g. after
-   * a Wait step). The runner rehydrates execution state from the WorkflowLog's
+   * a Sleep step). The runner rehydrates execution state from the WorkflowLog's
    * `resumeData` instead of starting from the trigger.
    */
   isResume?: boolean;

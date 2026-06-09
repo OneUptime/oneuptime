@@ -7,18 +7,18 @@ import ComponentMetadata, {
 
 const components: Array<ComponentMetadata> = [
   {
-    id: ComponentID.Wait,
-    title: "Wait",
+    id: ComponentID.Sleep,
+    title: "Sleep",
     category: "Utils",
     description:
-      "Pause the workflow for a specified duration, then continue with the next steps. The workflow is suspended while waiting and does not consume a worker — it resumes automatically when the wait is over.",
+      "Pause the workflow for a specified duration, then continue with the next steps. The workflow is suspended while sleeping and does not consume a worker — it resumes automatically when the sleep is over.",
     iconProp: IconProp.Clock,
     componentType: ComponentType.Component,
     arguments: [
       {
         type: ComponentInputType.Number,
         name: "Days",
-        description: "Number of days to wait. Optional. Defaults to 0.",
+        description: "Number of days to sleep. Optional. Defaults to 0.",
         required: false,
         id: "days",
         placeholder: "0",
@@ -26,7 +26,7 @@ const components: Array<ComponentMetadata> = [
       {
         type: ComponentInputType.Number,
         name: "Hours",
-        description: "Number of hours to wait. Optional. Defaults to 0.",
+        description: "Number of hours to sleep. Optional. Defaults to 0.",
         required: false,
         id: "hours",
         placeholder: "0",
@@ -34,7 +34,7 @@ const components: Array<ComponentMetadata> = [
       {
         type: ComponentInputType.Number,
         name: "Minutes",
-        description: "Number of minutes to wait. Optional. Defaults to 0.",
+        description: "Number of minutes to sleep. Optional. Defaults to 0.",
         required: false,
         id: "minutes",
         placeholder: "0",
@@ -42,7 +42,7 @@ const components: Array<ComponentMetadata> = [
       {
         type: ComponentInputType.Number,
         name: "Seconds",
-        description: "Number of seconds to wait. Optional. Defaults to 0.",
+        description: "Number of seconds to sleep. Optional. Defaults to 0.",
         required: false,
         id: "seconds",
         placeholder: "0",
@@ -61,7 +61,7 @@ const components: Array<ComponentMetadata> = [
       {
         title: "Out",
         description:
-          "Connect components to this port to run them after the wait is over.",
+          "Connect components to this port to run them after the sleep is over.",
         id: "out",
       },
     ],

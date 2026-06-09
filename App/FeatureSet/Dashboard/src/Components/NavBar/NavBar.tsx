@@ -338,6 +338,9 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       rightElement={rightElement}
       moreMenuItems={moreMenuItems}
       moreMenuFooter={moreMenuFooter}
+      moreMenuSearchPlaceholder={t("navbar.search.placeholder")}
+      moreMenuNoResultsText={t("navbar.search.noResults")}
+      moreMenuKeyboardHint={t("navbar.search.hint")}
     />
   );
 };

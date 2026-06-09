@@ -196,7 +196,7 @@ export default class Queue {
        * One-off delay in milliseconds before the job becomes eligible to run.
        * Mutually exclusive with `scheduleAt` (a repeatable cron pattern); if
        * both are set, `scheduleAt` wins. Used to park a delayed job (e.g. the
-       * Wait component's durable resume).
+       * Sleep component's durable resume).
        */
       delayInMs?: number | undefined;
     },

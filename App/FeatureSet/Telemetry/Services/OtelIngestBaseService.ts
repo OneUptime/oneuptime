@@ -88,6 +88,20 @@ export default abstract class OtelIngestBaseService {
     req: ExpressRequest,
     attributes: JSONArray,
   ): Promise<string | null> {
+    /*
+     * Client / RUM telemetry (browser.* / device.*) is owned by its
+     * RumApplication, not a Service. Return null so
+     * resolveTelemetryResource routes the batch to the RealUserMonitor
+     * branch (serviceId = rumApplicationId) instead of synthesising a
+     * duplicate Service row for the same browser / mobile app. There is no
+     * OTel attribute that identifies a RUM app other than service.name, so
+     * we keep service.name as the RumApplication's dedup key but never let
+     * it create a Service.
+     */
+    if (this.getRumClientType(attributes)) {
+      return null;
+    }
+
     for (const attribute of attributes) {
       if (
         attribute["key"] === "service.name" &&
@@ -787,12 +801,29 @@ export default abstract class OtelIngestBaseService {
       "azure_app_service",
     ]);
 
+  // Friendly display names for the managed-compute platforms above.
+  private static readonly CLOUD_PLATFORM_LABELS: Readonly<
+    Record<string, string>
+  > = {
+    aws_ecs: "AWS ECS",
+    aws_elastic_beanstalk: "AWS Elastic Beanstalk",
+    aws_app_runner: "AWS App Runner",
+    gcp_cloud_run: "GCP Cloud Run",
+    gcp_app_engine: "GCP App Engine",
+    azure_container_apps: "Azure Container Apps",
+    azure_container_instances: "Azure Container Instances",
+    azure_app_service: "Azure App Service",
+  };
+
   /*
-   * Auto-discover a managed cloud-compute resource from OTel resource
-   * attributes. Gated on cloud.platform being in the managed-compute set;
-   * identity is service.name (falling back to host.name). Runs on every
-   * ingest path so the resource's telemetry tabs work even when service.name
-   * is also set — the discriminator choice happens in resolveTelemetryResource.
+   * Auto-discover a managed cloud-compute *environment* from OTel resource
+   * attributes. Gated on cloud.platform being in the managed-compute set.
+   * Identity is the environment — cloud.platform + cloud.account.id +
+   * cloud.region — NOT service.name, so a single CloudResource aggregates
+   * every workload running on that platform/account/region (per-service
+   * breakdown lives under Services). This deliberately avoids the
+   * service.name overlap that would otherwise mirror a Service row. Runs on
+   * every ingest path so the environment's telemetry tabs stay populated.
    */
   @CaptureSpan()
   protected static async autoDiscoverCloudResource(data: {
@@ -808,13 +839,36 @@ export default abstract class OtelIngestBaseService {
         return null;
       }
 
-      const resourceIdentifier: string | null =
-        this.getStringAttribute(data.attributes, "service.name") ||
-        this.getStringAttribute(data.attributes, "host.name");
+      const cloudProvider: string | null = this.getStringAttribute(
+        data.attributes,
+        "cloud.provider",
+      );
+      const cloudRegion: string | null = this.getStringAttribute(
+        data.attributes,
+        "cloud.region",
+      );
+      const cloudAccountId: string | null = this.getStringAttribute(
+        data.attributes,
+        "cloud.account.id",
+      );
 
-      if (!resourceIdentifier) {
-        return null;
+      // Composite environment key — stable across every service on this env.
+      const resourceIdentifier: string = [
+        cloudPlatform,
+        cloudAccountId || "",
+        cloudRegion || "",
+      ].join("|");
+
+      const platformLabel: string =
+        this.CLOUD_PLATFORM_LABELS[cloudPlatform] || cloudPlatform;
+      const nameParts: Array<string> = [platformLabel];
+      if (cloudRegion) {
+        nameParts.push(cloudRegion);
       }
+      if (cloudAccountId) {
+        nameParts.push(cloudAccountId);
+      }
+      const name: string = nameParts.join(" · ");
 
       const cacheKey: string = `${data.projectId.toString()}:${resourceIdentifier}`;
       let resourceIdStr: string | null = await GlobalCache.getString(
@@ -827,6 +881,11 @@ export default abstract class OtelIngestBaseService {
           await CloudResourceService.findOrCreateByResourceIdentifier({
             projectId: data.projectId,
             resourceIdentifier,
+            name,
+            cloudPlatform,
+            cloudProvider: cloudProvider || undefined,
+            cloudRegion: cloudRegion || undefined,
+            cloudAccountId: cloudAccountId || undefined,
           });
         if (cloudResource._id) {
           resourceIdStr = cloudResource._id.toString();
@@ -842,32 +901,11 @@ export default abstract class OtelIngestBaseService {
       if (resourceIdStr) {
         const cloudResourceId: ObjectID = new ObjectID(resourceIdStr);
         if (await this.shouldRunMaintenance("cloud-resource", resourceIdStr)) {
-          const agentVersion: string | null = this.getStringAttribute(
-            data.attributes,
-            "oneuptime.agent.version",
-          );
           await CloudResourceService.updateLastSeen(cloudResourceId, {
-            agentVersion: agentVersion || undefined,
             cloudPlatform: cloudPlatform || undefined,
-            cloudProvider:
-              this.getStringAttribute(data.attributes, "cloud.provider") ||
-              undefined,
-            cloudRegion:
-              this.getStringAttribute(data.attributes, "cloud.region") ||
-              undefined,
-            cloudAccountId:
-              this.getStringAttribute(data.attributes, "cloud.account.id") ||
-              undefined,
-            runtimeName:
-              this.getStringAttribute(
-                data.attributes,
-                "process.runtime.name",
-              ) || undefined,
-            runtimeVersion:
-              this.getStringAttribute(
-                data.attributes,
-                "process.runtime.version",
-              ) || undefined,
+            cloudProvider: cloudProvider || undefined,
+            cloudRegion: cloudRegion || undefined,
+            cloudAccountId: cloudAccountId || undefined,
           });
           await this.promoteOneuptimeLabelsToCloudResource({
             projectId: data.projectId,
@@ -1026,9 +1064,14 @@ export default abstract class OtelIngestBaseService {
           const agentVersion: string | null =
             this.getStringAttribute(data.attributes, "telemetry.sdk.version") ||
             this.getStringAttribute(data.attributes, "oneuptime.agent.version");
+          const sdkLanguage: string | null = this.getStringAttribute(
+            data.attributes,
+            "telemetry.sdk.language",
+          );
           await RumApplicationService.updateLastSeen(rumApplicationId, {
             agentVersion: agentVersion || undefined,
             clientType: clientType || undefined,
+            sdkLanguage: sdkLanguage || undefined,
           });
           await this.promoteOneuptimeLabelsToRumApplication({
             projectId: data.projectId,

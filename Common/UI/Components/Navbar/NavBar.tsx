@@ -3,14 +3,12 @@ import React, {
   ReactElement,
   useState,
   useEffect,
-  useRef,
 } from "react";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import IconProp from "../../../Types/Icon/IconProp";
 import NavBarItem from "./NavBarItem";
-import NavBarMenu from "./NavBarMenu";
-import NavBarMenuItem from "./NavBarMenuItem";
+import NavBarMenuModal from "./NavBarMenuModal";
 import Button, { ButtonStyleType } from "../Button/Button";
 import Navigation from "../../Utils/Navigation";
 import useComponentOutsideClick from "../../Types/UseComponentOutsideClick";
@@ -41,6 +39,9 @@ export interface ComponentProps {
   rightElement?: NavItem;
   moreMenuItems?: MoreMenuItem[];
   moreMenuTitle?: string; // Title for the more menu (default: "More")
+  moreMenuSearchPlaceholder?: string; // Placeholder for the menu search box
+  moreMenuNoResultsText?: string; // Empty-state text when search matches nothing
+  moreMenuKeyboardHint?: string; // Keyboard hint shown in the menu footer
   moreMenuFooter?: {
     title: string;
     description: string;
@@ -58,11 +59,6 @@ const Navbar: FunctionComponent<ComponentProps> = (
   const [isMobileMenuVisible, setIsMobileMenuVisible] =
     useState<boolean>(false);
   const [isMoreMenuVisible, setIsMoreMenuVisible] = useState<boolean>(false);
-  const [moreMenuTimeout, setMoreMenuTimeout] = useState<ReturnType<
-    typeof setTimeout
-  > | null>(null);
-  const suppressShowRef: React.MutableRefObject<boolean> =
-    useRef<boolean>(false);
 
   // Use the existing outside click hook for mobile menu
   const {
@@ -90,41 +86,32 @@ const Navbar: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
-  // More menu functions
-  const hideMoreMenu: () => void = (): void => {
-    if (moreMenuTimeout) {
-      clearTimeout(moreMenuTimeout);
-      setMoreMenuTimeout(null);
-    }
+  // Open/close the products menu with Cmd/Ctrl + K from anywhere.
+  useEffect(() => {
+    const handleGlobalKeyDown: (event: KeyboardEvent) => void = (
+      event: KeyboardEvent,
+    ): void => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setIsMoreMenuVisible((visible: boolean) => {
+          return !visible;
+        });
+      }
+    };
 
-    const timeout: ReturnType<typeof setTimeout> = setTimeout(() => {
-      setIsMoreMenuVisible(false);
-    }, 500);
+    document.addEventListener("keydown", handleGlobalKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleGlobalKeyDown);
+    };
+  }, []);
 
-    setMoreMenuTimeout(timeout);
-  };
-
-  const forceHideMoreMenu: () => void = (): void => {
-    if (moreMenuTimeout) {
-      clearTimeout(moreMenuTimeout);
-      setMoreMenuTimeout(null);
-    }
-
-    setIsMoreMenuVisible(false);
-    suppressShowRef.current = true;
-    setTimeout(() => {
-      suppressShowRef.current = false;
-    }, 300);
-  };
-
-  const showMoreMenu: () => void = (): void => {
-    if (suppressShowRef.current) {
-      return;
-    }
-    if (moreMenuTimeout) {
-      clearTimeout(moreMenuTimeout);
-    }
+  // More menu open/close.
+  const openMoreMenu: () => void = (): void => {
     setIsMoreMenuVisible(true);
+  };
+
+  const closeMoreMenu: () => void = (): void => {
+    setIsMoreMenuVisible(false);
   };
 
   // Legacy support: if children are provided, render the old way
@@ -270,37 +257,6 @@ const Navbar: FunctionComponent<ComponentProps> = (
     },
   );
 
-  // Group items by category for the menu
-  const categories: Map<string, MoreMenuItem[]> = new Map();
-  props.moreMenuItems?.forEach((item: MoreMenuItem) => {
-    const cat: string = item.category || "Other";
-    if (!categories.has(cat)) {
-      categories.set(cat, []);
-    }
-    categories.get(cat)!.push(item);
-  });
-
-  // Convert to sections array for NavBarMenu
-  const sections: Array<{ title: string; items: Array<ReactElement> }> = [];
-  categories.forEach((items: MoreMenuItem[], category: string) => {
-    sections.push({
-      title: category,
-      items: items.map((item: MoreMenuItem) => {
-        return (
-          <NavBarMenuItem
-            key={item.title}
-            title={item.title}
-            description={item.description}
-            route={item.route}
-            icon={item.icon}
-            iconColor={item.iconColor}
-            onClick={forceHideMoreMenu}
-          />
-        );
-      }),
-    });
-  });
-
   /*
    * Find Home item from navItems. Match by id so this keeps working when the
    * title is translated to a non-English language.
@@ -336,34 +292,21 @@ const Navbar: FunctionComponent<ComponentProps> = (
           {activeMoreItem && (
             <>
               <span className="text-gray-400 mx-1">/</span>
-              <div
-                onMouseOver={showMoreMenu}
-                onMouseLeave={hideMoreMenu}
-                className="relative"
+              <button
+                onClick={openMoreMenu}
+                className="bg-gray-100 text-gray-900 hover:bg-gray-200 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium transition-colors cursor-pointer"
               >
-                <button
-                  onClick={showMoreMenu}
-                  onMouseOver={showMoreMenu}
-                  className="bg-gray-100 text-gray-900 hover:bg-gray-200 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium transition-colors cursor-pointer"
-                >
-                  <Icon
-                    icon={activeMoreItem.icon}
-                    className="mr-1.5 h-4 w-4"
-                    thick={ThickProp.Thick}
-                  />
-                  <span>{activeMoreItem.title}</span>
-                  <Icon
-                    icon={IconProp.ChevronDown}
-                    className="ml-1.5 h-3 w-3 text-gray-500"
-                  />
-                </button>
-                {isMoreMenuVisible && (
-                  <NavBarMenu
-                    sections={sections}
-                    footer={props.moreMenuFooter}
-                  />
-                )}
-              </div>
+                <Icon
+                  icon={activeMoreItem.icon}
+                  className="mr-1.5 h-4 w-4"
+                  thick={ThickProp.Thick}
+                />
+                <span>{activeMoreItem.title}</span>
+                <Icon
+                  icon={IconProp.ChevronDown}
+                  className="ml-1.5 h-3 w-3 text-gray-500"
+                />
+              </button>
             </>
           )}
 
@@ -373,34 +316,21 @@ const Navbar: FunctionComponent<ComponentProps> = (
             props.moreMenuItems.length > 0 && (
               <>
                 <span className="text-gray-400 mx-1">/</span>
-                <div
-                  onMouseOver={showMoreMenu}
-                  onMouseLeave={hideMoreMenu}
-                  className="relative"
+                <button
+                  onClick={openMoreMenu}
+                  className="text-gray-500 hover:bg-gray-50 hover:text-gray-900 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium transition-colors cursor-pointer"
                 >
-                  <button
-                    onClick={showMoreMenu}
-                    onMouseOver={showMoreMenu}
-                    className="text-gray-500 hover:bg-gray-50 hover:text-gray-900 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium transition-colors cursor-pointer"
-                  >
-                    <Icon
-                      icon={IconProp.Squares}
-                      className="mr-1.5 h-4 w-4"
-                      thick={ThickProp.Thick}
-                    />
-                    <span>{props.moreMenuTitle || "Products"}</span>
-                    <Icon
-                      icon={IconProp.ChevronDown}
-                      className="ml-1.5 h-3 w-3 text-gray-400"
-                    />
-                  </button>
-                  {isMoreMenuVisible && (
-                    <NavBarMenu
-                      sections={sections}
-                      footer={props.moreMenuFooter}
-                    />
-                  )}
-                </div>
+                  <Icon
+                    icon={IconProp.Squares}
+                    className="mr-1.5 h-4 w-4"
+                    thick={ThickProp.Thick}
+                  />
+                  <span>{props.moreMenuTitle || "Products"}</span>
+                  <Icon
+                    icon={IconProp.ChevronDown}
+                    className="ml-1.5 h-3 w-3 text-gray-400"
+                  />
+                </button>
               </>
             )}
         </div>
@@ -432,6 +362,19 @@ const Navbar: FunctionComponent<ComponentProps> = (
           />
         </div>
       )}
+
+      {isMoreMenuVisible &&
+        props.moreMenuItems &&
+        props.moreMenuItems.length > 0 && (
+          <NavBarMenuModal
+            items={props.moreMenuItems}
+            footer={props.moreMenuFooter}
+            searchPlaceholder={props.moreMenuSearchPlaceholder}
+            noResultsText={props.moreMenuNoResultsText}
+            keyboardHint={props.moreMenuKeyboardHint}
+            onClose={closeMoreMenu}
+          />
+        )}
     </nav>
   );
 };
