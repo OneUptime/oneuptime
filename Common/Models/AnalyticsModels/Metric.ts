@@ -28,7 +28,7 @@ export enum MetricPointType {
 }
 
 @OperationalResource()
-@OwnedThrough("serviceId", Service, { includeProjectScope: true })
+@OwnedThrough("primaryEntityId", Service, { includeProjectScope: true })
 export default class Metric extends AnalyticsBaseModel {
   public constructor() {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
@@ -62,8 +62,8 @@ export default class Metric extends AnalyticsBaseModel {
     });
 
     // this can also be the monitor id or the telemetry service id.
-    const serviceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
-      key: "serviceId",
+    const primaryEntityIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "primaryEntityId",
       title: "Service ID",
       description: "ID of the Service which created the Metric",
       required: true,
@@ -92,8 +92,8 @@ export default class Metric extends AnalyticsBaseModel {
     });
 
     // this can also be the monitor id or the telemetry service id.
-    const serviceTypeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
-      key: "serviceType",
+    const primaryEntityTypeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "primaryEntityType",
       isLowCardinality: true,
       title: "Service Type",
       description: "Type of the service that this telemetry belongs to",
@@ -1071,8 +1071,8 @@ export default class Metric extends AnalyticsBaseModel {
       },
       tableColumns: [
         projectIdColumn,
-        serviceIdColumn,
-        serviceTypeColumn,
+        primaryEntityIdColumn,
+        primaryEntityTypeColumn,
         nameColumn,
         aggregationTemporalityColumn,
         metricPointTypeColumn,
@@ -1103,13 +1103,13 @@ export default class Metric extends AnalyticsBaseModel {
         retentionDateColumn,
       ],
       projections: [],
-      sortKeys: ["projectId", "name", "serviceId", "time"],
-      primaryKeys: ["projectId", "name", "serviceId", "time"],
+      sortKeys: ["projectId", "name", "primaryEntityId", "time"],
+      primaryKeys: ["projectId", "name", "primaryEntityId", "time"],
       partitionKey: "sipHash64(projectId) % 16",
       ttlExpression: "retentionDate DELETE",
       /*
        * `time` is the 4th column of the Metric sort key (after
-       * projectId + name + serviceId). A list query that filters
+       * projectId + name + primaryEntityId). A list query that filters
        * by name (the typical "metric detail" drilldown) can still
        * stream from the index when sorting by `time DESC`. With
        * no name filter the sort is less efficient but still far
@@ -1128,12 +1128,12 @@ export default class Metric extends AnalyticsBaseModel {
     this.setColumnValue("projectId", v);
   }
 
-  public get serviceId(): ObjectID | undefined {
-    return this.getColumnValue("serviceId") as ObjectID | undefined;
+  public get primaryEntityId(): ObjectID | undefined {
+    return this.getColumnValue("primaryEntityId") as ObjectID | undefined;
   }
 
-  public get serviceType(): ServiceType | undefined {
-    return this.getColumnValue("serviceType") as ServiceType | undefined;
+  public get primaryEntityType(): ServiceType | undefined {
+    return this.getColumnValue("primaryEntityType") as ServiceType | undefined;
   }
 
   public get name(): string | undefined {
@@ -1172,12 +1172,12 @@ export default class Metric extends AnalyticsBaseModel {
     this.setColumnValue("isMonotonic", v);
   }
 
-  public set serviceId(v: ObjectID | undefined) {
-    this.setColumnValue("serviceId", v);
+  public set primaryEntityId(v: ObjectID | undefined) {
+    this.setColumnValue("primaryEntityId", v);
   }
 
-  public set serviceType(v: ServiceType | undefined) {
-    this.setColumnValue("serviceType", v);
+  public set primaryEntityType(v: ServiceType | undefined) {
+    this.setColumnValue("primaryEntityType", v);
   }
 
   public get time(): Date | undefined {

@@ -47,7 +47,7 @@ export interface SpanLink {
 }
 
 @OperationalResource()
-@OwnedThrough("serviceId", Service, { includeProjectScope: true })
+@OwnedThrough("primaryEntityId", Service, { includeProjectScope: true })
 export default class Span extends AnalyticsBaseModel {
   public constructor() {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
@@ -80,11 +80,11 @@ export default class Span extends AnalyticsBaseModel {
       },
     });
 
-    const serviceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
-      key: "serviceId",
+    const primaryEntityIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "primaryEntityId",
       title: "Service ID",
       description:
-        "ID of the resource the span belongs to (Service / Host / DockerHost / KubernetesCluster / Monitor — disambiguated by serviceType)",
+        "ID of the resource the span belongs to (Service / Host / DockerHost / KubernetesCluster / Monitor — disambiguated by primaryEntityType)",
       required: true,
       type: TableColumnType.ObjectID,
       accessControl: {
@@ -110,12 +110,12 @@ export default class Span extends AnalyticsBaseModel {
       },
     });
 
-    const serviceTypeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
-      key: "serviceType",
+    const primaryEntityTypeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "primaryEntityType",
       isLowCardinality: true,
       title: "Service Type",
       description:
-        "Discriminator for serviceId — tells the read side which resource table to dispatch to",
+        "Discriminator for primaryEntityId — tells the read side which resource table to dispatch to",
       required: false,
       type: TableColumnType.Text,
       skipIndex: {
@@ -830,8 +830,8 @@ export default class Span extends AnalyticsBaseModel {
       },
       tableColumns: [
         projectIdColumn,
-        serviceIdColumn,
-        serviceTypeColumn,
+        primaryEntityIdColumn,
+        primaryEntityTypeColumn,
         startTimeColumn,
         endTimeColumn,
         startTimeUnixNanoColumn,
@@ -857,21 +857,21 @@ export default class Span extends AnalyticsBaseModel {
         {
           name: "proj_agg_by_service",
           query:
-            "SELECT projectId, serviceId, toStartOfMinute(startTime) AS minute, count() AS cnt, avg(durationUnixNano) AS avg_duration, quantile(0.99)(durationUnixNano) AS p99_duration GROUP BY projectId, serviceId, minute",
+            "SELECT projectId, primaryEntityId, toStartOfMinute(startTime) AS minute, count() AS cnt, avg(durationUnixNano) AS avg_duration, quantile(0.99)(durationUnixNano) AS p99_duration GROUP BY projectId, primaryEntityId, minute",
         },
         {
           name: "proj_trace_by_id",
           query:
-            "SELECT projectId, traceId, startTime, serviceId, spanId, parentSpanId, name, durationUnixNano, statusCode, hasException ORDER BY (projectId, traceId, startTime)",
+            "SELECT projectId, traceId, startTime, primaryEntityId, spanId, parentSpanId, name, durationUnixNano, statusCode, hasException ORDER BY (projectId, traceId, startTime)",
         },
         {
           name: "proj_hist_by_minute",
           query:
-            "SELECT projectId, toStartOfMinute(startTime) AS minute, serviceId, statusCode, isRootSpan, count() AS cnt GROUP BY projectId, minute, serviceId, statusCode, isRootSpan",
+            "SELECT projectId, toStartOfMinute(startTime) AS minute, primaryEntityId, statusCode, isRootSpan, count() AS cnt GROUP BY projectId, minute, primaryEntityId, statusCode, isRootSpan",
         },
       ],
-      sortKeys: ["projectId", "startTime", "serviceId", "traceId"],
-      primaryKeys: ["projectId", "startTime", "serviceId", "traceId"],
+      sortKeys: ["projectId", "startTime", "primaryEntityId", "traceId"],
+      primaryKeys: ["projectId", "startTime", "primaryEntityId", "traceId"],
       partitionKey: "sipHash64(projectId) % 16",
       ttlExpression: "retentionDate DELETE",
       defaultSortColumn: "startTime",
@@ -926,20 +926,20 @@ export default class Span extends AnalyticsBaseModel {
     this.setColumnValue("projectId", v);
   }
 
-  public get serviceId(): ObjectID | undefined {
-    return this.getColumnValue("serviceId") as ObjectID | undefined;
+  public get primaryEntityId(): ObjectID | undefined {
+    return this.getColumnValue("primaryEntityId") as ObjectID | undefined;
   }
 
-  public set serviceId(v: ObjectID | undefined) {
-    this.setColumnValue("serviceId", v);
+  public set primaryEntityId(v: ObjectID | undefined) {
+    this.setColumnValue("primaryEntityId", v);
   }
 
-  public get serviceType(): ServiceType | undefined {
-    return this.getColumnValue("serviceType") as ServiceType | undefined;
+  public get primaryEntityType(): ServiceType | undefined {
+    return this.getColumnValue("primaryEntityType") as ServiceType | undefined;
   }
 
-  public set serviceType(v: ServiceType | undefined) {
-    this.setColumnValue("serviceType", v);
+  public set primaryEntityType(v: ServiceType | undefined) {
+    this.setColumnValue("primaryEntityType", v);
   }
 
   public get startTime(): Date | undefined {

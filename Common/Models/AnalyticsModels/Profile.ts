@@ -15,7 +15,7 @@ import Service from "../DatabaseModels/Service";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 
 @OperationalResource()
-@OwnedThrough("serviceId", Service, { includeProjectScope: true })
+@OwnedThrough("primaryEntityId", Service, { includeProjectScope: true })
 export default class Profile extends AnalyticsBaseModel {
   public constructor() {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
@@ -48,11 +48,11 @@ export default class Profile extends AnalyticsBaseModel {
       },
     });
 
-    const serviceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
-      key: "serviceId",
+    const primaryEntityIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "primaryEntityId",
       title: "Service ID",
       description:
-        "ID of the resource the profile belongs to (Service / Host / DockerHost / KubernetesCluster / Monitor — disambiguated by serviceType)",
+        "ID of the resource the profile belongs to (Service / Host / DockerHost / KubernetesCluster / Monitor — disambiguated by primaryEntityType)",
       required: true,
       type: TableColumnType.ObjectID,
       accessControl: {
@@ -78,12 +78,12 @@ export default class Profile extends AnalyticsBaseModel {
       },
     });
 
-    const serviceTypeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
-      key: "serviceType",
+    const primaryEntityTypeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "primaryEntityType",
       isLowCardinality: true,
       title: "Service Type",
       description:
-        "Discriminator for serviceId — tells the read side which resource table to dispatch to",
+        "Discriminator for primaryEntityId — tells the read side which resource table to dispatch to",
       required: false,
       type: TableColumnType.Text,
       skipIndex: {
@@ -675,8 +675,8 @@ export default class Profile extends AnalyticsBaseModel {
       },
       tableColumns: [
         projectIdColumn,
-        serviceIdColumn,
-        serviceTypeColumn,
+        primaryEntityIdColumn,
+        primaryEntityTypeColumn,
         profileIdColumn,
         traceIdColumn,
         spanIdColumn,
@@ -695,8 +695,8 @@ export default class Profile extends AnalyticsBaseModel {
         originalPayloadFormatColumn,
         retentionDateColumn,
       ],
-      sortKeys: ["projectId", "startTime", "serviceId", "profileType"],
-      primaryKeys: ["projectId", "startTime", "serviceId", "profileType"],
+      sortKeys: ["projectId", "startTime", "primaryEntityId", "profileType"],
+      primaryKeys: ["projectId", "startTime", "primaryEntityId", "profileType"],
       partitionKey: "sipHash64(projectId) % 16",
       ttlExpression: "retentionDate DELETE",
       defaultSortColumn: "startTime",
@@ -711,20 +711,20 @@ export default class Profile extends AnalyticsBaseModel {
     this.setColumnValue("projectId", v);
   }
 
-  public get serviceId(): ObjectID | undefined {
-    return this.getColumnValue("serviceId") as ObjectID | undefined;
+  public get primaryEntityId(): ObjectID | undefined {
+    return this.getColumnValue("primaryEntityId") as ObjectID | undefined;
   }
 
-  public set serviceId(v: ObjectID | undefined) {
-    this.setColumnValue("serviceId", v);
+  public set primaryEntityId(v: ObjectID | undefined) {
+    this.setColumnValue("primaryEntityId", v);
   }
 
-  public get serviceType(): ServiceType | undefined {
-    return this.getColumnValue("serviceType") as ServiceType | undefined;
+  public get primaryEntityType(): ServiceType | undefined {
+    return this.getColumnValue("primaryEntityType") as ServiceType | undefined;
   }
 
-  public set serviceType(v: ServiceType | undefined) {
-    this.setColumnValue("serviceType", v);
+  public set primaryEntityType(v: ServiceType | undefined) {
+    this.setColumnValue("primaryEntityType", v);
   }
 
   public get profileId(): string | undefined {

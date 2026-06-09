@@ -11,7 +11,7 @@ import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
  * Populated by `MetricBaselineHourly_mv` (defined in the
  * `AddMetricBaselineHourlyMV` data migration), which fires on every
  * insert into `MetricItemV2` and groups by `(projectId, name,
- * serviceId, day, hourOfWeek)`. Each row holds AggregateFunction
+ * primaryEntityId, day, hourOfWeek)`. Each row holds AggregateFunction
  * states (count/avg/stddevPop/quantile/min/max) — finalize at read
  * time via the matching `*Merge()`.
  *
@@ -54,8 +54,8 @@ export default class MetricBaselineHourly extends AnalyticsBaseModel {
       type: TableColumnType.Text,
     });
 
-    const serviceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
-      key: "serviceId",
+    const primaryEntityIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "primaryEntityId",
       title: "Service ID",
       description: "Service ID (replicated from MetricItemV2)",
       required: true,
@@ -159,7 +159,7 @@ export default class MetricBaselineHourly extends AnalyticsBaseModel {
       tableColumns: [
         projectIdColumn,
         nameColumn,
-        serviceIdColumn,
+        primaryEntityIdColumn,
         dayColumn,
         hourOfWeekColumn,
         sampleCountStateColumn,
@@ -187,7 +187,7 @@ AS
 SELECT
   projectId,
   name,
-  serviceId,
+  primaryEntityId,
   toDate(time) AS day,
   toUInt8((toDayOfWeek(time, 1) - 1) * 24 + toHour(time)) AS hourOfWeek,
   countState(toFloat64(coalesce(value, sum, 0))) AS sampleCountState,
@@ -198,7 +198,7 @@ SELECT
   minState(toFloat64(coalesce(value, sum, 0))) AS minObsState,
   maxState(toFloat64(coalesce(value, sum, 0))) AS maxObsState
 FROM MetricItemV2
-GROUP BY projectId, name, serviceId, day, hourOfWeek`,
+GROUP BY projectId, name, primaryEntityId, day, hourOfWeek`,
         },
       ],
       /*
@@ -206,8 +206,8 @@ GROUP BY projectId, name, serviceId, day, hourOfWeek`,
        * MetricBaselineService.getBaseline so lookups touch a tight
        * granule range.
        */
-      sortKeys: ["projectId", "name", "serviceId", "hourOfWeek", "day"],
-      primaryKeys: ["projectId", "name", "serviceId", "hourOfWeek", "day"],
+      sortKeys: ["projectId", "name", "primaryEntityId", "hourOfWeek", "day"],
+      primaryKeys: ["projectId", "name", "primaryEntityId", "hourOfWeek", "day"],
       partitionKey: "sipHash64(projectId) % 16",
       ttlExpression: "day + INTERVAL 90 DAY",
     });

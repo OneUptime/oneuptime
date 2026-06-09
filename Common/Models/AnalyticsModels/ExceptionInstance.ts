@@ -15,7 +15,7 @@ import { SpanStatus } from "./Span";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 
 @OperationalResource()
-@OwnedThrough("serviceId", Service, { includeProjectScope: true })
+@OwnedThrough("primaryEntityId", Service, { includeProjectScope: true })
 export default class ExceptionInstance extends AnalyticsBaseModel {
   public constructor() {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
@@ -48,11 +48,11 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
       },
     });
 
-    const serviceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
-      key: "serviceId",
+    const primaryEntityIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "primaryEntityId",
       title: "Service ID",
       description:
-        "ID of the resource the exception belongs to (Service / Host / DockerHost / KubernetesCluster / Monitor — disambiguated by serviceType)",
+        "ID of the resource the exception belongs to (Service / Host / DockerHost / KubernetesCluster / Monitor — disambiguated by primaryEntityType)",
       required: true,
       type: TableColumnType.ObjectID,
       accessControl: {
@@ -78,12 +78,12 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
       },
     });
 
-    const serviceTypeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
-      key: "serviceType",
+    const primaryEntityTypeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "primaryEntityType",
       isLowCardinality: true,
       title: "Service Type",
       description:
-        "Discriminator for serviceId — tells the read side which resource table to dispatch to",
+        "Discriminator for primaryEntityId — tells the read side which resource table to dispatch to",
       required: false,
       type: TableColumnType.Text,
       skipIndex: {
@@ -665,8 +665,8 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
         "Individual exception occurrences captured from your telemetry. Query application errors and their attributes over time.",
       tableColumns: [
         projectIdColumn,
-        serviceIdColumn,
-        serviceTypeColumn,
+        primaryEntityIdColumn,
+        primaryEntityTypeColumn,
         timeColumn,
         timeUnixNanoColumn,
         exceptionTypeColumn,
@@ -688,11 +688,11 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
         {
           name: "proj_exception_group",
           query:
-            "SELECT projectId, serviceId, fingerprint, exceptionType, count() AS cnt, max(time) AS last_seen GROUP BY projectId, serviceId, fingerprint, exceptionType",
+            "SELECT projectId, primaryEntityId, fingerprint, exceptionType, count() AS cnt, max(time) AS last_seen GROUP BY projectId, primaryEntityId, fingerprint, exceptionType",
         },
       ],
-      sortKeys: ["projectId", "time", "serviceId", "fingerprint"],
-      primaryKeys: ["projectId", "time", "serviceId", "fingerprint"],
+      sortKeys: ["projectId", "time", "primaryEntityId", "fingerprint"],
+      primaryKeys: ["projectId", "time", "primaryEntityId", "fingerprint"],
       partitionKey: "sipHash64(projectId) % 16",
       ttlExpression: "retentionDate DELETE",
       defaultSortColumn: "time",
@@ -707,20 +707,20 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
     this.setColumnValue("projectId", v);
   }
 
-  public get serviceId(): ObjectID | undefined {
-    return this.getColumnValue("serviceId") as ObjectID | undefined;
+  public get primaryEntityId(): ObjectID | undefined {
+    return this.getColumnValue("primaryEntityId") as ObjectID | undefined;
   }
 
-  public set serviceId(v: ObjectID | undefined) {
-    this.setColumnValue("serviceId", v);
+  public set primaryEntityId(v: ObjectID | undefined) {
+    this.setColumnValue("primaryEntityId", v);
   }
 
-  public get serviceType(): ServiceType | undefined {
-    return this.getColumnValue("serviceType") as ServiceType | undefined;
+  public get primaryEntityType(): ServiceType | undefined {
+    return this.getColumnValue("primaryEntityType") as ServiceType | undefined;
   }
 
-  public set serviceType(v: ServiceType | undefined) {
-    this.setColumnValue("serviceType", v);
+  public set primaryEntityType(v: ServiceType | undefined) {
+    this.setColumnValue("primaryEntityType", v);
   }
 
   public get time(): Date | undefined {

@@ -154,7 +154,7 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
     {
       ownerUserService: ServiceOwnerUserService,
       ownerTeamService: ServiceOwnerTeamService,
-      fkColumn: "serviceId",
+      fkColumn: "primaryEntityId",
       canOwnTelemetry: true,
       modelService: ServiceService,
     },

@@ -26,7 +26,7 @@ export class MonitorStepProfileMonitorUtil {
       monitorStepProfileMonitor.telemetryServiceIds &&
       monitorStepProfileMonitor.telemetryServiceIds.length > 0
     ) {
-      query.serviceId = new Includes(
+      query.primaryEntityId = new Includes(
         monitorStepProfileMonitor.telemetryServiceIds,
       );
     }

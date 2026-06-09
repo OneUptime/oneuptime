@@ -47,8 +47,8 @@ export default class MetricItemAggMV1m extends AnalyticsBaseModel {
       type: TableColumnType.Text,
     });
 
-    const serviceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
-      key: "serviceId",
+    const primaryEntityIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "primaryEntityId",
       title: "Service ID",
       description: "Service ID (replicated from MetricItemV2)",
       required: true,
@@ -122,7 +122,7 @@ export default class MetricItemAggMV1m extends AnalyticsBaseModel {
       tableColumns: [
         projectIdColumn,
         nameColumn,
-        serviceIdColumn,
+        primaryEntityIdColumn,
         bucketTimeColumn,
         valueSumStateColumn,
         valueCountStateColumn,
@@ -149,7 +149,7 @@ AS
 SELECT
   projectId,
   name,
-  serviceId,
+  primaryEntityId,
   toStartOfMinute(time) AS bucketTime,
   sumState(toFloat64(coalesce(value, sum, 0))) AS valueSumState,
   countState(toFloat64(coalesce(value, sum, 0))) AS valueCountState,
@@ -157,11 +157,11 @@ SELECT
   maxState(toFloat64(coalesce(value, sum, 0))) AS valueMaxState,
   max(retentionDate) AS retentionDate
 FROM MetricItemV2
-GROUP BY projectId, name, serviceId, bucketTime`,
+GROUP BY projectId, name, primaryEntityId, bucketTime`,
         },
       ],
-      sortKeys: ["projectId", "name", "serviceId", "bucketTime"],
-      primaryKeys: ["projectId", "name", "serviceId", "bucketTime"],
+      sortKeys: ["projectId", "name", "primaryEntityId", "bucketTime"],
+      primaryKeys: ["projectId", "name", "primaryEntityId", "bucketTime"],
       partitionKey: "sipHash64(projectId) % 16",
       ttlExpression: "retentionDate DELETE",
     });
