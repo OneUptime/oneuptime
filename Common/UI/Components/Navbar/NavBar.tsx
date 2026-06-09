@@ -295,17 +295,19 @@ const Navbar: FunctionComponent<ComponentProps> = (
               <span className="text-gray-400 mx-1">/</span>
               <button
                 onClick={openMoreMenu}
-                className="bg-gray-100 text-gray-900 hover:bg-gray-200 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium transition-colors cursor-pointer"
+                className="group bg-gray-100 text-gray-900 hover:bg-gray-200 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium transition-colors cursor-pointer"
               >
                 <Icon
                   icon={activeMoreItem.icon}
-                  className="mr-1.5 h-4 w-4"
+                  className="mr-1.5 h-4 w-4 transition-transform duration-150 group-hover:scale-110"
                   thick={ThickProp.Thick}
                 />
                 <span>{activeMoreItem.title}</span>
                 <Icon
                   icon={IconProp.ChevronDown}
-                  className="ml-1.5 h-3 w-3 text-gray-500"
+                  className={`ml-1.5 h-3 w-3 text-gray-500 transition-transform duration-200 ${
+                    isMoreMenuVisible ? "rotate-180" : ""
+                  }`}
                 />
               </button>
             </>
@@ -319,17 +321,19 @@ const Navbar: FunctionComponent<ComponentProps> = (
                 <span className="text-gray-400 mx-1">/</span>
                 <button
                   onClick={openMoreMenu}
-                  className="text-gray-500 hover:bg-gray-50 hover:text-gray-900 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium transition-colors cursor-pointer"
+                  className="group text-gray-500 hover:bg-gray-50 hover:text-gray-900 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium transition-colors cursor-pointer"
                 >
                   <Icon
                     icon={IconProp.Squares}
-                    className="mr-1.5 h-4 w-4"
+                    className="mr-1.5 h-4 w-4 transition-transform duration-150 group-hover:scale-110 group-hover:text-indigo-600"
                     thick={ThickProp.Thick}
                   />
                   <span>{props.moreMenuTitle || "Products"}</span>
                   <Icon
                     icon={IconProp.ChevronDown}
-                    className="ml-1.5 h-3 w-3 text-gray-400"
+                    className={`ml-1.5 h-3 w-3 text-gray-400 transition-transform duration-200 ${
+                      isMoreMenuVisible ? "rotate-180" : ""
+                    }`}
                   />
                 </button>
               </>

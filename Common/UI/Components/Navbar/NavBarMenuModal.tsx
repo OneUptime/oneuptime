@@ -559,7 +559,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                                 onClick={() => {
                                   selectItem(item);
                                 }}
-                                className={`flex h-full flex-col items-center gap-2 rounded-xl p-3 text-center transition-all duration-150 ${
+                                className={`group flex h-full flex-col items-center gap-2 rounded-xl p-3 text-center transition-all duration-150 ${
                                   isActive
                                     ? "scale-[1.03] bg-indigo-50 shadow-sm ring-2 ring-indigo-400"
                                     : isCurrent
@@ -572,7 +572,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                                 >
                                   <Icon
                                     icon={item.icon}
-                                    className={`h-6 w-6 ${colors.text}`}
+                                    className={`h-6 w-6 transition-transform duration-150 group-hover:scale-110 ${colors.text}`}
                                   />
                                 </div>
                                 <div className="w-full">
