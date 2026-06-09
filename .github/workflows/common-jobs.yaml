@@ -36,6 +36,8 @@ jobs:
       - run: sudo apt-get install -y nodejs
       - run: npm install
       - run: npm run lint
+      - name: Validate locale files (key parity + placeholders)
+        run: npm run i18n:validate
       - name: Show how to fix lint
         if: ${{ failure() }}
-        run: echo "Please run `npm run fix` in your root directory to fix the lint automatically."
+        run: echo "Please run 'npm run fix' to auto-fix lint, and 'npm run i18n:validate' locally to see any missing/extra locale keys or broken placeholders."
