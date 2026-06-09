@@ -484,7 +484,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const sumColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "sum",
-      codec: { codec: "ZSTD", level: 1 },
+      codec: [{ codec: "Gorilla" }, { codec: "ZSTD", level: 1 }],
       title: "Sum",
       description: "Sum",
       required: false,
@@ -514,7 +514,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const valueColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "value",
-      codec: { codec: "ZSTD", level: 1 },
+      codec: [{ codec: "Gorilla" }, { codec: "ZSTD", level: 1 }],
       title: "Value",
       description: "Value",
       required: false,
@@ -544,7 +544,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const minColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "min",
-      codec: { codec: "ZSTD", level: 1 },
+      codec: [{ codec: "Gorilla" }, { codec: "ZSTD", level: 1 }],
       title: "Min",
       description: "Min",
       required: false,
@@ -574,7 +574,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const maxColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "max",
-      codec: { codec: "ZSTD", level: 1 },
+      codec: [{ codec: "Gorilla" }, { codec: "ZSTD", level: 1 }],
       title: "Max",
       description: "Max",
       required: false,
