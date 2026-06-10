@@ -1,5 +1,6 @@
 import ComponentProps from "../Pages/PageComponentProps";
 import EntitiesPage from "../Pages/Entities/EntitiesPage";
+import EntityDetailPage from "../Pages/Entities/EntityDetailPage";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { EntitiesRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -26,6 +27,15 @@ const EntitiesRoutes: FunctionComponent<ComponentProps> = (
           <EntitiesPage
             {...props}
             pageRoute={RouteMap[PageMap.ENTITIES] as Route}
+          />
+        }
+      />
+      <PageRoute
+        path={EntitiesRoutePath[PageMap.ENTITIES_VIEW] || ""}
+        element={
+          <EntityDetailPage
+            {...props}
+            pageRoute={RouteMap[PageMap.ENTITIES_VIEW] as Route}
           />
         }
       />

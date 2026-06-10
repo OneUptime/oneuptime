@@ -3,6 +3,8 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ProjectUtil from "Common/UI/Utils/Project";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /**
@@ -20,7 +22,10 @@ const EntitiesTable: FunctionComponent = (): ReactElement => {
         isDeleteable={false}
         isEditable={false}
         isCreateable={false}
-        isViewable={false}
+        isViewable={true}
+        viewPageRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.ENTITIES_VIEW_ROOT]!,
+        )}
         singularName="Entity"
         pluralName="Entities"
         name="Telemetry Entities"

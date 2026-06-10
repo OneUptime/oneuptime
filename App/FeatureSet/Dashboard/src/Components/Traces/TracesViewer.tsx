@@ -298,6 +298,13 @@ interface Props {
    */
   attributeFilters?: Record<string, string> | undefined;
   attributeFilterDisplayKeys?: Record<string, string> | undefined;
+  /*
+   * Scope to a OneUptime entity by its stable entityKeys (membership).
+   * Compiles to `hasAny(entityKeys, [...])` server-side — the entity
+   * model's cross-cutting read (e.g. all spans touching a k8s pod), even
+   * for service-owned spans.
+   */
+  entityKeysFilter?: Array<string> | undefined;
 }
 
 const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
@@ -670,10 +677,17 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       (query as Record<string, unknown>)["attributes"] = mergedAttributes;
     }
 
+    if (props.entityKeysFilter && props.entityKeysFilter.length > 0) {
+      (query as Record<string, unknown>)["entityKeys"] = new Includes(
+        props.entityKeysFilter,
+      );
+    }
+
     return query;
   }, [
     props.primaryEntityId,
     props.attributeFilters,
+    props.entityKeysFilter,
     timeRange,
     activeFilters,
     submittedSearch,

@@ -283,6 +283,7 @@ export const ProfilesRoutePath: Dictionary<string> = {
 
 export const EntitiesRoutePath: Dictionary<string> = {
   [PageMap.ENTITIES]: "overview",
+  [PageMap.ENTITIES_VIEW]: ":modelId",
 };
 
 export const TopologyRoutePath: Dictionary<string> = {
@@ -4023,6 +4024,16 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ENTITIES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/entities/${
       EntitiesRoutePath[PageMap.ENTITIES]
+    }`,
+  ),
+
+  [PageMap.ENTITIES_VIEW_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/entities`,
+  ),
+
+  [PageMap.ENTITIES_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/entities/${
+      EntitiesRoutePath[PageMap.ENTITIES_VIEW]
     }`,
   ),
 

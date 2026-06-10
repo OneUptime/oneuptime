@@ -206,6 +206,11 @@ interface Props {
   serviceIds?: Array<ObjectID> | undefined;
   attributeFilters?: Record<string, string> | undefined;
   attributeFilterDisplayKeys?: Record<string, string> | undefined;
+  /*
+   * Scope to a OneUptime entity by its stable entityKeys (membership) —
+   * compiles to `hasAny(entityKeys, [...])` server-side.
+   */
+  entityKeysFilter?: Array<string> | undefined;
 }
 
 const MetricsViewer: FunctionComponent<Props> = (
@@ -601,6 +606,11 @@ const MetricsViewer: FunctionComponent<Props> = (
           time: new InBetween<Date>(dateRange.startValue, dateRange.endValue),
           attributes: effectiveAttributes,
         } as Query<Metric>;
+
+        if (props.entityKeysFilter && props.entityKeysFilter.length > 0) {
+          (analyticsQuery as Record<string, unknown>)["entityKeys"] =
+            new Includes(props.entityKeysFilter);
+        }
 
         const result: AnalyticsListResult<Metric> =
           await AnalyticsModelAPI.getList<Metric>({
