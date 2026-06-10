@@ -300,6 +300,10 @@ router.post(
           })
         : undefined;
 
+      const entityKeys: Array<string> | undefined = body["entityKeys"]
+        ? (body["entityKeys"] as Array<string>)
+        : undefined;
+
       const severityTexts: Array<string> | undefined = body["severityTexts"]
         ? (body["severityTexts"] as Array<string>)
         : undefined;
@@ -326,6 +330,7 @@ router.post(
         endTime,
         bucketSizeInMinutes,
         serviceIds,
+        entityKeys,
         severityTexts,
         bodySearchText,
         traceIds,
@@ -371,7 +376,7 @@ router.post(
 
       const facetKeys: Array<string> = body["facetKeys"]
         ? (body["facetKeys"] as Array<string>)
-        : ["severityText", "serviceId"];
+        : ["severityText", "primaryEntityId"];
 
       const startTime: Date = body["startTime"]
         ? OneUptimeDate.fromString(body["startTime"] as string)
@@ -387,6 +392,10 @@ router.post(
         ? (body["serviceIds"] as Array<string>).map((id: string) => {
             return new ObjectID(id);
           })
+        : undefined;
+
+      const entityKeys: Array<string> | undefined = body["entityKeys"]
+        ? (body["entityKeys"] as Array<string>)
         : undefined;
 
       const severityTexts: Array<string> | undefined = body["severityTexts"]
@@ -411,9 +420,9 @@ router.post(
 
       /*
        * Per-facet partial-match filter applied at the Postgres source-of-truth
-       * lookup stage. Only consulted for resource facets (serviceId / hostId /
-       * dockerHostId / kubernetesClusterId) — other facets continue to filter
-       * client-side over the loaded value list.
+       * lookup stage. Only consulted for resource facets (primaryEntityId /
+       * hostId / dockerHostId / kubernetesClusterId) — other facets continue
+       * to filter client-side over the loaded value list.
        */
       const facetSearchText: Record<string, string> | undefined = body[
         "facetSearchText"
@@ -445,6 +454,7 @@ router.post(
                   facetKey,
                   limit,
                   serviceIds,
+                  entityKeys,
                   severityTexts,
                   bodySearchText,
                   traceIds,
@@ -550,6 +560,10 @@ router.post(
           })
         : undefined;
 
+      const entityKeys: Array<string> | undefined = body["entityKeys"]
+        ? (body["entityKeys"] as Array<string>)
+        : undefined;
+
       const statusCodes: Array<number> | undefined = body["statusCodes"]
         ? (body["statusCodes"] as Array<number>)
         : undefined;
@@ -583,6 +597,7 @@ router.post(
         endTime,
         bucketSizeInMinutes,
         serviceIds,
+        entityKeys,
         statusCodes,
         spanKinds,
         spanNames,
@@ -630,7 +645,7 @@ router.post(
 
       const facetKeys: Array<string> = body["facetKeys"]
         ? (body["facetKeys"] as Array<string>)
-        : ["serviceId", "statusCode", "kind", "name"];
+        : ["primaryEntityId", "statusCode", "kind", "name"];
 
       const startTime: Date = body["startTime"]
         ? OneUptimeDate.fromString(body["startTime"] as string)
@@ -646,6 +661,10 @@ router.post(
         ? (body["serviceIds"] as Array<string>).map((id: string) => {
             return new ObjectID(id);
           })
+        : undefined;
+
+      const entityKeys: Array<string> | undefined = body["entityKeys"]
+        ? (body["entityKeys"] as Array<string>)
         : undefined;
 
       const statusCodes: Array<number> | undefined = body["statusCodes"]
@@ -677,9 +696,9 @@ router.post(
 
       /*
        * Per-facet partial-match filter applied at the Postgres source-of-truth
-       * lookup stage. Only consulted for resource facets (serviceId / hostId /
-       * dockerHostId / kubernetesClusterId) — other facets continue to filter
-       * client-side over the loaded value list.
+       * lookup stage. Only consulted for resource facets (primaryEntityId /
+       * hostId / dockerHostId / kubernetesClusterId) — other facets continue
+       * to filter client-side over the loaded value list.
        */
       const facetSearchText: Record<string, string> | undefined = body[
         "facetSearchText"
@@ -700,6 +719,7 @@ router.post(
         facetKeys,
         limit,
         serviceIds,
+        entityKeys,
         statusCodes,
         spanKinds,
         spanNames,
@@ -710,8 +730,9 @@ router.post(
       };
 
       /*
-       * Resource facets (serviceId / hostId / dockerHostId / k8s cluster ...)
-       * and statusCode are counted with an exact, projection-backed GROUP BY
+       * Resource facets (primaryEntityId / hostId / dockerHostId / k8s
+       * cluster ...) and statusCode are counted with an exact,
+       * projection-backed GROUP BY
        * in getResourceFacetCounts(). The recent-N sample below saturates with
        * whichever service is chattiest right now and reports 0 for every other
        * service regardless of its true volume over the window — the "top 1000"
@@ -781,8 +802,8 @@ router.post(
       /*
        * Replace resource-facet results with the Postgres source-of-truth list
        * (filtered by facetSearchText and enriched with displayName). Every
-       * resource facet shares the same exact serviceId -> count map; resource
-       * ids are globally unique, so each facet only ever resolves its own
+       * resource facet shares the same exact primaryEntityId -> count map;
+       * resource ids are globally unique, so each facet only ever resolves its own
        * entities. Entities with no telemetry in the window surface with count
        * 0 instead of being hidden, and the search box can find resources
        * beyond the loaded subset.
@@ -940,7 +961,7 @@ router.post(
       const facetKeys: Array<string> = body["facetKeys"]
         ? (body["facetKeys"] as Array<string>)
         : [
-            "serviceId",
+            "primaryEntityId",
             "hostId",
             "dockerHostId",
             "kubernetesClusterId",
@@ -1107,7 +1128,7 @@ router.post(
 
       const facetKeys: Array<string> = body["facetKeys"]
         ? (body["facetKeys"] as Array<string>)
-        : ["serviceId", "hostId", "dockerHostId", "kubernetesClusterId"];
+        : ["primaryEntityId", "hostId", "dockerHostId", "kubernetesClusterId"];
 
       const startTime: Date = body["startTime"]
         ? OneUptimeDate.fromString(body["startTime"] as string)
@@ -1427,7 +1448,7 @@ router.post(
 
       if (format === "csv") {
         const header: string =
-          "time,serviceId,severityText,severityNumber,body,traceId,spanId,attributes";
+          "time,primaryEntityId,severityText,severityNumber,body,traceId,spanId,attributes";
         const csvRows: Array<string> = rows.map((row: JSONObject) => {
           const escapeCsv: (val: unknown) => string = (
             val: unknown,
@@ -1442,7 +1463,7 @@ router.post(
 
           return [
             escapeCsv(row["time"]),
-            escapeCsv(row["serviceId"]),
+            escapeCsv(row["primaryEntityId"]),
             escapeCsv(row["severityText"]),
             escapeCsv(row["severityNumber"]),
             escapeCsv(row["body"]),
@@ -1500,16 +1521,16 @@ router.post(
       const body: JSONObject = req.body as JSONObject;
 
       const logId: string | undefined = body["logId"] as string | undefined;
-      const serviceId: string | undefined = body["serviceId"] as
-        | string
-        | undefined;
+      // `serviceId` is the pre-rename alias kept for stale clients.
+      const primaryEntityId: string | undefined = (body["primaryEntityId"] ||
+        body["serviceId"]) as string | undefined;
       const time: string | undefined = body["time"] as string | undefined;
 
-      if (!logId || !serviceId || !time) {
+      if (!logId || !primaryEntityId || !time) {
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("logId, serviceId, and time are required"),
+          new BadDataException("logId, primaryEntityId, and time are required"),
         );
       }
 
@@ -1520,7 +1541,7 @@ router.post(
         after: Array<JSONObject>;
       } = await LogAggregationService.getLogContext({
         projectId: databaseProps.tenantId,
-        serviceId: new ObjectID(serviceId),
+        primaryEntityId: new ObjectID(primaryEntityId),
         time: OneUptimeDate.fromString(time),
         logId,
         count,

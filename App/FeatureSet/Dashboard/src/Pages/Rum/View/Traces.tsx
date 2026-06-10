@@ -73,7 +73,7 @@ const RumApplicationTraces: FunctionComponent<
 
   return (
     <Fragment>
-      <TracesViewer serviceId={modelId} />
+      <TracesViewer primaryEntityId={modelId} />
     </Fragment>
   );
 };

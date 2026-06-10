@@ -175,7 +175,7 @@ describe("StatementGenerator", () => {
 
       const statement: Statement = generator.toWhereStatement({
         _id: "<value>",
-        updatedAt: date,
+        createdAt: date,
       });
       expect(statement.query).toBe(
         "AND {p0:Identifier} = {p1:String} AND {p2:Identifier} = {p3:DateTime}",
@@ -183,7 +183,7 @@ describe("StatementGenerator", () => {
       expect(statement.query_params).toStrictEqual({
         p0: "_id",
         p1: "<value>",
-        p2: "updatedAt",
+        p2: "createdAt",
         p3: OneUptimeDate.toClickhouseDateTime(date),
       });
     });
@@ -360,6 +360,277 @@ describe("StatementGenerator", () => {
         expect(statement.query_params).toStrictEqual({});
       });
     });
+
+    describe("ArrayText columns", () => {
+      class ArrayModel extends AnalyticsBaseModel {
+        public constructor() {
+          super({
+            tableName: "<array-table>",
+            singularName: "<singular>",
+            pluralName: "<plural>",
+            tableColumns: [
+              new AnalyticsTableColumn({
+                key: "_id",
+                title: "<title>",
+                description: "<description>",
+                required: true,
+                type: TableColumnType.ObjectID,
+              }),
+              new AnalyticsTableColumn({
+                key: "entityKeys",
+                title: "<title>",
+                description: "<description>",
+                required: true,
+                defaultValue: [],
+                type: TableColumnType.ArrayText,
+              }),
+            ],
+            crudApiPath: new Route("route"),
+            primaryKeys: ["_id"],
+            sortKeys: ["_id"],
+            partitionKey: "_id",
+            tableEngine: AnalyticsTableEngine.MergeTree,
+          });
+        }
+      }
+
+      let arrayGenerator: StatementGenerator<ArrayModel>;
+      beforeEach(() => {
+        arrayGenerator = new StatementGenerator<ArrayModel>({
+          modelType: ArrayModel,
+          database: ClickhouseAppInstance,
+        });
+      });
+
+      test("emits hasAny(...) for Includes on an Array(String) column", () => {
+        const statement: Statement = arrayGenerator.toWhereStatement({
+          entityKeys: new Includes(["210dac24142f1baa", "8a238f41aaf2c179"]),
+        } as any);
+        /*
+         * Entity-membership reads (`has any of these entity keys`) compile
+         * to `hasAny(col, [...])` so the bloom_filter skip index on the
+         * Array(String) column can prune granules — not the scalar
+         * `col IN (...)` form, which is invalid for an array column.
+         */
+        expect(statement.query).toBe(
+          "AND hasAny({p0:Identifier}, {p1:Array(String)})",
+        );
+        expect(statement.query_params).toStrictEqual({
+          p0: "entityKeys",
+          p1: ["210dac24142f1baa", "8a238f41aaf2c179"],
+        });
+      });
+
+      test("drops empty Includes instead of hasAny(col, [])", () => {
+        const statement: Statement = arrayGenerator.toWhereStatement({
+          entityKeys: new Includes([]),
+        } as any);
+        expect(statement.query).toBe("");
+        expect(statement.query_params).toStrictEqual({});
+      });
+    });
+
+    describe("entityScope synthetic key", () => {
+      class EntityScopeModel extends AnalyticsBaseModel {
+        public constructor() {
+          super({
+            tableName: "<entity-scope-table>",
+            singularName: "<singular>",
+            pluralName: "<plural>",
+            tableColumns: [
+              new AnalyticsTableColumn({
+                key: "_id",
+                title: "<title>",
+                description: "<description>",
+                required: true,
+                type: TableColumnType.ObjectID,
+              }),
+              new AnalyticsTableColumn({
+                key: "entityKeys",
+                title: "<title>",
+                description: "<description>",
+                required: true,
+                defaultValue: [],
+                type: TableColumnType.ArrayText,
+              }),
+              new AnalyticsTableColumn({
+                key: "attributes",
+                title: "<title>",
+                description: "<description>",
+                required: true,
+                defaultValue: {},
+                type: TableColumnType.MapStringString,
+              }),
+            ],
+            crudApiPath: new Route("route"),
+            primaryKeys: ["_id"],
+            sortKeys: ["_id"],
+            partitionKey: "_id",
+            tableEngine: AnalyticsTableEngine.MergeTree,
+          });
+        }
+      }
+
+      let scopeGenerator: StatementGenerator<EntityScopeModel>;
+      beforeEach(() => {
+        scopeGenerator = new StatementGenerator<EntityScopeModel>({
+          modelType: EntityScopeModel,
+          database: ClickhouseAppInstance,
+        });
+      });
+
+      test("compiles to (hasAny(...) OR attributes[...] = ...) with bound params", () => {
+        const statement: Statement = scopeGenerator.toWhereStatement({
+          entityScope: {
+            entityKeys: ["210dac24142f1baa"],
+            attributeKey: "resource.host.name",
+            attributeValue: "web-1",
+          },
+        } as any);
+        /*
+         * The phase-4 read-switch: new rows match via the bloom-indexed
+         * `entityKeys` membership column, old (pre-column, no-backfill)
+         * rows via the resource attribute — same results either way, so
+         * the OR keeps the swap behavior-identical until the fallback is
+         * dropped post-retention.
+         */
+        expect(statement.query).toBe(
+          "AND (hasAny({p0:Identifier}, {p1:Array(String)}) OR {p2:Identifier}[{p3:String}] = {p4:String})",
+        );
+        expect(statement.query_params).toStrictEqual({
+          p0: "entityKeys",
+          p1: ["210dac24142f1baa"],
+          p2: "attributes",
+          p3: "resource.host.name",
+          p4: "web-1",
+        });
+      });
+
+      test("composes with regular column predicates", () => {
+        const statement: Statement = scopeGenerator.toWhereStatement({
+          _id: "<value>",
+          entityScope: {
+            entityKeys: ["210dac24142f1baa"],
+            attributeKey: "resource.host.name",
+            attributeValue: "web-1",
+          },
+        } as any);
+        expect(statement.query).toBe(
+          "AND {p0:Identifier} = {p1:String} AND (hasAny({p2:Identifier}, {p3:Array(String)}) OR {p4:Identifier}[{p5:String}] = {p6:String})",
+        );
+        expect(statement.query_params).toStrictEqual({
+          p0: "_id",
+          p1: "<value>",
+          p2: "entityKeys",
+          p3: ["210dac24142f1baa"],
+          p4: "attributes",
+          p5: "resource.host.name",
+          p6: "web-1",
+        });
+      });
+
+      test("falls back to the attribute equality alone when entityKeys is empty", () => {
+        const statement: Statement = scopeGenerator.toWhereStatement({
+          entityScope: {
+            entityKeys: [],
+            attributeKey: "resource.host.name",
+            attributeValue: "web-1",
+          },
+        } as any);
+        expect(statement.query).toBe(
+          "AND {p0:Identifier}[{p1:String}] = {p2:String}",
+        );
+        expect(statement.query_params).toStrictEqual({
+          p0: "attributes",
+          p1: "resource.host.name",
+          p2: "web-1",
+        });
+      });
+
+      test("is a no-op for models without an entityKeys column", () => {
+        // TestModel (outer generator) has no entityKeys column.
+        const statement: Statement = generator.toWhereStatement({
+          entityScope: {
+            entityKeys: ["210dac24142f1baa"],
+            attributeKey: "resource.host.name",
+            attributeValue: "web-1",
+          },
+        } as any);
+        expect(statement.query).toBe("");
+        expect(statement.query_params).toStrictEqual({});
+      });
+
+      test("no-op entityScope does not break separators for later predicates", () => {
+        const statement: Statement = generator.toWhereStatement({
+          entityScope: {
+            entityKeys: ["210dac24142f1baa"],
+            attributeKey: "resource.host.name",
+            attributeValue: "web-1",
+          },
+          _id: "<value>",
+        } as any);
+        expect(statement.query).toBe("AND {p0:Identifier} = {p1:String}");
+        expect(statement.query_params).toStrictEqual({
+          p0: "_id",
+          p1: "<value>",
+        });
+      });
+
+      test("emits hasAny alone when the model has no attributes map column", () => {
+        class NoAttributesModel extends AnalyticsBaseModel {
+          public constructor() {
+            super({
+              tableName: "<no-attributes-table>",
+              singularName: "<singular>",
+              pluralName: "<plural>",
+              tableColumns: [
+                new AnalyticsTableColumn({
+                  key: "_id",
+                  title: "<title>",
+                  description: "<description>",
+                  required: true,
+                  type: TableColumnType.ObjectID,
+                }),
+                new AnalyticsTableColumn({
+                  key: "entityKeys",
+                  title: "<title>",
+                  description: "<description>",
+                  required: true,
+                  defaultValue: [],
+                  type: TableColumnType.ArrayText,
+                }),
+              ],
+              crudApiPath: new Route("route"),
+              primaryKeys: ["_id"],
+              sortKeys: ["_id"],
+              partitionKey: "_id",
+              tableEngine: AnalyticsTableEngine.MergeTree,
+            });
+          }
+        }
+
+        const noAttributesGenerator: StatementGenerator<NoAttributesModel> =
+          new StatementGenerator<NoAttributesModel>({
+            modelType: NoAttributesModel,
+            database: ClickhouseAppInstance,
+          });
+
+        const statement: Statement = noAttributesGenerator.toWhereStatement({
+          entityScope: {
+            entityKeys: ["210dac24142f1baa"],
+            attributeKey: "resource.host.name",
+            attributeValue: "web-1",
+          },
+        } as any);
+        expect(statement.query).toBe(
+          "AND hasAny({p0:Identifier}, {p1:Array(String)})",
+        );
+        expect(statement.query_params).toStrictEqual({
+          p0: "entityKeys",
+          p1: ["210dac24142f1baa"],
+        });
+      });
+    });
   });
 
   describe("toSelectStatement", () => {
@@ -378,17 +649,13 @@ describe("StatementGenerator", () => {
       const { statement, columns } = generator.toSelectStatement({
         _id: true,
         createdAt: true,
-        updatedAt: true,
       });
-      expect(statement.query).toBe(
-        "{p0:Identifier}, {p1:Identifier}, {p2:Identifier}",
-      );
+      expect(statement.query).toBe("{p0:Identifier}, {p1:Identifier}");
       expect(statement.query_params).toStrictEqual({
         p0: "_id",
         p1: "createdAt",
-        p2: "updatedAt",
       });
-      expect(columns).toStrictEqual(["_id", "createdAt", "updatedAt"]);
+      expect(columns).toStrictEqual(["_id", "createdAt"]);
     });
   });
 

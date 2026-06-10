@@ -52,6 +52,16 @@ export default class ObjectID extends DatabaseProperty {
     return new this(UUID.generate());
   }
 
+  /**
+   * Time-ordered id (RFC 9562 UUIDv7: 48-bit unix-ms prefix + random).
+   * Use for analytics-row `_id`s — time-ordered ids cluster ClickHouse
+   * inserts and compress dramatically better than random v4 UUIDs.
+   * Postgres entity ids keep using `generate()` (random v4).
+   */
+  public static generateTimeOrdered(): ObjectID {
+    return new this(UUID.generateTimeOrdered());
+  }
+
   public static toJSONArray(ids: Array<ObjectID>): Array<JSONObject> {
     if (!ids || ids.length === 0) {
       return [];

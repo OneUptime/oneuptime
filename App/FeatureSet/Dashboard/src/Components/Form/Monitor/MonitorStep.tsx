@@ -45,6 +45,7 @@ import React, {
 import LogMonitorStepForm from "./LogMonitor/LogMonitorStepFrom";
 import TraceMonitorStepForm from "./TraceMonitor/TraceMonitorStepForm";
 import Service from "Common/Models/DatabaseModels/Service";
+import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -153,6 +154,9 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   ] = useState<boolean>(false);
 
   const [telemetryServices, setServices] = useState<Array<Service>>([]);
+  const [telemetryEntities, setTelemetryEntities] = useState<
+    Array<TelemetryEntity>
+  >([]);
   const [attributeKeys, setAttributeKeys] = useState<Array<string>>([]);
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -226,12 +230,56 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     setServices(telemetryServicesResult.data);
   };
 
+  /*
+   * The telemetry-entity registry (host / pod / container / ...) backing
+   * the optional "scope to infrastructure entities" picker on the
+   * log/trace/metric/exception monitor step forms. The picker stores
+   * entityKey values which the criteria compile turns into
+   * hasAny(entityKeys, [...]).
+   */
+  const fetchTelemetryEntities: PromiseVoidFunction =
+    async (): Promise<void> => {
+      const telemetryEntitiesResult: ListResult<TelemetryEntity> =
+        await ModelAPI.getList<TelemetryEntity>({
+          modelType: TelemetryEntity,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            _id: true,
+            entityKey: true,
+            entityType: true,
+            displayName: true,
+          },
+          sort: {
+            displayName: SortOrder.Ascending,
+          },
+        });
+
+      if (telemetryEntitiesResult instanceof HTTPErrorResponse) {
+        throw telemetryEntitiesResult;
+      }
+
+      setTelemetryEntities(telemetryEntitiesResult.data);
+    };
+
   const fetchServicesAndAttributes: PromiseVoidFunction =
     async (): Promise<void> => {
       setIsLoading(true);
       setError("");
       try {
         await fetchServices();
+
+        if (
+          props.monitorType === MonitorType.Logs ||
+          props.monitorType === MonitorType.Traces ||
+          props.monitorType === MonitorType.Metrics ||
+          props.monitorType === MonitorType.Exceptions
+        ) {
+          await fetchTelemetryEntities();
+        }
 
         if (props.monitorType === MonitorType.Logs) {
           await fetchLogAttributes();
@@ -1136,6 +1184,7 @@ return {
             }}
             attributeKeys={attributeKeys}
             telemetryServices={telemetryServices}
+            telemetryEntities={telemetryEntities}
           />
         </Card>
       )}
@@ -1150,6 +1199,7 @@ return {
               monitorStep.data?.metricMonitor ||
               MonitorStepMetricMonitorUtil.getDefault()
             }
+            telemetryEntities={telemetryEntities}
             onChange={(value: MonitorStepMetricMonitor) => {
               monitorStep.setMetricMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
@@ -1230,6 +1280,7 @@ return {
             }}
             attributeKeys={attributeKeys}
             telemetryServices={telemetryServices}
+            telemetryEntities={telemetryEntities}
           />
         </Card>
       )}
@@ -1245,6 +1296,7 @@ return {
               MonitorStepExceptionMonitorUtil.getDefault()
             }
             telemetryServices={telemetryServices}
+            telemetryEntities={telemetryEntities}
             onMonitorStepExceptionMonitorChanged={(
               value: MonitorStepExceptionMonitor,
             ) => {

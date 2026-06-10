@@ -18,7 +18,6 @@ import {
 } from "../Types/McpTypes";
 import OneUptimeOperation from "../Types/OneUptimeOperation";
 import OneUptimeApiService from "../Services/OneUptimeApiService";
-import { SessionData } from "../Server/SessionManager";
 import { LIST_PREVIEW_LIMIT } from "../Config/ServerConfig";
 import { isHelperTool, handleHelperTool } from "../Tools/HelperTools";
 import {
@@ -30,15 +29,15 @@ import logger from "Common/Server/Utils/Logger";
 /**
  * Register tool handlers on the MCP server.
  *
- * `sessionData` is the per-session record that holds the latest API key for
- * this session. The call-tool handler closes over it so each session always
- * reads its own key — avoiding the race condition that a process-global
- * "current API key" would create under concurrent requests.
+ * `apiKey` is the key supplied on the request that created this (stateless)
+ * server instance. The call-tool handler closes over it so each request reads
+ * its own key — avoiding the race condition that a process-global "current API
+ * key" would create under concurrent requests.
  */
 export function registerToolHandlers(
   mcpServer: McpServer,
   tools: McpToolInfo[],
-  sessionData: SessionData,
+  apiKey: string,
 ): void {
   // Register list tools handler
   mcpServer.server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -49,7 +48,7 @@ export function registerToolHandlers(
   mcpServer.server.setRequestHandler(
     CallToolRequestSchema,
     async (request: CallToolRequest) => {
-      return handleCallTool(request, tools, sessionData.apiKey);
+      return handleCallTool(request, tools, apiKey);
     },
   );
 

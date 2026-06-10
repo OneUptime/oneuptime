@@ -9,7 +9,7 @@ describe("TelemetryAttributeService.buildAttributeValuesStatement", () => {
    * lightweight source literal is enough — no real AnalyticsDatabaseService.
    */
   const source: unknown = {
-    tableName: "MetricItemV2",
+    tableName: "MetricItemV3",
     attributesColumn: "attributes",
     attributeKeysColumn: "attributeKeys",
     timeColumn: "time",

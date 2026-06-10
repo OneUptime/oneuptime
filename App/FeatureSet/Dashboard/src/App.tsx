@@ -92,6 +92,26 @@ const ExceptionsRoutes: React.LazyExoticComponent<
     };
   });
 });
+
+const EntitiesRoutes: React.LazyExoticComponent<
+  AllRoutesModule["EntitiesRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+    return {
+      default: m.EntitiesRoutes,
+    };
+  });
+});
+
+const TopologyRoutes: React.LazyExoticComponent<
+  AllRoutesModule["TopologyRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+    return {
+      default: m.TopologyRoutes,
+    };
+  });
+});
 const ProfilesRoutes: React.LazyExoticComponent<
   AllRoutesModule["ProfilesRoutes"]
 > = lazy(() => {
@@ -881,6 +901,20 @@ const App: () => JSX.Element = () => {
           <PageRoute
             path={RouteMap[PageMap.EXCEPTIONS_ROOT]?.toString() || ""}
             element={<ExceptionsRoutes {...commonPageProps} />}
+          />
+
+          {/** Entities (entity explorer) */}
+
+          <PageRoute
+            path={RouteMap[PageMap.ENTITIES_ROOT]?.toString() || ""}
+            element={<EntitiesRoutes {...commonPageProps} />}
+          />
+
+          {/** Topology (service map) */}
+
+          <PageRoute
+            path={RouteMap[PageMap.TOPOLOGY_ROOT]?.toString() || ""}
+            element={<TopologyRoutes {...commonPageProps} />}
           />
 
           {/* 👇️ only match this when no other routes match */}

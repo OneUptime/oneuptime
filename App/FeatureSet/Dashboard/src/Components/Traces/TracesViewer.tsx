@@ -161,7 +161,7 @@ const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
 ];
 
 const FIELD_ALIAS_MAP: Record<string, string> = {
-  service: "serviceId",
+  service: "primaryEntityId",
   status: "statusCode",
   name: "name",
   trace: "traceId",
@@ -289,15 +289,36 @@ function readInitialUrlState(): InitialUrlState {
 }
 
 interface Props {
-  serviceId?: ObjectID | undefined;
+  primaryEntityId?: ObjectID | undefined;
   /*
    * Scope traces to a resource by OTel resource attribute (e.g.
    * { "resource.k8s.cluster.name": "<clusterIdentifier>" }). Used by the
    * Host / Docker / Kubernetes views, which key telemetry off resource
-   * attributes rather than a serviceId. Applied as a read-only scope chip.
+   * attributes rather than a primaryEntityId. Applied as a read-only scope chip.
    */
   attributeFilters?: Record<string, string> | undefined;
   attributeFilterDisplayKeys?: Record<string, string> | undefined;
+  /*
+   * Scope to a OneUptime entity by its stable entityKeys (membership).
+   * Compiles to `hasAny(entityKeys, [...])` server-side — the entity
+   * model's cross-cutting read (e.g. all spans touching a k8s pod), even
+   * for service-owned spans.
+   */
+  entityKeysFilter?: Array<string> | undefined;
+  /*
+   * Entity scope with attribute fallback: compiles server-side to
+   * `hasAny(entityKeys, [...]) OR attributes[attributeKey] = attributeValue`
+   * so pre-entityKeys rows (no backfill) still match. Placed on the query
+   * record verbatim under the key "entityScope"; the Host / Docker / K8s
+   * pages compute it via keyFor* helpers from Common/Utils/Telemetry/EntityKey.
+   */
+  entityScope?:
+    | {
+        entityKeys: Array<string>;
+        attributeKey: string;
+        attributeValue: string;
+      }
+    | undefined;
 }
 
 const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
@@ -359,7 +380,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   const [facetData, setFacetData] = useState<FacetData>({});
   const [facetLoading, setFacetLoading] = useState<boolean>(false);
   /*
-   * Per-facet search text for resource facets (serviceId / hostId / etc.).
+   * Per-facet search text for resource facets (primaryEntityId / hostId / etc.).
    * When the user types into a facet's search box, this updates and triggers
    * the facets fetch, which forwards the text to /telemetry/traces/facets so
    * the backend can scan the full Postgres source-of-truth, not just the
@@ -509,8 +530,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       query.projectId = projectId;
     }
 
-    if (props.serviceId) {
-      query.serviceId = props.serviceId;
+    if (props.primaryEntityId) {
+      query.primaryEntityId = props.primaryEntityId;
     }
 
     const dateRange: InBetween<Date> =
@@ -541,12 +562,12 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
 
     /*
-     * The serviceId / hostId / dockerHostId / kubernetesClusterId facets
-     * all filter the same underlying `serviceId` column on Span. Union
-     * the selected values into a single `serviceId IN (...)` predicate.
+     * The primaryEntityId / hostId / dockerHostId / kubernetesClusterId facets
+     * all filter the same underlying `primaryEntityId` column on Span. Union
+     * the selected values into a single `primaryEntityId IN (...)` predicate.
      */
     const resourceFacetKeys: Set<string> = new Set<string>([
-      "serviceId",
+      "primaryEntityId",
       "hostId",
       "dockerHostId",
       "kubernetesClusterId",
@@ -561,7 +582,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       }
     }
     if (resourceIds.size > 0) {
-      (query as Record<string, unknown>)["serviceId"] =
+      (query as Record<string, unknown>)["primaryEntityId"] =
         resourceIds.size === 1
           ? Array.from(resourceIds)[0]!
           : new Includes(Array.from(resourceIds));
@@ -670,10 +691,23 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       (query as Record<string, unknown>)["attributes"] = mergedAttributes;
     }
 
+    if (props.entityKeysFilter && props.entityKeysFilter.length > 0) {
+      (query as Record<string, unknown>)["entityKeys"] = new Includes(
+        props.entityKeysFilter,
+      );
+    }
+
+    // Contract C4: pass through verbatim; compiled by StatementGenerator.
+    if (props.entityScope) {
+      (query as Record<string, unknown>)["entityScope"] = props.entityScope;
+    }
+
     return query;
   }, [
-    props.serviceId,
+    props.primaryEntityId,
     props.attributeFilters,
+    props.entityKeysFilter,
+    props.entityScope,
     timeRange,
     activeFilters,
     submittedSearch,
@@ -686,7 +720,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       spanId: true,
       parentSpanId: true,
       name: true,
-      serviceId: true,
+      primaryEntityId: true,
       startTime: true,
       endTime: true,
       durationUnixNano: true,
@@ -962,21 +996,29 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       payload["attributes"] = mergedAttributes;
     }
 
-    // Scope by serviceId prop if present
-    if (props.serviceId) {
-      if (!groups["serviceId"]) {
-        groups["serviceId"] = [];
+    /*
+     * Entity scope must constrain the histogram/facets too, not just the
+     * span list — otherwise the counts above the list are project-wide.
+     */
+    if (props.entityKeysFilter && props.entityKeysFilter.length > 0) {
+      payload["entityKeys"] = [...props.entityKeysFilter];
+    }
+
+    // Scope by primaryEntityId prop if present
+    if (props.primaryEntityId) {
+      if (!groups["primaryEntityId"]) {
+        groups["primaryEntityId"] = [];
       }
-      groups["serviceId"]!.push(props.serviceId.toString());
+      groups["primaryEntityId"]!.push(props.primaryEntityId.toString());
     }
 
     /*
-     * serviceId / hostId / dockerHostId / kubernetesClusterId all filter
-     * the underlying `serviceId` column — union them into a single list.
+     * primaryEntityId / hostId / dockerHostId / kubernetesClusterId all filter
+     * the underlying `primaryEntityId` column — union them into a single list.
      */
     const resourceIdSet: Set<string> = new Set<string>();
     for (const k of [
-      "serviceId",
+      "primaryEntityId",
       "hostId",
       "dockerHostId",
       "kubernetesClusterId",
@@ -1059,8 +1101,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     activeFilters,
     submittedSearch,
     parseSearch,
-    props.serviceId,
+    props.primaryEntityId,
     props.attributeFilters,
+    props.entityKeysFilter,
   ]);
 
   // Fetch histogram + facets from dedicated backend endpoints
@@ -1103,7 +1146,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     const facetsPayload: JSONObject = {
       ...aggregationRequest,
       facetKeys: [
-        "serviceId",
+        "primaryEntityId",
         "hostId",
         "dockerHostId",
         "kubernetesClusterId",
@@ -1246,7 +1289,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
     return [
       {
-        key: "serviceId",
+        key: "primaryEntityId",
         title: "Service",
         valueDisplayMap: serviceNameMap,
         valueColorMap: serviceColorMap,
@@ -1376,13 +1419,13 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     };
 
     const base: Array<ActiveFilter> = [];
-    if (props.serviceId) {
+    if (props.primaryEntityId) {
       base.push(
         resolveDisplay({
-          facetKey: "serviceId",
-          value: props.serviceId.toString(),
+          facetKey: "primaryEntityId",
+          value: props.primaryEntityId.toString(),
           displayKey: "Service",
-          displayValue: props.serviceId.toString(),
+          displayValue: props.primaryEntityId.toString(),
           readOnly: true,
         }),
       );
@@ -1405,7 +1448,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
     return [...base, ...activeFilters.map(resolveDisplay)];
   }, [
-    props.serviceId,
+    props.primaryEntityId,
     props.attributeFilters,
     props.attributeFilterDisplayKeys,
     activeFilters,
@@ -1443,7 +1486,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
    * the viewer is scoped to a resource (service / host / docker / k8s detail).
    */
   const enableSavedViews: boolean =
-    !props.serviceId &&
+    !props.primaryEntityId &&
+    !props.entityScope &&
     (!props.attributeFilters ||
       Object.keys(props.attributeFilters).length === 0);
 
@@ -1519,8 +1563,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       emptyMessage="No traces found"
       itemLabel="traces"
       renderRow={(span: Span): ReactElement => {
-        const service: Service | undefined = span.serviceId
-          ? serviceById[span.serviceId.toString()]
+        const service: Service | undefined = span.primaryEntityId
+          ? serviceById[span.primaryEntityId.toString()]
           : undefined;
         return (
           <TraceRow
@@ -1562,7 +1606,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
          * Add the typed pair as a chip via the same path as facet clicks so
          * it lives in `activeFilters` and feels consistent with the rest of
          * the UI. Known fields use their alias (e.g. "service" →
-         * "serviceId"); unknown keys are telemetry attributes and get an
+         * "primaryEntityId"); unknown keys are telemetry attributes and get an
          * `attributes.` prefix so they're routed into `query.attributes`
          * during query construction. Known-field detection is
          * case-insensitive so users can type `Service:api`; attribute keys

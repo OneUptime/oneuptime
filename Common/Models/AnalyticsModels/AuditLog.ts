@@ -288,7 +288,8 @@ export default class AuditLog extends AnalyticsBaseModel {
       projections: [],
       sortKeys: ["projectId", "createdAt", "resourceType", "resourceId"],
       primaryKeys: ["projectId", "createdAt"],
-      partitionKey: "sipHash64(projectId) % 16",
+      partitionKey: "toYYYYMM(createdAt)",
+      tableSettings: "ttl_only_drop_parts = 1",
       ttlExpression: "retentionDate DELETE",
       /*
        * `createdAt` already participates in the AuditLog sort key

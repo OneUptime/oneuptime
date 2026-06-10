@@ -37,11 +37,11 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
 interface ServiceExceptionSummary {
   /*
-   * serviceId is polymorphic; the client resolves the display name per
-   * serviceType from the loaded Services.
+   * primaryEntityId is polymorphic; the client resolves the display name per
+   * primaryEntityType from the loaded Services.
    */
-  serviceId: string;
-  serviceType: ServiceType | null;
+  primaryEntityId: string;
+  primaryEntityType: ServiceType | null;
   unresolvedCount: number;
   totalOccurrences: number;
 }
@@ -95,23 +95,23 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
   const [error, setError] = useState<string>("");
 
   /*
-   * An exception's serviceId is polymorphic (no Service relation). Load the
-   * project's Services so a real OpenTelemetry serviceId resolves to its
+   * An exception's primaryEntityId is polymorphic (no Service relation). Load the
+   * project's Services so a real OpenTelemetry primaryEntityId resolves to its
    * name/colour; Host/Docker/K8s and unattributed resolve to a label /
    * synthetic via resolveServiceDisplay below.
    */
   const [services, setServices] = useState<Array<Service>>([]);
 
   const resolveServiceDisplay: (
-    serviceId: ObjectID | string | null | undefined,
-    serviceType: ServiceType | string | null | undefined,
+    primaryEntityId: ObjectID | string | null | undefined,
+    primaryEntityType: ServiceType | string | null | undefined,
   ) => { name: string; color: string } = (
-    serviceId: ObjectID | string | null | undefined,
-    serviceType: ServiceType | string | null | undefined,
+    primaryEntityId: ObjectID | string | null | undefined,
+    primaryEntityType: ServiceType | string | null | undefined,
   ): { name: string; color: string } => {
     const { service, label } = TelemetryServiceUtil.resolveTelemetryResource({
-      serviceId: serviceId,
-      serviceType: serviceType,
+      primaryEntityId: primaryEntityId,
+      primaryEntityType: primaryEntityType,
       services: services,
       projectId: ProjectUtil.getCurrentProjectId(),
     });
@@ -162,8 +162,9 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
         (raw: JSONObject | unknown): ServiceExceptionSummary => {
           const entry: JSONObject = (raw as JSONObject) || {};
           return {
-            serviceId: (entry["serviceId"] as string) || "",
-            serviceType: (entry["serviceType"] as ServiceType | null) ?? null,
+            primaryEntityId: (entry["primaryEntityId"] as string) || "",
+            primaryEntityType:
+              (entry["primaryEntityType"] as ServiceType | null) ?? null,
             unresolvedCount: Number(entry["unresolvedCount"] || 0),
             totalOccurrences: Number(entry["totalOccurrences"] || 0),
           };
@@ -202,7 +203,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
         });
         setServices(result.data);
       } catch {
-        // Non-fatal: rows fall back to a serviceType label / "Unknown".
+        // Non-fatal: rows fall back to a primaryEntityType label / "Unknown".
       }
     };
     void loadServices();
@@ -526,8 +527,8 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                                     name: string;
                                     color: string;
                                   } = resolveServiceDisplay(
-                                    exception.serviceId,
-                                    exception.serviceType,
+                                    exception.primaryEntityId,
+                                    exception.primaryEntityType,
                                   );
                                   return (
                                     <span className="inline-flex items-center gap-1.5 text-gray-600">
@@ -599,13 +600,13 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                     );
                     const serviceDisplay: { name: string; color: string } =
                       resolveServiceDisplay(
-                        summary.serviceId,
-                        summary.serviceType,
+                        summary.primaryEntityId,
+                        summary.primaryEntityType,
                       );
 
                     return (
                       <li
-                        key={summary.serviceId}
+                        key={summary.primaryEntityId}
                         className="px-4 py-3 hover:bg-gray-50/70 transition-colors"
                       >
                         <div className="flex items-center justify-between mb-2">
@@ -675,8 +676,8 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                               {(() => {
                                 const svc: { name: string; color: string } =
                                   resolveServiceDisplay(
-                                    exception.serviceId,
-                                    exception.serviceType,
+                                    exception.primaryEntityId,
+                                    exception.primaryEntityType,
                                   );
                                 return (
                                   <span className="inline-flex items-center gap-1.5 text-gray-600">

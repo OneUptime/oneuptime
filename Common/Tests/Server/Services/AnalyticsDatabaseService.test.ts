@@ -107,7 +107,7 @@ describe("AnalyticsDatabaseService", () => {
           "    count() as count\n" +
           "FROM {p0:Identifier}.{p1:Identifier}\n" +
           "WHERE TRUE <where-statement>" +
-          " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+          " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break', max_memory_usage = 3221225472, max_bytes_before_external_group_by = 1610612736, max_bytes_before_external_sort = 1610612736",
       );
       expect(statement.query_params).toStrictEqual({
         p0: "oneuptime",
@@ -128,7 +128,7 @@ describe("AnalyticsDatabaseService", () => {
           "FROM {p0:Identifier}.{p1:Identifier}\n" +
           "WHERE TRUE <where-statement>\n" +
           "LIMIT {p2:Int32}\n" +
-          " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+          " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break', max_memory_usage = 3221225472, max_bytes_before_external_group_by = 1610612736, max_bytes_before_external_sort = 1610612736",
       );
       expect(statement.query_params).toStrictEqual({
         p0: "oneuptime",
@@ -150,7 +150,7 @@ describe("AnalyticsDatabaseService", () => {
           "FROM {p0:Identifier}.{p1:Identifier}\n" +
           "WHERE TRUE <where-statement>\n" +
           "OFFSET {p2:Int32}\n" +
-          " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+          " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break', max_memory_usage = 3221225472, max_bytes_before_external_group_by = 1610612736, max_bytes_before_external_sort = 1610612736",
       );
       expect(statement.query_params).toStrictEqual({
         p0: "oneuptime",
@@ -215,7 +215,7 @@ describe("AnalyticsDatabaseService", () => {
 
       expect(statement.query).toBe(
         "SELECT <select-statement> FROM {p0:Identifier}.{p1:Identifier} WHERE TRUE <where-statement> ORDER BY <sort-statement> LIMIT {p2:Int32} OFFSET {p3:Int32}\n" +
-          "SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+          "SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break', max_memory_usage = 3221225472, max_bytes_before_external_group_by = 1610612736, max_bytes_before_external_sort = 1610612736",
       );
       expect(statement.query_params).toStrictEqual({
         p0: "oneuptime",

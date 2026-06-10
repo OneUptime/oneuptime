@@ -34,7 +34,7 @@ export interface SpanMetrics {
 
 export interface SpanScope {
   attributes?: Record<string, string> | undefined;
-  serviceId?: ObjectID | undefined;
+  primaryEntityId?: ObjectID | undefined;
   start: Date;
   end: Date;
 }
@@ -115,8 +115,8 @@ export const fetchSpanMetrics: (
     projectId: projectId,
     startTime: new InBetween<Date>(scope.start, scope.end),
   };
-  if (scope.serviceId) {
-    baseQuery.serviceId = scope.serviceId;
+  if (scope.primaryEntityId) {
+    baseQuery.primaryEntityId = scope.primaryEntityId;
   }
   if (scope.attributes && Object.keys(scope.attributes).length > 0) {
     baseQuery.attributes = scope.attributes;
@@ -199,7 +199,7 @@ export const fetchSpanMetrics: (
 export interface MetricScope {
   name: string;
   attributes?: Record<string, string> | undefined;
-  serviceId?: ObjectID | undefined;
+  primaryEntityId?: ObjectID | undefined;
   aggregationType: AggregationType;
   start: Date;
   end: Date;
@@ -227,8 +227,8 @@ export const fetchMetricSeries: (
     time: new InBetween<Date>(scope.start, scope.end),
     name: scope.name,
   };
-  if (scope.serviceId) {
-    query.serviceId = scope.serviceId;
+  if (scope.primaryEntityId) {
+    query.primaryEntityId = scope.primaryEntityId;
   }
   if (scope.attributes && Object.keys(scope.attributes).length > 0) {
     query.attributes = scope.attributes;
@@ -342,11 +342,11 @@ const WEB_VITAL_DEFS: Array<{
 ];
 
 export const fetchWebVitals: (data: {
-  serviceId: ObjectID;
+  primaryEntityId: ObjectID;
   start: Date;
   end: Date;
 }) => Promise<Array<WebVital>> = async (data: {
-  serviceId: ObjectID;
+  primaryEntityId: ObjectID;
   start: Date;
   end: Date;
 }): Promise<Array<WebVital>> => {
@@ -358,7 +358,7 @@ export const fetchWebVitals: (data: {
           // eslint-disable-next-line no-await-in-loop
           const series: Array<TimePoint> = await fetchMetricSeries({
             name: name,
-            serviceId: data.serviceId,
+            primaryEntityId: data.primaryEntityId,
             aggregationType: AggregationType.Avg,
             start: data.start,
             end: data.end,

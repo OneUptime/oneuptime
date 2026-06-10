@@ -38,6 +38,7 @@ enum ColumnType {
    * UInt sizes can be added if there's a reason.
    */
   UInt8 = "UInt8",
+  UInt64 = "UInt64",
 }
 
 export default ColumnType;

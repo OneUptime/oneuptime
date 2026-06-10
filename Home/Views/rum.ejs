@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | Real User Monitoring (RUM) - Web Vitals, Sessions & Errors</title>
+  <meta name="description"
+    content="Real User Monitoring for browser and mobile apps with the OpenTelemetry Web SDK. Core Web Vitals, page views, JavaScript errors, and real user sessions — correlated with backend traces. Open source.">
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <main id="main-content">
+    <!-- Hero Section -->
+    <div class="relative isolate overflow-hidden bg-white" id="rum-hero-section">
+      <!-- Subtle grid pattern background -->
+      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+      <!-- Grid glow effect that follows cursor -->
+      <div id="rum-grid-glow" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(99, 102, 241, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(99, 102, 241, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
+
+      <div class="py-20 sm:py-28 lg:py-32">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          <div class="mx-auto max-w-3xl text-center">
+            <!-- Minimal badge -->
+            <p class="text-sm font-medium text-indigo-600 mb-4">OpenTelemetry Native Real User Monitoring</p>
+
+            <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+              See your app through your users' eyes
+            </h1>
+            <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+              Instrument your browser and mobile apps with the OpenTelemetry Web SDK. Page loads, Core Web Vitals, JavaScript errors, and real user sessions — correlated with the backend traces behind every click.
+            </p>
+
+            <div class="mt-10 flex items-center justify-center gap-x-6">
+              <a href="/accounts/register"
+                class="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
+                Get started
+              </a>
+              <a href="/enterprise/demo" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+                Request demo <span aria-hidden="true">&rarr;</span>
+              </a>
+            </div>
+
+            <!-- Subtle feature list -->
+            <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
+              <span>Core Web Vitals</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Page views</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>JS errors</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Session traces</span>
+            </div>
+          </div>
+
+          <!-- Hero visual - RUM overview mockup -->
+          <div class="mt-16 sm:mt-20">
+            <div class="relative mx-auto max-w-5xl">
+              <div class="rounded-xl bg-gray-900/5 p-1.5 ring-1 ring-gray-900/10">
+                <div class="rounded-lg bg-white shadow-lg overflow-hidden">
+                  <!-- Header bar -->
+                  <div class="bg-gray-50 px-6 py-3 flex items-center justify-between border-b border-gray-200">
+                    <div class="flex items-center gap-3">
+                      <div class="flex gap-1.5">
+                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <%- include('./Partials/icons/rum', {iconClass: 'h-4 w-4'}) %>
+                        <span class="text-sm text-gray-700 font-semibold">Real User Monitoring</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-md border border-gray-200 text-xs text-gray-500">
+                        <svg class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Last 24 hours
+                      </div>
+                      <span class="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 rounded-md text-xs font-medium text-emerald-600 border border-emerald-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        web-app
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Dashboard content -->
+                  <div class="p-5">
+                    <!-- Top stats row -->
+                    <div class="grid grid-cols-5 gap-3 mb-5">
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Page views</div>
+                        <div class="text-xl font-bold text-gray-900">1.2M</div>
+                        <div class="text-[10px] text-emerald-500 font-medium mt-1">+6% vs prev</div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">LCP (p75)</div>
+                        <div class="text-xl font-bold text-gray-900">1.9s</div>
+                        <div class="text-[10px] text-emerald-500 font-medium mt-1">Good</div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">INP (p75)</div>
+                        <div class="text-xl font-bold text-gray-900">182ms</div>
+                        <div class="text-[10px] text-amber-500 font-medium mt-1">Needs work</div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">CLS (p75)</div>
+                        <div class="text-xl font-bold text-gray-900">0.04</div>
+                        <div class="text-[10px] text-emerald-500 font-medium mt-1">Good</div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">JS errors</div>
+                        <div class="text-xl font-bold text-gray-900">0.6%</div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                          <div class="bg-amber-400 h-1.5 rounded-full" style="width: 6%"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Charts row -->
+                    <div class="grid grid-cols-3 gap-3 mb-5">
+                      <div class="col-span-2 bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                        <div class="flex items-center justify-between mb-4">
+                          <div>
+                            <div class="text-sm font-semibold text-gray-800">Page Load &amp; Largest Contentful Paint</div>
+                            <div class="text-[10px] text-gray-400 mt-0.5">p75 over time</div>
+                          </div>
+                          <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-1">
+                              <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                              <span class="text-[10px] text-gray-500">Load</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                              <span class="w-2 h-2 rounded-full bg-fuchsia-500"></span>
+                              <span class="text-[10px] text-gray-500">LCP</span>
+                            </div>
+                          </div>
+                        </div>
+                        <svg viewBox="0 0 400 100" class="w-full h-24">
+                          <defs>
+                            <linearGradient id="rumLoadGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                              <stop offset="0%" style="stop-color:#6366f1;stop-opacity:0.2"/>
+                              <stop offset="100%" style="stop-color:#6366f1;stop-opacity:0"/>
+                            </linearGradient>
+                          </defs>
+                          <line x1="0" y1="25" x2="400" y2="25" stroke="#f3f4f6" stroke-width="1"/>
+                          <line x1="0" y1="50" x2="400" y2="50" stroke="#f3f4f6" stroke-width="1"/>
+                          <line x1="0" y1="75" x2="400" y2="75" stroke="#f3f4f6" stroke-width="1"/>
+                          <path d="M0,52 L25,50 L50,54 L75,48 L100,52 L125,45 L150,49 L175,44 L200,47 L225,42 L250,46 L275,40 L300,44 L325,39 L350,43 L375,38 L400,42 L400,100 L0,100 Z" fill="url(#rumLoadGrad)"/>
+                          <path d="M0,52 L25,50 L50,54 L75,48 L100,52 L125,45 L150,49 L175,44 L200,47 L225,42 L250,46 L275,40 L300,44 L325,39 L350,43 L375,38 L400,42" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round"/>
+                          <path d="M0,62 L25,60 L50,63 L75,58 L100,61 L125,56 L150,59 L175,54 L200,57 L225,53 L250,56 L275,51 L300,55 L325,50 L350,54 L375,49 L400,53" fill="none" stroke="#d946ef" stroke-width="2" stroke-dasharray="3 3" stroke-linecap="round"/>
+                        </svg>
+                      </div>
+
+                      <!-- Web Vitals panel -->
+                      <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                        <div class="text-sm font-semibold text-gray-800 mb-1">Core Web Vitals</div>
+                        <div class="text-[10px] text-gray-400 mb-4">p75 · last 24h</div>
+                        <div class="space-y-3">
+                          <div>
+                            <div class="flex items-center justify-between mb-1">
+                              <span class="text-[11px] font-medium text-gray-600">LCP</span>
+                              <span class="text-[10px] text-emerald-600">1.9s</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-emerald-400 h-1.5 rounded-full" style="width:48%"></div></div>
+                          </div>
+                          <div>
+                            <div class="flex items-center justify-between mb-1">
+                              <span class="text-[11px] font-medium text-gray-600">INP</span>
+                              <span class="text-[10px] text-amber-600">182ms</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-amber-400 h-1.5 rounded-full" style="width:62%"></div></div>
+                          </div>
+                          <div>
+                            <div class="flex items-center justify-between mb-1">
+                              <span class="text-[11px] font-medium text-gray-600">CLS</span>
+                              <span class="text-[10px] text-emerald-600">0.04</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-emerald-400 h-1.5 rounded-full" style="width:18%"></div></div>
+                          </div>
+                          <div>
+                            <div class="flex items-center justify-between mb-1">
+                              <span class="text-[11px] font-medium text-gray-600">FCP</span>
+                              <span class="text-[10px] text-emerald-600">1.2s</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-emerald-400 h-1.5 rounded-full" style="width:32%"></div></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Pages table -->
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                      <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                        <span class="text-xs font-semibold text-gray-700">Pages by views</span>
+                        <span class="text-[10px] text-gray-400">214 routes</span>
+                      </div>
+                      <table class="w-full text-xs">
+                        <thead class="bg-white border-b border-gray-100">
+                          <tr>
+                            <th class="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Route</th>
+                            <th class="px-4 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-gray-500">Views</th>
+                            <th class="px-4 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-gray-500">LCP p75</th>
+                            <th class="px-4 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-gray-500">Errors</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                          <tr>
+                            <td class="px-4 py-2 font-mono text-gray-900">/</td>
+                            <td class="px-4 py-2 text-right font-mono text-gray-900">412k</td>
+                            <td class="px-4 py-2 text-right font-mono text-emerald-600">1.4s</td>
+                            <td class="px-4 py-2 text-right font-mono text-emerald-600">0.2%</td>
+                          </tr>
+                          <tr>
+                            <td class="px-4 py-2 font-mono text-gray-900">/product</td>
+                            <td class="px-4 py-2 text-right font-mono text-gray-900">286k</td>
+                            <td class="px-4 py-2 text-right font-mono text-emerald-600">2.0s</td>
+                            <td class="px-4 py-2 text-right font-mono text-emerald-600">0.4%</td>
+                          </tr>
+                          <tr>
+                            <td class="px-4 py-2 font-mono text-gray-900">/checkout</td>
+                            <td class="px-4 py-2 text-right font-mono text-gray-900">94k</td>
+                            <td class="px-4 py-2 text-right font-mono text-red-500">4.1s</td>
+                            <td class="px-4 py-2 text-right font-mono text-amber-600">2.8%</td>
+                          </tr>
+                          <tr>
+                            <td class="px-4 py-2 font-mono text-gray-900">/dashboard</td>
+                            <td class="px-4 py-2 text-right font-mono text-gray-900">71k</td>
+                            <td class="px-4 py-2 text-right font-mono text-amber-600">2.9s</td>
+                            <td class="px-4 py-2 text-right font-mono text-emerald-600">0.5%</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- How It Works Section -->
+    <div class="relative bg-gray-50 py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-indigo-600 uppercase tracking-wide mb-3">How It Works</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            Drop in the SDK. Watch real users.
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            Apps are recognized by their OTel <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">service.name</code> and <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">browser.*</code> attributes — no tag manager, no proprietary script.
+          </p>
+        </div>
+
+        <div class="mx-auto max-w-5xl">
+          <!-- Connecting line for desktop -->
+          <div class="hidden lg:block relative">
+            <div class="absolute top-8 left-[calc(12.5%+24px)] right-[calc(12.5%+24px)] h-px bg-indigo-200"></div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            <!-- Step 1 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-indigo-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-indigo-600 ring-2 ring-indigo-600">1</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Add the Web SDK</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Drop the OpenTelemetry browser SDK into your app, or the Swift/Android SDK into your mobile app.</p>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-indigo-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-indigo-600 ring-2 ring-indigo-600">2</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Point at OneUptime</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Set the OTLP exporter to your workspace and add your ingestion token. Page views and vitals stream in instantly.</p>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-indigo-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zM12 2.25V4.5m5.834.166l-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243l-1.59-1.59" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-indigo-600 ring-2 ring-indigo-600">3</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Auto-classified</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Apps with <code class="text-xs bg-gray-100 px-1 rounded">browser.*</code> or <code class="text-xs bg-gray-100 px-1 rounded">device.*</code> attributes are shown as RUM applications.</p>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-indigo-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-indigo-600 ring-2 ring-indigo-600">4</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Alert &amp; correlate</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Alert when LCP or error rate degrades, then jump to the backend trace behind a slow page.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Why OneUptime Section -->
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section header -->
+        <div class="mx-auto max-w-2xl text-center mb-20">
+          <div class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-4 py-1.5 text-sm font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20 mb-6">
+            <svg class="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zM12 2.25V4.5m5.834.166l-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243l-1.59-1.59" />
+            </svg>
+            <span class="text-sm font-medium text-indigo-700">Why OneUptime for RUM</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+            Front-end experience, measured by real users
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            Synthetic checks tell you the app is up. RUM tells you how it actually feels — for every browser, device, and network your real users bring. And it links straight to the backend behind each session.
+          </p>
+        </div>
+
+        <!-- Feature blocks -->
+        <div class="space-y-24">
+
+          <!-- Feature 1: Core Web Vitals -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+                  <svg class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-indigo-600 uppercase tracking-wide">Core Web Vitals</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">The metrics Google ranks you on</h3>
+              <p class="mt-4 text-lg text-gray-600">Track LCP, INP, CLS, FCP, and TTFB at the 75th percentile, with good / needs-improvement / poor ratings — emitted straight from real browsers as OpenTelemetry metrics, broken down by page and device.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  LCP, INP, CLS, FCP, and TTFB at p75
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Good / needs-improvement / poor thresholds
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Broken down by route, device, and country
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Web vitals mockup -->
+                <div class="relative max-w-md mx-auto">
+                  <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+                    <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                      <div class="flex gap-1.5">
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      </div>
+                      <div class="flex-1 text-center">
+                        <span class="text-xs text-gray-400">web-app · core web vitals</span>
+                      </div>
+                    </div>
+                    <div class="p-4 grid grid-cols-2 gap-3">
+                      <div class="rounded-lg border border-emerald-100 bg-emerald-50 p-3">
+                        <div class="flex items-center justify-between">
+                          <span class="text-[11px] font-medium text-gray-600">LCP</span>
+                          <span class="text-[9px] font-semibold text-emerald-700 uppercase">Good</span>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900 mt-1">1.9s</div>
+                        <div class="text-[10px] text-gray-500">p75 · target &lt; 2.5s</div>
+                      </div>
+                      <div class="rounded-lg border border-amber-100 bg-amber-50 p-3">
+                        <div class="flex items-center justify-between">
+                          <span class="text-[11px] font-medium text-gray-600">INP</span>
+                          <span class="text-[9px] font-semibold text-amber-700 uppercase">Fair</span>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900 mt-1">182ms</div>
+                        <div class="text-[10px] text-gray-500">p75 · target &lt; 200ms</div>
+                      </div>
+                      <div class="rounded-lg border border-emerald-100 bg-emerald-50 p-3">
+                        <div class="flex items-center justify-between">
+                          <span class="text-[11px] font-medium text-gray-600">CLS</span>
+                          <span class="text-[9px] font-semibold text-emerald-700 uppercase">Good</span>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900 mt-1">0.04</div>
+                        <div class="text-[10px] text-gray-500">p75 · target &lt; 0.1</div>
+                      </div>
+                      <div class="rounded-lg border border-emerald-100 bg-emerald-50 p-3">
+                        <div class="flex items-center justify-between">
+                          <span class="text-[11px] font-medium text-gray-600">FCP</span>
+                          <span class="text-[9px] font-semibold text-emerald-700 uppercase">Good</span>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900 mt-1">1.2s</div>
+                        <div class="text-[10px] text-gray-500">p75 · target &lt; 1.8s</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 2: Page views & performance -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Page views mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Page view · /checkout</span>
+                    </div>
+                  </div>
+                  <div class="p-4 space-y-3">
+                    <div class="grid grid-cols-3 gap-2">
+                      <div class="bg-gray-50 rounded-lg p-3 border border-gray-200 text-center">
+                        <div class="text-[10px] text-gray-400 uppercase tracking-wider">Load</div>
+                        <div class="text-base font-bold text-gray-900">4.1s</div>
+                      </div>
+                      <div class="bg-gray-50 rounded-lg p-3 border border-gray-200 text-center">
+                        <div class="text-[10px] text-gray-400 uppercase tracking-wider">TTFB</div>
+                        <div class="text-base font-bold text-gray-900">640ms</div>
+                      </div>
+                      <div class="bg-gray-50 rounded-lg p-3 border border-gray-200 text-center">
+                        <div class="text-[10px] text-gray-400 uppercase tracking-wider">DOM</div>
+                        <div class="text-base font-bold text-gray-900">2.2s</div>
+                      </div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                      <div class="text-[10px] text-gray-400 uppercase tracking-wider mb-2">Resource timing</div>
+                      <div class="space-y-2">
+                        <div>
+                          <div class="flex items-center justify-between mb-1">
+                            <span class="text-[11px] font-mono text-gray-600">app.js</span>
+                            <span class="text-[10px] text-gray-500">1.4s</span>
+                          </div>
+                          <div class="w-full bg-gray-200 rounded-full h-1.5"><div class="bg-indigo-400 h-1.5 rounded-full" style="width:70%"></div></div>
+                        </div>
+                        <div>
+                          <div class="flex items-center justify-between mb-1">
+                            <span class="text-[11px] font-mono text-gray-600">hero.webp</span>
+                            <span class="text-[10px] text-gray-500">880ms</span>
+                          </div>
+                          <div class="w-full bg-gray-200 rounded-full h-1.5"><div class="bg-fuchsia-400 h-1.5 rounded-full" style="width:44%"></div></div>
+                        </div>
+                        <div>
+                          <div class="flex items-center justify-between mb-1">
+                            <span class="text-[11px] font-mono text-gray-600">/api/cart</span>
+                            <span class="text-[10px] text-gray-500">520ms</span>
+                          </div>
+                          <div class="w-full bg-gray-200 rounded-full h-1.5"><div class="bg-cyan-400 h-1.5 rounded-full" style="width:26%"></div></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+                  <svg class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-indigo-600 uppercase tracking-wide">Page Performance</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Real load times, page by page</h3>
+              <p class="mt-4 text-lg text-gray-600">See actual page load, TTFB, and DOM timing for every route — with resource-level waterfalls so you know whether a slow page is your JavaScript, an image, or a backend API call.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Load, TTFB, and DOM timing per route
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Resource-level timing waterfalls
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Slowest pages surfaced automatically
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <!-- Feature 3: Browser & device insight -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+                  <svg class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-indigo-600 uppercase tracking-wide">Audience Insight</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Know which browsers and devices matter</h3>
+              <p class="mt-4 text-lg text-gray-600">Break performance and errors down by browser, operating system, device model, and country. Stop optimizing for the browser you happen to test in, and start fixing what your real audience is on.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Browser and OS breakdown
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Device model and screen size
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Geographic performance comparison
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Browser/device breakdown mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Sessions by browser</span>
+                    </div>
+                  </div>
+                  <div class="p-4 space-y-3">
+                    <div>
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-medium text-gray-700">Chrome</span>
+                        <span class="text-[10px] text-gray-500">58% · LCP 1.7s</span>
+                      </div>
+                      <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-indigo-500 h-2 rounded-full" style="width:58%"></div></div>
+                    </div>
+                    <div>
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-medium text-gray-700">Safari</span>
+                        <span class="text-[10px] text-gray-500">24% · LCP 2.3s</span>
+                      </div>
+                      <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-indigo-400 h-2 rounded-full" style="width:24%"></div></div>
+                    </div>
+                    <div>
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-medium text-gray-700">Edge</span>
+                        <span class="text-[10px] text-gray-500">11% · LCP 1.9s</span>
+                      </div>
+                      <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-indigo-300 h-2 rounded-full" style="width:11%"></div></div>
+                    </div>
+                    <div>
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-medium text-gray-700">Firefox</span>
+                        <span class="text-[10px] text-gray-500">7% · LCP 2.1s</span>
+                      </div>
+                      <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-indigo-200 h-2 rounded-full" style="width:7%"></div></div>
+                    </div>
+                    <div class="pt-3 mt-1 border-t border-gray-100 grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <div class="text-[10px] text-gray-400 uppercase">Desktop</div>
+                        <div class="text-sm font-semibold text-gray-900">62%</div>
+                      </div>
+                      <div>
+                        <div class="text-[10px] text-gray-400 uppercase">Mobile</div>
+                        <div class="text-sm font-semibold text-gray-900">33%</div>
+                      </div>
+                      <div>
+                        <div class="text-[10px] text-gray-400 uppercase">Tablet</div>
+                        <div class="text-sm font-semibold text-gray-900">5%</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 4: Frontend-to-backend correlation -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Session-to-trace mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Session → backend trace</span>
+                    </div>
+                  </div>
+                  <div class="p-4 space-y-2.5">
+                    <div>
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="text-[11px] font-mono text-gray-700">documentLoad /checkout</span>
+                        <span class="text-[10px] text-gray-500">4.1s</span>
+                      </div>
+                      <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-indigo-500 h-2 rounded-full" style="width:100%"></div></div>
+                    </div>
+                    <div class="pl-4">
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="text-[11px] font-mono text-gray-700">fetch /api/cart</span>
+                        <span class="text-[10px] text-gray-500">520ms</span>
+                      </div>
+                      <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-fuchsia-400 h-2 rounded-full ml-[40%]" style="width:13%"></div></div>
+                    </div>
+                    <div class="pl-8">
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="text-[11px] font-mono text-gray-600">cart-service · GET /cart</span>
+                        <span class="text-[10px] text-gray-500">other svc</span>
+                      </div>
+                      <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-cyan-400 h-2 rounded-full ml-[42%]" style="width:10%"></div></div>
+                    </div>
+                    <div class="pl-8">
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="text-[11px] font-mono text-gray-600">SELECT carts</span>
+                        <span class="text-[10px] text-gray-500">backend</span>
+                      </div>
+                      <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-emerald-400 h-2 rounded-full ml-[44%]" style="width:6%"></div></div>
+                    </div>
+                    <div class="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-500">
+                      <span>session 9f2c…b1 · Chrome / macOS</span>
+                      <span class="text-indigo-600 font-medium">Full trace</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+                  <svg class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-indigo-600 uppercase tracking-wide">Full-Stack Correlation</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">From a slow click to the query behind it</h3>
+              <p class="mt-4 text-lg text-gray-600">Because RUM and your backend both speak OpenTelemetry, a slow page view connects to the distributed trace, the service spans, and the database query that made it slow — plus the logs and exceptions along the way.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Session linked to backend trace
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  JavaScript errors with stack traces
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  One platform for front end and back end
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- More Features Section -->
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section header -->
+        <div class="mx-auto max-w-2xl text-center">
+          <div class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-4 py-1.5 text-sm font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20 mb-6">
+            <svg class="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span class="text-sm font-medium text-indigo-700">Advanced capabilities</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+            Everything you need for the front end
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            Built for teams who care how the app actually feels — across every browser, device, and network your users bring.
+          </p>
+        </div>
+
+        <!-- Feature cards grid -->
+        <div class="mx-auto mt-16 max-w-7xl">
+          <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+
+            <!-- Card 1: OpenTelemetry Native -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-indigo-300 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+                  <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.25 9V5.25A2.25 2.25 0 0110.5 3h6a2.25 2.25 0 012.25 2.25v13.5A2.25 2.25 0 0116.5 21h-6a2.25 2.25 0 01-2.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H2.25" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">OpenTelemetry Native</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">The OpenTelemetry Web SDK — and Swift / Android for mobile — is all you need. No proprietary snippet, no vendor tag manager.</p>
+              </div>
+            </div>
+
+            <!-- Card 2: JS error tracking -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-orange-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 ring-1 ring-orange-200">
+                  <svg class="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">JavaScript error tracking</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Capture unhandled exceptions and rejections with stack traces, grouped and counted, so a single broken release doesn't hide in the noise.</p>
+              </div>
+            </div>
+
+            <!-- Card 3: Session detail -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-fuchsia-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-fuchsia-50 ring-1 ring-fuchsia-200">
+                  <svg class="h-6 w-6 text-fuchsia-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zM12 2.25V4.5m5.834.166l-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243l-1.59-1.59" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Session-level detail</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Drill into a single page view to see the errors, latency, and custom events that happened during that exact session.</p>
+              </div>
+            </div>
+
+            <!-- Card 4: Geographic performance -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-emerald-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
+                  <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Geographic performance</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Compare load times and vitals by country and region, so you know whether your CDN is doing its job everywhere your users are.</p>
+              </div>
+            </div>
+
+            <!-- Card 5: Correlated signals -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-cyan-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-50 ring-1 ring-cyan-200">
+                  <svg class="h-6 w-6 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Correlated traces &amp; logs</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Front-end spans share trace context with your services, so a RUM session links straight to the backend traces, logs, and exceptions behind it.</p>
+              </div>
+            </div>
+
+            <!-- Card 6: Open source -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-pink-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-pink-50 ring-1 ring-pink-200">
+                  <svg class="h-6 w-6 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Open source</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Self-host or use the cloud. The instrumentation is upstream OpenTelemetry; the OneUptime backend, schemas, and dashboards are open source. Your user data stays your data.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team Notifications Section -->
+    <div class="relative overflow-hidden bg-white py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+          <!-- Content -->
+          <div class="relative">
+            <p class="text-sm font-medium text-indigo-600 uppercase tracking-wide mb-3">Team Notifications</p>
+            <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+              Experience alerts where your team already works
+            </h2>
+            <p class="mt-4 text-lg text-gray-600 leading-relaxed">
+              Get instant notifications when Core Web Vitals regress, JavaScript error rates spike, or a key page slows down — in Slack and Microsoft Teams. Catch a bad release before your users tweet about it.
+            </p>
+
+            <!-- Integration cards -->
+            <div class="mt-10 space-y-3">
+              <!-- Slack -->
+              <div class="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                    <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z" fill="#E01E5A"/>
+                    <path d="M8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312z" fill="#36C5F0"/>
+                    <path d="M18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312z" fill="#2EB67D"/>
+                    <path d="M15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="#ECB22E"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-sm font-semibold text-gray-900">Slack</h3>
+                  <p class="text-sm text-gray-500">Interactive experience alert actions</p>
+                </div>
+              </div>
+
+              <!-- Microsoft Teams -->
+              <div class="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                    <path d="M20.16 7.8h-4.736c.103.317.159.654.159 1.005v7.029a3.588 3.588 0 01-3.583 3.583h-4.8v.777c0 .998.81 1.806 1.806 1.806h8.339l2.869 1.912a.452.452 0 00.703-.376V21.2h.646c.997 0 1.806-.809 1.806-1.806v-9.788A1.806 1.806 0 0020.16 7.8z" fill="#5059C9"/>
+                    <circle cx="18.5" cy="4.5" r="2.5" fill="#5059C9"/>
+                    <path d="M13.5 6H3.806A1.806 1.806 0 002 7.806v9.388c0 .997.81 1.806 1.806 1.806h2.611v3.336a.452.452 0 00.703.376L10.5 20h3a3.5 3.5 0 003.5-3.5v-7A3.5 3.5 0 0013.5 6z" fill="#7B83EB"/>
+                    <circle cx="10" cy="3" r="3" fill="#7B83EB"/>
+                    <path d="M6 11h6M6 14h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-sm font-semibold text-gray-900">Microsoft Teams</h3>
+                  <p class="text-sm text-gray-500">Native adaptive cards integration</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Features list -->
+            <div class="mt-8 grid grid-cols-2 gap-4">
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Real-time delivery
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Web Vitals regression alerts
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                JS error-rate alerts
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Action buttons
+              </div>
+            </div>
+          </div>
+
+          <!-- Slack Demo -->
+          <div class="mt-12 lg:mt-0 relative">
+            <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+            <div class="relative rounded-2xl bg-[#1a1d21] shadow-2xl ring-1 ring-white/10 overflow-hidden">
+              <!-- Slack Window Header -->
+              <div class="bg-[#0f1114] px-4 py-3 flex items-center justify-between border-b border-white/5">
+                <div class="flex items-center gap-2">
+                  <div class="flex gap-1.5">
+                    <div class="w-3 h-3 rounded-full bg-[#ff5f57]"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#febc2e]"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#28c840]"></div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <svg class="h-4 w-4 text-white/60" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
+                  </svg>
+                  <span class="text-white/60 text-sm font-medium">#frontend-alerts</span>
+                </div>
+                <div class="w-16"></div>
+              </div>
+
+              <!-- Slack Messages Area -->
+              <div class="p-4 space-y-4 min-h-[320px]">
+                <!-- Main Alert Message -->
+                <div class="flex gap-3" style="animation: fadeSlideIn 0.5s ease-out forwards;">
+                  <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zM12 2.25V4.5m5.834.166l-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243l-1.59-1.59" />
+                    </svg>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-baseline gap-2">
+                      <span class="font-bold text-white text-sm">OneUptime RUM</span>
+                      <span class="text-xs text-white/40">2:47 PM</span>
+                    </div>
+                    <!-- Alert Card -->
+                    <div class="mt-2 rounded-lg bg-[#0f1114] border border-white/10 overflow-hidden">
+                      <div class="p-3 border-l-4 border-amber-500">
+                        <div class="flex items-center gap-2 mb-2">
+                          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/30">WARNING</span>
+                          <span class="text-white/40 text-xs">Web Vital Regression</span>
+                        </div>
+                        <p class="text-white font-semibold">LCP regressed to 4.1s on /checkout</p>
+                        <div class="mt-2 flex items-center gap-4 text-xs text-white/50">
+                          <span class="flex items-center gap-1">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                            </svg>
+                            app: web-app
+                          </span>
+                          <span class="flex items-center gap-1">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            since v2.18 deploy
+                          </span>
+                        </div>
+                        <!-- Action Buttons -->
+                        <div class="mt-3 flex gap-2">
+                          <button class="px-3 py-1.5 rounded text-xs font-semibold bg-white/10 text-white hover:bg-white/20 transition-colors border border-white/10">
+                            Acknowledge
+                          </button>
+                          <button class="px-3 py-1.5 rounded text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">
+                            View Sessions
+                          </button>
+                          <button class="px-3 py-1.5 rounded text-xs font-semibold bg-white/10 text-white hover:bg-white/20 transition-colors border border-white/10">
+                            Resolve
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- Reactions -->
+                    <div class="mt-2 flex items-center gap-1">
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-xs border border-white/10 hover:bg-white/10 cursor-pointer transition-colors">
+                        <span>👀</span>
+                        <span class="text-white/60">4</span>
+                      </span>
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-xs border border-white/10 hover:bg-white/10 cursor-pointer transition-colors">
+                        <span>🐢</span>
+                        <span class="text-white/60">2</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Message Input Area -->
+              <div class="px-4 py-3 border-t border-white/5">
+                <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0f1114] border border-white/10">
+                  <svg class="h-5 w-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  <span class="text-white/30 text-sm">Message #frontend-alerts</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('./Partials/enterprise-ready') -%>
+    <%- include('features-table') -%>
+    <%- include('cta') -%>
+  </main>
+
+  <%- include('footer') -%>
+
+  <style>
+    @keyframes fadeSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+
+  <!-- Grid glow cursor effect -->
+  <script>
+    (function() {
+      const heroSection = document.getElementById('rum-hero-section');
+      const gridGlow = document.getElementById('rum-grid-glow');
+
+      if (heroSection && gridGlow) {
+        heroSection.addEventListener('mousemove', (e) => {
+          const rect = heroSection.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          gridGlow.style.setProperty('--mouse-x', x + 'px');
+          gridGlow.style.setProperty('--mouse-y', y + 'px');
+          gridGlow.style.opacity = '1';
+        });
+
+        heroSection.addEventListener('mouseleave', () => {
+          gridGlow.style.opacity = '0';
+        });
+      }
+    })();
+  </script>
+</body>
+
+</html>

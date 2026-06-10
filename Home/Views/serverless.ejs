@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | Serverless Observability - Functions, Cold Starts & Traces</title>
+  <meta name="description"
+    content="Monitor AWS Lambda, Google Cloud Functions, Azure Functions, and Cloudflare Workers with OpenTelemetry. Invocations, cold starts, duration, errors, and per-invocation traces — auto-discovered. Open source.">
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <main id="main-content">
+    <!-- Hero Section -->
+    <div class="relative isolate overflow-hidden bg-white" id="serverless-hero-section">
+      <!-- Subtle grid pattern background -->
+      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+      <!-- Grid glow effect that follows cursor -->
+      <div id="serverless-grid-glow" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(217, 70, 239, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(217, 70, 239, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
+
+      <div class="py-20 sm:py-28 lg:py-32">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          <div class="mx-auto max-w-3xl text-center">
+            <!-- Minimal badge -->
+            <p class="text-sm font-medium text-fuchsia-600 mb-4">OpenTelemetry Native Serverless Monitoring</p>
+
+            <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+              Observability for every function you ship
+            </h1>
+            <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+              Instrument AWS Lambda, Google Cloud Functions, Azure Functions, and Cloudflare Workers with OpenTelemetry. Invocations, cold starts, duration, and errors — auto-discovered the moment your functions emit telemetry, with the full trace behind every call.
+            </p>
+
+            <div class="mt-10 flex items-center justify-center gap-x-6">
+              <a href="/accounts/register"
+                class="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
+                Get started
+              </a>
+              <a href="/enterprise/demo" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+                Request demo <span aria-hidden="true">&rarr;</span>
+              </a>
+            </div>
+
+            <!-- Subtle feature list -->
+            <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
+              <span>Auto-discovery</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Cold start insights</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Per-invocation traces</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Multi-cloud</span>
+            </div>
+          </div>
+
+          <!-- Hero visual - Serverless overview mockup -->
+          <div class="mt-16 sm:mt-20">
+            <div class="relative mx-auto max-w-5xl">
+              <div class="rounded-xl bg-gray-900/5 p-1.5 ring-1 ring-gray-900/10">
+                <div class="rounded-lg bg-white shadow-lg overflow-hidden">
+                  <!-- Header bar -->
+                  <div class="bg-gray-50 px-6 py-3 flex items-center justify-between border-b border-gray-200">
+                    <div class="flex items-center gap-3">
+                      <div class="flex gap-1.5">
+                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <%- include('./Partials/icons/serverless', {iconClass: 'h-4 w-4'}) %>
+                        <span class="text-sm text-gray-700 font-semibold">Serverless Functions</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-md border border-gray-200 text-xs text-gray-500">
+                        <svg class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Last 1 hour
+                      </div>
+                      <span class="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 rounded-md text-xs font-medium text-emerald-600 border border-emerald-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        aws · us-east-1
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Dashboard content -->
+                  <div class="p-5">
+                    <!-- Top stats row -->
+                    <div class="grid grid-cols-5 gap-3 mb-5">
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Invocations</div>
+                        <div class="text-xl font-bold text-gray-900">128k</div>
+                        <div class="text-[10px] text-emerald-500 font-medium mt-1">+12% vs prev</div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Error rate</div>
+                        <div class="text-xl font-bold text-gray-900">0.4%</div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                          <div class="bg-emerald-400 h-1.5 rounded-full" style="width: 4%"></div>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">p95 Duration</div>
+                        <div class="text-xl font-bold text-gray-900">312ms</div>
+                        <div class="text-[10px] text-gray-500 font-medium mt-1">p50 84ms</div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Cold starts</div>
+                        <div class="text-xl font-bold text-gray-900">2.1%</div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                          <div class="bg-amber-400 h-1.5 rounded-full" style="width: 21%"></div>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Functions</div>
+                        <div class="text-xl font-bold text-gray-900">34</div>
+                        <div class="text-[10px] text-gray-500 font-medium mt-1">active</div>
+                      </div>
+                    </div>
+
+                    <!-- Charts row -->
+                    <div class="grid grid-cols-3 gap-3 mb-5">
+                      <div class="col-span-2 bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                        <div class="flex items-center justify-between mb-4">
+                          <div>
+                            <div class="text-sm font-semibold text-gray-800">Invocations &amp; Duration</div>
+                            <div class="text-[10px] text-gray-400 mt-0.5">Throughput and p95 latency over time</div>
+                          </div>
+                          <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-1">
+                              <span class="w-2 h-2 rounded-full bg-fuchsia-500"></span>
+                              <span class="text-[10px] text-gray-500">Invocations</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                              <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                              <span class="text-[10px] text-gray-500">p95</span>
+                            </div>
+                          </div>
+                        </div>
+                        <svg viewBox="0 0 400 100" class="w-full h-24">
+                          <defs>
+                            <linearGradient id="fnInvGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                              <stop offset="0%" style="stop-color:#d946ef;stop-opacity:0.2"/>
+                              <stop offset="100%" style="stop-color:#d946ef;stop-opacity:0"/>
+                            </linearGradient>
+                          </defs>
+                          <line x1="0" y1="25" x2="400" y2="25" stroke="#f3f4f6" stroke-width="1"/>
+                          <line x1="0" y1="50" x2="400" y2="50" stroke="#f3f4f6" stroke-width="1"/>
+                          <line x1="0" y1="75" x2="400" y2="75" stroke="#f3f4f6" stroke-width="1"/>
+                          <path d="M0,70 L25,66 L50,60 L75,64 L100,52 L125,55 L150,44 L175,48 L200,38 L225,42 L250,34 L275,40 L300,30 L325,36 L350,28 L375,33 L400,26 L400,100 L0,100 Z" fill="url(#fnInvGrad)"/>
+                          <path d="M0,70 L25,66 L50,60 L75,64 L100,52 L125,55 L150,44 L175,48 L200,38 L225,42 L250,34 L275,40 L300,30 L325,36 L350,28 L375,33 L400,26" fill="none" stroke="#d946ef" stroke-width="2" stroke-linecap="round"/>
+                          <path d="M0,58 L25,60 L50,54 L75,57 L100,50 L125,53 L150,48 L175,52 L200,45 L225,49 L250,43 L275,47 L300,42 L325,46 L350,41 L375,45 L400,40" fill="none" stroke="#6366f1" stroke-width="2" stroke-dasharray="3 3" stroke-linecap="round"/>
+                        </svg>
+                      </div>
+
+                      <!-- Cold start panel -->
+                      <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                        <div class="text-sm font-semibold text-gray-800 mb-1">Cold Starts</div>
+                        <div class="text-[10px] text-gray-400 mb-4">Init duration by function</div>
+                        <div class="space-y-3">
+                          <div>
+                            <div class="flex items-center justify-between mb-1">
+                              <span class="text-[11px] font-mono text-gray-600">image-resize</span>
+                              <span class="text-[10px] text-gray-500">680ms</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-amber-400 h-1.5 rounded-full" style="width:82%"></div></div>
+                          </div>
+                          <div>
+                            <div class="flex items-center justify-between mb-1">
+                              <span class="text-[11px] font-mono text-gray-600">checkout</span>
+                              <span class="text-[10px] text-gray-500">240ms</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-emerald-400 h-1.5 rounded-full" style="width:29%"></div></div>
+                          </div>
+                          <div>
+                            <div class="flex items-center justify-between mb-1">
+                              <span class="text-[11px] font-mono text-gray-600">auth-verify</span>
+                              <span class="text-[10px] text-gray-500">120ms</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-emerald-400 h-1.5 rounded-full" style="width:15%"></div></div>
+                          </div>
+                          <div>
+                            <div class="flex items-center justify-between mb-1">
+                              <span class="text-[11px] font-mono text-gray-600">pdf-export</span>
+                              <span class="text-[10px] text-gray-500">910ms</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-red-400 h-1.5 rounded-full" style="width:96%"></div></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Functions table -->
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                      <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                        <span class="text-xs font-semibold text-gray-700">Functions by invocations</span>
+                        <span class="text-[10px] text-gray-400">34 total</span>
+                      </div>
+                      <table class="w-full text-xs">
+                        <thead class="bg-white border-b border-gray-100">
+                          <tr>
+                            <th class="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Function</th>
+                            <th class="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Runtime</th>
+                            <th class="px-4 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-gray-500">Invocations</th>
+                            <th class="px-4 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-gray-500">p95</th>
+                            <th class="px-4 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-gray-500">Errors</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                          <tr>
+                            <td class="px-4 py-2 font-mono text-gray-900">checkout-handler</td>
+                            <td class="px-4 py-2 text-gray-500">nodejs20.x</td>
+                            <td class="px-4 py-2 text-right font-mono text-gray-900">42,180</td>
+                            <td class="px-4 py-2 text-right font-mono text-gray-900">208ms</td>
+                            <td class="px-4 py-2 text-right font-mono text-emerald-600">0.1%</td>
+                          </tr>
+                          <tr>
+                            <td class="px-4 py-2 font-mono text-gray-900">image-resize</td>
+                            <td class="px-4 py-2 text-gray-500">python3.12</td>
+                            <td class="px-4 py-2 text-right font-mono text-gray-900">31,902</td>
+                            <td class="px-4 py-2 text-right font-mono text-gray-900">512ms</td>
+                            <td class="px-4 py-2 text-right font-mono text-amber-600">1.2%</td>
+                          </tr>
+                          <tr>
+                            <td class="px-4 py-2 font-mono text-gray-900">auth-verify</td>
+                            <td class="px-4 py-2 text-gray-500">go1.x</td>
+                            <td class="px-4 py-2 text-right font-mono text-gray-900">28,455</td>
+                            <td class="px-4 py-2 text-right font-mono text-gray-900">46ms</td>
+                            <td class="px-4 py-2 text-right font-mono text-emerald-600">0.0%</td>
+                          </tr>
+                          <tr>
+                            <td class="px-4 py-2 font-mono text-gray-900">pdf-export</td>
+                            <td class="px-4 py-2 text-gray-500">nodejs20.x</td>
+                            <td class="px-4 py-2 text-right font-mono text-gray-900">9,612</td>
+                            <td class="px-4 py-2 text-right font-mono text-gray-900">1.4s</td>
+                            <td class="px-4 py-2 text-right font-mono text-red-500">3.8%</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- How It Works Section -->
+    <div class="relative bg-gray-50 py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-fuchsia-600 uppercase tracking-wide mb-3">How It Works</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            Instrument once. Every function, monitored.
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            Auto-discovery is keyed on the OTel <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">faas.name</code> resource attribute — no proprietary agent, no manual registration.
+          </p>
+        </div>
+
+        <div class="mx-auto max-w-5xl">
+          <!-- Connecting line for desktop -->
+          <div class="hidden lg:block relative">
+            <div class="absolute top-8 left-[calc(12.5%+24px)] right-[calc(12.5%+24px)] h-px bg-fuchsia-200"></div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            <!-- Step 1 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-fuchsia-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-fuchsia-600 ring-2 ring-fuchsia-600">1</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Add the OTel layer</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Attach the OpenTelemetry Lambda Layer or drop the OTel SDK into your function. No code change required on AWS.</p>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-fuchsia-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-fuchsia-600 ring-2 ring-fuchsia-600">2</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Point at OneUptime</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Set <code class="text-xs bg-gray-100 px-1 rounded">OTEL_EXPORTER_OTLP_ENDPOINT</code> to your workspace and add your ingestion token.</p>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-fuchsia-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-fuchsia-600 ring-2 ring-fuchsia-600">3</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Auto-discovered</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Functions appear on the first invocation, with cloud platform, region, and runtime captured automatically.</p>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-fuchsia-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-fuchsia-600 ring-2 ring-fuchsia-600">4</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Alert on what matters</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Set thresholds for error rate, p95 duration, cold-start frequency, and invocation drop-offs.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Why OneUptime Section -->
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section header -->
+        <div class="mx-auto max-w-2xl text-center mb-20">
+          <div class="inline-flex items-center gap-2 rounded-full bg-fuchsia-50 px-4 py-1.5 text-sm font-medium text-fuchsia-700 ring-1 ring-inset ring-fuchsia-600/20 mb-6">
+            <svg class="h-4 w-4 text-fuchsia-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span class="text-sm font-medium text-fuchsia-700">Why OneUptime for Serverless</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+            Serverless observability without the lock-in
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            From a single Lambda to thousands of functions across clouds, OneUptime captures the full picture — invocations, latency, cold starts, errors, and the distributed trace behind every call.
+          </p>
+        </div>
+
+        <!-- Feature blocks -->
+        <div class="space-y-24">
+
+          <!-- Feature 1: Auto-discovery -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-fuchsia-50 ring-1 ring-fuchsia-200">
+                  <svg class="h-5 w-5 text-fuchsia-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-fuchsia-600 uppercase tracking-wide">Auto-Discovery</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Functions appear the moment they invoke</h3>
+              <p class="mt-4 text-lg text-gray-600">No manifests, no manual registration, no separate agent. Emit any OTel span or metric with a <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">faas.name</code> attribute and the function shows up automatically.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-fuchsia-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Keyed on the OTel <code class="text-xs">faas.name</code> resource attribute
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-fuchsia-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <code class="text-xs">cloud.platform</code>, region, and account captured on first ingest
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-fuchsia-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Runtime, version, and memory size tracked per function
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Functions list mockup -->
+                <div class="relative max-w-md mx-auto">
+                  <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+                    <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                      <div class="flex gap-1.5">
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      </div>
+                      <div class="flex-1 text-center">
+                        <span class="text-xs text-gray-400">Functions · auto-discovered</span>
+                      </div>
+                    </div>
+                    <div class="p-4 space-y-3">
+                      <div class="flex items-center justify-between p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+                        <div class="flex items-center gap-3">
+                          <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          </div>
+                          <div>
+                            <div class="text-sm font-medium text-gray-900">checkout-handler</div>
+                            <div class="text-xs text-gray-500">aws lambda · us-east-1 · nodejs20.x</div>
+                          </div>
+                        </div>
+                        <span class="text-xs text-emerald-600 font-medium">Healthy</span>
+                      </div>
+                      <div class="flex items-center justify-between p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+                        <div class="flex items-center gap-3">
+                          <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          </div>
+                          <div>
+                            <div class="text-sm font-medium text-gray-900">auth-verify</div>
+                            <div class="text-xs text-gray-500">gcp functions · us-central1 · go1.x</div>
+                          </div>
+                        </div>
+                        <span class="text-xs text-emerald-600 font-medium">Healthy</span>
+                      </div>
+                      <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100">
+                        <div class="flex items-center gap-3">
+                          <div class="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
+                            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                          </div>
+                          <div>
+                            <div class="text-sm font-medium text-gray-900">pdf-export</div>
+                            <div class="text-xs text-gray-500">aws lambda · us-east-1 · 3.8% errors</div>
+                          </div>
+                        </div>
+                        <span class="text-xs text-red-600 font-medium">Degraded</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 2: Cold starts & duration -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Duration breakdown mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">image-resize · duration</span>
+                    </div>
+                  </div>
+                  <div class="p-4 space-y-3">
+                    <div class="grid grid-cols-3 gap-2">
+                      <div class="bg-gray-50 rounded-lg p-3 border border-gray-200 text-center">
+                        <div class="text-[10px] text-gray-400 uppercase tracking-wider">p50</div>
+                        <div class="text-base font-bold text-gray-900">182ms</div>
+                      </div>
+                      <div class="bg-gray-50 rounded-lg p-3 border border-gray-200 text-center">
+                        <div class="text-[10px] text-gray-400 uppercase tracking-wider">p95</div>
+                        <div class="text-base font-bold text-gray-900">512ms</div>
+                      </div>
+                      <div class="bg-gray-50 rounded-lg p-3 border border-gray-200 text-center">
+                        <div class="text-[10px] text-gray-400 uppercase tracking-wider">p99</div>
+                        <div class="text-base font-bold text-gray-900">1.2s</div>
+                      </div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-gray-600 font-medium">Cold start rate</span>
+                        <span class="text-xs text-amber-600 font-semibold">2.1%</span>
+                      </div>
+                      <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-amber-500 h-2 rounded-full" style="width: 21%"></div>
+                      </div>
+                      <div class="mt-1 text-[10px] text-gray-500">init 680ms · execution 512ms on cold path</div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-gray-600 font-medium">Concurrency (peak)</span>
+                        <span class="text-xs text-gray-900 font-semibold">142</span>
+                      </div>
+                      <div class="flex items-center gap-4 text-[10px] text-gray-500">
+                        <span>throttles: 3</span>
+                        <span>reserved: 200</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-fuchsia-50 ring-1 ring-fuchsia-200">
+                  <svg class="h-5 w-5 text-fuchsia-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-fuchsia-600 uppercase tracking-wide">Cold Starts &amp; Latency</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Catch cold starts before they cost you users</h3>
+              <p class="mt-4 text-lg text-gray-600">See p50, p95, and p99 duration per function, the share of invocations paying a cold-start penalty, and the init-vs-execution split — so you know exactly where to tune memory, runtime, or provisioned concurrency.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-fuchsia-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Duration percentiles per function and version
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-fuchsia-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Cold-start rate and init duration
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-fuchsia-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Concurrency and throttle insight
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <!-- Feature 3: Per-invocation traces -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-fuchsia-50 ring-1 ring-fuchsia-200">
+                  <svg class="h-5 w-5 text-fuchsia-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-fuchsia-600 uppercase tracking-wide">Distributed Traces</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Every invocation, end to end</h3>
+              <p class="mt-4 text-lg text-gray-600">Each invocation is a distributed trace. Follow the request from the trigger, through your function, into the databases, queues, and downstream APIs it calls — and land on the exact span and stack trace when something fails.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-fuchsia-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Span waterfall across functions and services
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-fuchsia-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Errors and exceptions with stack traces
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-fuchsia-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Logs correlated by trace and <code class="text-xs">faas.name</code>
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Trace waterfall mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Trace · checkout-handler</span>
+                    </div>
+                  </div>
+                  <div class="p-4 space-y-2.5">
+                    <div>
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="text-[11px] font-mono text-gray-700">faas.invoke checkout-handler</span>
+                        <span class="text-[10px] text-gray-500">208ms</span>
+                      </div>
+                      <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-fuchsia-500 h-2 rounded-full" style="width:100%"></div></div>
+                    </div>
+                    <div class="pl-4">
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="text-[11px] font-mono text-gray-700">SELECT orders</span>
+                        <span class="text-[10px] text-gray-500">42ms</span>
+                      </div>
+                      <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-indigo-400 h-2 rounded-full ml-[4%]" style="width:20%"></div></div>
+                    </div>
+                    <div class="pl-4">
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="text-[11px] font-mono text-gray-700">POST payments-api</span>
+                        <span class="text-[10px] text-gray-500">96ms</span>
+                      </div>
+                      <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-cyan-400 h-2 rounded-full ml-[26%]" style="width:46%"></div></div>
+                    </div>
+                    <div class="pl-4">
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="text-[11px] font-mono text-gray-700">publish order.created</span>
+                        <span class="text-[10px] text-gray-500">18ms</span>
+                      </div>
+                      <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-emerald-400 h-2 rounded-full ml-[74%]" style="width:9%"></div></div>
+                    </div>
+                    <div class="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-500">
+                      <span>trace id 7c1f…a3</span>
+                      <span class="text-emerald-600 font-medium">200 OK</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 4: Multi-cloud -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Multi-cloud providers mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Functions by provider</span>
+                    </div>
+                  </div>
+                  <div class="p-4 grid grid-cols-2 gap-3">
+                    <div class="rounded-lg border border-gray-200 p-3">
+                      <div class="text-xs font-semibold text-gray-800">AWS Lambda</div>
+                      <div class="text-[10px] text-gray-400 mb-2">3 regions</div>
+                      <div class="text-lg font-bold text-gray-900">21</div>
+                      <div class="text-[10px] text-gray-500">functions</div>
+                    </div>
+                    <div class="rounded-lg border border-gray-200 p-3">
+                      <div class="text-xs font-semibold text-gray-800">Cloud Functions</div>
+                      <div class="text-[10px] text-gray-400 mb-2">2 regions</div>
+                      <div class="text-lg font-bold text-gray-900">7</div>
+                      <div class="text-[10px] text-gray-500">functions</div>
+                    </div>
+                    <div class="rounded-lg border border-gray-200 p-3">
+                      <div class="text-xs font-semibold text-gray-800">Azure Functions</div>
+                      <div class="text-[10px] text-gray-400 mb-2">1 region</div>
+                      <div class="text-lg font-bold text-gray-900">4</div>
+                      <div class="text-[10px] text-gray-500">functions</div>
+                    </div>
+                    <div class="rounded-lg border border-gray-200 p-3">
+                      <div class="text-xs font-semibold text-gray-800">CF Workers</div>
+                      <div class="text-[10px] text-gray-400 mb-2">global</div>
+                      <div class="text-lg font-bold text-gray-900">2</div>
+                      <div class="text-[10px] text-gray-500">functions</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-fuchsia-50 ring-1 ring-fuchsia-200">
+                  <svg class="h-5 w-5 text-fuchsia-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-fuchsia-600 uppercase tracking-wide">Multi-Cloud</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">One dashboard across every FaaS provider</h3>
+              <p class="mt-4 text-lg text-gray-600">AWS Lambda, Google Cloud Functions, Azure Functions, and Cloudflare Workers all speak OpenTelemetry. Monitor them side by side with the same metrics, the same alerts, and the same incident workflows — no per-vendor tooling.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-fuchsia-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  AWS, GCP, Azure, and Cloudflare in one view
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-fuchsia-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Consistent alert rules across providers
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-fuchsia-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Group by provider, region, account, or team
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- More Features Section -->
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section header -->
+        <div class="mx-auto max-w-2xl text-center">
+          <div class="inline-flex items-center gap-2 rounded-full bg-fuchsia-50 px-4 py-1.5 text-sm font-medium text-fuchsia-700 ring-1 ring-inset ring-fuchsia-600/20 mb-6">
+            <svg class="h-4 w-4 text-fuchsia-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span class="text-sm font-medium text-fuchsia-700">Advanced capabilities</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+            Everything you need for functions
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            Built for teams running event-driven workloads — from a weekend project to thousands of functions in production.
+          </p>
+        </div>
+
+        <!-- Feature cards grid -->
+        <div class="mx-auto mt-16 max-w-7xl">
+          <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+
+            <!-- Card 1: OpenTelemetry Native -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-fuchsia-300 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-fuchsia-50 ring-1 ring-fuchsia-200">
+                  <svg class="h-6 w-6 text-fuchsia-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.25 9V5.25A2.25 2.25 0 0110.5 3h6a2.25 2.25 0 012.25 2.25v13.5A2.25 2.25 0 0116.5 21h-6a2.25 2.25 0 01-2.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H2.25" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">OpenTelemetry Native</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">No proprietary agent. The OpenTelemetry Lambda Layer or the standard OTel SDK is all you need to start streaming spans, metrics, and logs.</p>
+              </div>
+            </div>
+
+            <!-- Card 2: Cold start detection -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-amber-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-200">
+                  <svg class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Cold-start detection</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Separate init from execution time and surface the share of invocations paying a cold-start cost, so you know when provisioned concurrency is worth it.</p>
+              </div>
+            </div>
+
+            <!-- Card 3: Concurrency & throttles -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-indigo-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+                  <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Concurrency &amp; throttles</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Track peak concurrency and throttled invocations so you can spot when a function is hitting a limit before it starts dropping events.</p>
+              </div>
+            </div>
+
+            <!-- Card 4: Correlated logs -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-emerald-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
+                  <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Correlated logs</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Every function's logs are filtered by <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">faas.name</code> and linked to the trace, so a failing invocation lands you on the exact log lines.</p>
+              </div>
+            </div>
+
+            <!-- Card 5: Cloud metadata -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-sky-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-50 ring-1 ring-sky-200">
+                  <svg class="h-6 w-6 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Cloud metadata context</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed"><code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">cloud.region</code>, <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">cloud.account.id</code>, and <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">faas.instance</code> captured automatically — so you know exactly where an issue happened.</p>
+              </div>
+            </div>
+
+            <!-- Card 6: Open source -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-pink-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-pink-50 ring-1 ring-pink-200">
+                  <svg class="h-6 w-6 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Open source</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Self-host or use the cloud. The instrumentation is upstream OpenTelemetry; the OneUptime backend, schemas, and dashboards are open source. Your data stays your data.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team Notifications Section -->
+    <div class="relative overflow-hidden bg-white py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+          <!-- Content -->
+          <div class="relative">
+            <p class="text-sm font-medium text-fuchsia-600 uppercase tracking-wide mb-3">Team Notifications</p>
+            <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+              Function alerts where your team already works
+            </h2>
+            <p class="mt-4 text-lg text-gray-600 leading-relaxed">
+              Get instant notifications for error-rate spikes, latency regressions, cold-start surges, and throttling in Slack and Microsoft Teams. Acknowledge and investigate without leaving your chat app.
+            </p>
+
+            <!-- Integration cards -->
+            <div class="mt-10 space-y-3">
+              <!-- Slack -->
+              <div class="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                    <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z" fill="#E01E5A"/>
+                    <path d="M8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312z" fill="#36C5F0"/>
+                    <path d="M18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312z" fill="#2EB67D"/>
+                    <path d="M15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="#ECB22E"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-sm font-semibold text-gray-900">Slack</h3>
+                  <p class="text-sm text-gray-500">Interactive function alert actions</p>
+                </div>
+              </div>
+
+              <!-- Microsoft Teams -->
+              <div class="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                    <path d="M20.16 7.8h-4.736c.103.317.159.654.159 1.005v7.029a3.588 3.588 0 01-3.583 3.583h-4.8v.777c0 .998.81 1.806 1.806 1.806h8.339l2.869 1.912a.452.452 0 00.703-.376V21.2h.646c.997 0 1.806-.809 1.806-1.806v-9.788A1.806 1.806 0 0020.16 7.8z" fill="#5059C9"/>
+                    <circle cx="18.5" cy="4.5" r="2.5" fill="#5059C9"/>
+                    <path d="M13.5 6H3.806A1.806 1.806 0 002 7.806v9.388c0 .997.81 1.806 1.806 1.806h2.611v3.336a.452.452 0 00.703.376L10.5 20h3a3.5 3.5 0 003.5-3.5v-7A3.5 3.5 0 0013.5 6z" fill="#7B83EB"/>
+                    <circle cx="10" cy="3" r="3" fill="#7B83EB"/>
+                    <path d="M6 11h6M6 14h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-sm font-semibold text-gray-900">Microsoft Teams</h3>
+                  <p class="text-sm text-gray-500">Native adaptive cards integration</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Features list -->
+            <div class="mt-8 grid grid-cols-2 gap-4">
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Real-time delivery
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Error-rate &amp; latency alerts
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Cold-start &amp; throttle alerts
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Action buttons
+              </div>
+            </div>
+          </div>
+
+          <!-- Slack Demo -->
+          <div class="mt-12 lg:mt-0 relative">
+            <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+            <div class="relative rounded-2xl bg-[#1a1d21] shadow-2xl ring-1 ring-white/10 overflow-hidden">
+              <!-- Slack Window Header -->
+              <div class="bg-[#0f1114] px-4 py-3 flex items-center justify-between border-b border-white/5">
+                <div class="flex items-center gap-2">
+                  <div class="flex gap-1.5">
+                    <div class="w-3 h-3 rounded-full bg-[#ff5f57]"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#febc2e]"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#28c840]"></div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <svg class="h-4 w-4 text-white/60" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
+                  </svg>
+                  <span class="text-white/60 text-sm font-medium">#serverless-alerts</span>
+                </div>
+                <div class="w-16"></div>
+              </div>
+
+              <!-- Slack Messages Area -->
+              <div class="p-4 space-y-4 min-h-[320px]">
+                <!-- Main Alert Message -->
+                <div class="flex gap-3" style="animation: fadeSlideIn 0.5s ease-out forwards;">
+                  <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-fuchsia-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                    </svg>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-baseline gap-2">
+                      <span class="font-bold text-white text-sm">OneUptime Serverless</span>
+                      <span class="text-xs text-white/40">2:47 PM</span>
+                    </div>
+                    <!-- Alert Card -->
+                    <div class="mt-2 rounded-lg bg-[#0f1114] border border-white/10 overflow-hidden">
+                      <div class="p-3 border-l-4 border-red-500">
+                        <div class="flex items-center gap-2 mb-2">
+                          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-red-500/20 text-red-400 ring-1 ring-red-500/30">CRITICAL</span>
+                          <span class="text-white/40 text-xs">Error Rate Spike</span>
+                        </div>
+                        <p class="text-white font-semibold">pdf-export error rate at 3.8%</p>
+                        <div class="mt-2 flex items-center gap-4 text-xs text-white/50">
+                          <span class="flex items-center gap-1">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                            </svg>
+                            faas: pdf-export
+                          </span>
+                          <span class="flex items-center gap-1">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
+                            </svg>
+                            aws · us-east-1
+                          </span>
+                        </div>
+                        <!-- Action Buttons -->
+                        <div class="mt-3 flex gap-2">
+                          <button class="px-3 py-1.5 rounded text-xs font-semibold bg-white/10 text-white hover:bg-white/20 transition-colors border border-white/10">
+                            Acknowledge
+                          </button>
+                          <button class="px-3 py-1.5 rounded text-xs font-semibold bg-fuchsia-600 text-white hover:bg-fuchsia-700 transition-colors">
+                            View Trace
+                          </button>
+                          <button class="px-3 py-1.5 rounded text-xs font-semibold bg-white/10 text-white hover:bg-white/20 transition-colors border border-white/10">
+                            Resolve
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- Reactions -->
+                    <div class="mt-2 flex items-center gap-1">
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-xs border border-white/10 hover:bg-white/10 cursor-pointer transition-colors">
+                        <span>👀</span>
+                        <span class="text-white/60">3</span>
+                      </span>
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-xs border border-white/10 hover:bg-white/10 cursor-pointer transition-colors">
+                        <span>🚨</span>
+                        <span class="text-white/60">2</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Message Input Area -->
+              <div class="px-4 py-3 border-t border-white/5">
+                <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0f1114] border border-white/10">
+                  <svg class="h-5 w-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  <span class="text-white/30 text-sm">Message #serverless-alerts</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('./Partials/enterprise-ready') -%>
+    <%- include('features-table') -%>
+    <%- include('cta') -%>
+  </main>
+
+  <%- include('footer') -%>
+
+  <style>
+    @keyframes fadeSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+
+  <!-- Grid glow cursor effect -->
+  <script>
+    (function() {
+      const heroSection = document.getElementById('serverless-hero-section');
+      const gridGlow = document.getElementById('serverless-grid-glow');
+
+      if (heroSection && gridGlow) {
+        heroSection.addEventListener('mousemove', (e) => {
+          const rect = heroSection.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          gridGlow.style.setProperty('--mouse-x', x + 'px');
+          gridGlow.style.setProperty('--mouse-y', y + 'px');
+          gridGlow.style.opacity = '1';
+        });
+
+        heroSection.addEventListener('mouseleave', () => {
+          gridGlow.style.opacity = '0';
+        });
+      }
+    })();
+  </script>
+</body>
+
+</html>

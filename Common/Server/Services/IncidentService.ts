@@ -1717,8 +1717,8 @@ ${incident.remediationNotes || "No remediation notes provided."}
             if (resolvedTimeline && resolvedTimeline.startsAt) {
               const postmortemMetric: Metric = new Metric();
               postmortemMetric.projectId = projectId;
-              postmortemMetric.serviceId = incidentId;
-              postmortemMetric.serviceType = ServiceType.Incident;
+              postmortemMetric.primaryEntityId = incidentId;
+              postmortemMetric.primaryEntityType = ServiceType.Incident;
               postmortemMetric.name =
                 IncidentMetricType.PostmortemCompletionTime;
               postmortemMetric.value = OneUptimeDate.getDifferenceInSeconds(
@@ -1971,8 +1971,8 @@ ${incidentSeverity.name}
             try {
               const severityChangeMetric: Metric = new Metric();
               severityChangeMetric.projectId = projectId;
-              severityChangeMetric.serviceId = incidentId;
-              severityChangeMetric.serviceType = ServiceType.Incident;
+              severityChangeMetric.primaryEntityId = incidentId;
+              severityChangeMetric.primaryEntityType = ServiceType.Incident;
               severityChangeMetric.name = IncidentMetricType.SeverityChange;
               severityChangeMetric.value = 1;
               severityChangeMetric.attributes = {
@@ -2445,7 +2445,7 @@ ${incidentSeverity.name}
           await MetricService.deleteBy({
             query: {
               projectId: incident.projectId,
-              serviceId: incident.id,
+              primaryEntityId: incident.id,
             },
             props: {
               isRoot: true,
@@ -2719,7 +2719,7 @@ ${incidentSeverity.name}
      * ones (TimeToAcknowledge / TimeToResolve / IncidentDuration /
      * TimeInState) get rewritten with the latest state-timeline values
      * on this refresh. IncidentCount is excluded from the delete: it is
-     * a constant `value = 1` keyed by `serviceId + bucketTime` that
+     * a constant `value = 1` keyed by `primaryEntityId + bucketTime` that
      * never changes. Re-emitting it across refreshes inflated the
      * 1-minute aggregating materialized view (`MetricItemAggMV1m_mv`),
      * because the MV trigger only fires on inserts — ALTER DELETE
@@ -2731,7 +2731,7 @@ ${incidentSeverity.name}
     await MetricService.deleteBy({
       query: {
         projectId: incident.projectId,
-        serviceId: data.incidentId,
+        primaryEntityId: data.incidentId,
         name: new NotEqual<string>(IncidentMetricType.IncidentCount),
       },
       props: {
@@ -2789,7 +2789,7 @@ ${incidentSeverity.name}
 
     /*
      * Only emit IncidentCount on the very first refresh (i.e. when no
-     * existing IncidentCount row is present for this serviceId). See
+     * existing IncidentCount row is present for this primaryEntityId). See
      * the delete comment above — emitting it on every refresh would
      * accumulate phantom `sumState` entries in the MV that ALTER
      * DELETE can't undo. By keeping the original row alive and never
@@ -2799,7 +2799,7 @@ ${incidentSeverity.name}
     const incidentCountMetricExists: boolean = await MetricService.existsBy({
       query: {
         projectId: incident.projectId,
-        serviceId: data.incidentId,
+        primaryEntityId: data.incidentId,
         name: IncidentMetricType.IncidentCount,
       },
       props: {
@@ -2811,8 +2811,8 @@ ${incidentSeverity.name}
       const incidentCountMetric: Metric = new Metric();
 
       incidentCountMetric.projectId = incident.projectId;
-      incidentCountMetric.serviceId = incident.id!;
-      incidentCountMetric.serviceType = ServiceType.Incident;
+      incidentCountMetric.primaryEntityId = incident.id!;
+      incidentCountMetric.primaryEntityType = ServiceType.Incident;
       incidentCountMetric.name = IncidentMetricType.IncidentCount;
       incidentCountMetric.value = 1;
       incidentCountMetric.attributes = { ...baseMetricAttributes };
@@ -2856,8 +2856,8 @@ ${incidentSeverity.name}
         const timeToAcknowledgeMetric: Metric = new Metric();
 
         timeToAcknowledgeMetric.projectId = incident.projectId;
-        timeToAcknowledgeMetric.serviceId = incident.id!;
-        timeToAcknowledgeMetric.serviceType = ServiceType.Incident;
+        timeToAcknowledgeMetric.primaryEntityId = incident.id!;
+        timeToAcknowledgeMetric.primaryEntityType = ServiceType.Incident;
         timeToAcknowledgeMetric.name = IncidentMetricType.TimeToAcknowledge;
         timeToAcknowledgeMetric.value = OneUptimeDate.getDifferenceInSeconds(
           ackIncidentStateTimeline?.startsAt || OneUptimeDate.getCurrentDate(),
@@ -2909,8 +2909,8 @@ ${incidentSeverity.name}
         const timeToResolveMetric: Metric = new Metric();
 
         timeToResolveMetric.projectId = incident.projectId;
-        timeToResolveMetric.serviceId = incident.id!;
-        timeToResolveMetric.serviceType = ServiceType.Incident;
+        timeToResolveMetric.primaryEntityId = incident.id!;
+        timeToResolveMetric.primaryEntityType = ServiceType.Incident;
         timeToResolveMetric.name = IncidentMetricType.TimeToResolve;
         timeToResolveMetric.value = OneUptimeDate.getDifferenceInSeconds(
           resolvedIncidentStateTimeline?.startsAt ||
@@ -2959,8 +2959,8 @@ ${incidentSeverity.name}
       // save metric.
 
       incidentDurationMetric.projectId = incident.projectId;
-      incidentDurationMetric.serviceId = incident.id!;
-      incidentDurationMetric.serviceType = ServiceType.Incident;
+      incidentDurationMetric.primaryEntityId = incident.id!;
+      incidentDurationMetric.primaryEntityType = ServiceType.Incident;
       incidentDurationMetric.name = IncidentMetricType.IncidentDuration;
       incidentDurationMetric.value = OneUptimeDate.getDifferenceInSeconds(
         incidentEndsAt,
@@ -3006,8 +3006,8 @@ ${incidentSeverity.name}
       const timeInStateMetric: Metric = new Metric();
 
       timeInStateMetric.projectId = incident.projectId;
-      timeInStateMetric.serviceId = incident.id!;
-      timeInStateMetric.serviceType = ServiceType.Incident;
+      timeInStateMetric.primaryEntityId = incident.id!;
+      timeInStateMetric.primaryEntityType = ServiceType.Incident;
       timeInStateMetric.name = IncidentMetricType.TimeInState;
       timeInStateMetric.value = OneUptimeDate.getDifferenceInSeconds(
         timeline.endsAt,

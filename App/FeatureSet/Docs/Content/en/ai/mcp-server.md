@@ -351,9 +351,9 @@ Ensure your API key has the necessary permissions:
 
 ### Session Errors
 If you receive session-related errors:
-- The MCP server uses the `mcp-session-id` header to track sessions
-- Ensure your client properly handles the session ID returned by the server
-- Sessions are automatically cleaned up when connections close
+- The MCP server is stateless — it does not issue or track session IDs, so every request works against any server replica
+- Clients that send an `mcp-session-id` header from a previous server version can simply omit it; it is ignored
+- Update older MCP client configurations that expect a session ID to be returned by the server
 
 ## Available Resources
 

@@ -1,5 +1,10 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
-import { TelemetryServiceMetadata } from "Common/Server/Services/OpenTelemetryIngestService";
+import {
+  TelemetryServiceMetadata,
+  getScalarEntityKeyColumns,
+} from "Common/Server/Services/OpenTelemetryIngestService";
+import { ResourceEntityRef } from "Common/Server/Utils/Telemetry/TelemetryEntity";
+import OtelPayloadDecoder from "../Utils/OtelPayloadDecoder";
 import OneUptimeDate from "Common/Types/Date";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
@@ -62,7 +67,7 @@ type ParsedUnixNano = {
 
 type ExceptionEventPayload = {
   projectId: ObjectID;
-  serviceId: ObjectID;
+  primaryEntityId: ObjectID;
   spanId: string;
   traceId: string;
   spanStatusCode: SpanStatus;
@@ -271,6 +276,12 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
               "attributes"
             ] as JSONArray) || [];
 
+          // Producer-declared entities (authoritative when present).
+          const resourceEntityRefs: Array<ResourceEntityRef> =
+            OtelPayloadDecoder.getEntityRefsFromResource(
+              resourceSpan["resource"] as JSONObject | undefined,
+            );
+
           /*
            * K8s cluster and Docker host discovery are independent — they
            * inspect different resource attributes and don't share state.
@@ -336,6 +347,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
               serverlessFunctionId,
               cloudResourceId,
               rumApplicationId,
+              entityRefs: resourceEntityRefs,
             });
           const serviceName: string = serviceMetadata.serviceName;
 
@@ -354,9 +366,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
           > = {
-            ...(serviceMetadata.serviceType === ServiceType.OpenTelemetry
+            ...(serviceMetadata.primaryEntityType === ServiceType.OpenTelemetry
               ? TelemetryUtil.getAttributesForServiceIdAndServiceName({
-                  serviceId: serviceMetadata.serviceId!,
+                  serviceId: serviceMetadata.primaryEntityId!,
                   serviceName: serviceName,
                 })
               : {}),
@@ -447,8 +459,8 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                   const attributeKeys: Array<string> =
                     Object.keys(spanAttributes);
 
-                  const serviceId: ObjectID =
-                    serviceDictionary[serviceName]!.serviceId!;
+                  const primaryEntityId: ObjectID =
+                    serviceDictionary[serviceName]!.primaryEntityId!;
 
                   const spanId: string = this.convertBase64ToHexSafe(
                     span["spanId"] as string | undefined,
@@ -511,7 +523,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                       span["events"] as JSONArray,
                       {
                         projectId: projectId,
-                        serviceId: serviceId,
+                        primaryEntityId: primaryEntityId,
                         spanId: spanId,
                         traceId: traceId,
                         spanStatusCode: statusCode,
@@ -543,7 +555,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
 
                   let spanRow: JSONObject = this.buildSpanRow({
                     projectId: projectId,
-                    serviceId: serviceId,
+                    primaryEntityId: primaryEntityId,
                     attributes: spanAttributes,
                     attributeKeys: attributeKeys,
                     traceId: traceId,
@@ -697,7 +709,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     events: JSONArray,
     spanContext: {
       projectId: ObjectID;
-      serviceId: ObjectID;
+      primaryEntityId: ObjectID;
       spanId: string;
       traceId: string;
       spanStatusCode: SpanStatus;
@@ -759,7 +771,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
 
               const fingerprint: string = ExceptionUtil.getFingerprint({
                 projectId: spanContext.projectId,
-                serviceId: spanContext.serviceId,
+                primaryEntityId: spanContext.primaryEntityId,
                 message: message,
                 stackTrace: stackTrace,
                 exceptionType: exceptionType,
@@ -789,7 +801,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
 
               const exceptionData: ExceptionEventPayload = {
                 projectId: spanContext.projectId,
-                serviceId: spanContext.serviceId,
+                primaryEntityId: spanContext.primaryEntityId,
                 spanId: spanContext.spanId,
                 traceId: spanContext.traceId,
                 spanStatusCode: spanContext.spanStatusCode,
@@ -821,18 +833,19 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                * Aggregation by fingerprint + atomic increment now
                * happens inside saveOrUpdateTelemetryExceptionsBatch.
                *
-               * Every serviceType gets a TelemetryException summary row.
-               * The table's serviceId is polymorphic now (the FK to
+               * Every primaryEntityType gets a TelemetryException summary row.
+               * The table's primaryEntityId is polymorphic now (the FK to
                * Service was dropped), so exceptions from Host /
                * DockerHost / KubernetesCluster and unattributed (Unknown)
                * telemetry land in the Issues list too — attributed by
-               * serviceType — instead of being dropped from the summary.
+               * primaryEntityType — instead of being dropped from the summary.
                */
               pendingExceptionUpserts.push({
                 fingerprint: fingerprint,
                 projectId: spanContext.projectId,
-                serviceId: spanContext.serviceId,
-                serviceType: spanContext.serviceMetadata.serviceType,
+                primaryEntityId: spanContext.primaryEntityId,
+                primaryEntityType:
+                  spanContext.serviceMetadata.primaryEntityType,
                 ...(exceptionType
                   ? {
                       exceptionType: exceptionType,
@@ -908,7 +921,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
 
   private static buildSpanRow(data: {
     projectId: ObjectID;
-    serviceId: ObjectID;
+    primaryEntityId: ObjectID;
     attributes: Dictionary<AttributeType | Array<AttributeType>>;
     attributeKeys: Array<string>;
     traceId: string;
@@ -945,12 +958,13 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     );
 
     return {
-      _id: ObjectID.generate().toString(),
+      _id: ObjectID.generateTimeOrdered().toString(),
       createdAt: ingestionTimestamp,
-      updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
-      serviceId: data.serviceId.toString(),
-      serviceType: data.serviceMetadata.serviceType,
+      primaryEntityId: data.primaryEntityId.toString(),
+      primaryEntityType: data.serviceMetadata.primaryEntityType,
+      entityKeys: data.serviceMetadata.entityKeys || [],
+      ...getScalarEntityKeyColumns(data.serviceMetadata),
       startTime: OneUptimeDate.toClickhouseDateTime(data.startTime.date),
       endTime: OneUptimeDate.toClickhouseDateTime(data.endTime.date),
       startTimeUnixNano: data.startTime.nano,
@@ -992,12 +1006,13 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     );
 
     return {
-      _id: ObjectID.generate().toString(),
+      _id: ObjectID.generateTimeOrdered().toString(),
       createdAt: ingestionTimestamp,
-      updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
-      serviceId: data.serviceId.toString(),
-      serviceType: data.serviceMetadata.serviceType,
+      primaryEntityId: data.primaryEntityId.toString(),
+      primaryEntityType: data.serviceMetadata.primaryEntityType,
+      entityKeys: data.serviceMetadata.entityKeys || [],
+      ...getScalarEntityKeyColumns(data.serviceMetadata),
       time: OneUptimeDate.toClickhouseDateTime(data.time.date),
       timeUnixNano: data.time.nano,
       exceptionType: data.exceptionType || "",

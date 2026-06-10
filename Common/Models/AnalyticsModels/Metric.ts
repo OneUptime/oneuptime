@@ -28,7 +28,7 @@ export enum MetricPointType {
 }
 
 @OperationalResource()
-@OwnedThrough("serviceId", Service, { includeProjectScope: true })
+@OwnedThrough("primaryEntityId", Service, { includeProjectScope: true })
 export default class Metric extends AnalyticsBaseModel {
   public constructor() {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
@@ -62,71 +62,73 @@ export default class Metric extends AnalyticsBaseModel {
     });
 
     // this can also be the monitor id or the telemetry service id.
-    const serviceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
-      key: "serviceId",
-      title: "Service ID",
-      description: "ID of the Service which created the Metric",
-      required: true,
-      type: TableColumnType.ObjectID,
-      accessControl: {
-        read: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.Viewer,
-          Permission.TelemetryAdmin,
-          Permission.TelemetryMember,
-          Permission.TelemetryViewer,
-          Permission.ReadTelemetryServiceLog,
-        ],
-        create: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.TelemetryAdmin,
-          Permission.TelemetryMember,
-          Permission.CreateTelemetryServiceLog,
-        ],
-        update: [],
-      },
-    });
+    const primaryEntityIdColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "primaryEntityId",
+        title: "Service ID",
+        description: "ID of the Service which created the Metric",
+        required: true,
+        type: TableColumnType.ObjectID,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
+            Permission.ReadTelemetryServiceLog,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.CreateTelemetryServiceLog,
+          ],
+          update: [],
+        },
+      });
 
     // this can also be the monitor id or the telemetry service id.
-    const serviceTypeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
-      key: "serviceType",
-      isLowCardinality: true,
-      title: "Service Type",
-      description: "Type of the service that this telemetry belongs to",
-      required: false,
-      type: TableColumnType.Text,
-      skipIndex: {
-        name: "idx_service_type",
-        type: SkipIndexType.Set,
-        params: [5],
-        granularity: 4,
-      },
-      accessControl: {
-        read: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.Viewer,
-          Permission.TelemetryAdmin,
-          Permission.TelemetryMember,
-          Permission.TelemetryViewer,
-          Permission.ReadTelemetryServiceLog,
-        ],
-        create: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.TelemetryAdmin,
-          Permission.TelemetryMember,
-          Permission.CreateTelemetryServiceLog,
-        ],
-        update: [],
-      },
-    });
+    const primaryEntityTypeColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "primaryEntityType",
+        isLowCardinality: true,
+        title: "Service Type",
+        description: "Type of the service that this telemetry belongs to",
+        required: false,
+        type: TableColumnType.Text,
+        skipIndex: {
+          name: "idx_service_type",
+          type: SkipIndexType.Set,
+          params: [5],
+          granularity: 4,
+        },
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
+            Permission.ReadTelemetryServiceLog,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.CreateTelemetryServiceLog,
+          ],
+          update: [],
+        },
+      });
 
     // add name and description
     const nameColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
@@ -168,6 +170,8 @@ export default class Metric extends AnalyticsBaseModel {
     const aggregationTemporalityColumn: AnalyticsTableColumn =
       new AnalyticsTableColumn({
         key: "aggregationTemporality",
+        // Enum-shaped (Delta / Cumulative / Unspecified) — dictionary-encode.
+        isLowCardinality: true,
         title: "Aggregation Temporality",
         description: "Aggregation Temporality of this Metric",
         required: false,
@@ -296,11 +300,11 @@ export default class Metric extends AnalyticsBaseModel {
     // end time.
     const timeUnixNanoColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "timeUnixNano",
-      codec: { codec: "ZSTD", level: 1 },
+      codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
       title: "Time (in Unix Nano)",
       description: "When did the Metric happen?",
       required: true,
-      type: TableColumnType.LongNumber,
+      type: TableColumnType.UInt64,
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -327,11 +331,11 @@ export default class Metric extends AnalyticsBaseModel {
     const startTimeUnixNanoColumn: AnalyticsTableColumn =
       new AnalyticsTableColumn({
         key: "startTimeUnixNano",
-        codec: { codec: "ZSTD", level: 1 },
+        codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
         title: "Start Time (in Unix Nano)",
         description: "When did the Metric happen?",
         required: false,
-        type: TableColumnType.LongNumber,
+        type: TableColumnType.UInt64,
         accessControl: {
           read: [
             Permission.ProjectOwner,
@@ -385,6 +389,103 @@ export default class Metric extends AnalyticsBaseModel {
         update: [],
       },
     });
+
+    const entityKeysColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "entityKeys",
+      codec: { codec: "ZSTD", level: 3 },
+      title: "Entity Keys",
+      description:
+        "Stable keys of every OpenTelemetry entity (service, host, k8s.pod, container, ...) this signal belongs to. A superset that includes the primary entity. Enables cross-cutting membership queries via has(entityKeys, :key).",
+      required: true,
+      defaultValue: [],
+      type: TableColumnType.ArrayText,
+      skipIndex: {
+        name: "idx_entity_keys",
+        type: SkipIndexType.BloomFilter,
+        params: [0.01],
+        granularity: 1,
+      },
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
+
+    /*
+     * Scalar per-entity-type key columns — denormalized single-value
+     * siblings of `entityKeys`. Each holds the 16-hex key (see
+     * Common/Utils/Telemetry/EntityKey) of the row's entity of that type,
+     * or '' when the resource carries no such entity (non-Nullable String,
+     * so old rows read the type default ''). Unlike the array column, a
+     * scalar equality predicate is usable as an MV/sort key (the per-host
+     * minute rollup `MetricItemAggMV1mByHostV2` groups by `hostEntityKey`)
+     * and gets a cheaper bloom-filter probe; only the high-traffic keys
+     * (service/host/k8s.pod) carry skip indexes. Stamped at ingest by the
+     * same extractor that fills `entityKeys`; never part of identity.
+     */
+    const scalarEntityKeyColumns: Array<AnalyticsTableColumn> = [
+      {
+        key: "serviceEntityKey",
+        title: "Service Entity Key",
+        indexName: "idx_service_entity_key",
+      },
+      {
+        key: "hostEntityKey",
+        title: "Host Entity Key",
+        indexName: "idx_host_entity_key",
+      },
+      {
+        key: "k8sPodEntityKey",
+        title: "Kubernetes Pod Entity Key",
+        indexName: "idx_k8s_pod_entity_key",
+      },
+      { key: "k8sNodeEntityKey", title: "Kubernetes Node Entity Key" },
+      { key: "k8sClusterEntityKey", title: "Kubernetes Cluster Entity Key" },
+      { key: "containerEntityKey", title: "Container Entity Key" },
+    ].map(
+      (def: {
+        key: string;
+        title: string;
+        indexName?: string | undefined;
+      }): AnalyticsTableColumn => {
+        return new AnalyticsTableColumn({
+          key: def.key,
+          title: def.title,
+          description:
+            "Scalar entity key for this entity type (see entityKeys); '' when the resource has no entity of this type.",
+          required: true,
+          defaultValue: "",
+          type: TableColumnType.Text,
+          codec: { codec: "ZSTD", level: 1 },
+          skipIndex: def.indexName
+            ? {
+                name: def.indexName,
+                type: SkipIndexType.BloomFilter,
+                params: [0.01],
+                granularity: 1,
+              }
+            : undefined,
+          accessControl: entityKeysColumn.accessControl,
+        });
+      },
+    );
 
     const attributeKeysColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "attributeKeys",
@@ -484,7 +585,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const sumColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "sum",
-      codec: { codec: "ZSTD", level: 1 },
+      codec: [{ codec: "Gorilla" }, { codec: "ZSTD", level: 1 }],
       title: "Sum",
       description: "Sum",
       required: false,
@@ -514,7 +615,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const valueColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "value",
-      codec: { codec: "ZSTD", level: 1 },
+      codec: [{ codec: "Gorilla" }, { codec: "ZSTD", level: 1 }],
       title: "Value",
       description: "Value",
       required: false,
@@ -544,7 +645,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const minColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "min",
-      codec: { codec: "ZSTD", level: 1 },
+      codec: [{ codec: "Gorilla" }, { codec: "ZSTD", level: 1 }],
       title: "Min",
       description: "Min",
       required: false,
@@ -574,7 +675,7 @@ export default class Metric extends AnalyticsBaseModel {
 
     const maxColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "max",
-      codec: { codec: "ZSTD", level: 1 },
+      codec: [{ codec: "Gorilla" }, { codec: "ZSTD", level: 1 }],
       title: "Max",
       description: "Max",
       required: false,
@@ -1071,8 +1172,8 @@ export default class Metric extends AnalyticsBaseModel {
       },
       tableColumns: [
         projectIdColumn,
-        serviceIdColumn,
-        serviceTypeColumn,
+        primaryEntityIdColumn,
+        primaryEntityTypeColumn,
         nameColumn,
         aggregationTemporalityColumn,
         metricPointTypeColumn,
@@ -1082,6 +1183,8 @@ export default class Metric extends AnalyticsBaseModel {
         startTimeUnixNanoColumn,
         attributesColumn,
         attributeKeysColumn,
+        entityKeysColumn,
+        ...scalarEntityKeyColumns,
         isMonotonicColumn,
         countColumn,
         sumColumn,
@@ -1103,13 +1206,14 @@ export default class Metric extends AnalyticsBaseModel {
         retentionDateColumn,
       ],
       projections: [],
-      sortKeys: ["projectId", "name", "serviceId", "time"],
-      primaryKeys: ["projectId", "name", "serviceId", "time"],
-      partitionKey: "sipHash64(projectId) % 16",
+      sortKeys: ["projectId", "name", "primaryEntityId", "time"],
+      primaryKeys: ["projectId", "name", "primaryEntityId", "time"],
+      partitionKey: "toYYYYMMDD(time)",
+      tableSettings: "ttl_only_drop_parts = 1",
       ttlExpression: "retentionDate DELETE",
       /*
        * `time` is the 4th column of the Metric sort key (after
-       * projectId + name + serviceId). A list query that filters
+       * projectId + name + primaryEntityId). A list query that filters
        * by name (the typical "metric detail" drilldown) can still
        * stream from the index when sorting by `time DESC`. With
        * no name filter the sort is less efficient but still far
@@ -1128,12 +1232,12 @@ export default class Metric extends AnalyticsBaseModel {
     this.setColumnValue("projectId", v);
   }
 
-  public get serviceId(): ObjectID | undefined {
-    return this.getColumnValue("serviceId") as ObjectID | undefined;
+  public get primaryEntityId(): ObjectID | undefined {
+    return this.getColumnValue("primaryEntityId") as ObjectID | undefined;
   }
 
-  public get serviceType(): ServiceType | undefined {
-    return this.getColumnValue("serviceType") as ServiceType | undefined;
+  public get primaryEntityType(): ServiceType | undefined {
+    return this.getColumnValue("primaryEntityType") as ServiceType | undefined;
   }
 
   public get name(): string | undefined {
@@ -1172,12 +1276,12 @@ export default class Metric extends AnalyticsBaseModel {
     this.setColumnValue("isMonotonic", v);
   }
 
-  public set serviceId(v: ObjectID | undefined) {
-    this.setColumnValue("serviceId", v);
+  public set primaryEntityId(v: ObjectID | undefined) {
+    this.setColumnValue("primaryEntityId", v);
   }
 
-  public set serviceType(v: ServiceType | undefined) {
-    this.setColumnValue("serviceType", v);
+  public set primaryEntityType(v: ServiceType | undefined) {
+    this.setColumnValue("primaryEntityType", v);
   }
 
   public get time(): Date | undefined {
@@ -1202,6 +1306,14 @@ export default class Metric extends AnalyticsBaseModel {
 
   public set attributeKeys(v: Array<string> | undefined) {
     this.setColumnValue("attributeKeys", v);
+  }
+
+  public get entityKeys(): Array<string> | undefined {
+    return this.getColumnValue("entityKeys") as Array<string> | undefined;
+  }
+
+  public set entityKeys(v: Array<string> | undefined) {
+    this.setColumnValue("entityKeys", v);
   }
 
   public get startTime(): Date | undefined {

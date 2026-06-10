@@ -22,9 +22,22 @@ import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/Oneupt
 import logger from "Common/Server/Utils/Logger";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import OTelIngestService, {
+  ScalarEntityKeys,
   TelemetryServiceMetadata,
+  emptyScalarEntityKeys,
 } from "Common/Server/Services/OpenTelemetryIngestService";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
+import EntityType from "Common/Types/Telemetry/EntityType";
+import TelemetryUtil, {
+  AttributeType,
+} from "Common/Server/Utils/Telemetry/Telemetry";
+import TelemetryEntity, {
+  ExtractedEntity,
+  ResourceEntityRef,
+} from "Common/Server/Utils/Telemetry/TelemetryEntity";
+import { reconcileEntityRegistryThrottled } from "Common/Server/Utils/Telemetry/EntityRegistry";
+import { canonicalizeEntityValue } from "Common/Utils/Telemetry/EntityKey";
+import Dictionary from "Common/Types/Dictionary";
 
 export default abstract class OtelIngestBaseService {
   private static readonly DOCKER_CONTAINER_NAME_CACHE_NAMESPACE: string =
@@ -73,7 +86,7 @@ export default abstract class OtelIngestBaseService {
    * Resolves a real (user-facing) service name from OTel resource
    * attributes. Returns null when the batch is host- / docker-host-
    * level telemetry that should be routed to the matching Host or
-   * DockerHost record via `serviceId` instead of synthesising a
+   * DockerHost record via `primaryEntityId` instead of synthesising a
    * phantom Service row. The caller (OTelIngestService.resolveTelemetryResource)
    * is responsible for that routing decision and picks the right
    * `ServiceType` discriminator for the analytics row.
@@ -92,7 +105,7 @@ export default abstract class OtelIngestBaseService {
      * Client / RUM telemetry (browser.* / device.*) is owned by its
      * RumApplication, not a Service. Return null so
      * resolveTelemetryResource routes the batch to the RealUserMonitor
-     * branch (serviceId = rumApplicationId) instead of synthesising a
+     * branch (primaryEntityId = rumApplicationId) instead of synthesising a
      * duplicate Service row for the same browser / mobile app. There is no
      * OTel attribute that identifies a RUM app other than service.name, so
      * we keep service.name as the RumApplication's dedup key but never let
@@ -183,20 +196,20 @@ export default abstract class OtelIngestBaseService {
    *
    *   1. Explicit service.name / x-oneuptime-service-name header
    *      / docker container name  →  ServiceType.OpenTelemetry,
-   *      serviceId = Service._id (created on first contact via
+   *      primaryEntityId = Service._id (created on first contact via
    *      `telemetryServiceFromName`).
    *   2. Else if a Host was auto-discovered for this batch →
-   *      ServiceType.Host, serviceId = Host._id. Avoids the old
+   *      ServiceType.Host, primaryEntityId = Host._id. Avoids the old
    *      `host/<name>` phantom-Service duplication.
    *   3. Else if a DockerHost was discovered →
-   *      ServiceType.DockerHost, serviceId = DockerHost._id.
+   *      ServiceType.DockerHost, primaryEntityId = DockerHost._id.
    *      Catches docker batches that carry only container.id but
    *      no resolvable container name.
    *   4. Else if a KubernetesCluster was discovered →
-   *      ServiceType.KubernetesCluster, serviceId = Cluster._id.
+   *      ServiceType.KubernetesCluster, primaryEntityId = Cluster._id.
    *      Rare in practice — most k8s batches also carry host.name
    *      and route via #2.
-   *   5. Fallback: no Service row at all. serviceId = projectId,
+   *   5. Fallback: no Service row at all. primaryEntityId = projectId,
    *      ServiceType.Unknown. The read side groups these under a
    *      synthetic "Unknown Service" bucket. No oneuptime.label.*
    *      promotion happens here — there is no owning resource, which
@@ -205,6 +218,121 @@ export default abstract class OtelIngestBaseService {
    */
   @CaptureSpan()
   protected static async resolveTelemetryResource(data: {
+    req: ExpressRequest;
+    attributes: JSONArray;
+    projectId: ObjectID;
+    hostId?: ObjectID | null;
+    dockerHostId?: ObjectID | null;
+    kubernetesClusterId?: ObjectID | null;
+    serverlessFunctionId?: ObjectID | null;
+    cloudResourceId?: ObjectID | null;
+    rumApplicationId?: ObjectID | null;
+    /*
+     * OTLP `Resource.entity_refs` decoded for this batch (see
+     * `OtelPayloadDecoder.getEntityRefsFromResource`). When present and
+     * non-empty they are the authoritative entity source; the extractor
+     * falls back to its heuristic resolvers otherwise.
+     */
+    entityRefs?: Array<ResourceEntityRef> | undefined;
+  }): Promise<TelemetryServiceMetadata> {
+    /*
+     * (a) pick the single primary entity via the precedence ladder — the
+     * `primaryEntityId`/`primaryEntityType` contract is unchanged — and
+     * (b) derive the full multi-entity membership set from the same
+     * resource attributes, so the row can belong to many entities
+     * (service + host + k8s.pod + ...) while still being primarily owned
+     * by one. (b) is additive; see OpenTelemetryEntities.md.
+     */
+    const metadata: TelemetryServiceMetadata =
+      await this.selectPrimaryEntity(data);
+
+    /*
+     * Entity derivation is pure + synchronous (a hash of the attributes +
+     * projectId), so stamping `entityKeys` never blocks ingest on a
+     * registry lookup. Raw resource attributes are flattened with an empty
+     * prefix so keys stay semconv-native (`service.name`, `host.id`,
+     * `k8s.pod.name`, ...) — the form the extractor expects.
+     */
+    const flatAttributes: Dictionary<AttributeType | Array<AttributeType>> =
+      TelemetryUtil.getAttributes({
+        items: data.attributes,
+        prefixKeysWithString: "",
+      });
+
+    const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
+      projectId: data.projectId.toString(),
+      attributes: flatAttributes,
+      entityRefs: data.entityRefs,
+    });
+
+    /*
+     * One extraction feeds both columns (extractEntityKeys would re-run
+     * the whole extraction): the sorted membership set (entities are
+     * already deduped by key) and the per-type scalar key map.
+     */
+    metadata.entityKeys = entities
+      .map((e: ExtractedEntity) => {
+        return e.entityKey;
+      })
+      .sort();
+    metadata.scalarEntityKeys = this.scalarEntityKeysFromEntities(entities);
+
+    /*
+     * Forward-only, throttled, best-effort registry reconciliation.
+     * Fire-and-forget: all errors are swallowed inside, so it can never
+     * fail or delay signal ingest.
+     */
+    void reconcileEntityRegistryThrottled({
+      projectId: data.projectId,
+      entities,
+    });
+
+    return metadata;
+  }
+
+  /*
+   * Project the extracted entity set onto the six scalar per-type key
+   * columns ('' when that type is absent from the resource). First
+   * entity of a type wins — the heuristic resolvers emit at most one
+   * per type, and entity_refs duplicates are already deduped by key.
+   */
+  private static scalarEntityKeysFromEntities(
+    entities: Array<ExtractedEntity>,
+  ): ScalarEntityKeys {
+    const scalar: ScalarEntityKeys = emptyScalarEntityKeys();
+
+    for (const entity of entities) {
+      switch (entity.entityType) {
+        case EntityType.Service:
+          scalar.serviceEntityKey = scalar.serviceEntityKey || entity.entityKey;
+          break;
+        case EntityType.Host:
+          scalar.hostEntityKey = scalar.hostEntityKey || entity.entityKey;
+          break;
+        case EntityType.KubernetesPod:
+          scalar.k8sPodEntityKey = scalar.k8sPodEntityKey || entity.entityKey;
+          break;
+        case EntityType.KubernetesNode:
+          scalar.k8sNodeEntityKey = scalar.k8sNodeEntityKey || entity.entityKey;
+          break;
+        case EntityType.KubernetesCluster:
+          scalar.k8sClusterEntityKey =
+            scalar.k8sClusterEntityKey || entity.entityKey;
+          break;
+        case EntityType.Container:
+          scalar.containerEntityKey =
+            scalar.containerEntityKey || entity.entityKey;
+          break;
+        default:
+          break;
+      }
+    }
+
+    return scalar;
+  }
+
+  @CaptureSpan()
+  private static async selectPrimaryEntity(data: {
     req: ExpressRequest;
     attributes: JSONArray;
     projectId: ObjectID;
@@ -236,7 +364,7 @@ export default abstract class OtelIngestBaseService {
       return await OTelIngestService.buildResourceMetadataForNonService({
         serviceName: hostName ? `host/${hostName}` : "Host",
         resourceId: data.hostId,
-        serviceType: ServiceType.Host,
+        primaryEntityType: ServiceType.Host,
         projectId: data.projectId,
       });
     }
@@ -245,7 +373,7 @@ export default abstract class OtelIngestBaseService {
       return await OTelIngestService.buildResourceMetadataForNonService({
         serviceName: hostName ? `docker-host/${hostName}` : "Docker Host",
         resourceId: data.dockerHostId,
-        serviceType: ServiceType.DockerHost,
+        primaryEntityType: ServiceType.DockerHost,
         projectId: data.projectId,
       });
     }
@@ -257,7 +385,7 @@ export default abstract class OtelIngestBaseService {
       return await OTelIngestService.buildResourceMetadataForNonService({
         serviceName: clusterName ? `k8s/${clusterName}` : "Kubernetes Cluster",
         resourceId: data.kubernetesClusterId,
-        serviceType: ServiceType.KubernetesCluster,
+        primaryEntityType: ServiceType.KubernetesCluster,
         projectId: data.projectId,
       });
     }
@@ -271,7 +399,7 @@ export default abstract class OtelIngestBaseService {
           ? `serverless/${faasName}`
           : "Serverless Function",
         resourceId: data.serverlessFunctionId,
-        serviceType: ServiceType.ServerlessFunction,
+        primaryEntityType: ServiceType.ServerlessFunction,
         projectId: data.projectId,
       });
     }
@@ -283,7 +411,7 @@ export default abstract class OtelIngestBaseService {
       return await OTelIngestService.buildResourceMetadataForNonService({
         serviceName: resourceName ? `cloud/${resourceName}` : "Cloud Resource",
         resourceId: data.cloudResourceId,
-        serviceType: ServiceType.CloudResource,
+        primaryEntityType: ServiceType.CloudResource,
         projectId: data.projectId,
       });
     }
@@ -296,7 +424,7 @@ export default abstract class OtelIngestBaseService {
       return await OTelIngestService.buildResourceMetadataForNonService({
         serviceName: appName ? `rum/${appName}` : "RUM Application",
         resourceId: data.rumApplicationId,
-        serviceType: ServiceType.RealUserMonitor,
+        primaryEntityType: ServiceType.RealUserMonitor,
         projectId: data.projectId,
       });
     }
@@ -304,7 +432,7 @@ export default abstract class OtelIngestBaseService {
     /*
      * Truly nameless telemetry: no service.name, no docker container,
      * and no host / docker / k8s resource was discovered for this
-     * batch. Tag it with the projectId in the serviceId slot under
+     * batch. Tag it with the projectId in the primaryEntityId slot under
      * ServiceType.Unknown and create no Service row. Crucially we go
      * through buildResourceMetadataForNonService (not
      * telemetryServiceFromName), so no oneuptime.label.* attributes are
@@ -315,7 +443,7 @@ export default abstract class OtelIngestBaseService {
     return await OTelIngestService.buildResourceMetadataForNonService({
       serviceName: "Unknown Service",
       resourceId: data.projectId,
-      serviceType: ServiceType.Unknown,
+      primaryEntityType: ServiceType.Unknown,
       projectId: data.projectId,
     });
   }
@@ -1174,9 +1302,11 @@ export default abstract class OtelIngestBaseService {
    * so the same physical host arrives as both `PRIMARY01` and `primary01`.
    * This mirrors QueryHelper.findWithSameText — the comparison the Host
    * unique guard already uses — so identity stays consistent end to end.
+   * Delegates to the shared entity-key canonicalization so host identity
+   * here and in `computeEntityKey` can never drift apart.
    */
   public static canonicalizeHostName(hostName: string): string {
-    return hostName.trim().toLowerCase();
+    return canonicalizeEntityValue(hostName);
   }
 
   /**

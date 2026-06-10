@@ -1,4 +1,5 @@
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
+import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import ExceptionInstanceService from "./ExceptionInstanceService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
@@ -52,7 +53,7 @@ export class ExceptionAggregationService {
   private static readonly TABLE_NAME: string =
     AnalyticsTableName.ExceptionInstance;
   private static readonly TOP_LEVEL_COLUMNS: Set<string> = new Set([
-    "serviceId",
+    "primaryEntityId",
     "exceptionType",
     "environment",
     "fingerprint",
@@ -63,8 +64,8 @@ export class ExceptionAggregationService {
   ]);
   /*
    * Virtual facet keys — same scheme as TraceAggregationService /
-   * LogAggregationService. The `serviceId` slot is reused for host /
-   * docker host / k8s cluster ids, disambiguated by the `serviceType`
+   * LogAggregationService. The `primaryEntityId` slot is reused for host /
+   * docker host / k8s cluster ids, disambiguated by the `primaryEntityType`
    * discriminator column on each ExceptionInstance row.
    */
   private static readonly RESOURCE_FACET_KEYS: Map<string, ServiceType> =
@@ -164,6 +165,14 @@ export class ExceptionAggregationService {
         }}
     `;
 
+    /*
+     * Read-side retention filter: rows past their per-service retention
+     * stay in their part until the whole part drops (ttl_only_drop_parts).
+     * Raw `time` predicates already make these queries ineligible for the
+     * proj_exception_group projection, so the extra predicate is free.
+     */
+    statement.append(" AND retentionDate >= now()");
+
     ExceptionAggregationService.appendCommonFilters(statement, request);
 
     statement.append(" GROUP BY bucket, escaped ORDER BY bucket ASC");
@@ -174,13 +183,21 @@ export class ExceptionAggregationService {
      * rather than throwing, which is acceptable for a density viz.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     return statement;
   }
 
   private static buildFacetStatement(request: FacetRequest): Statement {
+    // Pre-rename alias from stale clients; the V3 column is primaryEntityId.
+    if (request.facetKey === "serviceId") {
+      request.facetKey = "primaryEntityId";
+    }
+
     const limit: number =
       request.limit ?? ExceptionAggregationService.DEFAULT_FACET_LIMIT;
 
@@ -197,11 +214,12 @@ export class ExceptionAggregationService {
 
     if (isResourceFacet) {
       /*
-       * Virtual facet — group serviceId values whose row carries the matching
-       * ServiceType discriminator (Host / DockerHost / KubernetesCluster).
+       * Virtual facet — group primaryEntityId values whose row carries the
+       * matching ServiceType discriminator (Host / DockerHost /
+       * KubernetesCluster).
        */
       statement.append(
-        SQL`SELECT toString(serviceId) AS val, count() AS cnt FROM ${ExceptionAggregationService.TABLE_NAME}`,
+        SQL`SELECT toString(primaryEntityId) AS val, count() AS cnt FROM ${ExceptionAggregationService.TABLE_NAME}`,
       );
     } else if (isTopLevelColumn) {
       statement.append(
@@ -231,19 +249,19 @@ export class ExceptionAggregationService {
 
     if (isResourceFacet) {
       statement.append(
-        SQL` AND serviceType = ${{
+        SQL` AND primaryEntityType = ${{
           type: TableColumnType.Text,
           value: resourceServiceType as string,
         }}`,
       );
-    } else if (request.facetKey === "serviceId") {
+    } else if (request.facetKey === "primaryEntityId") {
       /*
        * Constrain the canonical Services facet to rows that actually
-       * belong to a Service. NULL / empty serviceType covers legacy rows
-       * ingested before the discriminator existed.
+       * belong to a Service. NULL / empty primaryEntityType covers legacy
+       * rows ingested before the discriminator existed.
        */
       statement.append(
-        SQL` AND (serviceType = '' OR serviceType = ${{
+        SQL` AND (primaryEntityType = '' OR primaryEntityType = ${{
           type: TableColumnType.Text,
           value: ServiceType.OpenTelemetry as string,
         }})`,
@@ -256,6 +274,8 @@ export class ExceptionAggregationService {
         }}) = 1`,
       );
     }
+
+    statement.append(" AND retentionDate >= now()");
 
     ExceptionAggregationService.appendCommonFilters(statement, request);
 
@@ -271,7 +291,10 @@ export class ExceptionAggregationService {
      * 60s proxy_read_timeout so a slow facet never starves the endpoint.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     return statement;
@@ -283,7 +306,7 @@ export class ExceptionAggregationService {
   ): void {
     if (request.serviceIds && request.serviceIds.length > 0) {
       statement.append(
-        SQL` AND serviceId IN (${{
+        SQL` AND primaryEntityId IN (${{
           type: TableColumnType.ObjectID,
           value: new Includes(
             request.serviceIds.map((id: ObjectID) => {

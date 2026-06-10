@@ -183,6 +183,17 @@
                               <p class="text-xs text-gray-500">CPU & memory profiling</p>
                             </div>
                           </a>
+
+                          <!-- RUM - Indigo -->
+                          <a href="/product/rum" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-indigo-50">
+                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200 group-hover:bg-indigo-100 group-hover:ring-indigo-300">
+                              <%- include('./Partials/icons/rum', {iconClass: 'h-4 w-4'}) %>
+                            </div>
+                            <div>
+                              <p class="text-sm font-medium text-gray-900">RUM</p>
+                              <p class="text-xs text-gray-500">Real user monitoring</p>
+                            </div>
+                          </a>
                         </div>
                       </div>
 
@@ -231,6 +242,28 @@
                             <div>
                               <p class="text-sm font-medium text-gray-900">Hosts</p>
                               <p class="text-xs text-gray-500">Auto-discovered server metrics</p>
+                            </div>
+                          </a>
+
+                          <!-- Serverless - Fuchsia -->
+                          <a href="/product/serverless" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-fuchsia-50">
+                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-fuchsia-50 ring-1 ring-fuchsia-200 group-hover:bg-fuchsia-100 group-hover:ring-fuchsia-300">
+                              <%- include('./Partials/icons/serverless', {iconClass: 'h-4 w-4'}) %>
+                            </div>
+                            <div>
+                              <p class="text-sm font-medium text-gray-900">Serverless</p>
+                              <p class="text-xs text-gray-500">Functions & cold starts</p>
+                            </div>
+                          </a>
+
+                          <!-- Cloud - Sky -->
+                          <a href="/product/cloud" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-sky-50">
+                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-sky-50 ring-1 ring-sky-200 group-hover:bg-sky-100 group-hover:ring-sky-300">
+                              <%- include('./Partials/icons/cloud', {iconClass: 'h-4 w-4'}) %>
+                            </div>
+                            <div>
+                              <p class="text-sm font-medium text-gray-900">Cloud</p>
+                              <p class="text-xs text-gray-500">AWS, GCP & Azure</p>
                             </div>
                           </a>
                         </div>
@@ -919,12 +952,36 @@
               <span class="text-sm font-medium text-gray-900">Hosts</span>
             </a>
 
+            <!-- Serverless - Fuchsia -->
+            <a href="/product/serverless" class="flex items-center gap-3 rounded-xl p-3 hover:bg-fuchsia-50 ring-1 ring-transparent hover:ring-fuchsia-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-fuchsia-50 ring-1 ring-fuchsia-200">
+                <%- include('./Partials/icons/serverless', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Serverless</span>
+            </a>
+
+            <!-- Cloud - Sky -->
+            <a href="/product/cloud" class="flex items-center gap-3 rounded-xl p-3 hover:bg-sky-50 ring-1 ring-transparent hover:ring-sky-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-sky-50 ring-1 ring-sky-200">
+                <%- include('./Partials/icons/cloud', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Cloud</span>
+            </a>
+
             <!-- Profiles - Rose -->
             <a href="/product/profiles" class="flex items-center gap-3 rounded-xl p-3 hover:bg-rose-50 ring-1 ring-transparent hover:ring-rose-200">
               <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-rose-50 ring-1 ring-rose-200">
                 <%- include('./Partials/icons/profiles', {iconClass: 'h-4 w-4'}) %>
               </div>
               <span class="text-sm font-medium text-gray-900">Profiles</span>
+            </a>
+
+            <!-- RUM - Indigo -->
+            <a href="/product/rum" class="flex items-center gap-3 rounded-xl p-3 hover:bg-indigo-50 ring-1 ring-transparent hover:ring-indigo-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200">
+                <%- include('./Partials/icons/rum', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">RUM</span>
             </a>
 
             <!-- Workflows - Sky -->

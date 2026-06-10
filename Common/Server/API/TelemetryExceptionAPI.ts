@@ -215,8 +215,8 @@ export default class TelemetryExceptionAPI extends BaseAPI<
          * per serviceType (no Service relation to serialize anymore).
          */
         return {
-          serviceId: entry.serviceId,
-          serviceType: entry.serviceType,
+          primaryEntityId: entry.primaryEntityId,
+          primaryEntityType: entry.primaryEntityType,
           unresolvedCount: entry.unresolvedCount,
           totalOccurrences: entry.totalOccurrences,
         };

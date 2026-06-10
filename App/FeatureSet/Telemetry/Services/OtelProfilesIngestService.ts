@@ -1,5 +1,10 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
-import { TelemetryServiceMetadata } from "Common/Server/Services/OpenTelemetryIngestService";
+import {
+  TelemetryServiceMetadata,
+  getScalarEntityKeyColumns,
+} from "Common/Server/Services/OpenTelemetryIngestService";
+import { ResourceEntityRef } from "Common/Server/Utils/Telemetry/TelemetryEntity";
+import OtelPayloadDecoder from "../Utils/OtelPayloadDecoder";
 import OneUptimeDate from "Common/Types/Date";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
@@ -200,6 +205,12 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
               "attributes"
             ] as JSONArray) || [];
 
+          // Producer-declared entities (authoritative when present).
+          const resourceEntityRefs: Array<ResourceEntityRef> =
+            OtelPayloadDecoder.getEntityRefsFromResource(
+              resourceProfile["resource"] as JSONObject | undefined,
+            );
+
           /*
            * Auto-discover host / docker host / k8s cluster from
            * resource attributes. The eBPF profiler is a host-level
@@ -255,6 +266,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
               serverlessFunctionId,
               cloudResourceId,
               rumApplicationId,
+              entityRefs: resourceEntityRefs,
             });
           const serviceName: string = resolvedServiceMetadata.serviceName;
 
@@ -273,10 +285,10 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
           const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
           > = {
-            ...(resolvedServiceMetadata.serviceType ===
+            ...(resolvedServiceMetadata.primaryEntityType ===
             ServiceType.OpenTelemetry
               ? TelemetryUtil.getAttributesForServiceIdAndServiceName({
-                  serviceId: resolvedServiceMetadata.serviceId!,
+                  serviceId: resolvedServiceMetadata.primaryEntityId!,
                   serviceName: serviceName,
                 })
               : {}),
@@ -344,7 +356,8 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                     .projectId;
                   const profileServiceMetadata: TelemetryServiceMetadata =
                     serviceDictionary[serviceName]!;
-                  const serviceId: ObjectID = profileServiceMetadata.serviceId!;
+                  const primaryEntityId: ObjectID =
+                    profileServiceMetadata.primaryEntityId!;
 
                   const frame: NormalizedProfileFrame =
                     this.normalizeProfileItem(
@@ -621,7 +634,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
 
                       const sampleRow: JSONObject = this.buildSampleRow({
                         projectId: projectId,
-                        serviceId: serviceId,
+                        primaryEntityId: primaryEntityId,
                         profileId: profileId,
                         traceId: traceId,
                         spanId: spanId,
@@ -704,7 +717,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
 
                   const profileRow: JSONObject = this.buildProfileRow({
                     projectId: projectId,
-                    serviceId: serviceId,
+                    primaryEntityId: primaryEntityId,
                     profileId: profileId,
                     traceId: profileTraceId,
                     spanId: profileSpanId,
@@ -943,7 +956,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
 
   private static buildProfileRow(data: {
     projectId: ObjectID;
-    serviceId: ObjectID;
+    primaryEntityId: ObjectID;
     profileId: string;
     traceId: string;
     spanId: string;
@@ -976,12 +989,13 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
     );
 
     return {
-      _id: ObjectID.generate().toString(),
+      _id: ObjectID.generateTimeOrdered().toString(),
       createdAt: ingestionTimestamp,
-      updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
-      serviceId: data.serviceId.toString(),
-      serviceType: data.serviceMetadata.serviceType,
+      primaryEntityId: data.primaryEntityId.toString(),
+      primaryEntityType: data.serviceMetadata.primaryEntityType,
+      entityKeys: data.serviceMetadata.entityKeys || [],
+      ...getScalarEntityKeyColumns(data.serviceMetadata),
       profileId: data.profileId,
       traceId: data.traceId || "",
       spanId: data.spanId || "",
@@ -1004,7 +1018,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
 
   private static buildSampleRow(data: {
     projectId: ObjectID;
-    serviceId: ObjectID;
+    primaryEntityId: ObjectID;
     profileId: string;
     traceId: string;
     spanId: string;
@@ -1033,12 +1047,13 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
     );
 
     return {
-      _id: ObjectID.generate().toString(),
+      _id: ObjectID.generateTimeOrdered().toString(),
       createdAt: ingestionTimestamp,
-      updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
-      serviceId: data.serviceId.toString(),
-      serviceType: data.serviceMetadata.serviceType,
+      primaryEntityId: data.primaryEntityId.toString(),
+      primaryEntityType: data.serviceMetadata.primaryEntityType,
+      entityKeys: data.serviceMetadata.entityKeys || [],
+      ...getScalarEntityKeyColumns(data.serviceMetadata),
       profileId: data.profileId,
       traceId: data.traceId || "",
       spanId: data.spanId || "",

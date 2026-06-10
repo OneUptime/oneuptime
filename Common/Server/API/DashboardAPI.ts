@@ -222,7 +222,7 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
       traceId: true,
       spanId: true,
       kind: true,
-      serviceId: true,
+      primaryEntityId: true,
     },
   },
   log: {
@@ -232,7 +232,7 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
       time: true,
       severityText: true,
       body: true,
-      serviceId: true,
+      primaryEntityId: true,
       traceId: true,
       spanId: true,
       attributes: true,

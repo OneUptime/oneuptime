@@ -85,7 +85,7 @@ const CHART_COLORS_MUTED: Array<string> = [
 
 const DIMENSION_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "severityText", label: "Severity" },
-  { value: "serviceId", label: "Service" },
+  { value: "primaryEntityId", label: "Service" },
   { value: "traceId", label: "Trace ID" },
   { value: "spanId", label: "Span ID" },
 ];
@@ -372,7 +372,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
         }
 
         const serviceFilterValues: Set<string> | undefined =
-          props.appliedFacetFilters.get("serviceId");
+          props.appliedFacetFilters.get("primaryEntityId");
 
         if (serviceFilterValues && serviceFilterValues.size > 0) {
           (requestData as Record<string, unknown>)["serviceIds"] =

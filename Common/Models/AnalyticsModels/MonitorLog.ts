@@ -71,6 +71,7 @@ export default class MonitorLog extends AnalyticsBaseModel {
 
     const timeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "time",
+      codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
       title: "Time",
       description: "When was the log created?",
       required: true,
@@ -131,6 +132,7 @@ export default class MonitorLog extends AnalyticsBaseModel {
 
     const retentionDateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "retentionDate",
+      codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
       title: "Retention Date",
       description:
         "Date after which this row is eligible for TTL deletion, computed at ingest time as time + service.retainTelemetryDataForDays",
@@ -191,7 +193,8 @@ export default class MonitorLog extends AnalyticsBaseModel {
       projections: [],
       sortKeys: ["projectId", "time", "monitorId"],
       primaryKeys: ["projectId", "time", "monitorId"],
-      partitionKey: "sipHash64(projectId) % 16",
+      partitionKey: "toYYYYMMDD(time)",
+      tableSettings: "ttl_only_drop_parts = 1",
       ttlExpression: "retentionDate DELETE",
       defaultSortColumn: "time",
     });

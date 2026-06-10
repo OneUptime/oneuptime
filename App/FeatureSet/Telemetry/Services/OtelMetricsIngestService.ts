@@ -2,7 +2,10 @@ import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import {
   OtelAggregationTemporality,
   TelemetryServiceMetadata,
+  getScalarEntityKeyColumns,
 } from "Common/Server/Services/OpenTelemetryIngestService";
+import { ResourceEntityRef } from "Common/Server/Utils/Telemetry/TelemetryEntity";
+import OtelPayloadDecoder from "../Utils/OtelPayloadDecoder";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import {
   ExpressRequest,
@@ -548,6 +551,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               "attributes"
             ] as JSONArray) || [];
 
+          // Producer-declared entities (authoritative when present).
+          const resourceEntityRefs: Array<ResourceEntityRef> =
+            OtelPayloadDecoder.getEntityRefsFromResource(
+              resourceMetric["resource"] as JSONObject | undefined,
+            );
+
           /*
            * Auto-discover Kubernetes cluster and Docker host from
            * resource attributes. The two lookups are independent —
@@ -626,6 +635,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               serverlessFunctionId,
               cloudResourceId,
               rumApplicationId,
+              entityRefs: resourceEntityRefs,
             });
           const serviceName: string = serviceMetadata.serviceName;
 
@@ -644,9 +654,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
           > = {
-            ...(serviceMetadata.serviceType === ServiceType.OpenTelemetry
+            ...(serviceMetadata.primaryEntityType === ServiceType.OpenTelemetry
               ? TelemetryUtil.getAttributesForServiceIdAndServiceName({
-                  serviceId: serviceMetadata.serviceId!,
+                  serviceId: serviceMetadata.primaryEntityId!,
                   serviceName: serviceName,
                 })
               : {}),
@@ -705,24 +715,25 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             }
             /*
              * Only associate a real Service row (OpenTelemetry type).
-             * The host heartbeat's serviceId is a Host/DockerHost/
+             * The host heartbeat's primaryEntityId is a Host/DockerHost/
              * KubernetesCluster id, which has no matching Service row,
              * so pushing it would fail the MetricType.services FK. The
              * heartbeat MetricType is still cataloged above without a
              * service link.
              */
             if (
-              serviceMetadata.serviceType === ServiceType.OpenTelemetry &&
+              serviceMetadata.primaryEntityType === ServiceType.OpenTelemetry &&
               metricNameServiceNameMap[heartbeatMetricName]!.services!.filter(
                 (svc: Service) => {
                   return (
-                    svc.id?.toString() === serviceMetadata.serviceId!.toString()
+                    svc.id?.toString() ===
+                    serviceMetadata.primaryEntityId!.toString()
                   );
                 },
               ).length === 0
             ) {
               const heartbeatService: Service = new Service();
-              heartbeatService.id = serviceMetadata.serviceId!;
+              heartbeatService.id = serviceMetadata.primaryEntityId!;
               metricNameServiceNameMap[heartbeatMetricName]!.services!.push(
                 heartbeatService,
               );
@@ -736,7 +747,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               },
               baseAttributes: resourceAttributes,
               projectId: projectId,
-              serviceId: serviceMetadata.serviceId!,
+              primaryEntityId: serviceMetadata.primaryEntityId!,
               serviceName: serviceName,
               metricName: heartbeatMetricName,
               metricPointType: MetricPointType.Gauge,
@@ -798,30 +809,30 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
                     /*
                      * MetricType.services is a ManyToMany to the
-                     * Service table (join keyed on serviceId). Only
+                     * Service table (join keyed on primaryEntityId). Only
                      * OpenTelemetry-type telemetry has a real Service
                      * row; associating Host / DockerHost /
                      * KubernetesCluster / Unknown telemetry here would
-                     * insert a join row whose serviceId has no matching
+                     * insert a join row whose primaryEntityId has no matching
                      * Service and fail the FK. The metric name itself is
                      * still cataloged above (just without a service
-                     * link), and the datapoints carry the serviceId in
+                     * link), and the datapoints carry the primaryEntityId in
                      * ClickHouse regardless.
                      */
                     if (
-                      serviceMetadata.serviceType ===
+                      serviceMetadata.primaryEntityType ===
                         ServiceType.OpenTelemetry &&
                       metricNameServiceNameMap[metricName]!.services!.filter(
                         (service: Service) => {
                           return (
                             service.id?.toString() ===
-                            serviceMetadata.serviceId!.toString()
+                            serviceMetadata.primaryEntityId!.toString()
                           );
                         },
                       ).length === 0
                     ) {
                       const newService: Service = new Service();
-                      newService.id = serviceMetadata.serviceId!;
+                      newService.id = serviceMetadata.primaryEntityId!;
                       metricNameServiceNameMap[metricName]!.services!.push(
                         newService,
                       );
@@ -948,7 +959,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                           datapoint: datapoint as JSONObject,
                           baseAttributes: metricAttributes,
                           projectId: projectId,
-                          serviceId: serviceMetadata.serviceId!,
+                          primaryEntityId: serviceMetadata.primaryEntityId!,
                           serviceName: serviceName,
                           metricName: metricName,
                           metricPointType: metricPointType,
@@ -967,7 +978,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                         const transformed: JSONObject | null = pipelineRules
                           ? MetricPipelineRuleService.applyRules(
                               metricRow,
-                              serviceMetadata.serviceId,
+                              serviceMetadata.primaryEntityId,
                               pipelineRules,
                             )
                           : metricRow;
@@ -1940,7 +1951,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     datapoint: JSONObject;
     baseAttributes: Dictionary<AttributeType | Array<AttributeType>>;
     projectId: ObjectID;
-    serviceId: ObjectID;
+    primaryEntityId: ObjectID;
     serviceName: string;
     metricName: string;
     metricPointType: MetricPointType;
@@ -2109,12 +2120,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     );
 
     const row: JSONObject = {
-      _id: ObjectID.generate().toString(),
+      _id: ObjectID.generateTimeOrdered().toString(),
       createdAt: ingestionTimestamp,
-      updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
-      serviceId: data.serviceId.toString(),
-      serviceType: data.serviceMetadata.serviceType,
+      primaryEntityId: data.primaryEntityId.toString(),
+      primaryEntityType: data.serviceMetadata.primaryEntityType,
+      entityKeys: data.serviceMetadata.entityKeys || [],
+      ...getScalarEntityKeyColumns(data.serviceMetadata),
       name: data.metricName,
       time: timeFields.db,
       timeUnixNano: timeFields.nano,

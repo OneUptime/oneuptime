@@ -18,6 +18,8 @@ import Card from "Common/UI/Components/Card/Card";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
+import ProjectUtil from "Common/UI/Utils/Project";
+import { keyForHost } from "Common/Utils/Telemetry/EntityKey";
 
 const HostLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
@@ -89,9 +91,27 @@ const HostLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
       title="Host Logs"
       description="Live OpenTelemetry logs from this host. Use the filter bar to scope by severity, trace id, or any resource attribute."
     >
+      {/*
+       * entityScope is the query scope (contract C4): new rows match via the
+       * bloom-indexed `entityKeys` membership column, pre-column rows (no
+       * backfill, empty array) via the attribute equality inside the same OR.
+       * `logQuery.attributes` stays for the histogram / facet scoping —
+       * display behavior is unchanged. Drop the attribute fallback (here and
+       * in the logQuery merge) once deploy-date + max retention has passed.
+       */}
       <DashboardLogsViewer
         id={`host-logs-${modelId.toString()}`}
         logQuery={logQuery}
+        entityScope={{
+          entityKeys: [
+            keyForHost(
+              ProjectUtil.getCurrentProjectId()!.toString(),
+              host.hostIdentifier!,
+            ),
+          ],
+          attributeKey: "resource.host.name",
+          attributeValue: host.hostIdentifier!,
+        }}
         showFilters={true}
         enableRealtime={true}
         noLogsMessage="No logs found for this host. Make sure your OTel collector forwards logs with the host.name resource attribute."

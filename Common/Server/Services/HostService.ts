@@ -11,6 +11,7 @@ import OneUptimeDate from "../../Types/Date";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { canonicalizeEntityValue } from "../../Utils/Telemetry/EntityKey";
 import crypto from "crypto";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "host-last-seen";
@@ -71,7 +72,7 @@ export class Service extends DatabaseService<Model> {
      * host.name (OtelIngestBaseService.normalizeHostNameAttributesInPlace);
      * we repeat it here so the method is correct for any caller.
      */
-    const hostIdentifier: string = data.hostIdentifier.trim().toLowerCase();
+    const hostIdentifier: string = canonicalizeEntityValue(data.hostIdentifier);
 
     /*
      * Look up case-insensitively. The unique guard on name/hostIdentifier

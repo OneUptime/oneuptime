@@ -9,6 +9,13 @@ import ObjectID from "../ObjectID";
 
 export default interface MonitorStepExceptionMonitor {
   telemetryServiceIds: Array<ObjectID>;
+  /*
+   * Stable telemetry entity keys (host / pod / container / ...) — scopes
+   * the monitor to exceptions carrying any of these in their entityKeys
+   * column. Optional: monitors saved before this field existed have it
+   * undefined.
+   */
+  entityKeys?: Array<string> | undefined;
   exceptionTypes: Array<string>;
   message: string;
   includeResolved: boolean;
@@ -26,9 +33,17 @@ export class MonitorStepExceptionMonitorUtil {
       monitorStepExceptionMonitor.telemetryServiceIds &&
       monitorStepExceptionMonitor.telemetryServiceIds.length > 0
     ) {
-      query.serviceId = new Includes(
+      query.primaryEntityId = new Includes(
         monitorStepExceptionMonitor.telemetryServiceIds,
       );
+    }
+
+    // Compiles to hasAny(entityKeys, [...]) server-side. Undefined/empty is a no-op.
+    if (
+      monitorStepExceptionMonitor.entityKeys &&
+      monitorStepExceptionMonitor.entityKeys.length > 0
+    ) {
+      query.entityKeys = new Includes(monitorStepExceptionMonitor.entityKeys);
     }
 
     if (
@@ -59,6 +74,7 @@ export class MonitorStepExceptionMonitorUtil {
   public static getDefault(): MonitorStepExceptionMonitor {
     return {
       telemetryServiceIds: [],
+      entityKeys: [],
       exceptionTypes: [],
       message: "",
       includeResolved: false,
@@ -72,6 +88,7 @@ export class MonitorStepExceptionMonitorUtil {
       telemetryServiceIds: ObjectID.fromJSONArray(
         (json["telemetryServiceIds"] as Array<JSONObject>) || [],
       ),
+      entityKeys: (json["entityKeys"] as Array<string>) || [],
       exceptionTypes: (json["exceptionTypes"] as Array<string>) || [],
       message: (json["message"] as string) || "",
       includeResolved: Boolean(json["includeResolved"]) || false,
@@ -84,6 +101,7 @@ export class MonitorStepExceptionMonitorUtil {
   public static toJSON(monitor: MonitorStepExceptionMonitor): JSONObject {
     return {
       telemetryServiceIds: ObjectID.toJSONArray(monitor.telemetryServiceIds),
+      entityKeys: monitor.entityKeys || [],
       exceptionTypes: monitor.exceptionTypes,
       message: monitor.message,
       includeResolved: monitor.includeResolved,

@@ -466,7 +466,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
          * Logs without a service.name are tagged with the projectId
          * (ServiceType.Unknown) and have no Service row. Register a
          * synthetic "Unknown Service" keyed by the projectId so the
-         * serviceId -> name resolution and the serviceId facet render
+         * primaryEntityId -> name resolution and the service facet render
          * "Unknown Service" instead of a raw id. Harmless when no logs
          * are unattributed — nothing resolves against it.
          */
@@ -631,17 +631,17 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
 
     // Resolve human-readable service name to UUID if needed
     if (
-      queryFilter["serviceId"] &&
-      typeof queryFilter["serviceId"] === "string"
+      queryFilter["primaryEntityId"] &&
+      typeof queryFilter["primaryEntityId"] === "string"
     ) {
-      const serviceName: string = queryFilter["serviceId"] as string;
+      const serviceName: string = queryFilter["primaryEntityId"] as string;
       const resolvedId: string | undefined = resolveServiceNameToId(
         serviceName,
         serviceMap,
       );
 
       if (resolvedId) {
-        queryFilter["serviceId"] = resolvedId;
+        queryFilter["primaryEntityId"] = resolvedId;
       }
     }
 
@@ -824,7 +824,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     }
 
     return props.activeFilters.map((filter: ActiveFilter): ActiveFilter => {
-      if (filter.facetKey === "serviceId" && serviceMap[filter.value]) {
+      if (filter.facetKey === "primaryEntityId" && serviceMap[filter.value]) {
         const service: Service | undefined = serviceMap[filter.value];
         return {
           ...filter,
@@ -870,7 +870,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   ]);
 
   /*
-   * Replace serviceId UUIDs with human-readable names in value suggestions,
+   * Replace primaryEntityId UUIDs with human-readable names in value suggestions,
    * and merge in the lazily-fetched attribute value suggestions.
    * Must be before early returns to maintain consistent hook call order.
    */
@@ -889,8 +889,11 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         ...attributeValueSuggestions,
       };
 
-      if (suggestions["serviceId"] && Object.keys(serviceMap).length > 0) {
-        suggestions["serviceId"] = suggestions["serviceId"].map(
+      if (
+        suggestions["primaryEntityId"] &&
+        Object.keys(serviceMap).length > 0
+      ) {
+        suggestions["primaryEntityId"] = suggestions["primaryEntityId"].map(
           (id: string) => {
             const service: Service | undefined = serviceMap[id];
             return service?.name || id;

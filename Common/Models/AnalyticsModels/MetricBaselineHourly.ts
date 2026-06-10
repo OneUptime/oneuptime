@@ -5,13 +5,13 @@ import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 
 /**
- * Per-(day, hour-of-week) statistical baseline of `MetricItemV2` value
+ * Per-(day, hour-of-week) statistical baseline of `MetricItemV3` value
  * samples — backbone of metric anomaly detection.
  *
  * Populated by `MetricBaselineHourly_mv` (defined in the
  * `AddMetricBaselineHourlyMV` data migration), which fires on every
- * insert into `MetricItemV2` and groups by `(projectId, name,
- * serviceId, day, hourOfWeek)`. Each row holds AggregateFunction
+ * insert into `MetricItemV3` and groups by `(projectId, name,
+ * primaryEntityId, day, hourOfWeek)`. Each row holds AggregateFunction
  * states (count/avg/stddevPop/quantile/min/max) — finalize at read
  * time via the matching `*Merge()`.
  *
@@ -40,7 +40,7 @@ export default class MetricBaselineHourly extends AnalyticsBaseModel {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "projectId",
       title: "Project ID",
-      description: "ID of project (tenant key, replicated from MetricItemV2)",
+      description: "ID of project (tenant key, replicated from MetricItemV3)",
       required: true,
       type: TableColumnType.Text,
       isTenantId: true,
@@ -49,18 +49,19 @@ export default class MetricBaselineHourly extends AnalyticsBaseModel {
     const nameColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "name",
       title: "Metric Name",
-      description: "Metric name (replicated from MetricItemV2)",
+      description: "Metric name (replicated from MetricItemV3)",
       required: true,
       type: TableColumnType.Text,
     });
 
-    const serviceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
-      key: "serviceId",
-      title: "Service ID",
-      description: "Service ID (replicated from MetricItemV2)",
-      required: true,
-      type: TableColumnType.Text,
-    });
+    const primaryEntityIdColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "primaryEntityId",
+        title: "Service ID",
+        description: "Primary entity ID (replicated from MetricItemV3)",
+        required: true,
+        type: TableColumnType.Text,
+      });
 
     const dayColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "day",
@@ -111,24 +112,34 @@ export default class MetricBaselineHourly extends AnalyticsBaseModel {
       aggregateFunctionDefinition: "stddevPop, Float64",
     });
 
+    /*
+     * quantileBFloat16, not quantile(reservoir sampling): the BFloat16
+     * sketch is a fixed-size histogram of bfloat16 buckets, so its state
+     * stays small and merges cheaply no matter how many samples fold in,
+     * where the default quantile keeps an 8 KB reservoir per cell. The
+     * ~0.4% relative precision of bfloat16 is far inside the noise of an
+     * anomaly baseline. State types can't be ALTERed in place — switching
+     * required the RebuildMetricBaselineHourlyWithBFloat16Quantiles
+     * migration to drop + recreate this table and its MV.
+     */
     const medianStateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "medianState",
       title: "Median (state)",
       description:
-        "AggregateFunction(quantile(0.5), Float64) state. Read via quantileMerge(0.5)(medianState). Emitted for the future MedianMad anomaly method.",
+        "AggregateFunction(quantileBFloat16(0.5), Float64) state. Read via quantileBFloat16Merge(0.5)(medianState). Emitted for the future MedianMad anomaly method.",
       required: true,
       type: TableColumnType.AggregateFunction,
-      aggregateFunctionDefinition: "quantile(0.5), Float64",
+      aggregateFunctionDefinition: "quantileBFloat16(0.5), Float64",
     });
 
     const p95StateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "p95State",
       title: "P95 (state)",
       description:
-        "AggregateFunction(quantile(0.95), Float64) state. Read via quantileMerge(0.95)(p95State).",
+        "AggregateFunction(quantileBFloat16(0.95), Float64) state. Read via quantileBFloat16Merge(0.95)(p95State).",
       required: true,
       type: TableColumnType.AggregateFunction,
-      aggregateFunctionDefinition: "quantile(0.95), Float64",
+      aggregateFunctionDefinition: "quantileBFloat16(0.95), Float64",
     });
 
     const minObsStateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
@@ -159,7 +170,7 @@ export default class MetricBaselineHourly extends AnalyticsBaseModel {
       tableColumns: [
         projectIdColumn,
         nameColumn,
-        serviceIdColumn,
+        primaryEntityIdColumn,
         dayColumn,
         hourOfWeekColumn,
         sampleCountStateColumn,
@@ -187,18 +198,18 @@ AS
 SELECT
   projectId,
   name,
-  serviceId,
+  primaryEntityId,
   toDate(time) AS day,
   toUInt8((toDayOfWeek(time, 1) - 1) * 24 + toHour(time)) AS hourOfWeek,
   countState(toFloat64(coalesce(value, sum, 0))) AS sampleCountState,
   avgState(toFloat64(coalesce(value, sum, 0))) AS meanState,
   stddevPopState(toFloat64(coalesce(value, sum, 0))) AS stddevState,
-  quantileState(0.5)(toFloat64(coalesce(value, sum, 0))) AS medianState,
-  quantileState(0.95)(toFloat64(coalesce(value, sum, 0))) AS p95State,
+  quantileBFloat16State(0.5)(toFloat64(coalesce(value, sum, 0))) AS medianState,
+  quantileBFloat16State(0.95)(toFloat64(coalesce(value, sum, 0))) AS p95State,
   minState(toFloat64(coalesce(value, sum, 0))) AS minObsState,
   maxState(toFloat64(coalesce(value, sum, 0))) AS maxObsState
-FROM MetricItemV2
-GROUP BY projectId, name, serviceId, day, hourOfWeek`,
+FROM MetricItemV3
+GROUP BY projectId, name, primaryEntityId, day, hourOfWeek`,
         },
       ],
       /*
@@ -206,9 +217,16 @@ GROUP BY projectId, name, serviceId, day, hourOfWeek`,
        * MetricBaselineService.getBaseline so lookups touch a tight
        * granule range.
        */
-      sortKeys: ["projectId", "name", "serviceId", "hourOfWeek", "day"],
-      primaryKeys: ["projectId", "name", "serviceId", "hourOfWeek", "day"],
-      partitionKey: "sipHash64(projectId) % 16",
+      sortKeys: ["projectId", "name", "primaryEntityId", "hourOfWeek", "day"],
+      primaryKeys: [
+        "projectId",
+        "name",
+        "primaryEntityId",
+        "hourOfWeek",
+        "day",
+      ],
+      partitionKey: "toYYYYMM(day)",
+      tableSettings: "ttl_only_drop_parts = 1",
       ttlExpression: "day + INTERVAL 90 DAY",
     });
   }

@@ -199,6 +199,26 @@ export default class Queue {
        * Sleep component's durable resume).
        */
       delayInMs?: number | undefined;
+      /**
+       * Total number of times BullMQ runs the job before marking it
+       * failed (1 = no retries). Defaults to 3 for the Telemetry queue
+       * (consumers there are idempotent via insert dedup tokens) and 1
+       * everywhere else, preserving prior behavior.
+       */
+      attempts?: number | undefined;
+      /**
+       * Base delay in milliseconds for exponential backoff between
+       * attempts (delay * 2^attempt). Only used when attempts > 1.
+       */
+      backoffDelayInMs?: number | undefined;
+      /**
+       * Skip the getJob()+remove() round trips that guard against
+       * duplicate job ids. Safe (and two Redis calls cheaper per
+       * enqueue) when the caller's job ids are globally unique, e.g.
+       * the telemetry enqueue path which suffixes ids with a unix-nano
+       * timestamp.
+       */
+      skipExistenceCheck?: boolean | undefined;
     },
   ): Promise<Job> {
     const sanitizedJobId: string = this.sanitizeJobId(jobId.toString());
@@ -209,6 +229,17 @@ export default class Queue {
 
     if (options && options.delayInMs && options.delayInMs > 0) {
       optionsObject.delay = options.delayInMs;
+    }
+
+    const attempts: number =
+      options?.attempts ?? (queueName === QueueName.Telemetry ? 3 : 1);
+
+    if (attempts > 1) {
+      optionsObject.attempts = attempts;
+      optionsObject.backoff = {
+        type: "exponential",
+        delay: options?.backoffDelayInMs ?? 5000,
+      };
     }
 
     const queue: BullQueue = this.getQueue(queueName);
@@ -233,10 +264,12 @@ export default class Queue {
       }
     }
 
-    const job: Job | undefined = await queue.getJob(sanitizedJobId);
+    if (!options?.skipExistenceCheck) {
+      const job: Job | undefined = await queue.getJob(sanitizedJobId);
 
-    if (job) {
-      await job.remove();
+      if (job) {
+        await job.remove();
+      }
     }
 
     if (options?.repeatableKey) {

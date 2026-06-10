@@ -149,7 +149,7 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
           time: true,
           severityText: true,
           body: true,
-          serviceId: true,
+          primaryEntityId: true,
           traceId: true,
           spanId: true,
           attributes: true,

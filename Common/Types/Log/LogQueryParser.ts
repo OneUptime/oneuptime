@@ -9,7 +9,7 @@
  *   - Field-specific:      `severity:error`           → severityText = 'error'
  *   - Attribute access:    `@http.status_code:500`    → attributes.http.status_code = '500'
  *   - Negation (prefix):   `-severity:debug`          → severityText != 'debug'
- *   - Wildcard:            `service:api-*`            → serviceId ILIKE 'api-%'
+ *   - Wildcard:            `service:api-*`            → primaryEntityId ILIKE 'api-%'
  *   - Numeric range:       `@duration:>1000`          → attributes.duration > 1000
  *   - Boolean:             `severity:error AND service:api` (AND is default between tokens)
  *
@@ -46,7 +46,7 @@ export interface ParsedToken {
 const FIELD_ALIASES: Record<string, string> = {
   severity: "severityText",
   level: "severityText",
-  service: "serviceId",
+  service: "primaryEntityId",
   trace: "traceId",
   span: "spanId",
   message: "body",

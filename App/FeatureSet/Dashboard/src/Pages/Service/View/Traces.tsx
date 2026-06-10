@@ -11,7 +11,7 @@ const ServiceTraces: FunctionComponent<
 
   return (
     <Fragment>
-      <TracesViewer serviceId={modelId} />
+      <TracesViewer primaryEntityId={modelId} />
     </Fragment>
   );
 };
