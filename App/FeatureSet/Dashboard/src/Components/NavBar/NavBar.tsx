@@ -156,9 +156,8 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       category: observabilityCategory,
     },
     {
-      title: "Entities",
-      description:
-        "Explore entities (services, hosts, k8s pods, containers) discovered from your telemetry.",
+      title: t("navbar.items.entitiesTitle"),
+      description: t("navbar.items.entitiesDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.ENTITIES] as Route),
       activeRoute: RouteMap[PageMap.ENTITIES],
       icon: IconProp.Cube,
@@ -166,9 +165,8 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       category: observabilityCategory,
     },
     {
-      title: "Topology",
-      description:
-        "Service map / topology of how your entities relate (runs-on, member-of, hosted-on, part-of).",
+      title: t("navbar.items.topologyTitle"),
+      description: t("navbar.items.topologyDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.TOPOLOGY] as Route),
       activeRoute: RouteMap[PageMap.TOPOLOGY],
       icon: IconProp.FlowDiagram,

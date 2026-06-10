@@ -2,6 +2,7 @@ import MonitorStepTraceMonitor, {
   MonitorStepTraceMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepTraceMonitor";
 import Service from "Common/Models/DatabaseModels/Service";
+import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
 import React, { FunctionComponent, ReactElement } from "react";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -18,6 +19,7 @@ export interface ComponentProps {
   ) => void;
   attributeKeys: Array<string>;
   telemetryServices: Array<Service>;
+  telemetryEntities?: Array<TelemetryEntity> | undefined;
   isLoadingAttributeKeys?: boolean | undefined;
   attributeValueSuggestions?: Record<string, Array<string>> | undefined;
   loadingAttributeValueKeys?: Array<string> | undefined;
@@ -149,6 +151,31 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
             ),
             title: "Filter by Telemetry Service",
             description: "Select the telemetry services you want to monitor.",
+            hideOptionalLabel: true,
+            showIf: () => {
+              return showAdvancedOptions;
+            },
+          },
+          {
+            field: {
+              entityKeys: true,
+            },
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownOptions: (props.telemetryEntities || []).map(
+              (telemetryEntity: TelemetryEntity) => {
+                return {
+                  label: `${
+                    telemetryEntity.displayName ||
+                    telemetryEntity.entityKey ||
+                    ""
+                  } (${telemetryEntity.entityType || ""})`,
+                  value: telemetryEntity.entityKey || "",
+                };
+              },
+            ),
+            title: "Filter by Infrastructure Entity",
+            description:
+              "Scope to specific infrastructure entities (optional)",
             hideOptionalLabel: true,
             showIf: () => {
               return showAdvancedOptions;

@@ -151,6 +151,7 @@ export default class Span extends AnalyticsBaseModel {
 
     const startTimeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "startTime",
+      codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
       title: "Start Time",
       description: "When did the span start?",
       required: true,
@@ -180,6 +181,13 @@ export default class Span extends AnalyticsBaseModel {
 
     const endTimeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "endTime",
+      /*
+       * Plain ZSTD, deliberately NOT DoubleDelta: rows sort by startTime,
+       * so consecutive endTime deltas jump with span duration and the
+       * double-delta transform inflates instead of shrinking (measured
+       * ~2.9x vs ~4-6x for plain ZSTD on endTimeUnixNano, same data).
+       */
+      codec: { codec: "ZSTD", level: 1 },
       title: "End Time",
       description: "When did the span end?",
       required: true,
@@ -281,7 +289,13 @@ export default class Span extends AnalyticsBaseModel {
         description: "When did the span end?",
         required: true,
         type: TableColumnType.UInt64,
-        codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
+        /*
+         * Plain ZSTD, deliberately NOT DoubleDelta: rows sort by
+         * startTime, so endTime deltas jump with span duration and
+         * double-delta inflates (measured compression ratio ~2.9 with
+         * DoubleDelta vs ~4-6x plain ZSTD).
+         */
+        codec: { codec: "ZSTD", level: 1 },
         accessControl: {
           read: [
             Permission.ProjectOwner,
@@ -444,6 +458,7 @@ export default class Span extends AnalyticsBaseModel {
 
     const attributesColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "attributes",
+      codec: { codec: "ZSTD", level: 3 },
       title: "Attributes",
       description: "Attributes",
       required: true,
@@ -474,6 +489,7 @@ export default class Span extends AnalyticsBaseModel {
 
     const attributeKeysColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "attributeKeys",
+      codec: { codec: "ZSTD", level: 3 },
       title: "Attribute Keys",
       description: "Attribute keys extracted from attributes",
       required: true,
@@ -510,6 +526,7 @@ export default class Span extends AnalyticsBaseModel {
 
     const entityKeysColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "entityKeys",
+      codec: { codec: "ZSTD", level: 3 },
       title: "Entity Keys",
       description:
         "Stable keys of every OpenTelemetry entity (service, host, k8s.pod, container, ...) this signal belongs to. A superset that includes the primary entity. Enables cross-cutting membership queries via has(entityKeys, :key).",
@@ -544,6 +561,64 @@ export default class Span extends AnalyticsBaseModel {
         update: [],
       },
     });
+
+    /*
+     * Scalar per-entity-type key columns — denormalized single-value
+     * siblings of `entityKeys`. Each holds the 16-hex key (see
+     * Common/Utils/Telemetry/EntityKey) of the row's entity of that type,
+     * or '' when the resource carries no such entity (non-Nullable String,
+     * so old rows read the type default ''). Unlike the array column, a
+     * scalar equality predicate is usable as an MV/sort key and gets a
+     * cheaper bloom-filter probe; only the high-traffic keys
+     * (service/host/k8s.pod) carry skip indexes. Stamped at ingest by the
+     * same extractor that fills `entityKeys`; never part of identity.
+     */
+    const scalarEntityKeyColumns: Array<AnalyticsTableColumn> = [
+      {
+        key: "serviceEntityKey",
+        title: "Service Entity Key",
+        indexName: "idx_service_entity_key",
+      },
+      {
+        key: "hostEntityKey",
+        title: "Host Entity Key",
+        indexName: "idx_host_entity_key",
+      },
+      {
+        key: "k8sPodEntityKey",
+        title: "Kubernetes Pod Entity Key",
+        indexName: "idx_k8s_pod_entity_key",
+      },
+      { key: "k8sNodeEntityKey", title: "Kubernetes Node Entity Key" },
+      { key: "k8sClusterEntityKey", title: "Kubernetes Cluster Entity Key" },
+      { key: "containerEntityKey", title: "Container Entity Key" },
+    ].map(
+      (def: {
+        key: string;
+        title: string;
+        indexName?: string | undefined;
+      }): AnalyticsTableColumn => {
+        return new AnalyticsTableColumn({
+          key: def.key,
+          title: def.title,
+          description:
+            "Scalar entity key for this entity type (see entityKeys); '' when the resource has no entity of this type.",
+          required: true,
+          defaultValue: "",
+          type: TableColumnType.Text,
+          codec: { codec: "ZSTD", level: 1 },
+          skipIndex: def.indexName
+            ? {
+                name: def.indexName,
+                type: SkipIndexType.BloomFilter,
+                params: [0.01],
+                granularity: 1,
+              }
+            : undefined,
+          accessControl: entityKeysColumn.accessControl,
+        });
+      },
+    );
 
     const eventsColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "events",
@@ -674,6 +749,7 @@ export default class Span extends AnalyticsBaseModel {
 
     const nameColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "name",
+      codec: { codec: "ZSTD", level: 3 },
       title: "Name",
       description: "Name of the span",
       required: false,
@@ -819,6 +895,7 @@ export default class Span extends AnalyticsBaseModel {
 
     const retentionDateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "retentionDate",
+      codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
       title: "Retention Date",
       description:
         "Date after which this row is eligible for TTL deletion, computed at ingest time as startTime + service.retainTelemetryDataForDays",
@@ -888,6 +965,7 @@ export default class Span extends AnalyticsBaseModel {
         attributesColumn,
         attributeKeysColumn,
         entityKeysColumn,
+        ...scalarEntityKeyColumns,
         eventsColumn,
         linksColumn,
         statusCodeColumn,

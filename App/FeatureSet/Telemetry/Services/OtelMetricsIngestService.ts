@@ -2,7 +2,10 @@ import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import {
   OtelAggregationTemporality,
   TelemetryServiceMetadata,
+  getScalarEntityKeyColumns,
 } from "Common/Server/Services/OpenTelemetryIngestService";
+import { ResourceEntityRef } from "Common/Server/Utils/Telemetry/TelemetryEntity";
+import OtelPayloadDecoder from "../Utils/OtelPayloadDecoder";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import {
   ExpressRequest,
@@ -548,6 +551,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               "attributes"
             ] as JSONArray) || [];
 
+          // Producer-declared entities (authoritative when present).
+          const resourceEntityRefs: Array<ResourceEntityRef> =
+            OtelPayloadDecoder.getEntityRefsFromResource(
+              resourceMetric["resource"] as JSONObject | undefined,
+            );
+
           /*
            * Auto-discover Kubernetes cluster and Docker host from
            * resource attributes. The two lookups are independent —
@@ -626,6 +635,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               serverlessFunctionId,
               cloudResourceId,
               rumApplicationId,
+              entityRefs: resourceEntityRefs,
             });
           const serviceName: string = serviceMetadata.serviceName;
 
@@ -2110,12 +2120,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     );
 
     const row: JSONObject = {
-      _id: ObjectID.generate().toString(),
+      _id: ObjectID.generateTimeOrdered().toString(),
       createdAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
       primaryEntityId: data.primaryEntityId.toString(),
       primaryEntityType: data.serviceMetadata.primaryEntityType,
       entityKeys: data.serviceMetadata.entityKeys || [],
+      ...getScalarEntityKeyColumns(data.serviceMetadata),
       name: data.metricName,
       time: timeFields.db,
       timeUnixNano: timeFields.nano,

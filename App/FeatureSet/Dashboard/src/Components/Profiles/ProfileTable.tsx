@@ -24,6 +24,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Query from "Common/Types/BaseDatabase/Query";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import Service from "Common/Models/DatabaseModels/Service";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -54,6 +55,11 @@ export interface ComponentProps {
   profileQuery?: Query<Profile> | undefined;
   isMinimalTable?: boolean | undefined;
   noItemsMessage?: string | undefined;
+  /*
+   * Scope to a OneUptime entity by its stable entityKeys (membership) —
+   * compiles to `hasAny(entityKeys, [...])` server-side.
+   */
+  entityKeys?: Array<string> | undefined;
 }
 
 const ProfileTable: FunctionComponent<ComponentProps> = (
@@ -91,8 +97,14 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
       baseQuery.primaryEntityId = modelId;
     }
 
+    if (props.entityKeys && props.entityKeys.length > 0) {
+      (baseQuery as Record<string, unknown>)["entityKeys"] = new Includes(
+        props.entityKeys,
+      );
+    }
+
     return baseQuery;
-  }, [props.profileQuery, modelId]);
+  }, [props.profileQuery, modelId, props.entityKeys]);
 
   const loadServices: PromiseVoidFunction = async (): Promise<void> => {
     try {

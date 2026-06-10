@@ -44,6 +44,47 @@ export enum OtelAggregationTemporality {
   Delta = "AGGREGATION_TEMPORALITY_DELTA",
 }
 
+/*
+ * Per-type scalar entity-key columns stamped on every analytics signal
+ * row (Log, Span, Metric, ExceptionInstance, Profile, ProfileSample —
+ * the storage side declares each as String DEFAULT ''). '' means "that
+ * entity type is absent from this batch's resource". Unlike the
+ * `entityKeys` Array(String) membership column these are scalar, so a
+ * per-type filter (`hostEntityKey = :key`) or rollup key skips the
+ * has() array scan.
+ */
+export interface ScalarEntityKeys {
+  serviceEntityKey: string;
+  hostEntityKey: string;
+  k8sPodEntityKey: string;
+  k8sNodeEntityKey: string;
+  k8sClusterEntityKey: string;
+  containerEntityKey: string;
+}
+
+export function emptyScalarEntityKeys(): ScalarEntityKeys {
+  return {
+    serviceEntityKey: "",
+    hostEntityKey: "",
+    k8sPodEntityKey: "",
+    k8sNodeEntityKey: "",
+    k8sClusterEntityKey: "",
+    containerEntityKey: "",
+  };
+}
+
+/**
+ * The six scalar entity-key columns for a signal row, defaulting every
+ * field to '' when the metadata carries no scalar map (e.g. a resolver
+ * path that never saw resource attributes). Spread the result into the
+ * row object so every signal row always carries all six columns.
+ */
+export function getScalarEntityKeyColumns(
+  metadata: TelemetryServiceMetadata | null | undefined,
+): ScalarEntityKeys {
+  return metadata?.scalarEntityKeys ?? emptyScalarEntityKeys();
+}
+
 export interface TelemetryServiceMetadata {
   serviceName: string;
   primaryEntityId: ObjectID;
@@ -67,6 +108,13 @@ export interface TelemetryServiceMetadata {
    * service key.
    */
   entityKeys?: Array<string> | undefined;
+  /*
+   * Scalar per-type companion of `entityKeys` (see ScalarEntityKeys).
+   * Populated from the same single extraction in
+   * `OtelIngestBaseService.resolveTelemetryResource`; name-only sources
+   * (syslog / fluent) get just their service key with '' for the rest.
+   */
+  scalarEntityKeys?: ScalarEntityKeys | undefined;
   dataRententionInDays: number;
   serviceRetentionConfig: TelemetryRetentionConfig | null;
   serviceRetentionInDays: number | null;
@@ -444,6 +492,15 @@ export default class OTelIngestService {
         primaryEntityId: svc.id!,
         primaryEntityType: ServiceType.OpenTelemetry,
         entityKeys: [serviceEntityKey],
+        /*
+         * Name-only sources can only ever see the service entity; the
+         * OTLP path overwrites this with the full per-type map in
+         * `resolveTelemetryResource`.
+         */
+        scalarEntityKeys: {
+          ...emptyScalarEntityKeys(),
+          serviceEntityKey: serviceEntityKey,
+        },
         dataRententionInDays:
           serviceLevelRetention || projectContext.projectRetentionInDays,
         serviceRetentionConfig: svc.telemetryRetentionConfig ?? null,

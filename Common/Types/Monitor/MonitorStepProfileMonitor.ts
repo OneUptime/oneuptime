@@ -12,6 +12,11 @@ export default interface MonitorStepProfileMonitor {
   attributes: Dictionary<string | number | boolean>;
   profileTypes: Array<string>;
   telemetryServiceIds: Array<ObjectID>;
+  // Stable telemetry entity keys (host / pod / container / ...) — scopes
+  // the monitor to profiles carrying any of these in their entityKeys
+  // column. Optional: monitors saved before this field existed have it
+  // undefined.
+  entityKeys?: Array<string> | undefined;
   lastXSecondsOfProfiles: number;
   profileType: string;
 }
@@ -29,6 +34,14 @@ export class MonitorStepProfileMonitorUtil {
       query.primaryEntityId = new Includes(
         monitorStepProfileMonitor.telemetryServiceIds,
       );
+    }
+
+    // Compiles to hasAny(entityKeys, [...]) server-side. Undefined/empty is a no-op.
+    if (
+      monitorStepProfileMonitor.entityKeys &&
+      monitorStepProfileMonitor.entityKeys.length > 0
+    ) {
+      query.entityKeys = new Includes(monitorStepProfileMonitor.entityKeys);
     }
 
     if (
@@ -67,6 +80,7 @@ export class MonitorStepProfileMonitorUtil {
       profileType: "",
       profileTypes: [],
       telemetryServiceIds: [],
+      entityKeys: [],
       lastXSecondsOfProfiles: 60,
     };
   }
@@ -80,6 +94,7 @@ export class MonitorStepProfileMonitorUtil {
       telemetryServiceIds: ObjectID.fromJSONArray(
         json["telemetryServiceIds"] as Array<JSONObject>,
       ),
+      entityKeys: (json["entityKeys"] as Array<string>) || [],
       lastXSecondsOfProfiles: json["lastXSecondsOfProfiles"] as number,
     };
   }
@@ -90,6 +105,7 @@ export class MonitorStepProfileMonitorUtil {
       profileType: monitor.profileType,
       profileTypes: monitor.profileTypes,
       telemetryServiceIds: ObjectID.toJSONArray(monitor.telemetryServiceIds),
+      entityKeys: monitor.entityKeys || [],
       lastXSecondsOfProfiles: monitor.lastXSecondsOfProfiles,
     };
   }

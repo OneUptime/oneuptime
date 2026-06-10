@@ -30,13 +30,42 @@ import {
  * Decision 7): their keys flow into the `entityKeys` column on signals,
  * but they are never promoted to registry rows — container restarts and
  * pid reuse would otherwise mint unbounded registry rows. Everything
- * else promotes.
+ * else promotes. `service.instance` is membership-only too: semconv
+ * `service.instance.id` is typically a per-restart UUID, so each deploy
+ * would mint a fresh registry row per instance.
  */
 const MEMBERSHIP_ONLY_TYPES: ReadonlySet<EntityType> = new Set<EntityType>([
   EntityType.Container,
   EntityType.Process,
+  EntityType.ServiceInstance,
   EntityType.TelemetrySdk,
 ]);
+
+/*
+ * Per-(project, entityType) registry budget (doc §Edge Cases — "reuse the
+ * existing per-service metricCardinalityBudget concept as a per-type
+ * entity budget"). Beyond budget, NEW registry rows stop being created —
+ * membership keys still flow into `entityKeys` on signals, and existing
+ * rows keep their `lastSeenAt` bumps so the prune TTL never reaps live
+ * entities. Hardcoded defaults; a per-project override is a follow-up.
+ */
+export const DEFAULT_ENTITY_BUDGET: ReadonlyMap<EntityType, number> =
+  new Map<EntityType, number>([
+    [EntityType.Service, 10000],
+    [EntityType.Host, 10000],
+    [EntityType.KubernetesCluster, 10000],
+    [EntityType.KubernetesNode, 1000],
+    [EntityType.KubernetesNamespace, 1000],
+    [EntityType.KubernetesPod, 5000],
+    [EntityType.KubernetesDeployment, 5000],
+  ]);
+
+// For types not in the map (future promotions of high-churn types).
+export const FALLBACK_ENTITY_BUDGET: number = 5000;
+
+export function getEntityBudget(entityType: EntityType): number {
+  return DEFAULT_ENTITY_BUDGET.get(entityType) ?? FALLBACK_ENTITY_BUDGET;
+}
 
 export const REGISTRY_PROMOTED_TYPES: ReadonlySet<EntityType> =
   new Set<EntityType>(
@@ -70,6 +99,36 @@ async function shouldReconcile(fenceId: string): Promise<boolean> {
     return true;
   } catch {
     // If the cache is down, default to running the reconcile.
+    return true;
+  }
+}
+
+/*
+ * Over-budget skips happen per row, but the warn log is fenced to once per
+ * (project, entityType) per fence window — an over-budget project would
+ * otherwise emit a warn line for every skipped entity of every batch.
+ */
+export async function shouldWarnEntityBudgetOnce(data: {
+  projectId: ObjectID;
+  entityType: EntityType;
+}): Promise<boolean> {
+  try {
+    const key: string = `entity-budget-warn:${data.projectId.toString()}:${
+      data.entityType
+    }`;
+    const seen: string | null = await GlobalCache.getString(
+      FENCE_NAMESPACE,
+      key,
+    );
+    if (seen) {
+      return false;
+    }
+    await GlobalCache.setString(FENCE_NAMESPACE, key, "1", {
+      expiresInSeconds: FENCE_TTL_SECONDS,
+    });
+    return true;
+  } catch {
+    // If the cache is down, default to warning (visibility over silence).
     return true;
   }
 }
@@ -165,25 +224,54 @@ export async function reconcileByNaturalKey<
   lastSeenAt: Date;
   /** Human-readable row identity for log lines, e.g. "entity host/abc123". */
   describe: string;
+  /** Extra columns to select on the existing row, for `buildUpdate` diffing. */
+  select?: Select<TBaseModel> | undefined;
+  /**
+   * Extra fields to fold into the `lastSeenAt` bump (descriptive-attribute
+   * merge, label union). Return an empty object when nothing changed so the
+   * bump stays a single-column update.
+   */
+  buildUpdate?:
+    | ((existing: TBaseModel) => QueryDeepPartialEntity<TBaseModel>)
+    | undefined;
+  /**
+   * Gate run only when a NEW row is about to be created (entity budget).
+   * Returning false skips creation silently — the gate owns its own
+   * logging/throttling. Existing-row bumps are never gated.
+   */
+  beforeCreate?: (() => Promise<boolean>) | undefined;
 }): Promise<void> {
-  // Unresolved generic mapped type — TS cannot prove overlap directly.
-  const bump: QueryDeepPartialEntity<TBaseModel> = {
-    lastSeenAt: data.lastSeenAt,
-  } as unknown as QueryDeepPartialEntity<TBaseModel>;
+  const select: Select<TBaseModel> = {
+    ...({ _id: true } as Select<TBaseModel>),
+    ...(data.select || {}),
+  };
+
+  const buildBump: (existing: TBaseModel) => QueryDeepPartialEntity<TBaseModel> =
+    (existing: TBaseModel): QueryDeepPartialEntity<TBaseModel> => {
+      // Unresolved generic mapped type — TS cannot prove overlap directly.
+      return {
+        lastSeenAt: data.lastSeenAt,
+        ...(data.buildUpdate ? data.buildUpdate(existing) : {}),
+      } as unknown as QueryDeepPartialEntity<TBaseModel>;
+    };
 
   const existing: TBaseModel | null = await data.service.findOneBy({
     query: data.query,
-    select: { _id: true } as Select<TBaseModel>,
+    select,
     props: { isRoot: true },
   });
 
   if (existing) {
-    // Throttled bump of lastSeenAt (descriptive merge can come later).
+    // Throttled bump of lastSeenAt (+ any caller-supplied merge fields).
     await data.service.updateOneById({
       id: existing.id!,
-      data: bump,
+      data: buildBump(existing),
       props: { isRoot: true },
     });
+    return;
+  }
+
+  if (data.beforeCreate && !(await data.beforeCreate())) {
     return;
   }
 
@@ -201,7 +289,7 @@ export async function reconcileByNaturalKey<
      */
     const winner: TBaseModel | null = await data.service.findOneBy({
       query: data.query,
-      select: { _id: true } as Select<TBaseModel>,
+      select,
       props: { isRoot: true },
     });
 
@@ -211,7 +299,7 @@ export async function reconcileByNaturalKey<
       );
       await data.service.updateOneById({
         id: winner.id!,
-        data: bump,
+        data: buildBump(winner),
         props: { isRoot: true },
       });
       return;

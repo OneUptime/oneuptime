@@ -223,6 +223,21 @@ export default class TelemetryEntity extends DatabaseBaseModel {
     update: UPDATE_PERMS,
   })
   @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Labels",
+    description:
+      "Labels observed on this entity's telemetry (e.g. promoted from oneuptime.label.* resource attributes), merged as a set union. Simple string array in v1 — a relation to the Label table is a follow-up.",
+  })
+  @Column({ type: ColumnType.JSON, nullable: true })
+  public labels?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: CREATE_PERMS,
+    read: READ_PERMS,
+    update: UPDATE_PERMS,
+  })
+  @TableColumn({
     type: TableColumnType.ShortText,
     required: false,
     title: "Resource Type",

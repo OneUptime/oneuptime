@@ -1,4 +1,5 @@
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
+import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import LogDatabaseService from "./LogService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
@@ -115,6 +116,18 @@ export class LogAggregationService {
     ]);
   private static readonly ATTRIBUTE_KEY_PATTERN: RegExp = /^[a-zA-Z0-9._:/-]+$/;
   private static readonly MAX_FACET_KEY_LENGTH: number = 256;
+  /*
+   * Read-side retention filter (mirrors
+   * AnalyticsDatabaseService.getRetentionReadFilter): rows past their
+   * per-service retention stay queryable until their whole part drops
+   * (ttl_only_drop_parts), so raw-table reads exclude them explicitly.
+   * Deliberately NOT applied to projection-shaped queries (the severity
+   * histogram): an aggregate projection cannot evaluate a predicate on a
+   * column it does not store, so adding it would silently force a full
+   * base-table scan.
+   */
+  private static readonly RETENTION_FILTER: string =
+    " AND retentionDate >= now()";
 
   @CaptureSpan()
   public static async getHistogram(
@@ -226,7 +239,11 @@ export class LogAggregationService {
      * Explicitly enable projection use.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break', optimize_use_projections = 1",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+        additionalSettings: { optimize_use_projections: 1 },
+      }),
     );
 
     return statement;
@@ -315,6 +332,8 @@ export class LogAggregationService {
       );
     }
 
+    statement.append(LogAggregationService.RETENTION_FILTER);
+
     LogAggregationService.appendCommonFilters(statement, request);
 
     statement.append(
@@ -329,7 +348,10 @@ export class LogAggregationService {
      * 60s proxy_read_timeout so a slow facet never starves the endpoint.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     return statement;
@@ -550,6 +572,8 @@ export class LogAggregationService {
         }}`,
     );
 
+    statement.append(LogAggregationService.RETENTION_FILTER);
+
     LogAggregationService.appendCommonFilters(statement, request);
 
     statement.append(" GROUP BY bucket");
@@ -566,7 +590,10 @@ export class LogAggregationService {
      * aggregated results rather than holding a pool connection.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     return statement;
@@ -627,6 +654,8 @@ export class LogAggregationService {
       );
     }
 
+    statement.append(LogAggregationService.RETENTION_FILTER);
+
     LogAggregationService.appendCommonFilters(statement, request);
 
     statement.append(
@@ -641,7 +670,10 @@ export class LogAggregationService {
      * partial results (matches the histogram / facet paths).
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     return statement;
@@ -680,6 +712,8 @@ export class LogAggregationService {
         }}`,
     );
 
+    statement.append(LogAggregationService.RETENTION_FILTER);
+
     LogAggregationService.appendCommonFilters(statement, request);
 
     // Build GROUP BY from aliases
@@ -705,7 +739,10 @@ export class LogAggregationService {
      * partial results (matches the histogram / facet paths).
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     return statement;
@@ -846,6 +883,8 @@ export class LogAggregationService {
         }}
     `;
 
+    statement.append(LogAggregationService.RETENTION_FILTER);
+
     LogAggregationService.appendCommonFilters(statement, request);
 
     statement.append(
@@ -860,7 +899,10 @@ export class LogAggregationService {
      * partial rows rather than holding a pool connection on a large export.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     const dbResult: Results = await LogDatabaseService.executeQuery(statement);
@@ -910,6 +952,7 @@ export class LogAggregationService {
           type: TableColumnType.Text,
           value: request.logId,
         }}
+        AND retentionDate >= now()
       ORDER BY time DESC, timeUnixNano DESC
       LIMIT ${{
         type: TableColumnType.Number,
@@ -946,6 +989,7 @@ export class LogAggregationService {
           type: TableColumnType.Text,
           value: request.logId,
         }}
+        AND retentionDate >= now()
       ORDER BY time ASC, timeUnixNano ASC
       LIMIT ${{
         type: TableColumnType.Number,
@@ -1003,6 +1047,8 @@ export class LogAggregationService {
         }}
     `;
 
+    totalStatement.append(LogAggregationService.RETENTION_FILTER);
+
     LogAggregationService.appendCommonFilters(totalStatement, request);
 
     /*
@@ -1010,7 +1056,10 @@ export class LogAggregationService {
      * returns a partial (lower-bound) count, acceptable for an estimate.
      */
     totalStatement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     // Get matching count using the filter query as body search
@@ -1031,6 +1080,8 @@ export class LogAggregationService {
         }}
     `;
 
+    matchStatement.append(LogAggregationService.RETENTION_FILTER);
+
     LogAggregationService.appendCommonFilters(matchStatement, {
       ...request,
       bodySearchText: request.filterQuery,
@@ -1041,7 +1092,10 @@ export class LogAggregationService {
      * returns a partial (lower-bound) count, acceptable for an estimate.
      */
     matchStatement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     const [totalResult, matchResult] = await Promise.all([

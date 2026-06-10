@@ -93,6 +93,12 @@ export default class AnalyticsBaseModel extends CommonModel {
         description: "ID of this object",
         required: true,
         type: TableColumnType.ObjectID,
+        /*
+         * Ids are UUIDv7 (time-ordered — see ObjectID.generateTimeOrdered),
+         * so consecutive rows share their 48-bit timestamp prefix and ZSTD
+         * compresses them well; random v4 ids were incompressible.
+         */
+        codec: { codec: "ZSTD", level: 1 },
       }),
     );
 

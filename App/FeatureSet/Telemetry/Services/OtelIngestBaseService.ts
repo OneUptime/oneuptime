@@ -22,14 +22,18 @@ import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/Oneupt
 import logger from "Common/Server/Utils/Logger";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import OTelIngestService, {
+  ScalarEntityKeys,
   TelemetryServiceMetadata,
+  emptyScalarEntityKeys,
 } from "Common/Server/Services/OpenTelemetryIngestService";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
+import EntityType from "Common/Types/Telemetry/EntityType";
 import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
 import TelemetryEntity, {
   ExtractedEntity,
+  ResourceEntityRef,
 } from "Common/Server/Utils/Telemetry/TelemetryEntity";
 import { reconcileEntityRegistryThrottled } from "Common/Server/Utils/Telemetry/EntityRegistry";
 import { canonicalizeEntityValue } from "Common/Utils/Telemetry/EntityKey";
@@ -223,6 +227,13 @@ export default abstract class OtelIngestBaseService {
     serverlessFunctionId?: ObjectID | null;
     cloudResourceId?: ObjectID | null;
     rumApplicationId?: ObjectID | null;
+    /*
+     * OTLP `Resource.entity_refs` decoded for this batch (see
+     * `OtelPayloadDecoder.getEntityRefsFromResource`). When present and
+     * non-empty they are the authoritative entity source; the extractor
+     * falls back to its heuristic resolvers otherwise.
+     */
+    entityRefs?: Array<ResourceEntityRef> | undefined;
   }): Promise<TelemetryServiceMetadata> {
     /*
      * (a) pick the single primary entity via the precedence ladder — the
@@ -251,11 +262,20 @@ export default abstract class OtelIngestBaseService {
     const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
       projectId: data.projectId.toString(),
       attributes: flatAttributes,
+      entityRefs: data.entityRefs,
     });
-    metadata.entityKeys = TelemetryEntity.extractEntityKeys({
-      projectId: data.projectId.toString(),
-      attributes: flatAttributes,
-    });
+
+    /*
+     * One extraction feeds both columns (extractEntityKeys would re-run
+     * the whole extraction): the sorted membership set (entities are
+     * already deduped by key) and the per-type scalar key map.
+     */
+    metadata.entityKeys = entities
+      .map((e: ExtractedEntity) => {
+        return e.entityKey;
+      })
+      .sort();
+    metadata.scalarEntityKeys = this.scalarEntityKeysFromEntities(entities);
 
     /*
      * Forward-only, throttled, best-effort registry reconciliation.
@@ -268,6 +288,49 @@ export default abstract class OtelIngestBaseService {
     });
 
     return metadata;
+  }
+
+  /*
+   * Project the extracted entity set onto the six scalar per-type key
+   * columns ('' when that type is absent from the resource). First
+   * entity of a type wins — the heuristic resolvers emit at most one
+   * per type, and entity_refs duplicates are already deduped by key.
+   */
+  private static scalarEntityKeysFromEntities(
+    entities: Array<ExtractedEntity>,
+  ): ScalarEntityKeys {
+    const scalar: ScalarEntityKeys = emptyScalarEntityKeys();
+
+    for (const entity of entities) {
+      switch (entity.entityType) {
+        case EntityType.Service:
+          scalar.serviceEntityKey =
+            scalar.serviceEntityKey || entity.entityKey;
+          break;
+        case EntityType.Host:
+          scalar.hostEntityKey = scalar.hostEntityKey || entity.entityKey;
+          break;
+        case EntityType.KubernetesPod:
+          scalar.k8sPodEntityKey = scalar.k8sPodEntityKey || entity.entityKey;
+          break;
+        case EntityType.KubernetesNode:
+          scalar.k8sNodeEntityKey =
+            scalar.k8sNodeEntityKey || entity.entityKey;
+          break;
+        case EntityType.KubernetesCluster:
+          scalar.k8sClusterEntityKey =
+            scalar.k8sClusterEntityKey || entity.entityKey;
+          break;
+        case EntityType.Container:
+          scalar.containerEntityKey =
+            scalar.containerEntityKey || entity.entityKey;
+          break;
+        default:
+          break;
+      }
+    }
+
+    return scalar;
   }
 
   @CaptureSpan()

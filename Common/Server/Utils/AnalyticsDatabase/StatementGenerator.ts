@@ -46,6 +46,20 @@ import AggregateBy, {
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import { getPercentileLevel } from "../../../Types/BaseDatabase/AggregationType";
 
+/**
+ * Value carried under the synthetic query key "entityScope": the
+ * entity-membership read with an attribute OR-fallback. Rows stamped with
+ * `entityKeys` are matched via the bloom-indexed membership column; rows
+ * ingested before the column existed (empty array, no backfill by decision)
+ * still match via the resource attribute. See
+ * Internal/Docs/OpenTelemetryEntities.md (phase-4 read-switch).
+ */
+export interface EntityScopeQueryValue {
+  entityKeys: Array<string>;
+  attributeKey: string;
+  attributeValue: string;
+}
+
 export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   public model!: TBaseModel;
   public modelType!: { new (): TBaseModel };
@@ -412,6 +426,88 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         }
 
         whereStatement.append(SQL`)`);
+        continue;
+      }
+
+      /*
+       * "entityScope" is a synthetic query key (not a column):
+       * { entityKeys, attributeKey, attributeValue } compiles to
+       *   (hasAny(entityKeys, [...]) OR attributes['k'] = 'v')
+       * so new rows ride the bloom-indexed `entityKeys` membership column
+       * while pre-column rows (empty array — no backfill by decision) still
+       * match via the resource attribute. Both sides are parameter-bound:
+       * the array exactly like the Includes/hasAny path above, the
+       * attribute lookup exactly like the map-equality fast path below.
+       * Ignored (no predicate, no throw) for models without an
+       * `entityKeys` Array(String) column.
+       */
+      if (key === "entityScope") {
+        const scope: EntityScopeQueryValue | undefined = value as
+          | EntityScopeQueryValue
+          | undefined;
+
+        const entityKeysColumn: AnalyticsTableColumn | null =
+          this.model.getTableColumn("entityKeys");
+
+        if (
+          !scope ||
+          !entityKeysColumn ||
+          entityKeysColumn.type !== TableColumnType.ArrayText
+        ) {
+          continue;
+        }
+
+        const scopeEntityKeys: Array<string> = scope.entityKeys || [];
+
+        const attributesColumn: AnalyticsTableColumn | null =
+          this.model.getTableColumn("attributes");
+        const hasAttributeFallback: boolean =
+          Boolean(scope.attributeKey) &&
+          Boolean(attributesColumn) &&
+          attributesColumn!.type === TableColumnType.MapStringString;
+
+        if (scopeEntityKeys.length === 0 && !hasAttributeFallback) {
+          continue;
+        }
+
+        if (first) {
+          first = false;
+        } else {
+          whereStatement.append(SQL` `);
+        }
+
+        if (scopeEntityKeys.length > 0 && hasAttributeFallback) {
+          whereStatement.append(
+            SQL`AND (hasAny(${entityKeysColumn.key}, ${{
+              value: scopeEntityKeys,
+              type: TableColumnType.ArrayText,
+            }}) OR ${attributesColumn!.key}[${{
+              value: scope.attributeKey,
+              type: TableColumnType.Text,
+            }}] = ${{
+              value: String(scope.attributeValue ?? ""),
+              type: TableColumnType.Text,
+            }})`,
+          );
+        } else if (scopeEntityKeys.length > 0) {
+          whereStatement.append(
+            SQL`AND hasAny(${entityKeysColumn.key}, ${{
+              value: scopeEntityKeys,
+              type: TableColumnType.ArrayText,
+            }})`,
+          );
+        } else {
+          whereStatement.append(
+            SQL`AND ${attributesColumn!.key}[${{
+              value: scope.attributeKey,
+              type: TableColumnType.Text,
+            }}] = ${{
+              value: String(scope.attributeValue ?? ""),
+              type: TableColumnType.Text,
+            }}`,
+          );
+        }
+
         continue;
       }
 

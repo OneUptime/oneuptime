@@ -1,4 +1,5 @@
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
+import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import MetricService from "./MetricService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
@@ -154,6 +155,12 @@ export class MetricAggregationService {
       );
     }
 
+    /*
+     * Read-side retention filter: rows past their per-service retention
+     * stay in their part until the whole part drops (ttl_only_drop_parts).
+     */
+    statement.append(" AND retentionDate >= now()");
+
     MetricAggregationService.appendCommonFilters(statement, request);
 
     statement.append(
@@ -168,7 +175,10 @@ export class MetricAggregationService {
      * so a slow facet never starves the endpoint.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     return statement;

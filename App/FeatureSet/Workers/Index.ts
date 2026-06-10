@@ -147,6 +147,10 @@ import "./Jobs/Docker/CleanupStaleResources";
 // Host disconnection sweeper.
 import "./Jobs/Host/CleanupStaleHosts";
 
+// Telemetry entity registry: TTL prune + span-derived service map edges.
+import "./Jobs/TelemetryEntity/PruneStaleEntities";
+import "./Jobs/TelemetryEntity/ComputeServiceDependencies";
+
 /*
  * Metric retention is handled by ClickHouse TTL on Metric.retentionDate
  * (set at ingest from GlobalConfig), so no cleanup cron is needed here.

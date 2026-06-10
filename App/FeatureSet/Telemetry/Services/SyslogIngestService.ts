@@ -18,6 +18,7 @@ import TelemetryUtil, {
 } from "Common/Server/Utils/Telemetry/Telemetry";
 import OTelIngestService, {
   TelemetryServiceMetadata,
+  getScalarEntityKeyColumns,
 } from "Common/Server/Services/OpenTelemetryIngestService";
 import LogService from "Common/Server/Services/LogService";
 import logger, {
@@ -204,12 +205,14 @@ export default class SyslogIngestService extends OtelIngestBaseService {
           );
 
           const logRow: JSONObject = {
-            _id: ObjectID.generate().toString(),
+            _id: ObjectID.generateTimeOrdered().toString(),
             createdAt: OneUptimeDate.toClickhouseDateTime(ingestionDate),
             projectId: projectId.toString(),
             primaryEntityId: serviceMetadata.primaryEntityId.toString(),
             primaryEntityType: serviceMetadata.primaryEntityType,
             entityKeys: serviceMetadata.entityKeys || [],
+            // serviceEntityKey from the resolved service; '' for the rest.
+            ...getScalarEntityKeyColumns(serviceMetadata),
             time: OneUptimeDate.toClickhouseDateTime64(timestamp),
             timeUnixNano: Math.trunc(
               OneUptimeDate.toUnixNano(timestamp),

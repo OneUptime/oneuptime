@@ -25,6 +25,7 @@ import AnalyticsModelAPI, {
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Query from "Common/Types/BaseDatabase/Query";
+import GroupBy from "Common/Types/BaseDatabase/GroupBy";
 import Select from "Common/Types/BaseDatabase/Select";
 import ObjectID from "Common/Types/ObjectID";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -90,6 +91,7 @@ async function fetchEntityScopedSparklineAggregates(data: {
   attributes: Record<string, string>;
   startAndEndDate: InBetween<Date>;
   entityKeys: Array<string>;
+  entityScope?: EntityScopeFilter | undefined;
 }): Promise<Map<string, AggregatedResult>> {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
   if (!projectId || data.metricNames.length === 0) {
@@ -108,9 +110,15 @@ async function fetchEntityScopedSparklineAggregates(data: {
           if (Object.keys(data.attributes).length > 0) {
             (query as Record<string, unknown>)["attributes"] = data.attributes;
           }
-          (query as Record<string, unknown>)["entityKeys"] = new Includes(
-            data.entityKeys,
-          );
+          if (data.entityKeys.length > 0) {
+            (query as Record<string, unknown>)["entityKeys"] = new Includes(
+              data.entityKeys,
+            );
+          }
+          if (data.entityScope) {
+            (query as Record<string, unknown>)["entityScope"] =
+              data.entityScope;
+          }
           const result: AggregatedResult =
             await AnalyticsModelAPI.aggregate<Metric>({
               modelType: Metric,
@@ -260,6 +268,18 @@ function readInitialUrlState(): InitialUrlState {
   return { search, filters, timeRange, page, pageSize };
 }
 
+/*
+ * Entity scope with attribute fallback (contract C4): compiles server-side
+ * to `hasAny(entityKeys, [...]) OR attributes[attributeKey] = attributeValue`
+ * so pre-entityKeys rows (no backfill) still match. Placed on analytics query
+ * records verbatim under the key "entityScope".
+ */
+interface EntityScopeFilter {
+  entityKeys: Array<string>;
+  attributeKey: string;
+  attributeValue: string;
+}
+
 interface Props {
   serviceIds?: Array<ObjectID> | undefined;
   attributeFilters?: Record<string, string> | undefined;
@@ -269,6 +289,7 @@ interface Props {
    * compiles to `hasAny(entityKeys, [...])` server-side.
    */
   entityKeysFilter?: Array<string> | undefined;
+  entityScope?: EntityScopeFilter | undefined;
 }
 
 const MetricsViewer: FunctionComponent<Props> = (
@@ -369,8 +390,8 @@ const MetricsViewer: FunctionComponent<Props> = (
     const hasAttributeFilters: boolean = Boolean(
       props.attributeFilters && Object.keys(props.attributeFilters).length > 0,
     );
-    return hasServiceIds || hasAttributeFilters;
-  }, [props.serviceIds, props.attributeFilters]);
+    return hasServiceIds || hasAttributeFilters || Boolean(props.entityScope);
+  }, [props.serviceIds, props.attributeFilters, props.entityScope]);
 
   /*
    * Mirror filter state to the URL so refresh and back-from-metric-detail
@@ -631,20 +652,22 @@ const MetricsViewer: FunctionComponent<Props> = (
   }, [parsedSearch.attributes, activeFilters, props.attributeFilters]);
 
   /*
-   * When attribute filters (or the entityKeys scope) change, query the Metric
-   * analytics model for matching metric names. The entityKeys scope must run
-   * this fetch even with zero attribute filters — it is the only thing that
-   * restricts the metric-name list to the entity.
+   * When attribute filters (or the entityKeys / entityScope scopes) change,
+   * query the Metric analytics model for matching metric names. The entity
+   * scopes must run this fetch even with zero attribute filters — they are
+   * the only thing that restricts the metric-name list to the entity.
    */
   useEffect(() => {
     const attributeKeys: Array<string> = Object.keys(effectiveAttributes);
     const entityKeys: Array<string> = props.entityKeysFilter || [];
+    const entityScope: EntityScopeFilter | undefined = props.entityScope;
     const filterKey: string = JSON.stringify({
       attributes: effectiveAttributes,
       entityKeys,
+      entityScope: entityScope || null,
     });
 
-    if (attributeKeys.length === 0 && entityKeys.length === 0) {
+    if (attributeKeys.length === 0 && entityKeys.length === 0 && !entityScope) {
       setAttributeMatchedNames(null);
       lastAttributeFilterRef.current = "";
       return;
@@ -683,16 +706,28 @@ const MetricsViewer: FunctionComponent<Props> = (
             new Includes(entityKeys);
         }
 
+        if (entityScope) {
+          (analyticsQuery as Record<string, unknown>)["entityScope"] =
+            entityScope;
+        }
+
+        /*
+         * GROUP BY name server-side so ClickHouse returns one row per
+         * metric name. The previous getList with `limit: 5000` + client
+         * dedup truncated by recency when a busy entity emitted many rows
+         * per minute, silently dropping less-frequent metric names.
+         */
         const result: AnalyticsListResult<Metric> =
           await AnalyticsModelAPI.getList<Metric>({
             modelType: Metric,
             query: analyticsQuery,
-            limit: 5000,
+            groupBy: { name: true } as GroupBy<Metric>,
+            limit: LIMIT_PER_PROJECT,
             skip: 0,
             select: {
               name: true,
             } as Select<Metric>,
-            sort: { time: SortOrder.Descending } as Record<string, SortOrder>,
+            sort: { name: SortOrder.Ascending } as Record<string, SortOrder>,
             requestOptions: {},
           });
 
@@ -711,7 +746,12 @@ const MetricsViewer: FunctionComponent<Props> = (
       }
     };
     void fetchMatchingNames();
-  }, [effectiveAttributes, props.entityKeysFilter, timeRange]);
+  }, [
+    effectiveAttributes,
+    props.entityKeysFilter,
+    props.entityScope,
+    timeRange,
+  ]);
 
   // Build metric query
   const metricQuery: Query<MetricType> = useMemo(() => {
@@ -814,15 +854,17 @@ const MetricsViewer: FunctionComponent<Props> = (
 
   useEffect(() => {
     /*
-     * When attribute filters or the entityKeys scope are active, defer the
-     * metric list fetch until the name match has resolved. Otherwise the
-     * first pass would query with no name restriction and briefly render the
-     * unfiltered (project-wide) list before snapping to the filtered one.
+     * When attribute filters or the entityKeys / entityScope scopes are
+     * active, defer the metric list fetch until the name match has resolved.
+     * Otherwise the first pass would query with no name restriction and
+     * briefly render the unfiltered (project-wide) list before snapping to
+     * the filtered one.
      */
     const hasEffectiveAttributes: boolean =
       Object.keys(effectiveAttributes).length > 0;
     const isEntityScoped: boolean = Boolean(
-      props.entityKeysFilter && props.entityKeysFilter.length > 0,
+      (props.entityKeysFilter && props.entityKeysFilter.length > 0) ||
+        props.entityScope,
     );
     if (
       (hasEffectiveAttributes || isEntityScoped) &&
@@ -837,6 +879,7 @@ const MetricsViewer: FunctionComponent<Props> = (
     effectiveAttributes,
     attributeMatchedNames,
     props.entityKeysFilter,
+    props.entityScope,
   ]);
 
   // Batch-fetch sparklines for visible metric names
@@ -872,25 +915,27 @@ const MetricsViewer: FunctionComponent<Props> = (
          * 1h window) and reuses the explorer's dedup/result cache.
          */
         const entityKeys: Array<string> = props.entityKeysFilter || [];
-        const aggregates: Map<string, AggregatedResult> =
-          entityKeys.length > 0
-            ? await fetchEntityScopedSparklineAggregates({
-                metricNames: visibleNames,
-                attributes: effectiveAttributes,
-                startAndEndDate: new InBetween<Date>(
-                  dateRange.startValue,
-                  dateRange.endValue,
-                ),
-                entityKeys,
-              })
-            : await MetricUtil.fetchSparklineAggregates({
-                metricNames: visibleNames,
-                attributes: effectiveAttributes as Record<string, string>,
-                startAndEndDate: new InBetween<Date>(
-                  dateRange.startValue,
-                  dateRange.endValue,
-                ),
-              });
+        const isEntityScoped: boolean =
+          entityKeys.length > 0 || Boolean(props.entityScope);
+        const aggregates: Map<string, AggregatedResult> = isEntityScoped
+          ? await fetchEntityScopedSparklineAggregates({
+              metricNames: visibleNames,
+              attributes: effectiveAttributes,
+              startAndEndDate: new InBetween<Date>(
+                dateRange.startValue,
+                dateRange.endValue,
+              ),
+              entityKeys,
+              entityScope: props.entityScope,
+            })
+          : await MetricUtil.fetchSparklineAggregates({
+              metricNames: visibleNames,
+              attributes: effectiveAttributes as Record<string, string>,
+              startAndEndDate: new InBetween<Date>(
+                dateRange.startValue,
+                dateRange.endValue,
+              ),
+            });
 
         const last: Record<string, number> = {};
         const out: Record<string, Array<SparklinePoint>> = {};
@@ -932,7 +977,13 @@ const MetricsViewer: FunctionComponent<Props> = (
       }
     };
     void fetchSparklines();
-  }, [visibleNames, timeRange, effectiveAttributes, props.entityKeysFilter]);
+  }, [
+    visibleNames,
+    timeRange,
+    effectiveAttributes,
+    props.entityKeysFilter,
+    props.entityScope,
+  ]);
 
   // Facet configs
   const facetConfigs: Array<FacetConfig> = useMemo(() => {

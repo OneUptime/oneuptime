@@ -52,6 +52,29 @@ describe("inferRelationshipType", () => {
       inferRelationshipType(EntityType.Service, EntityType.Service),
     ).toBeNull();
   });
+
+  test("depends-on is never inferred from co-occurrence (span-derived only)", () => {
+    /*
+     * Service → service dependency edges come from cross-service
+     * parent/child span pairs (the ComputeServiceDependencies cron) —
+     * a caller and its callee never share one resource, so no ordered
+     * type pair may ever infer DependsOn.
+     */
+    const types: Array<EntityType> = Object.values(EntityType);
+    for (const fromType of types) {
+      for (const toType of types) {
+        expect(inferRelationshipType(fromType, toType)).not.toBe(
+          EntityRelationshipType.DependsOn,
+        );
+      }
+    }
+  });
+});
+
+describe("EntityRelationshipType", () => {
+  test("pins the depends-on wire value (stored in Postgres rows)", () => {
+    expect(EntityRelationshipType.DependsOn).toBe("depends-on");
+  });
 });
 
 describe("deriveRelationships", () => {

@@ -1,5 +1,10 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
-import { TelemetryServiceMetadata } from "Common/Server/Services/OpenTelemetryIngestService";
+import {
+  TelemetryServiceMetadata,
+  getScalarEntityKeyColumns,
+} from "Common/Server/Services/OpenTelemetryIngestService";
+import { ResourceEntityRef } from "Common/Server/Utils/Telemetry/TelemetryEntity";
+import OtelPayloadDecoder from "../Utils/OtelPayloadDecoder";
 import OneUptimeDate from "Common/Types/Date";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
@@ -271,6 +276,12 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
               "attributes"
             ] as JSONArray) || [];
 
+          // Producer-declared entities (authoritative when present).
+          const resourceEntityRefs: Array<ResourceEntityRef> =
+            OtelPayloadDecoder.getEntityRefsFromResource(
+              resourceSpan["resource"] as JSONObject | undefined,
+            );
+
           /*
            * K8s cluster and Docker host discovery are independent — they
            * inspect different resource attributes and don't share state.
@@ -336,6 +347,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
               serverlessFunctionId,
               cloudResourceId,
               rumApplicationId,
+              entityRefs: resourceEntityRefs,
             });
           const serviceName: string = serviceMetadata.serviceName;
 
@@ -946,12 +958,13 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     );
 
     return {
-      _id: ObjectID.generate().toString(),
+      _id: ObjectID.generateTimeOrdered().toString(),
       createdAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
       primaryEntityId: data.primaryEntityId.toString(),
       primaryEntityType: data.serviceMetadata.primaryEntityType,
       entityKeys: data.serviceMetadata.entityKeys || [],
+      ...getScalarEntityKeyColumns(data.serviceMetadata),
       startTime: OneUptimeDate.toClickhouseDateTime(data.startTime.date),
       endTime: OneUptimeDate.toClickhouseDateTime(data.endTime.date),
       startTimeUnixNano: data.startTime.nano,
@@ -993,12 +1006,13 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     );
 
     return {
-      _id: ObjectID.generate().toString(),
+      _id: ObjectID.generateTimeOrdered().toString(),
       createdAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
       primaryEntityId: data.primaryEntityId.toString(),
       primaryEntityType: data.serviceMetadata.primaryEntityType,
       entityKeys: data.serviceMetadata.entityKeys || [],
+      ...getScalarEntityKeyColumns(data.serviceMetadata),
       time: OneUptimeDate.toClickhouseDateTime(data.time.date),
       timeUnixNano: data.time.nano,
       exceptionType: data.exceptionType || "",

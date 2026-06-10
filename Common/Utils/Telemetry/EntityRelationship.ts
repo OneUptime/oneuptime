@@ -25,6 +25,11 @@ export interface EntityRelationshipEdge {
  * ordered pairs and keeping the non-null results produces a correctly
  * directed edge set without double-counting. Extend as new entity types
  * graduate from membership-only to first-class.
+ *
+ * `depends-on` is deliberately absent: a caller service and its callee
+ * never share one resource, so it cannot be co-occurrence-inferred. Those
+ * edges are derived from cross-service parent/child span pairs by the
+ * TelemetryEntity:ComputeServiceDependencies worker cron.
  */
 const RULES: Record<string, EntityRelationshipType> = {
   [`${EntityType.ServiceInstance}|${EntityType.Service}`]:

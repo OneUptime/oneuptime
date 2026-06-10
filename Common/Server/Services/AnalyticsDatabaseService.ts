@@ -28,11 +28,18 @@ import Select from "../Types/AnalyticsDatabase/Select";
 import UpdateBy from "../Types/AnalyticsDatabase/UpdateBy";
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import StatementGenerator from "../Utils/AnalyticsDatabase/StatementGenerator";
+import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import logger, { LogAttributes } from "../Utils/Logger";
 import Realtime from "../Utils/Realtime";
 import StreamUtil from "../Utils/Stream";
 import BaseService from "./BaseService";
-import { ExecResult, ResponseJSON, ResultSet } from "@clickhouse/client";
+import {
+  ClickHouseSettings,
+  ExecResult,
+  ResponseJSON,
+  ResultSet,
+} from "@clickhouse/client";
+import { AsyncLocalStorage } from "node:async_hooks";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import { WorkflowRoute } from "../../ServiceRoute";
 import Protocol from "../../Types/API/Protocol";
@@ -63,6 +70,42 @@ export type Results = ResultSet<"JSON">;
 export type DbJSONResponse = ResponseJSON<{
   data?: Array<JSONObject>;
 }>;
+
+/**
+ * Ambient context that makes ClickHouse inserts idempotent across queue
+ * retries. The telemetry queue worker wraps each job in
+ * `runWithInsertDedup(jobId, ...)`; every insertJsonRows call inside the
+ * job then stamps `insert_deduplication_token =
+ * "<tokenBase>:<table>:<chunkIndex>"` plus async_insert_deduplicate=1 /
+ * wait_for_async_insert=1, so a stalled-job retry that re-processes the
+ * same payload re-issues byte-identical tokens and ClickHouse drops the
+ * duplicate blocks (on replicated tables; on plain MergeTree the token is
+ * ignored unless non_replicated_deduplication_window is set — no harm
+ * either way). The chunk counter is per table because one job inserts
+ * into several tables (e.g. Span + ExceptionInstance) in a deterministic
+ * order.
+ *
+ * HTTP-path inserts run outside the context and keep the fire-and-forget
+ * async insert (wait_for_async_insert=0) — dedup waiting is only
+ * affordable off the request thread.
+ */
+export interface InsertDedupContextStore {
+  tokenBase: string;
+  chunkIndexByTable: Map<string, number>;
+}
+
+const insertDedupContext: AsyncLocalStorage<InsertDedupContextStore> =
+  new AsyncLocalStorage<InsertDedupContextStore>();
+
+export function runWithInsertDedup<T>(
+  tokenBase: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  return insertDedupContext.run(
+    { tokenBase, chunkIndexByTable: new Map<string, number>() },
+    fn,
+  );
+}
 
 export default class AnalyticsDatabaseService<
   TBaseModel extends AnalyticsBaseModel,
@@ -105,7 +148,20 @@ export default class AnalyticsDatabaseService<
   }
 
   @CaptureSpan()
-  public async insertJsonRows(rows: Array<JSONObject>): Promise<void> {
+  public async insertJsonRows(
+    rows: Array<JSONObject>,
+    options?: {
+      /**
+       * Explicit deduplication token for this insert. Overrides the
+       * ambient runWithInsertDedup context. Callers must guarantee the
+       * token is stable across retries of the same logical insert and
+       * unique otherwise.
+       */
+      dedupToken?: string | undefined;
+      /** Extra per-insert ClickHouse settings, merged last. */
+      clickhouseSettings?: ClickHouseSettings | undefined;
+    },
+  ): Promise<void> {
     if (!rows || rows.length === 0) {
       return;
     }
@@ -121,15 +177,51 @@ export default class AnalyticsDatabaseService<
       );
     }
 
+    let dedupToken: string | undefined = options?.dedupToken;
+
+    if (!dedupToken) {
+      const dedupStore: InsertDedupContextStore | undefined =
+        insertDedupContext.getStore();
+      if (dedupStore) {
+        const chunkIndex: number =
+          dedupStore.chunkIndexByTable.get(tableName) ?? 0;
+        dedupStore.chunkIndexByTable.set(tableName, chunkIndex + 1);
+        dedupToken = `${dedupStore.tokenBase}:${tableName}:${chunkIndex}`;
+      }
+    }
+
+    let clickhouseSettings: ClickHouseSettings = {
+      async_insert: 1,
+      wait_for_async_insert: 0,
+    };
+
+    if (dedupToken) {
+      /*
+       * wait_for_async_insert=1 so the worker only acks the job after
+       * the block actually landed (or was deduplicated) — otherwise a
+       * crash between buffer-write and flush loses data with no retry.
+       */
+      clickhouseSettings = {
+        async_insert: 1,
+        wait_for_async_insert: 1,
+        async_insert_deduplicate: 1,
+        insert_deduplication_token: dedupToken,
+      };
+    }
+
+    if (options?.clickhouseSettings) {
+      clickhouseSettings = {
+        ...clickhouseSettings,
+        ...options.clickhouseSettings,
+      };
+    }
+
     try {
       await client.insert({
         table: tableName,
         values: rows,
         format: "JSONEachRow",
-        clickhouse_settings: {
-          async_insert: 1,
-          wait_for_async_insert: 0,
-        },
+        clickhouse_settings: clickhouseSettings,
       });
 
       logger.debug(
@@ -490,9 +582,14 @@ export default class AnalyticsDatabaseService<
       value: data.endDate,
     }} GROUP BY primaryEntityId, primaryEntityType`;
 
-    statement.append(
-      " SETTINGS max_execution_time = 60, timeout_overflow_mode = 'break'",
-    );
+    /*
+     * Billing scan: deliberately NO timeout_overflow_mode='break'. A
+     * partial aggregation here silently undercounts usage (rows that
+     * weren't scanned before the cap simply never get billed). Failing
+     * loudly lets the staging cron retry instead; the cap is raised to
+     * compensate for the full-day scan on large projects.
+     */
+    statement.append(getQuerySettings({ maxExecutionTimeInSeconds: 120 }));
 
     const dbResult: ResultSet<"JSON"> = await this.executeQuery(statement);
     const responseJSON: ResponseJSON<JSONObject> =
@@ -847,6 +944,25 @@ export default class AnalyticsDatabaseService<
     return Promise.resolve({ findBy, carryForward: null });
   }
 
+  /**
+   * Read-side retention filter. TTL is `retentionDate DELETE` with
+   * ttl_only_drop_parts=1, so a part survives until EVERY row in it has
+   * expired — rows past their per-service retention stay on disk (and
+   * were queryable) for up to a partition's worth of extra time. For
+   * models that carry a retentionDate column, every centrally generated
+   * read appends this predicate so expired rows become invisible the
+   * moment they expire rather than when their part finally drops.
+   *
+   * Returns the raw SQL fragment (server-evaluated now(), no parameter)
+   * or "" when the model has no retentionDate column.
+   */
+  protected getRetentionReadFilter(): string {
+    if (!this.model.getTableColumn("retentionDate")) {
+      return "";
+    }
+    return " AND retentionDate >= now()";
+  }
+
   public toCountStatement(countBy: CountBy<TBaseModel>): Statement {
     if (!this.database) {
       this.useDefaultDatabase();
@@ -877,7 +993,8 @@ export default class AnalyticsDatabaseService<
             FROM ${databaseName}.${this.model.tableName}
             WHERE TRUE `
       )
-      .append(whereStatement);
+      .append(whereStatement)
+      .append(this.getRetentionReadFilter());
 
     if (countBy.limit) {
       statement.append(SQL`
@@ -906,7 +1023,10 @@ export default class AnalyticsDatabaseService<
      * throwing, which is acceptable for pagination display.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     logger.debug(`${this.model.tableName} Count Statement`, { tableName: this.model.tableName } as LogAttributes);
@@ -941,11 +1061,13 @@ export default class AnalyticsDatabaseService<
     const statement: Statement = SQL`
             SELECT 1 as existsFlag
             FROM ${databaseName}.${this.model.tableName}
-            WHERE TRUE `.append(whereStatement);
+            WHERE TRUE `
+      .append(whereStatement)
+      .append(this.getRetentionReadFilter());
 
     statement.append(SQL` LIMIT 1`);
 
-    statement.append(" SETTINGS max_execution_time = 45");
+    statement.append(getQuerySettings({ maxExecutionTimeInSeconds: 45 }));
 
     logger.debug(`${this.model.tableName} Exists Statement`, { tableName: this.model.tableName } as LogAttributes);
     logger.debug(statement, { tableName: this.model.tableName } as LogAttributes);
@@ -978,7 +1100,10 @@ export default class AnalyticsDatabaseService<
 
     statement.append(SQL`SELECT `.append(select.statement));
     statement.append(SQL` FROM ${databaseName}.${this.model.tableName}`);
-    statement.append(SQL` WHERE TRUE `).append(whereStatement);
+    statement
+      .append(SQL` WHERE TRUE `)
+      .append(whereStatement)
+      .append(this.getRetentionReadFilter());
 
     statement
       .append(SQL` GROUP BY `)
@@ -1025,7 +1150,13 @@ export default class AnalyticsDatabaseService<
      *   ranges, but cluster headroom is preserved under burst.
      */
     statement.append(
-      ` SETTINGS optimize_aggregation_in_order=1, optimize_move_to_prewhere=1, max_threads=4`,
+      getQuerySettings({
+        additionalSettings: {
+          optimize_aggregation_in_order: 1,
+          optimize_move_to_prewhere: 1,
+          max_threads: 4,
+        },
+      }),
     );
 
     logger.debug(`${this.model.tableName} Aggregate Statement`, { tableName: this.model.tableName } as LogAttributes);
@@ -1071,7 +1202,10 @@ export default class AnalyticsDatabaseService<
 
     statement.append(SQL`SELECT `.append(select.statement));
     statement.append(SQL` FROM ${databaseName}.${this.model.tableName}`);
-    statement.append(SQL` WHERE TRUE `).append(whereStatement);
+    statement
+      .append(SQL` WHERE TRUE `)
+      .append(whereStatement)
+      .append(this.getRetentionReadFilter());
 
     if (groupByStatement) {
       statement.append(SQL` GROUP BY `).append(groupByStatement);
@@ -1100,7 +1234,10 @@ export default class AnalyticsDatabaseService<
      * partial results rather than throwing.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     logger.debug(`${this.model.tableName} Find Statement`, { tableName: this.model.tableName } as LogAttributes);

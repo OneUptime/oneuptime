@@ -69,6 +69,19 @@ export interface ComponentProps {
   showFilters?: boolean | undefined;
   noLogsMessage?: string | undefined;
   logQuery?: Query<Log> | undefined;
+  /*
+   * Entity scope with attribute fallback (contract C4): compiles server-side
+   * to `hasAny(entityKeys, [...]) OR attributes[attributeKey] =
+   * attributeValue` so pre-entityKeys rows (no backfill) still match. Placed
+   * on the log query record verbatim under the key "entityScope".
+   */
+  entityScope?:
+    | {
+        entityKeys: Array<string>;
+        attributeKey: string;
+        attributeValue: string;
+      }
+    | undefined;
   limit?: number | undefined;
   onCountChange?: ((count: number) => void) | undefined;
   onShowDocumentation?: (() => void) | undefined;
@@ -281,6 +294,11 @@ function buildBaseQuery(props: ComponentProps): Query<Log> {
     }
   }
 
+  // Contract C4: pass through verbatim; compiled by StatementGenerator.
+  if (props.entityScope) {
+    (query as any)["entityScope"] = props.entityScope;
+  }
+
   return query;
 }
 
@@ -416,7 +434,13 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     );
     setFilterOptions(base);
     setPage(1);
-  }, [props.serviceIds, props.traceIds, props.spanIds, props.logQuery]);
+  }, [
+    props.serviceIds,
+    props.traceIds,
+    props.spanIds,
+    props.logQuery,
+    props.entityScope,
+  ]);
 
   /*
    * Mirror time range / chip filters / page / pageSize to the URL so refresh
@@ -529,6 +553,27 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     }
 
     return attributes;
+  }, [props.logQuery]);
+
+  /*
+   * Extract the entityKeys membership filter from logQuery so the histogram
+   * and facets reflect the same entity scope as the logs list (the backend
+   * accepts a top-level `entityKeys: Array<string>` on both endpoints).
+   */
+  const logQueryEntityKeys: Array<string> | undefined = useMemo(() => {
+    if (!props.logQuery) {
+      return undefined;
+    }
+
+    const values: Array<string> = getQueryValues(
+      (props.logQuery as any)["entityKeys"],
+    );
+
+    if (values.length === 0) {
+      return undefined;
+    }
+
+    return values;
   }, [props.logQuery]);
 
   const savedViewOptions: Array<LogsSavedViewOption> = useMemo(() => {
@@ -778,6 +823,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           (requestData as any)["attributes"] = logQueryAttributes;
         }
 
+        if (logQueryEntityKeys) {
+          (requestData as any)["entityKeys"] = logQueryEntityKeys;
+        }
+
         const response: HTTPResponse<JSONObject> = await postApi(
           "/telemetry/logs/histogram",
           requestData,
@@ -800,6 +849,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       appliedFacetFilters,
       timeRange,
       logQueryAttributes,
+      logQueryEntityKeys,
     ]);
 
   // --- Fetch facets ---
@@ -845,6 +895,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           (requestData as any)["attributes"] = logQueryAttributes;
         }
 
+        if (logQueryEntityKeys) {
+          (requestData as any)["entityKeys"] = logQueryEntityKeys;
+        }
+
         /*
          * Only forward non-empty entries — an empty string would still match
          * everything but adds noise to the request, and the backend treats
@@ -881,6 +935,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       spanIdStrings,
       timeRange,
       logQueryAttributes,
+      logQueryEntityKeys,
       facetSearchText,
     ]);
 

@@ -5,6 +5,8 @@ import {
 } from "../../../Utils/Telemetry/EntityKey";
 import EntityType from "../../../Types/Telemetry/EntityType";
 import Dictionary from "../../../Types/Dictionary";
+import logger from "../Logger";
+import { ONEUPTIME_LABEL_ATTRIBUTE_PREFIX } from "./OneuptimeLabel";
 import crypto from "crypto";
 
 /*
@@ -67,6 +69,32 @@ export interface ExtractedEntity {
    * the key.
    */
   identifyingAttributes: Dictionary<string>;
+  /**
+   * A small allowlisted set of mutable, non-identifying attributes
+   * (os.type, sdk language, image tag, ...) persisted onto the registry
+   * row (last-writer-wins merge). NEVER part of identity — changing any
+   * of these MUST NOT change `entityKey`.
+   */
+  descriptiveAttributes?: Record<string, string>;
+  /**
+   * Label names promoted from `oneuptime.label.<name>` resource
+   * attributes (the suffix after the prefix, trimmed). Non-identifying;
+   * the registry attaches them via the existing project label system.
+   */
+  labels?: Array<string>;
+}
+
+/**
+ * A normalized OTLP `Resource.entity_refs` entry (proto `EntityRef`,
+ * Development status). When producers emit refs they are authoritative:
+ * `idKeys`/`descriptionKeys` partition the flat resource attributes
+ * into identity vs description for the entity of `type`.
+ */
+export interface ResourceEntityRef {
+  schemaUrl?: string | undefined;
+  type?: string | undefined;
+  idKeys?: Array<string> | undefined;
+  descriptionKeys?: Array<string> | undefined;
 }
 
 export default class TelemetryEntity {
@@ -91,12 +119,51 @@ export default class TelemetryEntity {
   }
 
   /**
-   * Derive every entity present in a resource. Each supported type whose
-   * identifying attributes are all present is emitted exactly once;
-   * types with missing identity are skipped (no phantom entities). The
-   * result is deduped by key and stable-ordered.
+   * Derive every entity present in a resource. When the producer emitted
+   * OTLP `entity_refs`, those are authoritative and entities are built
+   * directly from them; otherwise (refs absent, or none usable) each
+   * supported type whose identifying attributes are all present is
+   * emitted exactly once via the heuristic resolvers; types with missing
+   * identity are skipped (no phantom entities). The result is deduped by
+   * key and stable-ordered. Descriptive attributes and labels are
+   * attached after identity is fixed — they NEVER feed the key.
    */
   public static extractEntities(data: {
+    projectId: string;
+    attributes: EntityAttributes;
+    entityRefs?: Array<ResourceEntityRef> | undefined;
+  }): Array<ExtractedEntity> {
+    let out: Array<ExtractedEntity> = [];
+
+    if (data.entityRefs && data.entityRefs.length > 0) {
+      out = this.entitiesFromRefs({
+        projectId: data.projectId,
+        attributes: data.attributes,
+        entityRefs: data.entityRefs,
+      });
+    }
+
+    /*
+     * Fall back to the heuristic resolvers when no refs were provided —
+     * and also when every provided ref was unusable (unknown type /
+     * missing id values), so a producer with a malformed or
+     * unsupported-only ref set does not lose membership keys entirely.
+     */
+    if (out.length === 0) {
+      out = this.entitiesFromResolvers(data);
+    }
+
+    const labels: Array<string> = this.extractLabels(data.attributes);
+    if (labels.length > 0) {
+      for (const entity of out) {
+        entity.labels = labels;
+      }
+    }
+
+    return out;
+  }
+
+  private static entitiesFromResolvers(data: {
     projectId: string;
     attributes: EntityAttributes;
   }): Array<ExtractedEntity> {
@@ -124,10 +191,158 @@ export default class TelemetryEntity {
       }
       seen.add(entityKey);
 
+      const descriptiveAttributes: Record<string, string> =
+        this.descriptiveAttributesFor(identity.entityType, data.attributes);
+
       out.push({
         entityType: identity.entityType,
         entityKey,
         identifyingAttributes: this.canonObject(identity.id),
+        ...(Object.keys(descriptiveAttributes).length > 0
+          ? { descriptiveAttributes }
+          : {}),
+      });
+    }
+
+    return out;
+  }
+
+  /*
+   * Build entities from OTLP `entity_refs` (the authoritative path).
+   * Identity = the values of the ref's `id_keys` read from the flat
+   * resource attributes; description = the `description_keys` values.
+   * Refs with a type outside our EntityType vocabulary, with no
+   * id_keys, or whose identifying values are missing from the resource
+   * are skipped (debug-logged) — never half-identified.
+   */
+  private static entitiesFromRefs(data: {
+    projectId: string;
+    attributes: EntityAttributes;
+    entityRefs: Array<ResourceEntityRef>;
+  }): Array<ExtractedEntity> {
+    const out: Array<ExtractedEntity> = [];
+    const seen: Set<string> = new Set<string>();
+
+    for (const ref of data.entityRefs) {
+      const refType: string =
+        typeof ref.type === "string" ? ref.type.trim() : "";
+      const entityType: EntityType | undefined =
+        this.entityTypeByRefType.get(refType.toLowerCase());
+
+      if (!entityType) {
+        logger.debug(
+          `Skipping OTLP entity_ref with unsupported type "${refType}" — not in the supported EntityType vocabulary.`,
+        );
+        continue;
+      }
+
+      const idKeys: Array<string> = (ref.idKeys || []).filter(
+        (key: string) => {
+          return typeof key === "string" && key.trim().length > 0;
+        },
+      );
+
+      if (idKeys.length === 0) {
+        logger.debug(
+          `Skipping OTLP entity_ref of type "${refType}" with no id_keys.`,
+        );
+        continue;
+      }
+
+      const id: Dictionary<string> = {};
+      let missingIdValue: boolean = false;
+
+      for (const key of idKeys) {
+        const value: string | null = this.str(data.attributes, key);
+        if (!value) {
+          missingIdValue = true;
+          break;
+        }
+        /*
+         * The producer's ref is honored verbatim — but a known-mutable
+         * attribute used as identity forks the entity key every time the
+         * value changes (image tag bump, redeploy, ...), inflating
+         * entity cardinality. Warn so the source can be fixed; do NOT
+         * drop the key (see OpenTelemetryEntities.md, Edge Cases).
+         */
+        if (this.knownMutableAttributeKeys.has(key)) {
+          logger.warn(
+            `OTLP entity_ref of type "${refType}" declares mutable attribute "${key}" as identifying — honoring it, but this forks entity identity whenever the value changes (cardinality risk).`,
+          );
+        }
+        id[key] = value;
+      }
+
+      if (missingIdValue) {
+        logger.debug(
+          `Skipping OTLP entity_ref of type "${refType}" — an id_keys attribute is missing from the resource attributes.`,
+        );
+        continue;
+      }
+
+      const entityKey: string = this.computeEntityKey({
+        projectId: data.projectId,
+        entityType,
+        identifyingAttributes: id,
+      });
+
+      if (seen.has(entityKey)) {
+        continue;
+      }
+      seen.add(entityKey);
+
+      const descriptiveAttributes: Record<string, string> = {};
+      for (const key of ref.descriptionKeys || []) {
+        if (typeof key !== "string" || key.trim().length === 0) {
+          continue;
+        }
+        const value: string | null = this.strOrFirst(data.attributes, key);
+        if (value) {
+          descriptiveAttributes[key] = value;
+        }
+      }
+
+      out.push({
+        entityType,
+        entityKey,
+        identifyingAttributes: this.canonObject(id),
+        ...(Object.keys(descriptiveAttributes).length > 0
+          ? { descriptiveAttributes }
+          : {}),
+      });
+    }
+
+    return out;
+  }
+
+  /**
+   * Normalize a decoded OTLP `resource.entityRefs` JSON value (protobuf
+   * `.toJSON()` output or OTLP/JSON, camelCase or snake_case) into typed
+   * refs. Malformed entries are dropped, not thrown.
+   */
+  public static parseEntityRefs(raw: unknown): Array<ResourceEntityRef> {
+    if (!raw || !Array.isArray(raw)) {
+      return [];
+    }
+
+    const out: Array<ResourceEntityRef> = [];
+
+    for (const item of raw) {
+      if (!item || typeof item !== "object" || Array.isArray(item)) {
+        continue;
+      }
+      const record: Record<string, unknown> = item as Record<string, unknown>;
+      const type: unknown = record["type"];
+      const schemaUrl: unknown = record["schemaUrl"] ?? record["schema_url"];
+      const idKeys: unknown = record["idKeys"] ?? record["id_keys"];
+      const descriptionKeys: unknown =
+        record["descriptionKeys"] ?? record["description_keys"];
+
+      out.push({
+        schemaUrl: typeof schemaUrl === "string" ? schemaUrl : undefined,
+        type: typeof type === "string" ? type : undefined,
+        idKeys: this.stringList(idKeys),
+        descriptionKeys: this.stringList(descriptionKeys),
       });
     }
 
@@ -142,12 +357,36 @@ export default class TelemetryEntity {
   public static extractEntityKeys(data: {
     projectId: string;
     attributes: EntityAttributes;
+    entityRefs?: Array<ResourceEntityRef> | undefined;
   }): Array<string> {
     return this.extractEntities(data)
       .map((e: ExtractedEntity) => {
         return e.entityKey;
       })
       .sort();
+  }
+
+  /**
+   * Label names promoted from `oneuptime.label.<name>` resource
+   * attributes — the suffix after the prefix, trimmed, deduped, sorted.
+   * Purely descriptive; never identity-bearing.
+   */
+  public static extractLabels(attrs: EntityAttributes): Array<string> {
+    const seen: Set<string> = new Set<string>();
+
+    for (const key of Object.keys(attrs || {})) {
+      if (!key.startsWith(ONEUPTIME_LABEL_ATTRIBUTE_PREFIX)) {
+        continue;
+      }
+      const labelName: string = key
+        .substring(ONEUPTIME_LABEL_ATTRIBUTE_PREFIX.length)
+        .trim();
+      if (labelName) {
+        seen.add(labelName);
+      }
+    }
+
+    return Array.from(seen).sort();
   }
 
   /*
@@ -352,6 +591,129 @@ export default class TelemetryEntity {
       return { entityType: EntityType.TelemetrySdk, id };
     },
   ];
+
+  /*
+   * OTLP `entity_refs.type` values are the same semconv-style dotted
+   * names our EntityType enum uses as values ("service", "host",
+   * "k8s.pod", ...), so the map is just value → enum member. Unknown
+   * types are skipped by the caller.
+   */
+  private static readonly entityTypeByRefType: Map<string, EntityType> =
+    new Map(
+      Object.values(EntityType).map((entityType: EntityType) => {
+        return [String(entityType), entityType];
+      }),
+    );
+
+  /*
+   * Attributes our model treats as mutable/descriptive (image tag,
+   * version, IP, command line, ...). Advisory only: when a producer's
+   * entity_ref declares one as identifying we honor it but log a
+   * cardinality warning (see OpenTelemetryEntities.md, Edge Cases).
+   */
+  private static readonly knownMutableAttributeKeys: ReadonlySet<string> =
+    new Set([
+      "service.version",
+      "telemetry.sdk.version",
+      "host.ip",
+      "host.image.id",
+      "os.version",
+      "os.description",
+      "container.image.tag",
+      "container.image.tags",
+      "container.image.id",
+      "process.command_line",
+      "process.command_args",
+    ]);
+
+  /*
+   * Per-type descriptive allowlists (heuristic path). Deliberately tiny
+   * (<= ~6 keys each): the registry merges these last-writer-wins, so
+   * only stable, dashboard-worthy metadata belongs here. Types not
+   * listed emit no descriptive attributes.
+   */
+  private static readonly descriptiveAttributeKeysByType: Partial<
+    Record<EntityType, Array<string>>
+  > = {
+    [EntityType.Host]: [
+      "os.type",
+      "host.arch",
+      "cloud.provider",
+      "cloud.region",
+      "cloud.availability_zone",
+    ],
+    [EntityType.Service]: [
+      "telemetry.sdk.language",
+      "telemetry.sdk.name",
+      "telemetry.sdk.version",
+    ],
+    [EntityType.KubernetesNode]: ["node.kubernetes.io/instance-type"],
+    [EntityType.Container]: [
+      "container.image.name",
+      "container.image.tag",
+      "container.image.tags",
+    ],
+  };
+
+  private static descriptiveAttributesFor(
+    entityType: EntityType,
+    attrs: EntityAttributes,
+  ): Record<string, string> {
+    const out: Record<string, string> = {};
+    const keys: Array<string> | undefined =
+      this.descriptiveAttributeKeysByType[entityType];
+
+    if (!keys) {
+      return out;
+    }
+
+    for (const key of keys) {
+      const value: string | null = this.strOrFirst(attrs, key);
+      if (value) {
+        out[key] = value;
+      }
+    }
+
+    return out;
+  }
+
+  /**
+   * Like `str`, but additionally accepts an array-valued attribute by
+   * taking its first scalar element (e.g. semconv `container.image.tags`
+   * is an array). Descriptive use only — identity stays scalar-strict.
+   */
+  private static strOrFirst(attrs: EntityAttributes, key: string): string | null {
+    const direct: string | null = this.str(attrs, key);
+    if (direct) {
+      return direct;
+    }
+
+    const value: EntityAttributeValue | Array<EntityAttributeValue> = attrs
+      ? attrs[key]
+      : undefined;
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (typeof item === "string" && item.trim().length > 0) {
+          return item.trim();
+        }
+        if (typeof item === "number" || typeof item === "boolean") {
+          return String(item);
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private static stringList(value: unknown): Array<string> {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+    return value.filter((item: unknown): item is string => {
+      return typeof item === "string" && item.trim().length > 0;
+    });
+  }
 
   /*
    * k8s cluster identity — k8s.cluster.name only, for the same reason host

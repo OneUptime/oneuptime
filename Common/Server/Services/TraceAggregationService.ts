@@ -1,4 +1,5 @@
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
+import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import SpanService from "./SpanService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
@@ -88,6 +89,17 @@ export class TraceAggregationService {
     ]);
   private static readonly ATTRIBUTE_KEY_PATTERN: RegExp = /^[a-zA-Z0-9._:/-]+$/;
   private static readonly MAX_FACET_KEY_LENGTH: number = 256;
+  /*
+   * Read-side retention filter for raw-table queries (rows past their
+   * per-service retention stay in their part until the whole part drops
+   * — ttl_only_drop_parts). Deliberately NOT applied to the
+   * projection-shaped queries (histogram / resource facet counts): the
+   * proj_hist_by_minute aggregate projection does not store
+   * retentionDate, so the predicate would silently force a full
+   * base-table scan.
+   */
+  private static readonly RETENTION_FILTER: string =
+    " AND retentionDate >= now()";
 
   @CaptureSpan()
   public static async getHistogram(
@@ -238,6 +250,8 @@ export class TraceAggregationService {
       }}`,
     );
 
+    statement.append(TraceAggregationService.RETENTION_FILTER);
+
     TraceAggregationService.appendCommonFilters(statement, request);
 
     statement.append(
@@ -253,7 +267,10 @@ export class TraceAggregationService {
      * proxy_read_timeout regardless.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     const dbResult: Results = await SpanService.executeQuery(statement);
@@ -418,7 +435,11 @@ export class TraceAggregationService {
      * toStartOfMinute note above).
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break', optimize_use_projections = 1",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+        additionalSettings: { optimize_use_projections: 1 },
+      }),
     );
 
     const serviceCounts: Map<string, number> = new Map<string, number>();
@@ -501,6 +522,8 @@ export class TraceAggregationService {
      * If any non-projection filter (kind, name, traceId, nameSearchText,
      * entityKeys, attributes) is active, ClickHouse transparently falls back
      * to scanning the main table for the inner query — same cost as before.
+     * The retention read-filter is omitted for the same reason (see
+     * RETENTION_FILTER).
      */
     const statement: Statement = SQL`
       SELECT
@@ -543,7 +566,11 @@ export class TraceAggregationService {
      * a density visualization. Explicitly enable projection use.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break', optimize_use_projections = 1",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+        additionalSettings: { optimize_use_projections: 1 },
+      }),
     );
 
     return statement;
@@ -622,6 +649,8 @@ export class TraceAggregationService {
       );
     }
 
+    statement.append(TraceAggregationService.RETENTION_FILTER);
+
     TraceAggregationService.appendCommonFilters(statement, request);
 
     statement.append(
@@ -636,7 +665,10 @@ export class TraceAggregationService {
      * 60s proxy_read_timeout so a slow facet never starves the endpoint.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     return statement;

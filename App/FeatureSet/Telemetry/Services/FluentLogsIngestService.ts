@@ -22,6 +22,7 @@ import logger, {
 } from "Common/Server/Utils/Logger";
 import OTelIngestService, {
   TelemetryServiceMetadata,
+  getScalarEntityKeyColumns,
 } from "Common/Server/Services/OpenTelemetryIngestService";
 import LogService from "Common/Server/Services/LogService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
@@ -229,12 +230,14 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
           );
 
           const logRow: JSONObject = {
-            _id: ObjectID.generate().toString(),
+            _id: ObjectID.generateTimeOrdered().toString(),
             createdAt: ingestionDateTime,
             projectId: projectId.toString(),
             primaryEntityId: serviceMetadata.primaryEntityId.toString(),
             primaryEntityType: serviceMetadata.primaryEntityType,
             entityKeys: serviceMetadata.entityKeys || [],
+            // serviceEntityKey from the resolved service; '' for the rest.
+            ...getScalarEntityKeyColumns(serviceMetadata),
             time: OneUptimeDate.toClickhouseDateTime64(ingestionDate),
             timeUnixNano,
             severityNumber: severityInfo.number,

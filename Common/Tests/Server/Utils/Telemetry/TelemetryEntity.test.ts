@@ -1,6 +1,7 @@
 import TelemetryEntity, {
   EntityAttributes,
   ExtractedEntity,
+  ResourceEntityRef,
 } from "../../../../Server/Utils/Telemetry/TelemetryEntity";
 import EntityType from "../../../../Types/Telemetry/EntityType";
 import {
@@ -8,7 +9,8 @@ import {
   keyForService,
   keyForKubernetesCluster,
 } from "../../../../Utils/Telemetry/EntityKey";
-import { describe, expect, test } from "@jest/globals";
+import logger from "../../../../Server/Utils/Logger";
+import { describe, expect, jest, test } from "@jest/globals";
 import { createHash } from "crypto";
 
 const PROJECT: string = "proj1";
@@ -407,5 +409,357 @@ describe("read-side keyFor* helpers match ingest-side extraction", () => {
     expect(keyForKubernetesCluster(PROJECT, "prod-us")).toBe(
       stamped!.entityKey,
     );
+  });
+});
+
+describe("descriptive attributes & labels (never identity-bearing)", () => {
+  test("host: allowlisted descriptive attributes are emitted, key unchanged", () => {
+    const bare: ExtractedEntity | undefined = entityOfType(
+      { "host.name": "web-1" },
+      EntityType.Host,
+    );
+    const decorated: ExtractedEntity | undefined = entityOfType(
+      {
+        "host.name": "web-1",
+        "os.type": "linux",
+        "host.arch": "arm64",
+        "cloud.provider": "aws",
+        "cloud.region": "us-east-1",
+        "cloud.availability_zone": "us-east-1a",
+        // not in the allowlist — must not leak into descriptive.
+        "host.ip": ["10.0.0.1"],
+      },
+      EntityType.Host,
+    );
+
+    expect(decorated!.entityKey).toBe(bare!.entityKey);
+    expect(decorated!.identifyingAttributes).toEqual(
+      bare!.identifyingAttributes,
+    );
+    expect(decorated!.descriptiveAttributes).toEqual({
+      "os.type": "linux",
+      "host.arch": "arm64",
+      "cloud.provider": "aws",
+      "cloud.region": "us-east-1",
+      "cloud.availability_zone": "us-east-1a",
+    });
+    expect(bare!.descriptiveAttributes).toBeUndefined();
+  });
+
+  test("service: sdk descriptive attributes captured, key unchanged", () => {
+    const bare: ExtractedEntity | undefined = entityOfType(
+      { "service.name": "checkout" },
+      EntityType.Service,
+    );
+    const decorated: ExtractedEntity | undefined = entityOfType(
+      {
+        "service.name": "checkout",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.language": "nodejs",
+        "telemetry.sdk.version": "1.30.0",
+      },
+      EntityType.Service,
+    );
+
+    expect(decorated!.entityKey).toBe(bare!.entityKey);
+    expect(decorated!.descriptiveAttributes).toEqual({
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.language": "nodejs",
+      "telemetry.sdk.version": "1.30.0",
+    });
+  });
+
+  test("k8s.node: instance-type descriptive when present", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      {
+        "k8s.cluster.name": "prod-us",
+        "k8s.node.name": "node-1",
+        "node.kubernetes.io/instance-type": "n2-standard-4",
+      },
+      EntityType.KubernetesNode,
+    );
+    expect(e!.descriptiveAttributes).toEqual({
+      "node.kubernetes.io/instance-type": "n2-standard-4",
+    });
+  });
+
+  test("container: image name/tag descriptive; array-valued tags accepted", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      {
+        "container.id": "c-1",
+        "container.image.name": "redis",
+        "container.image.tags": ["7.2", "latest"],
+      },
+      EntityType.Container,
+    );
+    expect(e!.identifyingAttributes).toEqual({ "container.id": "c-1" });
+    expect(e!.descriptiveAttributes).toEqual({
+      "container.image.name": "redis",
+      "container.image.tags": "7.2",
+    });
+  });
+
+  test("the full membership key set is byte-identical with and without descriptive attrs / labels", () => {
+    const identityOnly: EntityAttributes = {
+      "service.name": "checkout",
+      "host.name": "web-1",
+      "k8s.cluster.name": "prod-us",
+      "k8s.node.name": "node-1",
+      "container.id": "c-1",
+    };
+    const decorated: EntityAttributes = {
+      ...identityOnly,
+      "os.type": "linux",
+      "host.arch": "amd64",
+      "cloud.provider": "gcp",
+      "cloud.region": "europe-west1",
+      "cloud.availability_zone": "europe-west1-b",
+      "telemetry.sdk.language": "go",
+      "node.kubernetes.io/instance-type": "n2-standard-4",
+      "container.image.name": "ghcr.io/acme/checkout",
+      "container.image.tag": "1.2.3",
+      "oneuptime.label.team": "payments",
+    };
+    expect(keysFor(decorated)).toEqual(keysFor(identityOnly));
+  });
+
+  test("oneuptime.label.* suffixes become labels on every extracted entity", () => {
+    const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
+      projectId: PROJECT,
+      attributes: {
+        "service.name": "checkout",
+        "host.name": "web-1",
+        "oneuptime.label.team": "payments",
+        "oneuptime.label.env": "prod",
+        // empty suffix is skipped
+        "oneuptime.label.": "ignored",
+      },
+    });
+    expect(entities.length).toBeGreaterThan(0);
+    for (const entity of entities) {
+      expect(entity.labels).toEqual(["env", "team"]);
+    }
+  });
+
+  test("no labels attribute → labels field omitted", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      { "service.name": "checkout" },
+      EntityType.Service,
+    );
+    expect(e!.labels).toBeUndefined();
+  });
+});
+
+describe("extractEntities — OTLP entity_refs (authoritative path)", () => {
+  const attrs: EntityAttributes = {
+    "service.name": "checkout",
+    "service.namespace": "shop",
+    "host.name": "web-1",
+    "telemetry.sdk.language": "nodejs",
+  };
+
+  test("builds entities from refs instead of the heuristics", () => {
+    const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
+      projectId: PROJECT,
+      attributes: attrs,
+      entityRefs: [
+        {
+          type: "service",
+          idKeys: ["service.name", "service.namespace"],
+          descriptionKeys: ["telemetry.sdk.language"],
+        },
+        { type: "host", idKeys: ["host.name"] },
+      ],
+    });
+
+    // Refs are authoritative: only the two declared entities, no
+    // heuristic extras (the resource would heuristically also yield a
+    // telemetry.sdk entity if telemetry.sdk.name were present, etc.).
+    expect(entities).toHaveLength(2);
+
+    const service: ExtractedEntity = entities.find((e: ExtractedEntity) => {
+      return e.entityType === EntityType.Service;
+    })!;
+    expect(service.identifyingAttributes).toEqual({
+      "service.name": "checkout",
+      "service.namespace": "shop",
+    });
+    expect(service.descriptiveAttributes).toEqual({
+      "telemetry.sdk.language": "nodejs",
+    });
+    // Ref-built keys are byte-identical to read-side/heuristic keys.
+    expect(service.entityKey).toBe(keyForService(PROJECT, "checkout", "shop"));
+
+    const host: ExtractedEntity = entities.find((e: ExtractedEntity) => {
+      return e.entityType === EntityType.Host;
+    })!;
+    expect(host.entityKey).toBe(keyForHost(PROJECT, "web-1"));
+  });
+
+  test("unknown ref types are skipped (debug log), known refs still built", () => {
+    const debugSpy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(logger, "debug")
+      .mockImplementation(() => {});
+    try {
+      const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities(
+        {
+          projectId: PROJECT,
+          attributes: attrs,
+          entityRefs: [
+            { type: "acme.custom.widget", idKeys: ["service.name"] },
+            { type: "service", idKeys: ["service.name"] },
+          ],
+        },
+      );
+      expect(
+        entities.map((e: ExtractedEntity) => {
+          return e.entityType;
+        }),
+      ).toEqual([EntityType.Service]);
+      expect(debugSpy).toHaveBeenCalled();
+    } finally {
+      debugSpy.mockRestore();
+    }
+  });
+
+  test("a ref whose identifying value is missing from the resource is skipped", () => {
+    const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
+      projectId: PROJECT,
+      attributes: attrs,
+      entityRefs: [
+        { type: "service", idKeys: ["service.name"] },
+        // k8s.pod.name is not in attrs — no half-identified entity.
+        { type: "k8s.pod", idKeys: ["k8s.pod.name"] },
+      ],
+    });
+    expect(
+      entities.map((e: ExtractedEntity) => {
+        return e.entityType;
+      }),
+    ).toEqual([EntityType.Service]);
+  });
+
+  test("absent or empty refs fall back to the heuristic resolvers", () => {
+    const heuristic: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
+      projectId: PROJECT,
+      attributes: attrs,
+    });
+    expect(heuristic.length).toBeGreaterThan(0);
+    expect(
+      TelemetryEntity.extractEntities({
+        projectId: PROJECT,
+        attributes: attrs,
+        entityRefs: [],
+      }),
+    ).toEqual(heuristic);
+  });
+
+  test("when every ref is unusable the heuristics still produce membership keys", () => {
+    const debugSpy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(logger, "debug")
+      .mockImplementation(() => {});
+    try {
+      const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities(
+        {
+          projectId: PROJECT,
+          attributes: attrs,
+          entityRefs: [{ type: "acme.custom.widget", idKeys: ["whatever"] }],
+        },
+      );
+      expect(entities).toEqual(
+        TelemetryEntity.extractEntities({
+          projectId: PROJECT,
+          attributes: attrs,
+        }),
+      );
+    } finally {
+      debugSpy.mockRestore();
+    }
+  });
+
+  test("a mutable value declared as identifying is honored with a cardinality warning", () => {
+    const warnSpy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(logger, "warn")
+      .mockImplementation(() => {});
+    try {
+      const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities(
+        {
+          projectId: PROJECT,
+          attributes: {
+            "container.id": "c-1",
+            "container.image.tag": "1.2.3",
+          },
+          entityRefs: [
+            {
+              type: "container",
+              idKeys: ["container.id", "container.image.tag"],
+            },
+          ],
+        },
+      );
+      // Honored: the mutable key IS part of identity (per the producer).
+      expect(entities).toHaveLength(1);
+      expect(entities[0]!.identifyingAttributes).toEqual({
+        "container.id": "c-1",
+        "container.image.tag": "1.2.3",
+      });
+      expect(warnSpy).toHaveBeenCalled();
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  test("labels attach on the refs path too", () => {
+    const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
+      projectId: PROJECT,
+      attributes: { ...attrs, "oneuptime.label.team": "payments" },
+      entityRefs: [{ type: "service", idKeys: ["service.name"] }],
+    });
+    expect(entities).toHaveLength(1);
+    expect(entities[0]!.labels).toEqual(["team"]);
+  });
+});
+
+describe("TelemetryEntity.parseEntityRefs", () => {
+  test("normalizes camelCase and snake_case shapes; drops malformed entries", () => {
+    const refs: Array<ResourceEntityRef> = TelemetryEntity.parseEntityRefs([
+      {
+        type: "service",
+        idKeys: ["service.name"],
+        descriptionKeys: ["telemetry.sdk.language"],
+        schemaUrl: "https://opentelemetry.io/schemas/1.30.0",
+      },
+      {
+        type: "host",
+        id_keys: ["host.name"],
+        description_keys: [],
+        schema_url: "https://opentelemetry.io/schemas/1.30.0",
+      },
+      "garbage",
+      null,
+      42,
+      ["not", "a", "ref"],
+    ]);
+
+    expect(refs).toHaveLength(2);
+    expect(refs[0]).toEqual({
+      type: "service",
+      idKeys: ["service.name"],
+      descriptionKeys: ["telemetry.sdk.language"],
+      schemaUrl: "https://opentelemetry.io/schemas/1.30.0",
+    });
+    expect(refs[1]).toEqual({
+      type: "host",
+      idKeys: ["host.name"],
+      descriptionKeys: [],
+      schemaUrl: "https://opentelemetry.io/schemas/1.30.0",
+    });
+  });
+
+  test("non-array input yields no refs", () => {
+    expect(TelemetryEntity.parseEntityRefs(undefined)).toEqual([]);
+    expect(TelemetryEntity.parseEntityRefs(null)).toEqual([]);
+    expect(TelemetryEntity.parseEntityRefs({})).toEqual([]);
+    expect(TelemetryEntity.parseEntityRefs("nope")).toEqual([]);
   });
 });

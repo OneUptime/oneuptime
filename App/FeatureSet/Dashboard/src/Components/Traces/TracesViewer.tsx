@@ -305,6 +305,20 @@ interface Props {
    * for service-owned spans.
    */
   entityKeysFilter?: Array<string> | undefined;
+  /*
+   * Entity scope with attribute fallback: compiles server-side to
+   * `hasAny(entityKeys, [...]) OR attributes[attributeKey] = attributeValue`
+   * so pre-entityKeys rows (no backfill) still match. Placed on the query
+   * record verbatim under the key "entityScope"; the Host / Docker / K8s
+   * pages compute it via keyFor* helpers from Common/Utils/Telemetry/EntityKey.
+   */
+  entityScope?:
+    | {
+        entityKeys: Array<string>;
+        attributeKey: string;
+        attributeValue: string;
+      }
+    | undefined;
 }
 
 const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
@@ -683,11 +697,17 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       );
     }
 
+    // Contract C4: pass through verbatim; compiled by StatementGenerator.
+    if (props.entityScope) {
+      (query as Record<string, unknown>)["entityScope"] = props.entityScope;
+    }
+
     return query;
   }, [
     props.primaryEntityId,
     props.attributeFilters,
     props.entityKeysFilter,
+    props.entityScope,
     timeRange,
     activeFilters,
     submittedSearch,
@@ -1467,6 +1487,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
    */
   const enableSavedViews: boolean =
     !props.primaryEntityId &&
+    !props.entityScope &&
     (!props.attributeFilters ||
       Object.keys(props.attributeFilters).length === 0);
 

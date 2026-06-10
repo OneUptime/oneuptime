@@ -243,7 +243,13 @@ export class Service extends DatabaseService<Model> {
         `Failed to aggregate telemetry usage for project ${data.projectId.toString()} (${data.productType}):`,
       );
       logger.error(error as Error);
-      return;
+      /*
+       * Rethrow so the failure is loud: nothing has been staged for this
+       * day yet (staging below is skipped entirely), so a later retry of
+       * the cron can re-stage the full day. Swallowing here would
+       * silently bill the day as zero.
+       */
+      throw error;
     }
 
     if (usageByServiceId.size === 0) {

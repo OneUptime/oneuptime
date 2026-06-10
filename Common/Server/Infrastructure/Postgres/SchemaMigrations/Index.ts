@@ -382,6 +382,7 @@ import { MigrationName1781011482945 } from "./1781011482945-MigrationName";
 import { RenameTelemetryServiceIdToPrimaryEntityId1781100000001 } from "./1781100000001-RenameTelemetryServiceIdToPrimaryEntityId";
 import { AddTelemetryEntityTable1781200000000 } from "./1781200000000-AddTelemetryEntityTable";
 import { AddTelemetryEntityRelationshipTable1781200000001 } from "./1781200000001-AddTelemetryEntityRelationshipTable";
+import { AddTelemetryEntityLabels1781300000000 } from "./1781300000000-AddTelemetryEntityLabels";
 
 export default [
   InitialMigration,
@@ -768,4 +769,5 @@ export default [
   RenameTelemetryServiceIdToPrimaryEntityId1781100000001,
   AddTelemetryEntityTable1781200000000,
   AddTelemetryEntityRelationshipTable1781200000001,
+  AddTelemetryEntityLabels1781300000000,
 ];
