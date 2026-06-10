@@ -168,6 +168,18 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       category: observabilityCategory,
     },
     {
+      title: "Topology",
+      description:
+        "Service map / topology of how your entities relate (runs-on, member-of, hosted-on, part-of).",
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.TOPOLOGY] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.TOPOLOGY],
+      icon: IconProp.FlowDiagram,
+      iconColor: "indigo",
+      category: observabilityCategory,
+    },
+    {
       title: t("navbar.items.servicesTitle"),
       description: t("navbar.items.servicesDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.SERVICES] as Route),

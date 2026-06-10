@@ -285,6 +285,10 @@ export const EntitiesRoutePath: Dictionary<string> = {
   [PageMap.ENTITIES]: "overview",
 };
 
+export const TopologyRoutePath: Dictionary<string> = {
+  [PageMap.TOPOLOGY]: "overview",
+};
+
 export const ExceptionsRoutePath: Dictionary<string> = {
   [PageMap.EXCEPTIONS]: "overview",
   [PageMap.EXCEPTIONS_OVERVIEW]: "overview",
@@ -4019,6 +4023,16 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ENTITIES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/entities/${
       EntitiesRoutePath[PageMap.ENTITIES]
+    }`,
+  ),
+
+  [PageMap.TOPOLOGY_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/topology/*`,
+  ),
+
+  [PageMap.TOPOLOGY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/topology/${
+      TopologyRoutePath[PageMap.TOPOLOGY]
     }`,
   ),
 

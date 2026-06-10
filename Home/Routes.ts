@@ -1351,6 +1351,42 @@ const HomeFeatureSet: FeatureSet = {
     );
 
     app.get(
+      "/product/serverless",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/serverless",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/serverless`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get("/product/cloud", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/product/cloud",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/cloud`, {
+        enableGoogleTagManager: IsBillingEnabled,
+        seo,
+      });
+    });
+
+    app.get("/product/rum", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/product/rum",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/rum`, {
+        enableGoogleTagManager: IsBillingEnabled,
+        seo,
+      });
+    });
+
+    app.get(
       "/incident-management",
       (_req: ExpressRequest, res: ExpressResponse) => {
         res.redirect("/product/incident-management");
