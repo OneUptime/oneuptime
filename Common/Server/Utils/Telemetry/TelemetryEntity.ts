@@ -226,8 +226,9 @@ export default class TelemetryEntity {
     for (const ref of data.entityRefs) {
       const refType: string =
         typeof ref.type === "string" ? ref.type.trim() : "";
-      const entityType: EntityType | undefined =
-        this.entityTypeByRefType.get(refType.toLowerCase());
+      const entityType: EntityType | undefined = this.entityTypeByRefType.get(
+        refType.toLowerCase(),
+      );
 
       if (!entityType) {
         logger.debug(
@@ -236,11 +237,9 @@ export default class TelemetryEntity {
         continue;
       }
 
-      const idKeys: Array<string> = (ref.idKeys || []).filter(
-        (key: string) => {
-          return typeof key === "string" && key.trim().length > 0;
-        },
-      );
+      const idKeys: Array<string> = (ref.idKeys || []).filter((key: string) => {
+        return typeof key === "string" && key.trim().length > 0;
+      });
 
       if (idKeys.length === 0) {
         logger.debug(
@@ -682,7 +681,10 @@ export default class TelemetryEntity {
    * taking its first scalar element (e.g. semconv `container.image.tags`
    * is an array). Descriptive use only — identity stays scalar-strict.
    */
-  private static strOrFirst(attrs: EntityAttributes, key: string): string | null {
+  private static strOrFirst(
+    attrs: EntityAttributes,
+    key: string,
+  ): string | null {
     const direct: string | null = this.str(attrs, key);
     if (direct) {
       return direct;

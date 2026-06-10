@@ -77,9 +77,8 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
    * Fingerprints of exception groups that have at least one instance
    * belonging to the scoped entity. null = not resolved yet (loading).
    */
-  const [entityFingerprints, setEntityFingerprints] = React.useState<
-    Array<string> | null
-  >(null);
+  const [entityFingerprints, setEntityFingerprints] =
+    React.useState<Array<string> | null>(null);
 
   React.useEffect(() => {
     const loadServices: () => Promise<void> = async (): Promise<void> => {

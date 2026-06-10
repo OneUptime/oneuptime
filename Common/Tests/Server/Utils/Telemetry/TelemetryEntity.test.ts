@@ -572,9 +572,11 @@ describe("extractEntities — OTLP entity_refs (authoritative path)", () => {
       ],
     });
 
-    // Refs are authoritative: only the two declared entities, no
-    // heuristic extras (the resource would heuristically also yield a
-    // telemetry.sdk entity if telemetry.sdk.name were present, etc.).
+    /*
+     * Refs are authoritative: only the two declared entities, no
+     * heuristic extras (the resource would heuristically also yield a
+     * telemetry.sdk entity if telemetry.sdk.name were present, etc.).
+     */
     expect(entities).toHaveLength(2);
 
     const service: ExtractedEntity = entities.find((e: ExtractedEntity) => {
@@ -601,16 +603,14 @@ describe("extractEntities — OTLP entity_refs (authoritative path)", () => {
       .spyOn(logger, "debug")
       .mockImplementation(() => {});
     try {
-      const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities(
-        {
-          projectId: PROJECT,
-          attributes: attrs,
-          entityRefs: [
-            { type: "acme.custom.widget", idKeys: ["service.name"] },
-            { type: "service", idKeys: ["service.name"] },
-          ],
-        },
-      );
+      const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
+        projectId: PROJECT,
+        attributes: attrs,
+        entityRefs: [
+          { type: "acme.custom.widget", idKeys: ["service.name"] },
+          { type: "service", idKeys: ["service.name"] },
+        ],
+      });
       expect(
         entities.map((e: ExtractedEntity) => {
           return e.entityType;
@@ -659,13 +659,11 @@ describe("extractEntities — OTLP entity_refs (authoritative path)", () => {
       .spyOn(logger, "debug")
       .mockImplementation(() => {});
     try {
-      const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities(
-        {
-          projectId: PROJECT,
-          attributes: attrs,
-          entityRefs: [{ type: "acme.custom.widget", idKeys: ["whatever"] }],
-        },
-      );
+      const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
+        projectId: PROJECT,
+        attributes: attrs,
+        entityRefs: [{ type: "acme.custom.widget", idKeys: ["whatever"] }],
+      });
       expect(entities).toEqual(
         TelemetryEntity.extractEntities({
           projectId: PROJECT,
@@ -682,21 +680,19 @@ describe("extractEntities — OTLP entity_refs (authoritative path)", () => {
       .spyOn(logger, "warn")
       .mockImplementation(() => {});
     try {
-      const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities(
-        {
-          projectId: PROJECT,
-          attributes: {
-            "container.id": "c-1",
-            "container.image.tag": "1.2.3",
-          },
-          entityRefs: [
-            {
-              type: "container",
-              idKeys: ["container.id", "container.image.tag"],
-            },
-          ],
+      const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
+        projectId: PROJECT,
+        attributes: {
+          "container.id": "c-1",
+          "container.image.tag": "1.2.3",
         },
-      );
+        entityRefs: [
+          {
+            type: "container",
+            idKeys: ["container.id", "container.image.tag"],
+          },
+        ],
+      });
       // Honored: the mutable key IS part of identity (per the producer).
       expect(entities).toHaveLength(1);
       expect(entities[0]!.identifyingAttributes).toEqual({

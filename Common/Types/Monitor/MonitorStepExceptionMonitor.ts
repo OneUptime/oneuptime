@@ -9,10 +9,12 @@ import ObjectID from "../ObjectID";
 
 export default interface MonitorStepExceptionMonitor {
   telemetryServiceIds: Array<ObjectID>;
-  // Stable telemetry entity keys (host / pod / container / ...) — scopes
-  // the monitor to exceptions carrying any of these in their entityKeys
-  // column. Optional: monitors saved before this field existed have it
-  // undefined.
+  /*
+   * Stable telemetry entity keys (host / pod / container / ...) — scopes
+   * the monitor to exceptions carrying any of these in their entityKeys
+   * column. Optional: monitors saved before this field existed have it
+   * undefined.
+   */
   entityKeys?: Array<string> | undefined;
   exceptionTypes: Array<string>;
   message: string;

@@ -98,9 +98,7 @@ export default class RekeyMetricHostRollupToEntityKey extends DataMigrationBase 
     );
 
     // 3. Start the new write path (canonical definition on the V2 model).
-    await MetricService.execute(
-      v2Service.model.materializedViews[0]!.query,
-    );
+    await MetricService.execute(v2Service.model.materializedViews[0]!.query);
     logger.info(
       `RekeyMetricHostRollupToEntityKey: ensured ${RekeyMetricHostRollupToEntityKey.newTable}_mv`,
     );

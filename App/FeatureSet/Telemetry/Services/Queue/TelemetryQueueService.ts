@@ -195,8 +195,10 @@ export default class TelemetryQueueService {
         "ProcessTelemetry",
         jobData as unknown as JSONObject,
         {
-          // Job ids are unix-nano suffixed and therefore unique — skip
-          // the duplicate-id existence check (2 Redis round trips).
+          /*
+           * Job ids are unix-nano suffixed and therefore unique — skip
+           * the duplicate-id existence check (2 Redis round trips).
+           */
           skipExistenceCheck: true,
         },
       );
@@ -260,8 +262,10 @@ export default class TelemetryQueueService {
         "ProcessTelemetry",
         jobData as unknown as JSONObject,
         {
-          // Job ids are unix-nano suffixed and therefore unique — skip
-          // the duplicate-id existence check (2 Redis round trips).
+          /*
+           * Job ids are unix-nano suffixed and therefore unique — skip
+           * the duplicate-id existence check (2 Redis round trips).
+           */
           skipExistenceCheck: true,
         },
       );
@@ -320,8 +324,10 @@ export default class TelemetryQueueService {
         "ProcessTelemetry",
         jobData as unknown as JSONObject,
         {
-          // Job ids are unix-nano suffixed and therefore unique — skip
-          // the duplicate-id existence check (2 Redis round trips).
+          /*
+           * Job ids are unix-nano suffixed and therefore unique — skip
+           * the duplicate-id existence check (2 Redis round trips).
+           */
           skipExistenceCheck: true,
         },
       );
@@ -359,8 +365,10 @@ export default class TelemetryQueueService {
         "ProcessTelemetry",
         jobData as unknown as JSONObject,
         {
-          // Job ids are unix-nano suffixed and therefore unique — skip
-          // the duplicate-id existence check (2 Redis round trips).
+          /*
+           * Job ids are unix-nano suffixed and therefore unique — skip
+           * the duplicate-id existence check (2 Redis round trips).
+           */
           skipExistenceCheck: true,
         },
       );
@@ -404,8 +412,10 @@ export default class TelemetryQueueService {
         "ProcessTelemetry",
         jobData as unknown as JSONObject,
         {
-          // Job ids are unix-nano suffixed and therefore unique — skip
-          // the duplicate-id existence check (2 Redis round trips).
+          /*
+           * Job ids are unix-nano suffixed and therefore unique — skip
+           * the duplicate-id existence check (2 Redis round trips).
+           */
           skipExistenceCheck: true,
         },
       );

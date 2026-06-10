@@ -175,8 +175,7 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
               },
             ),
             title: "Filter by Infrastructure Entity",
-            description:
-              "Scope to specific infrastructure entities (optional)",
+            description: "Scope to specific infrastructure entities (optional)",
             hideOptionalLabel: true,
             showIf: () => {
               return showAdvancedOptions;

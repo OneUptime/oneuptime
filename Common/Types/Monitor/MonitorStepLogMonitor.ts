@@ -14,9 +14,11 @@ export default interface MonitorStepLogMonitor {
   body: string;
   severityTexts: Array<LogSeverity>;
   telemetryServiceIds: Array<ObjectID>;
-  // Stable telemetry entity keys (host / pod / container / ...) — scopes
-  // the monitor to logs carrying any of these in their entityKeys column.
-  // Optional: monitors saved before this field existed have it undefined.
+  /*
+   * Stable telemetry entity keys (host / pod / container / ...) — scopes
+   * the monitor to logs carrying any of these in their entityKeys column.
+   * Optional: monitors saved before this field existed have it undefined.
+   */
   entityKeys?: Array<string> | undefined;
   lastXSecondsOfLogs: number;
 }

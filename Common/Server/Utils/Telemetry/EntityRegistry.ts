@@ -49,16 +49,18 @@ const MEMBERSHIP_ONLY_TYPES: ReadonlySet<EntityType> = new Set<EntityType>([
  * rows keep their `lastSeenAt` bumps so the prune TTL never reaps live
  * entities. Hardcoded defaults; a per-project override is a follow-up.
  */
-export const DEFAULT_ENTITY_BUDGET: ReadonlyMap<EntityType, number> =
-  new Map<EntityType, number>([
-    [EntityType.Service, 10000],
-    [EntityType.Host, 10000],
-    [EntityType.KubernetesCluster, 10000],
-    [EntityType.KubernetesNode, 1000],
-    [EntityType.KubernetesNamespace, 1000],
-    [EntityType.KubernetesPod, 5000],
-    [EntityType.KubernetesDeployment, 5000],
-  ]);
+export const DEFAULT_ENTITY_BUDGET: ReadonlyMap<EntityType, number> = new Map<
+  EntityType,
+  number
+>([
+  [EntityType.Service, 10000],
+  [EntityType.Host, 10000],
+  [EntityType.KubernetesCluster, 10000],
+  [EntityType.KubernetesNode, 1000],
+  [EntityType.KubernetesNamespace, 1000],
+  [EntityType.KubernetesPod, 5000],
+  [EntityType.KubernetesDeployment, 5000],
+]);
 
 // For types not in the map (future promotions of high-churn types).
 export const FALLBACK_ENTITY_BUDGET: number = 5000;
@@ -246,14 +248,17 @@ export async function reconcileByNaturalKey<
     ...(data.select || {}),
   };
 
-  const buildBump: (existing: TBaseModel) => QueryDeepPartialEntity<TBaseModel> =
-    (existing: TBaseModel): QueryDeepPartialEntity<TBaseModel> => {
-      // Unresolved generic mapped type — TS cannot prove overlap directly.
-      return {
-        lastSeenAt: data.lastSeenAt,
-        ...(data.buildUpdate ? data.buildUpdate(existing) : {}),
-      } as unknown as QueryDeepPartialEntity<TBaseModel>;
-    };
+  const buildBump: (
+    existing: TBaseModel,
+  ) => QueryDeepPartialEntity<TBaseModel> = (
+    existing: TBaseModel,
+  ): QueryDeepPartialEntity<TBaseModel> => {
+    // Unresolved generic mapped type — TS cannot prove overlap directly.
+    return {
+      lastSeenAt: data.lastSeenAt,
+      ...(data.buildUpdate ? data.buildUpdate(existing) : {}),
+    } as unknown as QueryDeepPartialEntity<TBaseModel>;
+  };
 
   const existing: TBaseModel | null = await data.service.findOneBy({
     query: data.query,

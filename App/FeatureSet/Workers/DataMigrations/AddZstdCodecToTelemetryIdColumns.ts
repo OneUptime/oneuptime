@@ -58,8 +58,7 @@ export default class AddZstdCodecToTelemetryIdColumns extends DataMigrationBase 
     for (const service of services) {
       const tableName: string = service.model.tableName;
       try {
-        const currentType: string =
-          await service.getColumnDatabaseType("_id");
+        const currentType: string = await service.getColumnDatabaseType("_id");
 
         if (!currentType) {
           // Table without _id (or table missing) — nothing to do.

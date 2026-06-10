@@ -85,8 +85,7 @@ async function findProjectsWithRecentSpans(window: {
     json: () => Promise<{ data: Array<{ projectId: string }> }>;
   };
 
-  const parsed: { data: Array<{ projectId: string }> } =
-    await resultSet.json();
+  const parsed: { data: Array<{ projectId: string }> } = await resultSet.json();
 
   return parsed.data
     .map((row: { projectId: string }) => {

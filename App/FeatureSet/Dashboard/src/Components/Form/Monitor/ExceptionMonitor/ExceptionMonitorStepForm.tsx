@@ -126,11 +126,11 @@ type HasAdvancedConfigurationFunction = (
 const hasAdvancedConfiguration: HasAdvancedConfigurationFunction = (
   monitor: MonitorStepExceptionMonitor,
 ) => {
-  return (
+  return Boolean(
     monitor.includeResolved ||
-    monitor.includeArchived ||
-    (monitor.telemetryServiceIds && monitor.telemetryServiceIds.length > 0) ||
-    (monitor.entityKeys && monitor.entityKeys.length > 0)
+      monitor.includeArchived ||
+      (monitor.telemetryServiceIds && monitor.telemetryServiceIds.length > 0) ||
+      (monitor.entityKeys && monitor.entityKeys.length > 0),
   );
 };
 
@@ -257,8 +257,7 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
               },
             ),
             title: "Filter by Infrastructure Entity",
-            description:
-              "Scope to specific infrastructure entities (optional)",
+            description: "Scope to specific infrastructure entities (optional)",
             hideOptionalLabel: true,
             showIf: (): boolean => {
               return showAdvancedOptions;

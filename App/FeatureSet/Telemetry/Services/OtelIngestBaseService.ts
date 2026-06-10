@@ -304,8 +304,7 @@ export default abstract class OtelIngestBaseService {
     for (const entity of entities) {
       switch (entity.entityType) {
         case EntityType.Service:
-          scalar.serviceEntityKey =
-            scalar.serviceEntityKey || entity.entityKey;
+          scalar.serviceEntityKey = scalar.serviceEntityKey || entity.entityKey;
           break;
         case EntityType.Host:
           scalar.hostEntityKey = scalar.hostEntityKey || entity.entityKey;
@@ -314,8 +313,7 @@ export default abstract class OtelIngestBaseService {
           scalar.k8sPodEntityKey = scalar.k8sPodEntityKey || entity.entityKey;
           break;
         case EntityType.KubernetesNode:
-          scalar.k8sNodeEntityKey =
-            scalar.k8sNodeEntityKey || entity.entityKey;
+          scalar.k8sNodeEntityKey = scalar.k8sNodeEntityKey || entity.entityKey;
           break;
         case EntityType.KubernetesCluster:
           scalar.k8sClusterEntityKey =

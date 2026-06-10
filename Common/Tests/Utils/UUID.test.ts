@@ -45,9 +45,7 @@ describe("UUID", () => {
 
     const second: string = UUID.generateTimeOrdered();
 
-    expect(timestampPrefixOf(second)).toBeGreaterThan(
-      timestampPrefixOf(first),
-    );
+    expect(timestampPrefixOf(second)).toBeGreaterThan(timestampPrefixOf(first));
     // Time-ordered ids sort lexicographically by generation time.
     expect(second > first).toBe(true);
 

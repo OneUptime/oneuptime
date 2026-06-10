@@ -113,153 +113,157 @@ if (DisableQueueWorkers) {
         return useInsertDedup ? runWithInsertDedup(dedupTokenBase, fn) : fn();
       };
 
-      await runJob(
-        async (): Promise<void> => {
-          try {
-            // Process based on telemetry type
-            switch (jobData.type) {
-              case TelemetryType.Logs: {
-                const body: JSONObject = await resolveOtelBody(jobData);
-                const mockRequest: TelemetryRequest = {
-                  projectId: new ObjectID(jobData.projectId!.toString()),
-                  body,
-                  headers: jobData.requestHeaders!,
-                } as TelemetryRequest;
+      await runJob(async (): Promise<void> => {
+        try {
+          // Process based on telemetry type
+          switch (jobData.type) {
+            case TelemetryType.Logs: {
+              const body: JSONObject = await resolveOtelBody(jobData);
+              const mockRequest: TelemetryRequest = {
+                projectId: new ObjectID(jobData.projectId!.toString()),
+                body,
+                headers: jobData.requestHeaders!,
+              } as TelemetryRequest;
 
-                await OtelLogsIngestService.processLogsFromQueue(mockRequest);
-                logger.debug(
-                  `Successfully processed logs for project: ${jobData.projectId}`,
-                );
-                break;
-              }
-
-              case TelemetryType.Traces: {
-                const body: JSONObject = await resolveOtelBody(jobData);
-                const mockRequest: TelemetryRequest = {
-                  projectId: new ObjectID(jobData.projectId!.toString()),
-                  body,
-                  headers: jobData.requestHeaders!,
-                } as TelemetryRequest;
-
-                await OtelTracesIngestService.processTracesFromQueue(mockRequest);
-                logger.debug(
-                  `Successfully processed traces for project: ${jobData.projectId}`,
-                );
-                break;
-              }
-
-              case TelemetryType.Metrics: {
-                const body: JSONObject = await resolveOtelBody(jobData);
-                const mockRequest: TelemetryRequest = {
-                  projectId: new ObjectID(jobData.projectId!.toString()),
-                  body,
-                  headers: jobData.requestHeaders!,
-                } as TelemetryRequest;
-
-                await OtelMetricsIngestService.processMetricsFromQueue(mockRequest);
-                logger.debug(
-                  `Successfully processed metrics for project: ${jobData.projectId}`,
-                );
-                break;
-              }
-
-              case TelemetryType.Profiles: {
-                const body: JSONObject = await resolveOtelBody(jobData);
-                const mockRequest: TelemetryRequest = {
-                  projectId: new ObjectID(jobData.projectId!.toString()),
-                  body,
-                  headers: jobData.requestHeaders!,
-                } as TelemetryRequest;
-
-                await OtelProfilesIngestService.processProfilesFromQueue(
-                  mockRequest,
-                );
-                logger.debug(
-                  `Successfully processed profiles for project: ${jobData.projectId}`,
-                );
-                break;
-              }
-
-              case TelemetryType.Syslog: {
-                const mockRequest: TelemetryRequest = {
-                  projectId: new ObjectID(jobData.projectId!.toString()),
-                  body: jobData.requestBody!,
-                  headers: jobData.requestHeaders!,
-                } as TelemetryRequest;
-
-                await SyslogIngestService.processSyslogFromQueue(mockRequest);
-                logger.debug(
-                  `Successfully processed syslog payload for project: ${jobData.projectId}`,
-                );
-                break;
-              }
-
-              case TelemetryType.FluentLogs: {
-                const mockRequest: TelemetryRequest = {
-                  projectId: new ObjectID(jobData.projectId!.toString()),
-                  body: jobData.requestBody!,
-                  headers: jobData.requestHeaders!,
-                } as TelemetryRequest;
-
-                await FluentLogsIngestService.processFluentLogsFromQueue(
-                  mockRequest,
-                );
-                logger.debug(
-                  `Successfully processed fluent logs for project: ${jobData.projectId}`,
-                );
-                break;
-              }
-
-              case TelemetryType.ProbeIngest:
-                if (jobData.probeIngest) {
-                  if (jobData.probeIngest.jobType === "incoming-email") {
-                    await processIncomingEmailFromQueue(jobData.probeIngest);
-                  } else {
-                    await processProbeFromQueue(jobData.probeIngest);
-                  }
-                }
-                logger.debug(`Successfully processed probe ingest job`);
-                break;
-
-              case TelemetryType.ServerMonitorIngest:
-                if (jobData.serverMonitorIngest) {
-                  await processServerMonitorFromQueue(jobData.serverMonitorIngest);
-                }
-                logger.debug(`Successfully processed server monitor ingest job`);
-                break;
-
-              case TelemetryType.IncomingRequestIngest:
-                if (jobData.incomingRequestIngest) {
-                  await processIncomingRequestFromQueue(
-                    jobData.incomingRequestIngest,
-                  );
-                }
-                logger.debug(`Successfully processed incoming request ingest job`);
-                break;
-
-              default:
-                throw new Error(`Unknown telemetry type: ${jobData.type}`);
-            }
-          } catch (error) {
-            /*
-             * Certain BadDataException cases are expected / non-actionable and should not fail the job.
-             * These include disabled monitors (manual, maintenance, explicitly disabled) and missing monitors
-             * (e.g. secret key referencing a deleted monitor). Retrying provides no value and only creates noise.
-             */
-            if (
-              error instanceof BadDataException &&
-              (error.message === ExceptionMessages.MonitorNotFound ||
-                error.message === ExceptionMessages.MonitorDisabled)
-            ) {
-              return;
+              await OtelLogsIngestService.processLogsFromQueue(mockRequest);
+              logger.debug(
+                `Successfully processed logs for project: ${jobData.projectId}`,
+              );
+              break;
             }
 
-            logger.error(`Error processing telemetry job:`);
-            logger.error(error);
-            throw error;
+            case TelemetryType.Traces: {
+              const body: JSONObject = await resolveOtelBody(jobData);
+              const mockRequest: TelemetryRequest = {
+                projectId: new ObjectID(jobData.projectId!.toString()),
+                body,
+                headers: jobData.requestHeaders!,
+              } as TelemetryRequest;
+
+              await OtelTracesIngestService.processTracesFromQueue(mockRequest);
+              logger.debug(
+                `Successfully processed traces for project: ${jobData.projectId}`,
+              );
+              break;
+            }
+
+            case TelemetryType.Metrics: {
+              const body: JSONObject = await resolveOtelBody(jobData);
+              const mockRequest: TelemetryRequest = {
+                projectId: new ObjectID(jobData.projectId!.toString()),
+                body,
+                headers: jobData.requestHeaders!,
+              } as TelemetryRequest;
+
+              await OtelMetricsIngestService.processMetricsFromQueue(
+                mockRequest,
+              );
+              logger.debug(
+                `Successfully processed metrics for project: ${jobData.projectId}`,
+              );
+              break;
+            }
+
+            case TelemetryType.Profiles: {
+              const body: JSONObject = await resolveOtelBody(jobData);
+              const mockRequest: TelemetryRequest = {
+                projectId: new ObjectID(jobData.projectId!.toString()),
+                body,
+                headers: jobData.requestHeaders!,
+              } as TelemetryRequest;
+
+              await OtelProfilesIngestService.processProfilesFromQueue(
+                mockRequest,
+              );
+              logger.debug(
+                `Successfully processed profiles for project: ${jobData.projectId}`,
+              );
+              break;
+            }
+
+            case TelemetryType.Syslog: {
+              const mockRequest: TelemetryRequest = {
+                projectId: new ObjectID(jobData.projectId!.toString()),
+                body: jobData.requestBody!,
+                headers: jobData.requestHeaders!,
+              } as TelemetryRequest;
+
+              await SyslogIngestService.processSyslogFromQueue(mockRequest);
+              logger.debug(
+                `Successfully processed syslog payload for project: ${jobData.projectId}`,
+              );
+              break;
+            }
+
+            case TelemetryType.FluentLogs: {
+              const mockRequest: TelemetryRequest = {
+                projectId: new ObjectID(jobData.projectId!.toString()),
+                body: jobData.requestBody!,
+                headers: jobData.requestHeaders!,
+              } as TelemetryRequest;
+
+              await FluentLogsIngestService.processFluentLogsFromQueue(
+                mockRequest,
+              );
+              logger.debug(
+                `Successfully processed fluent logs for project: ${jobData.projectId}`,
+              );
+              break;
+            }
+
+            case TelemetryType.ProbeIngest:
+              if (jobData.probeIngest) {
+                if (jobData.probeIngest.jobType === "incoming-email") {
+                  await processIncomingEmailFromQueue(jobData.probeIngest);
+                } else {
+                  await processProbeFromQueue(jobData.probeIngest);
+                }
+              }
+              logger.debug(`Successfully processed probe ingest job`);
+              break;
+
+            case TelemetryType.ServerMonitorIngest:
+              if (jobData.serverMonitorIngest) {
+                await processServerMonitorFromQueue(
+                  jobData.serverMonitorIngest,
+                );
+              }
+              logger.debug(`Successfully processed server monitor ingest job`);
+              break;
+
+            case TelemetryType.IncomingRequestIngest:
+              if (jobData.incomingRequestIngest) {
+                await processIncomingRequestFromQueue(
+                  jobData.incomingRequestIngest,
+                );
+              }
+              logger.debug(
+                `Successfully processed incoming request ingest job`,
+              );
+              break;
+
+            default:
+              throw new Error(`Unknown telemetry type: ${jobData.type}`);
           }
-        },
-      );
+        } catch (error) {
+          /*
+           * Certain BadDataException cases are expected / non-actionable and should not fail the job.
+           * These include disabled monitors (manual, maintenance, explicitly disabled) and missing monitors
+           * (e.g. secret key referencing a deleted monitor). Retrying provides no value and only creates noise.
+           */
+          if (
+            error instanceof BadDataException &&
+            (error.message === ExceptionMessages.MonitorNotFound ||
+              error.message === ExceptionMessages.MonitorDisabled)
+          ) {
+            return;
+          }
+
+          logger.error(`Error processing telemetry job:`);
+          logger.error(error);
+          throw error;
+        }
+      });
     },
     {
       concurrency: TELEMETRY_CONCURRENCY,

@@ -8,10 +8,12 @@ import RollingTime from "../RollingTime/RollingTime";
 export default interface MonitorStepMetricMonitor {
   metricViewConfig: MetricsViewConfig;
   rollingTime: RollingTime;
-  // Stable telemetry entity keys (host / pod / container / ...) — scopes
-  // every metric query in this step to rows carrying any of these in their
-  // entityKeys column. Optional: monitors saved before this field existed
-  // have it undefined.
+  /*
+   * Stable telemetry entity keys (host / pod / container / ...) — scopes
+   * every metric query in this step to rows carrying any of these in their
+   * entityKeys column. Optional: monitors saved before this field existed
+   * have it undefined.
+   */
   entityKeys?: Array<string> | undefined;
 }
 

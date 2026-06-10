@@ -12,10 +12,12 @@ export default interface MonitorStepProfileMonitor {
   attributes: Dictionary<string | number | boolean>;
   profileTypes: Array<string>;
   telemetryServiceIds: Array<ObjectID>;
-  // Stable telemetry entity keys (host / pod / container / ...) — scopes
-  // the monitor to profiles carrying any of these in their entityKeys
-  // column. Optional: monitors saved before this field existed have it
-  // undefined.
+  /*
+   * Stable telemetry entity keys (host / pod / container / ...) — scopes
+   * the monitor to profiles carrying any of these in their entityKeys
+   * column. Optional: monitors saved before this field existed have it
+   * undefined.
+   */
   entityKeys?: Array<string> | undefined;
   lastXSecondsOfProfiles: number;
   profileType: string;

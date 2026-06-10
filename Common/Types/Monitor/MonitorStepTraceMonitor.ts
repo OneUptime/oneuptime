@@ -12,9 +12,11 @@ export default interface MonitorStepTraceMonitor {
   attributes: Dictionary<string | number | boolean>;
   spanStatuses: Array<SpanStatus>;
   telemetryServiceIds: Array<ObjectID>;
-  // Stable telemetry entity keys (host / pod / container / ...) — scopes
-  // the monitor to spans carrying any of these in their entityKeys column.
-  // Optional: monitors saved before this field existed have it undefined.
+  /*
+   * Stable telemetry entity keys (host / pod / container / ...) — scopes
+   * the monitor to spans carrying any of these in their entityKeys column.
+   * Optional: monitors saved before this field existed have it undefined.
+   */
   entityKeys?: Array<string> | undefined;
   lastXSecondsOfSpans: number;
   spanName: string;
