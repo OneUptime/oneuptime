@@ -5,32 +5,25 @@ import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 
 /**
- * Per-(host, minute) pre-aggregated rollup of `MetricItemV2` value
- * samples — sister table of `MetricItemAggMV1m` keyed by host instead
- * of by service. Powers the host-detail page's chart queries, which
- * filter by `host.name` and need the full sort-key prefix to land on
- * a tight granule range.
+ * DEPRECATED — superseded by `MetricItemAggMV1mByHostV2`, which keys the
+ * rollup by the stable `hostEntityKey` instead of the raw
+ * `attributes['resource.host.name']` spelling. The
+ * `RekeyMetricHostRollupToEntityKey` migration dropped this table's MV,
+ * backfilled the V2 table from it, and dropped the table itself;
+ * `MetricService.tryBuildHostAggregateMVStatement` now reads V2 only.
  *
- * Populated by `MetricItemAggMV1mByHost_mv` (in
- * `AddMetricMinuteAggregateByHostMaterializedView`), which extracts
- * `attributes['resource.host.name']` from each `MetricItemV2` row at
- * insert time and skips rows without a host identifier — so the table
- * stays much smaller than `MetricItemAggMV1m`, which covers every
- * metric stream regardless of attribute presence.
- *
- * Read access goes through `MetricService.tryBuildHostAggregateMVStatement`,
- * which is the dominant path for host-detail attribute-filtered chart
- * queries. The non-host path falls through to `MetricItemAggMV1m` and
- * then the base table.
- *
- * No CRUD API; read-only infrastructure populated entirely by the MV.
+ * The model (and its service registration) is retained temporarily so the
+ * boot-time schema-sync keeps working — `createTables()` will recreate
+ * this table empty, which is harmless cruft (no MV feeds it, nothing
+ * reads it). Follow-up: remove this model, its service, its
+ * AnalyticsTableName entry, and add a migration dropping the empty table.
  */
 export default class MetricItemAggMV1mByHost extends AnalyticsBaseModel {
   public constructor() {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "projectId",
       title: "Project ID",
-      description: "ID of project (tenant key, replicated from MetricItemV2)",
+      description: "ID of project (tenant key, replicated from MetricItemV3)",
       required: true,
       type: TableColumnType.Text,
       isTenantId: true,
@@ -39,7 +32,7 @@ export default class MetricItemAggMV1mByHost extends AnalyticsBaseModel {
     const nameColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "name",
       title: "Metric Name",
-      description: "Metric name (replicated from MetricItemV2)",
+      description: "Metric name (replicated from MetricItemV3)",
       required: true,
       type: TableColumnType.Text,
     });
@@ -109,7 +102,7 @@ export default class MetricItemAggMV1mByHost extends AnalyticsBaseModel {
       key: "retentionDate",
       title: "Retention Date",
       description:
-        "Date after which this row is eligible for TTL deletion. Computed by the MV as max(retentionDate) per bucket — inherits from the source MetricItemV2 rows.",
+        "Date after which this row is eligible for TTL deletion. Computed by the MV as max(retentionDate) per bucket — inherits from the source MetricItemV3 rows.",
       required: true,
       type: TableColumnType.Date,
     });
@@ -132,36 +125,17 @@ export default class MetricItemAggMV1mByHost extends AnalyticsBaseModel {
       ],
       projections: [],
       /*
-       * Per-host materialized view. Canonical definition applied
-       * idempotently by the analytics schema-sync on every boot (see
-       * AnalyticsTableManagement.createMaterializedViews), so a
-       * wiped/recreated ClickHouse volume self-heals. Rows without a
-       * host identifier are filtered out so the per-host MV stays small.
+       * No materialized view: `MetricItemAggMV1mByHost_mv` was dropped by
+       * the RekeyMetricHostRollupToEntityKey migration (declaring it here
+       * would make the boot self-heal recreate it and reintroduce the
+       * dropped write path). See MetricItemAggMV1mByHostV2 for the live
+       * per-host rollup.
        */
-      materializedViews: [
-        {
-          name: "MetricItemAggMV1mByHost_mv",
-          query: `CREATE MATERIALIZED VIEW IF NOT EXISTS MetricItemAggMV1mByHost_mv
-TO MetricItemAggMV1mByHost
-AS
-SELECT
-  projectId,
-  name,
-  attributes['resource.host.name'] AS hostIdentifier,
-  toStartOfMinute(time) AS bucketTime,
-  sumState(toFloat64(coalesce(value, sum, 0))) AS valueSumState,
-  countState(toFloat64(coalesce(value, sum, 0))) AS valueCountState,
-  minState(toFloat64(coalesce(value, sum, 0))) AS valueMinState,
-  maxState(toFloat64(coalesce(value, sum, 0))) AS valueMaxState,
-  max(retentionDate) AS retentionDate
-FROM MetricItemV2
-WHERE attributes['resource.host.name'] != ''
-GROUP BY projectId, name, hostIdentifier, bucketTime`,
-        },
-      ],
+      materializedViews: [],
       sortKeys: ["projectId", "name", "hostIdentifier", "bucketTime"],
       primaryKeys: ["projectId", "name", "hostIdentifier", "bucketTime"],
-      partitionKey: "sipHash64(projectId) % 16",
+      partitionKey: "toYYYYMM(bucketTime)",
+      tableSettings: "ttl_only_drop_parts = 1",
       ttlExpression: "retentionDate DELETE",
     });
   }

@@ -129,7 +129,7 @@ const TraceDetailPanel: FunctionComponent<TraceDetailPanelProps> = (
           spanId: true,
           parentSpanId: true,
           name: true,
-          serviceId: true,
+          primaryEntityId: true,
           startTime: true,
           endTime: true,
           durationUnixNano: true,
@@ -170,7 +170,7 @@ const TraceDetailPanel: FunctionComponent<TraceDetailPanelProps> = (
           time: true,
           severityText: true,
           body: true,
-          serviceId: true,
+          primaryEntityId: true,
           spanId: true,
         } as Select<Log>,
         sort: { time: SortOrder.Ascending } as Record<string, SortOrder>,
@@ -236,8 +236,8 @@ const TraceDetailPanel: FunctionComponent<TraceDetailPanelProps> = (
     return null;
   }
 
-  const service: Service | undefined = span.serviceId
-    ? serviceById[span.serviceId.toString()]
+  const service: Service | undefined = span.primaryEntityId
+    ? serviceById[span.primaryEntityId.toString()]
     : undefined;
 
   const durationNano: number = Number(span.durationUnixNano || 0);
@@ -355,8 +355,8 @@ const TraceDetailPanel: FunctionComponent<TraceDetailPanelProps> = (
               0.5,
               (dur / waterfallScale.totalNano) * 100,
             );
-            const childService: Service | undefined = s.serviceId
-              ? serviceById[s.serviceId.toString()]
+            const childService: Service | undefined = s.primaryEntityId
+              ? serviceById[s.primaryEntityId.toString()]
               : undefined;
             const color: string =
               childService?.serviceColor?.toString() || "#6366f1";

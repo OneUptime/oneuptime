@@ -367,6 +367,22 @@ import { MigrationName1780387560604 } from "./1780387560604-MigrationName";
 import { MigrationName1780388219225 } from "./1780388219225-MigrationName";
 import { AddMetricAndTraceSavedView1780645560183 } from "./1780645560183-AddMetricAndTraceSavedView";
 import { AddKubernetesLatestMemoryPercent1780651429467 } from "./1780651429467-AddKubernetesLatestMemoryPercent";
+import { AddResumeStateToWorkflowLog1780931746908 } from "./1780931746908-AddResumeStateToWorkflowLog";
+import { AddTelemetryResourceMetadataColumns1780931863719 } from "./1780931863719-AddTelemetryResourceMetadataColumns";
+import { AddServerlessFunctionTables1780933132562 } from "./1780933132562-AddServerlessFunctionTables";
+import { AddCloudResourceTables1780935387827 } from "./1780935387827-AddCloudResourceTables";
+import { AddRumApplicationTables1780936579718 } from "./1780936579718-AddRumApplicationTables";
+import { AddServerlessFunctionRuleTables1780938407319 } from "./1780938407319-AddServerlessFunctionRuleTables";
+import { AddCloudResourceRuleTables1780940721814 } from "./1780940721814-AddCloudResourceRuleTables";
+import { AddRumApplicationRuleTables1780940998002 } from "./1780940998002-AddRumApplicationRuleTables";
+import { AddTelemetryResourceInventoryTables1780941762204 } from "./1780941762204-AddTelemetryResourceInventoryTables";
+import { AddRumApplicationSdkLanguage1780985763463 } from "./1780985763463-AddRumApplicationSdkLanguage";
+import { RecastCloudResourcesByEnvironment1780987192743 } from "./1780987192743-RecastCloudResourcesByEnvironment";
+import { MigrationName1781011482945 } from "./1781011482945-MigrationName";
+import { RenameTelemetryServiceIdToPrimaryEntityId1781100000001 } from "./1781100000001-RenameTelemetryServiceIdToPrimaryEntityId";
+import { AddTelemetryEntityTable1781200000000 } from "./1781200000000-AddTelemetryEntityTable";
+import { AddTelemetryEntityRelationshipTable1781200000001 } from "./1781200000001-AddTelemetryEntityRelationshipTable";
+import { AddTelemetryEntityLabels1781300000000 } from "./1781300000000-AddTelemetryEntityLabels";
 
 export default [
   InitialMigration,
@@ -738,4 +754,20 @@ export default [
   MigrationName1780388219225,
   AddMetricAndTraceSavedView1780645560183,
   AddKubernetesLatestMemoryPercent1780651429467,
+  AddResumeStateToWorkflowLog1780931746908,
+  AddTelemetryResourceMetadataColumns1780931863719,
+  AddServerlessFunctionTables1780933132562,
+  AddCloudResourceTables1780935387827,
+  AddRumApplicationTables1780936579718,
+  AddServerlessFunctionRuleTables1780938407319,
+  AddCloudResourceRuleTables1780940721814,
+  AddRumApplicationRuleTables1780940998002,
+  AddTelemetryResourceInventoryTables1780941762204,
+  AddRumApplicationSdkLanguage1780985763463,
+  RecastCloudResourcesByEnvironment1780987192743,
+  MigrationName1781011482945,
+  RenameTelemetryServiceIdToPrimaryEntityId1781100000001,
+  AddTelemetryEntityTable1781200000000,
+  AddTelemetryEntityRelationshipTable1781200000001,
+  AddTelemetryEntityLabels1781300000000,
 ];

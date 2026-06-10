@@ -256,7 +256,7 @@ async function runSourceQuery(args: {
 
   const sql: string = `
     SELECT ${groupSqlSelect}, ${aggregateSql} AS value
-    FROM oneuptime.MetricItemV2
+    FROM oneuptime.MetricItemV3
     WHERE projectId = '${esc(projectIdStr)}'
       AND name = '${esc(source.metricName)}'
       AND time >= toDateTime64('${startIso}', 9)
@@ -349,10 +349,9 @@ function buildDerivedMetricRow(args: {
     _id: ObjectID.generate().toString(),
     projectId: rule.projectId!.toString(),
     createdAt: OneUptimeDate.toClickhouseDateTime(now),
-    updatedAt: OneUptimeDate.toClickhouseDateTime(now),
     time: OneUptimeDate.toClickhouseDateTime(bucketStart),
     timeUnixNano: (bucketStart.getTime() * 1_000_000).toString(),
-    serviceType: ServiceType.OpenTelemetry,
+    primaryEntityType: ServiceType.OpenTelemetry,
     name: rule.outputMetricName,
     metricPointType: MetricPointType.Gauge,
     value: value,

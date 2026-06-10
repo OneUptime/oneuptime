@@ -30,7 +30,7 @@ Drop filters let you **discard or sample spans before they are stored**, reducin
 
 ### Filter Query Syntax
 
-**Available fields:** \`name\`, \`kind\`, \`statusCode\`, \`serviceId\`, \`attributes.<key>\`
+**Available fields:** \`name\`, \`kind\`, \`statusCode\`, \`primaryEntityId\`, \`attributes.<key>\`
 
 ### Examples
 

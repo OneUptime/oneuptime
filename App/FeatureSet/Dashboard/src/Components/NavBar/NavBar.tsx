@@ -156,6 +156,24 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       category: observabilityCategory,
     },
     {
+      title: t("navbar.items.entitiesTitle"),
+      description: t("navbar.items.entitiesDescription"),
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.ENTITIES] as Route),
+      activeRoute: RouteMap[PageMap.ENTITIES],
+      icon: IconProp.Cube,
+      iconColor: "blue",
+      category: observabilityCategory,
+    },
+    {
+      title: t("navbar.items.topologyTitle"),
+      description: t("navbar.items.topologyDescription"),
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.TOPOLOGY] as Route),
+      activeRoute: RouteMap[PageMap.TOPOLOGY],
+      icon: IconProp.FlowDiagram,
+      iconColor: "indigo",
+      category: observabilityCategory,
+    },
+    {
       title: t("navbar.items.servicesTitle"),
       description: t("navbar.items.servicesDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.SERVICES] as Route),
@@ -193,6 +211,39 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       activeRoute: RouteMap[PageMap.HOSTS],
       icon: IconProp.Server,
       iconColor: "slate",
+      category: resourcesCategory,
+    },
+    {
+      title: t("navbar.items.serverlessTitle"),
+      description: t("navbar.items.serverlessDescription"),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SERVERLESS_FUNCTIONS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.SERVERLESS_FUNCTIONS],
+      icon: IconProp.Bolt,
+      iconColor: "blue",
+      category: resourcesCategory,
+    },
+    {
+      title: t("navbar.items.cloudTitle"),
+      description: t("navbar.items.cloudDescription"),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.CLOUD_RESOURCES] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.CLOUD_RESOURCES],
+      icon: IconProp.Cloud,
+      iconColor: "blue",
+      category: resourcesCategory,
+    },
+    {
+      title: t("navbar.items.rumTitle"),
+      description: t("navbar.items.rumDescription"),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.RUM_APPLICATIONS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.RUM_APPLICATIONS],
+      icon: IconProp.Globe,
+      iconColor: "blue",
       category: resourcesCategory,
     },
     // Automation & Analytics
@@ -305,6 +356,10 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       rightElement={rightElement}
       moreMenuItems={moreMenuItems}
       moreMenuFooter={moreMenuFooter}
+      moreMenuSearchPlaceholder={t("navbar.search.placeholder")}
+      moreMenuNoResultsText={t("navbar.search.noResults")}
+      moreMenuKeyboardHint={t("navbar.search.hint")}
+      moreMenuRecentLabel={t("navbar.search.recent")}
     />
   );
 };

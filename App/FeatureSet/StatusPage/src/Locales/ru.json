@@ -252,5 +252,7 @@
     "ongoing": "В процессе",
     "ended": "Завершено",
     "completed": "Завершено"
-  }
+  },
+  "Subscriber ID is required": "Требуется ID подписчика",
+  "Token is required": "Требуется токен"
 }

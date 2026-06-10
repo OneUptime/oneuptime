@@ -162,6 +162,42 @@ export const HostRoutePath: Dictionary<string> = {
   [PageMap.HOST_SETTINGS_LABEL_RULES]: `settings/label-rules`,
 };
 
+export const ServerlessRoutePath: Dictionary<string> = {
+  [PageMap.SERVERLESS_FUNCTION_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.SERVERLESS_FUNCTION_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.SERVERLESS_FUNCTION_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.SERVERLESS_FUNCTION_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+  [PageMap.SERVERLESS_FUNCTION_VIEW_INSTANCES]: `${RouteParams.ModelID}/instances`,
+  [PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.SERVERLESS_FUNCTION_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.SERVERLESS_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.SERVERLESS_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+};
+
+export const CloudRoutePath: Dictionary<string> = {
+  [PageMap.CLOUD_RESOURCE_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.CLOUD_RESOURCE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.CLOUD_RESOURCE_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.CLOUD_RESOURCE_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+  [PageMap.CLOUD_RESOURCE_VIEW_INSTANCES]: `${RouteParams.ModelID}/instances`,
+  [PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.CLOUD_RESOURCE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.CLOUD_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.CLOUD_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+};
+
+export const RumRoutePath: Dictionary<string> = {
+  [PageMap.RUM_APPLICATION_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.RUM_APPLICATION_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.RUM_APPLICATION_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.RUM_APPLICATION_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+  [PageMap.RUM_APPLICATION_VIEW_CLIENTS]: `${RouteParams.ModelID}/clients`,
+  [PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.RUM_APPLICATION_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.RUM_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.RUM_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+};
+
 export const WorkflowRoutePath: Dictionary<string> = {
   [PageMap.WORKFLOWS_LOGS]: "logs",
   [PageMap.WORKFLOWS_VARIABLES]: "variables",
@@ -243,6 +279,15 @@ export const ProfilesRoutePath: Dictionary<string> = {
   [PageMap.PROFILES_INSIGHTS]: "insights",
   [PageMap.PROFILE_VIEW]: `view/${RouteParams.ModelID}`,
   [PageMap.PROFILES_DOCUMENTATION]: "documentation",
+};
+
+export const EntitiesRoutePath: Dictionary<string> = {
+  [PageMap.ENTITIES]: "overview",
+  [PageMap.ENTITIES_VIEW]: ":modelId",
+};
+
+export const TopologyRoutePath: Dictionary<string> = {
+  [PageMap.TOPOLOGY]: "overview",
 };
 
 export const ExceptionsRoutePath: Dictionary<string> = {
@@ -2397,6 +2442,193 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  // Serverless Functions
+  [PageMap.SERVERLESS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/*`,
+  ),
+
+  [PageMap.SERVERLESS_FUNCTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless`,
+  ),
+
+  [PageMap.SERVERLESS_FUNCTION_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW]
+    }`,
+  ),
+
+  [PageMap.SERVERLESS_FUNCTION_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.SERVERLESS_FUNCTION_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.SERVERLESS_FUNCTION_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_TRACES]
+    }`,
+  ),
+
+  [PageMap.SERVERLESS_FUNCTION_VIEW_INSTANCES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_INSTANCES]
+    }`,
+  ),
+
+  [PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.SERVERLESS_FUNCTION_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.SERVERLESS_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.SERVERLESS_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  // Cloud Resources
+  [PageMap.CLOUD_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/*`,
+  ),
+
+  [PageMap.CLOUD_RESOURCES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud`,
+  ),
+
+  [PageMap.CLOUD_RESOURCE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW]
+    }`,
+  ),
+
+  [PageMap.CLOUD_RESOURCE_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_RESOURCE_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_RESOURCE_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_TRACES]
+    }`,
+  ),
+
+  [PageMap.CLOUD_RESOURCE_VIEW_INSTANCES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_INSTANCES]
+    }`,
+  ),
+
+  [PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.CLOUD_RESOURCE_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.CLOUD_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.CLOUD_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  // Real User Monitoring
+  [PageMap.RUM_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/rum/*`),
+
+  [PageMap.RUM_APPLICATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_TRACES]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_CLIENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_CLIENTS]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.RUM_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.RUM_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
   // Dashboards
 
   [PageMap.DASHBOARDS_ROOT]: new Route(
@@ -3782,6 +4014,36 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.EXCEPTIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/exceptions/${
       ExceptionsRoutePath[PageMap.EXCEPTIONS]
+    }`,
+  ),
+
+  [PageMap.ENTITIES_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/entities/*`,
+  ),
+
+  [PageMap.ENTITIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/entities/${
+      EntitiesRoutePath[PageMap.ENTITIES]
+    }`,
+  ),
+
+  [PageMap.ENTITIES_VIEW_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/entities`,
+  ),
+
+  [PageMap.ENTITIES_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/entities/${
+      EntitiesRoutePath[PageMap.ENTITIES_VIEW]
+    }`,
+  ),
+
+  [PageMap.TOPOLOGY_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/topology/*`,
+  ),
+
+  [PageMap.TOPOLOGY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/topology/${
+      TopologyRoutePath[PageMap.TOPOLOGY]
     }`,
   ),
 

@@ -98,19 +98,19 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
   ];
 
   /**
-   * Fetch the rolling-window baseline for one (metric, [service],
+   * Fetch the rolling-window baseline for one (metric, [entity],
    * hour-of-week) cell. Aggregates the AggregateFunction states across
    * the last `windowDays` days. Returns null when no data exists.
    *
-   * `serviceId` is optional: when omitted, baselines are aggregated
-   * across every serviceId that ingested the metric in the window.
-   * Useful for monitor criteria whose query isn't scoped to a single
-   * telemetry service.
+   * `primaryEntityId` is optional: when omitted, baselines are
+   * aggregated across every primaryEntityId that ingested the metric in
+   * the window. Useful for monitor criteria whose query isn't scoped to
+   * a single telemetry service.
    */
   public async getBaseline(input: {
     projectId: ObjectID | string;
     metricName: string;
-    serviceId?: ObjectID | string | undefined;
+    primaryEntityId?: ObjectID | string | undefined;
     hourOfWeek: number;
     windowDays?: number | undefined;
     minSamples?: number | undefined;
@@ -133,27 +133,27 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
       Math.min(167, Math.floor(input.hourOfWeek)),
     );
 
-    const serviceIdClause: string = input.serviceId
-      ? `AND serviceId = '${this.escapeString(
-          input.serviceId instanceof ObjectID
-            ? input.serviceId.toString()
-            : input.serviceId,
+    const primaryEntityIdClause: string = input.primaryEntityId
+      ? `AND primaryEntityId = '${this.escapeString(
+          input.primaryEntityId instanceof ObjectID
+            ? input.primaryEntityId.toString()
+            : input.primaryEntityId,
         )}'`
       : "";
 
     const sql: string = `
       SELECT
-        countMerge(sampleCountState)         AS sampleCount,
-        avgMerge(meanState)                  AS mean,
-        stddevPopMerge(stddevState)          AS stddev,
-        quantileMerge(0.5)(medianState)      AS median,
-        quantileMerge(0.95)(p95State)        AS p95,
-        minMerge(minObsState)                AS minObserved,
-        maxMerge(maxObsState)                AS maxObserved
+        countMerge(sampleCountState)                AS sampleCount,
+        avgMerge(meanState)                         AS mean,
+        stddevPopMerge(stddevState)                 AS stddev,
+        quantileBFloat16Merge(0.5)(medianState)     AS median,
+        quantileBFloat16Merge(0.95)(p95State)       AS p95,
+        minMerge(minObsState)                       AS minObserved,
+        maxMerge(maxObsState)                       AS maxObserved
       FROM MetricBaselineHourly
       WHERE projectId = '${projectIdStr}'
         AND name = '${metricNameStr}'
-        ${serviceIdClause}
+        ${primaryEntityIdClause}
         AND hourOfWeek = ${hour}
         AND day >= today() - INTERVAL ${windowDays} DAY
     `;
@@ -223,13 +223,13 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
 
   /**
    * Coverage probe: how much baseline data we have for a (metric,
-   * service) pair. Used by the form UI to show "Learning — N days of
+   * entity) pair. Used by the form UI to show "Learning — N days of
    * data, baseline ready in M days".
    */
   public async getCoverage(input: {
     projectId: ObjectID | string;
     metricName: string;
-    serviceId?: ObjectID | string | undefined;
+    primaryEntityId?: ObjectID | string | undefined;
   }): Promise<{ totalSamples: number; oldestDay: Date | null }> {
     const projectIdStr: string = this.escapeString(
       input.projectId instanceof ObjectID
@@ -238,11 +238,11 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
     );
     const metricNameStr: string = this.escapeString(input.metricName);
 
-    const serviceIdClause: string = input.serviceId
-      ? `AND serviceId = '${this.escapeString(
-          input.serviceId instanceof ObjectID
-            ? input.serviceId.toString()
-            : input.serviceId,
+    const primaryEntityIdClause: string = input.primaryEntityId
+      ? `AND primaryEntityId = '${this.escapeString(
+          input.primaryEntityId instanceof ObjectID
+            ? input.primaryEntityId.toString()
+            : input.primaryEntityId,
         )}'`
       : "";
 
@@ -253,7 +253,7 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
       FROM MetricBaselineHourly
       WHERE projectId = '${projectIdStr}'
         AND name = '${metricNameStr}'
-        ${serviceIdClause}
+        ${primaryEntityIdClause}
         AND day >= today() - INTERVAL ${MetricBaselineService.MAX_WINDOW_DAYS} DAY
     `;
 
@@ -295,7 +295,7 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
   public async getBandSeries(input: {
     projectId: ObjectID | string;
     metricName: string;
-    serviceId?: ObjectID | string | undefined;
+    primaryEntityId?: ObjectID | string | undefined;
     startTime: Date;
     endTime: Date;
     intervalMinutes: number;
@@ -317,11 +317,11 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
     );
     const metricNameStr: string = this.escapeString(input.metricName);
 
-    const serviceIdClause: string = input.serviceId
-      ? `AND serviceId = '${this.escapeString(
-          input.serviceId instanceof ObjectID
-            ? input.serviceId.toString()
-            : input.serviceId,
+    const primaryEntityIdClause: string = input.primaryEntityId
+      ? `AND primaryEntityId = '${this.escapeString(
+          input.primaryEntityId instanceof ObjectID
+            ? input.primaryEntityId.toString()
+            : input.primaryEntityId,
         )}'`
       : "";
 
@@ -334,7 +334,7 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
       FROM MetricBaselineHourly
       WHERE projectId = '${projectIdStr}'
         AND name = '${metricNameStr}'
-        ${serviceIdClause}
+        ${primaryEntityIdClause}
         AND day >= today() - INTERVAL ${windowDays} DAY
       GROUP BY hourOfWeek
     `;

@@ -14,8 +14,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import "ejs";
 
 import { APP_NAME, getApiUrl } from "./Config/ServerConfig";
-import { initializeMCPServer, getMCPServer } from "./Server/MCPServer";
-import { registerToolHandlers } from "./Handlers/ToolHandler";
+import { initializeMCPServer } from "./Server/MCPServer";
 import { setupMCPRoutes } from "./Handlers/RouteHandler";
 import { generateAllTools } from "./Tools/ToolGenerator";
 import OneUptimeApiService, {
@@ -102,10 +101,11 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     // Generate tools
     const tools: McpToolInfo[] = generateTools();
 
-    // Register tool handlers
-    registerToolHandlers(getMCPServer(), tools);
-
-    // Setup MCP-specific routes
+    /*
+     * Setup MCP-specific routes. Tool handlers are registered per-request inside
+     * the route handler (stateless mode), so there is no startup-time handler
+     * registration on a shared server instance.
+     */
     setupMCPRoutes(app, tools);
 
     // Add default routes to the app

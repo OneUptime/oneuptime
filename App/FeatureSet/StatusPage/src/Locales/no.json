@@ -252,5 +252,7 @@
     "ongoing": "Pågående",
     "ended": "Avsluttet",
     "completed": "Fullført"
-  }
+  },
+  "Subscriber ID is required": "Abonnent-ID er påkrevd",
+  "Token is required": "Token er påkrevd"
 }

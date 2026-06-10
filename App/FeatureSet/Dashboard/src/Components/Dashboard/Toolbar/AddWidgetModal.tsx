@@ -6,6 +6,7 @@ import React, {
 } from "react";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Icon from "Common/UI/Components/Icon/Icon";
+import useTranslateValue from "Common/UI/Utils/Translation";
 import IconProp from "Common/Types/Icon/IconProp";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 
@@ -219,6 +220,7 @@ export interface ComponentProps {
 const AddWidgetModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
   const [searchTerm, setSearchTerm] = useState<string>("");
   const trimmedSearch: string = searchTerm.trim().toLowerCase();
 
@@ -297,10 +299,10 @@ const AddWidgetModal: FunctionComponent<ComponentProps> = (
               <div key={category.name}>
                 <div className="mb-2">
                   <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    {category.name}
+                    {translateString(category.name)}
                   </h4>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {category.description}
+                    {translateString(category.description)}
                   </p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -320,10 +322,10 @@ const AddWidgetModal: FunctionComponent<ComponentProps> = (
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="text-sm font-medium text-gray-800 truncate">
-                            {item.label}
+                            {translateString(item.label)}
                           </div>
                           <div className="text-xs text-gray-500 mt-0.5 line-clamp-2">
-                            {item.description}
+                            {translateString(item.description)}
                           </div>
                         </div>
                       </button>

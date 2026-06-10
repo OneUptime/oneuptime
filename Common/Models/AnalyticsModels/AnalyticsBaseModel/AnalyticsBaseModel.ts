@@ -58,6 +58,7 @@ export default class AnalyticsBaseModel extends CommonModel {
     enableWorkflowOn?: EnableWorkflowOn | undefined;
     enableRealtimeEventsOn?: EnableRealtimeEventsOn | undefined;
     partitionKey: string;
+    tableSettings?: string | undefined;
     projections?: Array<Projection> | undefined;
     materializedViews?: Array<MaterializedView> | undefined;
     enableMCP?: boolean | undefined;
@@ -92,6 +93,12 @@ export default class AnalyticsBaseModel extends CommonModel {
         description: "ID of this object",
         required: true,
         type: TableColumnType.ObjectID,
+        /*
+         * Ids are UUIDv7 (time-ordered — see ObjectID.generateTimeOrdered),
+         * so consecutive rows share their 48-bit timestamp prefix and ZSTD
+         * compresses them well; random v4 ids were incompressible.
+         */
+        codec: { codec: "ZSTD", level: 1 },
       }),
     );
 
@@ -100,16 +107,6 @@ export default class AnalyticsBaseModel extends CommonModel {
         key: "createdAt",
         title: "Created",
         description: "Date and Time when the object was created.",
-        required: true,
-        type: TableColumnType.Date,
-      }),
-    );
-
-    columns.push(
-      new AnalyticsTableColumn({
-        key: "updatedAt",
-        title: "Updated",
-        description: "Date and Time when the object was updated.",
         required: true,
         type: TableColumnType.Date,
       }),
@@ -175,6 +172,7 @@ export default class AnalyticsBaseModel extends CommonModel {
     this.isMasterAdminApiDocs = data.isMasterAdminApiDocs || false;
     this.enableRealtimeEventsOn = data.enableRealtimeEventsOn;
     this.partitionKey = data.partitionKey;
+    this.tableSettings = data.tableSettings;
     this.projections = data.projections || [];
     this.materializedViews = data.materializedViews || [];
     this.enableMCP = data.enableMCP || false;
@@ -250,6 +248,14 @@ export default class AnalyticsBaseModel extends CommonModel {
   }
   public set partitionKey(v: string) {
     this._partitionKey = v;
+  }
+
+  private _tableSettings: string | undefined = undefined;
+  public get tableSettings(): string | undefined {
+    return this._tableSettings;
+  }
+  public set tableSettings(v: string | undefined) {
+    this._tableSettings = v;
   }
 
   private _sortKeys: Array<string> = [];
@@ -466,14 +472,6 @@ export default class AnalyticsBaseModel extends CommonModel {
 
   public set createdAt(v: Date | undefined) {
     this.setColumnValue("createdAt", v);
-  }
-
-  public get updatedAt(): Date | undefined {
-    return this.getColumnValue("updatedAt") as Date | undefined;
-  }
-
-  public set updatedAt(v: Date | undefined) {
-    this.setColumnValue("updatedAt", v);
   }
 
   public getAPIDocumentationPath(): string {

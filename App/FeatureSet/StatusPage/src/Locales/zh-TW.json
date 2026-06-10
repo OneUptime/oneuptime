@@ -252,5 +252,7 @@
     "ongoing": "進行中",
     "ended": "已結束",
     "completed": "已完成"
-  }
+  },
+  "Subscriber ID is required": "訂閱者 ID 為必填",
+  "Token is required": "權杖為必填"
 }

@@ -72,7 +72,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
     body: true,
     time: true,
     projectId: true,
-    serviceId: true,
+    primaryEntityId: true,
     spanId: true,
     traceId: true,
     severityText: true,
@@ -81,7 +81,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
 
   const selectSpan: Select<Span> = {
     projectId: true,
-    serviceId: true,
+    primaryEntityId: true,
     spanId: true,
     traceId: true,
     parentSpanId: true,
@@ -193,7 +193,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
           startTimeUnixNano: s.startTimeUnixNano!,
           endTimeUnixNano: s.endTimeUnixNano!,
           durationUnixNano: s.durationUnixNano!,
-          serviceId: s.serviceId?.toString(),
+          primaryEntityId: s.primaryEntityId?.toString(),
           name: s.name,
         };
       },
@@ -720,7 +720,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
             },
           },
           {
-            key: "serviceId",
+            key: "primaryEntityId",
             title: "Telemetry Service",
             description: "The unique identifier of the service.",
             fieldType: FieldType.Element,

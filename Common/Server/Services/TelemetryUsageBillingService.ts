@@ -124,33 +124,33 @@ export class Service extends DatabaseService<Model> {
     const endOfDay: Date = OneUptimeDate.getEndOfDay(usageDate);
 
     /*
-     * Enumerate usage from ClickHouse by (serviceId, serviceType) in a
+     * Enumerate usage from ClickHouse by (primaryEntityId, primaryEntityType) in a
      * single aggregation scan per analytics table. Unlike the old
      * per-Service-row loop, this surfaces EVERY resource that emitted
      * telemetry — real Services AND Hosts / Docker hosts / Kubernetes
-     * clusters / unattributed (serviceId = projectId) — so infrastructure
+     * clusters / unattributed (primaryEntityId = projectId) — so infrastructure
      * telemetry is no longer ingested for free. `byteSize(*)` gives the
      * estimated ingested bytes per group; the configured average row size
      * is only a fallback if the engine returns 0.
      */
     type ServiceUsage = {
-      serviceType: string | null;
+      primaryEntityType: string | null;
       bytes: number;
     };
     const usageByServiceId: Map<string, ServiceUsage> = new Map();
 
     const addUsage: (
       rows: Array<{
-        serviceId: string;
-        serviceType: string | null;
+        primaryEntityId: string;
+        primaryEntityType: string | null;
         rowCount: number;
         estimatedBytes: number;
       }>,
       fallbackRowSizeInBytes: number,
     ) => void = (
       rows: Array<{
-        serviceId: string;
-        serviceType: string | null;
+        primaryEntityId: string;
+        primaryEntityType: string | null;
         rowCount: number;
         estimatedBytes: number;
       }>,
@@ -162,16 +162,16 @@ export class Service extends DatabaseService<Model> {
             ? row.estimatedBytes
             : row.rowCount * fallbackRowSizeInBytes;
         const existing: ServiceUsage | undefined = usageByServiceId.get(
-          row.serviceId,
+          row.primaryEntityId,
         );
         if (existing) {
           existing.bytes += bytes;
-          if (!existing.serviceType && row.serviceType) {
-            existing.serviceType = row.serviceType;
+          if (!existing.primaryEntityType && row.primaryEntityType) {
+            existing.primaryEntityType = row.primaryEntityType;
           }
         } else {
-          usageByServiceId.set(row.serviceId, {
-            serviceType: row.serviceType,
+          usageByServiceId.set(row.primaryEntityId, {
+            primaryEntityType: row.primaryEntityType,
             bytes,
           });
         }
@@ -243,7 +243,13 @@ export class Service extends DatabaseService<Model> {
         `Failed to aggregate telemetry usage for project ${data.projectId.toString()} (${data.productType}):`,
       );
       logger.error(error as Error);
-      return;
+      /*
+       * Rethrow so the failure is loud: nothing has been staged for this
+       * day yet (staging below is skipped entirely), so a later retry of
+       * the cron can re-stage the full day. Swallowing here would
+       * silently bill the day as zero.
+       */
+      throw error;
     }
 
     if (usageByServiceId.size === 0) {
@@ -264,7 +270,7 @@ export class Service extends DatabaseService<Model> {
     /*
      * Skip serviceIds already staged for this day so re-runs of the cron
      * don't double-count (updateUsageBilling accumulates into the day's
-     * row). One query instead of a findOneBy per serviceId.
+     * row). One query instead of a findOneBy per primaryEntityId.
      */
     const alreadyStaged: Array<Model> = await this.findBy({
       query: {
@@ -273,7 +279,7 @@ export class Service extends DatabaseService<Model> {
         day: usageDayString,
       },
       select: {
-        serviceId: true,
+        primaryEntityId: true,
       },
       skip: 0,
       limit: LIMIT_MAX,
@@ -284,7 +290,7 @@ export class Service extends DatabaseService<Model> {
     const stagedServiceIds: Set<string> = new Set(
       alreadyStaged
         .map((row: Model) => {
-          return row.serviceId?.toString();
+          return row.primaryEntityId?.toString();
         })
         .filter((id: string | undefined): id is string => {
           return Boolean(id);
@@ -298,9 +304,9 @@ export class Service extends DatabaseService<Model> {
        * neither is charged as ingested telemetry volume.
        */
       if (
-        usage.serviceType === ServiceType.Monitor ||
-        usage.serviceType === ServiceType.Alert ||
-        usage.serviceType === ServiceType.Incident
+        usage.primaryEntityType === ServiceType.Monitor ||
+        usage.primaryEntityType === ServiceType.Alert ||
+        usage.primaryEntityType === ServiceType.Incident
       ) {
         continue;
       }
@@ -318,18 +324,19 @@ export class Service extends DatabaseService<Model> {
         retentionByServiceId.get(serviceIdStr) ?? projectDefaultRetentionInDays;
 
       /*
-       * Legacy rows (pre-discriminator) and any null serviceType are
-       * treated as OpenTelemetry — historically every billed serviceId was
+       * Legacy rows (pre-discriminator) and any null primaryEntityType are
+       * treated as OpenTelemetry — historically every billed primaryEntityId was
        * a real Service.
        */
-      const serviceType: ServiceType =
-        (usage.serviceType as ServiceType | null) ?? ServiceType.OpenTelemetry;
+      const primaryEntityType: ServiceType =
+        (usage.primaryEntityType as ServiceType | null) ??
+        ServiceType.OpenTelemetry;
 
       await this.updateUsageBilling({
         projectId: data.projectId,
         productType: data.productType,
-        serviceId: new ObjectID(serviceIdStr),
-        serviceType: serviceType,
+        primaryEntityId: new ObjectID(serviceIdStr),
+        primaryEntityType: primaryEntityType,
         dataIngestedInGB: estimatedGigabytes,
         retentionInDays: retentionInDays,
         usageDate: usageDate,
@@ -436,8 +443,8 @@ export class Service extends DatabaseService<Model> {
   public async updateUsageBilling(data: {
     projectId: ObjectID;
     productType: ProductType;
-    serviceId: ObjectID;
-    serviceType?: ServiceType | undefined;
+    primaryEntityId: ObjectID;
+    primaryEntityType?: ServiceType | undefined;
     dataIngestedInGB: number;
     retentionInDays: number;
     usageDate?: Date;
@@ -474,7 +481,7 @@ export class Service extends DatabaseService<Model> {
       query: {
         projectId: data.projectId,
         productType: data.productType,
-        serviceId: data.serviceId,
+        primaryEntityId: data.primaryEntityId,
         isReportedToBillingProvider: false,
         day: usageDayString,
       },
@@ -523,9 +530,9 @@ export class Service extends DatabaseService<Model> {
       usageBilling.projectId = data.projectId;
       usageBilling.productType = data.productType;
       usageBilling.dataIngestedInGB = new Decimal(data.dataIngestedInGB);
-      usageBilling.serviceId = data.serviceId;
-      if (data.serviceType) {
-        usageBilling.serviceType = data.serviceType;
+      usageBilling.primaryEntityId = data.primaryEntityId;
+      if (data.primaryEntityType) {
+        usageBilling.primaryEntityType = data.primaryEntityType;
       }
       usageBilling.retainTelemetryDataForDays = data.retentionInDays;
       usageBilling.isReportedToBillingProvider = false;

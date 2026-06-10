@@ -1,5 +1,6 @@
 // Tailwind
 import { Logger } from "../../Utils/Logger";
+import useTranslateValue from "../../Utils/Translation";
 import Icon from "../Icon/Icon";
 import OneUptimeDate from "../../../Types/Date";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -46,6 +47,7 @@ export interface ComponentProps {
 const Input: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
   let className: string = "";
 
   if (!props.className) {
@@ -199,7 +201,7 @@ const Input: FunctionComponent<ComponentProps> = (
               ? "1"
               : undefined
           }
-          placeholder={props.placeholder}
+          placeholder={translateString(props.placeholder)}
           className={className}
           onBlur={() => {
             if (props.onBlur) {

@@ -252,5 +252,7 @@
     "ongoing": "Laufend",
     "ended": "Beendet",
     "completed": "Abgeschlossen"
-  }
+  },
+  "Subscriber ID is required": "Abonnenten-ID ist erforderlich",
+  "Token is required": "Token ist erforderlich"
 }

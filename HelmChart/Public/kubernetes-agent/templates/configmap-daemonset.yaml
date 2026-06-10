@@ -37,11 +37,12 @@ data:
         # set; enabling them adds no extra scrape, just derived metric
         # families from data the receiver already collects.
         #
-        # v0.96.0 of the receiver doesn't expose node-level request
-        # utilization as a separate metric (added in later versions),
-        # so node saturation is computed downstream from the
-        # already-default-enabled `k8s.node.cpu.usage` /
-        # `k8s.node.memory.usage` series.
+        # The receiver only exposes request/limit utilization at the
+        # container and pod level — there is no node-level
+        # `k8s.node.*.request_utilization` metric in any receiver
+        # version (it's a pod-scheduling ratio, not a kubelet stat).
+        # Node request saturation is derived downstream from
+        # pod/container requests vs. node allocatable.
         metrics:
           k8s.container.cpu_limit_utilization:
             enabled: true
@@ -215,7 +216,7 @@ data:
             routes:
               - output: parse-ebpf-trace-json
                 expr: 'body matches "\"trace_id\""'
-            default: move-stream
+            default: recombine-multiline
           - type: json_parser
             id: parse-ebpf-trace-json
             parse_from: body
@@ -232,8 +233,27 @@ data:
           - type: remove
             id: cleanup-obi-attrs
             field: attributes._obi
-            output: move-stream
+            output: recombine-multiline
           {{- end }}
+          # Container runtimes write one log entry per newline, so a multi-line
+          # event (a Java/Python/Node/.NET stack trace, a pretty-printed JSON
+          # blob) arrives as many separate records and renders as many separate
+          # lines on the OneUptime Logs page. Recombine continuation lines back
+          # into the record they belong to so each exception is a single log.
+          # A line starts a new record unless it begins with whitespace or a
+          # closing bracket/brace/paren, which covers stack frames and wrapped
+          # structured output. source_identifier keys on the per-container log
+          # file path so records from different pods/containers never merge.
+          # This mirrors the recombine operator the Docker agent already ships.
+          - type: recombine
+            id: recombine-multiline
+            output: move-stream
+            combine_field: body
+            combine_with: "\n"
+            is_first_entry: 'body matches "^[^\\s\\}\\)\\]]"'
+            source_identifier: attributes["log.file.path"]
+            force_flush_period: 5s
+            max_log_size: 1048576
           - type: move
             id: move-stream
             from: attributes.stream

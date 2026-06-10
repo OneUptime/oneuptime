@@ -80,7 +80,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   >([]);
 
   /*
-   * An exception's serviceId is polymorphic (no Service relation). Load the
+   * An exception's primaryEntityId is polymorphic (no Service relation). Load the
    * project's Services so the detail view can resolve a real OpenTelemetry
    * service to its name/colour; other serviceTypes resolve to a label.
    */
@@ -100,7 +100,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
           });
         setServices(result.data);
       } catch {
-        // Non-fatal: the detail view falls back to a serviceType label.
+        // Non-fatal: the detail view falls back to a primaryEntityType label.
       }
     };
     void loadServices();
@@ -141,8 +141,8 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
             profilePictureId: true,
           },
           markedAsResolvedAt: true,
-          serviceId: true,
-          serviceType: true,
+          primaryEntityId: true,
+          primaryEntityType: true,
         },
       });
 

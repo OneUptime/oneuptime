@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | Cloud Monitoring - AWS, Google Cloud & Azure Observability</title>
+  <meta name="description"
+    content="Monitor AWS, Google Cloud, and Azure with OpenTelemetry. Auto-discovered cloud environments, real-time resource metrics, logs, traces, and alerting across every region and account. Open source.">
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <main id="main-content">
+    <!-- Hero Section -->
+    <div class="relative isolate overflow-hidden bg-white" id="cloud-hero-section">
+      <!-- Subtle grid pattern background -->
+      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+      <!-- Grid glow effect that follows cursor -->
+      <div id="cloud-grid-glow" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(14, 165, 233, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(14, 165, 233, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
+
+      <div class="py-20 sm:py-28 lg:py-32">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          <div class="mx-auto max-w-3xl text-center">
+            <!-- Minimal badge -->
+            <p class="text-sm font-medium text-sky-600 mb-4">OpenTelemetry Native Cloud Monitoring</p>
+
+            <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+              Your whole cloud, one pane of glass
+            </h1>
+            <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+              Bring AWS, Google Cloud, and Azure telemetry into OneUptime over OpenTelemetry. Auto-discovered environments, real-time resource metrics, logs, and traces — correlated across every region and account you run.
+            </p>
+
+            <div class="mt-10 flex items-center justify-center gap-x-6">
+              <a href="/accounts/register"
+                class="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
+                Get started
+              </a>
+              <a href="/enterprise/demo" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+                Request demo <span aria-hidden="true">&rarr;</span>
+              </a>
+            </div>
+
+            <!-- Subtle feature list -->
+            <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
+              <span>AWS</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Google Cloud</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Azure</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Multi-account</span>
+            </div>
+          </div>
+
+          <!-- Hero visual - Cloud overview mockup -->
+          <div class="mt-16 sm:mt-20">
+            <div class="relative mx-auto max-w-5xl">
+              <div class="rounded-xl bg-gray-900/5 p-1.5 ring-1 ring-gray-900/10">
+                <div class="rounded-lg bg-white shadow-lg overflow-hidden">
+                  <!-- Header bar -->
+                  <div class="bg-gray-50 px-6 py-3 flex items-center justify-between border-b border-gray-200">
+                    <div class="flex items-center gap-3">
+                      <div class="flex gap-1.5">
+                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <%- include('./Partials/icons/cloud', {iconClass: 'h-4 w-4'}) %>
+                        <span class="text-sm text-gray-700 font-semibold">Cloud Environments</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-md border border-gray-200 text-xs text-gray-500">
+                        <svg class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Last 1 hour
+                      </div>
+                      <span class="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 rounded-md text-xs font-medium text-emerald-600 border border-emerald-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        3 clouds · 6 regions
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Dashboard content -->
+                  <div class="p-5">
+                    <!-- Top stats row -->
+                    <div class="grid grid-cols-5 gap-3 mb-5">
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Environments</div>
+                        <div class="text-xl font-bold text-gray-900">9</div>
+                        <div class="text-[10px] text-gray-500 font-medium mt-1">across 3 clouds</div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Instances</div>
+                        <div class="text-xl font-bold text-gray-900">214</div>
+                        <div class="text-[10px] text-emerald-500 font-medium mt-1">211 healthy</div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Avg CPU</div>
+                        <div class="text-xl font-bold text-gray-900">48%</div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                          <div class="bg-sky-400 h-1.5 rounded-full" style="width: 48%"></div>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Avg Memory</div>
+                        <div class="text-xl font-bold text-gray-900">66%</div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                          <div class="bg-violet-400 h-1.5 rounded-full" style="width: 66%"></div>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Alerts</div>
+                        <div class="text-xl font-bold text-gray-900">2</div>
+                        <div class="text-[10px] text-amber-500 font-medium mt-1">active</div>
+                      </div>
+                    </div>
+
+                    <!-- Charts row -->
+                    <div class="grid grid-cols-3 gap-3 mb-5">
+                      <div class="col-span-2 bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                        <div class="flex items-center justify-between mb-4">
+                          <div>
+                            <div class="text-sm font-semibold text-gray-800">Fleet Resource Usage</div>
+                            <div class="text-[10px] text-gray-400 mt-0.5">CPU and Memory across all clouds</div>
+                          </div>
+                          <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-1">
+                              <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+                              <span class="text-[10px] text-gray-500">CPU</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                              <span class="w-2 h-2 rounded-full bg-violet-500"></span>
+                              <span class="text-[10px] text-gray-500">Memory</span>
+                            </div>
+                          </div>
+                        </div>
+                        <svg viewBox="0 0 400 100" class="w-full h-24">
+                          <defs>
+                            <linearGradient id="cloudCpuGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                              <stop offset="0%" style="stop-color:#0ea5e9;stop-opacity:0.2"/>
+                              <stop offset="100%" style="stop-color:#0ea5e9;stop-opacity:0"/>
+                            </linearGradient>
+                            <linearGradient id="cloudMemGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                              <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:0.15"/>
+                              <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:0"/>
+                            </linearGradient>
+                          </defs>
+                          <line x1="0" y1="25" x2="400" y2="25" stroke="#f3f4f6" stroke-width="1"/>
+                          <line x1="0" y1="50" x2="400" y2="50" stroke="#f3f4f6" stroke-width="1"/>
+                          <line x1="0" y1="75" x2="400" y2="75" stroke="#f3f4f6" stroke-width="1"/>
+                          <path d="M0,62 L25,58 L50,55 L75,57 L100,52 L125,54 L150,48 L175,50 L200,46 L225,49 L250,44 L275,47 L300,43 L325,46 L350,42 L375,45 L400,41 L400,100 L0,100 Z" fill="url(#cloudCpuGrad)"/>
+                          <path d="M0,62 L25,58 L50,55 L75,57 L100,52 L125,54 L150,48 L175,50 L200,46 L225,49 L250,44 L275,47 L300,43 L325,46 L350,42 L375,45 L400,41" fill="none" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round"/>
+                          <path d="M0,38 L25,36 L50,34 L75,32 L100,31 L125,30 L150,28 L175,30 L200,27 L225,29 L250,26 L275,28 L300,25 L325,27 L350,24 L375,26 L400,23 L400,100 L0,100 Z" fill="url(#cloudMemGrad)"/>
+                          <path d="M0,38 L25,36 L50,34 L75,32 L100,31 L125,30 L150,28 L175,30 L200,27 L225,29 L250,26 L275,28 L300,25 L325,27 L350,24 L375,26 L400,23" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round"/>
+                          <text x="2" y="23" fill="#9ca3af" font-size="8">75%</text>
+                          <text x="2" y="48" fill="#9ca3af" font-size="8">50%</text>
+                          <text x="2" y="73" fill="#9ca3af" font-size="8">25%</text>
+                        </svg>
+                      </div>
+
+                      <!-- Region breakdown -->
+                      <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                        <div class="text-sm font-semibold text-gray-800 mb-1">By Region</div>
+                        <div class="text-[10px] text-gray-400 mb-4">Instances per region</div>
+                        <div class="space-y-3">
+                          <div>
+                            <div class="flex items-center justify-between mb-1">
+                              <span class="text-[11px] font-mono text-gray-600">us-east-1</span>
+                              <span class="text-[10px] text-gray-500">84</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-sky-400 h-1.5 rounded-full" style="width:82%"></div></div>
+                          </div>
+                          <div>
+                            <div class="flex items-center justify-between mb-1">
+                              <span class="text-[11px] font-mono text-gray-600">us-central1</span>
+                              <span class="text-[10px] text-gray-500">52</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-sky-400 h-1.5 rounded-full" style="width:52%"></div></div>
+                          </div>
+                          <div>
+                            <div class="flex items-center justify-between mb-1">
+                              <span class="text-[11px] font-mono text-gray-600">eu-west-1</span>
+                              <span class="text-[10px] text-gray-500">46</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-sky-400 h-1.5 rounded-full" style="width:46%"></div></div>
+                          </div>
+                          <div>
+                            <div class="flex items-center justify-between mb-1">
+                              <span class="text-[11px] font-mono text-gray-600">westeurope</span>
+                              <span class="text-[10px] text-gray-500">32</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-sky-400 h-1.5 rounded-full" style="width:32%"></div></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Environments table -->
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                      <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                        <span class="text-xs font-semibold text-gray-700">Cloud environments</span>
+                        <span class="text-[10px] text-gray-400">9 total</span>
+                      </div>
+                      <table class="w-full text-xs">
+                        <thead class="bg-white border-b border-gray-100">
+                          <tr>
+                            <th class="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Platform</th>
+                            <th class="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Account / Project</th>
+                            <th class="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Region</th>
+                            <th class="px-4 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-gray-500">Instances</th>
+                            <th class="px-4 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-gray-500">CPU</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                          <tr>
+                            <td class="px-4 py-2 font-medium text-gray-900">AWS</td>
+                            <td class="px-4 py-2 font-mono text-gray-500">4109-2277-8841</td>
+                            <td class="px-4 py-2 font-mono text-gray-500">us-east-1</td>
+                            <td class="px-4 py-2 text-right font-mono text-gray-900">84</td>
+                            <td class="px-4 py-2 text-right font-mono text-gray-900">51%</td>
+                          </tr>
+                          <tr>
+                            <td class="px-4 py-2 font-medium text-gray-900">Google Cloud</td>
+                            <td class="px-4 py-2 font-mono text-gray-500">prod-platform</td>
+                            <td class="px-4 py-2 font-mono text-gray-500">us-central1</td>
+                            <td class="px-4 py-2 text-right font-mono text-gray-900">52</td>
+                            <td class="px-4 py-2 text-right font-mono text-gray-900">44%</td>
+                          </tr>
+                          <tr>
+                            <td class="px-4 py-2 font-medium text-gray-900">Azure</td>
+                            <td class="px-4 py-2 font-mono text-gray-500">core-prod-sub</td>
+                            <td class="px-4 py-2 font-mono text-gray-500">westeurope</td>
+                            <td class="px-4 py-2 text-right font-mono text-gray-900">32</td>
+                            <td class="px-4 py-2 text-right font-mono text-amber-600">79%</td>
+                          </tr>
+                          <tr>
+                            <td class="px-4 py-2 font-medium text-gray-900">AWS</td>
+                            <td class="px-4 py-2 font-mono text-gray-500">4109-2277-8841</td>
+                            <td class="px-4 py-2 font-mono text-gray-500">eu-west-1</td>
+                            <td class="px-4 py-2 text-right font-mono text-gray-900">46</td>
+                            <td class="px-4 py-2 text-right font-mono text-gray-900">38%</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- How It Works Section -->
+    <div class="relative bg-gray-50 py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-sky-600 uppercase tracking-wide mb-3">How It Works</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            One collector. Every cloud you run.
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            Environments are grouped by the OTel <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">cloud.platform</code>, account, and region attributes — captured automatically by resource detectors.
+          </p>
+        </div>
+
+        <div class="mx-auto max-w-5xl">
+          <!-- Connecting line for desktop -->
+          <div class="hidden lg:block relative">
+            <div class="absolute top-8 left-[calc(12.5%+24px)] right-[calc(12.5%+24px)] h-px bg-sky-200"></div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            <!-- Step 1 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-sky-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-sky-600 ring-2 ring-sky-600">1</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Deploy the collector</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Run the OpenTelemetry Collector or the OneUptime Kubernetes agent in each cloud and account you operate.</p>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-sky-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-sky-600 ring-2 ring-sky-600">2</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Auto-detect metadata</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Resource detectors read cloud, account, and region straight from EC2, GCP, and Azure instance metadata.</p>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-sky-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-sky-600 ring-2 ring-sky-600">3</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Environments appear</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">A cloud environment is created per platform + account + region. No manual setup, no inventory to maintain.</p>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-sky-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-sky-600 ring-2 ring-sky-600">4</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Alert &amp; correlate</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Alert on resource saturation and jump from a metric straight to the logs and traces behind it.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Why OneUptime Section -->
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section header -->
+        <div class="mx-auto max-w-2xl text-center mb-20">
+          <div class="inline-flex items-center gap-2 rounded-full bg-sky-50 px-4 py-1.5 text-sm font-medium text-sky-700 ring-1 ring-inset ring-sky-600/20 mb-6">
+            <svg class="h-4 w-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
+            </svg>
+            <span class="text-sm font-medium text-sky-700">Why OneUptime for Cloud</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+            Multi-cloud observability without the silos
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            Whether you run one account or a hundred, OneUptime brings every cloud into a single, consistent view — resource metrics, logs, traces, and alerting that don't care which provider you chose.
+          </p>
+        </div>
+
+        <!-- Feature blocks -->
+        <div class="space-y-24">
+
+          <!-- Feature 1: Multi-cloud unified view -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 ring-1 ring-sky-200">
+                  <svg class="h-5 w-5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-sky-600 uppercase tracking-wide">Unified View</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Every cloud, side by side</h3>
+              <p class="mt-4 text-lg text-gray-600">AWS, Google Cloud, and Azure all stream OpenTelemetry to one place. Group environments by provider, account, region, or team and compare them with the same metrics and the same alert rules.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  AWS, GCP, and Azure in one dashboard
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Group by provider, account, region, or team
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Consistent metrics regardless of vendor
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Provider cards mockup -->
+                <div class="relative max-w-md mx-auto">
+                  <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+                    <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                      <div class="flex gap-1.5">
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      </div>
+                      <div class="flex-1 text-center">
+                        <span class="text-xs text-gray-400">Environments by provider</span>
+                      </div>
+                    </div>
+                    <div class="p-4 space-y-3">
+                      <div class="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-100">
+                        <div class="flex items-center gap-3">
+                          <div class="w-9 h-9 rounded-lg bg-orange-100 flex items-center justify-center text-xs font-bold text-orange-600">AWS</div>
+                          <div>
+                            <div class="text-sm font-medium text-gray-900">Amazon Web Services</div>
+                            <div class="text-xs text-gray-500">3 regions · 130 instances</div>
+                          </div>
+                        </div>
+                        <span class="text-xs text-emerald-600 font-medium">Healthy</span>
+                      </div>
+                      <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
+                        <div class="flex items-center gap-3">
+                          <div class="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600">GCP</div>
+                          <div>
+                            <div class="text-sm font-medium text-gray-900">Google Cloud</div>
+                            <div class="text-xs text-gray-500">2 regions · 52 instances</div>
+                          </div>
+                        </div>
+                        <span class="text-xs text-emerald-600 font-medium">Healthy</span>
+                      </div>
+                      <div class="flex items-center justify-between p-3 bg-sky-50 rounded-lg border border-sky-100">
+                        <div class="flex items-center gap-3">
+                          <div class="w-9 h-9 rounded-lg bg-sky-100 flex items-center justify-center text-xs font-bold text-sky-600">AZ</div>
+                          <div>
+                            <div class="text-sm font-medium text-gray-900">Microsoft Azure</div>
+                            <div class="text-xs text-gray-500">1 region · 32 instances</div>
+                          </div>
+                        </div>
+                        <span class="text-xs text-amber-600 font-medium">1 alert</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 2: Real-time resource utilization -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Utilization mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">aws · us-east-1 · resource usage</span>
+                    </div>
+                  </div>
+                  <div class="p-4 space-y-3">
+                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-gray-600 font-medium">CPU Utilization</span>
+                        <span class="text-xs text-gray-900 font-semibold">51%</span>
+                      </div>
+                      <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-sky-500 h-2 rounded-full" style="width: 51%"></div>
+                      </div>
+                      <div class="mt-1 text-[10px] text-gray-500">84 instances · avg over fleet</div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-gray-600 font-medium">Memory</span>
+                        <span class="text-xs text-gray-900 font-semibold">66%</span>
+                      </div>
+                      <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-violet-500 h-2 rounded-full" style="width: 66%"></div>
+                      </div>
+                      <div class="mt-1 text-[10px] text-gray-500">used 66% · cached 18% · free 16%</div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-gray-600 font-medium">Top instances by CPU</span>
+                      </div>
+                      <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                          <span class="text-[11px] font-mono text-gray-600">i-0a91…c4</span>
+                          <span class="text-[10px] text-gray-500">92%</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                          <span class="text-[11px] font-mono text-gray-600">i-0b32…7d</span>
+                          <span class="text-[10px] text-gray-500">81%</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                          <span class="text-[11px] font-mono text-gray-600">i-0c55…19</span>
+                          <span class="text-[10px] text-gray-500">74%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 ring-1 ring-sky-200">
+                  <svg class="h-5 w-5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-sky-600 uppercase tracking-wide">Resource Utilization</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Real-time CPU, memory, and instance health</h3>
+              <p class="mt-4 text-lg text-gray-600">See utilization per instance and across the fleet, live instance counts, and the top consumers in every region — collected automatically by the OTel collector, no custom instrumentation required.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  CPU and memory per instance and fleet-wide
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Live instance counts and health status
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Top instances by resource usage
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <!-- Feature 3: Auto-discovered metadata -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 ring-1 ring-sky-200">
+                  <svg class="h-5 w-5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-sky-600 uppercase tracking-wide">Auto-Discovery</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Cloud metadata, captured for you</h3>
+              <p class="mt-4 text-lg text-gray-600">Resource detectors read <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">cloud.platform</code>, <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">cloud.account.id</code>, and <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">cloud.region</code> directly from instance metadata services — so every signal already knows which environment it belongs to.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  EC2, GCP, and Azure metadata detectors
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Platform, account, and region per environment
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Drill down by environment, region, or account
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Metadata panel mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Resource attributes</span>
+                    </div>
+                  </div>
+                  <div class="p-4">
+                    <div class="rounded-lg bg-gray-900 p-4 font-mono text-[11px] leading-relaxed">
+                      <div class="text-gray-400">resource:</div>
+                      <div class="text-gray-300 pl-3"><span class="text-sky-400">cloud.provider</span>: <span class="text-emerald-400">"aws"</span></div>
+                      <div class="text-gray-300 pl-3"><span class="text-sky-400">cloud.platform</span>: <span class="text-emerald-400">"aws_ec2"</span></div>
+                      <div class="text-gray-300 pl-3"><span class="text-sky-400">cloud.account.id</span>: <span class="text-emerald-400">"4109…8841"</span></div>
+                      <div class="text-gray-300 pl-3"><span class="text-sky-400">cloud.region</span>: <span class="text-emerald-400">"us-east-1"</span></div>
+                      <div class="text-gray-300 pl-3"><span class="text-sky-400">cloud.availability_zone</span>: <span class="text-emerald-400">"us-east-1b"</span></div>
+                      <div class="text-gray-300 pl-3"><span class="text-sky-400">host.type</span>: <span class="text-emerald-400">"m6i.2xlarge"</span></div>
+                    </div>
+                    <div class="mt-3 flex items-center gap-2 text-[10px] text-gray-500">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                      Captured automatically by the resource detector
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 4: Correlated signals -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Linked signals mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">aws · us-east-1 · signals</span>
+                    </div>
+                  </div>
+                  <div class="p-4 space-y-3">
+                    <a href="#" class="flex items-center gap-3 p-3 rounded-lg border border-amber-100 bg-amber-50 hover:bg-amber-100 transition-colors">
+                      <div class="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center">
+                        <%- include('./Partials/icons/logs', {iconClass: 'h-4 w-4'}) %>
+                      </div>
+                      <div class="flex-1">
+                        <div class="text-sm font-semibold text-gray-900">Logs</div>
+                        <div class="text-xs text-gray-500">38,402 entries in the last hour</div>
+                      </div>
+                      <svg class="h-4 w-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </a>
+                    <a href="#" class="flex items-center gap-3 p-3 rounded-lg border border-yellow-100 bg-yellow-50 hover:bg-yellow-100 transition-colors">
+                      <div class="w-9 h-9 rounded-lg bg-yellow-100 flex items-center justify-center">
+                        <%- include('./Partials/icons/traces', {iconClass: 'h-4 w-4'}) %>
+                      </div>
+                      <div class="flex-1">
+                        <div class="text-sm font-semibold text-gray-900">Traces</div>
+                        <div class="text-xs text-gray-500">Service map across 12 services</div>
+                      </div>
+                      <svg class="h-4 w-4 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </a>
+                    <a href="#" class="flex items-center gap-3 p-3 rounded-lg border border-cyan-100 bg-cyan-50 hover:bg-cyan-100 transition-colors">
+                      <div class="w-9 h-9 rounded-lg bg-cyan-100 flex items-center justify-center">
+                        <%- include('./Partials/icons/kubernetes', {iconClass: 'h-4 w-4'}) %>
+                      </div>
+                      <div class="flex-1">
+                        <div class="text-sm font-semibold text-gray-900">Kubernetes</div>
+                        <div class="text-xs text-gray-500">prod-eks · 18 nodes, 240 pods</div>
+                      </div>
+                      <svg class="h-4 w-4 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 ring-1 ring-sky-200">
+                  <svg class="h-5 w-5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-sky-600 uppercase tracking-wide">Correlated Signals</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Metrics, logs, and traces in one context</h3>
+              <p class="mt-4 text-lg text-gray-600">A cloud environment isn't just a number on a chart. From any environment, jump straight to its logs, distributed traces, Kubernetes clusters, hosts, and containers — every signal scoped to the same account and region.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Logs, metrics, and traces side by side
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Linked Kubernetes, hosts, and containers
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Alert, then pivot to the root cause in a click
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- More Features Section -->
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section header -->
+        <div class="mx-auto max-w-2xl text-center">
+          <div class="inline-flex items-center gap-2 rounded-full bg-sky-50 px-4 py-1.5 text-sm font-medium text-sky-700 ring-1 ring-inset ring-sky-600/20 mb-6">
+            <svg class="h-4 w-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span class="text-sm font-medium text-sky-700">Advanced capabilities</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+            Everything you need across clouds
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            Built for teams running real workloads — from a single account to a multi-cloud, multi-region estate.
+          </p>
+        </div>
+
+        <!-- Feature cards grid -->
+        <div class="mx-auto mt-16 max-w-7xl">
+          <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+
+            <!-- Card 1: OpenTelemetry Native -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-sky-300 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-50 ring-1 ring-sky-200">
+                  <svg class="h-6 w-6 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.25 9V5.25A2.25 2.25 0 0110.5 3h6a2.25 2.25 0 012.25 2.25v13.5A2.25 2.25 0 0116.5 21h-6a2.25 2.25 0 01-2.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H2.25" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">OpenTelemetry Native</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">No proprietary agent and no per-cloud integration to maintain. The standard upstream OTel collector is all you need in every account.</p>
+              </div>
+            </div>
+
+            <!-- Card 2: Resource detectors -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-emerald-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
+                  <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Resource detectors</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">EC2, GCP, and Azure instance-metadata detectors stamp every signal with its cloud, account, region, and zone automatically.</p>
+              </div>
+            </div>
+
+            <!-- Card 3: Multi-account / region -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-violet-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-50 ring-1 ring-violet-200">
+                  <svg class="h-6 w-6 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Multi-account &amp; region</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Run hundreds of accounts and regions and still get one clean inventory. Environments roll up by platform, account, and region.</p>
+              </div>
+            </div>
+
+            <!-- Card 4: Correlated logs & traces -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-amber-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-200">
+                  <svg class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Correlated logs &amp; traces</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Logs, metrics, and distributed traces share the same cloud resource attributes, so you can pivot from a saturation alert to the request that caused it.</p>
+              </div>
+            </div>
+
+            <!-- Card 5: Hosts, Docker & Kubernetes -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-cyan-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-50 ring-1 ring-cyan-200">
+                  <svg class="h-6 w-6 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75M21.75 6.75A2.25 2.25 0 0019.5 4.5h-15A2.25 2.25 0 002.25 6.75m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Hosts, Docker &amp; Kubernetes</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Whatever runs in your cloud — VMs, containers, or clusters — is covered. Cloud environments link straight to their hosts, Docker, and Kubernetes views.</p>
+              </div>
+            </div>
+
+            <!-- Card 6: Open source -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-pink-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-pink-50 ring-1 ring-pink-200">
+                  <svg class="h-6 w-6 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Open source</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Self-host in your own cloud or use ours. No data egress to a third-party vendor you can't audit. Your telemetry stays your telemetry.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team Notifications Section -->
+    <div class="relative overflow-hidden bg-white py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+          <!-- Content -->
+          <div class="relative">
+            <p class="text-sm font-medium text-sky-600 uppercase tracking-wide mb-3">Team Notifications</p>
+            <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+              Cloud alerts where your team already works
+            </h2>
+            <p class="mt-4 text-lg text-gray-600 leading-relaxed">
+              Get instant notifications for CPU saturation, memory pressure, disconnected collectors, and unhealthy instances in Slack and Microsoft Teams — tagged with the exact cloud, account, and region.
+            </p>
+
+            <!-- Integration cards -->
+            <div class="mt-10 space-y-3">
+              <!-- Slack -->
+              <div class="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                    <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z" fill="#E01E5A"/>
+                    <path d="M8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312z" fill="#36C5F0"/>
+                    <path d="M18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312z" fill="#2EB67D"/>
+                    <path d="M15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="#ECB22E"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-sm font-semibold text-gray-900">Slack</h3>
+                  <p class="text-sm text-gray-500">Interactive cloud alert actions</p>
+                </div>
+              </div>
+
+              <!-- Microsoft Teams -->
+              <div class="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                    <path d="M20.16 7.8h-4.736c.103.317.159.654.159 1.005v7.029a3.588 3.588 0 01-3.583 3.583h-4.8v.777c0 .998.81 1.806 1.806 1.806h8.339l2.869 1.912a.452.452 0 00.703-.376V21.2h.646c.997 0 1.806-.809 1.806-1.806v-9.788A1.806 1.806 0 0020.16 7.8z" fill="#5059C9"/>
+                    <circle cx="18.5" cy="4.5" r="2.5" fill="#5059C9"/>
+                    <path d="M13.5 6H3.806A1.806 1.806 0 002 7.806v9.388c0 .997.81 1.806 1.806 1.806h2.611v3.336a.452.452 0 00.703.376L10.5 20h3a3.5 3.5 0 003.5-3.5v-7A3.5 3.5 0 0013.5 6z" fill="#7B83EB"/>
+                    <circle cx="10" cy="3" r="3" fill="#7B83EB"/>
+                    <path d="M6 11h6M6 14h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-sm font-semibold text-gray-900">Microsoft Teams</h3>
+                  <p class="text-sm text-gray-500">Native adaptive cards integration</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Features list -->
+            <div class="mt-8 grid grid-cols-2 gap-4">
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Real-time delivery
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                CPU &amp; memory threshold alerts
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Region &amp; account context
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Action buttons
+              </div>
+            </div>
+          </div>
+
+          <!-- Slack Demo -->
+          <div class="mt-12 lg:mt-0 relative">
+            <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+            <div class="relative rounded-2xl bg-[#1a1d21] shadow-2xl ring-1 ring-white/10 overflow-hidden">
+              <!-- Slack Window Header -->
+              <div class="bg-[#0f1114] px-4 py-3 flex items-center justify-between border-b border-white/5">
+                <div class="flex items-center gap-2">
+                  <div class="flex gap-1.5">
+                    <div class="w-3 h-3 rounded-full bg-[#ff5f57]"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#febc2e]"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#28c840]"></div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <svg class="h-4 w-4 text-white/60" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
+                  </svg>
+                  <span class="text-white/60 text-sm font-medium">#cloud-alerts</span>
+                </div>
+                <div class="w-16"></div>
+              </div>
+
+              <!-- Slack Messages Area -->
+              <div class="p-4 space-y-4 min-h-[320px]">
+                <!-- Main Alert Message -->
+                <div class="flex gap-3" style="animation: fadeSlideIn 0.5s ease-out forwards;">
+                  <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
+                    </svg>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-baseline gap-2">
+                      <span class="font-bold text-white text-sm">OneUptime Cloud</span>
+                      <span class="text-xs text-white/40">2:47 PM</span>
+                    </div>
+                    <!-- Alert Card -->
+                    <div class="mt-2 rounded-lg bg-[#0f1114] border border-white/10 overflow-hidden">
+                      <div class="p-3 border-l-4 border-amber-500">
+                        <div class="flex items-center gap-2 mb-2">
+                          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/30">WARNING</span>
+                          <span class="text-white/40 text-xs">CPU Saturation</span>
+                        </div>
+                        <p class="text-white font-semibold">Fleet CPU at 92% in westeurope</p>
+                        <div class="mt-2 flex items-center gap-4 text-xs text-white/50">
+                          <span class="flex items-center gap-1">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
+                            </svg>
+                            azure · core-prod-sub
+                          </span>
+                          <span class="flex items-center gap-1">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            9m above threshold
+                          </span>
+                        </div>
+                        <!-- Action Buttons -->
+                        <div class="mt-3 flex gap-2">
+                          <button class="px-3 py-1.5 rounded text-xs font-semibold bg-white/10 text-white hover:bg-white/20 transition-colors border border-white/10">
+                            Acknowledge
+                          </button>
+                          <button class="px-3 py-1.5 rounded text-xs font-semibold bg-sky-600 text-white hover:bg-sky-700 transition-colors">
+                            View Environment
+                          </button>
+                          <button class="px-3 py-1.5 rounded text-xs font-semibold bg-white/10 text-white hover:bg-white/20 transition-colors border border-white/10">
+                            Resolve
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- Reactions -->
+                    <div class="mt-2 flex items-center gap-1">
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-xs border border-white/10 hover:bg-white/10 cursor-pointer transition-colors">
+                        <span>👀</span>
+                        <span class="text-white/60">3</span>
+                      </span>
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-xs border border-white/10 hover:bg-white/10 cursor-pointer transition-colors">
+                        <span>☁️</span>
+                        <span class="text-white/60">1</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Message Input Area -->
+              <div class="px-4 py-3 border-t border-white/5">
+                <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0f1114] border border-white/10">
+                  <svg class="h-5 w-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  <span class="text-white/30 text-sm">Message #cloud-alerts</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('./Partials/enterprise-ready') -%>
+    <%- include('features-table') -%>
+    <%- include('cta') -%>
+  </main>
+
+  <%- include('footer') -%>
+
+  <style>
+    @keyframes fadeSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+
+  <!-- Grid glow cursor effect -->
+  <script>
+    (function() {
+      const heroSection = document.getElementById('cloud-hero-section');
+      const gridGlow = document.getElementById('cloud-grid-glow');
+
+      if (heroSection && gridGlow) {
+        heroSection.addEventListener('mousemove', (e) => {
+          const rect = heroSection.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          gridGlow.style.setProperty('--mouse-x', x + 'px');
+          gridGlow.style.setProperty('--mouse-y', y + 'px');
+          gridGlow.style.opacity = '1';
+        });
+
+        heroSection.addEventListener('mouseleave', () => {
+          gridGlow.style.opacity = '0';
+        });
+      }
+    })();
+  </script>
+</body>
+
+</html>

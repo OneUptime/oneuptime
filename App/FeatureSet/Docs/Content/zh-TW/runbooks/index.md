@@ -1,0 +1,121 @@
+# Runbook 總覽
+
+Runbook 是可重複使用的回應程序——由一系列依序排列的手動或自動步驟組成——你可以將它附加到事件、警示或排程維護事件上。它們能把臨時起意的「我們現在該怎麼辦？」Slack 討論串，轉變成一位隊友在凌晨 3 點也能直接接手的東西。
+
+## 一覽
+
+- OneUptime 儀表板中的**頂層功能**，位於 **Analytics & Automation → Runbooks** 之下。
+- **四種步驟類型**：手動檢查清單、JavaScript（沙箱化）與 Bash（兩者皆在你自有基礎架構內的 [Runbook Agent](/docs/runbooks/agents) 上執行）、HTTP 請求。
+- **三種觸發路徑**：比對事件／警示／排程維護的規則，或任何事件上的手動「Run Runbook」按鈕。
+- **快照語意**：當 runbook 啟動時，其步驟會被複製到該次執行上。日後編輯範本永遠不會變更進行中的執行。
+- **完整稽核軌跡**：每個步驟的狀態、輸出、錯誤訊息與耗時都會永久記錄在該次執行上。
+
+## 為什麼要使用 runbook？
+
+事件回應往往是「一分鐘小插曲」與「長達數小時中斷」之間的差別。Runbook 能協助你：
+
+- **將部落知識制度化**——「佇列堆積時該怎麼辦」的內容會存在你的團隊找得到的地方。
+- **縮短平均修復時間（MTTR）**——自動步驟在數秒內完成；手動步驟則消除了決策癱瘓。
+- **稽核回應動作**——每次步驟執行、每筆輸出、每個回應者的點擊，都記錄在該次執行上。
+- **讓資淺工程師快速上手**——他們可以充滿信心地執行 runbook，而不必在凌晨 3 點呼叫資深人員。
+- **依據資料而非記憶撰寫事後檢討**——擷取到的執行紀錄，是確切記錄當下發生了什麼的凍結快照。
+
+## 關鍵概念
+
+接下來的 runbook 文件中會反覆出現幾個術語。先把這些搞清楚：
+
+| 術語 | 意義 |
+| --- | --- |
+| **Runbook** | 範本。一個具名、可重複使用的程序，包含一系列依序排列的步驟以及一個 `isEnabled` 旗標。 |
+| **Step（步驟）** | runbook 中的一個項目。具有類型（Manual／JavaScript／HTTP／Bash）、標題、描述，以及各類型特定的設定。 |
+| **Runbook Rule（規則）** | 一種模式，當事件、警示或排程維護事件的標題或描述符合某個正規表示式時，自動將一個或多個 runbook 附加到其上。 |
+| **Execution（執行）** | runbook 的一次執行。當規則被觸發、有人在事件上點擊「Run Runbook」、或有人在 runbook 本身上點擊「Run Now」時建立。它保有步驟的快照以及各步驟的狀態／輸出。 |
+| **Snapshot（快照）** | 存在於每次執行上的 runbook 步驟凍結副本。讓你日後可以編輯範本而不必改寫歷史紀錄。 |
+
+## runbook 的生命週期
+
+1. **撰寫**——建立一個 runbook，放入手動、JavaScript、HTTP 與 Bash 步驟的組合。儲存。
+2. **（選用）新增規則**——在事件、警示或排程維護的設定中，告訴 OneUptime 只要某事件的標題或描述符合某個正規表示式，就啟動這個 runbook。
+3. **觸發**——當符合條件的事件被建立時，規則會自動觸發；或由回應者在事件上手動點擊 **Run Runbook**。
+4. **執行**——建立一次新的執行，內含步驟的快照。自動步驟在 Runbook worker 上內嵌執行；執行會在每個手動步驟暫停，直到有人勾選完成。
+5. **稽核**——該次執行會永久留在事件的 **Runbooks** 分頁以及 runbook 的 **Executions** 清單上。各步驟的輸出、錯誤與時間都會被保留，供事後檢討使用。
+
+## 各步驟類型何時使用
+
+一份快速決策指南。更詳盡的說明在[撰寫 Runbook](/docs/runbooks/authoring)。
+
+| 步驟類型 | 在以下情況選用… | 範例 |
+| --- | --- | --- |
+| **Manual** | 需要人類去驗證某件事、做出判斷，或採取 OneUptime 無法觀測到的動作。 | 「在負載平衡器儀表板上確認次要區域的流量。」 |
+| **JavaScript** | 你需要一段小型、受限的運算——查詢設定服務、轉換負載資料，或在下一步驟之前執行邏輯。在你自有基礎架構中的 [Runbook Agent](/docs/runbooks/agents) 上以沙箱方式執行。 | 計算目前的複本延遲並決定是否繼續。 |
+| **HTTP request** | 你正在呼叫既有的 API——你自己的管理端點、雲端供應商、PagerDuty、Slack。 | 對你的故障轉移協調器發出 `POST`。 |
+| **Bash** | 你需要在自有基礎架構上執行 shell 指令——重啟服務、執行 `kubectl`、呼叫部署腳本。需要在你的環境中安裝 [Runbook Agent](/docs/runbooks/agents)。 | 重啟服務、執行 `kubectl rollout restart`、執行還原腳本。 |
+
+你可以在單一 runbook 中混用全部四種類型——runbook 的優勢正在於將人工驗證與自動化交錯運用。
+
+## runbook 在儀表板中的位置
+
+| 頁面 | 你在那裡做什麼 |
+| --- | --- |
+| **Analytics & Automation → Runbooks** | 瀏覽、建立並編輯 runbook 範本。 |
+| **某個 runbook 的 Steps 分頁** | 撰寫並重新排序步驟清單。 |
+| **某個 runbook 的 Executions 分頁** | 查看這個 runbook 的每一次執行，並可依狀態篩選。 |
+| **某個 runbook 的 Run Now 按鈕** | 啟動一次不附加於任何事件的臨時執行。 |
+| **Incidents / Alerts / Scheduled Maintenance → Settings → Runbook Rules** | 為各實體類型建立自動觸發規則。 |
+| **某個事件／警示／維護事件 → Runbooks 分頁** | 查看附加到此事件的執行，並點擊 **Run Runbook** 以手動執行。 |
+
+## 常見使用情境
+
+我們看到團隊使用 runbook 的幾種模式：
+
+- **資料庫故障轉移**——以 JavaScript 擷取目前狀態，請待命的 DBA 確認複本健康狀況（Manual），呼叫協調器 API（HTTP），勾選「DNS 已更新」（Manual），向 Slack 發布解除警報（HTTP）。
+- **快取清除**——單一 HTTP 步驟，加上一個手動的「在儀表板上確認快取命中率正在恢復」。
+- **影響客戶的事件**——Manual：「發布狀態頁更新。」HTTP：「在 #customer-incidents 通知 CS 團隊。」JavaScript：「從內部 API 拉取受影響帳號清單。」
+- **排程維護的飛行前檢查**——JavaScript：擷取目前指標的快照。Manual：「與利害關係人確認變更時段。」HTTP：在負載平衡器上啟用維護模式。
+- **永遠執行的衛生措施**——一條標題模式為空的規則，無論如何都會在每個事件上擷取系統狀態——非常適合事後檢討。
+
+## 一個實作範例
+
+假設你希望每個標題中含有「db-primary」的事件，都能自動啟動一個五步驟的資料庫故障轉移 runbook。
+
+**1. 建立 runbook。**在 **Runbooks → Create Runbook** 之下，將其命名為「DB primary failover」並加入以下步驟：
+
+| # | 類型 | 標題 |
+| --- | --- | --- |
+| 1 | JavaScript | 擷取故障轉移前的複本延遲 |
+| 2 | Manual | 在 DBA 儀表板中確認複本健康 |
+| 3 | HTTP | 對故障轉移協調器發出 `POST` |
+| 4 | Manual | 驗證寫入現在已導向新的主要節點 |
+| 5 | HTTP | 向 `#db-incidents` Slack 發布解除警報 |
+
+**2. 新增規則。**在 **Incidents → Settings → Runbook Rules** 之下，建立：
+
+```
+Title Pattern:  ^db-primary
+Runbooks:       [DB primary failover]
+```
+
+**3. 觸發。**一則監測警示開啟了事件 `INC-4821 · db-primary connection timeout`。規則符合，於是建立一次執行，並且：
+
+- 步驟 1（JavaScript）在 worker 上立即執行——其 `return { lagMs: 412 }` 的值被擷取下來。
+- 步驟 2（Manual）暫停了執行。待命人員在事件頁面看到「Waiting for you」標籤，點擊儀表板，並勾選完成該步驟。
+- 步驟 3（HTTP）在步驟 2 被勾選後立即執行——`POST` 回應主體被擷取下來。
+- 步驟 4（Manual）再次暫停。
+- 步驟 5（HTTP）執行，該次執行完成。
+
+**4. 稽核。**該次執行留在事件的 **Runbooks** 分頁。每個步驟的輸出都只需一鍵即可查看。當你下週撰寫事後檢討時，不必再問「那個腳本回傳了什麼？」——答案就在那裡。
+
+## runbook 如何與 OneUptime 的其餘部分搭配
+
+- **Monitors** 開啟事件與警示；**runbook rules** 將那些事件轉變為 runbook 執行。兩者共同形成一個閉環：偵測 → 觸發 → 回應 → 記錄。
+- **Workspace connections**（Slack、Microsoft Teams）是 runbook HTTP 步驟的自然目標——發布狀態更新、通知頻道。
+- **Status pages** 通常會在影響客戶的 runbook 中以手動步驟更新。
+- **On-call schedules** 決定誰會被呼叫；runbook 則決定那個人清醒後該做什麼。
+
+## 接下來閱讀什麼
+
+- [撰寫 Runbook](/docs/runbooks/authoring)——建立 runbook、四種步驟類型，以及各自的作用。
+- [Runbook Rules](/docs/runbooks/rules)——將 runbook 自動附加到事件、警示與排程維護事件。
+- [執行 Runbook](/docs/runbooks/running)——手動觸發、執行檢視，以及手動步驟如何與自動步驟互動。
+- [Runbook Agents](/docs/runbooks/agents)——安裝在你自有基礎架構內執行 Bash 步驟的代理程式。
+- [設定與安全](/docs/runbooks/configuration)——輸出限制、權限、強化注意事項。

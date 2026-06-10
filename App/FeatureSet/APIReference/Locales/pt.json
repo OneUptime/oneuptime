@@ -100,7 +100,7 @@
       "exampleRequestTitle": "Exemplo de Requisição de Paginação",
       "exampleResponseTitle": "Exemplo de Resposta de Paginação",
       "typeNumber": "Número",
-      "typeJsonArray": "JSON Array"
+      "typeJsonArray": "Array JSON"
     },
     "permissions": {
       "metaTitle": "Permissões",
@@ -160,7 +160,7 @@
       "badge": "Guia",
       "title": "Tipos de Dados",
       "intro": "Neste guia, veremos como trabalhar com os Tipos de Dados do OneUptime ao consultar a API do OneUptime.",
-      "select": "Select",
+      "select": "Selecionar",
       "selectBody": "Select pode ser usado para selecionar campos de um Objeto na API List ou Get Item. Por padrão, apenas os IDs são retornados ao cliente. Para recuperar mais campos você precisa usar:",
       "selectDescription": "Dicionário de fieldName - boolean como Objeto JSON. Aqui está um exemplo. Se o boolean for definido como true, então o campo será recuperado.",
       "exampleSelectTitle": "Exemplo de Corpo de Requisição Select",

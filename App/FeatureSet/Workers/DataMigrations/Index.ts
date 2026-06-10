@@ -71,6 +71,20 @@ import AddMetricBaselineHourlyMV from "./AddMetricBaselineHourlyMV";
 import AddIdAndTimestampsToMVTargetTables from "./AddIdAndTimestampsToMVTargetTables";
 import ExtendMetricBaselineHourlyTTL from "./ExtendMetricBaselineHourlyTTL";
 import AddTelemetryStorageCompression from "./AddTelemetryStorageCompression";
+import MigrateTelemetryToV3PrimaryEntityId from "./MigrateTelemetryToV3PrimaryEntityId";
+import AddTtlOnlyDropPartsToTelemetryV3 from "./AddTtlOnlyDropPartsToTelemetryV3";
+import MigrateMonitorAndAuditLogToV3 from "./MigrateMonitorAndAuditLogToV3";
+import AddGorillaCodecToMetricValues from "./AddGorillaCodecToMetricValues";
+import AddUInt64TimestampsToTelemetryV3 from "./AddUInt64TimestampsToTelemetryV3";
+import AddUInt64ToRemainingTelemetryColumns from "./AddUInt64ToRemainingTelemetryColumns";
+import DropUpdatedAtFromTelemetryTables from "./DropUpdatedAtFromTelemetryTables";
+import AddEntityKeysToTelemetryTables from "./AddEntityKeysToTelemetryTables";
+import AddScalarEntityKeysToTelemetryTables from "./AddScalarEntityKeysToTelemetryTables";
+import MaterializeEntityKeysIndexOnTelemetryTables from "./MaterializeEntityKeysIndexOnTelemetryTables";
+import AddZstdCodecToTelemetryIdColumns from "./AddZstdCodecToTelemetryIdColumns";
+import AddTelemetryV3ColumnCodecs from "./AddTelemetryV3ColumnCodecs";
+import RekeyMetricHostRollupToEntityKey from "./RekeyMetricHostRollupToEntityKey";
+import RebuildMetricBaselineHourlyWithBFloat16Quantiles from "./RebuildMetricBaselineHourlyWithBFloat16Quantiles";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -146,6 +160,31 @@ const DataMigrations: Array<DataMigrationBase> = [
   new ExtendMetricBaselineHourlyTTL(),
   new AddServiceTypeColumnToTelemetryTables(),
   new AddTelemetryStorageCompression(),
+  new MigrateTelemetryToV3PrimaryEntityId(),
+  new AddTtlOnlyDropPartsToTelemetryV3(),
+  new MigrateMonitorAndAuditLogToV3(),
+  new AddGorillaCodecToMetricValues(),
+  new AddUInt64TimestampsToTelemetryV3(),
+  new AddUInt64ToRemainingTelemetryColumns(),
+  new DropUpdatedAtFromTelemetryTables(),
+  new AddEntityKeysToTelemetryTables(),
+  /*
+   * ClickHouse storage hardening — ordering constraints:
+   *   - All of these need the V3 tables (MigrateTelemetryToV3PrimaryEntityId)
+   *     and the MV-target _id columns (AddIdAndTimestampsToMVTargetTables).
+   *   - MaterializeEntityKeysIndexOnTelemetryTables needs idx_entity_keys
+   *     (AddEntityKeysToTelemetryTables, directly above).
+   *   - RekeyMetricHostRollupToEntityKey needs the hostEntityKey scalar
+   *     column (AddScalarEntityKeysToTelemetryTables) — its MV reads it.
+   *   - AddZstdCodecToTelemetryIdColumns runs before the re-key/rebuild so
+   *     it never touches the tables those two drop and recreate.
+   */
+  new AddScalarEntityKeysToTelemetryTables(),
+  new MaterializeEntityKeysIndexOnTelemetryTables(),
+  new AddZstdCodecToTelemetryIdColumns(),
+  new AddTelemetryV3ColumnCodecs(),
+  new RekeyMetricHostRollupToEntityKey(),
+  new RebuildMetricBaselineHourlyWithBFloat16Quantiles(),
 ];
 
 export default DataMigrations;

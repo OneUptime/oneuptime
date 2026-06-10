@@ -194,6 +194,13 @@ export default class TelemetryQueueService {
         jobId,
         "ProcessTelemetry",
         jobData as unknown as JSONObject,
+        {
+          /*
+           * Job ids are unix-nano suffixed and therefore unique — skip
+           * the duplicate-id existence check (2 Redis round trips).
+           */
+          skipExistenceCheck: true,
+        },
       );
 
       logger.debug(`Added ${type} ingestion job: ${jobId}`);
@@ -254,6 +261,13 @@ export default class TelemetryQueueService {
         jobId,
         "ProcessTelemetry",
         jobData as unknown as JSONObject,
+        {
+          /*
+           * Job ids are unix-nano suffixed and therefore unique — skip
+           * the duplicate-id existence check (2 Redis round trips).
+           */
+          skipExistenceCheck: true,
+        },
       );
 
       logger.debug(`Added probe ingestion job: ${jobId}`);
@@ -309,6 +323,13 @@ export default class TelemetryQueueService {
         jobId,
         "ProcessTelemetry",
         jobData as unknown as JSONObject,
+        {
+          /*
+           * Job ids are unix-nano suffixed and therefore unique — skip
+           * the duplicate-id existence check (2 Redis round trips).
+           */
+          skipExistenceCheck: true,
+        },
       );
 
       logger.debug(`Added incoming email ingestion job: ${jobId}`);
@@ -343,6 +364,13 @@ export default class TelemetryQueueService {
         jobId,
         "ProcessTelemetry",
         jobData as unknown as JSONObject,
+        {
+          /*
+           * Job ids are unix-nano suffixed and therefore unique — skip
+           * the duplicate-id existence check (2 Redis round trips).
+           */
+          skipExistenceCheck: true,
+        },
       );
 
       logger.debug(`Added server monitor ingestion job: ${jobId}`);
@@ -383,6 +411,13 @@ export default class TelemetryQueueService {
         jobId,
         "ProcessTelemetry",
         jobData as unknown as JSONObject,
+        {
+          /*
+           * Job ids are unix-nano suffixed and therefore unique — skip
+           * the duplicate-id existence check (2 Redis round trips).
+           */
+          skipExistenceCheck: true,
+        },
       );
 
       logger.debug(`Added incoming request ingestion job: ${jobId}`);

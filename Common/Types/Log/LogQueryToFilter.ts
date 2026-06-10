@@ -19,7 +19,7 @@ import LessThanOrEqual from "../BaseDatabase/LessThanOrEqual";
 export interface LogFilter {
   body?: string | Search<string>;
   severityText?: string;
-  serviceId?: string;
+  primaryEntityId?: string;
   traceId?: string;
   spanId?: string;
   attributes?: Record<string, unknown>;
@@ -28,7 +28,7 @@ export interface LogFilter {
 
 const TOP_LEVEL_FIELDS: Set<string> = new Set([
   "severityText",
-  "serviceId",
+  "primaryEntityId",
   "traceId",
   "spanId",
   "body",

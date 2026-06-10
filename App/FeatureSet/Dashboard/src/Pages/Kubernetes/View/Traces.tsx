@@ -15,6 +15,8 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import TracesViewer from "../../../Components/Traces/TracesViewer";
+import ProjectUtil from "Common/UI/Utils/Project";
+import { keyForKubernetesCluster } from "Common/Utils/Telemetry/EntityKey";
 
 const KubernetesClusterTraces: FunctionComponent<
   PageComponentProps
@@ -71,12 +73,31 @@ const KubernetesClusterTraces: FunctionComponent<
 
   return (
     <Fragment>
+      {/*
+       * entityScope is the query scope (contract C4): new rows match via the
+       * bloom-indexed `entityKeys` membership column, pre-column rows (no
+       * backfill, empty array) via the attribute equality inside the same OR.
+       * `attributeFilters` stays for the read-only scope chip and the
+       * histogram / facet scoping — display behavior is unchanged. Drop the
+       * attribute fallback (here and in the attributeFilters query merge)
+       * once deploy-date + max retention has passed.
+       */}
       <TracesViewer
         attributeFilters={{
           "resource.k8s.cluster.name": cluster.clusterIdentifier,
         }}
         attributeFilterDisplayKeys={{
           "resource.k8s.cluster.name": "Cluster",
+        }}
+        entityScope={{
+          entityKeys: [
+            keyForKubernetesCluster(
+              ProjectUtil.getCurrentProjectId()!.toString(),
+              cluster.clusterIdentifier,
+            ),
+          ],
+          attributeKey: "resource.k8s.cluster.name",
+          attributeValue: cluster.clusterIdentifier,
         }}
       />
     </Fragment>

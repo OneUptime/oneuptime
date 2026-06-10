@@ -7,11 +7,11 @@ import ServiceType from "../../Types/Telemetry/ServiceType";
  * Telemetry that arrives without an OTel service.name (and with no
  * host / docker / k8s resource signal) is not backed by a Service row.
  * The ingest path tags those analytics rows with the projectId in the
- * `serviceId` column under ServiceType.Unknown (see
+ * `primaryEntityId` column under ServiceType.Unknown (see
  * OtelIngestBaseService.resolveTelemetryResource). The read side has no
  * Service to resolve, so we represent that telemetry with a synthetic,
  * non-persisted Service whose id is the projectId — that way the
- * existing serviceId -> Service lookups in the telemetry views resolve
+ * existing primaryEntityId -> Service lookups in the telemetry views resolve
  * it to a labelled "Unknown Service" entry without any per-view special
  * casing. A real Service._id is never equal to a projectId, so this
  * never collides with a genuine service.
@@ -19,8 +19,8 @@ import ServiceType from "../../Types/Telemetry/ServiceType";
 export const UNKNOWN_SERVICE_NAME: string = "Unknown Service";
 
 /*
- * Result of resolving a telemetry row's polymorphic (serviceId,
- * serviceType) to something renderable. Either a Service (a real
+ * Result of resolving a telemetry row's polymorphic (primaryEntityId,
+ * primaryEntityType) to something renderable. Either a Service (a real
  * OpenTelemetry service, or the synthetic "Unknown Service" for the
  * unattributed bucket) — or a plain `label` for infrastructure resource
  * types (Host / DockerHost / KubernetesCluster) that have no Service row.
@@ -32,25 +32,25 @@ export interface ResolvedTelemetryResource {
 
 export default class TelemetryServiceUtil {
   /*
-   * True when a telemetry row's serviceId is the synthetic "Unknown
+   * True when a telemetry row's primaryEntityId is the synthetic "Unknown
    * Service" — i.e. it equals the projectId (ServiceType.Unknown). Used
    * to suppress navigation to a per-service detail page that does not
    * exist for unattributed telemetry.
    */
   public static isUnknownServiceId(
-    serviceId: ObjectID | string | null | undefined,
+    primaryEntityId: ObjectID | string | null | undefined,
     projectId: ObjectID | null | undefined,
   ): boolean {
-    if (!serviceId || !projectId) {
+    if (!primaryEntityId || !projectId) {
       return false;
     }
-    return serviceId.toString() === projectId.toString();
+    return primaryEntityId.toString() === projectId.toString();
   }
 
   /*
    * Build the synthetic Service used to render unattributed telemetry.
-   * Not persisted — id is the projectId so that serviceId -> Service
-   * lookups (which key on the analytics row's serviceId) resolve to it.
+   * Not persisted — id is the projectId so that primaryEntityId -> Service
+   * lookups (which key on the analytics row's primaryEntityId) resolve to it.
    */
   public static getUnknownService(projectId: ObjectID): Service {
     const service: Service = new Service();
@@ -61,7 +61,7 @@ export default class TelemetryServiceUtil {
   }
 
   /*
-   * Resolve a telemetry row's polymorphic (serviceId, serviceType) to a
+   * Resolve a telemetry row's polymorphic (primaryEntityId, primaryEntityType) to a
    * renderable resource, given the project's loaded Services. Replaces the
    * old server-side `service` ORM relation on TelemetryException: a real
    * Service resolves from the loaded list, the unattributed bucket resolves
@@ -70,12 +70,12 @@ export default class TelemetryServiceUtil {
    * them). Mirrors how the ClickHouse analytics rows are resolved.
    */
   public static resolveTelemetryResource(data: {
-    serviceId: ObjectID | string | null | undefined;
-    serviceType: ServiceType | string | null | undefined;
+    primaryEntityId: ObjectID | string | null | undefined;
+    primaryEntityType: ServiceType | string | null | undefined;
     services: Array<Service>;
     projectId: ObjectID | null | undefined;
   }): ResolvedTelemetryResource {
-    const serviceIdStr: string | undefined = data.serviceId?.toString();
+    const serviceIdStr: string | undefined = data.primaryEntityId?.toString();
 
     // Real Service (OpenTelemetry) — resolve from the loaded list.
     if (serviceIdStr) {
@@ -87,11 +87,11 @@ export default class TelemetryServiceUtil {
       }
     }
 
-    // Unattributed (Unknown) bucket — serviceId is the projectId.
+    // Unattributed (Unknown) bucket — primaryEntityId is the projectId.
     if (
       data.projectId &&
-      (data.serviceType === ServiceType.Unknown ||
-        this.isUnknownServiceId(data.serviceId, data.projectId))
+      (data.primaryEntityType === ServiceType.Unknown ||
+        this.isUnknownServiceId(data.primaryEntityId, data.projectId))
     ) {
       return { service: this.getUnknownService(data.projectId) };
     }
@@ -102,8 +102,8 @@ export default class TelemetryServiceUtil {
       [ServiceType.DockerHost]: "Docker host telemetry",
       [ServiceType.KubernetesCluster]: "Kubernetes telemetry",
     };
-    const label: string | undefined = data.serviceType
-      ? typeLabels[data.serviceType.toString()]
+    const label: string | undefined = data.primaryEntityType
+      ? typeLabels[data.primaryEntityType.toString()]
       : undefined;
     if (label) {
       return { label: label };
@@ -115,7 +115,7 @@ export default class TelemetryServiceUtil {
   /*
    * Append the synthetic "Unknown Service" to a loaded service list, but
    * only when the telemetry in view actually references it (some
-   * serviceId equals the projectId). Avoids showing an empty "Unknown
+   * primaryEntityId equals the projectId). Avoids showing an empty "Unknown
    * Service" entry for projects that always set service.name. Idempotent.
    */
   public static withUnknownServiceIfReferenced(data: {

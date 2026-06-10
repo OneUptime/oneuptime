@@ -12,6 +12,12 @@ export default interface MonitorStepTraceMonitor {
   attributes: Dictionary<string | number | boolean>;
   spanStatuses: Array<SpanStatus>;
   telemetryServiceIds: Array<ObjectID>;
+  /*
+   * Stable telemetry entity keys (host / pod / container / ...) — scopes
+   * the monitor to spans carrying any of these in their entityKeys column.
+   * Optional: monitors saved before this field existed have it undefined.
+   */
+  entityKeys?: Array<string> | undefined;
   lastXSecondsOfSpans: number;
   spanName: string;
 }
@@ -26,9 +32,17 @@ export class MonitorStepTraceMonitorUtil {
       monitorStepTraceMonitor.telemetryServiceIds &&
       monitorStepTraceMonitor.telemetryServiceIds.length > 0
     ) {
-      query.serviceId = new Includes(
+      query.primaryEntityId = new Includes(
         monitorStepTraceMonitor.telemetryServiceIds,
       );
+    }
+
+    // Compiles to hasAny(entityKeys, [...]) server-side. Undefined/empty is a no-op.
+    if (
+      monitorStepTraceMonitor.entityKeys &&
+      monitorStepTraceMonitor.entityKeys.length > 0
+    ) {
+      query.entityKeys = new Includes(monitorStepTraceMonitor.entityKeys);
     }
 
     if (
@@ -67,6 +81,7 @@ export class MonitorStepTraceMonitorUtil {
       spanName: "",
       spanStatuses: [],
       telemetryServiceIds: [],
+      entityKeys: [],
       lastXSecondsOfSpans: 60,
     };
   }
@@ -80,6 +95,7 @@ export class MonitorStepTraceMonitorUtil {
       telemetryServiceIds: ObjectID.fromJSONArray(
         json["telemetryServiceIds"] as Array<JSONObject>,
       ),
+      entityKeys: (json["entityKeys"] as Array<string>) || [],
       lastXSecondsOfSpans: json["lastXSecondsOfSpans"] as number,
     };
   }
@@ -90,6 +106,7 @@ export class MonitorStepTraceMonitorUtil {
       spanName: monitor.spanName,
       spanStatuses: monitor.spanStatuses,
       telemetryServiceIds: ObjectID.toJSONArray(monitor.telemetryServiceIds),
+      entityKeys: monitor.entityKeys || [],
       lastXSecondsOfSpans: monitor.lastXSecondsOfSpans,
     };
   }

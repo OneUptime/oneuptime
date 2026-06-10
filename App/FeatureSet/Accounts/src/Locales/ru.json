@@ -104,5 +104,7 @@
       "title": "Страница не найдена",
       "description": "Страница, которую вы ищете, не существует."
     }
-  }
+  },
+  "Acme, Inc.": "Acme, Inc.",
+  "Jeff Smith": "Jeff Smith"
 }

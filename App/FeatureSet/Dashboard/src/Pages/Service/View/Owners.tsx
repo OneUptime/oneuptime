@@ -14,7 +14,7 @@ const ServiceOwners: FunctionComponent<
   return (
     <OwnersCard<ServiceOwnerUser, ServiceOwnerTeam>
       resourceId={modelId}
-      resourceIdField="serviceId"
+      resourceIdField="primaryEntityId"
       resourceDisplayName="service"
       ownerUserModelType={ServiceOwnerUser}
       ownerTeamModelType={ServiceOwnerTeam}

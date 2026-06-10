@@ -52,7 +52,7 @@ Filter queries let you target specific logs. If left empty, the pipeline matches
 | \`AND\` | \`severityText = 'ERROR' AND attributes.service = 'api'\` | Both conditions must match |
 | \`OR\` | \`severityText = 'ERROR' OR severityText = 'WARN'\` | Either condition matches |
 
-**Available fields:** \`severityText\`, \`body\`, \`serviceId\`, \`attributes.<key>\`
+**Available fields:** \`severityText\`, \`body\`, \`primaryEntityId\`, \`attributes.<key>\`
 
 ---
 

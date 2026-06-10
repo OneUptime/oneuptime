@@ -51,7 +51,7 @@ const ProfileViewPage: FunctionComponent<
             select: {
               profileId: true,
               profileType: true,
-              serviceId: true,
+              primaryEntityId: true,
               startTime: true,
               endTime: true,
               durationNano: true,

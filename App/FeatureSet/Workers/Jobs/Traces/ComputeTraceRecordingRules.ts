@@ -24,7 +24,7 @@ import {
 
 /*
  * Trace recording rules — mirror of Metrics/ComputeRecordingRules but source
- * rows come from SpanItemV2 with span-specific aggregations (count, error
+ * rows come from SpanItemV3 with span-specific aggregations (count, error
  * count, duration percentiles), and the output is still a Metric row so the
  * rest of the system (dashboards, alerts) can use derived values like any
  * other metric.
@@ -239,7 +239,7 @@ async function runSourceQuery(args: {
 
   const sql: string = `
     SELECT ${groupSqlSelect}, ${aggregateSql} AS value
-    FROM oneuptime.SpanItemV2
+    FROM oneuptime.SpanItemV3
     WHERE projectId = '${esc(projectIdStr)}'
       AND startTime >= toDateTime64('${startIso}', 9)
       AND startTime < toDateTime64('${endIso}', 9)
@@ -319,10 +319,9 @@ function buildDerivedMetricRow(args: {
     _id: ObjectID.generate().toString(),
     projectId: rule.projectId!.toString(),
     createdAt: OneUptimeDate.toClickhouseDateTime(now),
-    updatedAt: OneUptimeDate.toClickhouseDateTime(now),
     time: OneUptimeDate.toClickhouseDateTime(bucketStart),
     timeUnixNano: (bucketStart.getTime() * 1_000_000).toString(),
-    serviceType: ServiceType.OpenTelemetry,
+    primaryEntityType: ServiceType.OpenTelemetry,
     name: rule.outputMetricName,
     metricPointType: MetricPointType.Gauge,
     value: value,

@@ -55,7 +55,7 @@ Filter queries determine which logs this drop filter applies to.
 | \`IN\` | \`severityText IN ('DEBUG', 'TRACE')\` | Match any value in list |
 | \`AND\` / \`OR\` | \`severityText = 'DEBUG' AND attributes.source = 'loadbalancer'\` | Combine conditions |
 
-**Available fields:** \`severityText\`, \`body\`, \`serviceId\`, \`attributes.<key>\`
+**Available fields:** \`severityText\`, \`body\`, \`primaryEntityId\`, \`attributes.<key>\`
 
 ---
 

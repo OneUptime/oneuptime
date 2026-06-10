@@ -6,10 +6,16 @@ import ServiceModel from "../../../Models/DatabaseModels/Service";
 import HostModel from "../../../Models/DatabaseModels/Host";
 import DockerHostModel from "../../../Models/DatabaseModels/DockerHost";
 import KubernetesClusterModel from "../../../Models/DatabaseModels/KubernetesCluster";
+import ServerlessFunctionModel from "../../../Models/DatabaseModels/ServerlessFunction";
+import CloudResourceModel from "../../../Models/DatabaseModels/CloudResource";
+import RumApplicationModel from "../../../Models/DatabaseModels/RumApplication";
 import ServiceService from "../../Services/ServiceService";
 import HostService from "../../Services/HostService";
 import DockerHostService from "../../Services/DockerHostService";
 import KubernetesClusterService from "../../Services/KubernetesClusterService";
+import ServerlessFunctionService from "../../Services/ServerlessFunctionService";
+import CloudResourceService from "../../Services/CloudResourceService";
+import RumApplicationService from "../../Services/RumApplicationService";
 import CaptureSpan from "./CaptureSpan";
 
 /*
@@ -19,12 +25,19 @@ import CaptureSpan from "./CaptureSpan";
  * Resolving the value list from Postgres instead means every project resource
  * shows up regardless of recent telemetry activity, and the sidebar search
  * matches across the full set (not just the loaded subset).
+ *
+ * `serviceId` is the pre-rename alias of `primaryEntityId`, kept so stale
+ * clients keep resolving the Services facet across a deploy.
  */
 export const RESOURCE_FACET_KEYS: ReadonlySet<string> = new Set([
+  "primaryEntityId",
   "serviceId",
   "hostId",
   "dockerHostId",
   "kubernetesClusterId",
+  "serverlessFunctionId",
+  "cloudResourceId",
+  "rumApplicationId",
 ]);
 
 export interface ResourceFacetSpec {
@@ -83,6 +96,7 @@ export default class ResourceFacetResolver {
         : undefined;
 
     switch (spec.facetKey) {
+      case "primaryEntityId":
       case "serviceId":
         return ResourceFacetResolver.queryServices(
           projectId,
@@ -106,6 +120,27 @@ export default class ResourceFacetResolver {
         );
       case "kubernetesClusterId":
         return ResourceFacetResolver.queryKubernetesClusters(
+          projectId,
+          spec.counts,
+          searchText,
+          limit,
+        );
+      case "serverlessFunctionId":
+        return ResourceFacetResolver.queryServerlessFunctions(
+          projectId,
+          spec.counts,
+          searchText,
+          limit,
+        );
+      case "cloudResourceId":
+        return ResourceFacetResolver.queryCloudResources(
+          projectId,
+          spec.counts,
+          searchText,
+          limit,
+        );
+      case "rumApplicationId":
+        return ResourceFacetResolver.queryRumApplications(
           projectId,
           spec.counts,
           searchText,
@@ -258,6 +293,127 @@ export default class ResourceFacetResolver {
           return {
             id: c._id ? c._id.toString() : "",
             displayName: c.name || c.clusterIdentifier || "Unknown",
+          };
+        },
+      ),
+      counts,
+    );
+  }
+
+  private static async queryServerlessFunctions(
+    projectId: ObjectID,
+    counts: Map<string, number>,
+    searchText: string | undefined,
+    limit: number,
+  ): Promise<Array<ResolvedFacetValue>> {
+    const query: Record<string, unknown> = { projectId };
+    if (searchText) {
+      query["name"] = new MultiSearch({
+        fields: ["name", "functionIdentifier"],
+        value: searchText,
+      });
+    }
+
+    const functions: Array<ServerlessFunctionModel> =
+      await ServerlessFunctionService.findBy({
+        query: query as any,
+        select: {
+          _id: true,
+          name: true,
+          functionIdentifier: true,
+        },
+        limit: new PositiveNumber(limit),
+        skip: new PositiveNumber(0),
+        props: { isRoot: true },
+      });
+
+    return ResourceFacetResolver.mergeCounts(
+      functions.map(
+        (f: ServerlessFunctionModel): { id: string; displayName: string } => {
+          return {
+            id: f._id ? f._id.toString() : "",
+            displayName: f.name || f.functionIdentifier || "Unknown",
+          };
+        },
+      ),
+      counts,
+    );
+  }
+
+  private static async queryCloudResources(
+    projectId: ObjectID,
+    counts: Map<string, number>,
+    searchText: string | undefined,
+    limit: number,
+  ): Promise<Array<ResolvedFacetValue>> {
+    const query: Record<string, unknown> = { projectId };
+    if (searchText) {
+      query["name"] = new MultiSearch({
+        fields: ["name", "resourceIdentifier"],
+        value: searchText,
+      });
+    }
+
+    const resources: Array<CloudResourceModel> =
+      await CloudResourceService.findBy({
+        query: query as any,
+        select: {
+          _id: true,
+          name: true,
+          resourceIdentifier: true,
+        },
+        limit: new PositiveNumber(limit),
+        skip: new PositiveNumber(0),
+        props: { isRoot: true },
+      });
+
+    return ResourceFacetResolver.mergeCounts(
+      resources.map(
+        (r: CloudResourceModel): { id: string; displayName: string } => {
+          return {
+            id: r._id ? r._id.toString() : "",
+            displayName: r.name || r.resourceIdentifier || "Unknown",
+          };
+        },
+      ),
+      counts,
+    );
+  }
+
+  private static async queryRumApplications(
+    projectId: ObjectID,
+    counts: Map<string, number>,
+    searchText: string | undefined,
+    limit: number,
+  ): Promise<Array<ResolvedFacetValue>> {
+    const query: Record<string, unknown> = { projectId };
+    if (searchText) {
+      query["name"] = new MultiSearch({
+        fields: ["name", "appIdentifier"],
+        value: searchText,
+      });
+    }
+
+    const apps: Array<RumApplicationModel> = await RumApplicationService.findBy(
+      {
+        query: query as any,
+        select: {
+          _id: true,
+          name: true,
+          appIdentifier: true,
+        },
+        limit: new PositiveNumber(limit),
+        skip: new PositiveNumber(0),
+        props: { isRoot: true },
+      },
+    );
+
+    return ResourceFacetResolver.mergeCounts(
+      apps.map(
+        (a: RumApplicationModel): { id: string; displayName: string } => {
+          return {
+            id: a._id ? a._id.toString() : "",
+            displayName: a.name || a.appIdentifier || "Unknown",
           };
         },
       ),

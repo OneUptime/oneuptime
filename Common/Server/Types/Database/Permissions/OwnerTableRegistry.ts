@@ -20,6 +20,12 @@ import DockerHostOwnerTeamService from "../../../Services/DockerHostOwnerTeamSer
 import DockerHostOwnerUserService from "../../../Services/DockerHostOwnerUserService";
 import KubernetesClusterOwnerTeamService from "../../../Services/KubernetesClusterOwnerTeamService";
 import KubernetesClusterOwnerUserService from "../../../Services/KubernetesClusterOwnerUserService";
+import ServerlessFunctionOwnerTeamService from "../../../Services/ServerlessFunctionOwnerTeamService";
+import ServerlessFunctionOwnerUserService from "../../../Services/ServerlessFunctionOwnerUserService";
+import CloudResourceOwnerTeamService from "../../../Services/CloudResourceOwnerTeamService";
+import CloudResourceOwnerUserService from "../../../Services/CloudResourceOwnerUserService";
+import RumApplicationOwnerTeamService from "../../../Services/RumApplicationOwnerTeamService";
+import RumApplicationOwnerUserService from "../../../Services/RumApplicationOwnerUserService";
 import StatusPageOwnerTeamService from "../../../Services/StatusPageOwnerTeamService";
 import StatusPageOwnerUserService from "../../../Services/StatusPageOwnerUserService";
 import WorkflowOwnerTeamService from "../../../Services/WorkflowOwnerTeamService";
@@ -35,6 +41,9 @@ import MonitorService from "../../../Services/MonitorService";
 import HostService from "../../../Services/HostService";
 import DockerHostService from "../../../Services/DockerHostService";
 import KubernetesClusterService from "../../../Services/KubernetesClusterService";
+import ServerlessFunctionService from "../../../Services/ServerlessFunctionService";
+import CloudResourceService from "../../../Services/CloudResourceService";
+import RumApplicationService from "../../../Services/RumApplicationService";
 
 /*
  * Maps an operational model name (e.g. "Monitor") to the two services that
@@ -145,6 +154,7 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
     {
       ownerUserService: ServiceOwnerUserService,
       ownerTeamService: ServiceOwnerTeamService,
+      // FK column on the Postgres ServiceOwnerUser/Team tables, not the ClickHouse telemetry column.
       fkColumn: "serviceId",
       canOwnTelemetry: true,
       modelService: ServiceService,
@@ -178,6 +188,36 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
       fkColumn: "kubernetesClusterId",
       canOwnTelemetry: true,
       modelService: KubernetesClusterService,
+    },
+  ],
+  [
+    "ServerlessFunction",
+    {
+      ownerUserService: ServerlessFunctionOwnerUserService,
+      ownerTeamService: ServerlessFunctionOwnerTeamService,
+      fkColumn: "serverlessFunctionId",
+      canOwnTelemetry: true,
+      modelService: ServerlessFunctionService,
+    },
+  ],
+  [
+    "CloudResource",
+    {
+      ownerUserService: CloudResourceOwnerUserService,
+      ownerTeamService: CloudResourceOwnerTeamService,
+      fkColumn: "cloudResourceId",
+      canOwnTelemetry: true,
+      modelService: CloudResourceService,
+    },
+  ],
+  [
+    "RumApplication",
+    {
+      ownerUserService: RumApplicationOwnerUserService,
+      ownerTeamService: RumApplicationOwnerTeamService,
+      fkColumn: "rumApplicationId",
+      canOwnTelemetry: true,
+      modelService: RumApplicationService,
     },
   ],
   [

@@ -3,6 +3,8 @@ export { default as LogsRoutes } from "./LogsRoutes";
 export { default as MetricsRoutes } from "./MetricsRoutes";
 export { default as TracesRoutes } from "./TracesRoutes";
 export { default as ExceptionsRoutes } from "./ExceptionsRoutes";
+export { default as EntitiesRoutes } from "./EntitiesRoutes";
+export { default as TopologyRoutes } from "./TopologyRoutes";
 export { default as ProfilesRoutes } from "./ProfilesRoutes";
 
 // Incident management
@@ -25,6 +27,9 @@ export { default as CodeRepositoryRoutes } from "./CodeRepositoryRoutes";
 export { default as KubernetesRoutes } from "./KubernetesRoutes";
 export { default as DockerRoutes } from "./DockerRoutes";
 export { default as HostRoutes } from "./HostRoutes";
+export { default as ServerlessRoutes } from "./ServerlessRoutes";
+export { default as CloudResourceRoutes } from "./CloudResourceRoutes";
+export { default as RumApplicationRoutes } from "./RumApplicationRoutes";
 export { default as AIAgentTasksRoutes } from "./AIAgentTasksRoutes";
 
 // Settings

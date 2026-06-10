@@ -96,6 +96,7 @@ export default class RunWorkflow {
         select: {
           graph: true,
           projectId: true,
+          isEnabled: true,
         },
         props: {
           isRoot: true,
@@ -111,6 +112,79 @@ export default class RunWorkflow {
       }
 
       this.projectId = workflow.projectId || null;
+
+      /*
+       * Resume path: this run was previously suspended by a Sleep step. Load the
+       * persisted execution state and prior logs from the WorkflowLog so we can
+       * continue from where we left off instead of starting at the trigger.
+       */
+      let resumeState: {
+        pendingStack: Array<string>;
+        executedComponents: Array<string>;
+        componentReturnValues: JSONObject;
+      } | null = null;
+
+      if (runProps.isResume) {
+        if (!runProps.workflowLogId) {
+          throw new BadDataException(
+            "Cannot resume a workflow run without a workflow log id.",
+          );
+        }
+
+        const existingLog: WorkflowLog | null =
+          await WorkflowLogService.findOneById({
+            id: runProps.workflowLogId,
+            select: {
+              resumeData: true,
+              logs: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (!existingLog || !existingLog.resumeData) {
+          throw new BadDataException(
+            "Cannot resume workflow run: execution state not found. The run may have already completed or been cleaned up.",
+          );
+        }
+
+        // Seed in-memory logs with what was written before the run suspended.
+        if (existingLog.logs) {
+          this.logs = [existingLog.logs as string];
+        }
+
+        const persisted: JSONObject = existingLog.resumeData as JSONObject;
+
+        resumeState = {
+          pendingStack: (persisted["pendingStack"] as Array<string>) || [],
+          executedComponents:
+            (persisted["executedComponents"] as Array<string>) || [],
+          componentReturnValues:
+            (persisted["componentReturnValues"] as JSONObject) || {},
+        };
+
+        // If the workflow was disabled while it was waiting, cancel the run.
+        if (!workflow.isEnabled) {
+          this.log(
+            "Workflow was disabled while it was waiting. Cancelling the run.",
+          );
+          await WorkflowLogService.updateOneById({
+            id: runProps.workflowLogId,
+            data: {
+              workflowStatus: WorkflowStatus.Error,
+              logs: this.logs.join("\n"),
+              completedAt: OneUptimeDate.getCurrentDate(),
+              resumeData: null!,
+              resumeAt: null!,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+          return;
+        }
+      }
 
       if (!runProps.workflowLogId) {
         /*
@@ -141,7 +215,10 @@ export default class RunWorkflow {
         id: runProps.workflowLogId,
         data: {
           workflowStatus: WorkflowStatus.Running,
-          startedAt: OneUptimeDate.getCurrentDate(),
+          // Preserve the original start time across suspend/resume cycles.
+          ...(runProps.isResume
+            ? {}
+            : { startedAt: OneUptimeDate.getCurrentDate() }),
         },
         props: {
           isRoot: true,
@@ -162,8 +239,9 @@ export default class RunWorkflow {
        * "Component with ID  not found" error.
        */
       if (
-        Object.keys(runStack.stack).length === 0 ||
-        !runStack.startWithComponentId
+        !runProps.isResume &&
+        (Object.keys(runStack.stack).length === 0 ||
+          !runStack.startWithComponentId)
       ) {
         throw new BadDataException(
           "This workflow has no components to execute. Please open the workflow and add a Trigger (e.g. a Manual trigger) along with at least one component connected to it.",
@@ -179,13 +257,27 @@ export default class RunWorkflow {
       const storageMap: StorageMap = getVariableResult.storageMap;
       variables = getVariableResult.variables;
 
-      // start execute different components.
+      /*
+       * Seed the execution state. On a fresh run we start at the trigger with
+       * an empty history. On a resume we restore the accumulated component
+       * return values, the queue of components still pending, and the set of
+       * components already executed (so cycle-detection stays valid). Variables
+       * are intentionally NOT persisted — they are re-read fresh above so
+       * secrets never live in resumeData.
+       */
       let executeComponentId: string = runStack.startWithComponentId;
-
-      const fifoStackOfComponentsPendingExecution: Array<string> = [
-        executeComponentId,
-      ];
+      let fifoStackOfComponentsPendingExecution: Array<string>;
       const componentsExecuted: Array<string> = [];
+
+      if (runProps.isResume && resumeState) {
+        storageMap.local.components = resumeState.componentReturnValues as {
+          [x: string]: { returnValues: JSONObject };
+        };
+        fifoStackOfComponentsPendingExecution = [...resumeState.pendingStack];
+        componentsExecuted.push(...resumeState.executedComponents);
+      } else {
+        fifoStackOfComponentsPendingExecution = [executeComponentId];
+      }
 
       const setDidErrorOut: VoidFunction = () => {
         didWorkflowErrorOut = true;
@@ -283,6 +375,31 @@ export default class RunWorkflow {
             }
           });
         }
+
+        /*
+         * Durable suspend: if the component asked to suspend (i.e. the Sleep
+         * component), persist the remaining execution state and re-enqueue a
+         * delayed job to resume once the duration elapses. We stop this run
+         * here — a parked run consumes no worker. Only suspend when there is
+         * actually downstream work to resume to.
+         */
+        if (
+          result.suspendForMs &&
+          result.suspendForMs > 0 &&
+          fifoStackOfComponentsPendingExecution.length > 0
+        ) {
+          await this.suspendRun({
+            runProps,
+            variables,
+            suspendForMs: result.suspendForMs,
+            pendingStack: fifoStackOfComponentsPendingExecution,
+            executedComponents: componentsExecuted,
+            componentReturnValues: storageMap.local.components,
+          });
+
+          // The run will continue later via the delayed resume job.
+          return;
+        }
       }
 
       // collect logs and update status.
@@ -294,6 +411,9 @@ export default class RunWorkflow {
           workflowStatus: WorkflowStatus.Success,
           logs: this.logs.join("\n"),
           completedAt: OneUptimeDate.getCurrentDate(),
+          // Run finished — drop any leftover suspend state.
+          resumeData: null!,
+          resumeAt: null!,
         },
         props: {
           isRoot: true,
@@ -319,6 +439,8 @@ export default class RunWorkflow {
             workflowStatus: WorkflowStatus.Timeout,
             logs: this.logs.join("\n"),
             completedAt: OneUptimeDate.getCurrentDate(),
+            resumeData: null!,
+            resumeAt: null!,
           },
           props: {
             isRoot: true,
@@ -332,6 +454,8 @@ export default class RunWorkflow {
             workflowStatus: WorkflowStatus.Error,
             logs: this.logs.join("\n"),
             completedAt: OneUptimeDate.getCurrentDate(),
+            resumeData: null!,
+            resumeAt: null!,
           },
           props: {
             isRoot: true,
@@ -339,6 +463,80 @@ export default class RunWorkflow {
         });
       }
     }
+  }
+
+  /**
+   * Persist the current execution state and schedule a delayed job to resume
+   * this run after `suspendForMs`. Marks the run as Waiting. The run stops
+   * after this returns and consumes no worker until the resume job fires.
+   */
+  private async suspendRun(params: {
+    runProps: RunProps;
+    variables: Array<WorkflowVariable>;
+    suspendForMs: number;
+    pendingStack: Array<string>;
+    executedComponents: Array<string>;
+    componentReturnValues: {
+      [x: string]: { returnValues: JSONObject };
+    };
+  }): Promise<void> {
+    const workflowLogId: ObjectID = params.runProps.workflowLogId!;
+
+    const resumeAt: Date = OneUptimeDate.addRemoveSeconds(
+      OneUptimeDate.getCurrentDate(),
+      Math.ceil(params.suspendForMs / 1000),
+    );
+
+    this.log(
+      "Workflow suspended for " +
+        params.suspendForMs +
+        "ms. It will resume automatically.",
+    );
+
+    // Scrub secrets from logs before persisting.
+    this.cleanLogs(params.variables);
+
+    /*
+     * Asserted through `unknown` to avoid TS structurally walking the nested
+     * component-return-values shape against the recursive JSONObject/JSONValue
+     * type (which trips the instantiation-depth limit). The shape is fully
+     * JSON-serializable, so the runtime value is a valid JSONObject.
+     */
+    const resumeData: JSONObject = {
+      pendingStack: params.pendingStack,
+      executedComponents: params.executedComponents,
+      componentReturnValues: params.componentReturnValues,
+    } as unknown as JSONObject;
+
+    await WorkflowLogService.updateOneById({
+      id: workflowLogId,
+      data: {
+        workflowStatus: WorkflowStatus.Waiting,
+        logs: this.logs.join("\n"),
+        resumeAt: resumeAt,
+        /*
+         * Cast keeps TS from deeply re-instantiating the recursive JSONObject
+         * type through updateOneById's generic (trips the depth limit). The
+         * value is a validated JSONObject built just above.
+         */
+        resumeData: resumeData as any,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    await QueueWorkflow.addResumeJobToQueue({
+      workflowId: params.runProps.workflowId,
+      workflowLogId: workflowLogId,
+      delayInMs: params.suspendForMs,
+      /*
+       * executedComponents length strictly increases per suspension within a
+       * run, giving a unique resume job id that won't collide with the
+       * currently-running job (whose id is the bare workflowLogId).
+       */
+      jobIdDiscriminator: params.executedComponents.length.toString(),
+    });
   }
 
   public cleanLogs(variables: Array<WorkflowVariable>): void {

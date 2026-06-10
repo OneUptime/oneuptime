@@ -40,6 +40,7 @@ import Radio, { RadioValue } from "../../Radio/Radio";
 import { BasicRadioButtonOption } from "../../RadioButtons/BasicRadioButtons";
 import HorizontalRule from "../../HorizontalRule/HorizontalRule";
 import MarkdownEditor from "../../Markdown.tsx/MarkdownEditor";
+import useTranslateValue from "../../../Utils/Translation";
 
 export interface ComponentProps<T extends GenericObject> {
   field: Field<T>;
@@ -61,6 +62,11 @@ const FormField: <T extends GenericObject>(
 ) => ReactElement = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const translatedPlaceholder: string | undefined = translateString(
+    props.field.placeholder,
+  );
+
   type onChangeFunction = (value: JSONValue) => void;
 
   const onChange: onChangeFunction = (value: JSONValue): void => {
@@ -337,7 +343,7 @@ const FormField: <T extends GenericObject>(
                 (props.field.defaultValue as any) ||
                 undefined
               }
-              placeholder={props.field.placeholder || undefined}
+              placeholder={translatedPlaceholder || undefined}
             />
           )}
 
@@ -351,7 +357,7 @@ const FormField: <T extends GenericObject>(
                 props.setFieldTouched(props.fieldName, true);
               }}
               tabIndex={index}
-              placeholder={props.field.placeholder || ""}
+              placeholder={translatedPlaceholder || ""}
               initialValue={
                 props.currentValues &&
                 (props.currentValues as any)[props.fieldName]
@@ -371,7 +377,7 @@ const FormField: <T extends GenericObject>(
                 props.setFieldTouched(props.fieldName, true);
               }}
               tabIndex={index}
-              placeholder={props.field.placeholder || ""}
+              placeholder={translatedPlaceholder || ""}
               initialValue={
                 props.currentValues &&
                 (props.currentValues as any)[props.fieldName]
@@ -414,7 +420,7 @@ const FormField: <T extends GenericObject>(
                 labelField={props.field.dropdownModal.labelField}
                 valueField={props.field.dropdownModal.valueField}
                 options={props.field.dropdownOptions || []}
-                placeholder={props.field.placeholder || ""}
+                placeholder={translatedPlaceholder || ""}
                 value={
                   props.currentValues &&
                   (props.currentValues as any)[props.fieldName]
@@ -442,7 +448,7 @@ const FormField: <T extends GenericObject>(
                   FormFieldSchemaType.MultiSelectDropdown
                 }
                 options={props.field.dropdownOptions || []}
-                placeholder={props.field.placeholder || ""}
+                placeholder={translatedPlaceholder || ""}
                 value={
                   props.currentValues &&
                   (props.currentValues as any)[props.fieldName]
@@ -585,7 +591,7 @@ const FormField: <T extends GenericObject>(
                   ? (props.currentValues as any)[props.fieldName]
                   : ""
               }
-              placeholder={props.field.placeholder || ""}
+              placeholder={translatedPlaceholder || ""}
             />
           )}
 
@@ -614,7 +620,7 @@ const FormField: <T extends GenericObject>(
                   ? (props.currentValues as any)[props.fieldName]
                   : ""
               }
-              placeholder={props.field.placeholder || ""}
+              placeholder={translatedPlaceholder || ""}
             />
           )}
 
@@ -637,7 +643,7 @@ const FormField: <T extends GenericObject>(
                   ? (props.currentValues as any)[props.fieldName]
                   : ""
               }
-              placeholder={props.field.placeholder || ""}
+              placeholder={translatedPlaceholder || ""}
             />
           )}
 
@@ -660,7 +666,7 @@ const FormField: <T extends GenericObject>(
                   ? (props.currentValues as any)[props.fieldName]
                   : "",
 
-              placeholder: props.field.placeholder || "",
+              placeholder: translatedPlaceholder || "",
             })}
 
           {(props.field.fieldType === FormFieldSchemaType.HTML ||
@@ -684,7 +690,7 @@ const FormField: <T extends GenericObject>(
                   ? (props.currentValues as any)[props.fieldName]
                   : ""
               }
-              placeholder={props.field.placeholder || ""}
+              placeholder={translatedPlaceholder || ""}
             />
           )}
 
@@ -741,7 +747,7 @@ const FormField: <T extends GenericObject>(
                     ? []
                     : undefined
               }
-              placeholder={props.field.placeholder || ""}
+              placeholder={translatedPlaceholder || ""}
             />
           )}
 
@@ -849,7 +855,7 @@ const FormField: <T extends GenericObject>(
                   ? (props.currentValues as any)[props.fieldName]
                   : props.field.defaultValue || ""
               }
-              placeholder={props.field.placeholder || ""}
+              placeholder={translatedPlaceholder || ""}
             />
           )}
         </div>

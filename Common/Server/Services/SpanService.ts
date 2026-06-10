@@ -2,8 +2,14 @@ import ClickhouseDatabase from "../Infrastructure/ClickhouseDatabase";
 import AnalyticsDatabaseService from "./AnalyticsDatabaseService";
 import Span from "../../Models/AnalyticsModels/Span";
 import CountBy from "../Types/AnalyticsDatabase/CountBy";
+import AggregateBy, {
+  AggregateUtil,
+} from "../Types/AnalyticsDatabase/AggregateBy";
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
+import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
+import AggregationType from "../../Types/BaseDatabase/AggregationType";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import InBetween from "../../Types/BaseDatabase/InBetween";
 import Includes from "../../Types/BaseDatabase/Includes";
 import ObjectID from "../../Types/ObjectID";
@@ -19,7 +25,7 @@ const PROJECTION_ELIGIBLE_KEYS: Set<string> = new Set([
   "projectId",
   "startTime",
   "isRootSpan",
-  "serviceId",
+  "primaryEntityId",
   "statusCode",
 ]);
 
@@ -48,9 +54,9 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
   /**
    * Override the count statement to route eligible queries through the
    * proj_hist_by_minute projection. The projection is keyed on
-   * (projectId, toStartOfMinute(startTime), serviceId, statusCode, isRootSpan)
-   * so its WHERE clause must reference the projection's exact expressions —
-   * filtering on raw `startTime` won't trigger projection use.
+   * (projectId, toStartOfMinute(startTime), primaryEntityId, statusCode,
+   * isRootSpan) so its WHERE clause must reference the projection's exact
+   * expressions — filtering on raw `startTime` won't trigger projection use.
    *
    * Trade-off: time bounds get rounded to the minute, so the count can be
    * inflated by spans that started in the same minute as the boundary. For
@@ -132,23 +138,23 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
       );
     }
 
-    const serviceIdValue: unknown = query["serviceId"];
-    if (serviceIdValue instanceof ObjectID) {
+    const primaryEntityIdValue: unknown = query["primaryEntityId"];
+    if (primaryEntityIdValue instanceof ObjectID) {
       statement.append(
-        SQL` AND serviceId = ${{
+        SQL` AND primaryEntityId = ${{
           type: TableColumnType.ObjectID,
-          value: serviceIdValue,
+          value: primaryEntityIdValue,
         }}`,
       );
-    } else if (serviceIdValue instanceof Includes) {
+    } else if (primaryEntityIdValue instanceof Includes) {
       statement.append(
-        SQL` AND serviceId IN (${{
+        SQL` AND primaryEntityId IN (${{
           type: TableColumnType.ObjectID,
-          value: serviceIdValue,
+          value: primaryEntityIdValue,
         }})`,
       );
-    } else if (serviceIdValue !== undefined) {
-      // Unrecognized serviceId form — let the generic path handle it.
+    } else if (primaryEntityIdValue !== undefined) {
+      // Unrecognized primaryEntityId form — let the generic path handle it.
       return null;
     }
 
@@ -177,10 +183,205 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
      * in depth — projection scans should complete in <1s.
      */
     statement.append(
-      " SETTINGS optimize_use_projections = 1, max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+        additionalSettings: { optimize_use_projections: 1 },
+      }),
     );
 
     return statement;
+  }
+
+  /**
+   * Route eligible duration aggregations through the proj_agg_by_service
+   * projection (projectId, primaryEntityId, toStartOfMinute(startTime) ->
+   * count() / avg(durationUnixNano) / quantile(0.99)(durationUnixNano)).
+   * The projection stores aggregate-function STATES, so re-grouping its
+   * minute rows into coarser buckets merges those states — results are
+   * identical to scanning the raw table, at a fraction of the read
+   * (verified on dev with EXPLAIN indexes=1: ReadFromMergeTree
+   * (proj_agg_by_service), 9/2136 granules for a full-day window).
+   *
+   * Two things are load-bearing for the optimizer to pick the projection:
+   *   1. The time predicates AND the bucket expression must be written
+   *      over toStartOfMinute(startTime) — the projection's key
+   *      expression — never raw startTime.
+   *   2. The aggregate must byte-match a stored expression: count() (NOT
+   *      count(durationUnixNano) — equivalent here since the column is
+   *      non-nullable), avg(durationUnixNano) or
+   *      quantile(0.99)(durationUnixNano).
+   *
+   * Trade-off (same as the count override): window edges round to the
+   * minute, so the boundary buckets may include spans from the partial
+   * boundary minute.
+   */
+  public override toAggregateStatement(aggregateBy: AggregateBy<Span>): {
+    statement: Statement;
+    columns: Array<string>;
+  } {
+    const projectionStatement: {
+      statement: Statement;
+      columns: Array<string>;
+    } | null = this.tryBuildProjectionAggregateStatement(aggregateBy);
+    if (projectionStatement) {
+      return projectionStatement;
+    }
+    return super.toAggregateStatement(aggregateBy);
+  }
+
+  private tryBuildProjectionAggregateStatement(
+    aggregateBy: AggregateBy<Span>,
+  ): { statement: Statement; columns: Array<string> } | null {
+    if (aggregateBy.aggregateColumnName?.toString() !== "durationUnixNano") {
+      return null;
+    }
+
+    /*
+     * Only the aggregates whose states the projection stores. P95 etc.
+     * must fall back: the projection has no quantile(0.95) state and
+     * quantile states for different levels do not merge into each other.
+     */
+    const aggregateExpressionByType: Partial<Record<AggregationType, string>> =
+      {
+        [AggregationType.Count]: "count()",
+        [AggregationType.Avg]: "avg(durationUnixNano)",
+        [AggregationType.P99]: "quantile(0.99)(durationUnixNano)",
+      };
+    const aggregateExpression: string | undefined =
+      aggregateExpressionByType[aggregateBy.aggregationType];
+    if (!aggregateExpression) {
+      return null;
+    }
+
+    if (
+      aggregateBy.aggregationTimestampColumnName?.toString() !== "startTime"
+    ) {
+      return null;
+    }
+
+    if (aggregateBy.groupBy && Object.keys(aggregateBy.groupBy).length > 0) {
+      // Extra GROUP BY dimensions aren't all projection columns; fall back.
+      return null;
+    }
+
+    if (!aggregateBy.startTimestamp || !aggregateBy.endTimestamp) {
+      // Needed to derive the bucket interval (mirrors the generic path).
+      return null;
+    }
+
+    const query: Record<string, unknown> = (aggregateBy.query ||
+      {}) as unknown as Record<string, unknown>;
+
+    // Bail out on any filter the projection cannot evaluate.
+    for (const key of Object.keys(query)) {
+      if (!["projectId", "startTime", "primaryEntityId"].includes(key)) {
+        return null;
+      }
+    }
+
+    const projectId: ObjectID | undefined = query["projectId"] as
+      | ObjectID
+      | undefined;
+    const startTimeFilter: unknown = query["startTime"];
+
+    if (!projectId || !(startTimeFilter instanceof InBetween)) {
+      return null;
+    }
+
+    const startValue: Date | null = SpanService.coerceToDate(
+      startTimeFilter.startValue,
+    );
+    const endValue: Date | null = SpanService.coerceToDate(
+      startTimeFilter.endValue,
+    );
+    if (!startValue || !endValue) {
+      return null;
+    }
+
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+    const databaseName: string = this.database.getDatasourceOptions().database!;
+
+    const aggregationInterval: string = AggregateUtil.getAggregationInterval({
+      startDate: aggregateBy.startTimestamp,
+      endDate: aggregateBy.endTimestamp,
+    }).toLowerCase();
+
+    /*
+     * Bucket expression derived from the projection key: for the minute
+     * interval date_trunc is a no-op, for coarser intervals truncating
+     * the minute equals truncating the raw timestamp. Aliased to the
+     * timestamp column name so the generic result parsing applies.
+     */
+    const statement: Statement = new Statement();
+    statement.append(
+      `SELECT ${aggregateExpression} as durationUnixNano, date_trunc('${aggregationInterval}', toStartOfMinute(startTime)) as startTime`,
+    );
+    statement.append(
+      SQL` FROM ${databaseName}.${this.model.tableName} WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: projectId,
+      }} AND toStartOfMinute(startTime) >= toStartOfMinute(${{
+        type: TableColumnType.Date,
+        value: startValue,
+      }}) AND toStartOfMinute(startTime) <= toStartOfMinute(${{
+        type: TableColumnType.Date,
+        value: endValue,
+      }})`,
+    );
+
+    const primaryEntityIdValue: unknown = query["primaryEntityId"];
+    if (primaryEntityIdValue instanceof ObjectID) {
+      statement.append(
+        SQL` AND primaryEntityId = ${{
+          type: TableColumnType.ObjectID,
+          value: primaryEntityIdValue,
+        }}`,
+      );
+    } else if (primaryEntityIdValue instanceof Includes) {
+      statement.append(
+        SQL` AND primaryEntityId IN (${{
+          type: TableColumnType.ObjectID,
+          value: primaryEntityIdValue,
+        }})`,
+      );
+    } else if (primaryEntityIdValue !== undefined) {
+      return null;
+    }
+
+    statement.append(" GROUP BY startTime");
+
+    const sortOrder: SortOrder | undefined = aggregateBy.sort
+      ? (Object.values(aggregateBy.sort)[0] as SortOrder | undefined)
+      : undefined;
+    statement.append(
+      ` ORDER BY startTime ${sortOrder === SortOrder.Ascending ? "ASC" : "DESC"}`,
+    );
+
+    statement.append(
+      SQL` LIMIT ${{
+        type: TableColumnType.Number,
+        value: Number(aggregateBy.limit) || 10,
+      }} OFFSET ${{
+        type: TableColumnType.Number,
+        value: Number(aggregateBy.skip) || 0,
+      }}`,
+    );
+
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+        additionalSettings: { optimize_use_projections: 1 },
+      }),
+    );
+
+    return {
+      statement,
+      columns: ["durationUnixNano", "startTime"],
+    };
   }
 }
 

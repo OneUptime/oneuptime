@@ -21,27 +21,100 @@ import ServiceType from "../../Types/Telemetry/ServiceType";
 import Host from "../../Models/DatabaseModels/Host";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
+import ServerlessFunction from "../../Models/DatabaseModels/ServerlessFunction";
+import CloudResource from "../../Models/DatabaseModels/CloudResource";
+import RumApplication from "../../Models/DatabaseModels/RumApplication";
 import HostService from "./HostService";
 import DockerHostService from "./DockerHostService";
 import KubernetesClusterService from "./KubernetesClusterService";
+import ServerlessFunctionService from "./ServerlessFunctionService";
+import CloudResourceService from "./CloudResourceService";
+import RumApplicationService from "./RumApplicationService";
 import GlobalCache from "../Infrastructure/GlobalCache";
+import EntityType from "../../Types/Telemetry/EntityType";
+import { ExtractedEntity } from "../Utils/Telemetry/TelemetryEntity";
+import { reconcileEntityRegistryThrottled } from "../Utils/Telemetry/EntityRegistry";
+import {
+  keyForService,
+  canonicalizeEntityValue,
+} from "../../Utils/Telemetry/EntityKey";
 
 export enum OtelAggregationTemporality {
   Cumulative = "AGGREGATION_TEMPORALITY_CUMULATIVE",
   Delta = "AGGREGATION_TEMPORALITY_DELTA",
 }
 
+/*
+ * Per-type scalar entity-key columns stamped on every analytics signal
+ * row (Log, Span, Metric, ExceptionInstance, Profile, ProfileSample —
+ * the storage side declares each as String DEFAULT ''). '' means "that
+ * entity type is absent from this batch's resource". Unlike the
+ * `entityKeys` Array(String) membership column these are scalar, so a
+ * per-type filter (`hostEntityKey = :key`) or rollup key skips the
+ * has() array scan.
+ */
+export interface ScalarEntityKeys {
+  serviceEntityKey: string;
+  hostEntityKey: string;
+  k8sPodEntityKey: string;
+  k8sNodeEntityKey: string;
+  k8sClusterEntityKey: string;
+  containerEntityKey: string;
+}
+
+export function emptyScalarEntityKeys(): ScalarEntityKeys {
+  return {
+    serviceEntityKey: "",
+    hostEntityKey: "",
+    k8sPodEntityKey: "",
+    k8sNodeEntityKey: "",
+    k8sClusterEntityKey: "",
+    containerEntityKey: "",
+  };
+}
+
+/**
+ * The six scalar entity-key columns for a signal row, defaulting every
+ * field to '' when the metadata carries no scalar map (e.g. a resolver
+ * path that never saw resource attributes). Spread the result into the
+ * row object so every signal row always carries all six columns.
+ */
+export function getScalarEntityKeyColumns(
+  metadata: TelemetryServiceMetadata | null | undefined,
+): ScalarEntityKeys {
+  return metadata?.scalarEntityKeys ?? emptyScalarEntityKeys();
+}
+
 export interface TelemetryServiceMetadata {
   serviceName: string;
-  serviceId: ObjectID;
+  primaryEntityId: ObjectID;
   /*
    * Discriminator stamped on every analytics row so the read side
-   * knows which Postgres table the `serviceId` actually points at
+   * knows which Postgres table the `primaryEntityId` actually points at
    * (real Service, Host, DockerHost, KubernetesCluster, Monitor, …).
    * Defaults to OpenTelemetry for legacy ingest paths that go through
    * `telemetryServiceFromName`.
    */
-  serviceType: ServiceType;
+  primaryEntityType: ServiceType;
+  /*
+   * Stable keys of every OpenTelemetry entity (service, host, k8s.pod,
+   * container, ...) derived from this batch's resource attributes — the
+   * membership set stamped into each row's `entityKeys` column. A
+   * superset that includes the primary entity's key for OTel-resource
+   * entity types (service / host / k8s.*). Populated with the full
+   * extracted set by `OtelIngestBaseService.resolveTelemetryResource`;
+   * lower-fidelity name-only sources (syslog / fluent) that resolve
+   * metadata directly via `telemetryServiceFromName` get the single
+   * service key.
+   */
+  entityKeys?: Array<string> | undefined;
+  /*
+   * Scalar per-type companion of `entityKeys` (see ScalarEntityKeys).
+   * Populated from the same single extraction in
+   * `OtelIngestBaseService.resolveTelemetryResource`; name-only sources
+   * (syslog / fluent) get just their service key with '' for the rest.
+   */
+  scalarEntityKeys?: ScalarEntityKeys | undefined;
   dataRententionInDays: number;
   serviceRetentionConfig: TelemetryRetentionConfig | null;
   serviceRetentionInDays: number | null;
@@ -85,6 +158,95 @@ const projectRetentionInProcessCache: Map<string, CachedRetentionContext> =
   new Map();
 
 export default class OTelIngestService {
+  /*
+   * Read a single string-valued OTel resource attribute out of the raw
+   * OTLP attribute array (shape: [{ key, value: { stringValue } }]).
+   * Mirrors OtelIngestBaseService.getStringAttribute — duplicated here
+   * because that one is on the ingest-side base class and this read path
+   * (Service resolution) lives in Common.
+   */
+  private static getResourceStringAttribute(
+    attributes: JSONArray,
+    key: string,
+  ): string | null {
+    for (const attribute of attributes) {
+      if (
+        attribute["key"] === key &&
+        attribute["value"] &&
+        (attribute["value"] as JSONObject)["stringValue"]
+      ) {
+        const value: unknown = (attribute["value"] as JSONObject)[
+          "stringValue"
+        ];
+        if (typeof value === "string" && value.trim()) {
+          return value.trim();
+        }
+      }
+    }
+    return null;
+  }
+
+  /*
+   * Build the metadata captured onto the Service row from OTel resource
+   * attributes (service.version, deployment.environment, cloud.*, runtime.*).
+   * Returns undefined when no resource attributes are available so the
+   * caller falls back to a plain lastSeenAt touch.
+   */
+  private static buildServiceMetadataFromAttributes(
+    attributes: JSONArray | undefined,
+  ):
+    | {
+        serviceVersion?: string | undefined;
+        deploymentEnvironment?: string | undefined;
+        serviceNamespace?: string | undefined;
+        runtimeName?: string | undefined;
+        runtimeVersion?: string | undefined;
+        cloudProvider?: string | undefined;
+        cloudPlatform?: string | undefined;
+        cloudRegion?: string | undefined;
+        cloudAccountId?: string | undefined;
+      }
+    | undefined {
+    if (!attributes) {
+      return undefined;
+    }
+    return {
+      serviceVersion:
+        this.getResourceStringAttribute(attributes, "service.version") ||
+        undefined,
+      deploymentEnvironment:
+        this.getResourceStringAttribute(
+          attributes,
+          "deployment.environment.name",
+        ) ||
+        this.getResourceStringAttribute(attributes, "deployment.environment") ||
+        undefined,
+      serviceNamespace:
+        this.getResourceStringAttribute(attributes, "service.namespace") ||
+        undefined,
+      runtimeName:
+        this.getResourceStringAttribute(attributes, "process.runtime.name") ||
+        undefined,
+      runtimeVersion:
+        this.getResourceStringAttribute(
+          attributes,
+          "process.runtime.version",
+        ) || undefined,
+      cloudProvider:
+        this.getResourceStringAttribute(attributes, "cloud.provider") ||
+        undefined,
+      cloudPlatform:
+        this.getResourceStringAttribute(attributes, "cloud.platform") ||
+        undefined,
+      cloudRegion:
+        this.getResourceStringAttribute(attributes, "cloud.region") ||
+        undefined,
+      cloudAccountId:
+        this.getResourceStringAttribute(attributes, "cloud.account.id") ||
+        undefined,
+    };
+  }
+
   @CaptureSpan()
   private static async getProjectRetentionContext(
     projectId: ObjectID,
@@ -189,12 +351,39 @@ export default class OTelIngestService {
       });
 
     /*
+     * Name-only sources (syslog / fluent) never go through
+     * `resolveTelemetryResource`, so its extractor never registers this
+     * service. Reconcile the single Service entity here, under the same
+     * fence/throttle machinery. OTLP batches (resourceAttributes present)
+     * reconcile their full entity set — including the service.namespace
+     * identity this name-only path cannot see — in
+     * `resolveTelemetryResource` instead. Fire-and-forget: all errors are
+     * swallowed inside, so the registry can never break ingest.
+     */
+    if (!data.resourceAttributes) {
+      const serviceEntity: ExtractedEntity = {
+        entityType: EntityType.Service,
+        entityKey: keyForService(data.projectId.toString(), data.serviceName),
+        identifyingAttributes: {
+          "service.name": canonicalizeEntityValue(data.serviceName),
+        },
+      };
+      void reconcileEntityRegistryThrottled({
+        projectId: data.projectId,
+        entities: [serviceEntity],
+      });
+    }
+
+    /*
      * Touch `lastSeenAt` on the service. Throttled per-service inside
      * ServiceService.updateLastSeen so the steady-state firehose costs
      * one in-memory cache lookup per batch.
      */
     try {
-      await ServiceService.updateLastSeen(result.serviceId);
+      await ServiceService.updateLastSeen(
+        result.primaryEntityId,
+        this.buildServiceMetadataFromAttributes(data.resourceAttributes),
+      );
     } catch (err) {
       logger.warn(
         `telemetryServiceFromName lastSeen update failed for "${data.serviceName}": ${
@@ -222,7 +411,7 @@ export default class OTelIngestService {
             });
           if (labelIds.length > 0) {
             await ServiceService.attachLabels({
-              serviceId: result.serviceId,
+              serviceId: result.primaryEntityId,
               labelIds,
             });
           }
@@ -259,7 +448,7 @@ export default class OTelIngestService {
      * case or surrounding whitespace misses here, gets rejected on create
      * ("Service with the same name already exists"), and wedges ingest.
      * Stored casing is preserved: service-detail pages key telemetry by the
-     * stable serviceId, and the name is user-facing.
+     * stable primaryEntityId, and the name is user-facing.
      */
     const service: Service | null = await ServiceService.findOneBy({
       query: {
@@ -282,6 +471,17 @@ export default class OTelIngestService {
     const projectContext: ProjectRetentionContext =
       await this.getProjectRetentionContext(data.projectId);
 
+    /*
+     * The service's own membership key (pure hash, no DB round trip), so
+     * name-only sources (syslog / fluent) stamp a queryable `entityKeys`
+     * instead of []. The OTLP path overwrites this with the full extracted
+     * entity set in `resolveTelemetryResource`.
+     */
+    const serviceEntityKey: string = keyForService(
+      data.projectId.toString(),
+      data.serviceName,
+    );
+
     const buildMetadata: (svc: Service) => TelemetryServiceMetadata = (
       svc: Service,
     ): TelemetryServiceMetadata => {
@@ -289,8 +489,18 @@ export default class OTelIngestService {
         svc.retainTelemetryDataForDays ?? null;
       return {
         serviceName: data.serviceName,
-        serviceId: svc.id!,
-        serviceType: ServiceType.OpenTelemetry,
+        primaryEntityId: svc.id!,
+        primaryEntityType: ServiceType.OpenTelemetry,
+        entityKeys: [serviceEntityKey],
+        /*
+         * Name-only sources can only ever see the service entity; the
+         * OTLP path overwrites this with the full per-type map in
+         * `resolveTelemetryResource`.
+         */
+        scalarEntityKeys: {
+          ...emptyScalarEntityKeys(),
+          serviceEntityKey: serviceEntityKey,
+        },
         dataRententionInDays:
           serviceLevelRetention || projectContext.projectRetentionInDays,
         serviceRetentionConfig: svc.telemetryRetentionConfig ?? null,
@@ -355,7 +565,7 @@ export default class OTelIngestService {
    * Builds a TelemetryServiceMetadata for a non-Service resource —
    * Host, DockerHost, KubernetesCluster, Monitor. These resources
    * own telemetry directly via their own Postgres id (stamped into
-   * the analytics row's `serviceId` column) and do not have a paired
+   * the analytics row's `primaryEntityId` column) and do not have a paired
    * Service row. Per-resource retention overrides (when set on the
    * Host / DockerHost / KubernetesCluster row) are honoured here so
    * the resource owner can keep host telemetry longer/shorter than
@@ -366,7 +576,7 @@ export default class OTelIngestService {
   public static async buildResourceMetadataForNonService(data: {
     serviceName: string;
     resourceId: ObjectID;
-    serviceType: ServiceType;
+    primaryEntityType: ServiceType;
     projectId: ObjectID;
   }): Promise<TelemetryServiceMetadata> {
     const projectContext: ProjectRetentionContext =
@@ -375,12 +585,15 @@ export default class OTelIngestService {
     const resourceRetention: {
       retainTelemetryDataForDays: number | null;
       telemetryRetentionConfig: TelemetryRetentionConfig | null;
-    } = await this.getResourceRetention(data.resourceId, data.serviceType);
+    } = await this.getResourceRetention(
+      data.resourceId,
+      data.primaryEntityType,
+    );
 
     return {
       serviceName: data.serviceName,
-      serviceId: data.resourceId,
-      serviceType: data.serviceType,
+      primaryEntityId: data.resourceId,
+      primaryEntityType: data.primaryEntityType,
       dataRententionInDays:
         resourceRetention.retainTelemetryDataForDays ||
         projectContext.projectRetentionInDays,
@@ -400,13 +613,13 @@ export default class OTelIngestService {
   @CaptureSpan()
   private static async getResourceRetention(
     resourceId: ObjectID,
-    serviceType: ServiceType,
+    primaryEntityType: ServiceType,
   ): Promise<{
     retainTelemetryDataForDays: number | null;
     telemetryRetentionConfig: TelemetryRetentionConfig | null;
   }> {
     try {
-      if (serviceType === ServiceType.Host) {
+      if (primaryEntityType === ServiceType.Host) {
         const host: Host | null = await HostService.findOneById({
           id: resourceId,
           select: {
@@ -420,7 +633,7 @@ export default class OTelIngestService {
           telemetryRetentionConfig: host?.telemetryRetentionConfig ?? null,
         };
       }
-      if (serviceType === ServiceType.DockerHost) {
+      if (primaryEntityType === ServiceType.DockerHost) {
         const dockerHost: DockerHost | null =
           await DockerHostService.findOneById({
             id: resourceId,
@@ -437,7 +650,7 @@ export default class OTelIngestService {
             dockerHost?.telemetryRetentionConfig ?? null,
         };
       }
-      if (serviceType === ServiceType.KubernetesCluster) {
+      if (primaryEntityType === ServiceType.KubernetesCluster) {
         const cluster: KubernetesCluster | null =
           await KubernetesClusterService.findOneById({
             id: resourceId,
@@ -453,9 +666,60 @@ export default class OTelIngestService {
           telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
         };
       }
+      if (primaryEntityType === ServiceType.ServerlessFunction) {
+        const serverlessFunction: ServerlessFunction | null =
+          await ServerlessFunctionService.findOneById({
+            id: resourceId,
+            select: {
+              retainTelemetryDataForDays: true,
+              telemetryRetentionConfig: true,
+            },
+            props: { isRoot: true },
+          });
+        return {
+          retainTelemetryDataForDays:
+            serverlessFunction?.retainTelemetryDataForDays ?? null,
+          telemetryRetentionConfig:
+            serverlessFunction?.telemetryRetentionConfig ?? null,
+        };
+      }
+      if (primaryEntityType === ServiceType.CloudResource) {
+        const cloudResource: CloudResource | null =
+          await CloudResourceService.findOneById({
+            id: resourceId,
+            select: {
+              retainTelemetryDataForDays: true,
+              telemetryRetentionConfig: true,
+            },
+            props: { isRoot: true },
+          });
+        return {
+          retainTelemetryDataForDays:
+            cloudResource?.retainTelemetryDataForDays ?? null,
+          telemetryRetentionConfig:
+            cloudResource?.telemetryRetentionConfig ?? null,
+        };
+      }
+      if (primaryEntityType === ServiceType.RealUserMonitor) {
+        const rumApplication: RumApplication | null =
+          await RumApplicationService.findOneById({
+            id: resourceId,
+            select: {
+              retainTelemetryDataForDays: true,
+              telemetryRetentionConfig: true,
+            },
+            props: { isRoot: true },
+          });
+        return {
+          retainTelemetryDataForDays:
+            rumApplication?.retainTelemetryDataForDays ?? null,
+          telemetryRetentionConfig:
+            rumApplication?.telemetryRetentionConfig ?? null,
+        };
+      }
     } catch (err) {
       logger.warn(
-        `Per-resource retention lookup failed for ${serviceType} ${resourceId.toString()}: ${
+        `Per-resource retention lookup failed for ${primaryEntityType} ${resourceId.toString()}: ${
           err instanceof Error ? err.message : String(err)
         }`,
       );
@@ -472,7 +736,7 @@ export default class OTelIngestService {
     datapoint: JSONObject;
     aggregationTemporality: OtelAggregationTemporality;
     isMonotonic: boolean | undefined;
-    serviceId: ObjectID;
+    primaryEntityId: ObjectID;
     serviceName: string;
   }): Metric {
     const { dbMetric, datapoint, aggregationTemporality, isMonotonic } = data;
@@ -556,7 +820,7 @@ export default class OTelIngestService {
 
       newDbMetric.attributes = {
         ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
-          serviceId: data.serviceId,
+          serviceId: data.primaryEntityId,
           serviceName: data.serviceName,
         }),
         ...TelemetryUtil.getAttributes({

@@ -57,7 +57,7 @@ const ProfileTimeline: FunctionComponent<ProfileTimelineProps> = (
         props.serviceIds.length > 0 &&
         props.serviceIds[0]
       ) {
-        query["serviceId"] = props.serviceIds[0];
+        query["primaryEntityId"] = props.serviceIds[0];
       }
 
       if (props.profileType) {

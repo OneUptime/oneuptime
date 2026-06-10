@@ -47,7 +47,7 @@ export interface SpanLink {
 }
 
 @OperationalResource()
-@OwnedThrough("serviceId", Service, { includeProjectScope: true })
+@OwnedThrough("primaryEntityId", Service, { includeProjectScope: true })
 export default class Span extends AnalyticsBaseModel {
   public constructor() {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
@@ -80,75 +80,78 @@ export default class Span extends AnalyticsBaseModel {
       },
     });
 
-    const serviceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
-      key: "serviceId",
-      title: "Service ID",
-      description:
-        "ID of the resource the span belongs to (Service / Host / DockerHost / KubernetesCluster / Monitor — disambiguated by serviceType)",
-      required: true,
-      type: TableColumnType.ObjectID,
-      accessControl: {
-        read: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.Viewer,
-          Permission.TelemetryAdmin,
-          Permission.TelemetryMember,
-          Permission.TelemetryViewer,
-          Permission.ReadTelemetryServiceTraces,
-        ],
-        create: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.TelemetryAdmin,
-          Permission.TelemetryMember,
-          Permission.CreateTelemetryServiceTraces,
-        ],
-        update: [],
-      },
-    });
+    const primaryEntityIdColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "primaryEntityId",
+        title: "Service ID",
+        description:
+          "ID of the resource the span belongs to (Service / Host / DockerHost / KubernetesCluster / Monitor — disambiguated by primaryEntityType)",
+        required: true,
+        type: TableColumnType.ObjectID,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
+            Permission.ReadTelemetryServiceTraces,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.CreateTelemetryServiceTraces,
+          ],
+          update: [],
+        },
+      });
 
-    const serviceTypeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
-      key: "serviceType",
-      isLowCardinality: true,
-      title: "Service Type",
-      description:
-        "Discriminator for serviceId — tells the read side which resource table to dispatch to",
-      required: false,
-      type: TableColumnType.Text,
-      skipIndex: {
-        name: "idx_service_type",
-        type: SkipIndexType.Set,
-        params: [10],
-        granularity: 4,
-      },
-      accessControl: {
-        read: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.Viewer,
-          Permission.TelemetryAdmin,
-          Permission.TelemetryMember,
-          Permission.TelemetryViewer,
-          Permission.ReadTelemetryServiceTraces,
-        ],
-        create: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.TelemetryAdmin,
-          Permission.TelemetryMember,
-          Permission.CreateTelemetryServiceTraces,
-        ],
-        update: [],
-      },
-    });
+    const primaryEntityTypeColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "primaryEntityType",
+        isLowCardinality: true,
+        title: "Service Type",
+        description:
+          "Discriminator for primaryEntityId — tells the read side which resource table to dispatch to",
+        required: false,
+        type: TableColumnType.Text,
+        skipIndex: {
+          name: "idx_service_type",
+          type: SkipIndexType.Set,
+          params: [10],
+          granularity: 4,
+        },
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
+            Permission.ReadTelemetryServiceTraces,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.CreateTelemetryServiceTraces,
+          ],
+          update: [],
+        },
+      });
 
     const startTimeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "startTime",
+      codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
       title: "Start Time",
       description: "When did the span start?",
       required: true,
@@ -178,6 +181,13 @@ export default class Span extends AnalyticsBaseModel {
 
     const endTimeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "endTime",
+      /*
+       * Plain ZSTD, deliberately NOT DoubleDelta: rows sort by startTime,
+       * so consecutive endTime deltas jump with span duration and the
+       * double-delta transform inflates instead of shrinking (measured
+       * ~2.9x vs ~4-6x for plain ZSTD on endTimeUnixNano, same data).
+       */
+      codec: { codec: "ZSTD", level: 1 },
       title: "End Time",
       description: "When did the span end?",
       required: true,
@@ -211,8 +221,8 @@ export default class Span extends AnalyticsBaseModel {
         title: "Start Time in Unix Nano",
         description: "When did the span start?",
         required: true,
-        type: TableColumnType.LongNumber,
-        codec: { codec: "ZSTD", level: 1 },
+        type: TableColumnType.UInt64,
+        codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
         accessControl: {
           read: [
             Permission.ProjectOwner,
@@ -242,6 +252,11 @@ export default class Span extends AnalyticsBaseModel {
         title: "Duration in Unix Nano",
         description: "How long did the span last?",
         required: true,
+        /*
+         * Kept as LongNumber (Int128): it is aggregated as
+         * AggregateFunction(avg, Int128) in proj_agg_by_service, which
+         * ClickHouse cannot convert to UInt64 in place.
+         */
         type: TableColumnType.LongNumber,
         codec: { codec: "ZSTD", level: 1 },
         accessControl: {
@@ -273,7 +288,13 @@ export default class Span extends AnalyticsBaseModel {
         title: "End Time",
         description: "When did the span end?",
         required: true,
-        type: TableColumnType.LongNumber,
+        type: TableColumnType.UInt64,
+        /*
+         * Plain ZSTD, deliberately NOT DoubleDelta: rows sort by
+         * startTime, so endTime deltas jump with span duration and
+         * double-delta inflates (measured compression ratio ~2.9 with
+         * DoubleDelta vs ~4-6x plain ZSTD).
+         */
         codec: { codec: "ZSTD", level: 1 },
         accessControl: {
           read: [
@@ -437,6 +458,7 @@ export default class Span extends AnalyticsBaseModel {
 
     const attributesColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "attributes",
+      codec: { codec: "ZSTD", level: 3 },
       title: "Attributes",
       description: "Attributes",
       required: true,
@@ -467,6 +489,7 @@ export default class Span extends AnalyticsBaseModel {
 
     const attributeKeysColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "attributeKeys",
+      codec: { codec: "ZSTD", level: 3 },
       title: "Attribute Keys",
       description: "Attribute keys extracted from attributes",
       required: true,
@@ -500,6 +523,102 @@ export default class Span extends AnalyticsBaseModel {
         update: [],
       },
     });
+
+    const entityKeysColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "entityKeys",
+      codec: { codec: "ZSTD", level: 3 },
+      title: "Entity Keys",
+      description:
+        "Stable keys of every OpenTelemetry entity (service, host, k8s.pod, container, ...) this signal belongs to. A superset that includes the primary entity. Enables cross-cutting membership queries via has(entityKeys, :key).",
+      required: true,
+      defaultValue: [],
+      type: TableColumnType.ArrayText,
+      skipIndex: {
+        name: "idx_entity_keys",
+        type: SkipIndexType.BloomFilter,
+        params: [0.01],
+        granularity: 1,
+      },
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
+          Permission.ReadTelemetryServiceTraces,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.CreateTelemetryServiceTraces,
+        ],
+        update: [],
+      },
+    });
+
+    /*
+     * Scalar per-entity-type key columns — denormalized single-value
+     * siblings of `entityKeys`. Each holds the 16-hex key (see
+     * Common/Utils/Telemetry/EntityKey) of the row's entity of that type,
+     * or '' when the resource carries no such entity (non-Nullable String,
+     * so old rows read the type default ''). Unlike the array column, a
+     * scalar equality predicate is usable as an MV/sort key and gets a
+     * cheaper bloom-filter probe; only the high-traffic keys
+     * (service/host/k8s.pod) carry skip indexes. Stamped at ingest by the
+     * same extractor that fills `entityKeys`; never part of identity.
+     */
+    const scalarEntityKeyColumns: Array<AnalyticsTableColumn> = [
+      {
+        key: "serviceEntityKey",
+        title: "Service Entity Key",
+        indexName: "idx_service_entity_key",
+      },
+      {
+        key: "hostEntityKey",
+        title: "Host Entity Key",
+        indexName: "idx_host_entity_key",
+      },
+      {
+        key: "k8sPodEntityKey",
+        title: "Kubernetes Pod Entity Key",
+        indexName: "idx_k8s_pod_entity_key",
+      },
+      { key: "k8sNodeEntityKey", title: "Kubernetes Node Entity Key" },
+      { key: "k8sClusterEntityKey", title: "Kubernetes Cluster Entity Key" },
+      { key: "containerEntityKey", title: "Container Entity Key" },
+    ].map(
+      (def: {
+        key: string;
+        title: string;
+        indexName?: string | undefined;
+      }): AnalyticsTableColumn => {
+        return new AnalyticsTableColumn({
+          key: def.key,
+          title: def.title,
+          description:
+            "Scalar entity key for this entity type (see entityKeys); '' when the resource has no entity of this type.",
+          required: true,
+          defaultValue: "",
+          type: TableColumnType.Text,
+          codec: { codec: "ZSTD", level: 1 },
+          skipIndex: def.indexName
+            ? {
+                name: def.indexName,
+                type: SkipIndexType.BloomFilter,
+                params: [0.01],
+                granularity: 1,
+              }
+            : undefined,
+          accessControl: entityKeysColumn.accessControl,
+        });
+      },
+    );
 
     const eventsColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "events",
@@ -630,6 +749,7 @@ export default class Span extends AnalyticsBaseModel {
 
     const nameColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "name",
+      codec: { codec: "ZSTD", level: 3 },
       title: "Name",
       description: "Name of the span",
       required: false,
@@ -775,6 +895,7 @@ export default class Span extends AnalyticsBaseModel {
 
     const retentionDateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "retentionDate",
+      codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
       title: "Retention Date",
       description:
         "Date after which this row is eligible for TTL deletion, computed at ingest time as startTime + service.retainTelemetryDataForDays",
@@ -830,8 +951,8 @@ export default class Span extends AnalyticsBaseModel {
       },
       tableColumns: [
         projectIdColumn,
-        serviceIdColumn,
-        serviceTypeColumn,
+        primaryEntityIdColumn,
+        primaryEntityTypeColumn,
         startTimeColumn,
         endTimeColumn,
         startTimeUnixNanoColumn,
@@ -843,6 +964,8 @@ export default class Span extends AnalyticsBaseModel {
         traceStateColumn,
         attributesColumn,
         attributeKeysColumn,
+        entityKeysColumn,
+        ...scalarEntityKeyColumns,
         eventsColumn,
         linksColumn,
         statusCodeColumn,
@@ -857,22 +980,23 @@ export default class Span extends AnalyticsBaseModel {
         {
           name: "proj_agg_by_service",
           query:
-            "SELECT projectId, serviceId, toStartOfMinute(startTime) AS minute, count() AS cnt, avg(durationUnixNano) AS avg_duration, quantile(0.99)(durationUnixNano) AS p99_duration GROUP BY projectId, serviceId, minute",
+            "SELECT projectId, primaryEntityId, toStartOfMinute(startTime) AS minute, count() AS cnt, avg(durationUnixNano) AS avg_duration, quantile(0.99)(durationUnixNano) AS p99_duration GROUP BY projectId, primaryEntityId, minute",
         },
         {
           name: "proj_trace_by_id",
           query:
-            "SELECT projectId, traceId, startTime, serviceId, spanId, parentSpanId, name, durationUnixNano, statusCode, hasException ORDER BY (projectId, traceId, startTime)",
+            "SELECT projectId, traceId, startTime, primaryEntityId, spanId, parentSpanId, name, durationUnixNano, statusCode, hasException ORDER BY (projectId, traceId, startTime)",
         },
         {
           name: "proj_hist_by_minute",
           query:
-            "SELECT projectId, toStartOfMinute(startTime) AS minute, serviceId, statusCode, isRootSpan, count() AS cnt GROUP BY projectId, minute, serviceId, statusCode, isRootSpan",
+            "SELECT projectId, toStartOfMinute(startTime) AS minute, primaryEntityId, statusCode, isRootSpan, count() AS cnt GROUP BY projectId, minute, primaryEntityId, statusCode, isRootSpan",
         },
       ],
-      sortKeys: ["projectId", "startTime", "serviceId", "traceId"],
-      primaryKeys: ["projectId", "startTime", "serviceId", "traceId"],
-      partitionKey: "sipHash64(projectId) % 16",
+      sortKeys: ["projectId", "startTime", "primaryEntityId", "traceId"],
+      primaryKeys: ["projectId", "startTime", "primaryEntityId", "traceId"],
+      partitionKey: "toYYYYMMDD(startTime)",
+      tableSettings: "ttl_only_drop_parts = 1",
       ttlExpression: "retentionDate DELETE",
       defaultSortColumn: "startTime",
     });
@@ -926,20 +1050,20 @@ export default class Span extends AnalyticsBaseModel {
     this.setColumnValue("projectId", v);
   }
 
-  public get serviceId(): ObjectID | undefined {
-    return this.getColumnValue("serviceId") as ObjectID | undefined;
+  public get primaryEntityId(): ObjectID | undefined {
+    return this.getColumnValue("primaryEntityId") as ObjectID | undefined;
   }
 
-  public set serviceId(v: ObjectID | undefined) {
-    this.setColumnValue("serviceId", v);
+  public set primaryEntityId(v: ObjectID | undefined) {
+    this.setColumnValue("primaryEntityId", v);
   }
 
-  public get serviceType(): ServiceType | undefined {
-    return this.getColumnValue("serviceType") as ServiceType | undefined;
+  public get primaryEntityType(): ServiceType | undefined {
+    return this.getColumnValue("primaryEntityType") as ServiceType | undefined;
   }
 
-  public set serviceType(v: ServiceType | undefined) {
-    this.setColumnValue("serviceType", v);
+  public set primaryEntityType(v: ServiceType | undefined) {
+    this.setColumnValue("primaryEntityType", v);
   }
 
   public get startTime(): Date | undefined {
@@ -1004,6 +1128,14 @@ export default class Span extends AnalyticsBaseModel {
 
   public set attributeKeys(v: Array<string> | undefined) {
     this.setColumnValue("attributeKeys", v);
+  }
+
+  public get entityKeys(): Array<string> | undefined {
+    return this.getColumnValue("entityKeys") as Array<string> | undefined;
+  }
+
+  public set entityKeys(v: Array<string> | undefined) {
+    this.setColumnValue("entityKeys", v);
   }
 
   public get events(): Array<SpanEvent> | undefined {

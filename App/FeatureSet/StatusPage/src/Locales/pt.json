@@ -252,5 +252,7 @@
     "ongoing": "Em andamento",
     "ended": "Encerrado",
     "completed": "Concluído"
-  }
+  },
+  "Subscriber ID is required": "O ID do assinante é obrigatório",
+  "Token is required": "O token é obrigatório"
 }

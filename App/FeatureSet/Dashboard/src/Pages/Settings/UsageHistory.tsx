@@ -119,8 +119,8 @@ const Settings: FunctionComponent<ComponentProps> = (
                 _id: true,
                 serviceColor: true,
               },
-              serviceId: true,
-              serviceType: true,
+              primaryEntityId: true,
+              primaryEntityType: true,
             },
             title: "Service",
             type: FieldType.Element,
@@ -132,23 +132,23 @@ const Settings: FunctionComponent<ComponentProps> = (
                 return <ServiceElement service={service} />;
               }
 
-              const serviceType: ServiceType | undefined = item[
-                "serviceType"
+              const primaryEntityType: ServiceType | undefined = item[
+                "primaryEntityType"
               ] as ServiceType | undefined;
 
               /*
                * Non-Service telemetry (unattributed / Host / Docker /
                * Kubernetes) has no Service row, so the relation resolves to
-               * null. Render a label from the serviceType discriminator
+               * null. Render a label from the primaryEntityType discriminator
                * instead of crashing on the null relation.
                */
               const projectId: ObjectID | null =
                 ProjectUtil.getCurrentProjectId();
               if (
                 projectId &&
-                (serviceType === ServiceType.Unknown ||
+                (primaryEntityType === ServiceType.Unknown ||
                   TelemetryServiceUtil.isUnknownServiceId(
-                    item.serviceId,
+                    item.primaryEntityId,
                     projectId,
                   ))
               ) {
@@ -164,8 +164,8 @@ const Settings: FunctionComponent<ComponentProps> = (
                 [ServiceType.DockerHost]: "Docker host telemetry",
                 [ServiceType.KubernetesCluster]: "Kubernetes telemetry",
               };
-              const label: string | undefined = serviceType
-                ? typeLabels[serviceType]
+              const label: string | undefined = primaryEntityType
+                ? typeLabels[primaryEntityType]
                 : undefined;
               if (label) {
                 return <div className="text-gray-700">{label}</div>;

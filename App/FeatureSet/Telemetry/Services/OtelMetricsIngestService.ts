@@ -2,7 +2,10 @@ import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import {
   OtelAggregationTemporality,
   TelemetryServiceMetadata,
+  getScalarEntityKeyColumns,
 } from "Common/Server/Services/OpenTelemetryIngestService";
+import { ResourceEntityRef } from "Common/Server/Utils/Telemetry/TelemetryEntity";
+import OtelPayloadDecoder from "../Utils/OtelPayloadDecoder";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import {
   ExpressRequest,
@@ -44,6 +47,7 @@ import KubernetesContainerService, {
 import DockerResourceService, {
   ParsedDockerContainer,
 } from "Common/Server/Services/DockerResourceService";
+import CloudResourceInstanceService from "Common/Server/Services/CloudResourceInstanceService";
 import HostService from "Common/Server/Services/HostService";
 import LabelService from "Common/Server/Services/LabelService";
 import Host from "Common/Models/DatabaseModels/Host";
@@ -114,6 +118,18 @@ const DOCKER_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "container.memory.usage.total",
 ]);
 
+/*
+ * Cloud managed-compute snapshot metrics — ECS/Fargate, Cloud Run, etc.
+ * emit container.cpu.utilization / container.memory.usage with
+ * service.instance.id identifying the running task / instance. The latest
+ * point is mirrored onto the matching CloudResourceInstance row.
+ */
+const CLOUD_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
+  "container.cpu.utilization",
+  "container.memory.usage",
+  "container.memory.usage.total",
+]);
+
 interface ResourceMetricBufferEntry {
   kind: string;
   namespaceKey: string;
@@ -139,6 +155,13 @@ interface DockerContainerMetricBufferEntry {
   containerName: string;
   containerId: string | null;
   imageName: string | null;
+  cpuPercent: number | null;
+  memoryBytes: number | null;
+  observedAt: Date;
+}
+
+interface CloudResourceInstanceMetricBufferEntry {
+  instanceName: string;
   cpuPercent: number | null;
   memoryBytes: number | null;
   observedAt: Date;
@@ -469,6 +492,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         string,
         Map<string, DockerContainerMetricBufferEntry>
       > = new Map();
+      const cloudResourceInstanceMetricsBuffer: Map<
+        string,
+        Map<string, CloudResourceInstanceMetricBufferEntry>
+      > = new Map();
 
       // Load project + service-scoped pipeline rules once per batch (60s cached).
       let pipelineRules: MetricRulesForProject | null = null;
@@ -524,6 +551,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               "attributes"
             ] as JSONArray) || [];
 
+          // Producer-declared entities (authoritative when present).
+          const resourceEntityRefs: Array<ResourceEntityRef> =
+            OtelPayloadDecoder.getEntityRefsFromResource(
+              resourceMetric["resource"] as JSONObject | undefined,
+            );
+
           /*
            * Auto-discover Kubernetes cluster and Docker host from
            * resource attributes. The two lookups are independent —
@@ -574,6 +607,23 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             processCount: hostInfraStats.processCount,
           });
 
+          const serverlessFunctionId: ObjectID | null =
+            await this.autoDiscoverServerless({
+              projectId,
+              attributes: resourceAttributes_raw,
+            });
+
+          const cloudResourceId: ObjectID | null =
+            await this.autoDiscoverCloudResource({
+              projectId,
+              attributes: resourceAttributes_raw,
+            });
+
+          const rumApplicationId: ObjectID | null = await this.autoDiscoverRum({
+            projectId,
+            attributes: resourceAttributes_raw,
+          });
+
           const serviceMetadata: TelemetryServiceMetadata =
             await this.resolveTelemetryResource({
               req,
@@ -582,6 +632,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               hostId,
               dockerHostId,
               kubernetesClusterId,
+              serverlessFunctionId,
+              cloudResourceId,
+              rumApplicationId,
+              entityRefs: resourceEntityRefs,
             });
           const serviceName: string = serviceMetadata.serviceName;
 
@@ -600,9 +654,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
           > = {
-            ...(serviceMetadata.serviceType === ServiceType.OpenTelemetry
+            ...(serviceMetadata.primaryEntityType === ServiceType.OpenTelemetry
               ? TelemetryUtil.getAttributesForServiceIdAndServiceName({
-                  serviceId: serviceMetadata.serviceId!,
+                  serviceId: serviceMetadata.primaryEntityId!,
                   serviceName: serviceName,
                 })
               : {}),
@@ -661,24 +715,25 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             }
             /*
              * Only associate a real Service row (OpenTelemetry type).
-             * The host heartbeat's serviceId is a Host/DockerHost/
+             * The host heartbeat's primaryEntityId is a Host/DockerHost/
              * KubernetesCluster id, which has no matching Service row,
              * so pushing it would fail the MetricType.services FK. The
              * heartbeat MetricType is still cataloged above without a
              * service link.
              */
             if (
-              serviceMetadata.serviceType === ServiceType.OpenTelemetry &&
+              serviceMetadata.primaryEntityType === ServiceType.OpenTelemetry &&
               metricNameServiceNameMap[heartbeatMetricName]!.services!.filter(
                 (svc: Service) => {
                   return (
-                    svc.id?.toString() === serviceMetadata.serviceId!.toString()
+                    svc.id?.toString() ===
+                    serviceMetadata.primaryEntityId!.toString()
                   );
                 },
               ).length === 0
             ) {
               const heartbeatService: Service = new Service();
-              heartbeatService.id = serviceMetadata.serviceId!;
+              heartbeatService.id = serviceMetadata.primaryEntityId!;
               metricNameServiceNameMap[heartbeatMetricName]!.services!.push(
                 heartbeatService,
               );
@@ -692,7 +747,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               },
               baseAttributes: resourceAttributes,
               projectId: projectId,
-              serviceId: serviceMetadata.serviceId!,
+              primaryEntityId: serviceMetadata.primaryEntityId!,
               serviceName: serviceName,
               metricName: heartbeatMetricName,
               metricPointType: MetricPointType.Gauge,
@@ -754,30 +809,30 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
                     /*
                      * MetricType.services is a ManyToMany to the
-                     * Service table (join keyed on serviceId). Only
+                     * Service table (join keyed on primaryEntityId). Only
                      * OpenTelemetry-type telemetry has a real Service
                      * row; associating Host / DockerHost /
                      * KubernetesCluster / Unknown telemetry here would
-                     * insert a join row whose serviceId has no matching
+                     * insert a join row whose primaryEntityId has no matching
                      * Service and fail the FK. The metric name itself is
                      * still cataloged above (just without a service
-                     * link), and the datapoints carry the serviceId in
+                     * link), and the datapoints carry the primaryEntityId in
                      * ClickHouse regardless.
                      */
                     if (
-                      serviceMetadata.serviceType ===
+                      serviceMetadata.primaryEntityType ===
                         ServiceType.OpenTelemetry &&
                       metricNameServiceNameMap[metricName]!.services!.filter(
                         (service: Service) => {
                           return (
                             service.id?.toString() ===
-                            serviceMetadata.serviceId!.toString()
+                            serviceMetadata.primaryEntityId!.toString()
                           );
                         },
                       ).length === 0
                     ) {
                       const newService: Service = new Service();
-                      newService.id = serviceMetadata.serviceId!;
+                      newService.id = serviceMetadata.primaryEntityId!;
                       metricNameServiceNameMap[metricName]!.services!.push(
                         newService,
                       );
@@ -886,11 +941,25 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                           });
                         }
 
+                        if (
+                          cloudResourceId &&
+                          CLOUD_SNAPSHOT_METRIC_NAMES.has(metricName)
+                        ) {
+                          this.bufferCloudResourceSnapshotMetric({
+                            cloudResourceIdStr: cloudResourceId.toString(),
+                            metricName,
+                            metricUnit,
+                            datapoint: datapoint as JSONObject,
+                            metricAttributes,
+                            buffer: cloudResourceInstanceMetricsBuffer,
+                          });
+                        }
+
                         const metricRow: JSONObject = this.buildMetricRow({
                           datapoint: datapoint as JSONObject,
                           baseAttributes: metricAttributes,
                           projectId: projectId,
-                          serviceId: serviceMetadata.serviceId!,
+                          primaryEntityId: serviceMetadata.primaryEntityId!,
                           serviceName: serviceName,
                           metricName: metricName,
                           metricPointType: metricPointType,
@@ -909,7 +978,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                         const transformed: JSONObject | null = pipelineRules
                           ? MetricPipelineRuleService.applyRules(
                               metricRow,
-                              serviceMetadata.serviceId,
+                              serviceMetadata.primaryEntityId,
                               pipelineRules,
                             )
                           : metricRow;
@@ -974,6 +1043,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       await this.flushDockerSnapshotBuffer({
         projectId,
         buffer: dockerContainerMetricsBuffer,
+      });
+
+      await this.flushCloudResourceSnapshotBuffer({
+        projectId,
+        buffer: cloudResourceInstanceMetricsBuffer,
       });
 
       if (totalMetricsProcessed === 0) {
@@ -1763,11 +1837,121 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     }
   }
 
+  /*
+   * Buffer the latest CPU / memory point for a managed-compute instance
+   * (service.instance.id) so multiple datapoints across a batch collapse
+   * into a single CloudResourceInstance upsert. Best-effort — anything
+   * unparseable is skipped without affecting ClickHouse ingest.
+   */
+  private static bufferCloudResourceSnapshotMetric(data: {
+    cloudResourceIdStr: string;
+    metricName: string;
+    metricUnit: string | undefined;
+    datapoint: JSONObject;
+    metricAttributes: Dictionary<AttributeType | Array<AttributeType>>;
+    buffer: Map<string, Map<string, CloudResourceInstanceMetricBufferEntry>>;
+  }): void {
+    const valueFromInt: number | null = this.toNumberOrNull(
+      data.datapoint["asInt"],
+    );
+    const valueFromDouble: number | null = this.toNumberOrNull(
+      data.datapoint["asDouble"],
+    );
+    const rawValue: number | null = valueFromDouble ?? valueFromInt;
+    if (rawValue === null) {
+      return;
+    }
+
+    const ts: MetricTimestamp = this.safeParseUnixNano(
+      data.datapoint["timeUnixNano"] as string | number | undefined,
+      "cloud snapshot timeUnixNano",
+    );
+
+    const instanceName: string = this.readSnapshotAttr(
+      data.metricAttributes,
+      "resource.service.instance.id",
+    );
+    if (!instanceName) {
+      return;
+    }
+
+    const isCpu: boolean = data.metricName === "container.cpu.utilization";
+    const isMem: boolean =
+      data.metricName === "container.memory.usage" ||
+      data.metricName === "container.memory.usage.total";
+
+    let perResource:
+      | Map<string, CloudResourceInstanceMetricBufferEntry>
+      | undefined = data.buffer.get(data.cloudResourceIdStr);
+    if (!perResource) {
+      perResource = new Map();
+      data.buffer.set(data.cloudResourceIdStr, perResource);
+    }
+
+    const cpuPercent: number | null = isCpu
+      ? this.cpuValueToPercent(rawValue, data.metricUnit)
+      : null;
+    const memoryBytes: number | null = isMem
+      ? Math.max(0, Math.trunc(rawValue))
+      : null;
+
+    const existing: CloudResourceInstanceMetricBufferEntry | undefined =
+      perResource.get(instanceName);
+    if (!existing) {
+      perResource.set(instanceName, {
+        instanceName,
+        cpuPercent,
+        memoryBytes,
+        observedAt: ts.date,
+      });
+      return;
+    }
+    if (cpuPercent !== null && ts.date >= existing.observedAt) {
+      existing.cpuPercent = cpuPercent;
+    }
+    if (memoryBytes !== null && ts.date >= existing.observedAt) {
+      existing.memoryBytes = memoryBytes;
+    }
+    if (ts.date > existing.observedAt) {
+      existing.observedAt = ts.date;
+    }
+  }
+
+  private static async flushCloudResourceSnapshotBuffer(data: {
+    projectId: ObjectID;
+    buffer: Map<string, Map<string, CloudResourceInstanceMetricBufferEntry>>;
+  }): Promise<void> {
+    if (data.buffer.size === 0) {
+      return;
+    }
+    for (const [cloudResourceIdStr, byInstance] of data.buffer.entries()) {
+      if (byInstance.size === 0) {
+        continue;
+      }
+      try {
+        const cloudResourceId: ObjectID = new ObjectID(cloudResourceIdStr);
+        for (const e of byInstance.values()) {
+          await CloudResourceInstanceService.recordInstance({
+            projectId: data.projectId,
+            cloudResourceId,
+            instanceName: e.instanceName,
+            cpuPercent: e.cpuPercent ?? undefined,
+            memoryBytes: e.memoryBytes ?? undefined,
+          });
+        }
+      } catch (err) {
+        logger.warn(
+          `Cloud resource instance snapshot writeback failed for ${cloudResourceIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
   private static buildMetricRow(data: {
     datapoint: JSONObject;
     baseAttributes: Dictionary<AttributeType | Array<AttributeType>>;
     projectId: ObjectID;
-    serviceId: ObjectID;
+    primaryEntityId: ObjectID;
     serviceName: string;
     metricName: string;
     metricPointType: MetricPointType;
@@ -1936,12 +2120,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     );
 
     const row: JSONObject = {
-      _id: ObjectID.generate().toString(),
+      _id: ObjectID.generateTimeOrdered().toString(),
       createdAt: ingestionTimestamp,
-      updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
-      serviceId: data.serviceId.toString(),
-      serviceType: data.serviceMetadata.serviceType,
+      primaryEntityId: data.primaryEntityId.toString(),
+      primaryEntityType: data.serviceMetadata.primaryEntityType,
+      entityKeys: data.serviceMetadata.entityKeys || [],
+      ...getScalarEntityKeyColumns(data.serviceMetadata),
       name: data.metricName,
       time: timeFields.db,
       timeUnixNano: timeFields.nano,

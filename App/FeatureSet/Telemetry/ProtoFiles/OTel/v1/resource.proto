@@ -34,4 +34,11 @@ message Resource {
   // dropped_attributes_count is the number of dropped attributes. If the value is 0, then
   // no attributes were dropped.
   uint32 dropped_attributes_count = 2;
+
+  // Set of entities that participate in this Resource.
+  //
+  // Note: keys in the references MUST exist in attributes of this message.
+  //
+  // Status: [Development]
+  repeated opentelemetry.proto.common.v1.EntityRef entity_refs = 3;
 }

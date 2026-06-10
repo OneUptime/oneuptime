@@ -20,9 +20,9 @@ export interface ComponentProps {
   lastSeenAt?: Date | undefined;
   occuranceCount?: number | undefined;
   attributes?: JSONObject | undefined;
-  serviceId?: ObjectID | undefined;
-  serviceType?: ServiceType | undefined;
-  // The project's Services, for resolving a real OpenTelemetry serviceId.
+  primaryEntityId?: ObjectID | undefined;
+  primaryEntityType?: ServiceType | undefined;
+  // The project's Services, for resolving a real OpenTelemetry primaryEntityId.
   services?: Array<Service> | undefined;
   firstSeenInRelease?: string | undefined;
   lastSeenInRelease?: string | undefined;
@@ -137,15 +137,15 @@ const ExceptionDetail: FunctionComponent<ComponentProps> = (
 
   /*
    * Resolve the resource this exception belongs to from its polymorphic
-   * (serviceId, serviceType): a real Service renders as a linked
+   * (primaryEntityId, primaryEntityType): a real Service renders as a linked
    * ServiceElement; the unattributed bucket renders as a non-linked
    * synthetic "Unknown Service"; Host / DockerHost / KubernetesCluster
    * render as a typed label. The bare "Unknown" fallback is omitted.
    */
   const serviceField: ReactElement | null = ((): ReactElement | null => {
     const { service, label } = TelemetryServiceUtil.resolveTelemetryResource({
-      serviceId: props.serviceId,
-      serviceType: props.serviceType,
+      primaryEntityId: props.primaryEntityId,
+      primaryEntityType: props.primaryEntityType,
       services: props.services || [],
       projectId: ProjectUtil.getCurrentProjectId(),
     });
@@ -163,7 +163,7 @@ const ExceptionDetail: FunctionComponent<ComponentProps> = (
 
   if (serviceField) {
     fields.push({
-      key: "serviceId",
+      key: "primaryEntityId",
       title: "Telemetry Service",
       description: "The resource that this exception was received from.",
       fieldType: FieldType.Element,

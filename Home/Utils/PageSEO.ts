@@ -706,6 +706,111 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/product/serverless": {
+    title: "Serverless Observability | AWS Lambda & Functions | OneUptime",
+    description:
+      "Monitor AWS Lambda, Google Cloud Functions, Azure Functions, and Cloudflare Workers with OpenTelemetry. Invocations, cold starts, duration, errors, and per-invocation traces. Open source.",
+    canonicalPath: "/product/serverless",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Serverless", url: "/product/serverless" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Serverless Observability",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Monitor serverless functions across AWS Lambda, Google Cloud Functions, Azure Functions, and Cloudflare Workers with OpenTelemetry — invocations, cold starts, duration, errors, and distributed traces.",
+      features: [
+        "Auto-discovered functions",
+        "Keyed on the faas.name attribute",
+        "Invocation and error-rate tracking",
+        "Cold-start detection",
+        "Duration percentiles (p50/p95/p99)",
+        "Concurrency and throttle insight",
+        "Per-invocation distributed traces",
+        "Multi-cloud: AWS, GCP, Azure, Cloudflare",
+        "Cloud region and account metadata",
+        "Correlated logs and exceptions",
+        "OpenTelemetry native",
+        "Open source",
+      ],
+    },
+  },
+
+  "/product/cloud": {
+    title: "Cloud Monitoring | AWS, Google Cloud & Azure | OneUptime",
+    description:
+      "Monitor AWS, Google Cloud, and Azure with OpenTelemetry. Auto-discovered cloud environments, real-time resource metrics, logs, traces, and alerting across every region and account. Open source.",
+    canonicalPath: "/product/cloud",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Cloud", url: "/product/cloud" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Cloud Monitoring",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Unified multi-cloud monitoring for AWS, Google Cloud, and Azure with OpenTelemetry — auto-discovered environments, real-time resource metrics, logs, traces, and alerting across regions and accounts.",
+      features: [
+        "Multi-cloud unified dashboard",
+        "AWS, Google Cloud, and Azure",
+        "Auto-discovered cloud environments",
+        "EC2, GCP, and Azure resource detectors",
+        "cloud.platform / account / region metadata",
+        "Real-time CPU and memory utilization",
+        "Multi-account and multi-region rollups",
+        "Correlated logs, metrics, and traces",
+        "Linked hosts, Docker, and Kubernetes",
+        "Resource saturation alerting",
+        "OpenTelemetry native",
+        "Open source",
+      ],
+    },
+  },
+
+  "/product/rum": {
+    title: "Real User Monitoring (RUM) | Web Vitals & Sessions | OneUptime",
+    description:
+      "Real User Monitoring for browser and mobile apps with the OpenTelemetry Web SDK. Core Web Vitals, page views, JavaScript errors, and real user sessions correlated with backend traces. Open source.",
+    canonicalPath: "/product/rum",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "RUM", url: "/product/rum" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Real User Monitoring",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud, iOS, Android",
+      description:
+        "Real User Monitoring for browser and mobile applications with the OpenTelemetry Web SDK — Core Web Vitals, page performance, JavaScript errors, and sessions correlated with backend traces.",
+      features: [
+        "Core Web Vitals (LCP, INP, CLS, FCP, TTFB)",
+        "Real page view and load timing",
+        "JavaScript error tracking",
+        "Browser, OS, and device breakdown",
+        "Geographic performance comparison",
+        "Per-session troubleshooting",
+        "Front-end to back-end trace correlation",
+        "OpenTelemetry Web SDK",
+        "Browser and mobile app support",
+        "Web Vitals regression alerting",
+        "OpenTelemetry native",
+        "Open source",
+      ],
+    },
+  },
+
   // Pricing
   "/pricing": {
     title: "Pricing | Free Tier & Paid Plans | OneUptime",

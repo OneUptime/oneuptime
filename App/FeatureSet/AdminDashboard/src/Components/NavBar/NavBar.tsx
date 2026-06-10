@@ -103,6 +103,11 @@ const DashboardNavbar: FunctionComponent = (): ReactElement => {
       items={navItems}
       moreMenuItems={moreMenuItems}
       moreMenuFooter={moreMenuFooter}
+      moreMenuTitle="Menu"
+      moreMenuSearchPlaceholder="Search admin…"
+      moreMenuNoResultsText="No results found."
+      moreMenuKeyboardHint="↑↓ navigate · ↵ open · esc close"
+      moreMenuRecentLabel="Recently visited"
     />
   );
 };

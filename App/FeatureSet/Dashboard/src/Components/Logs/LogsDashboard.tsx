@@ -149,7 +149,7 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
           limit: 5000,
           skip: 0,
           select: {
-            serviceId: true,
+            primaryEntityId: true,
             severityText: true,
             time: true,
           } as Select<Log>,
@@ -203,9 +203,9 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
         warnCount++;
       }
 
-      const serviceId: ObjectID | undefined = log.serviceId;
-      if (serviceId) {
-        const sid: string = serviceId.toString();
+      const primaryEntityId: ObjectID | undefined = log.primaryEntityId;
+      if (primaryEntityId) {
+        const sid: string = primaryEntityId.toString();
         const existing: { total: number; error: number; warn: number } =
           logsByService.get(sid) || { total: 0, error: 0, warn: 0 };
         existing.total++;

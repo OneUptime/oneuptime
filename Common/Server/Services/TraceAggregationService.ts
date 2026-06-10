@@ -1,4 +1,5 @@
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
+import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import SpanService from "./SpanService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
@@ -19,6 +20,7 @@ export interface HistogramBucket {
 
 export interface TraceFilters {
   serviceIds?: Array<ObjectID> | undefined;
+  entityKeys?: Array<string> | undefined;
   statusCodes?: Array<number> | undefined;
   spanKinds?: Array<string> | undefined;
   spanNames?: Array<string> | undefined;
@@ -62,7 +64,7 @@ export class TraceAggregationService {
   private static readonly DEFAULT_FACET_LIMIT: number = 500;
   private static readonly TABLE_NAME: string = AnalyticsTableName.Span;
   private static readonly TOP_LEVEL_COLUMNS: Set<string> = new Set([
-    "serviceId",
+    "primaryEntityId",
     "traceId",
     "spanId",
     "parentSpanId",
@@ -73,17 +75,31 @@ export class TraceAggregationService {
   ]);
   /*
    * Virtual facet keys — same scheme as LogAggregationService. The
-   * `serviceId` slot is reused for host / docker host / k8s cluster ids,
-   * disambiguated by the `serviceType` discriminator.
+   * `primaryEntityId` slot is reused for host / docker host / k8s cluster
+   * ids, disambiguated by the `primaryEntityType` discriminator.
    */
   private static readonly RESOURCE_FACET_KEYS: Map<string, ServiceType> =
     new Map([
       ["hostId", ServiceType.Host],
       ["dockerHostId", ServiceType.DockerHost],
       ["kubernetesClusterId", ServiceType.KubernetesCluster],
+      ["serverlessFunctionId", ServiceType.ServerlessFunction],
+      ["cloudResourceId", ServiceType.CloudResource],
+      ["rumApplicationId", ServiceType.RealUserMonitor],
     ]);
   private static readonly ATTRIBUTE_KEY_PATTERN: RegExp = /^[a-zA-Z0-9._:/-]+$/;
   private static readonly MAX_FACET_KEY_LENGTH: number = 256;
+  /*
+   * Read-side retention filter for raw-table queries (rows past their
+   * per-service retention stay in their part until the whole part drops
+   * — ttl_only_drop_parts). Deliberately NOT applied to the
+   * projection-shaped queries (histogram / resource facet counts): the
+   * proj_hist_by_minute aggregate projection does not store
+   * retentionDate, so the predicate would silently force a full
+   * base-table scan.
+   */
+  private static readonly RETENTION_FILTER: string =
+    " AND retentionDate >= now()";
 
   @CaptureSpan()
   public static async getHistogram(
@@ -196,11 +212,14 @@ export class TraceAggregationService {
       selectColumns.push(...topLevelKeys);
     }
     if (resourceKeys.length > 0) {
-      // Virtual facets read out of serviceId disambiguated by serviceType.
-      if (!selectColumns.includes("serviceId")) {
-        selectColumns.push("serviceId");
+      /*
+       * Virtual facets read out of primaryEntityId disambiguated by
+       * primaryEntityType.
+       */
+      if (!selectColumns.includes("primaryEntityId")) {
+        selectColumns.push("primaryEntityId");
       }
-      selectColumns.push("serviceType");
+      selectColumns.push("primaryEntityType");
     }
     if (attributeKeys.length > 0) {
       selectColumns.push("attributes");
@@ -231,6 +250,8 @@ export class TraceAggregationService {
       }}`,
     );
 
+    statement.append(TraceAggregationService.RETENTION_FILTER);
+
     TraceAggregationService.appendCommonFilters(statement, request);
 
     statement.append(
@@ -246,7 +267,10 @@ export class TraceAggregationService {
      * proxy_read_timeout regardless.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     const dbResult: Results = await SpanService.executeQuery(statement);
@@ -277,10 +301,11 @@ export class TraceAggregationService {
 
       if (resourceKeys.length > 0) {
         const rowServiceType: string =
-          row["serviceType"] === undefined || row["serviceType"] === null
+          row["primaryEntityType"] === undefined ||
+          row["primaryEntityType"] === null
             ? ""
-            : String(row["serviceType"]);
-        const rowServiceId: unknown = row["serviceId"];
+            : String(row["primaryEntityType"]);
+        const rowServiceId: unknown = row["primaryEntityId"];
         if (rowServiceId !== undefined && rowServiceId !== null) {
           const value: string = String(rowServiceId);
           if (value.length > 0) {
@@ -342,6 +367,128 @@ export class TraceAggregationService {
     return result;
   }
 
+  /*
+   * Accurate per-service and per-status counts over the FULL time window,
+   * computed with a real GROUP BY instead of the recent-N sample in
+   * getFacetValuesFromSample(). The sample saturates with whichever service
+   * is chattiest right now, so high-volume services that aren't in the most
+   * recent N root spans read 0 — the "top 1000" symptom. This GROUP BY is
+   * exact regardless of skew.
+   *
+   * It is cheap because it rides the proj_hist_by_minute aggregate projection
+   * (projectId, minute, primaryEntityId, statusCode, isRootSpan -> count): a
+   * 1-month window reads a few thousand pre-aggregated minute rows in
+   * single-digit ms instead of scanning tens of millions of raw spans. Two
+   * things are required for ClickHouse to actually pick that projection, both
+   * load-bearing:
+   *   1. The time predicate must be on toStartOfMinute(startTime) — the
+   *      projection's key expression — NOT raw startTime. A raw startTime
+   *      filter references a column the aggregate projection does not store, so
+   *      ClickHouse rejects the projection and full-scans. (Window edges land
+   *      on minute boundaries, consistent with the minute-bucketed histogram.)
+   *   2. Every other predicate must be on a projection column. isRootSpan,
+   *      primaryEntityId and statusCode all are, so the default sidebar load
+   *      and drill-down-by-service stay on the projection. A non-projection
+   *      filter (kind / name / traceId / entityKeys / attributes)
+   *      transparently falls back to a base-table scan — still correct, still
+   *      bounded by max_execution_time.
+   *
+   * primaryEntityId is intentionally NOT disambiguated by primaryEntityType
+   * here. Resource IDs are globally unique, so a single primaryEntityId ->
+   * count map correctly serves the service / host / docker host / k8s cluster
+   * facets once merged against each Postgres source-of-truth list (a host id
+   * never collides with a service id, so an unrelated entry is simply never
+   * looked up). Omitting the primaryEntityType predicate keeps the query
+   * projection-eligible.
+   */
+  @CaptureSpan()
+  public static async getResourceFacetCounts(
+    request: MultiFacetRequest,
+  ): Promise<{
+    serviceCounts: Map<string, number>;
+    statusCounts: Map<string, number>;
+  }> {
+    const statement: Statement = new Statement();
+    statement.append(
+      `SELECT primaryEntityId, statusCode, count() AS cnt FROM ${TraceAggregationService.TABLE_NAME}`,
+    );
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }} AND toStartOfMinute(startTime) >= toStartOfMinute(${{
+        type: TableColumnType.Date,
+        value: request.startTime,
+      }}) AND toStartOfMinute(startTime) <= toStartOfMinute(${{
+        type: TableColumnType.Date,
+        value: request.endTime,
+      }})`,
+    );
+
+    TraceAggregationService.appendCommonFilters(statement, request);
+
+    statement.append(" GROUP BY primaryEntityId, statusCode");
+
+    /*
+     * Cap runtime below nginx's 60s proxy_read_timeout and explicitly allow
+     * projection use so proj_hist_by_minute is read when eligible (see the
+     * toStartOfMinute note above).
+     */
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+        additionalSettings: { optimize_use_projections: 1 },
+      }),
+    );
+
+    const serviceCounts: Map<string, number> = new Map<string, number>();
+    const statusCounts: Map<string, number> = new Map<string, number>();
+
+    const dbResult: Results = await SpanService.executeQuery(statement);
+
+    let rows: Array<JSONObject> = [];
+    try {
+      const response: DbJSONResponse = await dbResult.json<{
+        data?: Array<JSONObject>;
+      }>();
+      rows = response.data || [];
+    } catch {
+      /*
+       * 'break' mode can return truncated JSON on timeout. Degrade to empty
+       * counts — the Postgres resolver still lists every resource (count 0),
+       * which is no worse than the prior transient-failure behavior.
+       */
+      logger.warn(
+        "Resource facet count query returned unparseable response, returning empty counts",
+      );
+      return { serviceCounts, statusCounts };
+    }
+
+    for (const row of rows) {
+      const cnt: number = Number(row["cnt"] || 0);
+
+      const rawServiceId: unknown = row["primaryEntityId"];
+      if (rawServiceId !== undefined && rawServiceId !== null) {
+        const serviceId: string = String(rawServiceId);
+        if (serviceId.length > 0) {
+          serviceCounts.set(
+            serviceId,
+            (serviceCounts.get(serviceId) || 0) + cnt,
+          );
+        }
+      }
+
+      const rawStatusCode: unknown = row["statusCode"];
+      if (rawStatusCode !== undefined && rawStatusCode !== null) {
+        const statusCode: string = String(rawStatusCode);
+        statusCounts.set(statusCode, (statusCounts.get(statusCode) || 0) + cnt);
+      }
+    }
+
+    return { serviceCounts, statusCounts };
+  }
+
   private static mapStatusCodeToSeries(code: number): string {
     if (code === 1) {
       return "ok";
@@ -363,9 +510,20 @@ export class TraceAggregationService {
      * even for multi-week ranges. The outer query then re-buckets the tiny
      * minute-level result to the requested bucket size.
      *
+     * The time window is filtered on toStartOfMinute(startTime) — the
+     * projection's key expression — NOT raw startTime. A raw startTime
+     * predicate references a column the aggregate projection does not store,
+     * so ClickHouse rejects proj_hist_by_minute and full-scans the base table
+     * (verified: 32M rows / ~220ms vs 1.5K rows / ~6ms with this form). The
+     * window edges round to the minute, which is consistent with the
+     * minute-bucketed output and only shifts the first/last bucket by the
+     * partial boundary minute when the range is not minute-aligned.
+     *
      * If any non-projection filter (kind, name, traceId, nameSearchText,
-     * attributes) is active, ClickHouse transparently falls back to
-     * scanning the main table for the inner query — same cost as before.
+     * entityKeys, attributes) is active, ClickHouse transparently falls back
+     * to scanning the main table for the inner query — same cost as before.
+     * The retention read-filter is omitted for the same reason (see
+     * RETENTION_FILTER).
      */
     const statement: Statement = SQL`
       SELECT
@@ -385,14 +543,14 @@ export class TraceAggregationService {
           type: TableColumnType.ObjectID,
           value: request.projectId,
         }}
-          AND startTime >= ${{
+          AND toStartOfMinute(startTime) >= toStartOfMinute(${{
             type: TableColumnType.Date,
             value: request.startTime,
-          }}
-          AND startTime <= ${{
+          }})
+          AND toStartOfMinute(startTime) <= toStartOfMinute(${{
             type: TableColumnType.Date,
             value: request.endTime,
-          }}
+          }})
     `;
 
     TraceAggregationService.appendCommonFilters(statement, request);
@@ -408,13 +566,22 @@ export class TraceAggregationService {
      * a density visualization. Explicitly enable projection use.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break', optimize_use_projections = 1",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+        additionalSettings: { optimize_use_projections: 1 },
+      }),
     );
 
     return statement;
   }
 
   private static buildFacetStatement(request: FacetRequest): Statement {
+    // Pre-rename alias from stale clients; the V3 column is primaryEntityId.
+    if (request.facetKey === "serviceId") {
+      request.facetKey = "primaryEntityId";
+    }
+
     const limit: number =
       request.limit ?? TraceAggregationService.DEFAULT_FACET_LIMIT;
 
@@ -431,7 +598,7 @@ export class TraceAggregationService {
 
     if (isResourceFacet) {
       statement.append(
-        SQL`SELECT toString(serviceId) AS val, count() AS cnt FROM ${TraceAggregationService.TABLE_NAME}`,
+        SQL`SELECT toString(primaryEntityId) AS val, count() AS cnt FROM ${TraceAggregationService.TABLE_NAME}`,
       );
     } else if (isTopLevelColumn) {
       statement.append(
@@ -461,14 +628,14 @@ export class TraceAggregationService {
 
     if (isResourceFacet) {
       statement.append(
-        SQL` AND serviceType = ${{
+        SQL` AND primaryEntityType = ${{
           type: TableColumnType.Text,
           value: resourceServiceType as string,
         }}`,
       );
-    } else if (request.facetKey === "serviceId") {
+    } else if (request.facetKey === "primaryEntityId") {
       statement.append(
-        SQL` AND (serviceType = '' OR serviceType = ${{
+        SQL` AND (primaryEntityType = '' OR primaryEntityType = ${{
           type: TableColumnType.Text,
           value: ServiceType.OpenTelemetry as string,
         }})`,
@@ -481,6 +648,8 @@ export class TraceAggregationService {
         }}) = 1`,
       );
     }
+
+    statement.append(TraceAggregationService.RETENTION_FILTER);
 
     TraceAggregationService.appendCommonFilters(statement, request);
 
@@ -496,7 +665,10 @@ export class TraceAggregationService {
      * 60s proxy_read_timeout so a slow facet never starves the endpoint.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     return statement;
@@ -512,13 +684,22 @@ export class TraceAggregationService {
 
     if (request.serviceIds && request.serviceIds.length > 0) {
       statement.append(
-        SQL` AND serviceId IN (${{
+        SQL` AND primaryEntityId IN (${{
           type: TableColumnType.ObjectID,
           value: new Includes(
             request.serviceIds.map((id: ObjectID) => {
               return id.toString();
             }),
           ),
+        }})`,
+      );
+    }
+
+    if (request.entityKeys && request.entityKeys.length > 0) {
+      statement.append(
+        SQL` AND hasAny(entityKeys, ${{
+          type: TableColumnType.ArrayText,
+          value: request.entityKeys,
         }})`,
       );
     }

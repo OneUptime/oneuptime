@@ -1,6 +1,7 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
+import useTranslateValue from "../../Utils/Translation";
 
 export enum ToastType {
   DANGER,
@@ -22,6 +23,7 @@ export interface ComponentProps {
 const Component: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
   const [show, setShow] = useState<boolean>(true);
   let typeCssClass: string = "text-gray-400";
   let iconType: IconProp = IconProp.Info;
@@ -80,13 +82,13 @@ const Component: FunctionComponent<ComponentProps> = (
                     data-testid="title"
                     className="text-sm font-medium text-gray-900"
                   >
-                    {props.title}
+                    {translateString(props.title)}
                   </p>
                   <p
                     data-testid="description"
                     className="mt-1 text-sm text-gray-500"
                   >
-                    {props.description}
+                    {translateString(props.description)}
                   </p>
                   {/* <div className="mt-3 flex space-x-7">
                     <button type="button" className="rounded-md bg-white text-sm font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Undo</button>

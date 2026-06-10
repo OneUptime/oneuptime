@@ -15,6 +15,8 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import TracesViewer from "../../../Components/Traces/TracesViewer";
+import ProjectUtil from "Common/UI/Utils/Project";
+import { keyForHost } from "Common/Utils/Telemetry/EntityKey";
 
 const HostTraces: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
@@ -69,12 +71,31 @@ const HostTraces: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   return (
     <Fragment>
+      {/*
+       * entityScope is the query scope (contract C4): new rows match via the
+       * bloom-indexed `entityKeys` membership column, pre-column rows (no
+       * backfill, empty array) via the attribute equality inside the same OR.
+       * `attributeFilters` stays for the read-only scope chip and the
+       * histogram / facet scoping — display behavior is unchanged. Drop the
+       * attribute fallback (here and in the attributeFilters query merge)
+       * once deploy-date + max retention has passed.
+       */}
       <TracesViewer
         attributeFilters={{
           "resource.host.name": host.hostIdentifier,
         }}
         attributeFilterDisplayKeys={{
           "resource.host.name": "Host",
+        }}
+        entityScope={{
+          entityKeys: [
+            keyForHost(
+              ProjectUtil.getCurrentProjectId()!.toString(),
+              host.hostIdentifier,
+            ),
+          ],
+          attributeKey: "resource.host.name",
+          attributeValue: host.hostIdentifier,
         }}
       />
     </Fragment>

@@ -79,3 +79,37 @@ message InstrumentationScope {
   repeated KeyValue attributes = 3;
   uint32 dropped_attributes_count = 4;
 }
+
+// A reference to an Entity.
+// Entity represents an object of interest associated with produced telemetry:
+// e.g spans, metrics, profiles, or logs.
+//
+// Status: [Development]
+message EntityRef {
+  // The Schema URL, if known. This is the identifier of the Schema that the
+  // entity data is recorded in. To learn more about Schema URL see
+  // https://opentelemetry.io/docs/specs/otel/schemas/#schema-url
+  //
+  // This schema_url applies to the data in this message and to the Resource
+  // attributes referenced by id_keys and description_keys.
+  string schema_url = 1;
+
+  // Defines the type of the entity. MUST not change during the lifetime of
+  // the entity. For example: "service" or "host". This field is required and
+  // MUST not be empty for valid entities.
+  string type = 2;
+
+  // Attribute Keys that identify the entity.
+  // MUST not change during the lifetime of the entity. The Id must contain
+  // at least one attribute.
+  //
+  // These keys MUST exist in the containing {message}.attributes.
+  repeated string id_keys = 3;
+
+  // Descriptive (non-identifying) attribute keys of the entity.
+  // MAY change over the lifetime of the entity. MAY be empty. These attribute
+  // keys are not part of entity's identity.
+  //
+  // These keys MUST exist in the containing {message}.attributes.
+  repeated string description_keys = 4;
+}

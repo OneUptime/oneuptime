@@ -1,6 +1,7 @@
 import MonitorStepMetricMonitor, {
   MonitorStepMetricMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepMetricMonitor";
+import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import MetricView from "../../../Metrics/MetricView";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
@@ -9,9 +10,14 @@ import RollingTimePicker from "Common/UI/Components/RollingTimePicker/RollingTim
 import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
 
 export interface ComponentProps {
   monitorStepMetricMonitor: MonitorStepMetricMonitor;
+  telemetryEntities?: Array<TelemetryEntity> | undefined;
   onChange: (monitorStepMetricMonitor: MonitorStepMetricMonitor) => void;
 }
 
@@ -24,6 +30,17 @@ const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
 
   const monitorStepMetricMonitor: MonitorStepMetricMonitor =
     props.monitorStepMetricMonitor || MonitorStepMetricMonitorUtil.getDefault();
+
+  const entityDropdownOptions: Array<DropdownOption> = (
+    props.telemetryEntities || []
+  ).map((telemetryEntity: TelemetryEntity) => {
+    return {
+      label: `${
+        telemetryEntity.displayName || telemetryEntity.entityKey || ""
+      } (${telemetryEntity.entityType || ""})`,
+      value: telemetryEntity.entityKey || "",
+    };
+  });
 
   const [startAndEndTime, setStartAndEndTime] =
     React.useState<InBetween<Date> | null>(null);
@@ -70,6 +87,35 @@ const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
             rollingTime: value,
           });
         }}
+      />
+
+      <div className="mt-3"></div>
+
+      <FieldLabelElement
+        title="Filter by Infrastructure Entity"
+        description={"Scope to specific infrastructure entities (optional)"}
+      />
+      <Dropdown
+        isMultiSelect={true}
+        options={entityDropdownOptions}
+        value={entityDropdownOptions.filter((option: DropdownOption) => {
+          return (monitorStepMetricMonitor.entityKeys || []).includes(
+            option.value as string,
+          );
+        })}
+        onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+          const entityKeys: Array<string> = (
+            (value as Array<DropdownValue>) || []
+          ).map((dropdownValue: DropdownValue) => {
+            return dropdownValue.toString();
+          });
+
+          props.onChange({
+            ...monitorStepMetricMonitor,
+            entityKeys: entityKeys,
+          });
+        }}
+        placeholder="Select infrastructure entities (optional)"
       />
 
       <div className="mt-3"></div>

@@ -104,5 +104,7 @@
       "title": "找不到頁面",
       "description": "您正在尋找的頁面不存在。"
     }
-  }
+  },
+  "Acme, Inc.": "Acme, Inc.",
+  "Jeff Smith": "Jeff Smith"
 }

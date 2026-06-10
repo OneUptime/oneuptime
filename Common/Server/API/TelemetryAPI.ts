@@ -300,6 +300,10 @@ router.post(
           })
         : undefined;
 
+      const entityKeys: Array<string> | undefined = body["entityKeys"]
+        ? (body["entityKeys"] as Array<string>)
+        : undefined;
+
       const severityTexts: Array<string> | undefined = body["severityTexts"]
         ? (body["severityTexts"] as Array<string>)
         : undefined;
@@ -326,6 +330,7 @@ router.post(
         endTime,
         bucketSizeInMinutes,
         serviceIds,
+        entityKeys,
         severityTexts,
         bodySearchText,
         traceIds,
@@ -371,7 +376,7 @@ router.post(
 
       const facetKeys: Array<string> = body["facetKeys"]
         ? (body["facetKeys"] as Array<string>)
-        : ["severityText", "serviceId"];
+        : ["severityText", "primaryEntityId"];
 
       const startTime: Date = body["startTime"]
         ? OneUptimeDate.fromString(body["startTime"] as string)
@@ -387,6 +392,10 @@ router.post(
         ? (body["serviceIds"] as Array<string>).map((id: string) => {
             return new ObjectID(id);
           })
+        : undefined;
+
+      const entityKeys: Array<string> | undefined = body["entityKeys"]
+        ? (body["entityKeys"] as Array<string>)
         : undefined;
 
       const severityTexts: Array<string> | undefined = body["severityTexts"]
@@ -411,9 +420,9 @@ router.post(
 
       /*
        * Per-facet partial-match filter applied at the Postgres source-of-truth
-       * lookup stage. Only consulted for resource facets (serviceId / hostId /
-       * dockerHostId / kubernetesClusterId) — other facets continue to filter
-       * client-side over the loaded value list.
+       * lookup stage. Only consulted for resource facets (primaryEntityId /
+       * hostId / dockerHostId / kubernetesClusterId) — other facets continue
+       * to filter client-side over the loaded value list.
        */
       const facetSearchText: Record<string, string> | undefined = body[
         "facetSearchText"
@@ -445,6 +454,7 @@ router.post(
                   facetKey,
                   limit,
                   serviceIds,
+                  entityKeys,
                   severityTexts,
                   bodySearchText,
                   traceIds,
@@ -550,6 +560,10 @@ router.post(
           })
         : undefined;
 
+      const entityKeys: Array<string> | undefined = body["entityKeys"]
+        ? (body["entityKeys"] as Array<string>)
+        : undefined;
+
       const statusCodes: Array<number> | undefined = body["statusCodes"]
         ? (body["statusCodes"] as Array<number>)
         : undefined;
@@ -583,6 +597,7 @@ router.post(
         endTime,
         bucketSizeInMinutes,
         serviceIds,
+        entityKeys,
         statusCodes,
         spanKinds,
         spanNames,
@@ -630,7 +645,7 @@ router.post(
 
       const facetKeys: Array<string> = body["facetKeys"]
         ? (body["facetKeys"] as Array<string>)
-        : ["serviceId", "statusCode", "kind", "name"];
+        : ["primaryEntityId", "statusCode", "kind", "name"];
 
       const startTime: Date = body["startTime"]
         ? OneUptimeDate.fromString(body["startTime"] as string)
@@ -646,6 +661,10 @@ router.post(
         ? (body["serviceIds"] as Array<string>).map((id: string) => {
             return new ObjectID(id);
           })
+        : undefined;
+
+      const entityKeys: Array<string> | undefined = body["entityKeys"]
+        ? (body["entityKeys"] as Array<string>)
         : undefined;
 
       const statusCodes: Array<number> | undefined = body["statusCodes"]
@@ -677,9 +696,9 @@ router.post(
 
       /*
        * Per-facet partial-match filter applied at the Postgres source-of-truth
-       * lookup stage. Only consulted for resource facets (serviceId / hostId /
-       * dockerHostId / kubernetesClusterId) — other facets continue to filter
-       * client-side over the loaded value list.
+       * lookup stage. Only consulted for resource facets (primaryEntityId /
+       * hostId / dockerHostId / kubernetesClusterId) — other facets continue
+       * to filter client-side over the loaded value list.
        */
       const facetSearchText: Record<string, string> | undefined = body[
         "facetSearchText"
@@ -688,11 +707,10 @@ router.post(
         : undefined;
 
       /*
-       * Compute all facets from a single sort-key-aligned sample query
-       * (ORDER BY startTime DESC LIMIT N) and count top-K in Node. This
-       * avoids ClickHouse GROUP BY aggregations that can't return partial
-       * results under max_execution_time 'break' mode, and returns in
-       * <1s even over 14-day windows.
+       * Shared window + active filters for both facet-counting paths below:
+       * the exact projection-backed GROUP BY (resource facets + statusCode)
+       * and the recent-N sample (kind + attribute facets, which have no cheap
+       * exact path).
        */
       const multiRequest: TraceMultiFacetRequest = {
         projectId: databaseProps.tenantId,
@@ -701,6 +719,7 @@ router.post(
         facetKeys,
         limit,
         serviceIds,
+        entityKeys,
         statusCodes,
         spanKinds,
         spanNames,
@@ -710,38 +729,93 @@ router.post(
         attributes,
       };
 
-      let facets: Record<string, Array<TraceFacetValue>>;
-      try {
-        facets =
-          await TraceAggregationService.getFacetValuesFromSample(multiRequest);
-      } catch {
-        facets = Object.fromEntries(
-          facetKeys.map((key: string): [string, Array<TraceFacetValue>] => {
-            return [key, []];
-          }),
-        );
+      /*
+       * Resource facets (primaryEntityId / hostId / dockerHostId / k8s
+       * cluster ...) and statusCode are counted with an exact,
+       * projection-backed GROUP BY
+       * in getResourceFacetCounts(). The recent-N sample below saturates with
+       * whichever service is chattiest right now and reports 0 for every other
+       * service regardless of its true volume over the window — the "top 1000"
+       * symptom. Facets with no projection (kind, attribute keys) have no cheap
+       * exact path and stay on the sample.
+       */
+      const sampledKeys: Array<string> = facetKeys.filter(
+        (key: string): boolean => {
+          return (
+            !ResourceFacetResolver.isResourceFacet(key) && key !== "statusCode"
+          );
+        },
+      );
+
+      let facets: Record<string, Array<TraceFacetValue>> = {};
+      if (sampledKeys.length > 0) {
+        try {
+          facets = await TraceAggregationService.getFacetValuesFromSample({
+            ...multiRequest,
+            facetKeys: sampledKeys,
+          });
+        } catch {
+          facets = Object.fromEntries(
+            sampledKeys.map((key: string): [string, Array<TraceFacetValue>] => {
+              return [key, []];
+            }),
+          );
+        }
+      }
+
+      const needsAccurateCounts: boolean =
+        facetKeys.includes("statusCode") ||
+        facetKeys.some((key: string): boolean => {
+          return ResourceFacetResolver.isResourceFacet(key);
+        });
+
+      let serviceCounts: Map<string, number> = new Map<string, number>();
+      let statusCounts: Map<string, number> = new Map<string, number>();
+      if (needsAccurateCounts) {
+        try {
+          const accurate: {
+            serviceCounts: Map<string, number>;
+            statusCounts: Map<string, number>;
+          } =
+            await TraceAggregationService.getResourceFacetCounts(multiRequest);
+          serviceCounts = accurate.serviceCounts;
+          statusCounts = accurate.statusCounts;
+        } catch {
+          /*
+           * Degrade gracefully: resource facets still enumerate via Postgres
+           * (count 0), statusCode falls back to empty.
+           */
+        }
+      }
+
+      if (facetKeys.includes("statusCode")) {
+        facets["statusCode"] = Array.from(statusCounts.entries())
+          .map(([value, count]: [string, number]): TraceFacetValue => {
+            return { value, count };
+          })
+          .sort((a: TraceFacetValue, b: TraceFacetValue): number => {
+            return b.count - a.count;
+          })
+          .slice(0, limit);
       }
 
       /*
        * Replace resource-facet results with the Postgres source-of-truth list
-       * (filtered by facetSearchText and enriched with displayName). Counts
-       * come from the ClickHouse sample above — entities with no recent
-       * telemetry surface with count 0 instead of being hidden entirely. This
-       * means low-volume services / hosts still appear in the sidebar and the
-       * search box can find resources beyond the loaded subset.
+       * (filtered by facetSearchText and enriched with displayName). Every
+       * resource facet shares the same exact primaryEntityId -> count map;
+       * resource ids are globally unique, so each facet only ever resolves its own
+       * entities. Entities with no telemetry in the window surface with count
+       * 0 instead of being hidden, and the search box can find resources
+       * beyond the loaded subset.
        */
       const resourceSpecs: Array<ResourceFacetSpec> = facetKeys
         .filter((key: string): boolean => {
           return ResourceFacetResolver.isResourceFacet(key);
         })
         .map((key: string): ResourceFacetSpec => {
-          const counts: Map<string, number> = new Map();
-          for (const fv of facets[key] || []) {
-            counts.set(fv.value, fv.count);
-          }
           return {
             facetKey: key,
-            counts,
+            counts: serviceCounts,
             searchText: facetSearchText?.[key],
             limit,
           };
@@ -887,7 +961,7 @@ router.post(
       const facetKeys: Array<string> = body["facetKeys"]
         ? (body["facetKeys"] as Array<string>)
         : [
-            "serviceId",
+            "primaryEntityId",
             "hostId",
             "dockerHostId",
             "kubernetesClusterId",
@@ -1054,7 +1128,7 @@ router.post(
 
       const facetKeys: Array<string> = body["facetKeys"]
         ? (body["facetKeys"] as Array<string>)
-        : ["serviceId", "hostId", "dockerHostId", "kubernetesClusterId"];
+        : ["primaryEntityId", "hostId", "dockerHostId", "kubernetesClusterId"];
 
       const startTime: Date = body["startTime"]
         ? OneUptimeDate.fromString(body["startTime"] as string)
@@ -1374,7 +1448,7 @@ router.post(
 
       if (format === "csv") {
         const header: string =
-          "time,serviceId,severityText,severityNumber,body,traceId,spanId,attributes";
+          "time,primaryEntityId,severityText,severityNumber,body,traceId,spanId,attributes";
         const csvRows: Array<string> = rows.map((row: JSONObject) => {
           const escapeCsv: (val: unknown) => string = (
             val: unknown,
@@ -1389,7 +1463,7 @@ router.post(
 
           return [
             escapeCsv(row["time"]),
-            escapeCsv(row["serviceId"]),
+            escapeCsv(row["primaryEntityId"]),
             escapeCsv(row["severityText"]),
             escapeCsv(row["severityNumber"]),
             escapeCsv(row["body"]),
@@ -1447,16 +1521,16 @@ router.post(
       const body: JSONObject = req.body as JSONObject;
 
       const logId: string | undefined = body["logId"] as string | undefined;
-      const serviceId: string | undefined = body["serviceId"] as
-        | string
-        | undefined;
+      // `serviceId` is the pre-rename alias kept for stale clients.
+      const primaryEntityId: string | undefined = (body["primaryEntityId"] ||
+        body["serviceId"]) as string | undefined;
       const time: string | undefined = body["time"] as string | undefined;
 
-      if (!logId || !serviceId || !time) {
+      if (!logId || !primaryEntityId || !time) {
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("logId, serviceId, and time are required"),
+          new BadDataException("logId, primaryEntityId, and time are required"),
         );
       }
 
@@ -1467,7 +1541,7 @@ router.post(
         after: Array<JSONObject>;
       } = await LogAggregationService.getLogContext({
         projectId: databaseProps.tenantId,
-        serviceId: new ObjectID(serviceId),
+        primaryEntityId: new ObjectID(primaryEntityId),
         time: OneUptimeDate.fromString(time),
         logId,
         count,

@@ -99,8 +99,8 @@
       "countDescription": "Общее количество элементов в базе данных",
       "exampleRequestTitle": "Пример запроса с пагинацией",
       "exampleResponseTitle": "Пример ответа с пагинацией",
-      "typeNumber": "Number",
-      "typeJsonArray": "JSON Array"
+      "typeNumber": "Число",
+      "typeJsonArray": "Массив JSON"
     },
     "permissions": {
       "metaTitle": "Права доступа",
@@ -160,7 +160,7 @@
       "badge": "Руководство",
       "title": "Типы данных",
       "intro": "В этом руководстве мы рассмотрим, как работать с типами данных OneUptime при запросах к API OneUptime.",
-      "select": "Select",
+      "select": "Выбрать",
       "selectBody": "Select можно использовать для выбора полей из объекта в API List или Get Item. По умолчанию клиенту возвращаются только идентификаторы. Чтобы получить больше полей, нужно использовать:",
       "selectDescription": "Словарь fieldName - boolean в виде JSON-объекта. Вот пример. Если значение boolean установлено в true, то поле будет получено.",
       "exampleSelectTitle": "Пример тела запроса Select",
@@ -177,10 +177,10 @@
       "notEqualToBody": "Вот как использовать запрос Not Equal To с OneUptime List API:",
       "notEqualToDescription": "Вот пример запроса Not Equal To",
       "exampleNotEqualToTitle": "Пример тела запроса Not EqualTo",
-      "isNull": "Is Null",
+      "isNull": "Равно Null",
       "isNullBody": "Вот как использовать `is null` для запросов с OneUptime List API:",
       "isNullDescription": "Вот пример запроса is null",
-      "isNotNull": "Is Not Null",
+      "isNotNull": "Не равно Null",
       "isNotNullBody": "Вот как использовать `is not null` для запросов с OneUptime List API:",
       "isNotNullDescription": "Вот пример запроса is not null",
       "greaterThan": "Больше чем",
@@ -195,7 +195,7 @@
       "lessThanOrEqual": "Меньше или равно",
       "lessThanOrEqualBody": "Вот как использовать `less than or equal` для запросов с OneUptime List API:",
       "lessThanOrEqualDescription": "Вот пример запроса less than or equal",
-      "includes": "Includes",
+      "includes": "Включает",
       "includesBody": "Includes получает объекты, которые соответствуют любому из значений в массиве. Используется для фильтрации объектов, имеющих поле, соответствующее любому из значений в массиве. Например, если вы хотите получить все объекты, имеющие метку с ID `aaa00000-aaaa-aaaa-aaaa-aaaaaaaaaaaa` или `bbb00000-bbbb-bbbb-bbbb-bbbbbbbbbbbb`, вы можете использовать тип запроса `includes`.",
       "includesDescription": "Вот пример запроса includes",
       "queryLabel": "Запрос"

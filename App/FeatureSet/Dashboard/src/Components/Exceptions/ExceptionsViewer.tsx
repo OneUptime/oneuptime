@@ -104,7 +104,7 @@ const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
 
 const FIELD_ALIAS_MAP: Record<string, string> = {
   type: "exceptionType",
-  service: "serviceId",
+  service: "primaryEntityId",
   env: "environment",
 };
 
@@ -220,7 +220,7 @@ function readInitialUrlState(): InitialUrlState {
 
 export interface ExceptionsViewerProps {
   defaultStatus?: ExceptionStatus;
-  serviceId?: ObjectID | undefined;
+  primaryEntityId?: ObjectID | undefined;
 }
 
 const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
@@ -297,7 +297,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   const [facetData, setFacetData] = useState<FacetData>({});
   const [facetLoading, setFacetLoading] = useState<boolean>(false);
   /*
-   * Per-facet search text for resource facets (serviceId / hostId / etc.).
+   * Per-facet search text for resource facets (primaryEntityId / hostId / etc.).
    * Updates trigger a backend refetch so the result includes resources from
    * the full Postgres source-of-truth, not just the loaded subset.
    */
@@ -581,8 +581,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       q.projectId = projectId;
     }
 
-    if (props.serviceId) {
-      q.serviceId = props.serviceId;
+    if (props.primaryEntityId) {
+      q.primaryEntityId = props.primaryEntityId;
     }
 
     if (status === "unresolved") {
@@ -605,12 +605,12 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     }
 
     /*
-     * serviceId / hostId / dockerHostId / kubernetesClusterId all map
-     * to the same underlying `serviceId` column on TelemetryException —
+     * primaryEntityId / hostId / dockerHostId / kubernetesClusterId all map
+     * to the same underlying `primaryEntityId` column on TelemetryException —
      * the discriminator only matters at facet bucketing time.
      */
     const resourceFacetKeys: Set<string> = new Set<string>([
-      "serviceId",
+      "primaryEntityId",
       "hostId",
       "dockerHostId",
       "kubernetesClusterId",
@@ -625,7 +625,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       }
     }
     if (resourceIds.size > 0) {
-      (q as Record<string, unknown>)["serviceId"] =
+      (q as Record<string, unknown>)["primaryEntityId"] =
         resourceIds.size === 1
           ? Array.from(resourceIds)[0]!
           : new Includes(Array.from(resourceIds));
@@ -670,7 +670,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
 
     return q;
   }, [
-    props.serviceId,
+    props.primaryEntityId,
     status,
     activeFilters,
     submittedSearch,
@@ -698,7 +698,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
             lastSeenAt: true,
             isResolved: true,
             isArchived: true,
-            serviceId: true,
+            primaryEntityId: true,
             environment: true,
           },
           sort: { lastSeenAt: SortOrder.Descending },
@@ -749,22 +749,22 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       groups[key]!.push(...fieldFilters[key]!);
     }
 
-    // Scope histogram by the serviceId prop, if present
-    if (props.serviceId) {
-      if (!groups["serviceId"]) {
-        groups["serviceId"] = [];
+    // Scope histogram by the primaryEntityId prop, if present
+    if (props.primaryEntityId) {
+      if (!groups["primaryEntityId"]) {
+        groups["primaryEntityId"] = [];
       }
-      groups["serviceId"]!.push(props.serviceId.toString());
+      groups["primaryEntityId"]!.push(props.primaryEntityId.toString());
     }
 
     /*
-     * Union serviceId / hostId / dockerHostId / kubernetesClusterId
+     * Union primaryEntityId / hostId / dockerHostId / kubernetesClusterId
      * into a single serviceIds list — they all filter the underlying
-     * `serviceId` column.
+     * `primaryEntityId` column.
      */
     const histogramResourceIds: Set<string> = new Set<string>();
     for (const k of [
-      "serviceId",
+      "primaryEntityId",
       "hostId",
       "dockerHostId",
       "kubernetesClusterId",
@@ -803,7 +803,13 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     } finally {
       setHistogramLoading(false);
     }
-  }, [timeRange, activeFilters, submittedSearch, parseSearch, props.serviceId]);
+  }, [
+    timeRange,
+    activeFilters,
+    submittedSearch,
+    parseSearch,
+    props.primaryEntityId,
+  ]);
 
   useEffect(() => {
     void fetchHistogram();
@@ -875,7 +881,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
 
     return [
       {
-        key: "serviceId",
+        key: "primaryEntityId",
         title: "Service",
         valueDisplayMap: serviceNameMap,
         valueColorMap: serviceColorMap,
@@ -932,7 +938,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       startTime: dateRange.startValue.toISOString(),
       endTime: dateRange.endValue.toISOString(),
       facetKeys: [
-        "serviceId",
+        "primaryEntityId",
         "hostId",
         "dockerHostId",
         "kubernetesClusterId",
@@ -960,16 +966,16 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       }
       groups[key]!.push(...fieldFilters[key]!);
     }
-    if (props.serviceId) {
-      if (!groups["serviceId"]) {
-        groups["serviceId"] = [];
+    if (props.primaryEntityId) {
+      if (!groups["primaryEntityId"]) {
+        groups["primaryEntityId"] = [];
       }
-      groups["serviceId"]!.push(props.serviceId.toString());
+      groups["primaryEntityId"]!.push(props.primaryEntityId.toString());
     }
 
     const resourceIds: Set<string> = new Set<string>();
     for (const k of [
-      "serviceId",
+      "primaryEntityId",
       "hostId",
       "dockerHostId",
       "kubernetesClusterId",
@@ -1023,7 +1029,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     activeFilters,
     submittedSearch,
     parseSearch,
-    props.serviceId,
+    props.primaryEntityId,
     facetSearchText,
   ]);
 
@@ -1098,19 +1104,19 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     };
 
     const base: Array<ActiveFilter> = [];
-    if (props.serviceId) {
+    if (props.primaryEntityId) {
       base.push(
         resolveDisplay({
-          facetKey: "serviceId",
-          value: props.serviceId.toString(),
+          facetKey: "primaryEntityId",
+          value: props.primaryEntityId.toString(),
           displayKey: "Service",
-          displayValue: props.serviceId.toString(),
+          displayValue: props.primaryEntityId.toString(),
           readOnly: true,
         }),
       );
     }
     return [...base, ...activeFilters.map(resolveDisplay)];
-  }, [props.serviceId, activeFilters, facetConfigs]);
+  }, [props.primaryEntityId, activeFilters, facetConfigs]);
 
   // Row click → navigate to exception detail
   const handleRowClick: (exception: TelemetryException) => void = useCallback(
@@ -1218,8 +1224,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       emptyMessage="No exceptions found"
       itemLabel="exceptions"
       renderRow={(exception: TelemetryException): ReactElement => {
-        const service: Service | undefined = exception.serviceId
-          ? serviceById[exception.serviceId.toString()]
+        const service: Service | undefined = exception.primaryEntityId
+          ? serviceById[exception.primaryEntityId.toString()]
           : undefined;
         return (
           <ExceptionRow

@@ -8,14 +8,36 @@ import DockerHostService from "Common/Server/Services/DockerHostService";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import HostService from "Common/Server/Services/HostService";
 import Host from "Common/Models/DatabaseModels/Host";
+import ServerlessFunctionService from "Common/Server/Services/ServerlessFunctionService";
+import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
+import CloudResourceService from "Common/Server/Services/CloudResourceService";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
+import RumApplicationService from "Common/Server/Services/RumApplicationService";
+import RumApplication from "Common/Models/DatabaseModels/RumApplication";
+import ServerlessFunctionInstanceService from "Common/Server/Services/ServerlessFunctionInstanceService";
+import CloudResourceInstanceService from "Common/Server/Services/CloudResourceInstanceService";
+import RumApplicationClientService from "Common/Server/Services/RumApplicationClientService";
 import LabelService from "Common/Server/Services/LabelService";
 import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
 import logger from "Common/Server/Utils/Logger";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import OTelIngestService, {
+  ScalarEntityKeys,
   TelemetryServiceMetadata,
+  emptyScalarEntityKeys,
 } from "Common/Server/Services/OpenTelemetryIngestService";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
+import EntityType from "Common/Types/Telemetry/EntityType";
+import TelemetryUtil, {
+  AttributeType,
+} from "Common/Server/Utils/Telemetry/Telemetry";
+import TelemetryEntity, {
+  ExtractedEntity,
+  ResourceEntityRef,
+} from "Common/Server/Utils/Telemetry/TelemetryEntity";
+import { reconcileEntityRegistryThrottled } from "Common/Server/Utils/Telemetry/EntityRegistry";
+import { canonicalizeEntityValue } from "Common/Utils/Telemetry/EntityKey";
+import Dictionary from "Common/Types/Dictionary";
 
 export default abstract class OtelIngestBaseService {
   private static readonly DOCKER_CONTAINER_NAME_CACHE_NAMESPACE: string =
@@ -64,7 +86,7 @@ export default abstract class OtelIngestBaseService {
    * Resolves a real (user-facing) service name from OTel resource
    * attributes. Returns null when the batch is host- / docker-host-
    * level telemetry that should be routed to the matching Host or
-   * DockerHost record via `serviceId` instead of synthesising a
+   * DockerHost record via `primaryEntityId` instead of synthesising a
    * phantom Service row. The caller (OTelIngestService.resolveTelemetryResource)
    * is responsible for that routing decision and picks the right
    * `ServiceType` discriminator for the analytics row.
@@ -79,6 +101,20 @@ export default abstract class OtelIngestBaseService {
     req: ExpressRequest,
     attributes: JSONArray,
   ): Promise<string | null> {
+    /*
+     * Client / RUM telemetry (browser.* / device.*) is owned by its
+     * RumApplication, not a Service. Return null so
+     * resolveTelemetryResource routes the batch to the RealUserMonitor
+     * branch (primaryEntityId = rumApplicationId) instead of synthesising a
+     * duplicate Service row for the same browser / mobile app. There is no
+     * OTel attribute that identifies a RUM app other than service.name, so
+     * we keep service.name as the RumApplication's dedup key but never let
+     * it create a Service.
+     */
+    if (this.getRumClientType(attributes)) {
+      return null;
+    }
+
     for (const attribute of attributes) {
       if (
         attribute["key"] === "service.name" &&
@@ -160,20 +196,20 @@ export default abstract class OtelIngestBaseService {
    *
    *   1. Explicit service.name / x-oneuptime-service-name header
    *      / docker container name  →  ServiceType.OpenTelemetry,
-   *      serviceId = Service._id (created on first contact via
+   *      primaryEntityId = Service._id (created on first contact via
    *      `telemetryServiceFromName`).
    *   2. Else if a Host was auto-discovered for this batch →
-   *      ServiceType.Host, serviceId = Host._id. Avoids the old
+   *      ServiceType.Host, primaryEntityId = Host._id. Avoids the old
    *      `host/<name>` phantom-Service duplication.
    *   3. Else if a DockerHost was discovered →
-   *      ServiceType.DockerHost, serviceId = DockerHost._id.
+   *      ServiceType.DockerHost, primaryEntityId = DockerHost._id.
    *      Catches docker batches that carry only container.id but
    *      no resolvable container name.
    *   4. Else if a KubernetesCluster was discovered →
-   *      ServiceType.KubernetesCluster, serviceId = Cluster._id.
+   *      ServiceType.KubernetesCluster, primaryEntityId = Cluster._id.
    *      Rare in practice — most k8s batches also carry host.name
    *      and route via #2.
-   *   5. Fallback: no Service row at all. serviceId = projectId,
+   *   5. Fallback: no Service row at all. primaryEntityId = projectId,
    *      ServiceType.Unknown. The read side groups these under a
    *      synthetic "Unknown Service" bucket. No oneuptime.label.*
    *      promotion happens here — there is no owning resource, which
@@ -188,6 +224,124 @@ export default abstract class OtelIngestBaseService {
     hostId?: ObjectID | null;
     dockerHostId?: ObjectID | null;
     kubernetesClusterId?: ObjectID | null;
+    serverlessFunctionId?: ObjectID | null;
+    cloudResourceId?: ObjectID | null;
+    rumApplicationId?: ObjectID | null;
+    /*
+     * OTLP `Resource.entity_refs` decoded for this batch (see
+     * `OtelPayloadDecoder.getEntityRefsFromResource`). When present and
+     * non-empty they are the authoritative entity source; the extractor
+     * falls back to its heuristic resolvers otherwise.
+     */
+    entityRefs?: Array<ResourceEntityRef> | undefined;
+  }): Promise<TelemetryServiceMetadata> {
+    /*
+     * (a) pick the single primary entity via the precedence ladder — the
+     * `primaryEntityId`/`primaryEntityType` contract is unchanged — and
+     * (b) derive the full multi-entity membership set from the same
+     * resource attributes, so the row can belong to many entities
+     * (service + host + k8s.pod + ...) while still being primarily owned
+     * by one. (b) is additive; see OpenTelemetryEntities.md.
+     */
+    const metadata: TelemetryServiceMetadata =
+      await this.selectPrimaryEntity(data);
+
+    /*
+     * Entity derivation is pure + synchronous (a hash of the attributes +
+     * projectId), so stamping `entityKeys` never blocks ingest on a
+     * registry lookup. Raw resource attributes are flattened with an empty
+     * prefix so keys stay semconv-native (`service.name`, `host.id`,
+     * `k8s.pod.name`, ...) — the form the extractor expects.
+     */
+    const flatAttributes: Dictionary<AttributeType | Array<AttributeType>> =
+      TelemetryUtil.getAttributes({
+        items: data.attributes,
+        prefixKeysWithString: "",
+      });
+
+    const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
+      projectId: data.projectId.toString(),
+      attributes: flatAttributes,
+      entityRefs: data.entityRefs,
+    });
+
+    /*
+     * One extraction feeds both columns (extractEntityKeys would re-run
+     * the whole extraction): the sorted membership set (entities are
+     * already deduped by key) and the per-type scalar key map.
+     */
+    metadata.entityKeys = entities
+      .map((e: ExtractedEntity) => {
+        return e.entityKey;
+      })
+      .sort();
+    metadata.scalarEntityKeys = this.scalarEntityKeysFromEntities(entities);
+
+    /*
+     * Forward-only, throttled, best-effort registry reconciliation.
+     * Fire-and-forget: all errors are swallowed inside, so it can never
+     * fail or delay signal ingest.
+     */
+    void reconcileEntityRegistryThrottled({
+      projectId: data.projectId,
+      entities,
+    });
+
+    return metadata;
+  }
+
+  /*
+   * Project the extracted entity set onto the six scalar per-type key
+   * columns ('' when that type is absent from the resource). First
+   * entity of a type wins — the heuristic resolvers emit at most one
+   * per type, and entity_refs duplicates are already deduped by key.
+   */
+  private static scalarEntityKeysFromEntities(
+    entities: Array<ExtractedEntity>,
+  ): ScalarEntityKeys {
+    const scalar: ScalarEntityKeys = emptyScalarEntityKeys();
+
+    for (const entity of entities) {
+      switch (entity.entityType) {
+        case EntityType.Service:
+          scalar.serviceEntityKey = scalar.serviceEntityKey || entity.entityKey;
+          break;
+        case EntityType.Host:
+          scalar.hostEntityKey = scalar.hostEntityKey || entity.entityKey;
+          break;
+        case EntityType.KubernetesPod:
+          scalar.k8sPodEntityKey = scalar.k8sPodEntityKey || entity.entityKey;
+          break;
+        case EntityType.KubernetesNode:
+          scalar.k8sNodeEntityKey = scalar.k8sNodeEntityKey || entity.entityKey;
+          break;
+        case EntityType.KubernetesCluster:
+          scalar.k8sClusterEntityKey =
+            scalar.k8sClusterEntityKey || entity.entityKey;
+          break;
+        case EntityType.Container:
+          scalar.containerEntityKey =
+            scalar.containerEntityKey || entity.entityKey;
+          break;
+        default:
+          break;
+      }
+    }
+
+    return scalar;
+  }
+
+  @CaptureSpan()
+  private static async selectPrimaryEntity(data: {
+    req: ExpressRequest;
+    attributes: JSONArray;
+    projectId: ObjectID;
+    hostId?: ObjectID | null;
+    dockerHostId?: ObjectID | null;
+    kubernetesClusterId?: ObjectID | null;
+    serverlessFunctionId?: ObjectID | null;
+    cloudResourceId?: ObjectID | null;
+    rumApplicationId?: ObjectID | null;
   }): Promise<TelemetryServiceMetadata> {
     const serviceName: string | null = await this.getServiceNameFromAttributes(
       data.req,
@@ -210,7 +364,7 @@ export default abstract class OtelIngestBaseService {
       return await OTelIngestService.buildResourceMetadataForNonService({
         serviceName: hostName ? `host/${hostName}` : "Host",
         resourceId: data.hostId,
-        serviceType: ServiceType.Host,
+        primaryEntityType: ServiceType.Host,
         projectId: data.projectId,
       });
     }
@@ -219,7 +373,7 @@ export default abstract class OtelIngestBaseService {
       return await OTelIngestService.buildResourceMetadataForNonService({
         serviceName: hostName ? `docker-host/${hostName}` : "Docker Host",
         resourceId: data.dockerHostId,
-        serviceType: ServiceType.DockerHost,
+        primaryEntityType: ServiceType.DockerHost,
         projectId: data.projectId,
       });
     }
@@ -231,7 +385,46 @@ export default abstract class OtelIngestBaseService {
       return await OTelIngestService.buildResourceMetadataForNonService({
         serviceName: clusterName ? `k8s/${clusterName}` : "Kubernetes Cluster",
         resourceId: data.kubernetesClusterId,
-        serviceType: ServiceType.KubernetesCluster,
+        primaryEntityType: ServiceType.KubernetesCluster,
+        projectId: data.projectId,
+      });
+    }
+
+    if (data.serverlessFunctionId) {
+      const faasName: string | null =
+        this.getStringAttribute(data.attributes, "faas.name") ||
+        this.getStringAttribute(data.attributes, "service.name");
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: faasName
+          ? `serverless/${faasName}`
+          : "Serverless Function",
+        resourceId: data.serverlessFunctionId,
+        primaryEntityType: ServiceType.ServerlessFunction,
+        projectId: data.projectId,
+      });
+    }
+
+    if (data.cloudResourceId) {
+      const resourceName: string | null =
+        this.getStringAttribute(data.attributes, "service.name") ||
+        this.getStringAttribute(data.attributes, "host.name");
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: resourceName ? `cloud/${resourceName}` : "Cloud Resource",
+        resourceId: data.cloudResourceId,
+        primaryEntityType: ServiceType.CloudResource,
+        projectId: data.projectId,
+      });
+    }
+
+    if (data.rumApplicationId) {
+      const appName: string | null = this.getStringAttribute(
+        data.attributes,
+        "service.name",
+      );
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: appName ? `rum/${appName}` : "RUM Application",
+        resourceId: data.rumApplicationId,
+        primaryEntityType: ServiceType.RealUserMonitor,
         projectId: data.projectId,
       });
     }
@@ -239,7 +432,7 @@ export default abstract class OtelIngestBaseService {
     /*
      * Truly nameless telemetry: no service.name, no docker container,
      * and no host / docker / k8s resource was discovered for this
-     * batch. Tag it with the projectId in the serviceId slot under
+     * batch. Tag it with the projectId in the primaryEntityId slot under
      * ServiceType.Unknown and create no Service row. Crucially we go
      * through buildResourceMetadataForNonService (not
      * telemetryServiceFromName), so no oneuptime.label.* attributes are
@@ -250,7 +443,7 @@ export default abstract class OtelIngestBaseService {
     return await OTelIngestService.buildResourceMetadataForNonService({
       serviceName: "Unknown Service",
       resourceId: data.projectId,
-      serviceType: ServiceType.Unknown,
+      primaryEntityType: ServiceType.Unknown,
       projectId: data.projectId,
     });
   }
@@ -519,6 +712,564 @@ export default abstract class OtelIngestBaseService {
     }
   }
 
+  private static readonly SERVERLESS_FUNCTION_ID_CACHE_NAMESPACE: string =
+    "serverless-function-id";
+  private static readonly SERVERLESS_FUNCTION_ID_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  /*
+   * cloud.platform values that denote a Function-as-a-Service runtime.
+   * An explicit faas.name, or a cloud.platform in this set, routes the
+   * batch to a ServerlessFunction resource.
+   */
+  private static readonly SERVERLESS_CLOUD_PLATFORMS: ReadonlySet<string> =
+    new Set([
+      "aws_lambda",
+      "gcp_cloud_functions",
+      "azure_functions",
+      "tencent_cloud_scf",
+      "alibaba_cloud_fc",
+    ]);
+
+  /*
+   * Auto-discover a Serverless / FaaS function from OTel resource
+   * attributes. Gated on an explicit faas.name, or a cloud.platform in the
+   * FaaS set (falling back to service.name as the function identity). Runs
+   * on every ingest path so the function's telemetry tabs (which filter by
+   * resource.faas.name) work even when service.name is also set — the
+   * discriminator choice happens in resolveTelemetryResource.
+   */
+  @CaptureSpan()
+  protected static async autoDiscoverServerless(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    try {
+      const faasName: string | null = this.getStringAttribute(
+        data.attributes,
+        "faas.name",
+      );
+      const cloudPlatform: string | null = this.getStringAttribute(
+        data.attributes,
+        "cloud.platform",
+      );
+      const isFaasPlatform: boolean = cloudPlatform
+        ? this.SERVERLESS_CLOUD_PLATFORMS.has(cloudPlatform)
+        : false;
+
+      // Identity: prefer faas.name; on a FaaS platform fall back to service.name.
+      let functionIdentifier: string | null = faasName;
+      if (!functionIdentifier && isFaasPlatform) {
+        functionIdentifier = this.getStringAttribute(
+          data.attributes,
+          "service.name",
+        );
+      }
+
+      // Gate: need a function identity AND a FaaS signal (faas.name or platform).
+      if (!functionIdentifier || (!faasName && !isFaasPlatform)) {
+        return null;
+      }
+
+      const cacheKey: string = `${data.projectId.toString()}:${functionIdentifier}`;
+      let functionIdStr: string | null = await GlobalCache.getString(
+        this.SERVERLESS_FUNCTION_ID_CACHE_NAMESPACE,
+        cacheKey,
+      );
+
+      if (!functionIdStr) {
+        const serverlessFunction: ServerlessFunction =
+          await ServerlessFunctionService.findOrCreateByFunctionIdentifier({
+            projectId: data.projectId,
+            functionIdentifier,
+          });
+
+        if (serverlessFunction._id) {
+          functionIdStr = serverlessFunction._id.toString();
+          await GlobalCache.setString(
+            this.SERVERLESS_FUNCTION_ID_CACHE_NAMESPACE,
+            cacheKey,
+            functionIdStr,
+            {
+              expiresInSeconds:
+                this.SERVERLESS_FUNCTION_ID_CACHE_EXPIRY_SECONDS,
+            },
+          );
+        }
+      }
+
+      if (functionIdStr) {
+        const functionId: ObjectID = new ObjectID(functionIdStr);
+        if (
+          await this.shouldRunMaintenance("serverless-function", functionIdStr)
+        ) {
+          const agentVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "oneuptime.agent.version",
+          );
+          await ServerlessFunctionService.updateLastSeen(functionId, {
+            agentVersion: agentVersion || undefined,
+            cloudPlatform: cloudPlatform || undefined,
+            cloudProvider:
+              this.getStringAttribute(data.attributes, "cloud.provider") ||
+              undefined,
+            cloudRegion:
+              this.getStringAttribute(data.attributes, "cloud.region") ||
+              undefined,
+            cloudAccountId:
+              this.getStringAttribute(data.attributes, "cloud.account.id") ||
+              undefined,
+            functionVersion:
+              this.getStringAttribute(data.attributes, "faas.version") ||
+              undefined,
+            runtimeName:
+              this.getStringAttribute(
+                data.attributes,
+                "process.runtime.name",
+              ) || undefined,
+            runtimeVersion:
+              this.getStringAttribute(
+                data.attributes,
+                "process.runtime.version",
+              ) || undefined,
+          });
+          await this.promoteOneuptimeLabelsToServerlessFunction({
+            projectId: data.projectId,
+            serverlessFunctionId: functionId,
+            attributes: data.attributes,
+          });
+        }
+
+        // Live inventory: record this function instance (faas.instance).
+        const faasInstance: string | null = this.getStringAttribute(
+          data.attributes,
+          "faas.instance",
+        );
+        if (
+          faasInstance &&
+          (await this.shouldRunMaintenance(
+            "serverless-fn-instance",
+            `${functionIdStr}:${faasInstance}`,
+          ))
+        ) {
+          await ServerlessFunctionInstanceService.recordInstance({
+            projectId: data.projectId,
+            serverlessFunctionId: functionId,
+            instanceName: faasInstance,
+          });
+        }
+        return functionId;
+      }
+
+      return null;
+    } catch (err) {
+      logger.error(
+        "Error auto-discovering Serverless function: " + (err as Error).message,
+      );
+      return null;
+    }
+  }
+
+  @CaptureSpan()
+  protected static async promoteOneuptimeLabelsToServerlessFunction(data: {
+    projectId: ObjectID;
+    serverlessFunctionId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      const labelNames: Array<string> = extractOneuptimeLabelNames(
+        data.attributes,
+      );
+      if (labelNames.length === 0) {
+        return;
+      }
+      const labelIds: Array<ObjectID> =
+        await LabelService.findOrCreateLabelsByNames({
+          projectId: data.projectId,
+          labelNames,
+        });
+      if (labelIds.length === 0) {
+        return;
+      }
+      await ServerlessFunctionService.attachLabels({
+        serverlessFunctionId: data.serverlessFunctionId,
+        labelIds,
+      });
+    } catch (err) {
+      logger.warn(
+        `Serverless function label promotion failed for ${data.serverlessFunctionId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  private static readonly CLOUD_RESOURCE_ID_CACHE_NAMESPACE: string =
+    "cloud-resource-id";
+  private static readonly CLOUD_RESOURCE_ID_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  /*
+   * cloud.platform values that denote managed compute (containers / PaaS that
+   * are neither plain Docker, Kubernetes, a raw VM, nor FaaS). Raw VM
+   * platforms (aws_ec2, gcp_compute_engine, azure_vm) are intentionally
+   * excluded so they remain Hosts; k8s platforms route via k8s.* attributes.
+   */
+  private static readonly CLOUD_COMPUTE_PLATFORMS: ReadonlySet<string> =
+    new Set([
+      "aws_ecs",
+      "aws_elastic_beanstalk",
+      "aws_app_runner",
+      "gcp_cloud_run",
+      "gcp_app_engine",
+      "azure_container_apps",
+      "azure_container_instances",
+      "azure_app_service",
+    ]);
+
+  // Friendly display names for the managed-compute platforms above.
+  private static readonly CLOUD_PLATFORM_LABELS: Readonly<
+    Record<string, string>
+  > = {
+    aws_ecs: "AWS ECS",
+    aws_elastic_beanstalk: "AWS Elastic Beanstalk",
+    aws_app_runner: "AWS App Runner",
+    gcp_cloud_run: "GCP Cloud Run",
+    gcp_app_engine: "GCP App Engine",
+    azure_container_apps: "Azure Container Apps",
+    azure_container_instances: "Azure Container Instances",
+    azure_app_service: "Azure App Service",
+  };
+
+  /*
+   * Auto-discover a managed cloud-compute *environment* from OTel resource
+   * attributes. Gated on cloud.platform being in the managed-compute set.
+   * Identity is the environment — cloud.platform + cloud.account.id +
+   * cloud.region — NOT service.name, so a single CloudResource aggregates
+   * every workload running on that platform/account/region (per-service
+   * breakdown lives under Services). This deliberately avoids the
+   * service.name overlap that would otherwise mirror a Service row. Runs on
+   * every ingest path so the environment's telemetry tabs stay populated.
+   */
+  @CaptureSpan()
+  protected static async autoDiscoverCloudResource(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    try {
+      const cloudPlatform: string | null = this.getStringAttribute(
+        data.attributes,
+        "cloud.platform",
+      );
+      if (!cloudPlatform || !this.CLOUD_COMPUTE_PLATFORMS.has(cloudPlatform)) {
+        return null;
+      }
+
+      const cloudProvider: string | null = this.getStringAttribute(
+        data.attributes,
+        "cloud.provider",
+      );
+      const cloudRegion: string | null = this.getStringAttribute(
+        data.attributes,
+        "cloud.region",
+      );
+      const cloudAccountId: string | null = this.getStringAttribute(
+        data.attributes,
+        "cloud.account.id",
+      );
+
+      // Composite environment key — stable across every service on this env.
+      const resourceIdentifier: string = [
+        cloudPlatform,
+        cloudAccountId || "",
+        cloudRegion || "",
+      ].join("|");
+
+      const platformLabel: string =
+        this.CLOUD_PLATFORM_LABELS[cloudPlatform] || cloudPlatform;
+      const nameParts: Array<string> = [platformLabel];
+      if (cloudRegion) {
+        nameParts.push(cloudRegion);
+      }
+      if (cloudAccountId) {
+        nameParts.push(cloudAccountId);
+      }
+      const name: string = nameParts.join(" · ");
+
+      const cacheKey: string = `${data.projectId.toString()}:${resourceIdentifier}`;
+      let resourceIdStr: string | null = await GlobalCache.getString(
+        this.CLOUD_RESOURCE_ID_CACHE_NAMESPACE,
+        cacheKey,
+      );
+
+      if (!resourceIdStr) {
+        const cloudResource: CloudResource =
+          await CloudResourceService.findOrCreateByResourceIdentifier({
+            projectId: data.projectId,
+            resourceIdentifier,
+            name,
+            cloudPlatform,
+            cloudProvider: cloudProvider || undefined,
+            cloudRegion: cloudRegion || undefined,
+            cloudAccountId: cloudAccountId || undefined,
+          });
+        if (cloudResource._id) {
+          resourceIdStr = cloudResource._id.toString();
+          await GlobalCache.setString(
+            this.CLOUD_RESOURCE_ID_CACHE_NAMESPACE,
+            cacheKey,
+            resourceIdStr,
+            { expiresInSeconds: this.CLOUD_RESOURCE_ID_CACHE_EXPIRY_SECONDS },
+          );
+        }
+      }
+
+      if (resourceIdStr) {
+        const cloudResourceId: ObjectID = new ObjectID(resourceIdStr);
+        if (await this.shouldRunMaintenance("cloud-resource", resourceIdStr)) {
+          await CloudResourceService.updateLastSeen(cloudResourceId, {
+            cloudPlatform: cloudPlatform || undefined,
+            cloudProvider: cloudProvider || undefined,
+            cloudRegion: cloudRegion || undefined,
+            cloudAccountId: cloudAccountId || undefined,
+          });
+          await this.promoteOneuptimeLabelsToCloudResource({
+            projectId: data.projectId,
+            cloudResourceId,
+            attributes: data.attributes,
+          });
+        }
+
+        // Live inventory: record this instance / task (service.instance.id).
+        const instanceName: string | null = this.getStringAttribute(
+          data.attributes,
+          "service.instance.id",
+        );
+        if (
+          instanceName &&
+          (await this.shouldRunMaintenance(
+            "cloud-resource-instance",
+            `${resourceIdStr}:${instanceName}`,
+          ))
+        ) {
+          await CloudResourceInstanceService.recordInstance({
+            projectId: data.projectId,
+            cloudResourceId,
+            instanceName,
+          });
+        }
+        return cloudResourceId;
+      }
+
+      return null;
+    } catch (err) {
+      logger.error(
+        "Error auto-discovering Cloud resource: " + (err as Error).message,
+      );
+      return null;
+    }
+  }
+
+  @CaptureSpan()
+  protected static async promoteOneuptimeLabelsToCloudResource(data: {
+    projectId: ObjectID;
+    cloudResourceId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      const labelNames: Array<string> = extractOneuptimeLabelNames(
+        data.attributes,
+      );
+      if (labelNames.length === 0) {
+        return;
+      }
+      const labelIds: Array<ObjectID> =
+        await LabelService.findOrCreateLabelsByNames({
+          projectId: data.projectId,
+          labelNames,
+        });
+      if (labelIds.length === 0) {
+        return;
+      }
+      await CloudResourceService.attachLabels({
+        cloudResourceId: data.cloudResourceId,
+        labelIds,
+      });
+    } catch (err) {
+      logger.warn(
+        `Cloud resource label promotion failed for ${data.cloudResourceId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  private static readonly RUM_APPLICATION_ID_CACHE_NAMESPACE: string =
+    "rum-application-id";
+  private static readonly RUM_APPLICATION_ID_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  /*
+   * Classify a batch as browser- or mobile-RUM from its resource
+   * attributes, or null when it's not client-side telemetry. Backend
+   * services never set browser.* / device.*, so this is a clean signal.
+   */
+  protected static getRumClientType(attributes: JSONArray): string | null {
+    const hasBrowser: boolean = Boolean(
+      this.getStringAttribute(attributes, "browser.platform") ||
+        this.getStringAttribute(attributes, "browser.language") ||
+        this.getStringArrayAttribute(attributes, "browser.brands").length > 0,
+    );
+    if (hasBrowser) {
+      return "browser";
+    }
+    const hasDevice: boolean = Boolean(
+      this.getStringAttribute(attributes, "device.id") ||
+        this.getStringAttribute(attributes, "device.model.identifier") ||
+        this.getStringAttribute(attributes, "device.manufacturer"),
+    );
+    if (hasDevice) {
+      return "mobile";
+    }
+    return null;
+  }
+
+  /*
+   * Auto-discover a Browser / Mobile RUM application from OTel resource
+   * attributes. Gated on a browser.* / device.* client signal; identity is
+   * the application (service.name), NEVER the per-end-user device. Runs on
+   * every ingest path so the app's telemetry tabs work even when service.name
+   * is also a backend service — the discriminator choice happens in
+   * resolveTelemetryResource.
+   */
+  @CaptureSpan()
+  protected static async autoDiscoverRum(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    try {
+      const clientType: string | null = this.getRumClientType(data.attributes);
+      if (!clientType) {
+        return null;
+      }
+
+      const appIdentifier: string | null = this.getStringAttribute(
+        data.attributes,
+        "service.name",
+      );
+      if (!appIdentifier) {
+        return null;
+      }
+
+      const cacheKey: string = `${data.projectId.toString()}:${appIdentifier}`;
+      let appIdStr: string | null = await GlobalCache.getString(
+        this.RUM_APPLICATION_ID_CACHE_NAMESPACE,
+        cacheKey,
+      );
+
+      if (!appIdStr) {
+        const rumApplication: RumApplication =
+          await RumApplicationService.findOrCreateByAppIdentifier({
+            projectId: data.projectId,
+            appIdentifier,
+          });
+        if (rumApplication._id) {
+          appIdStr = rumApplication._id.toString();
+          await GlobalCache.setString(
+            this.RUM_APPLICATION_ID_CACHE_NAMESPACE,
+            cacheKey,
+            appIdStr,
+            { expiresInSeconds: this.RUM_APPLICATION_ID_CACHE_EXPIRY_SECONDS },
+          );
+        }
+      }
+
+      if (appIdStr) {
+        const rumApplicationId: ObjectID = new ObjectID(appIdStr);
+        if (await this.shouldRunMaintenance("rum-application", appIdStr)) {
+          const agentVersion: string | null =
+            this.getStringAttribute(data.attributes, "telemetry.sdk.version") ||
+            this.getStringAttribute(data.attributes, "oneuptime.agent.version");
+          const sdkLanguage: string | null = this.getStringAttribute(
+            data.attributes,
+            "telemetry.sdk.language",
+          );
+          await RumApplicationService.updateLastSeen(rumApplicationId, {
+            agentVersion: agentVersion || undefined,
+            clientType: clientType || undefined,
+            sdkLanguage: sdkLanguage || undefined,
+          });
+          await this.promoteOneuptimeLabelsToRumApplication({
+            projectId: data.projectId,
+            rumApplicationId,
+            attributes: data.attributes,
+          });
+        }
+
+        // Live inventory: record this client platform (coarse, not per-device).
+        const clientName: string | null =
+          this.getStringAttribute(data.attributes, "browser.platform") ||
+          this.getStringAttribute(data.attributes, "device.model.identifier");
+        if (
+          clientName &&
+          (await this.shouldRunMaintenance(
+            "rum-client",
+            `${appIdStr}:${clientName}`,
+          ))
+        ) {
+          await RumApplicationClientService.recordClient({
+            projectId: data.projectId,
+            rumApplicationId,
+            clientName,
+            clientType: clientType || undefined,
+          });
+        }
+        return rumApplicationId;
+      }
+
+      return null;
+    } catch (err) {
+      logger.error(
+        "Error auto-discovering RUM application: " + (err as Error).message,
+      );
+      return null;
+    }
+  }
+
+  @CaptureSpan()
+  protected static async promoteOneuptimeLabelsToRumApplication(data: {
+    projectId: ObjectID;
+    rumApplicationId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      const labelNames: Array<string> = extractOneuptimeLabelNames(
+        data.attributes,
+      );
+      if (labelNames.length === 0) {
+        return;
+      }
+      const labelIds: Array<ObjectID> =
+        await LabelService.findOrCreateLabelsByNames({
+          projectId: data.projectId,
+          labelNames,
+        });
+      if (labelIds.length === 0) {
+        return;
+      }
+      await RumApplicationService.attachLabels({
+        rumApplicationId: data.rumApplicationId,
+        labelIds,
+      });
+    } catch (err) {
+      logger.warn(
+        `RUM application label promotion failed for ${data.rumApplicationId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
   @CaptureSpan()
   protected static getHostNameFromAttributes(
     attributes: JSONArray,
@@ -551,9 +1302,11 @@ export default abstract class OtelIngestBaseService {
    * so the same physical host arrives as both `PRIMARY01` and `primary01`.
    * This mirrors QueryHelper.findWithSameText — the comparison the Host
    * unique guard already uses — so identity stays consistent end to end.
+   * Delegates to the shared entity-key canonicalization so host identity
+   * here and in `computeEntityKey` can never drift apart.
    */
   public static canonicalizeHostName(hostName: string): string {
-    return hostName.trim().toLowerCase();
+    return canonicalizeEntityValue(hostName);
   }
 
   /**
@@ -912,6 +1665,25 @@ export default abstract class OtelIngestBaseService {
         return null;
       }
 
+      /*
+       * Managed / serverless compute (ECS, Fargate, Cloud Run, App Engine,
+       * Lambda, …) is owned by the CloudResource / ServerlessFunction tables,
+       * not Host. Skip so we don't also create a phantom Host row for those
+       * platforms. Raw VM platforms (aws_ec2, gcp_compute_engine, azure_vm)
+       * are intentionally NOT in these sets, so VMs still become Hosts.
+       */
+      const hostCloudPlatform: string | null = this.getStringAttribute(
+        data.attributes,
+        "cloud.platform",
+      );
+      if (
+        hostCloudPlatform &&
+        (this.SERVERLESS_CLOUD_PLATFORMS.has(hostCloudPlatform) ||
+          this.CLOUD_COMPUTE_PLATFORMS.has(hostCloudPlatform))
+      ) {
+        return null;
+      }
+
       const hostIdAttr: string | null = this.getStringAttribute(
         data.attributes,
         "host.id",
@@ -984,6 +1756,36 @@ export default abstract class OtelIngestBaseService {
             data.attributes,
             "oneuptime.agent.version",
           );
+          const deploymentEnvironment: string | null =
+            this.getStringAttribute(
+              data.attributes,
+              "deployment.environment.name",
+            ) ||
+            this.getStringAttribute(data.attributes, "deployment.environment");
+          const runtimeName: string | null = this.getStringAttribute(
+            data.attributes,
+            "process.runtime.name",
+          );
+          const runtimeVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "process.runtime.version",
+          );
+          const cloudProvider: string | null = this.getStringAttribute(
+            data.attributes,
+            "cloud.provider",
+          );
+          const cloudPlatform: string | null = this.getStringAttribute(
+            data.attributes,
+            "cloud.platform",
+          );
+          const cloudRegion: string | null = this.getStringAttribute(
+            data.attributes,
+            "cloud.region",
+          );
+          const cloudAccountId: string | null = this.getStringAttribute(
+            data.attributes,
+            "cloud.account.id",
+          );
           await HostService.updateLastSeen(new ObjectID(hostIdStr), {
             osType: osType || undefined,
             osVersion: osVersion || undefined,
@@ -998,6 +1800,13 @@ export default abstract class OtelIngestBaseService {
             dockerHostId: data.dockerHostId || undefined,
             kubernetesClusterId: data.kubernetesClusterId || undefined,
             agentVersion: agentVersion || undefined,
+            deploymentEnvironment: deploymentEnvironment || undefined,
+            runtimeName: runtimeName || undefined,
+            runtimeVersion: runtimeVersion || undefined,
+            cloudProvider: cloudProvider || undefined,
+            cloudPlatform: cloudPlatform || undefined,
+            cloudRegion: cloudRegion || undefined,
+            cloudAccountId: cloudAccountId || undefined,
           });
         }
         return new ObjectID(hostIdStr);

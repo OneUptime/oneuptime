@@ -252,5 +252,7 @@
     "ongoing": "जारी",
     "ended": "समाप्त",
     "completed": "पूर्ण"
-  }
+  },
+  "Subscriber ID is required": "सब्सक्राइबर ID आवश्यक है",
+  "Token is required": "टोकन आवश्यक है"
 }

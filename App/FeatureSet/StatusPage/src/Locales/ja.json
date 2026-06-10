@@ -252,5 +252,7 @@
     "ongoing": "進行中",
     "ended": "終了",
     "completed": "完了"
-  }
+  },
+  "Subscriber ID is required": "購読者 ID は必須です",
+  "Token is required": "トークンは必須です"
 }

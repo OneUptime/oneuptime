@@ -235,9 +235,12 @@ kubeletstats:
   # when a pod has no request/limit set, so it's harmless on clusters
   # that don't use them.
   #
-  # Node-level request utilization isn't a separate metric in this
-  # collector version (v0.96.0); node saturation is derived downstream
-  # from `k8s.node.cpu.usage` / `k8s.node.memory.usage`.
+  # The receiver exposes request/limit utilization only at the
+  # container and pod level — there is NO node-level
+  # `k8s.node.*.request_utilization` metric in any kubeletstats version
+  # (it's a pod-scheduling ratio, not a kubelet stat). Node request
+  # saturation must be derived downstream from pod/container requests
+  # vs. node allocatable (e.g. via kube-state-metrics).
   utilizationMetrics:
     enabled: true
   # Per-PVC disk usage (`k8s.volume.available`, `k8s.volume.capacity`).
@@ -279,6 +282,7 @@ cadvisor:
 #   - CrashLoopBackOff (kube_pod_container_status_waiting_reason)
 #   - ImagePullBackOff  (kube_pod_container_status_waiting_reason)
 #   - Pods Stuck Terminating / Pending (kube_pod_status_phase)
+#   - Pods Failing to Schedule (kube_pod_status_scheduled)
 #   - Namespace ResourceQuota saturation (kube_resourcequota)
 #
 # **Off by default** because the `bundled` mode adds a Deployment to
@@ -299,6 +303,7 @@ kubeStateMetrics:
   # that power monitors. Each entry matches by exact `__name__`.
   metricsAllowlist:
     - kube_pod_status_phase
+    - kube_pod_status_scheduled
     - kube_pod_container_status_waiting_reason
     - kube_resourcequota
   # Bundled-mode KSM Deployment configuration. Ignored when

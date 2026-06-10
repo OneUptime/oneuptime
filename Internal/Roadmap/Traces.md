@@ -276,6 +276,8 @@ Implemented: Metric model has `traceId`/`spanId` columns. Exemplar trace/span ID
 
 ## ClickHouse Storage Improvements
 
+> **Cross-cutting storage work** — the time-based partition key, `serviceId → primaryEntityId` rename, sort-key review, `UInt64` timestamps, coarser rollups, and sharding are tracked in [`TelemetryStorageAndScale.md`](./TelemetryStorageAndScale.md). They apply across all signal tables (Spans included) and are batched into a single `…V3` rewrite.
+
 ### S.3 Add Trace-by-ID Projection (LOW)
 
 **Current**: Trace detail view relies on BloomFilter skip index for traceId lookups. (Note: `proj_trace_by_id` projection has been added but may need evaluation for further optimization.)

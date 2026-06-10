@@ -174,7 +174,7 @@ export default class SpanUtil {
   } {
     const service: Service | undefined = data.telemetryServices.find(
       (service: Service) => {
-        return service.id?.toString() === data.span.serviceId?.toString();
+        return service.id?.toString() === data.span.primaryEntityId?.toString();
       },
     );
 

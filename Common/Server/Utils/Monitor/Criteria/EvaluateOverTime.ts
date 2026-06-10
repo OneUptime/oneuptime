@@ -36,7 +36,7 @@ export default class EvaluateOverTime {
     const query: Query<Metric> = {
       projectId: data.projectId,
       time: new InBetween(lastMinutesDate, now),
-      serviceId: data.monitorId,
+      primaryEntityId: data.monitorId,
       name: MonitorMetricTypeUtil.getMonitorMeticTypeByCheckOn(data.metricType),
     };
 

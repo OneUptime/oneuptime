@@ -9,7 +9,7 @@ export interface SpanData {
   startTimeUnixNano: number;
   endTimeUnixNano: number;
   durationUnixNano: number;
-  serviceId: string | undefined;
+  primaryEntityId: string | undefined;
   name: string | undefined;
 }
 
@@ -28,7 +28,7 @@ export interface CriticalPathResult {
 }
 
 export interface ServiceBreakdown {
-  serviceId: string;
+  primaryEntityId: string;
   totalDurationUnixNano: number;
   selfTimeUnixNano: number;
   spanCount: number;
@@ -308,12 +308,12 @@ export default class CriticalPathUtil {
     > = new Map();
 
     for (const span of spans) {
-      const serviceId: string = span.serviceId || "unknown";
+      const primaryEntityId: string = span.primaryEntityId || "unknown";
       const entry: {
         totalDuration: number;
         selfTime: number;
         spanCount: number;
-      } = serviceMap.get(serviceId) || {
+      } = serviceMap.get(primaryEntityId) || {
         totalDuration: 0,
         selfTime: 0,
         spanCount: 0,
@@ -323,13 +323,13 @@ export default class CriticalPathUtil {
       const selfTime: SpanSelfTime | undefined = selfTimes.get(span.spanId);
       entry.selfTime += selfTime ? selfTime.selfTimeUnixNano : 0;
       entry.spanCount += 1;
-      serviceMap.set(serviceId, entry);
+      serviceMap.set(primaryEntityId, entry);
     }
 
     const result: ServiceBreakdown[] = [];
-    for (const [serviceId, data] of serviceMap.entries()) {
+    for (const [primaryEntityId, data] of serviceMap.entries()) {
       result.push({
-        serviceId,
+        primaryEntityId,
         totalDurationUnixNano: data.totalDuration,
         selfTimeUnixNano: data.selfTime,
         spanCount: data.spanCount,

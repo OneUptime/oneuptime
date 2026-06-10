@@ -160,7 +160,7 @@
       "badge": "指南",
       "title": "資料類型",
       "intro": "在本指南中,我們將了解如何在查詢 OneUptime API 時使用 OneUptime 資料類型。",
-      "select": "Select",
+      "select": "選擇",
       "selectBody": "Select 可用於在 List 或 Get Item API 中選擇物件的欄位。預設情況下,只會向用戶端回傳 ID。要擷取更多欄位,您需要使用:",
       "selectDescription": "欄位名 - 布林值的字典作為 JSON 物件。這是一個範例。如果布林值設定為 true,則將擷取該欄位。",
       "exampleSelectTitle": "Select 請求內文範例",

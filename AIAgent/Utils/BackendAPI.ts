@@ -245,7 +245,7 @@ export default class BackendAPI {
       url,
       data: {
         ...AIAgentAPIRequest.getDefaultRequestBody(),
-        serviceId: serviceId,
+        primaryEntityId: serviceId,
       },
     });
 

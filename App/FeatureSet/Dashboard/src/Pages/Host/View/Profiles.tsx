@@ -18,6 +18,8 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ProfileTable from "../../../Components/Profiles/ProfileTable";
 import Query from "Common/Types/BaseDatabase/Query";
 import Profile from "Common/Models/AnalyticsModels/Profile";
+import ProjectUtil from "Common/UI/Utils/Project";
+import { keyForHost } from "Common/Utils/Telemetry/EntityKey";
 
 const HostProfiles: FunctionComponent<
   PageComponentProps
@@ -71,6 +73,26 @@ const HostProfiles: FunctionComponent<
         "resource.host.name": host?.hostIdentifier || "",
       },
     };
+    /*
+     * entityScope is the query scope (contract C4 — compiled by
+     * StatementGenerator to hasAny(entityKeys, [...]) OR the attribute
+     * equality): new rows ride the bloom-indexed `entityKeys` membership
+     * column, pre-column rows (no backfill, empty array) still match via
+     * the attribute. Drop the attribute fallback (the `attributes` key
+     * above and this OR) once deploy-date + max retention has passed.
+     */
+    if (host?.hostIdentifier) {
+      q["entityScope"] = {
+        entityKeys: [
+          keyForHost(
+            ProjectUtil.getCurrentProjectId()!.toString(),
+            host.hostIdentifier,
+          ),
+        ],
+        attributeKey: "resource.host.name",
+        attributeValue: host.hostIdentifier,
+      };
+    }
     return q as Query<Profile>;
   }, [host?.hostIdentifier]);
 

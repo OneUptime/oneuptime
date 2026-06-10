@@ -92,6 +92,31 @@ export const SINCE_SECONDS_ON_START: number = parseInt(
   10,
 );
 
+/*
+ * Multi-line recombination. The Kubernetes API streams one log line per
+ * newline, so a stack trace or pretty-printed JSON arrives as many lines and
+ * would otherwise become many separate logs in OneUptime. When enabled
+ * (default), continuation lines — those that do not start a new entry — are
+ * merged into the preceding record so each event is a single log, matching the
+ * recombine operator the DaemonSet collector and Docker agent already use.
+ *
+ * LOG_RECOMBINE_FLUSH_MS  flushes an in-progress record after this many ms of
+ *   stream silence, so the last line of a burst (and low-traffic single lines)
+ *   is not held indefinitely.
+ * LOG_RECOMBINE_MAX_BYTES caps the combined body so a runaway stream of
+ *   continuation lines cannot grow one record without bound.
+ */
+export const LOG_RECOMBINE_ENABLED: boolean =
+  optional("LOG_RECOMBINE_ENABLED", "true").toLowerCase() !== "false";
+export const LOG_RECOMBINE_FLUSH_MS: number = parseInt(
+  optional("LOG_RECOMBINE_FLUSH_MS", "5000"),
+  10,
+);
+export const LOG_RECOMBINE_MAX_BYTES: number = parseInt(
+  optional("LOG_RECOMBINE_MAX_BYTES", "1048576"),
+  10,
+);
+
 export const HEALTH_PORT: number = parseInt(
   optional("HEALTH_PORT", "13133"),
   10,

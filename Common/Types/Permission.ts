@@ -1124,6 +1124,81 @@ enum Permission {
   EditHostOwnerUser = "EditHostOwnerUser",
   ReadHostOwnerUser = "ReadHostOwnerUser",
 
+  CreateServerlessFunction = "CreateServerlessFunction",
+  DeleteServerlessFunction = "DeleteServerlessFunction",
+  EditServerlessFunction = "EditServerlessFunction",
+  ReadServerlessFunction = "ReadServerlessFunction",
+
+  CreateServerlessFunctionOwnerTeam = "CreateServerlessFunctionOwnerTeam",
+  DeleteServerlessFunctionOwnerTeam = "DeleteServerlessFunctionOwnerTeam",
+  EditServerlessFunctionOwnerTeam = "EditServerlessFunctionOwnerTeam",
+  ReadServerlessFunctionOwnerTeam = "ReadServerlessFunctionOwnerTeam",
+
+  CreateServerlessFunctionOwnerUser = "CreateServerlessFunctionOwnerUser",
+  DeleteServerlessFunctionOwnerUser = "DeleteServerlessFunctionOwnerUser",
+  EditServerlessFunctionOwnerUser = "EditServerlessFunctionOwnerUser",
+  ReadServerlessFunctionOwnerUser = "ReadServerlessFunctionOwnerUser",
+
+  CreateCloudResource = "CreateCloudResource",
+  DeleteCloudResource = "DeleteCloudResource",
+  EditCloudResource = "EditCloudResource",
+  ReadCloudResource = "ReadCloudResource",
+
+  CreateCloudResourceOwnerTeam = "CreateCloudResourceOwnerTeam",
+  DeleteCloudResourceOwnerTeam = "DeleteCloudResourceOwnerTeam",
+  EditCloudResourceOwnerTeam = "EditCloudResourceOwnerTeam",
+  ReadCloudResourceOwnerTeam = "ReadCloudResourceOwnerTeam",
+
+  CreateCloudResourceOwnerUser = "CreateCloudResourceOwnerUser",
+  DeleteCloudResourceOwnerUser = "DeleteCloudResourceOwnerUser",
+  EditCloudResourceOwnerUser = "EditCloudResourceOwnerUser",
+  ReadCloudResourceOwnerUser = "ReadCloudResourceOwnerUser",
+
+  CreateRumApplication = "CreateRumApplication",
+  DeleteRumApplication = "DeleteRumApplication",
+  EditRumApplication = "EditRumApplication",
+  ReadRumApplication = "ReadRumApplication",
+
+  CreateRumApplicationOwnerTeam = "CreateRumApplicationOwnerTeam",
+  DeleteRumApplicationOwnerTeam = "DeleteRumApplicationOwnerTeam",
+  EditRumApplicationOwnerTeam = "EditRumApplicationOwnerTeam",
+  ReadRumApplicationOwnerTeam = "ReadRumApplicationOwnerTeam",
+
+  CreateRumApplicationOwnerUser = "CreateRumApplicationOwnerUser",
+  DeleteRumApplicationOwnerUser = "DeleteRumApplicationOwnerUser",
+  EditRumApplicationOwnerUser = "EditRumApplicationOwnerUser",
+  ReadRumApplicationOwnerUser = "ReadRumApplicationOwnerUser",
+
+  CreateServerlessFunctionLabelRule = "CreateServerlessFunctionLabelRule",
+  DeleteServerlessFunctionLabelRule = "DeleteServerlessFunctionLabelRule",
+  EditServerlessFunctionLabelRule = "EditServerlessFunctionLabelRule",
+  ReadServerlessFunctionLabelRule = "ReadServerlessFunctionLabelRule",
+
+  CreateServerlessFunctionOwnerRule = "CreateServerlessFunctionOwnerRule",
+  DeleteServerlessFunctionOwnerRule = "DeleteServerlessFunctionOwnerRule",
+  EditServerlessFunctionOwnerRule = "EditServerlessFunctionOwnerRule",
+  ReadServerlessFunctionOwnerRule = "ReadServerlessFunctionOwnerRule",
+
+  CreateCloudResourceLabelRule = "CreateCloudResourceLabelRule",
+  DeleteCloudResourceLabelRule = "DeleteCloudResourceLabelRule",
+  EditCloudResourceLabelRule = "EditCloudResourceLabelRule",
+  ReadCloudResourceLabelRule = "ReadCloudResourceLabelRule",
+
+  CreateCloudResourceOwnerRule = "CreateCloudResourceOwnerRule",
+  DeleteCloudResourceOwnerRule = "DeleteCloudResourceOwnerRule",
+  EditCloudResourceOwnerRule = "EditCloudResourceOwnerRule",
+  ReadCloudResourceOwnerRule = "ReadCloudResourceOwnerRule",
+
+  CreateRumApplicationLabelRule = "CreateRumApplicationLabelRule",
+  DeleteRumApplicationLabelRule = "DeleteRumApplicationLabelRule",
+  EditRumApplicationLabelRule = "EditRumApplicationLabelRule",
+  ReadRumApplicationLabelRule = "ReadRumApplicationLabelRule",
+
+  CreateRumApplicationOwnerRule = "CreateRumApplicationOwnerRule",
+  DeleteRumApplicationOwnerRule = "DeleteRumApplicationOwnerRule",
+  EditRumApplicationOwnerRule = "EditRumApplicationOwnerRule",
+  ReadRumApplicationOwnerRule = "ReadRumApplicationOwnerRule",
+
   CreateService = "CreateService",
   DeleteService = "DeleteService",
   EditService = "EditService",
@@ -7276,6 +7351,624 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },
+    ];
+
+    /*
+     * Split into a second array (concatenated below) so the single array
+     * literal stays under TypeScript's union-complexity ceiling (TS2590).
+     * The full list had grown large enough that adding the FaaS / Cloud / RUM
+     * telemetry-resource permissions tipped one giant literal over the limit.
+     */
+    const morePermissionProps: Array<PermissionProps> = [
+      {
+        permission: Permission.CreateServerlessFunction,
+        title: "Create Serverless Function",
+        description:
+          "This permission can create Serverless Function of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteServerlessFunction,
+        title: "Delete Serverless Function",
+        description:
+          "This permission can delete Serverless Function of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditServerlessFunction,
+        title: "Edit Serverless Function",
+        description:
+          "This permission can edit Serverless Function of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadServerlessFunction,
+        title: "Read Serverless Function",
+        description:
+          "This permission can read Serverless Function of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateServerlessFunctionOwnerTeam,
+        title: "Create Serverless Function Team Owner",
+        description:
+          "This permission can create Serverless Function Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteServerlessFunctionOwnerTeam,
+        title: "Delete Serverless Function Team Owner",
+        description:
+          "This permission can delete Serverless Function Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditServerlessFunctionOwnerTeam,
+        title: "Edit Serverless Function Team Owner",
+        description:
+          "This permission can edit Serverless Function Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadServerlessFunctionOwnerTeam,
+        title: "Read Serverless Function Team Owner",
+        description:
+          "This permission can read Serverless Function Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateServerlessFunctionOwnerUser,
+        title: "Create Serverless Function User Owner",
+        description:
+          "This permission can create Serverless Function User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteServerlessFunctionOwnerUser,
+        title: "Delete Serverless Function User Owner",
+        description:
+          "This permission can delete Serverless Function User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditServerlessFunctionOwnerUser,
+        title: "Edit Serverless Function User Owner",
+        description:
+          "This permission can edit Serverless Function User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadServerlessFunctionOwnerUser,
+        title: "Read Serverless Function User Owner",
+        description:
+          "This permission can read Serverless Function User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateCloudResource,
+        title: "Create Cloud Resource",
+        description:
+          "This permission can create Cloud Resource of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteCloudResource,
+        title: "Delete Cloud Resource",
+        description:
+          "This permission can delete Cloud Resource of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditCloudResource,
+        title: "Edit Cloud Resource",
+        description: "This permission can edit Cloud Resource of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadCloudResource,
+        title: "Read Cloud Resource",
+        description: "This permission can read Cloud Resource of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateCloudResourceOwnerTeam,
+        title: "Create Cloud Resource Team Owner",
+        description:
+          "This permission can create Cloud Resource Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteCloudResourceOwnerTeam,
+        title: "Delete Cloud Resource Team Owner",
+        description:
+          "This permission can delete Cloud Resource Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditCloudResourceOwnerTeam,
+        title: "Edit Cloud Resource Team Owner",
+        description:
+          "This permission can edit Cloud Resource Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadCloudResourceOwnerTeam,
+        title: "Read Cloud Resource Team Owner",
+        description:
+          "This permission can read Cloud Resource Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateCloudResourceOwnerUser,
+        title: "Create Cloud Resource User Owner",
+        description:
+          "This permission can create Cloud Resource User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteCloudResourceOwnerUser,
+        title: "Delete Cloud Resource User Owner",
+        description:
+          "This permission can delete Cloud Resource User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditCloudResourceOwnerUser,
+        title: "Edit Cloud Resource User Owner",
+        description:
+          "This permission can edit Cloud Resource User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadCloudResourceOwnerUser,
+        title: "Read Cloud Resource User Owner",
+        description:
+          "This permission can read Cloud Resource User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateRumApplication,
+        title: "Create RUM Application",
+        description:
+          "This permission can create RUM Application of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteRumApplication,
+        title: "Delete RUM Application",
+        description:
+          "This permission can delete RUM Application of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditRumApplication,
+        title: "Edit RUM Application",
+        description:
+          "This permission can edit RUM Application of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadRumApplication,
+        title: "Read RUM Application",
+        description:
+          "This permission can read RUM Application of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateRumApplicationOwnerTeam,
+        title: "Create RUM Application Team Owner",
+        description:
+          "This permission can create RUM Application Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteRumApplicationOwnerTeam,
+        title: "Delete RUM Application Team Owner",
+        description:
+          "This permission can delete RUM Application Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditRumApplicationOwnerTeam,
+        title: "Edit RUM Application Team Owner",
+        description:
+          "This permission can edit RUM Application Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadRumApplicationOwnerTeam,
+        title: "Read RUM Application Team Owner",
+        description:
+          "This permission can read RUM Application Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateRumApplicationOwnerUser,
+        title: "Create RUM Application User Owner",
+        description:
+          "This permission can create RUM Application User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteRumApplicationOwnerUser,
+        title: "Delete RUM Application User Owner",
+        description:
+          "This permission can delete RUM Application User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditRumApplicationOwnerUser,
+        title: "Edit RUM Application User Owner",
+        description:
+          "This permission can edit RUM Application User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadRumApplicationOwnerUser,
+        title: "Read RUM Application User Owner",
+        description:
+          "This permission can read RUM Application User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateServerlessFunctionLabelRule,
+        title: "Create Serverless Function Label Rule",
+        description:
+          "This permission can create Serverless Function Label Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteServerlessFunctionLabelRule,
+        title: "Delete Serverless Function Label Rule",
+        description:
+          "This permission can delete Serverless Function Label Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditServerlessFunctionLabelRule,
+        title: "Edit Serverless Function Label Rule",
+        description:
+          "This permission can edit Serverless Function Label Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadServerlessFunctionLabelRule,
+        title: "Read Serverless Function Label Rule",
+        description:
+          "This permission can read Serverless Function Label Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.CreateServerlessFunctionOwnerRule,
+        title: "Create Serverless Function Owner Rule",
+        description:
+          "This permission can create Serverless Function Owner Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteServerlessFunctionOwnerRule,
+        title: "Delete Serverless Function Owner Rule",
+        description:
+          "This permission can delete Serverless Function Owner Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditServerlessFunctionOwnerRule,
+        title: "Edit Serverless Function Owner Rule",
+        description:
+          "This permission can edit Serverless Function Owner Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadServerlessFunctionOwnerRule,
+        title: "Read Serverless Function Owner Rule",
+        description:
+          "This permission can read Serverless Function Owner Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateCloudResourceLabelRule,
+        title: "Create Cloud Resource Label Rule",
+        description:
+          "This permission can create Cloud Resource Label Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteCloudResourceLabelRule,
+        title: "Delete Cloud Resource Label Rule",
+        description:
+          "This permission can delete Cloud Resource Label Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditCloudResourceLabelRule,
+        title: "Edit Cloud Resource Label Rule",
+        description:
+          "This permission can edit Cloud Resource Label Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadCloudResourceLabelRule,
+        title: "Read Cloud Resource Label Rule",
+        description:
+          "This permission can read Cloud Resource Label Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.CreateCloudResourceOwnerRule,
+        title: "Create Cloud Resource Owner Rule",
+        description:
+          "This permission can create Cloud Resource Owner Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteCloudResourceOwnerRule,
+        title: "Delete Cloud Resource Owner Rule",
+        description:
+          "This permission can delete Cloud Resource Owner Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditCloudResourceOwnerRule,
+        title: "Edit Cloud Resource Owner Rule",
+        description:
+          "This permission can edit Cloud Resource Owner Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadCloudResourceOwnerRule,
+        title: "Read Cloud Resource Owner Rule",
+        description:
+          "This permission can read Cloud Resource Owner Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateRumApplicationLabelRule,
+        title: "Create RUM Application Label Rule",
+        description:
+          "This permission can create RUM Application Label Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteRumApplicationLabelRule,
+        title: "Delete RUM Application Label Rule",
+        description:
+          "This permission can delete RUM Application Label Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditRumApplicationLabelRule,
+        title: "Edit RUM Application Label Rule",
+        description:
+          "This permission can edit RUM Application Label Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadRumApplicationLabelRule,
+        title: "Read RUM Application Label Rule",
+        description:
+          "This permission can read RUM Application Label Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.CreateRumApplicationOwnerRule,
+        title: "Create RUM Application Owner Rule",
+        description:
+          "This permission can create RUM Application Owner Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteRumApplicationOwnerRule,
+        title: "Delete RUM Application Owner Rule",
+        description:
+          "This permission can delete RUM Application Owner Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditRumApplicationOwnerRule,
+        title: "Edit RUM Application Owner Rule",
+        description:
+          "This permission can edit RUM Application Owner Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadRumApplicationOwnerRule,
+        title: "Read RUM Application Owner Rule",
+        description:
+          "This permission can read RUM Application Owner Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
 
       {
         permission: Permission.CreateKubernetesClusterOwnerTeam,
@@ -11639,7 +12332,7 @@ export class PermissionHelper {
       },
     ];
 
-    return permissions;
+    return [...permissions, ...morePermissionProps];
   }
 
   public static getPermissionsByGroup(
