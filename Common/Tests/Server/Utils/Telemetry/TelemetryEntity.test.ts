@@ -3,6 +3,11 @@ import TelemetryEntity, {
   ExtractedEntity,
 } from "../../../../Server/Utils/Telemetry/TelemetryEntity";
 import EntityType from "../../../../Types/Telemetry/EntityType";
+import {
+  keyForHost,
+  keyForService,
+  keyForKubernetesCluster,
+} from "../../../../Utils/Telemetry/EntityKey";
 import { describe, expect, test } from "@jest/globals";
 import { createHash } from "crypto";
 
@@ -161,20 +166,18 @@ describe("TelemetryEntity.extractEntities — per type", () => {
     ).toContain(EntityType.ServiceInstance);
   });
 
-  test("host: prefers host.id over host.name", () => {
+  test("host: keyed on host.name (matches hostIdentifier), ignoring host.id", () => {
     const e: ExtractedEntity | undefined = entityOfType(
-      { "host.id": "h-123", "host.name": "web-1" },
+      { "host.id": "h-123", "host.name": "Web-1" },
       EntityType.Host,
     );
-    expect(e!.identifyingAttributes).toEqual({ "host.id": "h-123" });
+    // host.id is not part of host identity; value canonicalized (lowercased)
+    // so it matches the Host row's hostIdentifier.
+    expect(e!.identifyingAttributes).toEqual({ "host.name": "web-1" });
   });
 
-  test("host: falls back to host.name when host.id absent", () => {
-    const e: ExtractedEntity | undefined = entityOfType(
-      { "host.name": "web-1" },
-      EntityType.Host,
-    );
-    expect(e!.identifyingAttributes).toEqual({ "host.name": "web-1" });
+  test("host: no host entity without host.name (host.id alone is not a host)", () => {
+    expect(typesFor({ "host.id": "h-123" })).not.toContain(EntityType.Host);
   });
 
   test("k8s.cluster: prefers uid over name", () => {
@@ -312,5 +315,43 @@ describe("TelemetryEntity.extractEntities — composition & safety", () => {
       },
     });
     expect(clusterA).not.toBe(clusterB);
+  });
+});
+
+describe("read-side keyFor* helpers match ingest-side extraction", () => {
+  test("keyForHost matches the host entity stamped from host.name", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "host.name": "web-1" },
+      EntityType.Host,
+    );
+    expect(stamped).toBeDefined();
+    expect(keyForHost(PROJECT, "web-1")).toBe(stamped!.entityKey);
+  });
+
+  test("keyForHost canonicalizes casing/whitespace like ingest", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "host.name": "Web-1" },
+      EntityType.Host,
+    );
+    expect(keyForHost(PROJECT, "web-1")).toBe(stamped!.entityKey);
+    expect(keyForHost(PROJECT, "  WEB-1 ")).toBe(stamped!.entityKey);
+  });
+
+  test("keyForService matches the service entity stamped from service.name", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "service.name": "checkout" },
+      EntityType.Service,
+    );
+    expect(keyForService(PROJECT, "checkout")).toBe(stamped!.entityKey);
+  });
+
+  test("keyForKubernetesCluster matches the cluster entity stamped from k8s.cluster.name", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "k8s.cluster.name": "prod-us" },
+      EntityType.KubernetesCluster,
+    );
+    expect(keyForKubernetesCluster(PROJECT, "prod-us")).toBe(
+      stamped!.entityKey,
+    );
   });
 });

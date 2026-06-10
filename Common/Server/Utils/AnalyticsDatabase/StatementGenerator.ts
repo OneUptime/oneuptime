@@ -494,6 +494,29 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             type: tableColumn.type,
           }}`,
         );
+      } else if (
+        value instanceof Includes &&
+        tableColumn.type === TableColumnType.ArrayText
+      ) {
+        /*
+         * Array(String) membership (e.g. `entityKeys` / `attributeKeys`):
+         * `hasAny(col, [v1, v2])` — true when the row's array contains any
+         * of the values. Repurposes Includes for array columns, where the
+         * scalar `col IN (...)` form is invalid. The bloom_filter skip index
+         * on these columns prunes granules for this predicate. An empty
+         * Includes drops to no predicate (mirrors the map-Includes behavior),
+         * never `hasAny(col, [])`.
+         */
+        const arrayIncludeValues: Array<string> =
+          ((value as Includes).values as Array<string>) || [];
+        if (arrayIncludeValues.length > 0) {
+          whereStatement.append(
+            SQL`AND hasAny(${key}, ${{
+              value: arrayIncludeValues,
+              type: TableColumnType.ArrayText,
+            }})`,
+          );
+        }
       } else if (value instanceof Includes) {
         whereStatement.append(
           SQL`AND ${key} IN ${{

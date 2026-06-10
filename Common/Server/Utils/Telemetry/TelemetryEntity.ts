@@ -1,4 +1,7 @@
-import { createHash } from "crypto";
+import {
+  computeEntityKey as computeEntityKeyShared,
+  canonicalizeEntityValue,
+} from "../../../Utils/Telemetry/EntityKey";
 import EntityType from "../../../Types/Telemetry/EntityType";
 import Dictionary from "../../../Types/Dictionary";
 
@@ -73,20 +76,9 @@ export default class TelemetryEntity {
     entityType: EntityType;
     identifyingAttributes: Dictionary<string>;
   }): string {
-    const keys: Array<string> = Object.keys(
-      data.identifyingAttributes || {},
-    ).sort();
-
-    const parts: Array<string> = [];
-    for (const key of keys) {
-      parts.push(`${key}=${this.canon(data.identifyingAttributes[key])}`);
-    }
-
-    const preimage: string = `${data.projectId}|${data.entityType}|${parts.join(
-      "|",
-    )}`;
-
-    return createHash("sha256").update(preimage).digest("hex").slice(0, 16);
+    // Delegate to the shared isomorphic implementation so ingest (here) and
+    // reads (server/browser) produce byte-identical keys.
+    return computeEntityKeyShared(data);
   }
 
   /**
@@ -191,20 +183,25 @@ export default class TelemetryEntity {
       return { entityType: EntityType.ServiceInstance, id };
     },
 
-    // host — host.id, fallback host.name.
+    /*
+     * host — keyed on host.name only (canonicalized via computeEntityKey),
+     * matching OneUptime's `hostIdentifier` (= canonicalized host.name; see
+     * OtelIngestBaseService.autoDiscoverHost / canonicalizeHostName). host.id
+     * is deliberately NOT part of host identity: existing Host rows and the
+     * host rollup MV (MetricItemAggMV1mByHost) key on host.name, so keying
+     * here on host.id would make the host entity key unmatchable on the read
+     * side (`TelemetryEntity.keyForHost(hostIdentifier)`). Moving host
+     * identity to host.id is a separate, deferred hardening that would
+     * migrate the MV and this identity together. A k8s node (which carries
+     * k8s.node.name, not host.name, and is rejected by autoDiscoverHost) is
+     * cataloged via the dedicated `k8s.node` entity, not as a host.
+     */
     (attrs: EntityAttributes) => {
-      const hostId: string | null = TelemetryEntity.str(attrs, "host.id");
-      if (hostId) {
-        return { entityType: EntityType.Host, id: { "host.id": hostId } };
-      }
       const hostName: string | null = TelemetryEntity.str(attrs, "host.name");
-      if (hostName) {
-        return {
-          entityType: EntityType.Host,
-          id: { "host.name": hostName },
-        };
+      if (!hostName) {
+        return null;
       }
-      return null;
+      return { entityType: EntityType.Host, id: { "host.name": hostName } };
     },
 
     // k8s.cluster — k8s.cluster.uid, fallback k8s.cluster.name.
@@ -399,17 +396,10 @@ export default class TelemetryEntity {
     return null;
   }
 
-  /** Canonical identity-value form: trimmed + lowercased. */
-  private static canon(value: string | undefined): string {
-    return String(value === undefined || value === null ? "" : value)
-      .trim()
-      .toLowerCase();
-  }
-
   private static canonObject(id: Dictionary<string>): Dictionary<string> {
     const out: Dictionary<string> = {};
     for (const key of Object.keys(id)) {
-      out[key] = this.canon(id[key]!);
+      out[key] = canonicalizeEntityValue(id[key]);
     }
     return out;
   }

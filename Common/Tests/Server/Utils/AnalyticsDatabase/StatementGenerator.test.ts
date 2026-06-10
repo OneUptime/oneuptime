@@ -360,6 +360,75 @@ describe("StatementGenerator", () => {
         expect(statement.query_params).toStrictEqual({});
       });
     });
+
+    describe("ArrayText columns", () => {
+      class ArrayModel extends AnalyticsBaseModel {
+        public constructor() {
+          super({
+            tableName: "<array-table>",
+            singularName: "<singular>",
+            pluralName: "<plural>",
+            tableColumns: [
+              new AnalyticsTableColumn({
+                key: "_id",
+                title: "<title>",
+                description: "<description>",
+                required: true,
+                type: TableColumnType.ObjectID,
+              }),
+              new AnalyticsTableColumn({
+                key: "entityKeys",
+                title: "<title>",
+                description: "<description>",
+                required: true,
+                defaultValue: [],
+                type: TableColumnType.ArrayText,
+              }),
+            ],
+            crudApiPath: new Route("route"),
+            primaryKeys: ["_id"],
+            sortKeys: ["_id"],
+            partitionKey: "_id",
+            tableEngine: AnalyticsTableEngine.MergeTree,
+          });
+        }
+      }
+
+      let arrayGenerator: StatementGenerator<ArrayModel>;
+      beforeEach(() => {
+        arrayGenerator = new StatementGenerator<ArrayModel>({
+          modelType: ArrayModel,
+          database: ClickhouseAppInstance,
+        });
+      });
+
+      test("emits hasAny(...) for Includes on an Array(String) column", () => {
+        const statement: Statement = arrayGenerator.toWhereStatement({
+          entityKeys: new Includes(["210dac24142f1baa", "8a238f41aaf2c179"]),
+        } as any);
+        /*
+         * Entity-membership reads (`has any of these entity keys`) compile
+         * to `hasAny(col, [...])` so the bloom_filter skip index on the
+         * Array(String) column can prune granules — not the scalar
+         * `col IN (...)` form, which is invalid for an array column.
+         */
+        expect(statement.query).toBe(
+          "AND hasAny({p0:Identifier}, {p1:Array(String)})",
+        );
+        expect(statement.query_params).toStrictEqual({
+          p0: "entityKeys",
+          p1: ["210dac24142f1baa", "8a238f41aaf2c179"],
+        });
+      });
+
+      test("drops empty Includes instead of hasAny(col, [])", () => {
+        const statement: Statement = arrayGenerator.toWhereStatement({
+          entityKeys: new Includes([]),
+        } as any);
+        expect(statement.query).toBe("");
+        expect(statement.query_params).toStrictEqual({});
+      });
+    });
   });
 
   describe("toSelectStatement", () => {
