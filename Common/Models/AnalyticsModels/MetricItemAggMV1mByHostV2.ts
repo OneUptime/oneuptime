@@ -1,5 +1,6 @@
 import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
 import AnalyticsTableEngine from "../../Types/AnalyticsDatabase/AnalyticsTableEngine";
+import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 
@@ -119,13 +120,7 @@ export default class MetricItemAggMV1mByHostV2 extends AnalyticsBaseModel {
     });
 
     super({
-      /*
-       * Plain string, not AnalyticsTableName.* — adding the enum member
-       * (Common/Types/AnalyticsDatabase/AnalyticsTableName.ts) is a
-       * pending follow-up; the constructor accepts any string and every
-       * consumer reads `model.tableName`.
-       */
-      tableName: "MetricItemAggMV1mByHostV2",
+      tableName: AnalyticsTableName.MetricItemAggMV1mByHostV2,
       tableEngine: AnalyticsTableEngine.AggregatingMergeTree,
       singularName: "Metric 1-Minute Aggregate (By Host Entity Key)",
       pluralName: "Metric 1-Minute Aggregates (By Host Entity Key)",

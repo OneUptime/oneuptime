@@ -30,7 +30,9 @@ import MetricMonitorResponse, {
   KubernetesResourceBreakdown,
   KubernetesAffectedResource,
 } from "Common/Types/Monitor/MetricMonitor/MetricMonitorResponse";
-import MonitorStepMetricMonitor from "Common/Types/Monitor/MonitorStepMetricMonitor";
+import MonitorStepMetricMonitor, {
+  MonitorStepMetricMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepMetricMonitor";
 import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -769,11 +771,15 @@ const monitorMetric: MonitorMetricFunction = async (data: {
   );
 
   for (const queryConfig of metricMonitorConfig.metricViewConfig.queryConfigs) {
-    const query: Query<Metric> = {
-      projectId: data.projectId,
-      time: startAndEndDate,
-      name: queryConfig.metricQueryData.filterData.metricName,
-    };
+    const query: Query<Metric> =
+      MonitorStepMetricMonitorUtil.applyEntityScopeToQuery(
+        {
+          projectId: data.projectId,
+          time: startAndEndDate,
+          name: queryConfig.metricQueryData.filterData.metricName,
+        },
+        metricMonitorConfig,
+      );
 
     if (
       queryConfig.metricQueryData &&
