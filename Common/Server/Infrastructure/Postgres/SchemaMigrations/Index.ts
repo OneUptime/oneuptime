@@ -380,6 +380,7 @@ import { AddRumApplicationSdkLanguage1780985763463 } from "./1780985763463-AddRu
 import { RecastCloudResourcesByEnvironment1780987192743 } from "./1780987192743-RecastCloudResourcesByEnvironment";
 import { MigrationName1781011482945 } from "./1781011482945-MigrationName";
 import { RenameTelemetryServiceIdToPrimaryEntityId1781100000001 } from "./1781100000001-RenameTelemetryServiceIdToPrimaryEntityId";
+import { AddTelemetryEntityTable1781200000000 } from "./1781200000000-AddTelemetryEntityTable";
 
 export default [
   InitialMigration,
@@ -764,4 +765,5 @@ export default [
   RecastCloudResourcesByEnvironment1780987192743,
   MigrationName1781011482945,
   RenameTelemetryServiceIdToPrimaryEntityId1781100000001,
+  AddTelemetryEntityTable1781200000000,
 ];
