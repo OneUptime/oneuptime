@@ -32,6 +32,11 @@ import TelemetryEntity, {
   ExtractedEntity,
 } from "Common/Server/Utils/Telemetry/TelemetryEntity";
 import TelemetryEntityService from "Common/Server/Services/TelemetryEntityService";
+import TelemetryEntityRelationshipService from "Common/Server/Services/TelemetryEntityRelationshipService";
+import {
+  deriveRelationships,
+  EntityRelationshipEdge,
+} from "Common/Utils/Telemetry/EntityRelationship";
 import Dictionary from "Common/Types/Dictionary";
 
 export default abstract class OtelIngestBaseService {
@@ -303,6 +308,27 @@ export default abstract class OtelIngestBaseService {
       }
 
       await TelemetryEntityService.reconcileEntities({ projectId, entities });
+
+      /*
+       * Topology (phase 5): the co-occurrence edges derive from the same
+       * entity set, so they reconcile under the same fence — no extra
+       * Redis check. A stable resource bumps both the registry and the
+       * graph once per window; a changed set (pod restart) re-derives both.
+       */
+      const edges: Array<EntityRelationshipEdge> = deriveRelationships(
+        entities.map((entity: ExtractedEntity) => {
+          return {
+            entityType: entity.entityType,
+            entityKey: entity.entityKey,
+          };
+        }),
+      );
+      if (edges.length > 0) {
+        await TelemetryEntityRelationshipService.reconcileRelationships({
+          projectId,
+          edges,
+        });
+      }
     } catch (err) {
       logger.error("Entity registry reconciliation failed:");
       logger.error(err as Error);

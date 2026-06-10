@@ -156,6 +156,18 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       category: observabilityCategory,
     },
     {
+      title: "Entities",
+      description:
+        "Explore entities (services, hosts, k8s pods, containers) discovered from your telemetry.",
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.ENTITIES] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.ENTITIES],
+      icon: IconProp.Cube,
+      iconColor: "blue",
+      category: observabilityCategory,
+    },
+    {
       title: t("navbar.items.servicesTitle"),
       description: t("navbar.items.servicesDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.SERVICES] as Route),

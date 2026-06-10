@@ -121,6 +121,14 @@ import AlertStateService, {
 import AlertStateTimelineService, {
   Service as AlertStateTimelineServiceType,
 } from "Common/Server/Services/AlertStateTimelineService";
+import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
+import TelemetryEntityServiceInstance, {
+  TelemetryEntityService as TelemetryEntityServiceType,
+} from "Common/Server/Services/TelemetryEntityService";
+import TelemetryEntityRelationship from "Common/Models/DatabaseModels/TelemetryEntityRelationship";
+import TelemetryEntityRelationshipServiceInstance, {
+  TelemetryEntityRelationshipService as TelemetryEntityRelationshipServiceType,
+} from "Common/Server/Services/TelemetryEntityRelationshipService";
 
 // AlertEpisode Services
 import AlertEpisodeService, {
@@ -1204,6 +1212,26 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<AlertState, AlertStateServiceType>(
         AlertState,
         AlertStateService,
+      ).getRouter(),
+    );
+
+    // Telemetry entity registry + topology graph (read/list for the entity explorer).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TelemetryEntity, TelemetryEntityServiceType>(
+        TelemetryEntity,
+        TelemetryEntityServiceInstance,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        TelemetryEntityRelationship,
+        TelemetryEntityRelationshipServiceType
+      >(
+        TelemetryEntityRelationship,
+        TelemetryEntityRelationshipServiceInstance,
       ).getRouter(),
     );
 

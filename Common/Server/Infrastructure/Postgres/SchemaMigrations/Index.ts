@@ -381,6 +381,7 @@ import { RecastCloudResourcesByEnvironment1780987192743 } from "./1780987192743-
 import { MigrationName1781011482945 } from "./1781011482945-MigrationName";
 import { RenameTelemetryServiceIdToPrimaryEntityId1781100000001 } from "./1781100000001-RenameTelemetryServiceIdToPrimaryEntityId";
 import { AddTelemetryEntityTable1781200000000 } from "./1781200000000-AddTelemetryEntityTable";
+import { AddTelemetryEntityRelationshipTable1781200000001 } from "./1781200000001-AddTelemetryEntityRelationshipTable";
 
 export default [
   InitialMigration,
@@ -766,4 +767,5 @@ export default [
   MigrationName1781011482945,
   RenameTelemetryServiceIdToPrimaryEntityId1781100000001,
   AddTelemetryEntityTable1781200000000,
+  AddTelemetryEntityRelationshipTable1781200000001,
 ];

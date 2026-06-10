@@ -255,6 +255,7 @@ import TelemetryIngestionKey from "./TelemetryIngestionKey";
 
 import TelemetryException from "./TelemetryException";
 import TelemetryEntity from "./TelemetryEntity";
+import TelemetryEntityRelationship from "./TelemetryEntityRelationship";
 import ScheduledMaintenanceTemplate from "./ScheduledMaintenanceTemplate";
 import ScheduledMaintenanceTemplateOwnerTeam from "./ScheduledMaintenanceTemplateOwnerTeam";
 import ScheduledMaintenanceTemplateOwnerUser from "./ScheduledMaintenanceTemplateOwnerUser";
@@ -668,6 +669,7 @@ const AllModelTypes: Array<{
 
   TelemetryException,
   TelemetryEntity,
+  TelemetryEntityRelationship,
 
   TableView,
 

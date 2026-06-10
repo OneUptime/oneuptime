@@ -281,6 +281,10 @@ export const ProfilesRoutePath: Dictionary<string> = {
   [PageMap.PROFILES_DOCUMENTATION]: "documentation",
 };
 
+export const EntitiesRoutePath: Dictionary<string> = {
+  [PageMap.ENTITIES]: "overview",
+};
+
 export const ExceptionsRoutePath: Dictionary<string> = {
   [PageMap.EXCEPTIONS]: "overview",
   [PageMap.EXCEPTIONS_OVERVIEW]: "overview",
@@ -4005,6 +4009,16 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.EXCEPTIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/exceptions/${
       ExceptionsRoutePath[PageMap.EXCEPTIONS]
+    }`,
+  ),
+
+  [PageMap.ENTITIES_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/entities/*`,
+  ),
+
+  [PageMap.ENTITIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/entities/${
+      EntitiesRoutePath[PageMap.ENTITIES]
     }`,
   ),
 
