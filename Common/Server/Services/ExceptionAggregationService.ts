@@ -1,4 +1,5 @@
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
+import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import ExceptionInstanceService from "./ExceptionInstanceService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
@@ -164,6 +165,14 @@ export class ExceptionAggregationService {
         }}
     `;
 
+    /*
+     * Read-side retention filter: rows past their per-service retention
+     * stay in their part until the whole part drops (ttl_only_drop_parts).
+     * Raw `time` predicates already make these queries ineligible for the
+     * proj_exception_group projection, so the extra predicate is free.
+     */
+    statement.append(" AND retentionDate >= now()");
+
     ExceptionAggregationService.appendCommonFilters(statement, request);
 
     statement.append(" GROUP BY bucket, escaped ORDER BY bucket ASC");
@@ -174,7 +183,10 @@ export class ExceptionAggregationService {
      * rather than throwing, which is acceptable for a density viz.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     return statement;
@@ -263,6 +275,8 @@ export class ExceptionAggregationService {
       );
     }
 
+    statement.append(" AND retentionDate >= now()");
+
     ExceptionAggregationService.appendCommonFilters(statement, request);
 
     statement.append(
@@ -277,7 +291,10 @@ export class ExceptionAggregationService {
      * 60s proxy_read_timeout so a slow facet never starves the endpoint.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     return statement;

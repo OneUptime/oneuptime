@@ -15,6 +15,8 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import TracesViewer from "../../../Components/Traces/TracesViewer";
+import ProjectUtil from "Common/UI/Utils/Project";
+import { keyForHost } from "Common/Utils/Telemetry/EntityKey";
 
 const HostTraces: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
