@@ -2112,7 +2112,6 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     const row: JSONObject = {
       _id: ObjectID.generate().toString(),
       createdAt: ingestionTimestamp,
-      updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
       primaryEntityId: data.primaryEntityId.toString(),
       primaryEntityType: data.serviceMetadata.primaryEntityType,

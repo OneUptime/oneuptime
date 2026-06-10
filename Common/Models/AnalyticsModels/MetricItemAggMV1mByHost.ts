@@ -5,7 +5,7 @@ import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 
 /**
- * Per-(host, minute) pre-aggregated rollup of `MetricItemV2` value
+ * Per-(host, minute) pre-aggregated rollup of `MetricItemV3` value
  * samples — sister table of `MetricItemAggMV1m` keyed by host instead
  * of by service. Powers the host-detail page's chart queries, which
  * filter by `host.name` and need the full sort-key prefix to land on
@@ -13,7 +13,7 @@ import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
  *
  * Populated by `MetricItemAggMV1mByHost_mv` (in
  * `AddMetricMinuteAggregateByHostMaterializedView`), which extracts
- * `attributes['resource.host.name']` from each `MetricItemV2` row at
+ * `attributes['resource.host.name']` from each `MetricItemV3` row at
  * insert time and skips rows without a host identifier — so the table
  * stays much smaller than `MetricItemAggMV1m`, which covers every
  * metric stream regardless of attribute presence.
@@ -30,7 +30,7 @@ export default class MetricItemAggMV1mByHost extends AnalyticsBaseModel {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "projectId",
       title: "Project ID",
-      description: "ID of project (tenant key, replicated from MetricItemV2)",
+      description: "ID of project (tenant key, replicated from MetricItemV3)",
       required: true,
       type: TableColumnType.Text,
       isTenantId: true,
@@ -39,7 +39,7 @@ export default class MetricItemAggMV1mByHost extends AnalyticsBaseModel {
     const nameColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "name",
       title: "Metric Name",
-      description: "Metric name (replicated from MetricItemV2)",
+      description: "Metric name (replicated from MetricItemV3)",
       required: true,
       type: TableColumnType.Text,
     });
@@ -109,7 +109,7 @@ export default class MetricItemAggMV1mByHost extends AnalyticsBaseModel {
       key: "retentionDate",
       title: "Retention Date",
       description:
-        "Date after which this row is eligible for TTL deletion. Computed by the MV as max(retentionDate) per bucket — inherits from the source MetricItemV2 rows.",
+        "Date after which this row is eligible for TTL deletion. Computed by the MV as max(retentionDate) per bucket — inherits from the source MetricItemV3 rows.",
       required: true,
       type: TableColumnType.Date,
     });

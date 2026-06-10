@@ -206,7 +206,6 @@ export default class SyslogIngestService extends OtelIngestBaseService {
           const logRow: JSONObject = {
             _id: ObjectID.generate().toString(),
             createdAt: OneUptimeDate.toClickhouseDateTime(ingestionDate),
-            updatedAt: OneUptimeDate.toClickhouseDateTime(ingestionDate),
             projectId: projectId.toString(),
             primaryEntityId: serviceMetadata.primaryEntityId.toString(),
             primaryEntityType: serviceMetadata.primaryEntityType,

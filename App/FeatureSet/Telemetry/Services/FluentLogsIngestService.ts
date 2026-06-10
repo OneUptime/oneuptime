@@ -231,7 +231,6 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
           const logRow: JSONObject = {
             _id: ObjectID.generate().toString(),
             createdAt: ingestionDateTime,
-            updatedAt: ingestionDateTime,
             projectId: projectId.toString(),
             primaryEntityId: serviceMetadata.primaryEntityId.toString(),
             primaryEntityType: serviceMetadata.primaryEntityType,

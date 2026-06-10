@@ -5,12 +5,12 @@ import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 
 /**
- * Per-(day, hour-of-week) statistical baseline of `MetricItemV2` value
+ * Per-(day, hour-of-week) statistical baseline of `MetricItemV3` value
  * samples — backbone of metric anomaly detection.
  *
  * Populated by `MetricBaselineHourly_mv` (defined in the
  * `AddMetricBaselineHourlyMV` data migration), which fires on every
- * insert into `MetricItemV2` and groups by `(projectId, name,
+ * insert into `MetricItemV3` and groups by `(projectId, name,
  * primaryEntityId, day, hourOfWeek)`. Each row holds AggregateFunction
  * states (count/avg/stddevPop/quantile/min/max) — finalize at read
  * time via the matching `*Merge()`.
@@ -40,7 +40,7 @@ export default class MetricBaselineHourly extends AnalyticsBaseModel {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "projectId",
       title: "Project ID",
-      description: "ID of project (tenant key, replicated from MetricItemV2)",
+      description: "ID of project (tenant key, replicated from MetricItemV3)",
       required: true,
       type: TableColumnType.Text,
       isTenantId: true,
@@ -49,7 +49,7 @@ export default class MetricBaselineHourly extends AnalyticsBaseModel {
     const nameColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "name",
       title: "Metric Name",
-      description: "Metric name (replicated from MetricItemV2)",
+      description: "Metric name (replicated from MetricItemV3)",
       required: true,
       type: TableColumnType.Text,
     });
@@ -58,7 +58,7 @@ export default class MetricBaselineHourly extends AnalyticsBaseModel {
       new AnalyticsTableColumn({
         key: "primaryEntityId",
         title: "Service ID",
-        description: "Service ID (replicated from MetricItemV2)",
+        description: "Primary entity ID (replicated from MetricItemV3)",
         required: true,
         type: TableColumnType.Text,
       });

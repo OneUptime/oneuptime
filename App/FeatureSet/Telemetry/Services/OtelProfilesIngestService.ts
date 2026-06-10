@@ -979,7 +979,6 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
     return {
       _id: ObjectID.generate().toString(),
       createdAt: ingestionTimestamp,
-      updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
       primaryEntityId: data.primaryEntityId.toString(),
       primaryEntityType: data.serviceMetadata.primaryEntityType,
@@ -1037,7 +1036,6 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
     return {
       _id: ObjectID.generate().toString(),
       createdAt: ingestionTimestamp,
-      updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
       primaryEntityId: data.primaryEntityId.toString(),
       primaryEntityType: data.serviceMetadata.primaryEntityType,

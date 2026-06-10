@@ -678,7 +678,6 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                   let logRow: JSONObject = {
                     _id: ObjectID.generate().toString(),
                     createdAt: ingestionTimestamp,
-                    updatedAt: ingestionTimestamp,
                     projectId: projectId.toString(),
                     primaryEntityId: primaryEntityId.toString(),
                     primaryEntityType: serviceMetadata.primaryEntityType,
@@ -968,7 +967,6 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
     data.dbExceptions.push({
       _id: ObjectID.generate().toString(),
       createdAt: ingestionTimestamp,
-      updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
       primaryEntityId: data.primaryEntityId.toString(),
       primaryEntityType: data.serviceMetadata.primaryEntityType,

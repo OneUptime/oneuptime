@@ -5,12 +5,12 @@ import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 
 /**
- * Per-minute pre-aggregated rollup of `MetricItemV2` value samples.
+ * Per-minute pre-aggregated rollup of `MetricItemV3` value samples.
  *
  * Populated by the attached materialized view `MetricItemAggMV1m_mv`
  * (declared below in `materializedViews` and applied idempotently by
  * the analytics schema-sync on every boot), which fires on every
- * insert into `MetricItemV2`. Each row holds AggregateFunction
+ * insert into `MetricItemV3`. Each row holds AggregateFunction
  * *states* — partial intermediate values combined by background merges
  * and finalized at read time via `*Merge()` (e.g.
  * `sumMerge(valueSumState)`).
@@ -33,7 +33,7 @@ export default class MetricItemAggMV1m extends AnalyticsBaseModel {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "projectId",
       title: "Project ID",
-      description: "ID of project (tenant key, replicated from MetricItemV2)",
+      description: "ID of project (tenant key, replicated from MetricItemV3)",
       required: true,
       type: TableColumnType.Text,
       isTenantId: true,
@@ -42,7 +42,7 @@ export default class MetricItemAggMV1m extends AnalyticsBaseModel {
     const nameColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "name",
       title: "Metric Name",
-      description: "Metric name (replicated from MetricItemV2)",
+      description: "Metric name (replicated from MetricItemV3)",
       required: true,
       type: TableColumnType.Text,
     });
@@ -51,7 +51,7 @@ export default class MetricItemAggMV1m extends AnalyticsBaseModel {
       new AnalyticsTableColumn({
         key: "primaryEntityId",
         title: "Service ID",
-        description: "Service ID (replicated from MetricItemV2)",
+        description: "Primary entity ID (replicated from MetricItemV3)",
         required: true,
         type: TableColumnType.Text,
       });
@@ -110,7 +110,7 @@ export default class MetricItemAggMV1m extends AnalyticsBaseModel {
       key: "retentionDate",
       title: "Retention Date",
       description:
-        "Date after which this row is eligible for TTL deletion. Computed by the MV as max(retentionDate) per bucket — inherits from the source MetricItemV2 rows.",
+        "Date after which this row is eligible for TTL deletion. Computed by the MV as max(retentionDate) per bucket — inherits from the source MetricItemV3 rows.",
       required: true,
       type: TableColumnType.Date,
     });
@@ -133,7 +133,7 @@ export default class MetricItemAggMV1m extends AnalyticsBaseModel {
       ],
       projections: [],
       /*
-       * Materialized view that pre-rolls MetricItemV2 value samples into
+       * Materialized view that pre-rolls MetricItemV3 value samples into
        * 1-minute buckets. This is the canonical definition: the analytics
        * schema-sync (AnalyticsTableManagement.createMaterializedViews)
        * creates it on every boot if missing, so a wiped/recreated
