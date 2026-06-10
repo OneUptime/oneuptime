@@ -5,42 +5,50 @@ import MetricService from "Common/Server/Services/MetricService";
 import logger from "Common/Server/Utils/Logger";
 
 /**
- * Telemetry V3 cut.
+ * Telemetry V3 cut — DDL ONLY.
  *
  * The analytics models were (a) renamed `serviceId`/`serviceType` →
  * `primaryEntityId`/`primaryEntityType` and (b) switched from
  * `sipHash64(projectId) % 16` to time-based partitioning. Neither can be
  * applied in place — `serviceId` is part of the ClickHouse sort key and
  * the partition key is fixed at table creation — so the signal tables are
- * cut to a new `…V3` name and data is copied across.
+ * cut to a new `…V3` name.
+ *
+ * This migration deliberately does NOT copy data. The historical V2 → V3
+ * copy is hours-to-days of work at production scale and used to run
+ * inline here, which blocked the boot migration runner (and, before the
+ * chunked copy engine existed, kept timing out client-side at the 58s
+ * socket idle limit and re-running whole partitions on every boot —
+ * duplicating rows and double-firing the metric MVs). The copy is now
+ * owned by the `Telemetry:BackfillTelemetryV3` cron
+ * (App/FeatureSet/Workers/Jobs/Telemetry/BackfillTelemetryV3.ts), which
+ * resumes chunk-by-chunk from the `TelemetryV3CopyProgress` marker table
+ * this migration creates. This migration only runs fast, idempotent DDL
+ * and completes in seconds, so the ~23 migrations behind it are never
+ * blocked.
  *
  * Steps:
  *   1. Drop the 3 stale metric MVs (old `serviceId` column + sipHash
- *      partition, reading `FROM MetricItemV2`). Skipped on a retry once the
- *      views already read `FROM MetricItemV3`.
- *   2. Recreate every analytics table + MV from the updated models via the
- *      schema-sync helpers — creating the `…V3` signal tables and rebuilding
- *      the MVs (`FROM MetricItemV3`). Idempotent.
- *   3. Copy each `…V2` → `…V3` partition-by-partition with an explicit,
- *      NAME-BASED column mapping (`serviceId`→`primaryEntityId`,
- *      `serviceType`→`primaryEntityType`). A positional `SELECT *` is NOT
- *      safe: `serviceType` was appended to the V2 tables by an earlier ALTER,
- *      so it sits last in V2's physical column order whereas V3 places
- *      `primaryEntityType` second. Only V3 columns whose source column exists
- *      on V2 are copied — V3-only columns (e.g. `entityKeys`) fall back to
- *      their table DEFAULT. Per-partition progress lands in
- *      `TelemetryV3CopyProgress`, and any copy failure is re-thrown at the
- *      end so the migration is NOT marked executed and the next boot resumes
- *      from the partitions that are still missing.
+ *      partition, reading `FROM MetricItemV2`). Skipped on a retry once
+ *      the views already read `FROM MetricItemV3`.
+ *   2. Recreate every analytics table + MV from the updated models via
+ *      the schema-sync helpers — creating the `…V3` signal tables and
+ *      rebuilding the MVs (`FROM MetricItemV3`). Idempotent. The MVs
+ *      MUST exist before any data lands in MetricItemV3 — the backfill
+ *      cron double-checks this before copying.
+ *   3. Ensure the `TelemetryV3CopyProgress` marker table exists so the
+ *      backfill cron (and the remaining inline copies in later
+ *      migrations) can record progress.
  *
- * The `…V2` tables are intentionally retained (rollback window; they
- * self-drain via their `retentionDate` TTL). A follow-up migration can DROP
- * them once V3 is confirmed.
+ * The `…V2` tables are intentionally retained (the backfill cron reads
+ * them; they self-drain via their `retentionDate` TTL). A follow-up
+ * migration can DROP them once every table carries the cron's
+ * '__completed__' marker.
  *
- * All statements run through `MetricService` — every analytics service shares
- * one ClickHouse connection, and each statement names its own table.
+ * All statements run through `MetricService` — every analytics service
+ * shares one ClickHouse connection, and each statement names its own
+ * table.
  */
-
 export default class MigrateTelemetryToV3PrimaryEntityId extends DataMigrationBase {
   public constructor() {
     super("MigrateTelemetryToV3PrimaryEntityId");
@@ -49,11 +57,10 @@ export default class MigrateTelemetryToV3PrimaryEntityId extends DataMigrationBa
   public override async migrate(): Promise<void> {
     /*
      * 1. Drop the stale MV triggers + target tables — but only while the
-     *    view does not yet read `FROM MetricItemV3`. This migration
-     *    legitimately re-runs after a partial copy failure (see step 3), and
-     *    the rebuilt views/tables must survive a retry: dropping the rebuilt
-     *    target tables would silently discard the aggregates the MVs already
-     *    produced for the copied (and on retry skipped) partitions.
+     *    view does not yet read `FROM MetricItemV3`: the rebuilt
+     *    views/tables must survive a retry, and dropping the rebuilt
+     *    target tables would silently discard the aggregates the MVs
+     *    already produced.
      */
     const staleMvPairs: Array<[string, string]> = [
       ["MetricItemAggMV1m_mv", "MetricItemAggMV1m"],
@@ -83,58 +90,12 @@ export default class MigrateTelemetryToV3PrimaryEntityId extends DataMigrationBa
     await AnalyticsTableManagement.createTables();
     await AnalyticsTableManagement.createMaterializedViews();
 
-    /*
-     * 3. Copy historical signal data V2 -> V3 with a name-based column map,
-     *    one partition at a time, resuming from the progress marker on retry.
-     */
-    const copies: Array<[string, string]> = [
-      ["LogItemV2", "LogItemV3"],
-      ["MetricItemV2", "MetricItemV3"],
-      ["SpanItemV2", "SpanItemV3"],
-      ["ExceptionItemV2", "ExceptionItemV3"],
-      ["ProfileItemV2", "ProfileItemV3"],
-      ["ProfileSampleItemV2", "ProfileSampleItemV3"],
-    ];
+    // 3. Marker table for the backfill cron's chunk progress.
+    await ClickHouseMigrationUtil.ensureCopyProgressTable();
 
-    /*
-     * Map the two renamed columns back to their V2 source names; everything
-     * else maps by identical name.
-     */
-    const renameMap: Record<string, string> = {
-      primaryEntityId: "serviceId",
-      primaryEntityType: "serviceType",
-    };
-
-    const errors: Array<string> = [];
-
-    for (const [v2, v3] of copies) {
-      if (!(await ClickHouseMigrationUtil.tableExists(v2))) {
-        logger.info(
-          `MigrateTelemetryToV3: ${v2} not present (fresh install) — skipping copy.`,
-        );
-        continue;
-      }
-
-      errors.push(
-        ...(await ClickHouseMigrationUtil.copyTablePartitionwise({
-          sourceTable: v2,
-          destinationTable: v3,
-          renameMap: renameMap,
-          logPrefix: "MigrateTelemetryToV3",
-        })),
-      );
-    }
-
-    /*
-     * Throw on any failed copy so the runner does NOT mark this migration
-     * executed — the next boot retries it, and the progress marker limits
-     * the rework to the partitions that are still missing.
-     */
-    if (errors.length > 0) {
-      throw new Error(
-        `MigrateTelemetryToV3: ${errors.length} copy step(s) failed:\n${errors.join("\n")}`,
-      );
-    }
+    logger.info(
+      "MigrateTelemetryToV3: DDL complete. Historical V2 -> V3 data copy is handled incrementally by the Telemetry:BackfillTelemetryV3 cron.",
+    );
   }
 
   private async safeExec(sql: string): Promise<void> {

@@ -366,4 +366,79 @@ describe("AnalyticsDatabaseService", () => {
       });
     });
   });
+
+  /*
+   * Per-call exec options (clickhouse_settings + query_id) added for the
+   * telemetry V3 backfill engine — long INSERT...SELECT statements need
+   * HTTP progress-header keepalive, dedup tokens and deterministic query
+   * ids per call. Must be strictly additive: option-less calls keep the
+   * exact pre-existing exec/query payload.
+   */
+  describe("execute / executeQuery per-call options", () => {
+    let exec: ReturnType<typeof jest.fn>;
+    let query: ReturnType<typeof jest.fn>;
+
+    beforeEach(() => {
+      exec = jest.fn(() => {
+        return Promise.resolve({});
+      });
+      query = jest.fn(() => {
+        return Promise.resolve({});
+      });
+      (service as any).database = {};
+      (service as any).databaseClient = { exec, query };
+    });
+
+    test("execute threads clickhouse settings and query id into client.exec", async () => {
+      await service.execute("INSERT INTO Foo SELECT 1", {
+        clickhouseSettings: {
+          insert_deduplication_token: "v3copy:Foo:1:202601",
+          send_progress_in_http_headers: 1,
+        },
+        queryId: "v3copy:Foo:1:202601:123",
+      });
+
+      expect(exec).toHaveBeenCalledWith({
+        query: "INSERT INTO Foo SELECT 1",
+        query_params: undefined,
+        clickhouse_settings: {
+          insert_deduplication_token: "v3copy:Foo:1:202601",
+          send_progress_in_http_headers: 1,
+        },
+        query_id: "v3copy:Foo:1:202601:123",
+      });
+    });
+
+    test("execute without options keeps the pre-existing exec payload", async () => {
+      await service.execute("SELECT 1");
+
+      expect(exec).toHaveBeenCalledWith({
+        query: "SELECT 1",
+        query_params: undefined,
+      });
+    });
+
+    test("executeQuery threads clickhouse settings into client.query", async () => {
+      await service.executeQuery("SELECT 1", {
+        clickhouseSettings: { max_execution_time: 1800 },
+      });
+
+      expect(query).toHaveBeenCalledWith({
+        query: "SELECT 1",
+        format: "JSON",
+        query_params: undefined,
+        clickhouse_settings: { max_execution_time: 1800 },
+      });
+    });
+
+    test("executeQuery without options keeps the pre-existing query payload", async () => {
+      await service.executeQuery("SELECT 1");
+
+      expect(query).toHaveBeenCalledWith({
+        query: "SELECT 1",
+        format: "JSON",
+        query_params: undefined,
+      });
+    });
+  });
 });

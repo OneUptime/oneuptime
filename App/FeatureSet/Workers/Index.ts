@@ -152,6 +152,14 @@ import "./Jobs/TelemetryEntity/PruneStaleEntities";
 import "./Jobs/TelemetryEntity/ComputeServiceDependencies";
 
 /*
+ * Historical V2 -> V3 telemetry copy (chunked, resumable, dedup-token
+ * protected). Runs after the boot migration chain finishes; a no-op once
+ * every table carries its '__completed__' marker (and from the first tick
+ * on fresh installs).
+ */
+import "./Jobs/Telemetry/BackfillTelemetryV3";
+
+/*
  * Metric retention is handled by ClickHouse TTL on Metric.retentionDate
  * (set at ingest from GlobalConfig), so no cleanup cron is needed here.
  */

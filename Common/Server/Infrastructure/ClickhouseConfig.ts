@@ -35,6 +35,18 @@ const options: ClickHouseClientConfigOptions = {
    * (a) a slow query still has headroom and (b) nginx never hits its
    * upstream timeout first. Per-query SETTINGS max_execution_time on
    * aggregation statements provides the hard server-side cap.
+   *
+   * NOTE: the client enforces this as a socket IDLE timer
+   * (socket.setTimeout -> request.destroy()), not a wall-clock cap: it
+   * fires only after 58s with NO bytes received. An HTTP INSERT...SELECT
+   * returns zero bytes until it completes, so any such statement that
+   * needs longer MUST pass per-call clickhouse_settings
+   * send_progress_in_http_headers (+ http_headers_progress_interval_ms)
+   * — the streamed X-ClickHouse-Progress header lines keep the socket
+   * non-idle (see AnalyticsDatabaseService.ClickhouseExecuteOptions and
+   * the telemetry V3 backfill engine, which do exactly that). Verified
+   * empirically on dev: an 80s INSERT...SELECT is destroyed at exactly
+   * 58s without progress headers and completes with them.
    */
   request_timeout: 58_000,
   /*

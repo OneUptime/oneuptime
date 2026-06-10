@@ -39,12 +39,31 @@ export default class MaterializeEntityKeysIndexOnTelemetryTables extends DataMig
   ];
 
   public override async migrate(): Promise<void> {
+    const failures: Array<string> = [];
     for (const tableName of MaterializeEntityKeysIndexOnTelemetryTables.signalTables) {
-      await MetricService.execute(
-        `ALTER TABLE ${tableName} MATERIALIZE INDEX idx_entity_keys SETTINGS mutations_sync=0`,
-      );
-      logger.info(
-        `MaterializeEntityKeysIndexOnTelemetryTables: started async materialization of idx_entity_keys on ${tableName}`,
+      try {
+        await MetricService.execute(
+          `ALTER TABLE ${tableName} MATERIALIZE INDEX idx_entity_keys SETTINGS mutations_sync=0`,
+        );
+        logger.info(
+          `MaterializeEntityKeysIndexOnTelemetryTables: started async materialization of idx_entity_keys on ${tableName}`,
+        );
+      } catch (err) {
+        logger.error(
+          `MaterializeEntityKeysIndexOnTelemetryTables: failed on ${tableName}:`,
+        );
+        logger.error(err as Error);
+        failures.push(tableName);
+      }
+    }
+    /*
+     * Throw at the end so a partial failure retries next boot
+     * (MATERIALIZE INDEX is idempotent) instead of being recorded as
+     * executed with some tables left scanning unindexed.
+     */
+    if (failures.length > 0) {
+      throw new Error(
+        `MaterializeEntityKeysIndexOnTelemetryTables failed on: ${failures.join(", ")}`,
       );
     }
   }

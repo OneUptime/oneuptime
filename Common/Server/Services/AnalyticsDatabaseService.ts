@@ -71,6 +71,29 @@ export type DbJSONResponse = ResponseJSON<{
   data?: Array<JSONObject>;
 }>;
 
+/*
+ * Re-exported so callers outside Common (e.g. App data migrations) can type
+ * per-call settings without depending on @clickhouse/client directly.
+ */
+export type { ClickHouseSettings } from "@clickhouse/client";
+
+/**
+ * Optional per-call knobs for `execute` / `executeQuery`, threaded into
+ * `client.exec` / `client.query`. Long-running statements (e.g. the
+ * telemetry V3 backfill's INSERT...SELECT chunks) need per-call
+ * `clickhouse_settings` — notably `send_progress_in_http_headers`, which
+ * keeps the HTTP socket non-idle so the client's `request_timeout`
+ * (enforced as a socket *idle* timer, see ClickhouseConfig.ts) never
+ * destroys a healthy request — and a deterministic `query_id` so a retry
+ * can find a still-running or already-finished predecessor in
+ * `system.processes` / `system.query_log`. Additive: callers that pass
+ * nothing get the exact pre-existing behavior.
+ */
+export interface ClickhouseExecuteOptions {
+  clickhouseSettings?: ClickHouseSettings | undefined;
+  queryId?: string | undefined;
+}
+
 /**
  * Ambient context that makes ClickHouse inserts idempotent across queue
  * retries. The telemetry queue worker wraps each job in
@@ -1413,7 +1436,8 @@ export default class AnalyticsDatabaseService<
 
   @CaptureSpan()
   public async execute(
-    statement: Statement | string
+    statement: Statement | string,
+    options?: ClickhouseExecuteOptions
   ): Promise<ExecResult<Stream>> {
     const client: ClickhouseClient = this.getDatabaseClient();
 
@@ -1425,12 +1449,17 @@ export default class AnalyticsDatabaseService<
     return (await client.exec({
       query: query,
       query_params: queryParams || (undefined as any), // undefined is not specified in the type for query_params, but its ok to pass undefined.
+      ...(options?.clickhouseSettings
+        ? { clickhouse_settings: options.clickhouseSettings }
+        : {}),
+      ...(options?.queryId ? { query_id: options.queryId } : {}),
     })) as ExecResult<Stream>;
   }
 
   @CaptureSpan()
   public async executeQuery(
-    statement: Statement | string
+    statement: Statement | string,
+    options?: ClickhouseExecuteOptions
   ): Promise<ResultSet<"JSON">> {
     const client: ClickhouseClient = this.getDatabaseClient();
 
@@ -1443,6 +1472,10 @@ export default class AnalyticsDatabaseService<
       query: query,
       format: "JSON",
       query_params: queryParams || (undefined as any), // undefined is not specified in the type for query_params, but its ok to pass undefined.
+      ...(options?.clickhouseSettings
+        ? { clickhouse_settings: options.clickhouseSettings }
+        : {}),
+      ...(options?.queryId ? { query_id: options.queryId } : {}),
     });
   }
 
