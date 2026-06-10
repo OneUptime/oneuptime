@@ -1,4 +1,5 @@
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
+import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import ProfileSampleDatabaseService from "./ProfileSampleService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
@@ -519,6 +520,12 @@ export class ProfileAggregationService {
       );
     }
 
+    /*
+     * Read-side retention filter: rows past their per-service retention
+     * stay in their part until the whole part drops (ttl_only_drop_parts).
+     */
+    statement.append(" AND retentionDate >= now()");
+
     ProfileAggregationService.appendCommonFilters(statement, request);
 
     statement.append(
@@ -534,7 +541,10 @@ export class ProfileAggregationService {
      * yields a partial flamegraph rather than holding a pool connection.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     return statement;
@@ -563,6 +573,12 @@ export class ProfileAggregationService {
         }}
     `;
 
+    /*
+     * Read-side retention filter: rows past their per-service retention
+     * stay in their part until the whole part drops (ttl_only_drop_parts).
+     */
+    statement.append(" AND retentionDate >= now()");
+
     ProfileAggregationService.appendCommonFilters(statement, request);
 
     statement.append(
@@ -577,7 +593,10 @@ export class ProfileAggregationService {
      * a partial function list rather than holding a pool connection.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     return statement;
@@ -613,6 +632,8 @@ export class ProfileAggregationService {
         }}
     `;
 
+    statement.append(" AND retentionDate >= now()");
+
     /*
      * profileTypes (array) wins over profileType (single) so the UI
      * can OR together every raw type string in a category.
@@ -644,7 +665,10 @@ export class ProfileAggregationService {
      * partial service activity rather than holding a pool connection.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
     );
 
     return statement;

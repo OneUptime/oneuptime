@@ -143,13 +143,13 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
 
     const sql: string = `
       SELECT
-        countMerge(sampleCountState)         AS sampleCount,
-        avgMerge(meanState)                  AS mean,
-        stddevPopMerge(stddevState)          AS stddev,
-        quantileMerge(0.5)(medianState)      AS median,
-        quantileMerge(0.95)(p95State)        AS p95,
-        minMerge(minObsState)                AS minObserved,
-        maxMerge(maxObsState)                AS maxObserved
+        countMerge(sampleCountState)                AS sampleCount,
+        avgMerge(meanState)                         AS mean,
+        stddevPopMerge(stddevState)                 AS stddev,
+        quantileBFloat16Merge(0.5)(medianState)     AS median,
+        quantileBFloat16Merge(0.95)(p95State)       AS p95,
+        minMerge(minObsState)                       AS minObserved,
+        maxMerge(maxObsState)                       AS maxObserved
       FROM MetricBaselineHourly
       WHERE projectId = '${projectIdStr}'
         AND name = '${metricNameStr}'

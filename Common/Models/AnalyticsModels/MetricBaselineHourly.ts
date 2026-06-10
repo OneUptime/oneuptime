@@ -112,24 +112,34 @@ export default class MetricBaselineHourly extends AnalyticsBaseModel {
       aggregateFunctionDefinition: "stddevPop, Float64",
     });
 
+    /*
+     * quantileBFloat16, not quantile(reservoir sampling): the BFloat16
+     * sketch is a fixed-size histogram of bfloat16 buckets, so its state
+     * stays small and merges cheaply no matter how many samples fold in,
+     * where the default quantile keeps an 8 KB reservoir per cell. The
+     * ~0.4% relative precision of bfloat16 is far inside the noise of an
+     * anomaly baseline. State types can't be ALTERed in place — switching
+     * required the RebuildMetricBaselineHourlyWithBFloat16Quantiles
+     * migration to drop + recreate this table and its MV.
+     */
     const medianStateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "medianState",
       title: "Median (state)",
       description:
-        "AggregateFunction(quantile(0.5), Float64) state. Read via quantileMerge(0.5)(medianState). Emitted for the future MedianMad anomaly method.",
+        "AggregateFunction(quantileBFloat16(0.5), Float64) state. Read via quantileBFloat16Merge(0.5)(medianState). Emitted for the future MedianMad anomaly method.",
       required: true,
       type: TableColumnType.AggregateFunction,
-      aggregateFunctionDefinition: "quantile(0.5), Float64",
+      aggregateFunctionDefinition: "quantileBFloat16(0.5), Float64",
     });
 
     const p95StateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "p95State",
       title: "P95 (state)",
       description:
-        "AggregateFunction(quantile(0.95), Float64) state. Read via quantileMerge(0.95)(p95State).",
+        "AggregateFunction(quantileBFloat16(0.95), Float64) state. Read via quantileBFloat16Merge(0.95)(p95State).",
       required: true,
       type: TableColumnType.AggregateFunction,
-      aggregateFunctionDefinition: "quantile(0.95), Float64",
+      aggregateFunctionDefinition: "quantileBFloat16(0.95), Float64",
     });
 
     const minObsStateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
@@ -194,8 +204,8 @@ SELECT
   countState(toFloat64(coalesce(value, sum, 0))) AS sampleCountState,
   avgState(toFloat64(coalesce(value, sum, 0))) AS meanState,
   stddevPopState(toFloat64(coalesce(value, sum, 0))) AS stddevState,
-  quantileState(0.5)(toFloat64(coalesce(value, sum, 0))) AS medianState,
-  quantileState(0.95)(toFloat64(coalesce(value, sum, 0))) AS p95State,
+  quantileBFloat16State(0.5)(toFloat64(coalesce(value, sum, 0))) AS medianState,
+  quantileBFloat16State(0.95)(toFloat64(coalesce(value, sum, 0))) AS p95State,
   minState(toFloat64(coalesce(value, sum, 0))) AS minObsState,
   maxState(toFloat64(coalesce(value, sum, 0))) AS maxObsState
 FROM MetricItemV3

@@ -2,6 +2,7 @@ import MonitorStepExceptionMonitor, {
   MonitorStepExceptionMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
 import Service from "Common/Models/DatabaseModels/Service";
+import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -26,12 +27,14 @@ export interface ComponentProps {
     monitorStepExceptionMonitor: MonitorStepExceptionMonitor,
   ) => void;
   telemetryServices: Array<Service>;
+  telemetryEntities?: Array<TelemetryEntity> | undefined;
 }
 
 type ExceptionMonitorFormValues = {
   message: string;
   exceptionTypesInput: string;
   telemetryServiceIds: Array<string>;
+  entityKeys: Array<string>;
   includeResolved: boolean;
   includeArchived: boolean;
   lastXSecondsOfExceptions: number;
@@ -79,6 +82,7 @@ const toFormValues: ToFormValuesFunction = (
         return id.toString();
       },
     ),
+    entityKeys: monitor.entityKeys || [],
     includeResolved: monitor.includeResolved || false,
     includeArchived: monitor.includeArchived || false,
     lastXSecondsOfExceptions:
@@ -102,6 +106,9 @@ const toMonitorConfig: ToMonitorConfigFunction = (
       .map((id: string): ObjectID => {
         return new ObjectID(id);
       }),
+    entityKeys: (values.entityKeys || []).filter((key: string): boolean => {
+      return Boolean(key);
+    }),
     exceptionTypes: parseExceptionTypes(values.exceptionTypesInput),
     message: values.message || "",
     includeResolved: values.includeResolved || false,
@@ -122,7 +129,8 @@ const hasAdvancedConfiguration: HasAdvancedConfigurationFunction = (
   return (
     monitor.includeResolved ||
     monitor.includeArchived ||
-    (monitor.telemetryServiceIds && monitor.telemetryServiceIds.length > 0)
+    (monitor.telemetryServiceIds && monitor.telemetryServiceIds.length > 0) ||
+    (monitor.entityKeys && monitor.entityKeys.length > 0)
   );
 };
 
@@ -226,6 +234,31 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
             ),
             title: "Filter by Telemetry Service",
             description: "Select telemetry services to scope this monitor.",
+            hideOptionalLabel: true,
+            showIf: (): boolean => {
+              return showAdvancedOptions;
+            },
+          },
+          {
+            field: {
+              entityKeys: true,
+            },
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownOptions: (props.telemetryEntities || []).map(
+              (telemetryEntity: TelemetryEntity) => {
+                return {
+                  label: `${
+                    telemetryEntity.displayName ||
+                    telemetryEntity.entityKey ||
+                    ""
+                  } (${telemetryEntity.entityType || ""})`,
+                  value: telemetryEntity.entityKey || "",
+                };
+              },
+            ),
+            title: "Filter by Infrastructure Entity",
+            description:
+              "Scope to specific infrastructure entities (optional)",
             hideOptionalLabel: true,
             showIf: (): boolean => {
               return showAdvancedOptions;

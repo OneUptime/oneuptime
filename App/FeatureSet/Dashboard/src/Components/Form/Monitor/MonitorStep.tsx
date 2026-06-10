@@ -233,8 +233,9 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   /*
    * The telemetry-entity registry (host / pod / container / ...) backing
    * the optional "scope to infrastructure entities" picker on the
-   * log/trace/metric monitor step forms. The picker stores entityKey
-   * values which the criteria compile turns into hasAny(entityKeys, [...]).
+   * log/trace/metric/exception monitor step forms. The picker stores
+   * entityKey values which the criteria compile turns into
+   * hasAny(entityKeys, [...]).
    */
   const fetchTelemetryEntities: PromiseVoidFunction =
     async (): Promise<void> => {
@@ -274,7 +275,8 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         if (
           props.monitorType === MonitorType.Logs ||
           props.monitorType === MonitorType.Traces ||
-          props.monitorType === MonitorType.Metrics
+          props.monitorType === MonitorType.Metrics ||
+          props.monitorType === MonitorType.Exceptions
         ) {
           await fetchTelemetryEntities();
         }
@@ -1294,6 +1296,7 @@ return {
               MonitorStepExceptionMonitorUtil.getDefault()
             }
             telemetryServices={telemetryServices}
+            telemetryEntities={telemetryEntities}
             onMonitorStepExceptionMonitorChanged={(
               value: MonitorStepExceptionMonitor,
             ) => {

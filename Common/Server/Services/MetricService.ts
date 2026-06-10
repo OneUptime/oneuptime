@@ -14,6 +14,8 @@ import AggregationType, {
 import AggregationInterval from "../../Types/BaseDatabase/AggregationInterval";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
+import { keyForHost } from "../../Utils/Telemetry/EntityKey";
+import ObjectID from "../../Types/ObjectID";
 import logger, { LogAttributes } from "../Utils/Logger";
 
 export class MetricService extends AnalyticsDatabaseService<Metric> {
@@ -38,7 +40,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
    * `primaryEntityId`. Global time-based purges (TTL cleanup) are handled
    * by each MV table's own `retentionDate TTL DELETE`, so cascading those
    * would pointlessly scan the whole MV. The per-host MV
-   * (`MetricItemAggMV1mByHost`) is keyed by `hostIdentifier` rather than
+   * (`MetricItemAggMV1mByHostV2`) is keyed by `hostEntityKey` rather than
    * `primaryEntityId`, so an entity-scoped delete has nothing to remove
    * there — skip it.
    */
@@ -551,16 +553,20 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
   /*
    * Per-host materialized-view fast path.
    *
-   * Returns a statement that reads from MetricItemAggMV1mByHost
-   * (created by AddMetricMinuteAggregateByHostMaterializedView)
-   * when:
+   * Returns a statement that reads from MetricItemAggMV1mByHostV2
+   * (created by RekeyMetricHostRollupToEntityKey), which is keyed by
+   * the stable `hostEntityKey` — the incoming `resource.host.name`
+   * filter value is folded into that key server-side via
+   * EntityKey.keyForHost, so spelling drift (case/whitespace) in the
+   * reported hostname still lands on one rollup stream. Applies when:
    *
    *   - The aggregation is Sum/Avg/Min/Max/Count over `value`.
    *   - The only attribute filter is `resource.host.name` as a
    *     bare-string equality (the dashboard's host detail page
-   *     pattern).
+   *     pattern), and the query carries a `projectId` (the entity
+   *     key is tenant-scoped by construction).
    *   - The query carries no group-by other than the time
-   *     bucket — the MV is keyed by hostIdentifier and does not
+   *     bucket — the MV is keyed by hostEntityKey and does not
    *     preserve other attribute breakdowns.
    *
    * Returns `null` if any condition fails so the caller falls
@@ -621,11 +627,53 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     if (attrValue === undefined || attrValue === null) {
       return null;
     }
+
+    /*
+     * The MV only carries projectId/name/hostEntityKey/bucketTime. Any
+     * other query key (primaryEntityId, entityScope, entityKeys, ...)
+     * would compile to a WHERE over a column the MV does not have, so
+     * fall back to the raw table for those. Mirrors
+     * tryBuildMinuteAggregateMVStatement.
+     */
+    const mvQueryableColumns: ReadonlyArray<string> = [
+      "projectId",
+      "name",
+      "time", // stripped below; bucketTime range is added explicitly
+      "attributes", // rewritten below into the hostEntityKey predicate
+    ];
+    for (const queryKey of Object.keys(queryRecord)) {
+      if (!mvQueryableColumns.includes(queryKey)) {
+        return null;
+      }
+    }
     const hostIdentifier: string =
       typeof attrValue === "string" ? attrValue : "";
     if (!hostIdentifier) {
       return null;
     }
+
+    /*
+     * The entity key folds the tenant in (sha256(projectId|host|...)), so
+     * the MV row can only be located when the query is project-scoped.
+     * Dashboard reads always are; anything else falls back safely.
+     */
+    const projectIdValue: unknown = queryRecord["projectId"];
+    let projectId: string = "";
+    if (projectIdValue instanceof ObjectID) {
+      projectId = projectIdValue.toString();
+    } else if (typeof projectIdValue === "string") {
+      projectId = projectIdValue;
+    }
+    if (!projectId) {
+      return null;
+    }
+
+    /*
+     * Same canonicalized key the ingest pipeline stamps into
+     * MetricItemV3.hostEntityKey (and the V2 MV groups by) — byte-equality
+     * is what makes this lookup correct, see Common/Utils/Telemetry/EntityKey.
+     */
+    const hostEntityKey: string = keyForHost(projectId, hostIdentifier);
 
     const interval: AggregationInterval = AggregateUtil.getAggregationInterval({
       startDate: aggregateBy.startTimestamp!,
@@ -657,7 +705,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
      * Strip both `time` (column doesn't exist on the MV; we
      * inject an explicit bucketTime range below) and
      * `attributes` (the attribute filter is now an explicit
-     * `hostIdentifier =` predicate against an MV column).
+     * `hostEntityKey =` predicate against an MV column).
      */
     const filteredQuery: typeof aggregateBy.query =
       this.stripAttributesAndTimeFromQuery(
@@ -674,13 +722,13 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     statement.append(
       `SELECT ${mergedExpr} as value, date_trunc('${intervalLower}', toStartOfInterval(bucketTime, INTERVAL 1 ${intervalLower})) as time`,
     );
-    statement.append(SQL` FROM ${databaseName}.MetricItemAggMV1mByHost`);
+    statement.append(SQL` FROM ${databaseName}.MetricItemAggMV1mByHostV2`);
     statement.append(
       ` WHERE bucketTime >= toDateTime('${this.formatDateTime(aggregateBy.startTimestamp!)}') AND bucketTime <= toDateTime('${this.formatDateTime(aggregateBy.endTimestamp!)}')`,
     );
     statement.append(
-      SQL` AND hostIdentifier = ${{
-        value: hostIdentifier,
+      SQL` AND hostEntityKey = ${{
+        value: hostEntityKey,
         type: TableColumnType.Text,
       }}`,
     );

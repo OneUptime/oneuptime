@@ -10,7 +10,7 @@ import {
   keyForKubernetesCluster,
 } from "../../../../Utils/Telemetry/EntityKey";
 import logger from "../../../../Server/Utils/Logger";
-import { describe, expect, jest, test } from "@jest/globals";
+import { describe, expect, test } from "@jest/globals";
 import { createHash } from "crypto";
 
 const PROJECT: string = "proj1";
@@ -597,7 +597,7 @@ describe("extractEntities — OTLP entity_refs (authoritative path)", () => {
   });
 
   test("unknown ref types are skipped (debug log), known refs still built", () => {
-    const debugSpy: ReturnType<typeof jest.spyOn> = jest
+    const debugSpy: jest.SpyInstance = jest
       .spyOn(logger, "debug")
       .mockImplementation(() => {});
     try {
@@ -655,7 +655,7 @@ describe("extractEntities — OTLP entity_refs (authoritative path)", () => {
   });
 
   test("when every ref is unusable the heuristics still produce membership keys", () => {
-    const debugSpy: ReturnType<typeof jest.spyOn> = jest
+    const debugSpy: jest.SpyInstance = jest
       .spyOn(logger, "debug")
       .mockImplementation(() => {});
     try {
@@ -678,7 +678,7 @@ describe("extractEntities — OTLP entity_refs (authoritative path)", () => {
   });
 
   test("a mutable value declared as identifying is honored with a cardinality warning", () => {
-    const warnSpy: ReturnType<typeof jest.spyOn> = jest
+    const warnSpy: jest.SpyInstance = jest
       .spyOn(logger, "warn")
       .mockImplementation(() => {});
     try {

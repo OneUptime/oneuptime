@@ -18,6 +18,8 @@ import Card from "Common/UI/Components/Card/Card";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
+import ProjectUtil from "Common/UI/Utils/Project";
+import { keyForKubernetesCluster } from "Common/Utils/Telemetry/EntityKey";
 
 const KubernetesClusterLogs: FunctionComponent<
   PageComponentProps
@@ -91,9 +93,27 @@ const KubernetesClusterLogs: FunctionComponent<
       title="Cluster Logs"
       description="Live OpenTelemetry logs from all workloads in this Kubernetes cluster. Use the filter bar to scope by severity, trace id, or any resource attribute."
     >
+      {/*
+       * entityScope is the query scope (contract C4): new rows match via the
+       * bloom-indexed `entityKeys` membership column, pre-column rows (no
+       * backfill, empty array) via the attribute equality inside the same OR.
+       * `logQuery.attributes` stays for the histogram / facet scoping —
+       * display behavior is unchanged. Drop the attribute fallback (here and
+       * in the logQuery merge) once deploy-date + max retention has passed.
+       */}
       <DashboardLogsViewer
         id={`kubernetes-cluster-logs-${modelId.toString()}`}
         logQuery={logQuery}
+        entityScope={{
+          entityKeys: [
+            keyForKubernetesCluster(
+              ProjectUtil.getCurrentProjectId()!.toString(),
+              cluster.clusterIdentifier!,
+            ),
+          ],
+          attributeKey: "resource.k8s.cluster.name",
+          attributeValue: cluster.clusterIdentifier!,
+        }}
         showFilters={true}
         enableRealtime={true}
         noLogsMessage="No logs found for this cluster. Make sure your OTel collector forwards logs with the k8s.cluster.name resource attribute."
