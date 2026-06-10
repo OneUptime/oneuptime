@@ -37,7 +37,9 @@ import React, {
  * see e.g. every span that touched a k8s pod — even spans primarily owned by
  * a service. This is the payoff of the entity model's read path.
  */
-const EntityDetailPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const EntityDetailPage: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [entity, setEntity] = useState<TelemetryEntity | null>(null);

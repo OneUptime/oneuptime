@@ -48,9 +48,9 @@ export default class ClickHouseMigrationUtil {
       );
     const json: ClickHouseJsonResult =
       (await result.json()) as ClickHouseJsonResult;
-    return (json.data ?? []).map((r: Record<string, unknown>) =>
-      String(r["name"]),
-    );
+    return (json.data ?? []).map((r: Record<string, unknown>) => {
+      return String(r["name"]);
+    });
   }
 
   /** Stored CREATE statement of a table/view, or null if it does not exist. */
@@ -80,9 +80,9 @@ export default class ClickHouseMigrationUtil {
       );
     const json: ClickHouseJsonResult =
       (await result.json()) as ClickHouseJsonResult;
-    return (json.data ?? []).map((r: Record<string, unknown>) =>
-      String(r["partition_id"]),
-    );
+    return (json.data ?? []).map((r: Record<string, unknown>) => {
+      return String(r["partition_id"]);
+    });
   }
 
   private static async ensureCopyProgressTable(): Promise<void> {
@@ -101,9 +101,9 @@ export default class ClickHouseMigrationUtil {
     const json: ClickHouseJsonResult =
       (await result.json()) as ClickHouseJsonResult;
     return new Set(
-      (json.data ?? []).map((r: Record<string, unknown>) =>
-        String(r["partition"]),
-      ),
+      (json.data ?? []).map((r: Record<string, unknown>) => {
+        return String(r["partition"]);
+      }),
     );
   }
 
@@ -156,8 +156,10 @@ export default class ClickHouseMigrationUtil {
     const renameMap: Record<string, string> = options.renameMap ?? {};
     const sourceColumnSet: Set<string> = new Set(sourceColumns);
 
-    const copyColumns: Array<string> = destinationColumns.filter((c: string) =>
-      sourceColumnSet.has(renameMap[c] ?? c),
+    const copyColumns: Array<string> = destinationColumns.filter(
+      (c: string) => {
+        return sourceColumnSet.has(renameMap[c] ?? c);
+      },
     );
 
     if (copyColumns.length === 0) {
@@ -165,10 +167,14 @@ export default class ClickHouseMigrationUtil {
     }
 
     const insertList: string = copyColumns
-      .map((c: string) => `\`${c}\``)
+      .map((c: string) => {
+        return `\`${c}\``;
+      })
       .join(", ");
     const selectList: string = copyColumns
-      .map((c: string) => `\`${renameMap[c] ?? c}\``)
+      .map((c: string) => {
+        return `\`${renameMap[c] ?? c}\``;
+      })
       .join(", ");
 
     const errors: Array<string> = [];

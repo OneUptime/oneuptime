@@ -83,8 +83,10 @@ export default class MigrateTelemetryToV3PrimaryEntityId extends DataMigrationBa
     await AnalyticsTableManagement.createTables();
     await AnalyticsTableManagement.createMaterializedViews();
 
-    // 3. Copy historical signal data V2 -> V3 with a name-based column map,
-    //    one partition at a time, resuming from the progress marker on retry.
+    /*
+     * 3. Copy historical signal data V2 -> V3 with a name-based column map,
+     *    one partition at a time, resuming from the progress marker on retry.
+     */
     const copies: Array<[string, string]> = [
       ["LogItemV2", "LogItemV3"],
       ["MetricItemV2", "MetricItemV3"],
@@ -94,8 +96,10 @@ export default class MigrateTelemetryToV3PrimaryEntityId extends DataMigrationBa
       ["ProfileSampleItemV2", "ProfileSampleItemV3"],
     ];
 
-    // Map the two renamed columns back to their V2 source names; everything
-    // else maps by identical name.
+    /*
+     * Map the two renamed columns back to their V2 source names; everything
+     * else maps by identical name.
+     */
     const renameMap: Record<string, string> = {
       primaryEntityId: "serviceId",
       primaryEntityType: "serviceType",

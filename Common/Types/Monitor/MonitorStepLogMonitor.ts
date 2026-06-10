@@ -27,7 +27,9 @@ export class MonitorStepLogMonitorUtil {
       monitorStepLogMonitor.telemetryServiceIds &&
       monitorStepLogMonitor.telemetryServiceIds.length > 0
     ) {
-      query.primaryEntityId = new Includes(monitorStepLogMonitor.telemetryServiceIds);
+      query.primaryEntityId = new Includes(
+        monitorStepLogMonitor.telemetryServiceIds,
+      );
     }
 
     if (

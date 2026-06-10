@@ -323,7 +323,8 @@ export class Service extends DatabaseService<Model> {
        * a real Service.
        */
       const primaryEntityType: ServiceType =
-        (usage.primaryEntityType as ServiceType | null) ?? ServiceType.OpenTelemetry;
+        (usage.primaryEntityType as ServiceType | null) ??
+        ServiceType.OpenTelemetry;
 
       await this.updateUsageBilling({
         projectId: data.projectId,

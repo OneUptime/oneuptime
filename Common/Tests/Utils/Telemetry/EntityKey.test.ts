@@ -25,8 +25,10 @@ describe("canonicalizeEntityValue", () => {
 
 describe("computeEntityKey — preimage escaping", () => {
   test("values containing separators do not collide with structurally different identity sets", () => {
-    // Without escaping, both would build the preimage
-    // `proj1|service|service.name=a|service.namespace=b`.
+    /*
+     * Without escaping, both would build the preimage
+     * `proj1|service|service.name=a|service.namespace=b`.
+     */
     const smuggled: string = computeEntityKey({
       projectId: PROJECT,
       entityType: EntityType.Service,
@@ -44,9 +46,11 @@ describe("computeEntityKey — preimage escaping", () => {
   });
 
   test("the escape character itself is escaped (no backslash smuggling)", () => {
-    // A literal backslash in a value must be doubled in the preimage, so a
-    // trailing backslash cannot masquerade as an escape of the following
-    // separator.
+    /*
+     * A literal backslash in a value must be doubled in the preimage, so a
+     * trailing backslash cannot masquerade as an escape of the following
+     * separator.
+     */
     const trailingBackslash: string = computeEntityKey({
       projectId: PROJECT,
       entityType: EntityType.Service,
@@ -78,8 +82,10 @@ describe("computeEntityKey — preimage escaping", () => {
       .digest("hex")
       .slice(0, 16);
     expect(key).toBe(historical);
-    // Pinned so any preimage drift (separator, ordering, hash, slice
-    // length) fails loudly — this exact key is stamped in ClickHouse rows.
+    /*
+     * Pinned so any preimage drift (separator, ordering, hash, slice
+     * length) fails loudly — this exact key is stamped in ClickHouse rows.
+     */
     expect(key).toBe("904989abd67aec3f");
     expect(keyForService(PROJECT, "checkout")).toBe("904989abd67aec3f");
   });

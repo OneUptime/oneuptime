@@ -48,72 +48,74 @@ export default class Profile extends AnalyticsBaseModel {
       },
     });
 
-    const primaryEntityIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
-      key: "primaryEntityId",
-      title: "Service ID",
-      description:
-        "ID of the resource the profile belongs to (Service / Host / DockerHost / KubernetesCluster / Monitor — disambiguated by primaryEntityType)",
-      required: true,
-      type: TableColumnType.ObjectID,
-      accessControl: {
-        read: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.Viewer,
-          Permission.TelemetryAdmin,
-          Permission.TelemetryMember,
-          Permission.TelemetryViewer,
-          Permission.ReadTelemetryServiceProfiles,
-        ],
-        create: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.TelemetryAdmin,
-          Permission.TelemetryMember,
-          Permission.CreateTelemetryServiceProfiles,
-        ],
-        update: [],
-      },
-    });
+    const primaryEntityIdColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "primaryEntityId",
+        title: "Service ID",
+        description:
+          "ID of the resource the profile belongs to (Service / Host / DockerHost / KubernetesCluster / Monitor — disambiguated by primaryEntityType)",
+        required: true,
+        type: TableColumnType.ObjectID,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
+            Permission.ReadTelemetryServiceProfiles,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.CreateTelemetryServiceProfiles,
+          ],
+          update: [],
+        },
+      });
 
-    const primaryEntityTypeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
-      key: "primaryEntityType",
-      isLowCardinality: true,
-      title: "Service Type",
-      description:
-        "Discriminator for primaryEntityId — tells the read side which resource table to dispatch to",
-      required: false,
-      type: TableColumnType.Text,
-      skipIndex: {
-        name: "idx_service_type",
-        type: SkipIndexType.Set,
-        params: [10],
-        granularity: 4,
-      },
-      accessControl: {
-        read: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.Viewer,
-          Permission.TelemetryAdmin,
-          Permission.TelemetryMember,
-          Permission.TelemetryViewer,
-          Permission.ReadTelemetryServiceProfiles,
-        ],
-        create: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.TelemetryAdmin,
-          Permission.TelemetryMember,
-          Permission.CreateTelemetryServiceProfiles,
-        ],
-        update: [],
-      },
-    });
+    const primaryEntityTypeColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "primaryEntityType",
+        isLowCardinality: true,
+        title: "Service Type",
+        description:
+          "Discriminator for primaryEntityId — tells the read side which resource table to dispatch to",
+        required: false,
+        type: TableColumnType.Text,
+        skipIndex: {
+          name: "idx_service_type",
+          type: SkipIndexType.Set,
+          params: [10],
+          granularity: 4,
+        },
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
+            Permission.ReadTelemetryServiceProfiles,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.CreateTelemetryServiceProfiles,
+          ],
+          update: [],
+        },
+      });
 
     const profileIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "profileId",

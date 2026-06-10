@@ -244,7 +244,9 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
         for (const fn of fns) {
           if ((fn as unknown as { primaryEntityId?: string }).primaryEntityId) {
             fresh.add(
-              (fn as unknown as { primaryEntityId: string }).primaryEntityId.toString(),
+              (
+                fn as unknown as { primaryEntityId: string }
+              ).primaryEntityId.toString(),
             );
           }
         }

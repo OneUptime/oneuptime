@@ -233,8 +233,10 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
           <tbody className="divide-y divide-gray-100">
             {props.logs.map((log: Log, index: number) => {
               const rowId: string = resolveLogIdentifier(log, index);
-              const primaryEntityId: string = log.primaryEntityId?.toString() || "";
-              const service: Service | undefined = props.serviceMap[primaryEntityId];
+              const primaryEntityId: string =
+                log.primaryEntityId?.toString() || "";
+              const service: Service | undefined =
+                props.serviceMap[primaryEntityId];
               const serviceName: string =
                 service?.name || primaryEntityId || "Unknown";
               const serviceColor: string =

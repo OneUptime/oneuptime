@@ -163,7 +163,8 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
           const entry: JSONObject = (raw as JSONObject) || {};
           return {
             primaryEntityId: (entry["primaryEntityId"] as string) || "",
-            primaryEntityType: (entry["primaryEntityType"] as ServiceType | null) ?? null,
+            primaryEntityType:
+              (entry["primaryEntityType"] as ServiceType | null) ?? null,
             unresolvedCount: Number(entry["unresolvedCount"] || 0),
             totalOccurrences: Number(entry["totalOccurrences"] || 0),
           };

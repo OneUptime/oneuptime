@@ -47,13 +47,14 @@ export default class MetricItemAggMV1m extends AnalyticsBaseModel {
       type: TableColumnType.Text,
     });
 
-    const primaryEntityIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
-      key: "primaryEntityId",
-      title: "Service ID",
-      description: "Service ID (replicated from MetricItemV2)",
-      required: true,
-      type: TableColumnType.Text,
-    });
+    const primaryEntityIdColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "primaryEntityId",
+        title: "Service ID",
+        description: "Service ID (replicated from MetricItemV2)",
+        required: true,
+        type: TableColumnType.Text,
+      });
 
     const bucketTimeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "bucketTime",

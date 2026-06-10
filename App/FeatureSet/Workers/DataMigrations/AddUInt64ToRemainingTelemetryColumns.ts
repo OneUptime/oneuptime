@@ -18,13 +18,30 @@ export default class AddUInt64ToRemainingTelemetryColumns extends DataMigrationB
     // [table, column, full type incl. nullability, CODEC clause]
     const alters: Array<[string, string, string, string]> = [
       // monotonic timestamps -> DoubleDelta
-      ["LogItemV3", "observedTimeUnixNano", "Nullable(UInt64)", "CODEC(DoubleDelta, ZSTD(1))"],
-      ["SpanItemV3", "endTimeUnixNano", "UInt64", "CODEC(DoubleDelta, ZSTD(1))"],
-      ["ProfileItemV3", "endTimeUnixNano", "UInt64", "CODEC(DoubleDelta, ZSTD(1))"],
-      // non-monotonic durations / values -> plain ZSTD
-      // NOTE: SpanItemV3.durationUnixNano is intentionally left Int128 — it is
-      // aggregated as AggregateFunction(avg, Int128) inside proj_agg_by_service,
-      // and ClickHouse cannot convert that projection state to UInt64 in place.
+      [
+        "LogItemV3",
+        "observedTimeUnixNano",
+        "Nullable(UInt64)",
+        "CODEC(DoubleDelta, ZSTD(1))",
+      ],
+      [
+        "SpanItemV3",
+        "endTimeUnixNano",
+        "UInt64",
+        "CODEC(DoubleDelta, ZSTD(1))",
+      ],
+      [
+        "ProfileItemV3",
+        "endTimeUnixNano",
+        "UInt64",
+        "CODEC(DoubleDelta, ZSTD(1))",
+      ],
+      /*
+       * non-monotonic durations / values -> plain ZSTD
+       * NOTE: SpanItemV3.durationUnixNano is intentionally left Int128 — it is
+       * aggregated as AggregateFunction(avg, Int128) inside proj_agg_by_service,
+       * and ClickHouse cannot convert that projection state to UInt64 in place.
+       */
       ["ProfileItemV3", "durationNano", "UInt64", "CODEC(ZSTD(1))"],
       ["ProfileItemV3", "period", "Nullable(UInt64)", "CODEC(ZSTD(1))"],
       ["ProfileSampleItemV3", "value", "UInt64", "CODEC(ZSTD(1))"],

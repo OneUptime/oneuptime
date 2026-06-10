@@ -123,7 +123,8 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
   const variant: "floating" | "embedded" = props.variant || "floating";
   const primaryEntityId: string = props.log.primaryEntityId?.toString() || "";
   const service: Service | undefined = props.serviceMap[primaryEntityId];
-  const serviceName: string = service?.name || primaryEntityId || "Unknown service";
+  const serviceName: string =
+    service?.name || primaryEntityId || "Unknown service";
   const serviceColor: string =
     (service?.serviceColor && service?.serviceColor.toString()) || "#64748b";
 

@@ -344,7 +344,8 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                     .projectId;
                   const profileServiceMetadata: TelemetryServiceMetadata =
                     serviceDictionary[serviceName]!;
-                  const primaryEntityId: ObjectID = profileServiceMetadata.primaryEntityId!;
+                  const primaryEntityId: ObjectID =
+                    profileServiceMetadata.primaryEntityId!;
 
                   const frame: NormalizedProfileFrame =
                     this.normalizeProfileItem(

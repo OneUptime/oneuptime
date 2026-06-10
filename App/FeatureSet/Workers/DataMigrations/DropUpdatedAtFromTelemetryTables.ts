@@ -36,7 +36,9 @@ export default class DropUpdatedAtFromTelemetryTables extends DataMigrationBase 
         await MetricService.execute(
           `ALTER TABLE ${table} DROP COLUMN IF EXISTS updatedAt`,
         );
-        logger.info(`DropUpdatedAtFromTelemetryTables: dropped updatedAt from ${table}`);
+        logger.info(
+          `DropUpdatedAtFromTelemetryTables: dropped updatedAt from ${table}`,
+        );
       } catch (err) {
         logger.error(`DropUpdatedAtFromTelemetryTables: failed on ${table}:`);
         logger.error(err as Error);

@@ -39,7 +39,9 @@ describe("inferRelationshipType", () => {
         EntityType.KubernetesPod,
       ),
     ).toBeNull();
-    expect(inferRelationshipType(EntityType.Host, EntityType.Service)).toBeNull();
+    expect(
+      inferRelationshipType(EntityType.Host, EntityType.Service),
+    ).toBeNull();
   });
 
   test("unrelated or self type pairs yield null", () => {

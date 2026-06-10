@@ -118,8 +118,10 @@ export function keyForService(
     "service.name": serviceName,
   };
 
-  // Mirrors the resolver's addIfPresent: blank/whitespace-only namespaces
-  // are not identity-bearing.
+  /*
+   * Mirrors the resolver's addIfPresent: blank/whitespace-only namespaces
+   * are not identity-bearing.
+   */
   if (serviceNamespace && serviceNamespace.trim().length > 0) {
     identifyingAttributes["service.namespace"] = serviceNamespace;
   }

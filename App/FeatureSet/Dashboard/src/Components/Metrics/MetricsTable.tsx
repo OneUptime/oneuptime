@@ -64,7 +64,8 @@ const MetricsTable: FunctionComponent<ComponentProps> = (
           if (serviceFilterIds.length === 1) {
             const primaryEntityId: ObjectID | undefined = serviceFilterIds[0];
 
-            const serviceIdString: string | undefined = primaryEntityId?.toString();
+            const serviceIdString: string | undefined =
+              primaryEntityId?.toString();
 
             if (serviceIdString) {
               metricAttributes["oneuptime.service.id"] = serviceIdString;

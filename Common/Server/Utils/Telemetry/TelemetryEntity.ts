@@ -42,12 +42,7 @@ setSha256Provider((input: string): string => {
 });
 
 /** Scalar attribute value as seen after `TelemetryUtil.getAttributes`. */
-export type EntityAttributeValue =
-  | string
-  | number
-  | boolean
-  | null
-  | undefined;
+export type EntityAttributeValue = string | number | boolean | null | undefined;
 
 /**
  * A flat resource-attribute map keyed by the *raw* semconv attribute name
@@ -88,8 +83,10 @@ export default class TelemetryEntity {
     entityType: EntityType;
     identifyingAttributes: Dictionary<string>;
   }): string {
-    // Delegate to the shared isomorphic implementation so ingest (here) and
-    // reads (server/browser) produce byte-identical keys.
+    /*
+     * Delegate to the shared isomorphic implementation so ingest (here) and
+     * reads (server/browser) produce byte-identical keys.
+     */
     return computeEntityKeyShared(data);
   }
 
@@ -107,8 +104,10 @@ export default class TelemetryEntity {
     const seen: Set<string> = new Set<string>();
 
     for (const resolve of this.resolvers) {
-      const identity: { entityType: EntityType; id: Dictionary<string> } | null =
-        resolve(data.attributes);
+      const identity: {
+        entityType: EntityType;
+        id: Dictionary<string>;
+      } | null = resolve(data.attributes);
 
       if (!identity) {
         continue;
@@ -241,10 +240,7 @@ export default class TelemetryEntity {
 
     // k8s.node — cluster + k8s.node.uid/k8s.node.name.
     (attrs: EntityAttributes) => {
-      const nodeUid: string | null = TelemetryEntity.str(
-        attrs,
-        "k8s.node.uid",
-      );
+      const nodeUid: string | null = TelemetryEntity.str(attrs, "k8s.node.uid");
       const nodeName: string | null = TelemetryEntity.str(
         attrs,
         "k8s.node.name",
@@ -266,10 +262,7 @@ export default class TelemetryEntity {
     // k8s.pod — cluster + namespace + k8s.pod.uid/k8s.pod.name.
     (attrs: EntityAttributes) => {
       const podUid: string | null = TelemetryEntity.str(attrs, "k8s.pod.uid");
-      const podName: string | null = TelemetryEntity.str(
-        attrs,
-        "k8s.pod.name",
-      );
+      const podName: string | null = TelemetryEntity.str(attrs, "k8s.pod.name");
       if (!podUid && !podName) {
         return null;
       }
@@ -399,8 +392,9 @@ export default class TelemetryEntity {
    * null/undefined/empty/arrays/objects return null (not identity-bearing).
    */
   private static str(attrs: EntityAttributes, key: string): string | null {
-    const value: EntityAttributeValue | Array<EntityAttributeValue> =
-      attrs ? attrs[key] : undefined;
+    const value: EntityAttributeValue | Array<EntityAttributeValue> = attrs
+      ? attrs[key]
+      : undefined;
 
     if (value === undefined || value === null) {
       return null;

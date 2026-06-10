@@ -3,12 +3,11 @@ import EntitiesTable from "../../Components/Entities/EntitiesTable";
 import Page from "Common/UI/Components/Page/Page";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const EntitiesPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const EntitiesPage: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   return (
-    <Page
-      title="Entities"
-      breadcrumbLinks={[]}
-    >
+    <Page title="Entities" breadcrumbLinks={[]}>
       <EntitiesTable />
     </Page>
   );

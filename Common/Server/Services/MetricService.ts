@@ -449,6 +449,26 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       return null;
     }
 
+    /*
+     * The MV only carries projectId/name/primaryEntityId/bucketTime, so a
+     * query filtering on any other column (e.g. entityKeys membership,
+     * which exists only on the raw Metric table) must fall back to the
+     * raw-table path or the generated WHERE would reference a column the
+     * MV does not have.
+     */
+    const mvQueryableColumns: ReadonlyArray<string> = [
+      "projectId",
+      "name",
+      "primaryEntityId",
+      "time", // stripped below; bucketTime range is added explicitly
+      "attributes", // guarded empty above
+    ];
+    for (const queryKey of Object.keys(queryRecord)) {
+      if (!mvQueryableColumns.includes(queryKey)) {
+        return null;
+      }
+    }
+
     if (!this.database) {
       this.useDefaultDatabase();
     }

@@ -1625,7 +1625,8 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
             const telemetryService: Service | undefined =
               telemetryServices.find((service: Service) => {
                 return (
-                  service._id?.toString() === selectedSpan.primaryEntityId?.toString()
+                  service._id?.toString() ===
+                  selectedSpan.primaryEntityId?.toString()
                 );
               });
 

@@ -54,13 +54,14 @@ export default class MetricBaselineHourly extends AnalyticsBaseModel {
       type: TableColumnType.Text,
     });
 
-    const primaryEntityIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
-      key: "primaryEntityId",
-      title: "Service ID",
-      description: "Service ID (replicated from MetricItemV2)",
-      required: true,
-      type: TableColumnType.Text,
-    });
+    const primaryEntityIdColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "primaryEntityId",
+        title: "Service ID",
+        description: "Service ID (replicated from MetricItemV2)",
+        required: true,
+        type: TableColumnType.Text,
+      });
 
     const dayColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "day",
@@ -207,7 +208,13 @@ GROUP BY projectId, name, primaryEntityId, day, hourOfWeek`,
        * granule range.
        */
       sortKeys: ["projectId", "name", "primaryEntityId", "hourOfWeek", "day"],
-      primaryKeys: ["projectId", "name", "primaryEntityId", "hourOfWeek", "day"],
+      primaryKeys: [
+        "projectId",
+        "name",
+        "primaryEntityId",
+        "hourOfWeek",
+        "day",
+      ],
       partitionKey: "toYYYYMM(day)",
       tableSettings: "ttl_only_drop_parts = 1",
       ttlExpression: "day + INTERVAL 90 DAY",

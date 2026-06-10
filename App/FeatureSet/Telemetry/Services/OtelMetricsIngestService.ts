@@ -716,7 +716,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               metricNameServiceNameMap[heartbeatMetricName]!.services!.filter(
                 (svc: Service) => {
                   return (
-                    svc.id?.toString() === serviceMetadata.primaryEntityId!.toString()
+                    svc.id?.toString() ===
+                    serviceMetadata.primaryEntityId!.toString()
                   );
                 },
               ).length === 0

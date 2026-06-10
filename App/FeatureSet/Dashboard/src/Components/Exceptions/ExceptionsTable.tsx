@@ -95,7 +95,9 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
         }}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
-          primaryEntityId: props.primaryEntityId ? props.primaryEntityId : undefined,
+          primaryEntityId: props.primaryEntityId
+            ? props.primaryEntityId
+            : undefined,
           ...props.query,
         }}
         bulkActions={{

@@ -62,71 +62,73 @@ export default class Metric extends AnalyticsBaseModel {
     });
 
     // this can also be the monitor id or the telemetry service id.
-    const primaryEntityIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
-      key: "primaryEntityId",
-      title: "Service ID",
-      description: "ID of the Service which created the Metric",
-      required: true,
-      type: TableColumnType.ObjectID,
-      accessControl: {
-        read: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.Viewer,
-          Permission.TelemetryAdmin,
-          Permission.TelemetryMember,
-          Permission.TelemetryViewer,
-          Permission.ReadTelemetryServiceLog,
-        ],
-        create: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.TelemetryAdmin,
-          Permission.TelemetryMember,
-          Permission.CreateTelemetryServiceLog,
-        ],
-        update: [],
-      },
-    });
+    const primaryEntityIdColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "primaryEntityId",
+        title: "Service ID",
+        description: "ID of the Service which created the Metric",
+        required: true,
+        type: TableColumnType.ObjectID,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
+            Permission.ReadTelemetryServiceLog,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.CreateTelemetryServiceLog,
+          ],
+          update: [],
+        },
+      });
 
     // this can also be the monitor id or the telemetry service id.
-    const primaryEntityTypeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
-      key: "primaryEntityType",
-      isLowCardinality: true,
-      title: "Service Type",
-      description: "Type of the service that this telemetry belongs to",
-      required: false,
-      type: TableColumnType.Text,
-      skipIndex: {
-        name: "idx_service_type",
-        type: SkipIndexType.Set,
-        params: [5],
-        granularity: 4,
-      },
-      accessControl: {
-        read: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.Viewer,
-          Permission.TelemetryAdmin,
-          Permission.TelemetryMember,
-          Permission.TelemetryViewer,
-          Permission.ReadTelemetryServiceLog,
-        ],
-        create: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.TelemetryAdmin,
-          Permission.TelemetryMember,
-          Permission.CreateTelemetryServiceLog,
-        ],
-        update: [],
-      },
-    });
+    const primaryEntityTypeColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "primaryEntityType",
+        isLowCardinality: true,
+        title: "Service Type",
+        description: "Type of the service that this telemetry belongs to",
+        required: false,
+        type: TableColumnType.Text,
+        skipIndex: {
+          name: "idx_service_type",
+          type: SkipIndexType.Set,
+          params: [5],
+          granularity: 4,
+        },
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.Viewer,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.TelemetryViewer,
+            Permission.ReadTelemetryServiceLog,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.TelemetryAdmin,
+            Permission.TelemetryMember,
+            Permission.CreateTelemetryServiceLog,
+          ],
+          update: [],
+        },
+      });
 
     // add name and description
     const nameColumn: AnalyticsTableColumn = new AnalyticsTableColumn({

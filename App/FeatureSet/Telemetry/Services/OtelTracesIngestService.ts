@@ -832,7 +832,8 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                 fingerprint: fingerprint,
                 projectId: spanContext.projectId,
                 primaryEntityId: spanContext.primaryEntityId,
-                primaryEntityType: spanContext.serviceMetadata.primaryEntityType,
+                primaryEntityType:
+                  spanContext.serviceMetadata.primaryEntityType,
                 ...(exceptionType
                   ? {
                       exceptionType: exceptionType,

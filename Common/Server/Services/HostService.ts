@@ -72,9 +72,7 @@ export class Service extends DatabaseService<Model> {
      * host.name (OtelIngestBaseService.normalizeHostNameAttributesInPlace);
      * we repeat it here so the method is correct for any caller.
      */
-    const hostIdentifier: string = canonicalizeEntityValue(
-      data.hostIdentifier,
-    );
+    const hostIdentifier: string = canonicalizeEntityValue(data.hostIdentifier);
 
     /*
      * Look up case-insensitively. The unique guard on name/hostIdentifier

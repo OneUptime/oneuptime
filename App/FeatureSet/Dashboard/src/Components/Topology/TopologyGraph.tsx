@@ -138,7 +138,7 @@ const TopologyGraph: FunctionComponent = (): ReactElement => {
       const entity: TelemetryEntity | undefined = entityByKey.get(key);
       const layer: number =
         entity && entity.entityType
-          ? (LAYER_BY_TYPE[entity.entityType] ?? FALLBACK_LAYER)
+          ? LAYER_BY_TYPE[entity.entityType] ?? FALLBACK_LAYER
           : FALLBACK_LAYER;
       const bucket: Array<string> = keysByLayer.get(layer) || [];
       bucket.push(key);
@@ -149,8 +149,7 @@ const TopologyGraph: FunctionComponent = (): ReactElement => {
     for (const [layer, keys] of keysByLayer) {
       keys.forEach((key: string, index: number) => {
         const entity: TelemetryEntity | undefined = entityByKey.get(key);
-        const label: string =
-          entity?.displayName || `${key.substring(0, 8)}…`;
+        const label: string = entity?.displayName || `${key.substring(0, 8)}…`;
         const typeLabel: string = entity?.entityType || "unknown";
         builtNodes.push({
           id: key,

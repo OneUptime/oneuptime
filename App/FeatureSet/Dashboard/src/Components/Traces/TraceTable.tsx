@@ -452,7 +452,8 @@ const TraceTable: FunctionComponent<ComponentProps> = (
                 const telemetryService: Service | undefined =
                   telemetryServices.find((service: Service) => {
                     return (
-                      service.id?.toString() === span.primaryEntityId?.toString()
+                      service.id?.toString() ===
+                      span.primaryEntityId?.toString()
                     );
                   });
 

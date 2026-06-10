@@ -1325,8 +1325,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       statement.append(`\nTTL ${this.model.ttlExpression}`);
     }
 
-    // Append table-level SETTINGS if specified (e.g. ttl_only_drop_parts = 1
-    // so TTL drops whole time-partitions instead of rewriting parts).
+    /*
+     * Append table-level SETTINGS if specified (e.g. ttl_only_drop_parts = 1
+     * so TTL drops whole time-partitions instead of rewriting parts).
+     */
     if (this.model.tableSettings) {
       statement.append(`\nSETTINGS ${this.model.tableSettings}`);
     }

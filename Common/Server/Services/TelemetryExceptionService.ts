@@ -295,7 +295,10 @@ export class Service extends DatabaseService<Model> {
       "TelemetryException",
     )
       .select(`"TelemetryException"."primaryEntityId"`, "primaryEntityId")
-      .addSelect(`"TelemetryException"."primaryEntityType"`, "primaryEntityType")
+      .addSelect(
+        `"TelemetryException"."primaryEntityType"`,
+        "primaryEntityType",
+      )
       .addSelect(`COUNT(*)`, "unresolvedCount")
       .addSelect(
         `COALESCE(SUM("TelemetryException"."occuranceCount"), 0)`,
@@ -332,7 +335,8 @@ export class Service extends DatabaseService<Model> {
       }
       summaries.push({
         primaryEntityId: row.primaryEntityId,
-        primaryEntityType: (row.primaryEntityType as ServiceType | null) ?? null,
+        primaryEntityType:
+          (row.primaryEntityType as ServiceType | null) ?? null,
         unresolvedCount: parseInt(row.unresolvedCount, 10) || 0,
         totalOccurrences: parseInt(row.totalOccurrences || "0", 10) || 0,
       });

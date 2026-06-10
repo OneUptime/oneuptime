@@ -29,18 +29,15 @@ export interface EntityRelationshipEdge {
 const RULES: Record<string, EntityRelationshipType> = {
   [`${EntityType.ServiceInstance}|${EntityType.Service}`]:
     EntityRelationshipType.InstanceOf,
-  [`${EntityType.Service}|${EntityType.Host}`]:
-    EntityRelationshipType.HostedOn,
+  [`${EntityType.Service}|${EntityType.Host}`]: EntityRelationshipType.HostedOn,
   [`${EntityType.Service}|${EntityType.KubernetesPod}`]:
     EntityRelationshipType.RunsOn,
   [`${EntityType.Container}|${EntityType.KubernetesPod}`]:
     EntityRelationshipType.PartOf,
-  [`${EntityType.Container}|${EntityType.Host}`]:
-    EntityRelationshipType.PartOf,
+  [`${EntityType.Container}|${EntityType.Host}`]: EntityRelationshipType.PartOf,
   [`${EntityType.Process}|${EntityType.Container}`]:
     EntityRelationshipType.PartOf,
-  [`${EntityType.Process}|${EntityType.Host}`]:
-    EntityRelationshipType.RunsOn,
+  [`${EntityType.Process}|${EntityType.Host}`]: EntityRelationshipType.RunsOn,
   [`${EntityType.KubernetesPod}|${EntityType.KubernetesNode}`]:
     EntityRelationshipType.RunsOn,
   [`${EntityType.KubernetesPod}|${EntityType.KubernetesNamespace}`]:

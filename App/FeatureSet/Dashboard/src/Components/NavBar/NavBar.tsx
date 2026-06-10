@@ -159,9 +159,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       title: "Entities",
       description:
         "Explore entities (services, hosts, k8s pods, containers) discovered from your telemetry.",
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.ENTITIES] as Route,
-      ),
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.ENTITIES] as Route),
       activeRoute: RouteMap[PageMap.ENTITIES],
       icon: IconProp.Cube,
       iconColor: "blue",
@@ -171,9 +169,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       title: "Topology",
       description:
         "Service map / topology of how your entities relate (runs-on, member-of, hosted-on, part-of).",
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.TOPOLOGY] as Route,
-      ),
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.TOPOLOGY] as Route),
       activeRoute: RouteMap[PageMap.TOPOLOGY],
       icon: IconProp.FlowDiagram,
       iconColor: "indigo",

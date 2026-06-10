@@ -210,7 +210,8 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
         const allDurations: Array<number> = [];
 
         for (const span of allSpans) {
-          const primaryEntityId: string = span.primaryEntityId?.toString() || "";
+          const primaryEntityId: string =
+            span.primaryEntityId?.toString() || "";
           const traceId: string = span.traceId?.toString() || "";
           const duration: number = (span.durationUnixNano as number) || 0;
           const summary: ServiceTraceSummary | undefined =

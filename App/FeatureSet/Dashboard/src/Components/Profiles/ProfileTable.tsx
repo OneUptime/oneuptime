@@ -312,7 +312,8 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                 const telemetryService: Service | undefined =
                   telemetryServices.find((service: Service) => {
                     return (
-                      service.id?.toString() === profile.primaryEntityId?.toString()
+                      service.id?.toString() ===
+                      profile.primaryEntityId?.toString()
                     );
                   });
 

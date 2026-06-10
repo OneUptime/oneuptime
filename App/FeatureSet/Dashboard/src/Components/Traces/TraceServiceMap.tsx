@@ -38,7 +38,8 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
 
     // First pass: build span -> service mapping and service nodes
     for (const span of spans) {
-      const primaryEntityId: string = span.primaryEntityId?.toString() || "unknown";
+      const primaryEntityId: string =
+        span.primaryEntityId?.toString() || "unknown";
       spanServiceMap.set(span.spanId!, primaryEntityId);
 
       const existing: ServiceNode | undefined = nodeMap.get(primaryEntityId);
@@ -76,7 +77,8 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
       const parentServiceId: string | undefined = spanServiceMap.get(
         span.parentSpanId,
       );
-      const childServiceId: string = span.primaryEntityId?.toString() || "unknown";
+      const childServiceId: string =
+        span.primaryEntityId?.toString() || "unknown";
 
       if (!parentServiceId || parentServiceId === childServiceId) {
         continue; // Skip same-service calls

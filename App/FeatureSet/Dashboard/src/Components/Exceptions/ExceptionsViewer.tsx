@@ -803,7 +803,13 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     } finally {
       setHistogramLoading(false);
     }
-  }, [timeRange, activeFilters, submittedSearch, parseSearch, props.primaryEntityId]);
+  }, [
+    timeRange,
+    activeFilters,
+    submittedSearch,
+    parseSearch,
+    props.primaryEntityId,
+  ]);
 
   useEffect(() => {
     void fetchHistogram();

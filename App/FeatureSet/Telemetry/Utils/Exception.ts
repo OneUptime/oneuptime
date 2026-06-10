@@ -214,7 +214,11 @@ export default class ExceptionUtil {
       ExceptionUtil.normalizeForFingerprint(stackTrace);
 
     const hash: string = Crypto.getSha256Hash(
-      projectId + primaryEntityId + normalizedMessage + normalizedStackTrace + type,
+      projectId +
+        primaryEntityId +
+        normalizedMessage +
+        normalizedStackTrace +
+        type,
     );
 
     return hash;

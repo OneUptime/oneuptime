@@ -3,12 +3,11 @@ import TopologyGraph from "../../Components/Topology/TopologyGraph";
 import Page from "Common/UI/Components/Page/Page";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const TopologyPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const TopologyPage: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   return (
-    <Page
-      title="Topology"
-      breadcrumbLinks={[]}
-    >
+    <Page title="Topology" breadcrumbLinks={[]}>
       <TopologyGraph />
     </Page>
   );

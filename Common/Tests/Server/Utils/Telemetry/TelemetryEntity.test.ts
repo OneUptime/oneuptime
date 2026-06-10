@@ -41,8 +41,10 @@ function entityOfType(
   });
 }
 
-// Independent reimplementation of the documented preimage so the test
-// breaks if the key construction ever silently changes.
+/*
+ * Independent reimplementation of the documented preimage so the test
+ * breaks if the key construction ever silently changes.
+ */
 function expectedKey(
   projectId: string,
   type: EntityType,
@@ -174,8 +176,10 @@ describe("TelemetryEntity.extractEntities — per type", () => {
       { "host.id": "h-123", "host.name": "Web-1" },
       EntityType.Host,
     );
-    // host.id is not part of host identity; value canonicalized (lowercased)
-    // so it matches the Host row's hostIdentifier.
+    /*
+     * host.id is not part of host identity; value canonicalized (lowercased)
+     * so it matches the Host row's hostIdentifier.
+     */
     expect(e!.identifyingAttributes).toEqual({ "host.name": "web-1" });
   });
 
@@ -380,9 +384,7 @@ describe("read-side keyFor* helpers match ingest-side extraction", () => {
       EntityType.Service,
     );
     expect(stamped).toBeDefined();
-    expect(keyForService(PROJECT, "checkout", "shop")).toBe(
-      stamped!.entityKey,
-    );
+    expect(keyForService(PROJECT, "checkout", "shop")).toBe(stamped!.entityKey);
     // Namespace is part of the identity: without it the key matches nothing.
     expect(keyForService(PROJECT, "checkout")).not.toBe(stamped!.entityKey);
   });

@@ -39,9 +39,7 @@ export default class AddTtlOnlyDropPartsToTelemetryV3 extends DataMigrationBase 
           `AddTtlOnlyDropPartsToTelemetryV3: set ttl_only_drop_parts=1 on ${table}`,
         );
       } catch (err) {
-        logger.error(
-          `AddTtlOnlyDropPartsToTelemetryV3: failed on ${table}:`,
-        );
+        logger.error(`AddTtlOnlyDropPartsToTelemetryV3: failed on ${table}:`);
         logger.error(err as Error);
       }
     }

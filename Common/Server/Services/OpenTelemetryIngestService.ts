@@ -528,7 +528,10 @@ export default class OTelIngestService {
     const resourceRetention: {
       retainTelemetryDataForDays: number | null;
       telemetryRetentionConfig: TelemetryRetentionConfig | null;
-    } = await this.getResourceRetention(data.resourceId, data.primaryEntityType);
+    } = await this.getResourceRetention(
+      data.resourceId,
+      data.primaryEntityType,
+    );
 
     return {
       serviceName: data.serviceName,

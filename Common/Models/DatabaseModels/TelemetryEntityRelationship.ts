@@ -77,10 +77,9 @@ const UPDATE_PERMS: Array<Permission> = [
 })
 @Entity({ name: "TelemetryEntityRelationship" })
 // Natural key + upsert conflict target for the throttled ingest reconciler.
-@Index(
-  ["projectId", "fromEntityKey", "toEntityKey", "relationshipType"],
-  { unique: true },
-)
+@Index(["projectId", "fromEntityKey", "toEntityKey", "relationshipType"], {
+  unique: true,
+})
 // "what is X related to" / "what relates to X".
 @Index(["projectId", "fromEntityKey"])
 @Index(["projectId", "toEntityKey"])
