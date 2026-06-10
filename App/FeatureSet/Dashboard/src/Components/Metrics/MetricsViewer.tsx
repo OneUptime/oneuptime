@@ -42,6 +42,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
+import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import MetricRow from "./MetricRow";
@@ -76,6 +77,63 @@ async function postApi(
   }
 
   return response;
+}
+
+/*
+ * Entity-scoped sparkline aggregates. MetricUtil.fetchSparklineAggregates has
+ * no entityKeys passthrough, so the per-metric aggregate is issued directly
+ * with the same `hasAny(entityKeys, [...])` constraint as the list query —
+ * otherwise the sparkline numbers would span the whole project.
+ */
+async function fetchEntityScopedSparklineAggregates(data: {
+  metricNames: Array<string>;
+  attributes: Record<string, string>;
+  startAndEndDate: InBetween<Date>;
+  entityKeys: Array<string>;
+}): Promise<Map<string, AggregatedResult>> {
+  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  if (!projectId || data.metricNames.length === 0) {
+    return new Map();
+  }
+
+  const results: Array<[string, AggregatedResult]> = await Promise.all(
+    data.metricNames.map(
+      async (name: string): Promise<[string, AggregatedResult]> => {
+        try {
+          const query: Query<Metric> = {
+            projectId,
+            time: data.startAndEndDate,
+            name,
+          } as Query<Metric>;
+          if (Object.keys(data.attributes).length > 0) {
+            (query as Record<string, unknown>)["attributes"] = data.attributes;
+          }
+          (query as Record<string, unknown>)["entityKeys"] = new Includes(
+            data.entityKeys,
+          );
+          const result: AggregatedResult =
+            await AnalyticsModelAPI.aggregate<Metric>({
+              modelType: Metric,
+              aggregateBy: {
+                query,
+                aggregationType: MetricsAggregationType.Avg,
+                aggregateColumnName: "value",
+                aggregationTimestampColumnName: "time",
+                startTimestamp: data.startAndEndDate.startValue,
+                endTimestamp: data.startAndEndDate.endValue,
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+              } as AggregateBy<Metric>,
+            });
+          return [name, result];
+        } catch {
+          return [name, { data: [] }];
+        }
+      },
+    ),
+  );
+
+  return new Map(results);
 }
 
 const DEFAULT_PAGE_SIZE: number = 50;
@@ -572,12 +630,21 @@ const MetricsViewer: FunctionComponent<Props> = (
     return attrs;
   }, [parsedSearch.attributes, activeFilters, props.attributeFilters]);
 
-  // When attribute filters change, query the Metric analytics model for matching metric names
+  /*
+   * When attribute filters (or the entityKeys scope) change, query the Metric
+   * analytics model for matching metric names. The entityKeys scope must run
+   * this fetch even with zero attribute filters — it is the only thing that
+   * restricts the metric-name list to the entity.
+   */
   useEffect(() => {
     const attributeKeys: Array<string> = Object.keys(effectiveAttributes);
-    const filterKey: string = JSON.stringify(effectiveAttributes);
+    const entityKeys: Array<string> = props.entityKeysFilter || [];
+    const filterKey: string = JSON.stringify({
+      attributes: effectiveAttributes,
+      entityKeys,
+    });
 
-    if (attributeKeys.length === 0) {
+    if (attributeKeys.length === 0 && entityKeys.length === 0) {
       setAttributeMatchedNames(null);
       lastAttributeFilterRef.current = "";
       return;
@@ -604,12 +671,16 @@ const MetricsViewer: FunctionComponent<Props> = (
         const analyticsQuery: Query<Metric> = {
           projectId,
           time: new InBetween<Date>(dateRange.startValue, dateRange.endValue),
-          attributes: effectiveAttributes,
         } as Query<Metric>;
 
-        if (props.entityKeysFilter && props.entityKeysFilter.length > 0) {
+        if (attributeKeys.length > 0) {
+          (analyticsQuery as Record<string, unknown>)["attributes"] =
+            effectiveAttributes;
+        }
+
+        if (entityKeys.length > 0) {
           (analyticsQuery as Record<string, unknown>)["entityKeys"] =
-            new Includes(props.entityKeysFilter);
+            new Includes(entityKeys);
         }
 
         const result: AnalyticsListResult<Metric> =
@@ -640,7 +711,7 @@ const MetricsViewer: FunctionComponent<Props> = (
       }
     };
     void fetchMatchingNames();
-  }, [effectiveAttributes, timeRange]);
+  }, [effectiveAttributes, props.entityKeysFilter, timeRange]);
 
   // Build metric query
   const metricQuery: Query<MetricType> = useMemo(() => {
@@ -743,19 +814,30 @@ const MetricsViewer: FunctionComponent<Props> = (
 
   useEffect(() => {
     /*
-     * When attribute filters are active, defer the metric list fetch until the
-     * attribute → name match has resolved. Otherwise the first pass would query
-     * with no name restriction and briefly render the unfiltered list before
-     * snapping to the filtered one.
+     * When attribute filters or the entityKeys scope are active, defer the
+     * metric list fetch until the name match has resolved. Otherwise the
+     * first pass would query with no name restriction and briefly render the
+     * unfiltered (project-wide) list before snapping to the filtered one.
      */
     const hasEffectiveAttributes: boolean =
       Object.keys(effectiveAttributes).length > 0;
-    if (hasEffectiveAttributes && attributeMatchedNames === null) {
+    const isEntityScoped: boolean = Boolean(
+      props.entityKeysFilter && props.entityKeysFilter.length > 0,
+    );
+    if (
+      (hasEffectiveAttributes || isEntityScoped) &&
+      attributeMatchedNames === null
+    ) {
       setIsLoading(true);
       return;
     }
     void fetchMetrics();
-  }, [fetchMetrics, effectiveAttributes, attributeMatchedNames]);
+  }, [
+    fetchMetrics,
+    effectiveAttributes,
+    attributeMatchedNames,
+    props.entityKeysFilter,
+  ]);
 
   // Batch-fetch sparklines for visible metric names
   const visibleNames: Array<string> = useMemo(() => {
@@ -789,15 +871,26 @@ const MetricsViewer: FunctionComponent<Props> = (
          * returns one bucketed point per minute (~60 rows/metric for a
          * 1h window) and reuses the explorer's dedup/result cache.
          */
+        const entityKeys: Array<string> = props.entityKeysFilter || [];
         const aggregates: Map<string, AggregatedResult> =
-          await MetricUtil.fetchSparklineAggregates({
-            metricNames: visibleNames,
-            attributes: effectiveAttributes as Record<string, string>,
-            startAndEndDate: new InBetween<Date>(
-              dateRange.startValue,
-              dateRange.endValue,
-            ),
-          });
+          entityKeys.length > 0
+            ? await fetchEntityScopedSparklineAggregates({
+                metricNames: visibleNames,
+                attributes: effectiveAttributes,
+                startAndEndDate: new InBetween<Date>(
+                  dateRange.startValue,
+                  dateRange.endValue,
+                ),
+                entityKeys,
+              })
+            : await MetricUtil.fetchSparklineAggregates({
+                metricNames: visibleNames,
+                attributes: effectiveAttributes as Record<string, string>,
+                startAndEndDate: new InBetween<Date>(
+                  dateRange.startValue,
+                  dateRange.endValue,
+                ),
+              });
 
         const last: Record<string, number> = {};
         const out: Record<string, Array<SparklinePoint>> = {};
@@ -839,7 +932,7 @@ const MetricsViewer: FunctionComponent<Props> = (
       }
     };
     void fetchSparklines();
-  }, [visibleNames, timeRange, effectiveAttributes]);
+  }, [visibleNames, timeRange, effectiveAttributes, props.entityKeysFilter]);
 
   // Facet configs
   const facetConfigs: Array<FacetConfig> = useMemo(() => {

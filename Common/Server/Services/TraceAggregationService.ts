@@ -19,6 +19,7 @@ export interface HistogramBucket {
 
 export interface TraceFilters {
   serviceIds?: Array<ObjectID> | undefined;
+  entityKeys?: Array<string> | undefined;
   statusCodes?: Array<number> | undefined;
   spanKinds?: Array<string> | undefined;
   spanNames?: Array<string> | undefined;
@@ -62,7 +63,7 @@ export class TraceAggregationService {
   private static readonly DEFAULT_FACET_LIMIT: number = 500;
   private static readonly TABLE_NAME: string = AnalyticsTableName.Span;
   private static readonly TOP_LEVEL_COLUMNS: Set<string> = new Set([
-    "serviceId",
+    "primaryEntityId",
     "traceId",
     "spanId",
     "parentSpanId",
@@ -73,8 +74,8 @@ export class TraceAggregationService {
   ]);
   /*
    * Virtual facet keys — same scheme as LogAggregationService. The
-   * `serviceId` slot is reused for host / docker host / k8s cluster ids,
-   * disambiguated by the `serviceType` discriminator.
+   * `primaryEntityId` slot is reused for host / docker host / k8s cluster
+   * ids, disambiguated by the `primaryEntityType` discriminator.
    */
   private static readonly RESOURCE_FACET_KEYS: Map<string, ServiceType> =
     new Map([
@@ -199,11 +200,14 @@ export class TraceAggregationService {
       selectColumns.push(...topLevelKeys);
     }
     if (resourceKeys.length > 0) {
-      // Virtual facets read out of serviceId disambiguated by serviceType.
-      if (!selectColumns.includes("serviceId")) {
-        selectColumns.push("serviceId");
+      /*
+       * Virtual facets read out of primaryEntityId disambiguated by
+       * primaryEntityType.
+       */
+      if (!selectColumns.includes("primaryEntityId")) {
+        selectColumns.push("primaryEntityId");
       }
-      selectColumns.push("serviceType");
+      selectColumns.push("primaryEntityType");
     }
     if (attributeKeys.length > 0) {
       selectColumns.push("attributes");
@@ -280,10 +284,11 @@ export class TraceAggregationService {
 
       if (resourceKeys.length > 0) {
         const rowServiceType: string =
-          row["serviceType"] === undefined || row["serviceType"] === null
+          row["primaryEntityType"] === undefined ||
+          row["primaryEntityType"] === null
             ? ""
-            : String(row["serviceType"]);
-        const rowServiceId: unknown = row["serviceId"];
+            : String(row["primaryEntityType"]);
+        const rowServiceId: unknown = row["primaryEntityId"];
         if (rowServiceId !== undefined && rowServiceId !== null) {
           const value: string = String(rowServiceId);
           if (value.length > 0) {
@@ -354,27 +359,30 @@ export class TraceAggregationService {
    * exact regardless of skew.
    *
    * It is cheap because it rides the proj_hist_by_minute aggregate projection
-   * (projectId, minute, serviceId, statusCode, isRootSpan -> count): a 1-month
-   * window reads a few thousand pre-aggregated minute rows in single-digit ms
-   * instead of scanning tens of millions of raw spans. Two things are required
-   * for ClickHouse to actually pick that projection, both load-bearing:
+   * (projectId, minute, primaryEntityId, statusCode, isRootSpan -> count): a
+   * 1-month window reads a few thousand pre-aggregated minute rows in
+   * single-digit ms instead of scanning tens of millions of raw spans. Two
+   * things are required for ClickHouse to actually pick that projection, both
+   * load-bearing:
    *   1. The time predicate must be on toStartOfMinute(startTime) — the
    *      projection's key expression — NOT raw startTime. A raw startTime
    *      filter references a column the aggregate projection does not store, so
    *      ClickHouse rejects the projection and full-scans. (Window edges land
    *      on minute boundaries, consistent with the minute-bucketed histogram.)
    *   2. Every other predicate must be on a projection column. isRootSpan,
-   *      serviceId and statusCode all are, so the default sidebar load and
-   *      drill-down-by-service stay on the projection. A non-projection filter
-   *      (kind / name / traceId / attributes) transparently falls back to a
-   *      base-table scan — still correct, still bounded by max_execution_time.
+   *      primaryEntityId and statusCode all are, so the default sidebar load
+   *      and drill-down-by-service stay on the projection. A non-projection
+   *      filter (kind / name / traceId / entityKeys / attributes)
+   *      transparently falls back to a base-table scan — still correct, still
+   *      bounded by max_execution_time.
    *
-   * serviceId is intentionally NOT disambiguated by serviceType here. Resource
-   * IDs are globally unique, so a single serviceId -> count map correctly
-   * serves the service / host / docker host / k8s cluster facets once merged
-   * against each Postgres source-of-truth list (a host id never collides with
-   * a service id, so an unrelated entry is simply never looked up). Omitting
-   * the serviceType predicate keeps the query projection-eligible.
+   * primaryEntityId is intentionally NOT disambiguated by primaryEntityType
+   * here. Resource IDs are globally unique, so a single primaryEntityId ->
+   * count map correctly serves the service / host / docker host / k8s cluster
+   * facets once merged against each Postgres source-of-truth list (a host id
+   * never collides with a service id, so an unrelated entry is simply never
+   * looked up). Omitting the primaryEntityType predicate keeps the query
+   * projection-eligible.
    */
   @CaptureSpan()
   public static async getResourceFacetCounts(
@@ -385,7 +393,7 @@ export class TraceAggregationService {
   }> {
     const statement: Statement = new Statement();
     statement.append(
-      `SELECT serviceId, statusCode, count() AS cnt FROM ${TraceAggregationService.TABLE_NAME}`,
+      `SELECT primaryEntityId, statusCode, count() AS cnt FROM ${TraceAggregationService.TABLE_NAME}`,
     );
     statement.append(
       SQL` WHERE projectId = ${{
@@ -402,7 +410,7 @@ export class TraceAggregationService {
 
     TraceAggregationService.appendCommonFilters(statement, request);
 
-    statement.append(" GROUP BY serviceId, statusCode");
+    statement.append(" GROUP BY primaryEntityId, statusCode");
 
     /*
      * Cap runtime below nginx's 60s proxy_read_timeout and explicitly allow
@@ -439,7 +447,7 @@ export class TraceAggregationService {
     for (const row of rows) {
       const cnt: number = Number(row["cnt"] || 0);
 
-      const rawServiceId: unknown = row["serviceId"];
+      const rawServiceId: unknown = row["primaryEntityId"];
       if (rawServiceId !== undefined && rawServiceId !== null) {
         const serviceId: string = String(rawServiceId);
         if (serviceId.length > 0) {
@@ -491,8 +499,8 @@ export class TraceAggregationService {
      * partial boundary minute when the range is not minute-aligned.
      *
      * If any non-projection filter (kind, name, traceId, nameSearchText,
-     * attributes) is active, ClickHouse transparently falls back to
-     * scanning the main table for the inner query — same cost as before.
+     * entityKeys, attributes) is active, ClickHouse transparently falls back
+     * to scanning the main table for the inner query — same cost as before.
      */
     const statement: Statement = SQL`
       SELECT
@@ -542,6 +550,11 @@ export class TraceAggregationService {
   }
 
   private static buildFacetStatement(request: FacetRequest): Statement {
+    // Pre-rename alias from stale clients; the V3 column is primaryEntityId.
+    if (request.facetKey === "serviceId") {
+      request.facetKey = "primaryEntityId";
+    }
+
     const limit: number =
       request.limit ?? TraceAggregationService.DEFAULT_FACET_LIMIT;
 
@@ -558,7 +571,7 @@ export class TraceAggregationService {
 
     if (isResourceFacet) {
       statement.append(
-        SQL`SELECT toString(serviceId) AS val, count() AS cnt FROM ${TraceAggregationService.TABLE_NAME}`,
+        SQL`SELECT toString(primaryEntityId) AS val, count() AS cnt FROM ${TraceAggregationService.TABLE_NAME}`,
       );
     } else if (isTopLevelColumn) {
       statement.append(
@@ -588,14 +601,14 @@ export class TraceAggregationService {
 
     if (isResourceFacet) {
       statement.append(
-        SQL` AND serviceType = ${{
+        SQL` AND primaryEntityType = ${{
           type: TableColumnType.Text,
           value: resourceServiceType as string,
         }}`,
       );
-    } else if (request.facetKey === "serviceId") {
+    } else if (request.facetKey === "primaryEntityId") {
       statement.append(
-        SQL` AND (serviceType = '' OR serviceType = ${{
+        SQL` AND (primaryEntityType = '' OR primaryEntityType = ${{
           type: TableColumnType.Text,
           value: ServiceType.OpenTelemetry as string,
         }})`,
@@ -639,13 +652,22 @@ export class TraceAggregationService {
 
     if (request.serviceIds && request.serviceIds.length > 0) {
       statement.append(
-        SQL` AND serviceId IN (${{
+        SQL` AND primaryEntityId IN (${{
           type: TableColumnType.ObjectID,
           value: new Includes(
             request.serviceIds.map((id: ObjectID) => {
               return id.toString();
             }),
           ),
+        }})`,
+      );
+    }
+
+    if (request.entityKeys && request.entityKeys.length > 0) {
+      statement.append(
+        SQL` AND hasAny(entityKeys, ${{
+          type: TableColumnType.ArrayText,
+          value: request.entityKeys,
         }})`,
       );
     }

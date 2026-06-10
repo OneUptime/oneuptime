@@ -32,15 +32,15 @@ export interface FacetRequest extends MetricFilters {
 /*
  * Facet aggregation for the Metrics page sidebar. Same shape as
  * TraceAggregationService / LogAggregationService — per-facet GROUP BY on
- * the analytics table, with a `serviceType` discriminator that lets the
- * `serviceId` column carry Host / DockerHost / KubernetesCluster ids for
- * the corresponding virtual facets.
+ * the analytics table, with a `primaryEntityType` discriminator that lets
+ * the `primaryEntityId` column carry Host / DockerHost / KubernetesCluster
+ * ids for the corresponding virtual facets.
  */
 export class MetricAggregationService {
   private static readonly DEFAULT_FACET_LIMIT: number = 500;
   private static readonly TABLE_NAME: string = AnalyticsTableName.Metric;
   private static readonly TOP_LEVEL_COLUMNS: Set<string> = new Set([
-    "serviceId",
+    "primaryEntityId",
     "name",
   ]);
   private static readonly RESOURCE_FACET_KEYS: Map<string, ServiceType> =
@@ -82,6 +82,11 @@ export class MetricAggregationService {
   }
 
   private static buildFacetStatement(request: FacetRequest): Statement {
+    // Pre-rename alias from stale clients; the V3 column is primaryEntityId.
+    if (request.facetKey === "serviceId") {
+      request.facetKey = "primaryEntityId";
+    }
+
     const limit: number =
       request.limit ?? MetricAggregationService.DEFAULT_FACET_LIMIT;
 
@@ -98,7 +103,7 @@ export class MetricAggregationService {
 
     if (isResourceFacet) {
       statement.append(
-        SQL`SELECT toString(serviceId) AS val, count() AS cnt FROM ${MetricAggregationService.TABLE_NAME}`,
+        SQL`SELECT toString(primaryEntityId) AS val, count() AS cnt FROM ${MetricAggregationService.TABLE_NAME}`,
       );
     } else if (isTopLevelColumn) {
       statement.append(
@@ -128,14 +133,14 @@ export class MetricAggregationService {
 
     if (isResourceFacet) {
       statement.append(
-        SQL` AND serviceType = ${{
+        SQL` AND primaryEntityType = ${{
           type: TableColumnType.Text,
           value: resourceServiceType as string,
         }}`,
       );
-    } else if (request.facetKey === "serviceId") {
+    } else if (request.facetKey === "primaryEntityId") {
       statement.append(
-        SQL` AND (serviceType = '' OR serviceType = ${{
+        SQL` AND (primaryEntityType = '' OR primaryEntityType = ${{
           type: TableColumnType.Text,
           value: ServiceType.OpenTelemetry as string,
         }})`,
@@ -175,7 +180,7 @@ export class MetricAggregationService {
   ): void {
     if (request.serviceIds && request.serviceIds.length > 0) {
       statement.append(
-        SQL` AND serviceId IN (${{
+        SQL` AND primaryEntityId IN (${{
           type: TableColumnType.ObjectID,
           value: new Includes(
             request.serviceIds.map((id: ObjectID) => {

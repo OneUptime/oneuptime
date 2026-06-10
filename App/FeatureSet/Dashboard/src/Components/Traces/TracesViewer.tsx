@@ -976,6 +976,14 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       payload["attributes"] = mergedAttributes;
     }
 
+    /*
+     * Entity scope must constrain the histogram/facets too, not just the
+     * span list — otherwise the counts above the list are project-wide.
+     */
+    if (props.entityKeysFilter && props.entityKeysFilter.length > 0) {
+      payload["entityKeys"] = [...props.entityKeysFilter];
+    }
+
     // Scope by primaryEntityId prop if present
     if (props.primaryEntityId) {
       if (!groups["primaryEntityId"]) {
@@ -1075,6 +1083,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     parseSearch,
     props.primaryEntityId,
     props.attributeFilters,
+    props.entityKeysFilter,
   ]);
 
   // Fetch histogram + facets from dedicated backend endpoints

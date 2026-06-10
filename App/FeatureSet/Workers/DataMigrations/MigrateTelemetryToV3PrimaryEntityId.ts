@@ -1,4 +1,5 @@
 import DataMigrationBase from "./DataMigrationBase";
+import ClickHouseMigrationUtil from "./ClickHouseMigrationUtil";
 import AnalyticsTableManagement from "../Utils/AnalyticsDatabase/TableManegement";
 import MetricService from "Common/Server/Services/MetricService";
 import logger from "Common/Server/Utils/Logger";
@@ -15,17 +16,22 @@ import logger from "Common/Server/Utils/Logger";
  *
  * Steps:
  *   1. Drop the 3 stale metric MVs (old `serviceId` column + sipHash
- *      partition, reading `FROM MetricItemV2`).
+ *      partition, reading `FROM MetricItemV2`). Skipped on a retry once the
+ *      views already read `FROM MetricItemV3`.
  *   2. Recreate every analytics table + MV from the updated models via the
  *      schema-sync helpers — creating the `…V3` signal tables and rebuilding
  *      the MVs (`FROM MetricItemV3`). Idempotent.
- *   3. Copy each `…V2` → `…V3` with an explicit, NAME-BASED column mapping
- *      (`serviceId`→`primaryEntityId`, `serviceType`→`primaryEntityType`).
- *      A positional `SELECT *` is NOT safe: `serviceType` was appended to the
- *      V2 tables by an earlier ALTER, so it sits last in V2's physical column
- *      order whereas V3 places `primaryEntityType` second. The mapping is
- *      derived from the live V3 column list so it stays correct as columns
- *      evolve.
+ *   3. Copy each `…V2` → `…V3` partition-by-partition with an explicit,
+ *      NAME-BASED column mapping (`serviceId`→`primaryEntityId`,
+ *      `serviceType`→`primaryEntityType`). A positional `SELECT *` is NOT
+ *      safe: `serviceType` was appended to the V2 tables by an earlier ALTER,
+ *      so it sits last in V2's physical column order whereas V3 places
+ *      `primaryEntityType` second. Only V3 columns whose source column exists
+ *      on V2 are copied — V3-only columns (e.g. `entityKeys`) fall back to
+ *      their table DEFAULT. Per-partition progress lands in
+ *      `TelemetryV3CopyProgress`, and any copy failure is re-thrown at the
+ *      end so the migration is NOT marked executed and the next boot resumes
+ *      from the partitions that are still missing.
  *
  * The `…V2` tables are intentionally retained (rollback window; they
  * self-drain via their `retentionDate` TTL). A follow-up migration can DROP
@@ -33,14 +39,7 @@ import logger from "Common/Server/Utils/Logger";
  *
  * All statements run through `MetricService` — every analytics service shares
  * one ClickHouse connection, and each statement names its own table.
- *
- * NOTE: large deployments should copy step 3 in time-windowed batches rather
- * than one `INSERT … SELECT`; the single statement is fine for typical/test
- * volumes.
  */
-interface ClickHouseJsonResult {
-  data?: Array<Record<string, unknown>>;
-}
 
 export default class MigrateTelemetryToV3PrimaryEntityId extends DataMigrationBase {
   public constructor() {
@@ -48,29 +47,44 @@ export default class MigrateTelemetryToV3PrimaryEntityId extends DataMigrationBa
   }
 
   public override async migrate(): Promise<void> {
-    // 1. Drop stale MV triggers + target tables.
-    const staleViews: Array<string> = [
-      "MetricItemAggMV1m_mv",
-      "MetricItemAggMV1mByHost_mv",
-      "MetricBaselineHourly_mv",
+    /*
+     * 1. Drop the stale MV triggers + target tables — but only while the
+     *    view does not yet read `FROM MetricItemV3`. This migration
+     *    legitimately re-runs after a partial copy failure (see step 3), and
+     *    the rebuilt views/tables must survive a retry: dropping the rebuilt
+     *    target tables would silently discard the aggregates the MVs already
+     *    produced for the copied (and on retry skipped) partitions.
+     */
+    const staleMvPairs: Array<[string, string]> = [
+      ["MetricItemAggMV1m_mv", "MetricItemAggMV1m"],
+      ["MetricItemAggMV1mByHost_mv", "MetricItemAggMV1mByHost"],
+      ["MetricBaselineHourly_mv", "MetricBaselineHourly"],
     ];
-    const staleTables: Array<string> = [
-      "MetricItemAggMV1m",
-      "MetricItemAggMV1mByHost",
-      "MetricBaselineHourly",
-    ];
-    for (const view of staleViews) {
-      await this.safeExec(`DROP VIEW IF EXISTS ${view}`);
-    }
-    for (const table of staleTables) {
-      await this.safeExec(`DROP TABLE IF EXISTS ${table}`);
+    for (const [view, table] of staleMvPairs) {
+      const viewCreateQuery: string | null =
+        await ClickHouseMigrationUtil.getCreateQuery(view);
+      const viewIsStale: boolean =
+        viewCreateQuery !== null && !viewCreateQuery.includes("MetricItemV3");
+
+      if (viewIsStale) {
+        await this.safeExec(`DROP VIEW IF EXISTS ${view}`);
+      }
+      /*
+       * No view (never created, or a prior run crashed between the two
+       * drops) means the target table cannot be receiving rows — it is
+       * either the stale one or new-but-empty, so dropping is safe.
+       */
+      if (viewIsStale || viewCreateQuery === null) {
+        await this.safeExec(`DROP TABLE IF EXISTS ${table}`);
+      }
     }
 
     // 2. Recreate tables + MVs from the updated models.
     await AnalyticsTableManagement.createTables();
     await AnalyticsTableManagement.createMaterializedViews();
 
-    // 3. Copy historical signal data V2 -> V3 with a name-based column map.
+    // 3. Copy historical signal data V2 -> V3 with a name-based column map,
+    //    one partition at a time, resuming from the progress marker on retry.
     const copies: Array<[string, string]> = [
       ["LogItemV2", "LogItemV3"],
       ["MetricItemV2", "MetricItemV3"],
@@ -80,39 +94,42 @@ export default class MigrateTelemetryToV3PrimaryEntityId extends DataMigrationBa
       ["ProfileSampleItemV2", "ProfileSampleItemV3"],
     ];
 
+    // Map the two renamed columns back to their V2 source names; everything
+    // else maps by identical name.
+    const renameMap: Record<string, string> = {
+      primaryEntityId: "serviceId",
+      primaryEntityType: "serviceType",
+    };
+
+    const errors: Array<string> = [];
+
     for (const [v2, v3] of copies) {
-      try {
-        if (!(await this.tableExists(v2))) {
-          logger.info(
-            `MigrateTelemetryToV3: ${v2} not present (fresh install) — skipping copy.`,
-          );
-          continue;
-        }
-
-        // V3 column list (storage order). Map the two renamed columns back
-        // to their V2 source names; everything else maps by identical name.
-        const v3Columns: Array<string> = await this.getColumns(v3);
-        if (v3Columns.length === 0) {
-          logger.warn(`MigrateTelemetryToV3: no columns found for ${v3} — skip.`);
-          continue;
-        }
-        const renameMap: Record<string, string> = {
-          primaryEntityId: "serviceId",
-          primaryEntityType: "serviceType",
-        };
-        const insertList: string = v3Columns.map((c: string) => `\`${c}\``).join(", ");
-        const selectList: string = v3Columns
-          .map((c: string) => `\`${renameMap[c] ?? c}\``)
-          .join(", ");
-
-        await MetricService.execute(
-          `INSERT INTO ${v3} (${insertList}) SELECT ${selectList} FROM ${v2}`,
+      if (!(await ClickHouseMigrationUtil.tableExists(v2))) {
+        logger.info(
+          `MigrateTelemetryToV3: ${v2} not present (fresh install) — skipping copy.`,
         );
-        logger.info(`MigrateTelemetryToV3: copied ${v2} -> ${v3}.`);
-      } catch (err) {
-        logger.error(`MigrateTelemetryToV3: failed copying ${v2} -> ${v3}:`);
-        logger.error(err as Error);
+        continue;
       }
+
+      errors.push(
+        ...(await ClickHouseMigrationUtil.copyTablePartitionwise({
+          sourceTable: v2,
+          destinationTable: v3,
+          renameMap: renameMap,
+          logPrefix: "MigrateTelemetryToV3",
+        })),
+      );
+    }
+
+    /*
+     * Throw on any failed copy so the runner does NOT mark this migration
+     * executed — the next boot retries it, and the progress marker limits
+     * the rework to the partitions that are still missing.
+     */
+    if (errors.length > 0) {
+      throw new Error(
+        `MigrateTelemetryToV3: ${errors.length} copy step(s) failed:\n${errors.join("\n")}`,
+      );
     }
   }
 
@@ -122,23 +139,6 @@ export default class MigrateTelemetryToV3PrimaryEntityId extends DataMigrationBa
     } catch (err) {
       logger.error(err as Error);
     }
-  }
-
-  private async tableExists(table: string): Promise<boolean> {
-    const result: { json: () => Promise<unknown> } =
-      await MetricService.executeQuery(`EXISTS TABLE ${table}`);
-    const json: ClickHouseJsonResult = (await result.json()) as ClickHouseJsonResult;
-    const row: Record<string, unknown> | undefined = json.data?.[0];
-    return row ? Number(Object.values(row)[0]) === 1 : false;
-  }
-
-  private async getColumns(table: string): Promise<Array<string>> {
-    const result: { json: () => Promise<unknown> } =
-      await MetricService.executeQuery(
-        `SELECT name FROM system.columns WHERE database = currentDatabase() AND table = '${table}' ORDER BY position`,
-      );
-    const json: ClickHouseJsonResult = (await result.json()) as ClickHouseJsonResult;
-    return (json.data ?? []).map((r: Record<string, unknown>) => String(r["name"]));
   }
 
   public override async rollback(): Promise<void> {

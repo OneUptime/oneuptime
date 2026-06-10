@@ -1,6 +1,6 @@
 import DataMigrationBase from "./DataMigrationBase";
+import ClickHouseMigrationUtil from "./ClickHouseMigrationUtil";
 import AnalyticsTableManagement from "../Utils/AnalyticsDatabase/TableManegement";
-import MetricService from "Common/Server/Services/MetricService";
 import logger from "Common/Server/Utils/Logger";
 
 /**
@@ -11,13 +11,13 @@ import logger from "Common/Server/Utils/Logger";
  * they are cut to new names (`MonitorLogV3`, `AuditLogV2`) and data is copied.
  *
  * No column rename here, so the copy uses an explicit name-matched column
- * list (robust to physical column-order drift from past ALTERs). The old
- * tables are retained as a rollback window (TTL self-drains).
+ * list (robust to physical column-order drift from past ALTERs) restricted to
+ * columns present on both tables. The copy runs partition-by-partition with
+ * progress recorded in `TelemetryV3CopyProgress`; any failure is re-thrown so
+ * the migration is NOT marked executed and the next boot resumes from the
+ * partitions that are still missing. The old tables are retained as a
+ * rollback window (TTL self-drains).
  */
-interface ClickHouseJsonResult {
-  data?: Array<Record<string, unknown>>;
-}
-
 export default class MigrateMonitorAndAuditLogToV3 extends DataMigrationBase {
   public constructor() {
     super("MigrateMonitorAndAuditLogToV3");
@@ -32,50 +32,35 @@ export default class MigrateMonitorAndAuditLogToV3 extends DataMigrationBase {
       ["AuditLogV1", "AuditLogV2"],
     ];
 
+    const errors: Array<string> = [];
+
     for (const [src, dst] of copies) {
-      try {
-        if (!(await this.tableExists(src))) {
-          logger.info(
-            `MigrateMonitorAndAuditLogToV3: ${src} not present — skipping copy.`,
-          );
-          continue;
-        }
-        const columns: Array<string> = await this.getColumns(dst);
-        if (columns.length === 0) {
-          logger.warn(
-            `MigrateMonitorAndAuditLogToV3: no columns for ${dst} — skip.`,
-          );
-          continue;
-        }
-        // No rename: identical column names in src and dst. The explicit list
-        // makes the copy name-aligned regardless of physical column order.
-        const list: string = columns.map((c: string) => `\`${c}\``).join(", ");
-        await MetricService.execute(
-          `INSERT INTO ${dst} (${list}) SELECT ${list} FROM ${src}`,
+      if (!(await ClickHouseMigrationUtil.tableExists(src))) {
+        logger.info(
+          `MigrateMonitorAndAuditLogToV3: ${src} not present — skipping copy.`,
         );
-        logger.info(`MigrateMonitorAndAuditLogToV3: copied ${src} -> ${dst}.`);
-      } catch (err) {
-        logger.error(`MigrateMonitorAndAuditLogToV3: failed copying ${src} -> ${dst}:`);
-        logger.error(err as Error);
+        continue;
       }
-    }
-  }
 
-  private async tableExists(table: string): Promise<boolean> {
-    const result: { json: () => Promise<unknown> } =
-      await MetricService.executeQuery(`EXISTS TABLE ${table}`);
-    const json: ClickHouseJsonResult = (await result.json()) as ClickHouseJsonResult;
-    const row: Record<string, unknown> | undefined = json.data?.[0];
-    return row ? Number(Object.values(row)[0]) === 1 : false;
-  }
-
-  private async getColumns(table: string): Promise<Array<string>> {
-    const result: { json: () => Promise<unknown> } =
-      await MetricService.executeQuery(
-        `SELECT name FROM system.columns WHERE database = currentDatabase() AND table = '${table}' ORDER BY position`,
+      errors.push(
+        ...(await ClickHouseMigrationUtil.copyTablePartitionwise({
+          sourceTable: src,
+          destinationTable: dst,
+          logPrefix: "MigrateMonitorAndAuditLogToV3",
+        })),
       );
-    const json: ClickHouseJsonResult = (await result.json()) as ClickHouseJsonResult;
-    return (json.data ?? []).map((r: Record<string, unknown>) => String(r["name"]));
+    }
+
+    /*
+     * Throw on any failed copy so the runner does NOT mark this migration
+     * executed — the next boot retries it, and the progress marker limits
+     * the rework to the partitions that are still missing.
+     */
+    if (errors.length > 0) {
+      throw new Error(
+        `MigrateMonitorAndAuditLogToV3: ${errors.length} copy step(s) failed:\n${errors.join("\n")}`,
+      );
+    }
   }
 
   public override async rollback(): Promise<void> {

@@ -31,12 +31,8 @@ import TelemetryUtil, {
 import TelemetryEntity, {
   ExtractedEntity,
 } from "Common/Server/Utils/Telemetry/TelemetryEntity";
-import TelemetryEntityService from "Common/Server/Services/TelemetryEntityService";
-import TelemetryEntityRelationshipService from "Common/Server/Services/TelemetryEntityRelationshipService";
-import {
-  deriveRelationships,
-  EntityRelationshipEdge,
-} from "Common/Utils/Telemetry/EntityRelationship";
+import { reconcileEntityRegistryThrottled } from "Common/Server/Utils/Telemetry/EntityRegistry";
+import { canonicalizeEntityValue } from "Common/Utils/Telemetry/EntityKey";
 import Dictionary from "Common/Types/Dictionary";
 
 export default abstract class OtelIngestBaseService {
@@ -239,100 +235,39 @@ export default abstract class OtelIngestBaseService {
     const metadata: TelemetryServiceMetadata =
       await this.selectPrimaryEntity(data);
 
-    const entities: Array<ExtractedEntity> =
-      this.extractEntitiesFromResourceAttributes(
-        data.projectId,
-        data.attributes,
-      );
-    metadata.entityKeys = entities
-      .map((entity: ExtractedEntity) => {
-        return entity.entityKey;
-      })
-      .sort();
-
-    // Forward-only, throttled, best-effort registry reconciliation.
-    await this.reconcileEntitiesThrottled(data.projectId, entities);
-
-    return metadata;
-  }
-
-  /*
-   * Derive every OpenTelemetry entity present in the resource attributes.
-   * Pure + synchronous (a hash of the attributes + projectId), so stamping
-   * `entityKeys` never blocks ingest on a registry lookup. Raw resource
-   * attributes are flattened with an empty prefix so keys stay
-   * semconv-native (`service.name`, `host.id`, `k8s.pod.name`, ...) — the
-   * form the extractor expects.
-   */
-  private static extractEntitiesFromResourceAttributes(
-    projectId: ObjectID,
-    attributes: JSONArray,
-  ): Array<ExtractedEntity> {
+    /*
+     * Entity derivation is pure + synchronous (a hash of the attributes +
+     * projectId), so stamping `entityKeys` never blocks ingest on a
+     * registry lookup. Raw resource attributes are flattened with an empty
+     * prefix so keys stay semconv-native (`service.name`, `host.id`,
+     * `k8s.pod.name`, ...) — the form the extractor expects.
+     */
     const flatAttributes: Dictionary<AttributeType | Array<AttributeType>> =
       TelemetryUtil.getAttributes({
-        items: attributes,
+        items: data.attributes,
         prefixKeysWithString: "",
       });
 
-    return TelemetryEntity.extractEntities({
-      projectId: projectId.toString(),
+    const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
+      projectId: data.projectId.toString(),
       attributes: flatAttributes,
     });
-  }
+    metadata.entityKeys = TelemetryEntity.extractEntityKeys({
+      projectId: data.projectId.toString(),
+      attributes: flatAttributes,
+    });
 
-  /*
-   * Upsert discovered entities into the `TelemetryEntity` registry
-   * (phase 2). Gated by a single per-batch Redis fence keyed on the
-   * entity-set, so a stable resource reconciles at most once per window
-   * while a changed set (e.g. a pod restart) reconciles immediately —
-   * one Redis check per batch, not one per entity. Forward-only and
-   * best-effort: wrapped so a registry failure never breaks signal ingest.
-   */
-  private static async reconcileEntitiesThrottled(
-    projectId: ObjectID,
-    entities: Array<ExtractedEntity>,
-  ): Promise<void> {
-    if (entities.length === 0) {
-      return;
-    }
-    try {
-      const fenceId: string = `${projectId.toString()}:${entities
-        .map((entity: ExtractedEntity) => {
-          return entity.entityKey;
-        })
-        .sort()
-        .join(",")}`;
+    /*
+     * Forward-only, throttled, best-effort registry reconciliation.
+     * Fire-and-forget: all errors are swallowed inside, so it can never
+     * fail or delay signal ingest.
+     */
+    void reconcileEntityRegistryThrottled({
+      projectId: data.projectId,
+      entities,
+    });
 
-      if (!(await this.shouldRunMaintenance("entity-reconcile", fenceId))) {
-        return;
-      }
-
-      await TelemetryEntityService.reconcileEntities({ projectId, entities });
-
-      /*
-       * Topology (phase 5): the co-occurrence edges derive from the same
-       * entity set, so they reconcile under the same fence — no extra
-       * Redis check. A stable resource bumps both the registry and the
-       * graph once per window; a changed set (pod restart) re-derives both.
-       */
-      const edges: Array<EntityRelationshipEdge> = deriveRelationships(
-        entities.map((entity: ExtractedEntity) => {
-          return {
-            entityType: entity.entityType,
-            entityKey: entity.entityKey,
-          };
-        }),
-      );
-      if (edges.length > 0) {
-        await TelemetryEntityRelationshipService.reconcileRelationships({
-          projectId,
-          edges,
-        });
-      }
-    } catch (err) {
-      logger.error("Entity registry reconciliation failed:");
-      logger.error(err as Error);
-    }
+    return metadata;
   }
 
   @CaptureSpan()
@@ -1306,9 +1241,11 @@ export default abstract class OtelIngestBaseService {
    * so the same physical host arrives as both `PRIMARY01` and `primary01`.
    * This mirrors QueryHelper.findWithSameText — the comparison the Host
    * unique guard already uses — so identity stays consistent end to end.
+   * Delegates to the shared entity-key canonicalization so host identity
+   * here and in `computeEntityKey` can never drift apart.
    */
   public static canonicalizeHostName(hostName: string): string {
-    return hostName.trim().toLowerCase();
+    return canonicalizeEntityValue(hostName);
   }
 
   /**

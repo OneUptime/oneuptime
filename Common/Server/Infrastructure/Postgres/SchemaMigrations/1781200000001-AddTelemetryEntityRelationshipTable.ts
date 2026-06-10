@@ -32,6 +32,16 @@ export class AddTelemetryEntityRelationshipTable1781200000001
     await queryRunner.query(
       `CREATE UNIQUE INDEX "UQ_TelEntityRel_edge" ON "TelemetryEntityRelationship" ("projectId", "fromEntityKey", "toEntityKey", "relationshipType") `,
     );
+
+    await queryRunner.query(
+      `ALTER TABLE "TelemetryEntityRelationship" ADD CONSTRAINT "FK_TelEntityRel_project" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TelemetryEntityRelationship" ADD CONSTRAINT "FK_TelEntityRel_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TelemetryEntityRelationship" ADD CONSTRAINT "FK_TelEntityRel_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

@@ -31,6 +31,13 @@ import ServerlessFunctionService from "./ServerlessFunctionService";
 import CloudResourceService from "./CloudResourceService";
 import RumApplicationService from "./RumApplicationService";
 import GlobalCache from "../Infrastructure/GlobalCache";
+import EntityType from "../../Types/Telemetry/EntityType";
+import { ExtractedEntity } from "../Utils/Telemetry/TelemetryEntity";
+import { reconcileEntityRegistryThrottled } from "../Utils/Telemetry/EntityRegistry";
+import {
+  keyForService,
+  canonicalizeEntityValue,
+} from "../../Utils/Telemetry/EntityKey";
 
 export enum OtelAggregationTemporality {
   Cumulative = "AGGREGATION_TEMPORALITY_CUMULATIVE",
@@ -53,10 +60,11 @@ export interface TelemetryServiceMetadata {
    * container, ...) derived from this batch's resource attributes — the
    * membership set stamped into each row's `entityKeys` column. A
    * superset that includes the primary entity's key for OTel-resource
-   * entity types (service / host / k8s.*). Populated by
-   * `OtelIngestBaseService.resolveTelemetryResource`; left undefined by
-   * lower-fidelity sources (syslog / fluent) that resolve metadata
-   * directly, in which case rows stamp an empty array.
+   * entity types (service / host / k8s.*). Populated with the full
+   * extracted set by `OtelIngestBaseService.resolveTelemetryResource`;
+   * lower-fidelity name-only sources (syslog / fluent) that resolve
+   * metadata directly via `telemetryServiceFromName` get the single
+   * service key.
    */
   entityKeys?: Array<string> | undefined;
   dataRententionInDays: number;
@@ -295,6 +303,30 @@ export default class OTelIngestService {
       });
 
     /*
+     * Name-only sources (syslog / fluent) never go through
+     * `resolveTelemetryResource`, so its extractor never registers this
+     * service. Reconcile the single Service entity here, under the same
+     * fence/throttle machinery. OTLP batches (resourceAttributes present)
+     * reconcile their full entity set — including the service.namespace
+     * identity this name-only path cannot see — in
+     * `resolveTelemetryResource` instead. Fire-and-forget: all errors are
+     * swallowed inside, so the registry can never break ingest.
+     */
+    if (!data.resourceAttributes) {
+      const serviceEntity: ExtractedEntity = {
+        entityType: EntityType.Service,
+        entityKey: keyForService(data.projectId.toString(), data.serviceName),
+        identifyingAttributes: {
+          "service.name": canonicalizeEntityValue(data.serviceName),
+        },
+      };
+      void reconcileEntityRegistryThrottled({
+        projectId: data.projectId,
+        entities: [serviceEntity],
+      });
+    }
+
+    /*
      * Touch `lastSeenAt` on the service. Throttled per-service inside
      * ServiceService.updateLastSeen so the steady-state firehose costs
      * one in-memory cache lookup per batch.
@@ -391,6 +423,17 @@ export default class OTelIngestService {
     const projectContext: ProjectRetentionContext =
       await this.getProjectRetentionContext(data.projectId);
 
+    /*
+     * The service's own membership key (pure hash, no DB round trip), so
+     * name-only sources (syslog / fluent) stamp a queryable `entityKeys`
+     * instead of []. The OTLP path overwrites this with the full extracted
+     * entity set in `resolveTelemetryResource`.
+     */
+    const serviceEntityKey: string = keyForService(
+      data.projectId.toString(),
+      data.serviceName,
+    );
+
     const buildMetadata: (svc: Service) => TelemetryServiceMetadata = (
       svc: Service,
     ): TelemetryServiceMetadata => {
@@ -400,6 +443,7 @@ export default class OTelIngestService {
         serviceName: data.serviceName,
         primaryEntityId: svc.id!,
         primaryEntityType: ServiceType.OpenTelemetry,
+        entityKeys: [serviceEntityKey],
         dataRententionInDays:
           serviceLevelRetention || projectContext.projectRetentionInDays,
         serviceRetentionConfig: svc.telemetryRetentionConfig ?? null,

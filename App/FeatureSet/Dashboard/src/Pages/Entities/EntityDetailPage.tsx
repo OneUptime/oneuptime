@@ -18,6 +18,7 @@ import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ObjectID from "Common/Types/ObjectID";
+import OneUptimeDate from "Common/Types/Date";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
 import TelemetryEntityRelationship from "Common/Models/DatabaseModels/TelemetryEntityRelationship";
@@ -93,7 +94,15 @@ const EntityDetailPage: FunctionComponent<PageComponentProps> = (): ReactElement
       <Fragment>
         <Card
           title={entity.displayName || entityKey}
-          description={`Entity type: ${entity.entityType || "unknown"} · key: ${entityKey}`}
+          description={`Entity type: ${entity.entityType || "unknown"} · key: ${entityKey}${
+            entity.firstSeenAt
+              ? ` · first seen: ${OneUptimeDate.getDateAsLocalFormattedString(entity.firstSeenAt)}`
+              : ""
+          }${
+            entity.lastSeenAt
+              ? ` · last seen: ${OneUptimeDate.getDateAsLocalFormattedString(entity.lastSeenAt)}`
+              : ""
+          }`}
         />
 
         <ModelTable<TelemetryEntityRelationship>

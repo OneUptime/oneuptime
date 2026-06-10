@@ -37,7 +37,6 @@ jest.mock("Common/Server/Utils/Logger", () => {
 
 import { createExpressApp } from "Common/Server/Utils/Express";
 import { setupMCPRoutes } from "../Handlers/RouteHandler";
-import { initializeMCPServer } from "../Server/MCPServer";
 import OneUptimeApiService from "../Services/OneUptimeApiService";
 import { McpToolInfo } from "../Types/McpTypes";
 import OneUptimeOperation from "../Types/OneUptimeOperation";
@@ -165,7 +164,6 @@ describe("MCP RouteHandler (stateless mode)", () => {
   let portB: number;
 
   beforeAll(async () => {
-    initializeMCPServer();
     const a: { server: http.Server; port: number } = await startReplica();
     const b: { server: http.Server; port: number } = await startReplica();
     replicaA = a.server;
@@ -281,6 +279,21 @@ describe("MCP RouteHandler (stateless mode)", () => {
       });
 
       expect(res.status).toBe(200);
+    });
+  });
+
+  describe("CORS headers", () => {
+    it("allows the MCP auth/protocol headers and never references mcp-session-id", async () => {
+      const res: Response = await fetch(`http://127.0.0.1:${portA}/mcp`);
+      const allowHeaders: string = (
+        res.headers.get("access-control-allow-headers") || ""
+      ).toLowerCase();
+
+      expect(allowHeaders).toContain("x-api-key");
+      expect(allowHeaders).toContain("mcp-protocol-version");
+      // Stateless mode: no session id is ever issued, so none is allowed/exposed.
+      expect(allowHeaders).not.toContain("mcp-session-id");
+      expect(res.headers.get("access-control-expose-headers")).toBeNull();
     });
   });
 

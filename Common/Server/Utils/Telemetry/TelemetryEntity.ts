@@ -1,9 +1,11 @@
 import {
   computeEntityKey as computeEntityKeyShared,
   canonicalizeEntityValue,
+  setSha256Provider,
 } from "../../../Utils/Telemetry/EntityKey";
 import EntityType from "../../../Types/Telemetry/EntityType";
 import Dictionary from "../../../Types/Dictionary";
+import crypto from "crypto";
 
 /*
  * Generalized OpenTelemetry entity extraction (the identity layer of the
@@ -28,6 +30,16 @@ import Dictionary from "../../../Types/Dictionary";
  * mirrors `OtelIngestBaseService.canonicalizeHostName` and the
  * case-insensitive Service lookup, so identity stays consistent end to end.
  */
+
+/*
+ * Ingest hashes an entity key per resolver per signal batch, so use the
+ * native node:crypto SHA-256 instead of EntityKey's pure-JS crypto-js
+ * default. Both emit identical lowercase hex, so keys do not fork against
+ * browser-computed read-side keys.
+ */
+setSha256Provider((input: string): string => {
+  return crypto.createHash("sha256").update(input).digest("hex");
+});
 
 /** Scalar attribute value as seen after `TelemetryUtil.getAttributes`. */
 export type EntityAttributeValue =
@@ -204,7 +216,7 @@ export default class TelemetryEntity {
       return { entityType: EntityType.Host, id: { "host.name": hostName } };
     },
 
-    // k8s.cluster — k8s.cluster.uid, fallback k8s.cluster.name.
+    // k8s.cluster — k8s.cluster.name only (see k8sClusterIdentity).
     (attrs: EntityAttributes) => {
       const id: Dictionary<string> | null =
         TelemetryEntity.k8sClusterIdentity(attrs);
@@ -348,14 +360,21 @@ export default class TelemetryEntity {
     },
   ];
 
-  /** k8s cluster identity: k8s.cluster.uid, fallback k8s.cluster.name. */
+  /*
+   * k8s cluster identity — k8s.cluster.name only, for the same reason host
+   * identity is host.name-only (see the host resolver above): the typed
+   * Postgres row (KubernetesCluster.clusterIdentifier) and the
+   * primary-entity discovery path (getClusterNameFromAttributes) are
+   * name-based, so a uid-keyed entity would be unmatchable by the read
+   * side (`EntityKey.keyForKubernetesCluster(clusterIdentifier)`).
+   * uid-based cluster identity is deferred alongside the host.id
+   * hardening. This identity is also folded into the composite k8s
+   * namespace/node/pod/deployment identities, which must stay name-based
+   * with it.
+   */
   private static k8sClusterIdentity(
     attrs: EntityAttributes,
   ): Dictionary<string> | null {
-    const uid: string | null = this.str(attrs, "k8s.cluster.uid");
-    if (uid) {
-      return { "k8s.cluster.uid": uid };
-    }
     const name: string | null = this.str(attrs, "k8s.cluster.name");
     if (name) {
       return { "k8s.cluster.name": name };

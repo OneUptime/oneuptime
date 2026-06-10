@@ -25,8 +25,12 @@ import CaptureSpan from "./CaptureSpan";
  * Resolving the value list from Postgres instead means every project resource
  * shows up regardless of recent telemetry activity, and the sidebar search
  * matches across the full set (not just the loaded subset).
+ *
+ * `serviceId` is the pre-rename alias of `primaryEntityId`, kept so stale
+ * clients keep resolving the Services facet across a deploy.
  */
 export const RESOURCE_FACET_KEYS: ReadonlySet<string> = new Set([
+  "primaryEntityId",
   "serviceId",
   "hostId",
   "dockerHostId",
@@ -92,6 +96,7 @@ export default class ResourceFacetResolver {
         : undefined;
 
     switch (spec.facetKey) {
+      case "primaryEntityId":
       case "serviceId":
         return ResourceFacetResolver.queryServices(
           projectId,

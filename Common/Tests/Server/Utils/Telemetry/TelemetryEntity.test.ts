@@ -48,10 +48,13 @@ function expectedKey(
   type: EntityType,
   id: Record<string, string>,
 ): string {
+  const escape: (token: string) => string = (token: string) => {
+    return token.replace(/([\\|=])/g, "\\$1");
+  };
   const parts: Array<string> = Object.keys(id)
     .sort()
     .map((k: string) => {
-      return `${k}=${id[k]!.trim().toLowerCase()}`;
+      return `${escape(k)}=${escape(id[k]!.trim().toLowerCase())}`;
     });
   return createHash("sha256")
     .update(`${projectId}|${type}|${parts.join("|")}`)
@@ -180,12 +183,33 @@ describe("TelemetryEntity.extractEntities — per type", () => {
     expect(typesFor({ "host.id": "h-123" })).not.toContain(EntityType.Host);
   });
 
-  test("k8s.cluster: prefers uid over name", () => {
+  test("k8s.cluster: keyed on name only, ignoring uid (read side is name-based)", () => {
     const e: ExtractedEntity | undefined = entityOfType(
       { "k8s.cluster.uid": "u-1", "k8s.cluster.name": "prod-us" },
       EntityType.KubernetesCluster,
     );
-    expect(e!.identifyingAttributes).toEqual({ "k8s.cluster.uid": "u-1" });
+    expect(e!.identifyingAttributes).toEqual({ "k8s.cluster.name": "prod-us" });
+  });
+
+  test("k8s.cluster: no cluster entity from uid alone", () => {
+    expect(typesFor({ "k8s.cluster.uid": "u-1" })).not.toContain(
+      EntityType.KubernetesCluster,
+    );
+  });
+
+  test("k8s composite children fold in the name-based cluster identity even when uid is present", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      {
+        "k8s.cluster.uid": "u-1",
+        "k8s.cluster.name": "prod-us",
+        "k8s.namespace.name": "shop",
+      },
+      EntityType.KubernetesNamespace,
+    );
+    expect(e!.identifyingAttributes).toEqual({
+      "k8s.cluster.name": "prod-us",
+      "k8s.namespace.name": "shop",
+    });
   });
 
   test("k8s.pod: composes cluster + namespace + pod identity", () => {
@@ -343,11 +367,39 @@ describe("read-side keyFor* helpers match ingest-side extraction", () => {
       EntityType.Service,
     );
     expect(keyForService(PROJECT, "checkout")).toBe(stamped!.entityKey);
+    // An undefined or blank namespace must not alter the key.
+    expect(keyForService(PROJECT, "checkout", undefined)).toBe(
+      stamped!.entityKey,
+    );
+    expect(keyForService(PROJECT, "checkout", "  ")).toBe(stamped!.entityKey);
+  });
+
+  test("keyForService matches the namespaced service entity stamped from service.name + service.namespace", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "service.name": "checkout", "service.namespace": "shop" },
+      EntityType.Service,
+    );
+    expect(stamped).toBeDefined();
+    expect(keyForService(PROJECT, "checkout", "shop")).toBe(
+      stamped!.entityKey,
+    );
+    // Namespace is part of the identity: without it the key matches nothing.
+    expect(keyForService(PROJECT, "checkout")).not.toBe(stamped!.entityKey);
   });
 
   test("keyForKubernetesCluster matches the cluster entity stamped from k8s.cluster.name", () => {
     const stamped: ExtractedEntity | undefined = entityOfType(
       { "k8s.cluster.name": "prod-us" },
+      EntityType.KubernetesCluster,
+    );
+    expect(keyForKubernetesCluster(PROJECT, "prod-us")).toBe(
+      stamped!.entityKey,
+    );
+  });
+
+  test("keyForKubernetesCluster still matches when the resource also carries a uid", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "k8s.cluster.uid": "u-1", "k8s.cluster.name": "prod-us" },
       EntityType.KubernetesCluster,
     );
     expect(keyForKubernetesCluster(PROJECT, "prod-us")).toBe(

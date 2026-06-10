@@ -19,7 +19,7 @@ const PROJECTION_ELIGIBLE_KEYS: Set<string> = new Set([
   "projectId",
   "startTime",
   "isRootSpan",
-  "serviceId",
+  "primaryEntityId",
   "statusCode",
 ]);
 
@@ -48,9 +48,9 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
   /**
    * Override the count statement to route eligible queries through the
    * proj_hist_by_minute projection. The projection is keyed on
-   * (projectId, toStartOfMinute(startTime), serviceId, statusCode, isRootSpan)
-   * so its WHERE clause must reference the projection's exact expressions —
-   * filtering on raw `startTime` won't trigger projection use.
+   * (projectId, toStartOfMinute(startTime), primaryEntityId, statusCode,
+   * isRootSpan) so its WHERE clause must reference the projection's exact
+   * expressions — filtering on raw `startTime` won't trigger projection use.
    *
    * Trade-off: time bounds get rounded to the minute, so the count can be
    * inflated by spans that started in the same minute as the boundary. For
@@ -132,23 +132,23 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
       );
     }
 
-    const serviceIdValue: unknown = query["serviceId"];
-    if (serviceIdValue instanceof ObjectID) {
+    const primaryEntityIdValue: unknown = query["primaryEntityId"];
+    if (primaryEntityIdValue instanceof ObjectID) {
       statement.append(
-        SQL` AND serviceId = ${{
+        SQL` AND primaryEntityId = ${{
           type: TableColumnType.ObjectID,
-          value: serviceIdValue,
+          value: primaryEntityIdValue,
         }}`,
       );
-    } else if (serviceIdValue instanceof Includes) {
+    } else if (primaryEntityIdValue instanceof Includes) {
       statement.append(
-        SQL` AND serviceId IN (${{
+        SQL` AND primaryEntityId IN (${{
           type: TableColumnType.ObjectID,
-          value: serviceIdValue,
+          value: primaryEntityIdValue,
         }})`,
       );
-    } else if (serviceIdValue !== undefined) {
-      // Unrecognized serviceId form — let the generic path handle it.
+    } else if (primaryEntityIdValue !== undefined) {
+      // Unrecognized primaryEntityId form — let the generic path handle it.
       return null;
     }
 

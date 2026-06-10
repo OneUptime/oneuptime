@@ -33,6 +33,20 @@ export class AddTelemetryEntityTable1781200000000
     await queryRunner.query(
       `CREATE UNIQUE INDEX "UQ_TelemetryEntity_proj_type_key" ON "TelemetryEntity" ("projectId", "entityType", "entityKey") `,
     );
+
+    /*
+     * resourceId is polymorphic (discriminated by resourceType), so it
+     * intentionally has no FK.
+     */
+    await queryRunner.query(
+      `ALTER TABLE "TelemetryEntity" ADD CONSTRAINT "FK_TelemetryEntity_project" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TelemetryEntity" ADD CONSTRAINT "FK_TelemetryEntity_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TelemetryEntity" ADD CONSTRAINT "FK_TelemetryEntity_deletedBy" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

@@ -2,9 +2,14 @@ import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/TelemetryEntity";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
+import ColumnLength from "../../Types/Database/ColumnLength";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { ExtractedEntity } from "../Utils/Telemetry/TelemetryEntity";
+import {
+  reconcileByNaturalKey,
+  REGISTRY_PROMOTED_TYPES,
+} from "../Utils/Telemetry/EntityRegistry";
 
 export class TelemetryEntityService extends DatabaseService<Model> {
   public constructor() {
@@ -13,11 +18,15 @@ export class TelemetryEntityService extends DatabaseService<Model> {
 
   /**
    * Forward-only registry reconciliation: upsert a catalog row per
-   * discovered entity and bump `lastSeenAt`. Resilient by design — a
-   * registry failure must never break signal ingest, so every error is
-   * swallowed (logged). Callers are expected to throttle this (it should
-   * not run on every batch); see
-   * `OtelIngestBaseService.reconcileEntitiesThrottled`.
+   * discovered entity and bump `lastSeenAt`. High-churn membership-only
+   * types (container / process / telemetry.sdk — see
+   * `REGISTRY_PROMOTED_TYPES`) are skipped: their keys still flow into
+   * the `entityKeys` column on signals, they just never mint registry
+   * rows. Resilient by design — a registry failure must never break
+   * signal ingest, so every error is swallowed (logged). Callers are
+   * expected to throttle this (it should not run on every batch); see
+   * `reconcileEntityRegistryThrottled` in
+   * `Common/Server/Utils/Telemetry/EntityRegistry`.
    */
   @CaptureSpan()
   public async reconcileEntities(data: {
@@ -25,6 +34,9 @@ export class TelemetryEntityService extends DatabaseService<Model> {
     entities: Array<ExtractedEntity>;
   }): Promise<void> {
     for (const entity of data.entities) {
+      if (!REGISTRY_PROMOTED_TYPES.has(entity.entityType)) {
+        continue;
+      }
       try {
         await this.upsertEntity({ projectId: data.projectId, entity });
       } catch (err) {
@@ -43,50 +55,30 @@ export class TelemetryEntityService extends DatabaseService<Model> {
     const { projectId, entity } = data;
     const now: Date = OneUptimeDate.getCurrentDate();
 
-    const existing: Model | null = await this.findOneBy({
+    await reconcileByNaturalKey({
+      service: this,
       query: {
         projectId,
         entityType: entity.entityType,
         entityKey: entity.entityKey,
       },
-      select: { _id: true },
-      props: { isRoot: true },
+      lastSeenAt: now,
+      describe: `entity ${entity.entityType}/${entity.entityKey}`,
+      buildModel: () => {
+        const model: Model = new Model();
+        model.projectId = projectId;
+        model.entityType = entity.entityType;
+        model.entityKey = entity.entityKey;
+        model.identifyingAttributes = entity.identifyingAttributes;
+        // varchar(ShortText) column; k8s names can run to 253 chars.
+        model.displayName = TelemetryEntityService.deriveDisplayName(
+          entity,
+        ).substring(0, ColumnLength.ShortText);
+        model.firstSeenAt = now;
+        model.lastSeenAt = now;
+        return model;
+      },
     });
-
-    if (existing) {
-      // Throttled bump of lastSeenAt (descriptive merge can come later).
-      await this.updateOneById({
-        id: existing.id!,
-        data: { lastSeenAt: now },
-        props: { isRoot: true },
-      });
-      return;
-    }
-
-    const model: Model = new Model();
-    model.projectId = projectId;
-    model.entityType = entity.entityType;
-    model.entityKey = entity.entityKey;
-    model.identifyingAttributes = entity.identifyingAttributes;
-    model.displayName = TelemetryEntityService.deriveDisplayName(entity);
-    model.firstSeenAt = now;
-    model.lastSeenAt = now;
-
-    try {
-      await this.create({ data: model, props: { isRoot: true } });
-    } catch (err) {
-      /*
-       * A concurrent worker likely created the same (projectId,
-       * entityType, entityKey) — the unique index rejected this insert.
-       * Harmless for a forward-only registry: the row exists, and the
-       * next throttle window will bump lastSeenAt. Swallow + log.
-       */
-      logger.debug(
-        `TelemetryEntityService: create raced for ${entity.entityType}/${entity.entityKey} (likely concurrent insert): ${
-          (err as Error)?.message
-        }`,
-      );
-    }
   }
 
   /**

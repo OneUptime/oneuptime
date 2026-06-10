@@ -14,8 +14,9 @@
  * it, failing with "404 MCP session not found" — see GitHub issue #2459.
  *
  * Stateless mode is safe here because the OneUptime tools carry no per-session
- * state: `tools/list` is derived from a process-global tool list and every
- * `tools/call` authenticates with the API key supplied on that same request.
+ * state: `tools/list` is derived from the tool list bound at route setup and
+ * every `tools/call` authenticates with the API key supplied on that same
+ * request.
  */
 
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -31,9 +32,6 @@ import { registerToolHandlers } from "./ToolHandler";
 import { McpToolInfo } from "../Types/McpTypes";
 import { ROUTE_PREFIXES, API_KEY_HEADERS } from "../Config/ServerConfig";
 import logger from "Common/Server/Utils/Logger";
-
-// Tools list stored at setup time for per-request server initialization
-let registeredTools: McpToolInfo[] = [];
 
 // Type for MCP handler function
 type McpHandlerFunction = (
@@ -66,7 +64,6 @@ export function setupMCPRoutes(
   app: ExpressApplication,
   tools: McpToolInfo[],
 ): void {
-  registeredTools = tools;
   ROUTE_PREFIXES.forEach((prefix: string) => {
     setupRoutesForPrefix(app, prefix, tools);
   });
@@ -74,6 +71,23 @@ export function setupMCPRoutes(
   logger.info(
     `MCP routes setup complete (stateless mode) for prefixes: ${ROUTE_PREFIXES.join(", ")}`,
   );
+}
+
+/**
+ * Middleware to add MCP-specific CORS headers so browser-based MCP clients can
+ * send the auth and protocol headers. The stateless server never issues an
+ * `mcp-session-id`, so that header is neither allowed nor exposed.
+ */
+function mcpCorsMiddleware(
+  _req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+): void {
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Accept, Authorization, mcp-protocol-version, x-api-key",
+  );
+  next();
 }
 
 /**
@@ -85,26 +99,34 @@ function setupRoutesForPrefix(
   tools: McpToolInfo[],
 ): void {
   const mcpEndpoint: string = prefix === "/" ? "/mcp" : `${prefix}/mcp`;
-  const mcpHandler: McpHandlerFunction = createMCPHandler();
+  const mcpHandler: McpHandlerFunction = createMCPHandler(tools);
 
   // MCP endpoint for all methods (GET for SSE, POST for requests, DELETE for cleanup)
-  app.get(mcpEndpoint, mcpHandler);
-  app.post(mcpEndpoint, ExpressJson(), mcpHandler);
-  app.delete(mcpEndpoint, mcpHandler);
+  app.get(mcpEndpoint, mcpCorsMiddleware, mcpHandler);
+  app.post(mcpEndpoint, mcpCorsMiddleware, ExpressJson(), mcpHandler);
+  app.delete(mcpEndpoint, mcpCorsMiddleware, mcpHandler);
 
   // OPTIONS handler for CORS preflight requests
-  app.options(mcpEndpoint, (_req: ExpressRequest, res: ExpressResponse) => {
-    res.status(200).end();
-  });
+  app.options(
+    mcpEndpoint,
+    mcpCorsMiddleware,
+    (_req: ExpressRequest, res: ExpressResponse) => {
+      res.status(200).end();
+    },
+  );
 
   // Handle root "/" when nginx strips the /mcp/ prefix (for "/" prefix only)
   if (prefix === "/") {
-    app.get("/", mcpHandler);
-    app.post("/", ExpressJson(), mcpHandler);
-    app.delete("/", mcpHandler);
-    app.options("/", (_req: ExpressRequest, res: ExpressResponse) => {
-      res.status(200).end();
-    });
+    app.get("/", mcpCorsMiddleware, mcpHandler);
+    app.post("/", mcpCorsMiddleware, ExpressJson(), mcpHandler);
+    app.delete("/", mcpCorsMiddleware, mcpHandler);
+    app.options(
+      "/",
+      mcpCorsMiddleware,
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.status(200).end();
+      },
+    );
   }
 
   // List tools endpoint (REST API)
@@ -115,9 +137,9 @@ function setupRoutesForPrefix(
 }
 
 /**
- * Create the main MCP request handler
+ * Create the main MCP request handler bound to the given tool list
  */
-function createMCPHandler(): McpHandlerFunction {
+function createMCPHandler(tools: McpToolInfo[]): McpHandlerFunction {
   return async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -125,7 +147,7 @@ function createMCPHandler(): McpHandlerFunction {
   ): Promise<void> => {
     try {
       if (req.method === "POST") {
-        await handleStatelessRequest(req, res);
+        await handleStatelessRequest(req, res, tools);
         return;
       }
 
@@ -189,6 +211,7 @@ function createMCPHandler(): McpHandlerFunction {
 async function handleStatelessRequest(
   req: ExpressRequest,
   res: ExpressResponse,
+  tools: McpToolInfo[],
 ): Promise<void> {
   // API key is read fresh from this request's headers (optional for public tools).
   const apiKey: string = extractApiKey(req) || "";
@@ -205,7 +228,7 @@ async function handleStatelessRequest(
   const transport: StreamableHTTPServerTransport =
     new StreamableHTTPServerTransport({});
 
-  registerToolHandlers(mcpServer, registeredTools, apiKey);
+  registerToolHandlers(mcpServer, tools, apiKey);
 
   transport.onerror = (error: Error): void => {
     logger.error(`MCP transport error: ${error.message}`);

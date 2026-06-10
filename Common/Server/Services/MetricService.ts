@@ -22,7 +22,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
   }
 
   /*
-   * Cascade deletes from `MetricItemV2` into the aggregating
+   * Cascade deletes from `MetricItemV3` into the aggregating
    * materialized-view target tables.
    *
    * `MetricItemAggMV1m` and `MetricBaselineHourly` are AggregatingMergeTree
@@ -35,12 +35,12 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
    * See https://github.com/OneUptime/oneuptime/issues/2419.
    *
    * The cascade only runs when the caller scoped the delete by
-   * `serviceId`. Global time-based purges (TTL cleanup) are handled by
-   * each MV table's own `retentionDate TTL DELETE`, so cascading those
+   * `primaryEntityId`. Global time-based purges (TTL cleanup) are handled
+   * by each MV table's own `retentionDate TTL DELETE`, so cascading those
    * would pointlessly scan the whole MV. The per-host MV
    * (`MetricItemAggMV1mByHost`) is keyed by `hostIdentifier` rather than
-   * `serviceId`, so a service-scoped delete has nothing to remove there —
-   * skip it.
+   * `primaryEntityId`, so an entity-scoped delete has nothing to remove
+   * there — skip it.
    */
   public override async deleteBy(deleteBy: DeleteBy<Metric>): Promise<void> {
     await super.deleteBy(deleteBy);
@@ -96,29 +96,29 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     >;
 
     /*
-     * Cascade only when the delete is scoped by serviceId. The MV sort
-     * key is (projectId, name, serviceId, bucketTime); without serviceId
-     * the DELETE would scan a huge swath of unrelated rows and risk
-     * removing data that belongs to other entities sharing the same
-     * project.
+     * Cascade only when the delete is scoped by primaryEntityId. The MV
+     * sort key is (projectId, name, primaryEntityId, bucketTime); without
+     * primaryEntityId the DELETE would scan a huge swath of unrelated
+     * rows and risk removing data that belongs to other entities sharing
+     * the same project.
      */
     if (
-      queryRecord["serviceId"] === undefined ||
-      queryRecord["serviceId"] === null
+      queryRecord["primaryEntityId"] === undefined ||
+      queryRecord["primaryEntityId"] === null
     ) {
       return null;
     }
 
     /*
      * Only project the keys the MV target tables actually expose.
-     * `time`, `attributes`, `serviceType`, and the metric-payload
+     * `time`, `attributes`, `primaryEntityType`, and the metric-payload
      * columns don't exist on the MV schema and would either fail
      * where-statement generation or reference a missing column.
      */
     const allowedKeys: ReadonlyArray<string> = [
       "projectId",
       "name",
-      "serviceId",
+      "primaryEntityId",
     ];
     const out: Record<string, unknown> = {};
     for (const key of allowedKeys) {
@@ -175,7 +175,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
        * dominant attribute-filtered path and the per-host MV is
        * the only one that can serve them. If it doesn't apply
        * (no host filter, or extra attrs/groupBy), fall through
-       * to the project/serviceId MV, then to the base table.
+       * to the project/primaryEntityId MV, then to the base table.
        */
       const hostMvStatement: {
         statement: Statement;
@@ -388,7 +388,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
    *   - The dashboard's effective bucket interval is >= 1 minute (the
    *     MV stores 1-minute states; sub-minute requests need raw rows).
    *   - The query carries no per-attribute filter or group-by, since
-   *     the MV is keyed by (projectId, name, serviceId, bucketTime)
+   *     the MV is keyed by (projectId, name, primaryEntityId, bucketTime)
    *     only — it does not preserve attribute breakdowns.
    *   - The query carries no group-by other than the time bucket.
    *

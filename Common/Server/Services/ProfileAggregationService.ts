@@ -77,7 +77,7 @@ export interface ServiceActivityRequest {
 }
 
 export interface ServiceActivityItem {
-  serviceId: string;
+  primaryEntityId: string;
   sampleCount: number;
   profileCount: number;
   totalValue: number;
@@ -442,7 +442,7 @@ export class ProfileAggregationService {
   }
 
   /**
-   * Aggregate sample / profile counts per serviceId for a time window.
+   * Aggregate sample / profile counts per primaryEntityId for a time window.
    * Drives the "loudest services first" sort on the Profiles dashboard
    * so a developer opening the page lands on the workloads that are
    * actually doing work rather than scrolling past kernel-thread noise.
@@ -463,12 +463,12 @@ export class ProfileAggregationService {
     const rows: Array<JSONObject> = response.data || [];
     const out: Array<ServiceActivityItem> = [];
     for (const row of rows) {
-      const serviceId: string = String(row["serviceId"] || "");
-      if (!serviceId) {
+      const primaryEntityId: string = String(row["primaryEntityId"] || "");
+      if (!primaryEntityId) {
         continue;
       }
       out.push({
-        serviceId,
+        primaryEntityId,
         sampleCount: Number(row["sampleCount"] || 0),
         profileCount: Number(row["profileCount"] || 0),
         totalValue: Number(row["totalValue"] || 0),
@@ -594,7 +594,7 @@ export class ProfileAggregationService {
      */
     const statement: Statement = SQL`
       SELECT
-        toString(serviceId) AS serviceId,
+        toString(primaryEntityId) AS primaryEntityId,
         count() AS sampleCount,
         uniqExact(profileId) AS profileCount,
         toFloat64(sum(value)) AS totalValue
@@ -634,7 +634,7 @@ export class ProfileAggregationService {
     }
 
     statement.append(
-      SQL` GROUP BY serviceId
+      SQL` GROUP BY primaryEntityId
            ORDER BY sampleCount DESC
            LIMIT 10000`,
     );
@@ -659,7 +659,7 @@ export class ProfileAggregationService {
   ): void {
     if (request.serviceIds && request.serviceIds.length > 0) {
       statement.append(
-        SQL` AND serviceId IN (${{
+        SQL` AND primaryEntityId IN (${{
           type: TableColumnType.ObjectID,
           value: new Includes(
             request.serviceIds.map((id: ObjectID) => {

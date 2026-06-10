@@ -52,7 +52,7 @@ export class ExceptionAggregationService {
   private static readonly TABLE_NAME: string =
     AnalyticsTableName.ExceptionInstance;
   private static readonly TOP_LEVEL_COLUMNS: Set<string> = new Set([
-    "serviceId",
+    "primaryEntityId",
     "exceptionType",
     "environment",
     "fingerprint",
@@ -63,8 +63,8 @@ export class ExceptionAggregationService {
   ]);
   /*
    * Virtual facet keys — same scheme as TraceAggregationService /
-   * LogAggregationService. The `serviceId` slot is reused for host /
-   * docker host / k8s cluster ids, disambiguated by the `serviceType`
+   * LogAggregationService. The `primaryEntityId` slot is reused for host /
+   * docker host / k8s cluster ids, disambiguated by the `primaryEntityType`
    * discriminator column on each ExceptionInstance row.
    */
   private static readonly RESOURCE_FACET_KEYS: Map<string, ServiceType> =
@@ -181,6 +181,11 @@ export class ExceptionAggregationService {
   }
 
   private static buildFacetStatement(request: FacetRequest): Statement {
+    // Pre-rename alias from stale clients; the V3 column is primaryEntityId.
+    if (request.facetKey === "serviceId") {
+      request.facetKey = "primaryEntityId";
+    }
+
     const limit: number =
       request.limit ?? ExceptionAggregationService.DEFAULT_FACET_LIMIT;
 
@@ -197,11 +202,12 @@ export class ExceptionAggregationService {
 
     if (isResourceFacet) {
       /*
-       * Virtual facet — group serviceId values whose row carries the matching
-       * ServiceType discriminator (Host / DockerHost / KubernetesCluster).
+       * Virtual facet — group primaryEntityId values whose row carries the
+       * matching ServiceType discriminator (Host / DockerHost /
+       * KubernetesCluster).
        */
       statement.append(
-        SQL`SELECT toString(serviceId) AS val, count() AS cnt FROM ${ExceptionAggregationService.TABLE_NAME}`,
+        SQL`SELECT toString(primaryEntityId) AS val, count() AS cnt FROM ${ExceptionAggregationService.TABLE_NAME}`,
       );
     } else if (isTopLevelColumn) {
       statement.append(
@@ -231,19 +237,19 @@ export class ExceptionAggregationService {
 
     if (isResourceFacet) {
       statement.append(
-        SQL` AND serviceType = ${{
+        SQL` AND primaryEntityType = ${{
           type: TableColumnType.Text,
           value: resourceServiceType as string,
         }}`,
       );
-    } else if (request.facetKey === "serviceId") {
+    } else if (request.facetKey === "primaryEntityId") {
       /*
        * Constrain the canonical Services facet to rows that actually
-       * belong to a Service. NULL / empty serviceType covers legacy rows
-       * ingested before the discriminator existed.
+       * belong to a Service. NULL / empty primaryEntityType covers legacy
+       * rows ingested before the discriminator existed.
        */
       statement.append(
-        SQL` AND (serviceType = '' OR serviceType = ${{
+        SQL` AND (primaryEntityType = '' OR primaryEntityType = ${{
           type: TableColumnType.Text,
           value: ServiceType.OpenTelemetry as string,
         }})`,
@@ -283,7 +289,7 @@ export class ExceptionAggregationService {
   ): void {
     if (request.serviceIds && request.serviceIds.length > 0) {
       statement.append(
-        SQL` AND serviceId IN (${{
+        SQL` AND primaryEntityId IN (${{
           type: TableColumnType.ObjectID,
           value: new Includes(
             request.serviceIds.map((id: ObjectID) => {

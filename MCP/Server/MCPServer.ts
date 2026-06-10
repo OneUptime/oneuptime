@@ -11,13 +11,10 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { MCP_SERVER_NAME, MCP_SERVER_VERSION } from "../Config/ServerConfig";
 import logger from "Common/Server/Utils/Logger";
 
-let initialized: boolean = false;
-
 /**
- * Mark the MCP subsystem as initialized (called once at startup)
+ * Log MCP subsystem startup (called once at boot)
  */
 export function initializeMCPServer(): void {
-  initialized = true;
   logger.info(
     `MCP Server initialized: ${MCP_SERVER_NAME} v${MCP_SERVER_VERSION}`,
   );
@@ -29,12 +26,6 @@ export function initializeMCPServer(): void {
  * one transport, and stateless mode uses a fresh transport per request.
  */
 export function createMCPServerInstance(): McpServer {
-  if (!initialized) {
-    throw new Error(
-      "MCP Server not initialized. Call initializeMCPServer() first.",
-    );
-  }
-
   return new McpServer(
     {
       name: MCP_SERVER_NAME,
@@ -46,20 +37,6 @@ export function createMCPServerInstance(): McpServer {
       },
     },
   );
-}
-
-/**
- * Check if MCP server is initialized
- */
-export function isMCPServerInitialized(): boolean {
-  return initialized;
-}
-
-/**
- * Reset MCP server (useful for testing)
- */
-export function resetMCPServer(): void {
-  initialized = false;
 }
 
 export { McpServer };

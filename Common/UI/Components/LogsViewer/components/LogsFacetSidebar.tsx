@@ -39,7 +39,7 @@ export interface LogsFacetSidebarProps {
 }
 
 const RESOURCE_FACET_KEYS: ReadonlySet<string> = new Set([
-  "serviceId",
+  "primaryEntityId",
   "hostId",
   "dockerHostId",
   "kubernetesClusterId",
@@ -146,7 +146,7 @@ function buildClusterDisplayMap(
 function getFacetTitle(key: string): string {
   const titleMap: Record<string, string> = {
     severityText: "Severity",
-    serviceId: "Service",
+    primaryEntityId: "Service",
     hostId: "Host",
     dockerHostId: "Docker Host",
     kubernetesClusterId: "Kubernetes Cluster",
@@ -187,7 +187,7 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
   const facetKeys: Array<string> = useMemo(() => {
     const priorityKeys: Array<string> = [
       "severityText",
-      "serviceId",
+      "primaryEntityId",
       "hostId",
       "dockerHostId",
       "kubernetesClusterId",
@@ -280,7 +280,7 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
           let valueDisplayMap: Record<string, string> | undefined;
           let valueColorMap: Record<string, string> | undefined;
 
-          if (key === "serviceId") {
+          if (key === "primaryEntityId") {
             valueDisplayMap = serviceDisplayMap;
             valueColorMap = serviceColorMap;
           } else if (key === "hostId") {

@@ -134,10 +134,9 @@ export default class MonitorMetricUtil {
     return {
       _id: ObjectID.generate().toString(),
       createdAt: ingestionTimestamp,
-      updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
-      serviceId: data.monitorId.toString(),
-      serviceType: ServiceType.Monitor,
+      primaryEntityId: data.monitorId.toString(),
+      primaryEntityType: ServiceType.Monitor,
       name: data.metricName,
       aggregationTemporality: null,
       metricPointType: data.metricPointType || MetricPointType.Sum,

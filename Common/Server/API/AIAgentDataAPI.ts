@@ -260,9 +260,10 @@ export default class AIAgentDataAPI {
             );
           }
 
-          // Get service ID (supports both primaryEntityId and legacy telemetryServiceId)
+          // Get service ID (supports primaryEntityId plus legacy serviceId / telemetryServiceId from older agents)
           const serviceIdParam: string | undefined =
             (data["primaryEntityId"] as string) ||
+            (data["serviceId"] as string) ||
             (data["telemetryServiceId"] as string);
 
           if (!serviceIdParam) {

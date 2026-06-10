@@ -17,6 +17,7 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
 import TelemetryEntityRelationship from "Common/Models/DatabaseModels/TelemetryEntityRelationship";
+import EntityType from "Common/Types/Telemetry/EntityType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -37,18 +38,18 @@ import IconProp from "Common/Types/Icon/IconProp";
  */
 
 // Entity type → vertical layer (0 = top). Unknowns fall to the bottom layer.
-const LAYER_BY_TYPE: Record<string, number> = {
-  "k8s.cluster": 0,
-  host: 1,
-  "k8s.namespace": 1,
-  service: 2,
-  "k8s.node": 2,
-  "k8s.deployment": 2,
-  "service.instance": 3,
-  "k8s.pod": 3,
-  container: 4,
-  process: 4,
-  "telemetry.sdk": 5,
+const LAYER_BY_TYPE: Record<EntityType, number> = {
+  [EntityType.KubernetesCluster]: 0,
+  [EntityType.Host]: 1,
+  [EntityType.KubernetesNamespace]: 1,
+  [EntityType.Service]: 2,
+  [EntityType.KubernetesNode]: 2,
+  [EntityType.KubernetesDeployment]: 2,
+  [EntityType.ServiceInstance]: 3,
+  [EntityType.KubernetesPod]: 3,
+  [EntityType.Container]: 4,
+  [EntityType.Process]: 4,
+  [EntityType.TelemetrySdk]: 5,
 };
 const FALLBACK_LAYER: number = 6;
 const X_GAP: number = 240;
@@ -67,8 +68,6 @@ const TopologyGraph: FunctionComponent = (): ReactElement => {
       setIsLoading(true);
       setError("");
       try {
-        const projectId: string = ProjectUtil.getCurrentProjectId()!.toString();
-
         const [entityResult, relResult]: [
           ListResult<TelemetryEntity>,
           ListResult<TelemetryEntityRelationship>,
@@ -95,7 +94,6 @@ const TopologyGraph: FunctionComponent = (): ReactElement => {
           }),
         ]);
 
-        void projectId;
         setEntities(entityResult.data);
         setRelationships(relResult.data);
       } catch (err) {

@@ -5,6 +5,7 @@ import OneUptimeDate from "../../Types/Date";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { EntityRelationshipEdge } from "../../Utils/Telemetry/EntityRelationship";
+import { reconcileByNaturalKey } from "../Utils/Telemetry/EntityRegistry";
 
 export class TelemetryEntityRelationshipService extends DatabaseService<Model> {
   public constructor() {
@@ -15,7 +16,9 @@ export class TelemetryEntityRelationshipService extends DatabaseService<Model> {
    * Forward-only topology reconciliation: upsert a row per directed edge and
    * bump `lastSeenAt`. Resilient — a topology-graph failure must never break
    * signal ingest, so every error is swallowed (logged). Callers throttle
-   * this (see `OtelIngestBaseService.reconcileEntitiesThrottled`).
+   * this (see `reconcileEntityRegistryThrottled` in
+   * `Common/Server/Utils/Telemetry/EntityRegistry`), and only pass edges
+   * among registry-promoted entities so every edge endpoint has a row.
    */
   @CaptureSpan()
   public async reconcileRelationships(data: {
@@ -41,48 +44,27 @@ export class TelemetryEntityRelationshipService extends DatabaseService<Model> {
     const { projectId, edge } = data;
     const now: Date = OneUptimeDate.getCurrentDate();
 
-    const existing: Model | null = await this.findOneBy({
+    await reconcileByNaturalKey({
+      service: this,
       query: {
         projectId,
         fromEntityKey: edge.fromEntityKey,
         toEntityKey: edge.toEntityKey,
         relationshipType: edge.relationshipType,
       },
-      select: { _id: true },
-      props: { isRoot: true },
+      lastSeenAt: now,
+      describe: `edge ${edge.fromEntityKey}-[${edge.relationshipType}]->${edge.toEntityKey}`,
+      buildModel: () => {
+        const model: Model = new Model();
+        model.projectId = projectId;
+        model.fromEntityKey = edge.fromEntityKey;
+        model.toEntityKey = edge.toEntityKey;
+        model.relationshipType = edge.relationshipType;
+        model.firstSeenAt = now;
+        model.lastSeenAt = now;
+        return model;
+      },
     });
-
-    if (existing) {
-      await this.updateOneById({
-        id: existing.id!,
-        data: { lastSeenAt: now },
-        props: { isRoot: true },
-      });
-      return;
-    }
-
-    const model: Model = new Model();
-    model.projectId = projectId;
-    model.fromEntityKey = edge.fromEntityKey;
-    model.toEntityKey = edge.toEntityKey;
-    model.relationshipType = edge.relationshipType;
-    model.firstSeenAt = now;
-    model.lastSeenAt = now;
-
-    try {
-      await this.create({ data: model, props: { isRoot: true } });
-    } catch (err) {
-      /*
-       * A concurrent worker likely inserted the same edge — the unique
-       * index rejected this. Harmless for a forward-only graph; the next
-       * throttle window bumps lastSeenAt. Swallow + log.
-       */
-      logger.debug(
-        `TelemetryEntityRelationshipService: create raced for ${edge.fromEntityKey}->${edge.toEntityKey} (likely concurrent insert): ${
-          (err as Error)?.message
-        }`,
-      );
-    }
   }
 }
 

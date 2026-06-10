@@ -154,7 +154,8 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
     {
       ownerUserService: ServiceOwnerUserService,
       ownerTeamService: ServiceOwnerTeamService,
-      fkColumn: "primaryEntityId",
+      // FK column on the Postgres ServiceOwnerUser/Team tables, not the ClickHouse telemetry column.
+      fkColumn: "serviceId",
       canOwnTelemetry: true,
       modelService: ServiceService,
     },
