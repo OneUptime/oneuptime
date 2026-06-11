@@ -111,18 +111,14 @@ export default class FileModel extends BaseModel {
 
   /*
    * High-entropy token used to address a file via /file/image/access-token/:token.
-   * Generated server-side on create (FileService.onBeforeCreate) — clients can
-   * never supply it, so it carries no create permission; otherwise it would be
-   * exposed as a writable field in the OpenAPI create schema and downstream
-   * generators (e.g. the Terraform provider) would treat it as user-settable,
-   * making the server-assigned value an "inconsistent result after apply".
-   * Unguessable replacement for the file id when embedding files in markdown
-   * so that ObjectIDs are not enumerable. Combined with the isPublic flag the
-   * token route only serves anonymous requests when isPublic is true;
-   * otherwise an authenticated session is required.
+   * Generated server-side on create. Unguessable replacement for the
+   * file id when embedding files in markdown so that ObjectIDs are not
+   * enumerable. Combined with the isPublic flag the token route only
+   * serves anonymous requests when isPublic is true; otherwise an
+   * authenticated session is required.
    */
   @ColumnAccessControl({
-    create: [],
+    create: [Permission.CurrentUser, Permission.AuthenticatedRequest],
     read: [Permission.CurrentUser, Permission.AuthenticatedRequest],
     update: [],
   })

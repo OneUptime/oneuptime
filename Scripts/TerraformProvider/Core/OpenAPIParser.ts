@@ -332,6 +332,33 @@ export class OpenAPIParser {
     }
 
     /*
+     * Also treat create/update RESPONSE schemas as computed outputs. Some
+     * models (e.g. File) expose no read operation, so server-populated
+     * fields (like image_access_token) only ever appear in the create
+     * response. Without this pass those fields stay Optional-only and a
+     * server-assigned value becomes a "Provider produced inconsistent
+     * result after apply" error. For resources that do have read
+     * operations this is a no-op: their response fields were already
+     * marked computed by the read pass above.
+     */
+    if (operations.create) {
+      this.addSchemaFromOperation(
+        schema,
+        operations.create,
+        true,
+        `${resourceName}-create-response`,
+      );
+    }
+    if (operations.update) {
+      this.addSchemaFromOperation(
+        schema,
+        operations.update,
+        true,
+        `${resourceName}-update-response`,
+      );
+    }
+
+    /*
      * Third pass: Identify fields that should be both optional and computed
      * These are fields that:
      * 1. Appear in both create/update AND read operations, but
