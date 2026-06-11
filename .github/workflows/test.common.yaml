@@ -19,5 +19,9 @@ jobs:
         with:
           node-version: 24
       - run: cd Common && bash test-setup.sh
+      # Tests under Common/Tests/App import source files from App, whose
+      # "Common/*" imports resolve through App/node_modules/Common
+      # (a file:../Common symlink) — so App's dependencies must be installed.
+      - run: cd App && npm install
       - run: cd Common && npm install && rm -rf build && npm run test
   
