@@ -478,6 +478,24 @@ export interface ProbedRuntimeChart {
 }
 
 /*
+ * Turn a cumulative counter series into per-bucket deltas. The first point
+ * has no predecessor and is dropped; negative deltas (process restarts
+ * resetting the counter) clamp to 0.
+ */
+const toDeltaSeries: (series: Array<TimePoint>) => Array<TimePoint> = (
+  series: Array<TimePoint>,
+): Array<TimePoint> => {
+  const deltas: Array<TimePoint> = [];
+  for (let i: number = 1; i < series.length; i++) {
+    deltas.push({
+      x: series[i]!.x,
+      y: Math.max(0, series[i]!.y - series[i - 1]!.y),
+    });
+  }
+  return deltas;
+};
+
+/*
  * Probe each chart's candidate metric names (in order) against what the
  * service actually emitted in the window; the first candidate with data
  * wins. Charts whose candidates are all empty are dropped, so SDK-version
@@ -502,7 +520,7 @@ export const probeRuntimeCharts: (data: {
       async (def: RuntimeChartDef): Promise<ProbedRuntimeChart | null> => {
         for (const candidate of def.candidates) {
           // eslint-disable-next-line no-await-in-loop
-          const series: Array<TimePoint> = await fetchMetricSeries(
+          const raw: Array<TimePoint> = await fetchMetricSeries(
             {
               name: candidate.metricName,
               attributes: candidate.attributes,
@@ -513,6 +531,14 @@ export const probeRuntimeCharts: (data: {
             },
             candidate.scale ?? 1,
           );
+          const series: Array<TimePoint> = def.cumulativeCounter
+            ? toDeltaSeries(raw)
+            : raw;
+          /*
+           * Checked on the processed series: a single-bucket cumulative
+           * counter yields no deltas, and an empty chart helps nobody —
+           * fall through to the next candidate (or drop the chart).
+           */
           if (series.length > 0) {
             return { def: def, series: series };
           }

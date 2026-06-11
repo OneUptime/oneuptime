@@ -31,6 +31,7 @@ import ServerlessFunctionService from "./ServerlessFunctionService";
 import CloudResourceService from "./CloudResourceService";
 import RumApplicationService from "./RumApplicationService";
 import GlobalCache from "../Infrastructure/GlobalCache";
+import ColumnLength from "../../Types/Database/ColumnLength";
 import EntityType from "../../Types/Telemetry/EntityType";
 import { ExtractedEntity } from "../Utils/Telemetry/TelemetryEntity";
 import { reconcileEntityRegistryThrottled } from "../Utils/Telemetry/EntityRegistry";
@@ -187,6 +188,21 @@ export default class OTelIngestService {
   }
 
   /*
+   * Truncate to the Service column width (ColumnLength.ShortText) so a
+   * pathological over-long resource attribute can't fail the UPDATE — a
+   * throw there would leave the throttle fingerprint cached and freeze
+   * lastSeenAt refreshes for the rest of the throttle window.
+   */
+  private static clampServiceMetadataValue(
+    value: string | null | undefined,
+  ): string | undefined {
+    if (!value) {
+      return undefined;
+    }
+    return value.slice(0, ColumnLength.ShortText);
+  }
+
+  /*
    * Build the metadata captured onto the Service row from OTel resource
    * attributes (service.version, deployment.environment, cloud.*, runtime.*).
    * Returns undefined when no resource attributes are available so the
@@ -212,44 +228,43 @@ export default class OTelIngestService {
       return undefined;
     }
     return {
-      serviceVersion:
-        this.getResourceStringAttribute(attributes, "service.version") ||
-        undefined,
-      deploymentEnvironment:
+      serviceVersion: this.clampServiceMetadataValue(
+        this.getResourceStringAttribute(attributes, "service.version"),
+      ),
+      deploymentEnvironment: this.clampServiceMetadataValue(
         this.getResourceStringAttribute(
           attributes,
           "deployment.environment.name",
         ) ||
-        this.getResourceStringAttribute(attributes, "deployment.environment") ||
-        undefined,
-      serviceNamespace:
-        this.getResourceStringAttribute(attributes, "service.namespace") ||
-        undefined,
-      runtimeName:
-        this.getResourceStringAttribute(attributes, "process.runtime.name") ||
-        undefined,
-      runtimeVersion:
-        this.getResourceStringAttribute(
-          attributes,
-          "process.runtime.version",
-        ) || undefined,
-      telemetrySdkLanguage:
+          this.getResourceStringAttribute(attributes, "deployment.environment"),
+      ),
+      serviceNamespace: this.clampServiceMetadataValue(
+        this.getResourceStringAttribute(attributes, "service.namespace"),
+      ),
+      runtimeName: this.clampServiceMetadataValue(
+        this.getResourceStringAttribute(attributes, "process.runtime.name"),
+      ),
+      runtimeVersion: this.clampServiceMetadataValue(
+        this.getResourceStringAttribute(attributes, "process.runtime.version"),
+      ),
+      telemetrySdkLanguage: this.clampServiceMetadataValue(
         this.getResourceStringAttribute(
           attributes,
           "telemetry.sdk.language",
-        )?.toLowerCase() || undefined,
-      cloudProvider:
-        this.getResourceStringAttribute(attributes, "cloud.provider") ||
-        undefined,
-      cloudPlatform:
-        this.getResourceStringAttribute(attributes, "cloud.platform") ||
-        undefined,
-      cloudRegion:
-        this.getResourceStringAttribute(attributes, "cloud.region") ||
-        undefined,
-      cloudAccountId:
-        this.getResourceStringAttribute(attributes, "cloud.account.id") ||
-        undefined,
+        )?.toLowerCase(),
+      ),
+      cloudProvider: this.clampServiceMetadataValue(
+        this.getResourceStringAttribute(attributes, "cloud.provider"),
+      ),
+      cloudPlatform: this.clampServiceMetadataValue(
+        this.getResourceStringAttribute(attributes, "cloud.platform"),
+      ),
+      cloudRegion: this.clampServiceMetadataValue(
+        this.getResourceStringAttribute(attributes, "cloud.region"),
+      ),
+      cloudAccountId: this.clampServiceMetadataValue(
+        this.getResourceStringAttribute(attributes, "cloud.account.id"),
+      ),
     };
   }
 
