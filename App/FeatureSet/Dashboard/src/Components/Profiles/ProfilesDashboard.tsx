@@ -604,8 +604,10 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
 
   /*
    * Footer link to the raw-profiles list, carrying the current
-   * selection so the list opens in the same service/window/type
-   * context the user was just looking at.
+   * service/type selection so the list opens in the same context the
+   * user was just looking at (the table reads these as dismissible
+   * filter chips). The time window stays behind: the table has its own
+   * Captured At filter.
    */
   const allProfilesRoute: Route = useMemo(() => {
     const base: Route = RouteUtil.populateRouteParams(
@@ -615,10 +617,14 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
     if (selectedServiceId && selectedServiceId !== "all") {
       params.push(`serviceId=${selectedServiceId}`);
     }
-    params.push(`rangeMinutes=${rangeMinutes}`);
-    params.push(`profileType=${profileType || PROFILE_TYPE_ALL_SENTINEL}`);
+    if (profileType) {
+      params.push(`profileType=${profileType}`);
+    }
+    if (params.length === 0) {
+      return base;
+    }
     return new Route(`${base.toString()}?${params.join("&")}`);
-  }, [selectedServiceId, rangeMinutes, profileType]);
+  }, [selectedServiceId, profileType]);
 
   if (isServicesLoading) {
     return <PageLoader isVisible={true} />;
@@ -628,9 +634,22 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
     return <ErrorMessage message={error} />;
   }
 
-  // First-run empty state when no services exist at all.
+  /*
+   * First-run empty state — but only when there is genuinely no profile
+   * data anywhere. Host-level eBPF profiles attach to Host rows, not
+   * Service rows, so a project with zero Services can still have a fully
+   * working profiler; for those, fall through to the normal dashboard
+   * (its unfiltered queries pick the host data up).
+   */
   if (services.length === 0) {
-    return <EmptyState />;
+    if (topFunctionsLoading) {
+      return <PageLoader isVisible={true} />;
+    }
+    const hasAnyProfileData: boolean =
+      topFunctions.length > 0 || Object.keys(serviceActivity).length > 0;
+    if (!hasAnyProfileData) {
+      return <EmptyState />;
+    }
   }
 
   const unit: string = profileType

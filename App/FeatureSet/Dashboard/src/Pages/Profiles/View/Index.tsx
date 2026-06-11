@@ -4,6 +4,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
@@ -111,18 +112,30 @@ const ProfileViewPage: FunctionComponent<
       ? typeDerivedUnit
       : profile?.unit || typeDerivedUnit;
 
-  const profileStartTime: Date | undefined = profile?.startTime
-    ? new Date(profile.startTime as unknown as string)
+  /*
+   * Memoized so re-renders don't hand DiffFlamegraph fresh object
+   * identities — its load effect depends on these props and would
+   * refetch on every render otherwise.
+   */
+  const profileStartTimeValue: string | undefined = profile?.startTime
+    ? (profile.startTime as unknown as string).toString()
     : undefined;
+  const profileStartTime: Date | undefined = useMemo(() => {
+    return profileStartTimeValue ? new Date(profileStartTimeValue) : undefined;
+  }, [profileStartTimeValue]);
 
   /*
    * Scope the baseline diff to the resource this profile came from and
    * anchor it at the capture time — comparing the whole project over
    * an arbitrary recent window says nothing about this profile.
    */
-  const diffServiceIds: Array<ObjectID> | undefined = profile?.primaryEntityId
-    ? [new ObjectID(profile.primaryEntityId.toString())]
-    : undefined;
+  const primaryEntityIdValue: string | undefined =
+    profile?.primaryEntityId?.toString();
+  const diffServiceIds: Array<ObjectID> | undefined = useMemo(() => {
+    return primaryEntityIdValue
+      ? [new ObjectID(primaryEntityIdValue)]
+      : undefined;
+  }, [primaryEntityIdValue]);
 
   const tabs: Array<Tab> = [
     {

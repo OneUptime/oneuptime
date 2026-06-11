@@ -15,11 +15,10 @@ import { DashboardValueTrendDirection } from "./DashboardComponents/DashboardVal
 
 /*
  * Trace / Exception / Profiles entries are intentionally not in this
- * enum: their metric catalogs (SpanMetricType, ExceptionMetricType,
- * ProfileMetricType) define names that are not emitted anywhere in the
- * codebase, so the templates only ever rendered empty widgets. Reach
- * for the Logs / Traces / Exceptions pages directly until those metrics
- * exist.
+ * enum: their metric catalogs (e.g. SpanMetricType, ExceptionMetricType)
+ * define names that are not emitted anywhere in the codebase, so the
+ * templates only ever rendered empty widgets. Reach for the Logs /
+ * Traces / Exceptions pages directly until those metrics exist.
  */
 export enum DashboardTemplateType {
   Blank = "Blank",

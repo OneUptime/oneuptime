@@ -164,6 +164,20 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
     req: ExpressRequest,
   ): Promise<void> {
     try {
+      /*
+       * An empty body means the queued payload was lost (the Redis body
+       * key expired or was already consumed) — there is nothing to
+       * ingest and never will be, so skip instead of throwing into a
+       * pointless BullMQ retry loop. Matches the logs/traces/metrics
+       * services' handling of the same condition.
+       */
+      if (Object.keys(req.body as JSONObject).length === 0) {
+        logger.debug(
+          "Profiles ingest: empty body (queued payload expired or already consumed) — skipping.",
+        );
+        return;
+      }
+
       const resourceProfiles: JSONArray = req.body[
         "resourceProfiles"
       ] as JSONArray;

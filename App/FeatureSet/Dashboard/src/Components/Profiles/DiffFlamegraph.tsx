@@ -176,54 +176,81 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
       ? ProfileUtil.getProfileTypeUnit(queryProfileTypes[0]!)
       : "nanoseconds";
 
-  const loadDiffFlamegraph: () => Promise<void> = async (): Promise<void> => {
-    try {
-      setIsLoading(true);
-      setError("");
+  const loadDiffFlamegraph: (isCancelled: () => boolean) => Promise<void> =
+    async (isCancelled: () => boolean): Promise<void> => {
+      try {
+        setIsLoading(true);
+        setError("");
 
-      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.post({
-          url: URL.fromString(APP_API_URL.toString()).addRoute(
-            "/telemetry/profiles/diff-flamegraph",
-          ),
-          data: {
-            baselineStartTime: props.baselineStartTime.toISOString(),
-            baselineEndTime: props.baselineEndTime.toISOString(),
-            comparisonStartTime: props.comparisonStartTime.toISOString(),
-            comparisonEndTime: props.comparisonEndTime.toISOString(),
-            serviceIds: props.serviceIds?.map((id: ObjectID) => {
-              return id.toString();
-            }),
-            profileTypes: queryProfileTypes,
-          },
-          headers: {
-            ...ModelAPI.getCommonHeaders(),
-          },
-        });
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              "/telemetry/profiles/diff-flamegraph",
+            ),
+            data: {
+              baselineStartTime: props.baselineStartTime.toISOString(),
+              baselineEndTime: props.baselineEndTime.toISOString(),
+              comparisonStartTime: props.comparisonStartTime.toISOString(),
+              comparisonEndTime: props.comparisonEndTime.toISOString(),
+              serviceIds: props.serviceIds?.map((id: ObjectID) => {
+                return id.toString();
+              }),
+              profileTypes: queryProfileTypes,
+            },
+            headers: {
+              ...ModelAPI.getCommonHeaders(),
+            },
+          });
 
-      if (response instanceof HTTPErrorResponse) {
-        throw response;
+        if (isCancelled()) {
+          return;
+        }
+
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+
+        const data: DiffFlamegraphNode = response.data[
+          "diffFlamegraph"
+        ] as unknown as DiffFlamegraphNode;
+        setRootNode(data);
+      } catch (err) {
+        if (!isCancelled()) {
+          setError(API.getFriendlyMessage(err));
+        }
+      } finally {
+        if (!isCancelled()) {
+          setIsLoading(false);
+        }
       }
+    };
 
-      const data: DiffFlamegraphNode = response.data[
-        "diffFlamegraph"
-      ] as unknown as DiffFlamegraphNode;
-      setRootNode(data);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  /*
+   * Date/array props are compared by value (epoch millis / joined ids)
+   * so a parent re-render with fresh-but-equal object identities doesn't
+   * refire the fetch; the cancelled flag keeps a slow stale response
+   * from overwriting a newer one.
+   */
   useEffect(() => {
-    void loadDiffFlamegraph();
+    let cancelled: boolean = false;
+    void loadDiffFlamegraph(() => {
+      return cancelled;
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [
-    props.baselineStartTime,
-    props.baselineEndTime,
-    props.comparisonStartTime,
-    props.comparisonEndTime,
-    props.serviceIds,
+    props.baselineStartTime.getTime(),
+    props.baselineEndTime.getTime(),
+    props.comparisonStartTime.getTime(),
+    props.comparisonEndTime.getTime(),
+    props.serviceIds
+      ? props.serviceIds
+          .map((id: ObjectID) => {
+            return id.toString();
+          })
+          .join(",")
+      : "all",
     props.profileType,
   ]);
 

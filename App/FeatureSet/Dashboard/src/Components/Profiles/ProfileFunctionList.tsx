@@ -215,7 +215,8 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
           />
           <span>
             Data is truncated to the largest stacks — the sample limit was hit.
-            Percentages are of the sampled subset, not the full profile.
+            Per-function values may undercount; percentages are of the full
+            window.
           </span>
         </div>
       )}

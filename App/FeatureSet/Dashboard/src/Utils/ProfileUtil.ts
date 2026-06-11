@@ -147,16 +147,6 @@ export default class ProfileUtil {
   }
 
   /**
-   * Historical name kept for existing callers — same semantics as
-   * {@link getQueryProfileTypes}.
-   */
-  public static getRawProfileTypesForCategory(
-    profileType: string | undefined,
-  ): Array<string> | undefined {
-    return ProfileUtil.getQueryProfileTypes(profileType);
-  }
-
-  /**
    * Bucket a profileType selection into one of the user-facing pills.
    * Accepts both raw ClickHouse types ("samples", "alloc_space", ...)
    * and the category tokens the pills themselves carry ("memory",
