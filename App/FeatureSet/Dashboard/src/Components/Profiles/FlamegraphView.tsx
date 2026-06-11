@@ -380,8 +380,16 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
 
       if (e.key === "Escape") {
         if (zoomStack.length > 0) {
+          /*
+           * Mark the keystroke consumed so enclosing overlays (e.g. the
+           * callers/callees slide-over) don't also close on the same
+           * Escape — zooming out and dismissing the panel must be two
+           * separate presses.
+           */
+          e.preventDefault();
           setZoomStack([]);
         } else if (search) {
+          e.preventDefault();
           setSearchTerm("");
         }
       }
@@ -483,7 +491,14 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
       }
 
       const isOwn: boolean = node.category === "own";
-      const q: string = search.trim().toLowerCase();
+      /*
+       * Search dimming only applies in highlight mode: in "Stacks only"
+       * mode everything rendered is already on a matching path, so
+       * dimming the pass-through frames would make the pruned view read
+       * as broken.
+       */
+      const q: string =
+        searchMode === "highlight" ? search.trim().toLowerCase() : "";
       const dimmed: boolean =
         (onlyOwnCode && !isOwn && depth > 0) ||
         (q.length > 0 &&
@@ -542,6 +557,7 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
     },
     [
       search,
+      searchMode,
       onlyOwnCode,
       maxSelfValue,
       handleClickNode,
@@ -574,7 +590,13 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
     return max;
   };
 
-  const maxDepth: number = getMaxDepth(activeRoot, 0);
+  /*
+   * Memoised: hover swaps tooltip state on every frame enter, and an
+   * un-memoised depth walk would re-traverse the entire tree per hover.
+   */
+  const maxDepth: number = useMemo(() => {
+    return getMaxDepth(activeRoot, 0);
+  }, [activeRoot]);
   let height: number = Math.max(4, maxDepth + 1) * FRAME_HEIGHT + 8;
   if (props.maxHeight && height > props.maxHeight) {
     height = props.maxHeight;
@@ -758,7 +780,7 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
               <Icon icon={IconProp.Filter} className="h-3 w-3" />
               Zoomed into{" "}
               <span className="font-mono text-gray-800">{activeRoot.name}</span>
-              {props.onFocusFunction && (
+              {props.onFocusFunction && activeRoot.name !== "(root)" && (
                 <button
                   type="button"
                   title={`Show callers and callees of ${activeRoot.name}`}
@@ -777,6 +799,33 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
             </div>
           )}
         </>
+      )}
+
+      {/*
+       * Compact mode hides the full toolbar, but zooming still works —
+       * without these the only way back out is Escape, which enclosing
+       * overlays also listen for.
+       */}
+      {props.compact && zoomStack.length > 0 && (
+        <div className="mb-2 flex items-center gap-2 text-xs text-gray-500">
+          <button
+            type="button"
+            onClick={handleZoomOut}
+            className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-0.5 text-[11px] font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+          >
+            ← Back
+          </button>
+          <button
+            type="button"
+            onClick={handleResetZoom}
+            className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-0.5 text-[11px] font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+          >
+            Reset zoom
+          </button>
+          <span className="font-mono text-gray-700 truncate">
+            {activeRoot.name}
+          </span>
+        </div>
       )}
 
       {props.truncated && (
@@ -803,7 +852,9 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
          * the top row is exactly one frame, so a single corner button
          * is unambiguous.
          */}
-        {props.onFocusFunction && zoomStack.length > 0 && (
+        {props.onFocusFunction &&
+          zoomStack.length > 0 &&
+          activeRoot.name !== "(root)" && (
           <button
             type="button"
             title={`Show callers and callees of ${activeRoot.name}`}

@@ -30,7 +30,10 @@ const makeResult: (rows: Array<JSONObject>) => Results = (
 const stubFocusQueries: (data: {
   stackRows: Array<JSONObject>;
   windowTotal: number;
-}) => void = (data: { stackRows: Array<JSONObject>; windowTotal: number }): void => {
+}) => void = (data: {
+  stackRows: Array<JSONObject>;
+  windowTotal: number;
+}): void => {
   jest
     .spyOn(ProfileSampleDatabaseService, "executeQuery")
     .mockImplementation((statement: Statement | string): Promise<Results> => {
@@ -38,9 +41,7 @@ const stubFocusQueries: (data: {
         statement instanceof Statement ? statement.query : statement;
 
       if (query.includes("windowTotal")) {
-        return Promise.resolve(
-          makeResult([{ windowTotal: data.windowTotal }]),
-        );
+        return Promise.resolve(makeResult([{ windowTotal: data.windowTotal }]));
       }
 
       return Promise.resolve(makeResult(data.stackRows));

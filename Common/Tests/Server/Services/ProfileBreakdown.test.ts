@@ -64,15 +64,14 @@ describe("ProfileAggregationService.getBreakdown", () => {
       },
     ]);
 
-    const result: BreakdownResult = await ProfileAggregationService.getBreakdown(
-      {
+    const result: BreakdownResult =
+      await ProfileAggregationService.getBreakdown({
         projectId: ObjectID.generate(),
         startTime: new Date("2026-06-01T00:00:00Z"),
         endTime: new Date("2026-06-02T00:00:00Z"),
         breakdownBy: "service",
         limit: 2,
-      },
-    );
+      });
 
     /*
      * The total covers ALL named groups (including svc-c, which the
@@ -115,14 +114,13 @@ describe("ProfileAggregationService.getBreakdown", () => {
       { breakdownValue: "svc-c", totalSampleCount: 200, profileCount: 2 },
     ]);
 
-    const result: BreakdownResult = await ProfileAggregationService.getBreakdown(
-      {
+    const result: BreakdownResult =
+      await ProfileAggregationService.getBreakdown({
         projectId: ObjectID.generate(),
         startTime: new Date("2026-06-01T00:00:00Z"),
         endTime: new Date("2026-06-02T00:00:00Z"),
         breakdownBy: "service",
-      },
-    );
+      });
 
     // The default limit (10) exceeds the group count — nothing dropped.
     expect(result.items.length).toBe(3);
@@ -147,14 +145,13 @@ describe("ProfileAggregationService.getBreakdown", () => {
       { breakdownValue: "svc-empty", totalSampleCount: 0, profileCount: 1 },
     ]);
 
-    const result: BreakdownResult = await ProfileAggregationService.getBreakdown(
-      {
+    const result: BreakdownResult =
+      await ProfileAggregationService.getBreakdown({
         projectId: ObjectID.generate(),
         startTime: new Date("2026-06-01T00:00:00Z"),
         endTime: new Date("2026-06-02T00:00:00Z"),
         breakdownBy: "service",
-      },
-    );
+      });
 
     expect(result.totalSampleCount).toBe(0);
     expect(result.items.length).toBe(1);
