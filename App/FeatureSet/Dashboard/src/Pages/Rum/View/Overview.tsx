@@ -132,24 +132,47 @@ const RumApplicationOverview: FunctionComponent<
     const end: Date = range.endValue;
     setChartWindow({ start, end });
 
+    /*
+     * Staleness guard: a slow wide-range fetch can resolve after a
+     * subsequently selected narrower range — without the guard the older
+     * response would clobber the newer one.
+     */
+    let ignore: boolean = false;
+
     // RUM telemetry is tagged with primaryEntityId = this application's id.
     fetchSpanMetrics({ primaryEntityId: modelId, start, end })
       .then((m: SpanMetrics) => {
+        if (ignore) {
+          return;
+        }
         setMetrics(m);
         setMetricsLoading(false);
       })
       .catch(() => {
+        if (ignore) {
+          return;
+        }
         setMetricsLoading(false);
       });
 
     fetchWebVitals({ primaryEntityId: modelId, start, end })
       .then((v: Array<WebVital>) => {
+        if (ignore) {
+          return;
+        }
         setWebVitals(v);
         setWebVitalsLoading(false);
       })
       .catch(() => {
+        if (ignore) {
+          return;
+        }
         setWebVitalsLoading(false);
       });
+
+    return () => {
+      ignore = true;
+    };
   }, [rumApplication, timeRange]);
 
   if (isLoading) {
