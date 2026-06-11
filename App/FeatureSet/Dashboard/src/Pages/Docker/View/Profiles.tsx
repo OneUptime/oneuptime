@@ -67,6 +67,12 @@ const DockerHostProfiles: FunctionComponent<
      */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const q: any = {
+      /*
+       * Docker hosts scope by resource attribute only — there is no
+       * entity-key builder for Docker hosts (see
+       * Common/Utils/Telemetry/EntityKey), so no entityScope predicate
+       * here. This mirrors the Docker logs / traces pages.
+       */
       attributes: {
         "resource.host.name": host?.hostIdentifier || "",
       },
@@ -86,6 +92,19 @@ const DockerHostProfiles: FunctionComponent<
     return <ErrorMessage message="Host not found." />;
   }
 
+  /*
+   * No aggregate flame graph on this tab (unlike the Service / Host
+   * profile tabs): the flamegraph endpoint scopes rows by
+   * primaryEntityId, but profiles produced on a Docker host rarely
+   * carry the DockerHost row id there — batches with a resolvable
+   * container name are routed to per-container Service rows, and only
+   * the degenerate "container.id with no name" batches land on the
+   * DockerHost id (see OtelIngestBaseService.selectPrimaryEntity).
+   * The table below scopes by the resource.host.name attribute and so
+   * shows the full set; a primaryEntityId-scoped graph would silently
+   * omit most of it. Skip the graph until the endpoint can scope by
+   * attributes / entity keys.
+   */
   return (
     <Fragment>
       <ProfileTable

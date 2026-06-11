@@ -6,8 +6,11 @@ import {
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
+import logger from "Common/Server/Utils/Logger";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import { JSONObject } from "Common/Types/JSON";
+import OneUptimeDate from "Common/Types/Date";
+import ProductType from "Common/Types/MeteredPlan/ProductType";
 import ObjectID from "Common/Types/ObjectID";
 import protobuf from "protobufjs";
 import path from "path";
@@ -82,6 +85,23 @@ interface PprofProfileData {
   period: number | string;
 }
 
+// One parsed line of folded / collapsed profile text.
+interface FoldedStack {
+  // Frames in the order they appear on the line: root first, leaf last.
+  frames: Array<string>;
+  value: number;
+}
+
+/*
+ * Returned when a client uploads JFR data. pyroscope-java ships JFR by
+ * default; we have no JFR parser, so failing fast with guidance beats
+ * silently producing an empty profile.
+ */
+const JFR_UNSUPPORTED_MESSAGE: string =
+  "JFR format is not supported. Send profiles in pprof format instead, " +
+  "or collect via Grafana Alloy's eBPF profiler (pyroscope.ebpf) which " +
+  "pushes pprof to /pyroscope/push.v1.PusherService/Push.";
+
 export default class PyroscopeIngestService {
   @CaptureSpan()
   public static async ingestPyroscopeProfile(
@@ -100,14 +120,32 @@ export default class PyroscopeIngestService {
       const appName: string = this.parseAppName(
         (req.query["name"] as string) || "unknown",
       );
-      const fromSeconds: number = parseInt(
+      /*
+       * Pyroscope SDKs usually send unix seconds, but the param also
+       * accepts relative forms like "now-10s" that parseInt turns into
+       * NaN — which would poison every derived timestamp downstream.
+       * Treat anything non-numeric as "not provided" (0) and let the
+       * converter fall back to ingestion time.
+       */
+      const parsedFrom: number = parseInt(
         (req.query["from"] as string) || "0",
         10,
       );
-      const untilSeconds: number = parseInt(
+      const fromSeconds: number = Number.isFinite(parsedFrom) ? parsedFrom : 0;
+      const parsedUntil: number = parseInt(
         (req.query["until"] as string) || "0",
         10,
       );
+      const untilSeconds: number = Number.isFinite(parsedUntil)
+        ? parsedUntil
+        : 0;
+      const format: string = ((req.query["format"] as string) || "")
+        .toLowerCase()
+        .trim();
+
+      if (format === "jfr") {
+        throw new BadRequestException(JFR_UNSUPPORTED_MESSAGE);
+      }
 
       // Extract pprof data from request
       const pprofBuffer: Buffer | null = this.extractPprofFromRequest(req);
@@ -119,24 +157,93 @@ export default class PyroscopeIngestService {
       // Decompress if gzipped
       const decompressed: Buffer = await this.decompressIfNeeded(pprofBuffer);
 
-      // Parse pprof protobuf
-      const pprofData: PprofProfileData = this.parsePprof(decompressed);
+      /*
+       * pyroscope-java omits format=jfr on some versions — catch the
+       * payload by its magic bytes too, before a doomed pprof decode
+       * turns it into an opaque protobuf parse error.
+       */
+      if (this.isJfrPayload(decompressed)) {
+        throw new BadRequestException(JFR_UNSUPPORTED_MESSAGE);
+      }
 
-      // Convert to OTLP profiles format
-      const otlpBody: JSONObject = this.convertPprofToOTLP({
-        pprofData,
-        appName,
-        fromSeconds,
-        untilSeconds,
-      });
+      let otlpBody: JSONObject;
+
+      if (format === "folded" || format === "collapsed") {
+        const stacks: Array<FoldedStack> | null =
+          this.parseFoldedText(decompressed);
+        if (!stacks) {
+          throw new BadRequestException(
+            'Request body is not valid folded/collapsed profile text. Expected UTF-8 lines of "frame;frame;frame <value>".',
+          );
+        }
+        otlpBody = this.convertFoldedToOTLP({
+          stacks,
+          appName,
+          fromSeconds,
+          untilSeconds,
+        });
+      } else {
+        try {
+          // Parse pprof protobuf and convert to OTLP profiles format
+          const pprofData: PprofProfileData = this.parsePprof(decompressed);
+          otlpBody = this.convertPprofToOTLP({
+            pprofData,
+            appName,
+            fromSeconds,
+            untilSeconds,
+          });
+        } catch (parseError) {
+          /*
+           * Several Pyroscope SDKs upload collapsed text without a
+           * format query param — fall back to folded parsing before
+           * rejecting the payload outright.
+           */
+          const stacks: Array<FoldedStack> | null =
+            this.parseFoldedText(decompressed);
+          if (!stacks) {
+            logger.debug("Pyroscope ingest: pprof decode failed:");
+            logger.debug(parseError);
+            throw new BadRequestException(
+              "Unable to parse profile payload. Send pprof (optionally gzipped) or folded/collapsed text (format=folded).",
+            );
+          }
+          otlpBody = this.convertFoldedToOTLP({
+            stacks,
+            appName,
+            fromSeconds,
+            untilSeconds,
+          });
+        }
+      }
 
       // Set the converted body on the request for the queue processor
       req.body = otlpBody;
 
+      /*
+       * The queue worker resolves the decoder from productType — the
+       * route middleware sets it, but keep a guard for callers that
+       * assemble the request by hand.
+       */
+      if (!(req as TelemetryRequest).productType) {
+        (req as TelemetryRequest).productType = ProductType.Profiles;
+      }
+
       // Respond immediately and queue for async processing
       Response.sendEmptySuccessResponse(req, res);
 
-      await ProfilesQueueService.addProfileIngestJob(req as TelemetryRequest);
+      try {
+        await ProfilesQueueService.addProfileIngestJob(req as TelemetryRequest);
+      } catch (enqueueError) {
+        /*
+         * The 200 is already on the wire, so the client cannot be told
+         * — and next(enqueueError) would attempt a second response
+         * write. Log loudly instead: this is dropped data.
+         */
+        logger.error(
+          "Pyroscope ingest: failed to enqueue profile job — payload dropped:",
+        );
+        logger.error(enqueueError);
+      }
     } catch (err) {
       return next(err);
     }
@@ -253,10 +360,31 @@ export default class PyroscopeIngestService {
       // Set the merged OTLP body on the request for the queue processor
       req.body = { resourceProfiles: allResourceProfiles };
 
+      /*
+       * The queue worker resolves the decoder from productType — the
+       * route middleware sets it, but keep a guard for callers that
+       * assemble the request by hand.
+       */
+      if (!(req as TelemetryRequest).productType) {
+        (req as TelemetryRequest).productType = ProductType.Profiles;
+      }
+
       // Respond immediately and queue for async processing
       Response.sendEmptySuccessResponse(req, res);
 
-      await ProfilesQueueService.addProfileIngestJob(req as TelemetryRequest);
+      try {
+        await ProfilesQueueService.addProfileIngestJob(req as TelemetryRequest);
+      } catch (enqueueError) {
+        /*
+         * The 200 is already on the wire, so the client cannot be told
+         * — and next(enqueueError) would attempt a second response
+         * write. Log loudly instead: this is dropped data.
+         */
+        logger.error(
+          "Pyroscope push: failed to enqueue profile job — payload dropped:",
+        );
+        logger.error(enqueueError);
+      }
     } catch (err) {
       return next(err);
     }
@@ -361,6 +489,179 @@ export default class PyroscopeIngestService {
     return data;
   }
 
+  /*
+   * JFR (Java Flight Recorder) chunks start with the magic bytes
+   * "FLR\0". We cannot parse JFR, so detect it explicitly to give the
+   * client an actionable error instead of a protobuf decode failure.
+   */
+  private static isJfrPayload(data: Buffer): boolean {
+    return (
+      data.length >= 4 &&
+      data[0] === 0x46 && // 'F'
+      data[1] === 0x4c && // 'L'
+      data[2] === 0x52 && // 'R'
+      data[3] === 0x00
+    );
+  }
+
+  /*
+   * Parse folded / collapsed profile text: one stack per line, frames
+   * separated by ';' (root first, leaf last), with the sample value as
+   * the last whitespace-separated token. Returns null when the body is
+   * not parseable as folded text (binary content, malformed lines) so
+   * callers can fall through to a proper error.
+   */
+  private static parseFoldedText(data: Buffer): Array<FoldedStack> | null {
+    // Collapsed text never contains NUL bytes — cheap binary guard.
+    if (data.includes(0)) {
+      return null;
+    }
+
+    const text: string = data.toString("utf-8");
+
+    // Invalid UTF-8 sequences decode to U+FFFD — also binary content.
+    if (text.includes("�")) {
+      return null;
+    }
+
+    const stacks: Array<FoldedStack> = [];
+
+    for (const rawLine of text.split("\n")) {
+      const line: string = rawLine.trim();
+      if (!line) {
+        continue;
+      }
+
+      const lastSpace: number = line.lastIndexOf(" ");
+      if (lastSpace <= 0) {
+        return null;
+      }
+
+      const value: number = Number(line.substring(lastSpace + 1));
+      if (!Number.isFinite(value) || value < 0) {
+        return null;
+      }
+
+      const frames: Array<string> = line
+        .substring(0, lastSpace)
+        .split(";")
+        .map((frame: string) => {
+          return frame.trim();
+        })
+        .filter((frame: string) => {
+          return frame.length > 0;
+        });
+
+      if (frames.length === 0) {
+        return null;
+      }
+
+      stacks.push({ frames, value });
+    }
+
+    return stacks.length > 0 ? stacks : null;
+  }
+
+  /*
+   * Build a synthetic single-valued pprof structure from folded stacks
+   * and reuse the pprof -> OTLP converter, so folded uploads flow
+   * through the exact same normalization as protobuf uploads.
+   */
+  private static convertFoldedToOTLP(data: {
+    stacks: Array<FoldedStack>;
+    appName: string;
+    fromSeconds: number;
+    untilSeconds: number;
+  }): JSONObject {
+    const stringTable: Array<string> = [""];
+    const stringIndexMap: Map<string, number> = new Map<string, number>([
+      ["", 0],
+    ]);
+
+    const getStringIndex: (s: string) => number = (s: string): number => {
+      const existing: number | undefined = stringIndexMap.get(s);
+      if (existing !== undefined) {
+        return existing;
+      }
+      const index: number = stringTable.length;
+      stringTable.push(s);
+      stringIndexMap.set(s, index);
+      return index;
+    };
+
+    const functions: Array<PprofFunction> = [];
+    const locations: Array<PprofLocation> = [];
+    const locationIdByFrame: Map<string, number> = new Map<string, number>();
+
+    /*
+     * Folded frames are bare names (no file / line information), so
+     * every unique frame maps 1:1 to one function and one location.
+     * pprof ids are 1-based; 0 means "unset".
+     */
+    const getOrCreateLocationId: (frame: string) => number = (
+      frame: string,
+    ): number => {
+      const existing: number | undefined = locationIdByFrame.get(frame);
+      if (existing !== undefined) {
+        return existing;
+      }
+      const id: number = locations.length + 1;
+      functions.push({
+        id,
+        name: getStringIndex(frame),
+        filename: 0,
+      });
+      locations.push({
+        id,
+        line: [{ functionId: id, line: 0 }],
+      });
+      locationIdByFrame.set(frame, id);
+      return id;
+    };
+
+    const samples: Array<PprofSample> = data.stacks.map(
+      (stack: FoldedStack): PprofSample => {
+        /*
+         * Folded lines are root-first; pprof `location_id` arrays are
+         * leaf-first — reverse while mapping so the converted stacks
+         * match what real pprof uploads produce.
+         */
+        const locationId: Array<number> = [];
+        for (let i: number = stack.frames.length - 1; i >= 0; i--) {
+          locationId.push(getOrCreateLocationId(stack.frames[i]!));
+        }
+        return {
+          locationId,
+          value: [stack.value],
+        };
+      },
+    );
+
+    const pprofData: PprofProfileData = {
+      stringTable,
+      sampleType: [
+        {
+          type: getStringIndex("samples"),
+          unit: getStringIndex("count"),
+        },
+      ],
+      sample: samples,
+      location: locations,
+      function: functions,
+      timeNanos: data.fromSeconds * 1_000_000_000,
+      durationNanos:
+        Math.max(0, data.untilSeconds - data.fromSeconds) * 1_000_000_000,
+      period: 0,
+    };
+
+    return this.convertPprofToOTLP({
+      pprofData,
+      appName: data.appName,
+      fromSeconds: data.fromSeconds,
+      untilSeconds: data.untilSeconds,
+    });
+  }
+
   private static parsePprof(data: Buffer): PprofProfileData {
     const message: protobuf.Message = PprofProfile.decode(
       new Uint8Array(data.buffer, data.byteOffset, data.byteLength),
@@ -425,15 +726,26 @@ export default class PyroscopeIngestService {
     const stackKeyMap: Map<string, number> = new Map<string, number>();
     const otlpSamples: Array<JSONObject> = [];
 
-    // Compute timestamps
-    const startTimeNanos: string = pprofData.timeNanos
-      ? pprofData.timeNanos.toString()
-      : (fromSeconds * 1_000_000_000).toString();
-    const endTimeNanos: string = pprofData.durationNanos
-      ? (
-          Number(pprofData.timeNanos) + Number(pprofData.durationNanos)
-        ).toString()
-      : (untilSeconds * 1_000_000_000).toString();
+    /*
+     * Compute timestamps. A missing/zero capture time would land every
+     * sample at the 1970 epoch — outside any dashboard window and
+     * instantly past retention — so fall back to ingestion time when
+     * neither the pprof payload nor the query params carry one.
+     */
+    const nowNanos: number =
+      OneUptimeDate.getCurrentDate().getTime() * 1_000_000;
+    const startNanos: number = pprofData.timeNanos
+      ? Number(pprofData.timeNanos)
+      : fromSeconds > 0
+        ? fromSeconds * 1_000_000_000
+        : nowNanos;
+    const endNanos: number = pprofData.durationNanos
+      ? startNanos + Number(pprofData.durationNanos)
+      : untilSeconds > 0
+        ? untilSeconds * 1_000_000_000
+        : startNanos;
+    const startTimeNanos: string = startNanos.toString();
+    const endTimeNanos: string = endNanos.toString();
 
     for (const sample of pprofData.sample || []) {
       // Convert location IDs to location indices

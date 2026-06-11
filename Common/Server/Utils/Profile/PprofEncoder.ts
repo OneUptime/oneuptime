@@ -1,16 +1,118 @@
 import { JSONObject } from "../../../Types/JSON";
+import protobuf from "protobufjs";
 import zlib from "zlib";
 
 /**
- * Encodes profile data into a simplified pprof-compatible JSON format.
- * This produces a gzipped JSON representation that captures the essential
- * profile information (stacktraces, values, metadata) in a format that
- * can be consumed by tools that support pprof JSON.
+ * Encodes profile data into the standard pprof wire format: a gzipped
+ * `perftools.profiles.Profile` protobuf message, openable with
+ * `go tool pprof`, Speedscope, and every other pprof consumer.
  *
- * For full protobuf pprof support, a protobuf serializer (e.g., protobufjs
- * with the pprof proto) would be needed. This implementation provides a
- * practical export format.
+ * Stacktrace frames arrive as denormalized "function@file:line" strings
+ * (the format ProfileSample rows store and Dashboard ProfileUtil parses);
+ * the encoder rebuilds the string table / function / location indirection
+ * that pprof requires.
  */
+
+/*
+ * Inline protobuf descriptor for the pprof Profile message, mirroring
+ * google/pprof profile.proto. Embedded as JSON (rather than loaded from
+ * a .proto file at runtime) so this module works in any deployment
+ * without carrying proto assets next to the compiled output.
+ */
+const PPROF_DESCRIPTOR: protobuf.INamespace = {
+  nested: {
+    perftools: {
+      nested: {
+        profiles: {
+          nested: {
+            Profile: {
+              fields: {
+                sampleType: { rule: "repeated", type: "ValueType", id: 1 },
+                sample: { rule: "repeated", type: "Sample", id: 2 },
+                mapping: { rule: "repeated", type: "Mapping", id: 3 },
+                location: { rule: "repeated", type: "Location", id: 4 },
+                function: { rule: "repeated", type: "Function", id: 5 },
+                stringTable: { rule: "repeated", type: "string", id: 6 },
+                dropFrames: { type: "int64", id: 7 },
+                keepFrames: { type: "int64", id: 8 },
+                timeNanos: { type: "int64", id: 9 },
+                durationNanos: { type: "int64", id: 10 },
+                periodType: { type: "ValueType", id: 11 },
+                period: { type: "int64", id: 12 },
+                comment: { rule: "repeated", type: "int64", id: 13 },
+                defaultSampleType: { type: "int64", id: 15 },
+              },
+            },
+            ValueType: {
+              fields: {
+                type: { type: "int64", id: 1 },
+                unit: { type: "int64", id: 2 },
+              },
+            },
+            Sample: {
+              fields: {
+                locationId: { rule: "repeated", type: "uint64", id: 1 },
+                value: { rule: "repeated", type: "int64", id: 2 },
+                label: { rule: "repeated", type: "Label", id: 3 },
+              },
+            },
+            Label: {
+              fields: {
+                key: { type: "int64", id: 1 },
+                str: { type: "int64", id: 2 },
+                num: { type: "int64", id: 3 },
+                numUnit: { type: "int64", id: 4 },
+              },
+            },
+            Mapping: {
+              fields: {
+                id: { type: "uint64", id: 1 },
+                memoryStart: { type: "uint64", id: 2 },
+                memoryLimit: { type: "uint64", id: 3 },
+                fileOffset: { type: "uint64", id: 4 },
+                filename: { type: "int64", id: 5 },
+                buildId: { type: "int64", id: 6 },
+                hasFunctions: { type: "bool", id: 7 },
+                hasFilenames: { type: "bool", id: 8 },
+                hasLineNumbers: { type: "bool", id: 9 },
+                hasInlineFrames: { type: "bool", id: 10 },
+              },
+            },
+            Location: {
+              fields: {
+                id: { type: "uint64", id: 1 },
+                mappingId: { type: "uint64", id: 2 },
+                address: { type: "uint64", id: 3 },
+                line: { rule: "repeated", type: "Line", id: 4 },
+                isFolded: { type: "bool", id: 5 },
+              },
+            },
+            Line: {
+              fields: {
+                functionId: { type: "uint64", id: 1 },
+                line: { type: "int64", id: 2 },
+              },
+            },
+            Function: {
+              fields: {
+                id: { type: "uint64", id: 1 },
+                name: { type: "int64", id: 2 },
+                systemName: { type: "int64", id: 3 },
+                filename: { type: "int64", id: 4 },
+                startLine: { type: "int64", id: 5 },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+const PprofRoot: protobuf.Root = protobuf.Root.fromJSON(PPROF_DESCRIPTOR);
+const PprofProfileMessage: protobuf.Type = PprofRoot.lookupType(
+  "perftools.profiles.Profile",
+);
 
 export interface PprofSample {
   stacktrace: Array<string>;
@@ -139,7 +241,13 @@ export default class PprofEncoder {
     for (const sample of profile.samples) {
       const locationIds: Array<number> = [];
 
-      // Parse each frame in the stacktrace
+      /*
+       * Stored stacktrace arrays preserve the wire order of their
+       * sources — pprof `Sample.location_id` and OTLP `Stack.
+       * location_indices` are both leaf-first — so emitting
+       * location_ids in array order keeps the leaf-first ordering
+       * pprof consumers require.
+       */
       for (const frame of sample.stacktrace) {
         const atIndex: number = frame.indexOf("@");
         let functionName: string = frame;
@@ -202,17 +310,33 @@ export default class PprofEncoder {
   }
 
   /**
-   * Encode and gzip the pprof JSON for download.
+   * Serialize the profile as a gzipped `perftools.profiles.Profile`
+   * protobuf — the on-disk format `go tool pprof` and friends expect.
+   * The intermediate structure from `encode` already uses the proto's
+   * camelCased field names, so it maps onto the message verbatim.
    */
   public static async encodeAndCompress(
     profile: PprofProfile,
   ): Promise<Buffer> {
     const pprofData: PprofProto = PprofEncoder.encode(profile);
-    const jsonString: string = JSON.stringify(pprofData);
+
+    const message: protobuf.Message = PprofProfileMessage.fromObject({
+      sampleType: pprofData.sampleType,
+      sample: pprofData.samples,
+      location: pprofData.locations,
+      function: pprofData.functions,
+      stringTable: pprofData.stringTable,
+      timeNanos: pprofData.timeNanos,
+      durationNanos: pprofData.durationNanos,
+      periodType: pprofData.periodType,
+      period: pprofData.period,
+    });
+
+    const encoded: Uint8Array = PprofProfileMessage.encode(message).finish();
 
     return new Promise<Buffer>(
       (resolve: (value: Buffer) => void, reject: (reason: Error) => void) => {
-        zlib.gzip(jsonString, (err: Error | null, result: Buffer) => {
+        zlib.gzip(encoded, (err: Error | null, result: Buffer) => {
           if (err) {
             reject(err);
           } else {

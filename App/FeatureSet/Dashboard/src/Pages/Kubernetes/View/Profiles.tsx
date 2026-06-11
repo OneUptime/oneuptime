@@ -64,22 +64,22 @@ const KubernetesClusterProfiles: FunctionComponent<
 
   const profileQuery: Query<Profile> = useMemo(() => {
     /*
-     * `any` sidesteps a TS2589 deep-instantiation on Query<Profile> with
-     * inline attribute maps — same workaround the Host/Docker logs pages use.
+     * `any` sidesteps a TS2589 deep-instantiation on Query<Profile>:
+     * "entityScope" is a synthetic query key the Query generic does not
+     * model — same workaround the Host/Docker logs pages use.
      */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const q: any = {
-      attributes: {
-        "resource.k8s.cluster.name": cluster?.clusterIdentifier || "",
-      },
-    };
+    const q: any = {};
     /*
-     * entityScope is the query scope (contract C4 — compiled by
+     * entityScope is the sole scope predicate (contract C4 — compiled by
      * StatementGenerator to hasAny(entityKeys, [...]) OR the attribute
      * equality): new rows ride the bloom-indexed `entityKeys` membership
      * column, pre-column rows (no backfill, empty array) still match via
-     * the attribute. Drop the attribute fallback (the `attributes` key
-     * above and this OR) once deploy-date + max retention has passed.
+     * the attribute fallback inside the same OR. Do not AND a separate
+     * `attributes` equality on top — that collapses the OR to the
+     * attribute side and turns the indexed path into dead weight. Drop
+     * the attributeKey/attributeValue fallback once deploy-date + max
+     * retention has passed.
      */
     if (cluster?.clusterIdentifier) {
       q["entityScope"] = {
@@ -108,6 +108,18 @@ const KubernetesClusterProfiles: FunctionComponent<
     return <ErrorMessage message="Cluster not found." />;
   }
 
+  /*
+   * No aggregate flame graph on this tab (unlike the Service / Host
+   * profile tabs): the flamegraph endpoint scopes rows by
+   * primaryEntityId, but profiles captured inside a cluster carry the
+   * KubernetesCluster row id there only when the batch has no
+   * service.name — SDK and per-target eBPF profiles route to Service
+   * rows instead (see OtelIngestBaseService.selectPrimaryEntity).
+   * The table below scopes by entityScope (cluster entity key OR the
+   * cluster-name attribute) and so shows the full set; a
+   * primaryEntityId-scoped graph would silently omit most of it. Skip
+   * the graph until the endpoint can scope by entity keys.
+   */
   return (
     <Fragment>
       <ProfileTable

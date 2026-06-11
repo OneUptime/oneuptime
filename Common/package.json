@@ -120,6 +120,7 @@
     "playwright": "^1.56.0",
     "posthog-js": "^1.275.3",
     "prop-types": "^15.8.1",
+    "protobufjs": "^7.5.4",
     "qrcode": "^1.5.3",
     "react": "^18.3.1",
     "react-beautiful-dnd": "^13.1.1",

@@ -12,6 +12,40 @@ export default class Text {
     return hex;
   }
 
+  /**
+   * Matches an OTLP id already in hex form: 16 chars (8-byte span id)
+   * or 32 chars (16-byte trace/profile id).
+   */
+  private static readonly OTLP_HEX_ID_REGEX: RegExp =
+    /^(?:[0-9a-fA-F]{16}|[0-9a-fA-F]{32})$/;
+
+  /**
+   * Convert an OTLP wire id (trace / span / profile id) to lowercase hex.
+   *
+   * OTLP/protobuf carries ids as bytes, which protobuf decoders render
+   * as base64 strings — but OTLP/JSON carries the SAME fields as hex
+   * strings (32 chars for trace ids, 16 for span ids). Hex strings also
+   * satisfy the base64 alphabet, so feeding them to convertBase64ToHex
+   * would silently decode them into garbage bytes. Length disambiguates
+   * safely: the base64 form of an 8/16-byte id is always 12/24 chars,
+   * so a 16- or 32-char hex-only string can never be a base64 id.
+   */
+  public static convertOtlpIdToHex(value: string | undefined): string {
+    if (!value) {
+      return "";
+    }
+
+    if (Text.OTLP_HEX_ID_REGEX.test(value)) {
+      return value.toLowerCase();
+    }
+
+    try {
+      return Text.convertBase64ToHex(value);
+    } catch {
+      return "";
+    }
+  }
+
   public static getLetterFromAByNumber(number: number): string {
     return String.fromCharCode("a".charCodeAt(0) + number);
   }

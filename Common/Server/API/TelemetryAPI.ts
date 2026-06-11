@@ -4,6 +4,7 @@ import Express, {
   ExpressResponse,
   ExpressRouter,
   NextFunction,
+  RequestHandler,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -41,9 +42,13 @@ import MetricAggregationService, {
 } from "../Services/MetricAggregationService";
 import ProfileAggregationService, {
   FlamegraphRequest,
+  FlamegraphResult,
   FunctionListRequest,
-  FunctionListItem,
-  ProfileFlamegraphNode,
+  FunctionListResult,
+  FunctionFocusRequest,
+  FunctionFocusResult,
+  BreakdownRequest,
+  BreakdownResult,
   DiffFlamegraphRequest,
   DiffFlamegraphNode,
   ServiceActivityRequest,
@@ -58,6 +63,7 @@ import ProfileSample from "../../Models/AnalyticsModels/ProfileSample";
 import ProfileService from "../Services/ProfileService";
 import ProfileSampleService from "../Services/ProfileSampleService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import Permission from "../../Types/Permission";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
@@ -68,9 +74,81 @@ import ResourceFacetResolver, {
 
 const router: ExpressRouter = Express.getRouter();
 
+/*
+ * Shared guards for every bespoke telemetry route in this file. These routes
+ * don't go through BaseAnalyticsAPI, so nothing downstream re-checks
+ * authorization: the tenantId comes straight from a caller-controlled header
+ * and UserMiddleware lets tokenless requests through as Public. Every route
+ * must therefore demand an authenticated principal that holds a
+ * telemetry-read permission on that tenant before any data is queried.
+ * Each guard's permission list mirrors the table-level read access control
+ * declared on the corresponding analytics model, keeping these routes
+ * exactly as permissive as the model-backed CRUD APIs for the same signal.
+ *
+ * Guards are declared before any route registration: route registration
+ * executes at module load, and spreading a const declared further down the
+ * file would throw at startup (temporal dead zone).
+ */
+type TelemetryReadAccessGuardFactory = (
+  signalReadPermission: Permission,
+) => Array<RequestHandler>;
+
+const createTelemetryReadAccessGuard: TelemetryReadAccessGuardFactory = (
+  signalReadPermission: Permission,
+): Array<RequestHandler> => {
+  return [
+    UserMiddleware.getUserMiddleware,
+    UserMiddleware.requireUserAuthentication,
+    UserMiddleware.requirePermission({
+      permissions: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.Viewer,
+        Permission.TelemetryAdmin,
+        Permission.TelemetryMember,
+        Permission.TelemetryViewer,
+        signalReadPermission,
+      ],
+    }),
+  ];
+};
+
+// Mirrors the read access control declared on the Log analytics model.
+const requireLogReadAccess: Array<RequestHandler> =
+  createTelemetryReadAccessGuard(Permission.ReadTelemetryServiceLog);
+
+// Mirrors the read access control declared on the Span analytics model.
+const requireTraceReadAccess: Array<RequestHandler> =
+  createTelemetryReadAccessGuard(Permission.ReadTelemetryServiceTraces);
+
+/*
+ * Mirrors the read access control declared on the Metric analytics model,
+ * whose table-level read list grants ReadTelemetryServiceTraces rather than
+ * ReadTelemetryServiceMetrics. The guard follows the model declaration so
+ * these routes stay in lockstep with the model-backed CRUD API; if the model
+ * ever switches to ReadTelemetryServiceMetrics this must change with it.
+ */
+const requireMetricReadAccess: Array<RequestHandler> =
+  createTelemetryReadAccessGuard(Permission.ReadTelemetryServiceTraces);
+
+/*
+ * Mirrors the read access control declared on the ExceptionInstance
+ * analytics model.
+ */
+const requireExceptionReadAccess: Array<RequestHandler> =
+  createTelemetryReadAccessGuard(Permission.ReadTelemetryException);
+
+/*
+ * Mirrors the read access control declared on the Profile / ProfileSample
+ * analytics models.
+ */
+const requireProfileReadAccess: Array<RequestHandler> =
+  createTelemetryReadAccessGuard(Permission.ReadTelemetryServiceProfiles);
+
 router.post(
   "/telemetry/metrics/get-attributes",
-  UserMiddleware.getUserMiddleware,
+  ...requireMetricReadAccess,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     return getAttributes(req, res, next, TelemetryType.Metric);
   },
@@ -78,7 +156,7 @@ router.post(
 
 router.post(
   "/telemetry/metrics/get-attribute-values",
-  UserMiddleware.getUserMiddleware,
+  ...requireMetricReadAccess,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     return getAttributeValues(req, res, next, TelemetryType.Metric);
   },
@@ -86,7 +164,7 @@ router.post(
 
 router.post(
   "/telemetry/logs/get-attributes",
-  UserMiddleware.getUserMiddleware,
+  ...requireLogReadAccess,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     return getAttributes(req, res, next, TelemetryType.Log);
   },
@@ -94,7 +172,7 @@ router.post(
 
 router.post(
   "/telemetry/logs/get-attribute-values",
-  UserMiddleware.getUserMiddleware,
+  ...requireLogReadAccess,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     return getAttributeValues(req, res, next, TelemetryType.Log);
   },
@@ -102,7 +180,7 @@ router.post(
 
 router.post(
   "/telemetry/traces/get-attributes",
-  UserMiddleware.getUserMiddleware,
+  ...requireTraceReadAccess,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     return getAttributes(req, res, next, TelemetryType.Trace);
   },
@@ -110,7 +188,7 @@ router.post(
 
 router.post(
   "/telemetry/traces/get-attribute-values",
-  UserMiddleware.getUserMiddleware,
+  ...requireTraceReadAccess,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     return getAttributeValues(req, res, next, TelemetryType.Trace);
   },
@@ -118,7 +196,7 @@ router.post(
 
 router.post(
   "/telemetry/exceptions/get-attributes",
-  UserMiddleware.getUserMiddleware,
+  ...requireExceptionReadAccess,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     return getAttributes(req, res, next, TelemetryType.Exception);
   },
@@ -126,7 +204,7 @@ router.post(
 
 router.post(
   "/telemetry/exceptions/get-attribute-values",
-  UserMiddleware.getUserMiddleware,
+  ...requireExceptionReadAccess,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     return getAttributeValues(req, res, next, TelemetryType.Exception);
   },
@@ -262,7 +340,7 @@ const getAttributeValues: GetAttributeValuesFunction = async (
 
 router.post(
   "/telemetry/logs/histogram",
-  UserMiddleware.getUserMiddleware,
+  ...requireLogReadAccess,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -354,7 +432,7 @@ router.post(
 
 router.post(
   "/telemetry/logs/facets",
-  UserMiddleware.getUserMiddleware,
+  ...requireLogReadAccess,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -522,7 +600,7 @@ router.post(
 
 router.post(
   "/telemetry/traces/histogram",
-  UserMiddleware.getUserMiddleware,
+  ...requireTraceReadAccess,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -623,7 +701,7 @@ router.post(
 
 router.post(
   "/telemetry/traces/facets",
-  UserMiddleware.getUserMiddleware,
+  ...requireTraceReadAccess,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -847,7 +925,7 @@ router.post(
 
 router.post(
   "/telemetry/exceptions/histogram",
-  UserMiddleware.getUserMiddleware,
+  ...requireExceptionReadAccess,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -938,7 +1016,7 @@ router.post(
 
 router.post(
   "/telemetry/exceptions/facets",
-  UserMiddleware.getUserMiddleware,
+  ...requireExceptionReadAccess,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1106,7 +1184,7 @@ router.post(
 
 router.post(
   "/telemetry/metrics/facets",
-  UserMiddleware.getUserMiddleware,
+  ...requireMetricReadAccess,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1238,7 +1316,7 @@ router.post(
 
 router.post(
   "/telemetry/logs/analytics",
-  UserMiddleware.getUserMiddleware,
+  ...requireLogReadAccess,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1378,7 +1456,7 @@ router.post(
 
 router.post(
   "/telemetry/logs/export",
-  UserMiddleware.getUserMiddleware,
+  ...requireLogReadAccess,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1500,7 +1578,7 @@ router.post(
 
 router.post(
   "/telemetry/logs/context",
-  UserMiddleware.getUserMiddleware,
+  ...requireLogReadAccess,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1561,7 +1639,7 @@ router.post(
 
 router.post(
   "/telemetry/logs/drop-filter-estimate",
-  UserMiddleware.getUserMiddleware,
+  ...requireLogReadAccess,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1668,7 +1746,7 @@ function computeDefaultBucketSize(startTime: Date, endTime: Date): number {
 
 router.post(
   "/telemetry/profiles/get-attributes",
-  UserMiddleware.getUserMiddleware,
+  ...requireProfileReadAccess,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     return getAttributes(req, res, next, TelemetryType.Profile);
   },
@@ -1678,7 +1756,7 @@ router.post(
 
 router.post(
   "/telemetry/profiles/flamegraph",
-  UserMiddleware.getUserMiddleware,
+  ...requireProfileReadAccess,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1751,11 +1829,12 @@ router.post(
           profileTypes.length > 0 && { profileTypes }),
       };
 
-      const flamegraph: ProfileFlamegraphNode =
+      const result: FlamegraphResult =
         await ProfileAggregationService.getFlamegraph(request);
 
       return Response.sendJsonObjectResponse(req, res, {
-        flamegraph: flamegraph as unknown as JSONObject,
+        flamegraph: result.flamegraph as unknown as JSONObject,
+        truncated: result.truncated,
       });
     } catch (err: unknown) {
       next(err);
@@ -1767,7 +1846,7 @@ router.post(
 
 router.post(
   "/telemetry/profiles/function-list",
-  UserMiddleware.getUserMiddleware,
+  ...requireProfileReadAccess,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1787,13 +1866,37 @@ router.post(
 
       const body: JSONObject = req.body as JSONObject;
 
-      const startTime: Date = body["startTime"]
-        ? OneUptimeDate.fromString(body["startTime"] as string)
-        : OneUptimeDate.addRemoveHours(OneUptimeDate.getCurrentDate(), -1);
+      const profileId: string | undefined = body["profileId"]
+        ? (body["profileId"] as string)
+        : undefined;
 
-      const endTime: Date = body["endTime"]
+      /*
+       * Only default the window when no profileId is given: a profile's
+       * samples are bounded by the profile itself, and a defaulted
+       * last-hour window would silently exclude any profile captured
+       * before the window started.
+       */
+      const startTime: Date | undefined = body["startTime"]
+        ? OneUptimeDate.fromString(body["startTime"] as string)
+        : profileId
+          ? undefined
+          : OneUptimeDate.addRemoveHours(OneUptimeDate.getCurrentDate(), -1);
+
+      const endTime: Date | undefined = body["endTime"]
         ? OneUptimeDate.fromString(body["endTime"] as string)
-        : OneUptimeDate.getCurrentDate();
+        : profileId
+          ? undefined
+          : OneUptimeDate.getCurrentDate();
+
+      if (!profileId && !startTime) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            "Either profileId or startTime must be provided",
+          ),
+        );
+      }
 
       const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
         ? (body["serviceIds"] as Array<string>).map((id: string) => {
@@ -1826,8 +1929,9 @@ router.post(
 
       const request: FunctionListRequest = {
         projectId: databaseProps.tenantId,
-        startTime,
-        endTime,
+        ...(startTime !== undefined && { startTime }),
+        ...(endTime !== undefined && { endTime }),
+        ...(profileId !== undefined && { profileId }),
         ...(serviceIds !== undefined && { serviceIds }),
         ...(profileType !== undefined && { profileType }),
         ...(profileTypes !== undefined &&
@@ -1836,11 +1940,13 @@ router.post(
         ...(sortBy !== undefined && { sortBy }),
       };
 
-      const functions: Array<FunctionListItem> =
+      const result: FunctionListResult =
         await ProfileAggregationService.getFunctionList(request);
 
       return Response.sendJsonObjectResponse(req, res, {
-        functions: functions as unknown as JSONObject,
+        functions: result.functions as unknown as JSONObject,
+        windowTotal: result.windowTotal,
+        truncated: result.truncated,
       });
     } catch (err: unknown) {
       next(err);
@@ -1852,7 +1958,7 @@ router.post(
 
 router.post(
   "/telemetry/profiles/service-activity",
-  UserMiddleware.getUserMiddleware,
+  ...requireProfileReadAccess,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1919,7 +2025,7 @@ router.post(
 
 router.get(
   "/telemetry/profiles/:profileId/pprof",
-  UserMiddleware.getUserMiddleware,
+  ...requireProfileReadAccess,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -2048,7 +2154,7 @@ router.get(
 
 router.post(
   "/telemetry/profiles/diff-flamegraph",
-  UserMiddleware.getUserMiddleware,
+  ...requireProfileReadAccess,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -2131,11 +2237,240 @@ router.post(
           profileTypes.length > 0 && { profileTypes }),
       };
 
-      const diffFlamegraph: DiffFlamegraphNode =
+      const result: { diffFlamegraph: DiffFlamegraphNode; truncated: boolean } =
         await ProfileAggregationService.getDiffFlamegraph(request);
 
+      /*
+       * `truncated` is surfaced so the UI can warn that the diff was built
+       * from a capped sample set rather than the full window.
+       */
       return Response.sendJsonObjectResponse(req, res, {
-        diffFlamegraph: diffFlamegraph as unknown as JSONObject,
+        diffFlamegraph: result.diffFlamegraph as unknown as JSONObject,
+        truncated: result.truncated,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Profile Function Focus Endpoint ---
+
+router.post(
+  "/telemetry/profiles/function-focus",
+  ...requireProfileReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      const functionName: string | undefined =
+        body["functionName"] && typeof body["functionName"] === "string"
+          ? (body["functionName"] as string)
+          : undefined;
+
+      if (!functionName) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("functionName is required"),
+        );
+      }
+
+      /*
+       * fileName participates in frame identity (frames match on
+       * functionName + fileName; line numbers are ignored so identity
+       * survives deploys) but may legitimately be empty: folded uploads
+       * produce bare frames with no file information.
+       */
+      const fileName: string =
+        typeof body["fileName"] === "string"
+          ? (body["fileName"] as string)
+          : "";
+
+      const profileId: string | undefined = body["profileId"]
+        ? (body["profileId"] as string)
+        : undefined;
+
+      const startTime: Date | undefined = body["startTime"]
+        ? OneUptimeDate.fromString(body["startTime"] as string)
+        : undefined;
+
+      const endTime: Date | undefined = body["endTime"]
+        ? OneUptimeDate.fromString(body["endTime"] as string)
+        : undefined;
+
+      const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
+        ? (body["serviceIds"] as Array<string>).map((id: string) => {
+            return new ObjectID(id);
+          })
+        : undefined;
+
+      const profileType: string | undefined = body["profileType"]
+        ? (body["profileType"] as string)
+        : undefined;
+
+      const profileTypes: Array<string> | undefined = Array.isArray(
+        body["profileTypes"],
+      )
+        ? (body["profileTypes"] as Array<string>).filter(
+            (t: unknown): t is string => {
+              return typeof t === "string" && t.length > 0;
+            },
+          )
+        : undefined;
+
+      if (!profileId && !startTime) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            "Either profileId or startTime must be provided",
+          ),
+        );
+      }
+
+      const request: FunctionFocusRequest = {
+        projectId: databaseProps.tenantId,
+        functionName,
+        fileName,
+        ...(profileId !== undefined && { profileId }),
+        ...(startTime !== undefined && { startTime }),
+        ...(endTime !== undefined && { endTime }),
+        ...(serviceIds !== undefined && { serviceIds }),
+        ...(profileType !== undefined && { profileType }),
+        ...(profileTypes !== undefined &&
+          profileTypes.length > 0 && { profileTypes }),
+      };
+
+      const result: FunctionFocusResult =
+        await ProfileAggregationService.getFunctionFocus(request);
+
+      return Response.sendJsonObjectResponse(req, res, {
+        functionName: result.functionName,
+        fileName: result.fileName,
+        totalValue: result.totalValue,
+        selfValue: result.selfValue,
+        sampleCount: result.sampleCount,
+        windowTotal: result.windowTotal,
+        callers: result.callers as unknown as JSONObject,
+        callees: result.callees as unknown as JSONObject,
+        truncated: result.truncated,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Profile Breakdown Endpoint ---
+
+router.post(
+  "/telemetry/profiles/breakdown",
+  ...requireProfileReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      const startTime: Date | undefined = body["startTime"]
+        ? OneUptimeDate.fromString(body["startTime"] as string)
+        : undefined;
+
+      const endTime: Date | undefined = body["endTime"]
+        ? OneUptimeDate.fromString(body["endTime"] as string)
+        : undefined;
+
+      /*
+       * breakdownBy is either the reserved key 'service' (grouping by
+       * primaryEntityId, resolved to display names by the UI) or a Profile
+       * attribute key.
+       */
+      const breakdownBy: string | undefined =
+        body["breakdownBy"] && typeof body["breakdownBy"] === "string"
+          ? (body["breakdownBy"] as string)
+          : undefined;
+
+      if (!startTime || !endTime || !breakdownBy) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            "startTime, endTime, and breakdownBy are all required",
+          ),
+        );
+      }
+
+      const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
+        ? (body["serviceIds"] as Array<string>).map((id: string) => {
+            return new ObjectID(id);
+          })
+        : undefined;
+
+      const profileType: string | undefined = body["profileType"]
+        ? (body["profileType"] as string)
+        : undefined;
+
+      const profileTypes: Array<string> | undefined = Array.isArray(
+        body["profileTypes"],
+      )
+        ? (body["profileTypes"] as Array<string>).filter(
+            (t: unknown): t is string => {
+              return typeof t === "string" && t.length > 0;
+            },
+          )
+        : undefined;
+
+      const limit: number | undefined = body["limit"]
+        ? (body["limit"] as number)
+        : undefined;
+
+      const request: BreakdownRequest = {
+        projectId: databaseProps.tenantId,
+        startTime,
+        endTime,
+        breakdownBy,
+        ...(serviceIds !== undefined && { serviceIds }),
+        ...(profileType !== undefined && { profileType }),
+        ...(profileTypes !== undefined &&
+          profileTypes.length > 0 && { profileTypes }),
+        ...(limit !== undefined && { limit }),
+      };
+
+      const result: BreakdownResult =
+        await ProfileAggregationService.getBreakdown(request);
+
+      return Response.sendJsonObjectResponse(req, res, {
+        items: result.items as unknown as JSONObject,
+        totalSampleCount: result.totalSampleCount,
       });
     } catch (err: unknown) {
       next(err);

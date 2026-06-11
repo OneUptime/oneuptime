@@ -620,19 +620,20 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     }
                   }
 
-                  let traceId: string = "";
-                  try {
-                    traceId = Text.convertBase64ToHex(log["traceId"] as string);
-                  } catch {
-                    traceId = "";
-                  }
+                  /*
+                   * OTLP/JSON sends trace/span ids as 16/32-char hex,
+                   * OTLP/protobuf as base64 — Text.convertOtlpIdToHex
+                   * tells them apart so hex ids are never base64-decoded
+                   * into garbage (which would also break log↔trace
+                   * correlation).
+                   */
+                  const traceId: string = Text.convertOtlpIdToHex(
+                    log["traceId"] as string | undefined,
+                  );
 
-                  let spanId: string = "";
-                  try {
-                    spanId = Text.convertBase64ToHex(log["spanId"] as string);
-                  } catch {
-                    spanId = "";
-                  }
+                  const spanId: string = Text.convertOtlpIdToHex(
+                    log["spanId"] as string | undefined,
+                  );
 
                   // Extract observedTimeUnixNano
                   let observedTimeUnixNano: number = 0;
