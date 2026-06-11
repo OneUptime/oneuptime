@@ -58,6 +58,32 @@ sudo bash -c "(export $(grep -v '^#' config.env | xargs) && docker compose up --
 
 OneUptime should run at: http://localhost. You need to register a new account for your instance to start using it.
 
+### Configuring HOST and port
+
+The `HOST` variable in `config.env` must be the **public IP address or domain name** that browsers can reach your server at. Do **not** set it to `localhost` or `127.0.0.1` — those resolve to the container itself inside Docker and will break generated links in emails, status pages, and notifications.
+
+```bash
+# Good — reachable IP or domain
+HOST=192.168.1.100         # LAN setup
+HOST=oneuptime.example.com  # internet-facing
+
+# Bad — will break links inside Docker
+HOST=localhost
+```
+
+To run OneUptime on a port other than 80, change `ONEUPTIME_HTTP_PORT`:
+
+```bash
+ONEUPTIME_HTTP_PORT=4000   # access at http://<HOST>:4000
+```
+
+If you change `ONEUPTIME_HTTP_PORT`, also update the probe URLs so they can reach the API:
+
+```bash
+GLOBAL_PROBE_1_ONEUPTIME_URL=http://localhost:4000
+GLOBAL_PROBE_2_ONEUPTIME_URL=http://localhost:4000
+```
+
 ### Setting up TLS/SSL Certificates
 
 OneUptime **does not** support setting up SSL/TLS certificates. You need to set up SSL/TLS certificates on your own.
@@ -70,6 +96,35 @@ If you need to use SSL/TLS certificates, follow these steps:
 4. Update the following settings:
    - Set `HTTP_PROTOCOL` env var to `https`.
    - Change `HOST` env var to the domain name of the server where the reverse proxy is hosted.
+
+### Using Cloudflare Tunnel
+
+Cloudflare Tunnel is a popular zero-config alternative to an nginx reverse proxy. Because Cloudflare handles TLS termination, configure OneUptime as follows:
+
+```bash
+# Cloudflare terminates TLS — OneUptime runs plain HTTP
+HTTP_PROTOCOL=http
+PROVISION_SSL=false
+
+# Your primary OneUptime domain routed through the tunnel
+HOST=oneuptime.example.com
+ONEUPTIME_HTTP_PORT=8013   # any free port on your host
+
+# Probe URLs must reach the local port directly
+GLOBAL_PROBE_1_ONEUPTIME_URL=http://localhost:8013
+GLOBAL_PROBE_2_ONEUPTIME_URL=http://localhost:8013
+```
+
+In your Cloudflare Zero Trust dashboard, create two public hostnames:
+
+| Public hostname | Service |
+|---|---|
+| `oneuptime.example.com` | `http://localhost:8013` |
+| `status-origin.example.com` | `http://localhost:8014` |
+
+For custom-domain status pages (e.g. `status.customer.com`), point them to `status-origin.example.com` rather than directly to the tunnel. Set `STATUS_PAGE_CNAME_RECORD=status-origin.example.com` in `config.env`.
+
+> **Note:** Cloudflare CNAME flattening prevents other domains from creating a CNAME to a Cloudflare Tunnel hostname. Use the [Cloudflare Custom Hostnames](https://developers.cloudflare.com/ssl/ssl-tls/custom-hostnames/) feature if you need arbitrary domains to point at your OneUptime status page.
 
 ## Production Readiness Checklist
 
