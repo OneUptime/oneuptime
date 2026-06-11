@@ -98,11 +98,10 @@ describe("ProfileAggregationService.getFlamegraph", () => {
       },
     ]);
 
-    const result: FlamegraphResult = await ProfileAggregationService.getFlamegraph(
-      {
+    const result: FlamegraphResult =
+      await ProfileAggregationService.getFlamegraph({
         projectId: ObjectID.generate(),
-      },
-    );
+      });
 
     expect(result.truncated).toBe(false);
 
@@ -150,11 +149,10 @@ describe("ProfileAggregationService.getFlamegraph", () => {
       },
     ]);
 
-    const result: FlamegraphResult = await ProfileAggregationService.getFlamegraph(
-      {
+    const result: FlamegraphResult =
+      await ProfileAggregationService.getFlamegraph({
         projectId: ObjectID.generate(),
-      },
-    );
+      });
 
     const root: ProfileFlamegraphNode = result.flamegraph;
 
@@ -185,11 +183,10 @@ describe("ProfileAggregationService.getFlamegraph", () => {
 
     stubGroupedRows(cappedRows);
 
-    const result: FlamegraphResult = await ProfileAggregationService.getFlamegraph(
-      {
+    const result: FlamegraphResult =
+      await ProfileAggregationService.getFlamegraph({
         projectId: ObjectID.generate(),
-      },
-    );
+      });
 
     expect(result.truncated).toBe(true);
     expect(result.flamegraph.totalValue).toBe(10000);

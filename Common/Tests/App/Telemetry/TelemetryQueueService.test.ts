@@ -170,8 +170,7 @@ describe("TelemetryQueueService.addTelemetryIngestJob", () => {
      * object, with binary fields rewritten to base64 (matching what
      * protobufjs' toJSON emits on the raw-buffer path).
      */
-    const storedBuffer: Buffer = getStoreBodyMock().mock
-      .calls[0]![0] as Buffer;
+    const storedBuffer: Buffer = getStoreBodyMock().mock.calls[0]![0] as Buffer;
     expect(Buffer.isBuffer(storedBuffer)).toBe(true);
     expect(JSON.parse(storedBuffer.toString("utf8"))).toEqual({
       resourceProfiles: [
