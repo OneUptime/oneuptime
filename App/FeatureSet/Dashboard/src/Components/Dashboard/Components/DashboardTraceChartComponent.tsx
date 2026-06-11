@@ -248,7 +248,8 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
       if (isStale()) {
         return;
       }
-      setRows((response.data["data"] || []) as Array<TimeseriesRow>);
+      const data: unknown = response.data["data"] || [];
+      setRows(data as Array<TimeseriesRow>);
       setError(null);
     } catch (err: unknown) {
       if (isStale()) {
@@ -327,10 +328,12 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
           tickFormatter={valueFormatter}
         />
         <Tooltip
-          formatter={(value: number | string): string => {
+          formatter={(value: unknown): string => {
             return valueFormatter(Number(value));
           }}
-          labelFormatter={formatTickTime}
+          labelFormatter={(label: unknown): string => {
+            return formatTickTime(String(label ?? ""));
+          }}
           contentStyle={{ fontSize: "11px" }}
         />
       </>

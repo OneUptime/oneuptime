@@ -46,6 +46,7 @@
         "react-i18next": "^15.7.4",
         "react-router-dom": "^6.30.2",
         "reactflow": "^11.11.2",
+        "recharts": "^3.0.0",
         "stripe": "^11.0.0",
         "use-async-effect": "^2.2.6"
     },
