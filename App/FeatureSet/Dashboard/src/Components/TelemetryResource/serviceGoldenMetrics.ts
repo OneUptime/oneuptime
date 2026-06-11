@@ -178,6 +178,16 @@ export interface RuntimeChartDef {
   unit: RuntimeMetricUnit;
   sublabel: string;
   candidates: Array<RuntimeMetricCandidate>;
+  /*
+   * The metric is a cumulative monotonic counter (the SDK default
+   * temporality): raw values grow since process start, so the fetched
+   * series is post-processed into per-bucket deltas. Pair with
+   * AggregationType.Max so each bucket holds the counter's high-water
+   * mark before differencing. With multiple instances reporting under
+   * one service this tracks the busiest instance, not the sum — an
+   * accepted approximation for an overview chart.
+   */
+  cumulativeCounter?: boolean | undefined;
 }
 
 const ratio: (metricName: string) => RuntimeMetricCandidate = (
@@ -281,9 +291,10 @@ const RUNTIME_CHARTS_BY_LANGUAGE: Partial<
       title: "Exceptions",
       icon: IconProp.Alert,
       iconColor: "rose",
-      aggregationType: AggregationType.Sum,
+      aggregationType: AggregationType.Max,
       unit: "count",
       sublabel: "thrown, selected range",
+      cumulativeCounter: true,
       candidates: [
         { metricName: "dotnet.exceptions" },
         { metricName: "process.runtime.dotnet.exceptions.count" },
@@ -347,10 +358,14 @@ const RUNTIME_CHARTS_BY_LANGUAGE: Partial<
       title: "GC collections",
       icon: IconProp.Cube,
       iconColor: "amber",
-      aggregationType: AggregationType.Sum,
+      aggregationType: AggregationType.Max,
       unit: "count",
       sublabel: "collections, selected range",
-      candidates: [{ metricName: "process.runtime.cpython.gc_count" }],
+      cumulativeCounter: true,
+      candidates: [
+        { metricName: "cpython.gc.collections" },
+        { metricName: "process.runtime.cpython.gc_count" },
+      ],
     },
   ],
   go: [
@@ -368,15 +383,24 @@ const RUNTIME_CHARTS_BY_LANGUAGE: Partial<
       ],
     },
     {
-      key: "go-heap",
-      title: "Heap memory",
+      key: "go-memory",
+      title: "Runtime memory",
       icon: IconProp.SquareStack,
       iconColor: "violet",
       aggregationType: AggregationType.Avg,
       unit: "bytes",
-      sublabel: "allocated heap",
+      sublabel: "non-stack runtime memory",
       candidates: [
-        { metricName: "go.memory.used" },
+        /*
+         * go.memory.used splits by go.memory.type = stack | other; "other"
+         * (heap-dominated) is the closest stable analogue to the legacy
+         * heap_alloc gauge. Unfiltered, averaging the two series would
+         * halve the displayed value.
+         */
+        {
+          metricName: "go.memory.used",
+          attributes: { "go.memory.type": "other" },
+        },
         { metricName: "process.runtime.go.mem.heap_alloc" },
       ],
     },
@@ -385,9 +409,10 @@ const RUNTIME_CHARTS_BY_LANGUAGE: Partial<
       title: "GC cycles",
       icon: IconProp.Cube,
       iconColor: "amber",
-      aggregationType: AggregationType.Sum,
+      aggregationType: AggregationType.Max,
       unit: "count",
       sublabel: "completed, selected range",
+      cumulativeCounter: true,
       candidates: [{ metricName: "process.runtime.go.gc.count" }],
     },
   ],
@@ -407,10 +432,7 @@ const GENERIC_RUNTIME_CHARTS: Array<RuntimeChartDef> = [
     aggregationType: AggregationType.Avg,
     unit: "percent",
     sublabel: "process utilization",
-    candidates: [
-      ratio("process.cpu.utilization"),
-      ratio("process.runtime.cpu.utilization"),
-    ],
+    candidates: [ratio("process.cpu.utilization")],
   },
   {
     key: "process-memory",

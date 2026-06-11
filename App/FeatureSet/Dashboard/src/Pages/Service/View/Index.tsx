@@ -15,13 +15,13 @@ import Label from "Common/Models/DatabaseModels/Label";
 import Service from "Common/Models/DatabaseModels/Service";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import React, {
   Fragment,
@@ -95,8 +95,16 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [timeRange, setTimeRange] =
     useState<RangeStartAndEndDateTime>(DEFAULT_RANGE);
 
-  const fetchModel: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
+  /*
+   * showLoader=false refetches in place (used after an inline edit) so the
+   * page doesn't flash back to the full-page loader.
+   */
+  const loadModel: (showLoader: boolean) => Promise<void> = async (
+    showLoader: boolean,
+  ): Promise<void> => {
+    if (showLoader) {
+      setIsLoading(true);
+    }
     setError("");
     try {
       const item: Service | null = await ModelAPI.getItem({
@@ -135,7 +143,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   };
 
   useEffect(() => {
-    fetchModel().catch((err: Error) => {
+    loadModel(true).catch((err: Error) => {
       setError(API.getFriendlyMessage(err));
     });
   }, []);
@@ -158,18 +166,34 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     const end: Date = range.endValue;
     setChartWindow({ start, end });
 
+    /*
+     * Staleness guard: a wide-range fetch fans out many aggregate queries
+     * and can resolve after a subsequently selected narrower range —
+     * without the guard the older response would clobber the newer one.
+     */
+    let ignore: boolean = false;
     Promise.all([
       fetchSpanMetrics({ primaryEntityId: modelId, start, end }),
       probeRuntimeCharts({ language, primaryEntityId: modelId, start, end }),
     ])
       .then(([m, runtime]: [SpanMetrics, Array<ProbedRuntimeChart>]) => {
+        if (ignore) {
+          return;
+        }
         setSpanMetrics(m);
         setRuntimeCharts(runtime);
         setMetricsLoading(false);
       })
       .catch(() => {
+        if (ignore) {
+          return;
+        }
         setMetricsLoading(false);
       });
+
+    return () => {
+      ignore = true;
+    };
   }, [service, timeRange]);
 
   if (isLoading) {
@@ -263,14 +287,25 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   const firstRuntime: ProbedRuntimeChart | undefined = runtimeCharts[0];
   if (firstRuntime) {
-    const mean: number | null = meanOf(firstRuntime.series);
+    /*
+     * Counter-style charts (per-bucket deltas) total over the range;
+     * gauge-style charts average.
+     */
+    const isRangeTotal: boolean =
+      firstRuntime.def.aggregationType === AggregationType.Sum ||
+      firstRuntime.def.cumulativeCounter === true;
+    const tileValue: number | null = isRangeTotal
+      ? firstRuntime.series.reduce((acc: number, p: TimePoint): number => {
+          return acc + p.y;
+        }, 0)
+      : meanOf(firstRuntime.series);
     tiles.push({
       title: firstRuntime.def.title,
-      value: formatRuntimeValue(mean, firstRuntime.def.unit),
+      value: formatRuntimeValue(tileValue, firstRuntime.def.unit),
       icon: firstRuntime.def.icon,
       iconColor: firstRuntime.def.iconColor,
       sublabel: firstRuntime.def.sublabel,
-      percent: firstRuntime.def.unit === "percent" ? mean : undefined,
+      percent: firstRuntime.def.unit === "percent" ? tileValue : undefined,
     });
   } else {
     tiles.push({
@@ -300,7 +335,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         windowEnd={chartWindow?.end ?? null}
         syncId={syncId}
         showLegend={true}
-        loading={metricsLoading && !m}
+        loading={metricsLoading}
       />
       <ChartCard
         title="Latency (p95)"
@@ -317,7 +352,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         yFormatter={(n: number): string => {
           return formatDurationMs(n);
         }}
-        loading={metricsLoading && !m}
+        loading={metricsLoading}
       />
       {runtimeCharts.map((chart: ProbedRuntimeChart): ReactElement => {
         return (
@@ -450,6 +485,12 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         cardProps={{
           title: "Service Details",
           description: "Here are more details for this service.",
+        }}
+        onSaveSuccess={(): void => {
+          // Refresh the hero (name, tech stack → detected technology).
+          loadModel(false).catch((err: Error) => {
+            setError(API.getFriendlyMessage(err));
+          });
         }}
         formSteps={[
           {
