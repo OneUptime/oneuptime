@@ -165,7 +165,11 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd E2E && npm install && npm run compile && npm run dep-check
+          # --ignore-scripts skips E2E's preinstall hook (npx playwright
+          # install), which downloads browsers that compiling doesn't need
+          # and hangs on CI runners. Browsers for real E2E runs are installed
+          # in E2E/Dockerfile.
+          command: cd E2E && npm install --ignore-scripts && npm run compile && npm run dep-check
 
   compile-probe:
     runs-on: ubuntu-latest

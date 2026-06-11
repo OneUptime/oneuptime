@@ -111,5 +111,14 @@
         // "skipDefaultLibCheck": true,                      /* Skip type checking .d.ts files that are included with TypeScript. */
                 "skipLibCheck": true, /* Skip type checking all .d.ts files. */
         "resolveJsonModule": true
-    }
+    },
+    // Tests are type-checked by ts-jest in the Common Test workflow (ts-jest
+    // ignores "exclude"). Keeping them out of the build keeps `npm run compile`
+    // self-contained: Tests/App imports App sources, whose "Common/*" imports
+    // only resolve when App/node_modules is installed.
+    "exclude": [
+        "node_modules",
+        "build",
+        "Tests"
+    ]
 }
