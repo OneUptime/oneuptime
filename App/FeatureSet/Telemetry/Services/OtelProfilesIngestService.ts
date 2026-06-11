@@ -1526,32 +1526,12 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
   }
 
   /*
-   * OTLP/JSON represents trace_id / span_id (and by extension the
-   * 16-byte profile_id) as case-insensitive HEX strings, while
-   * protobufjs' `.toJSON()` (the gRPC / OTLP-protobuf decode path)
-   * emits standard base64 for bytes fields. The two are
-   * distinguishable by length: hex ids are 16 or 32 chars, whereas
-   * base64 of the same 8/16-byte values is 12 or 24 chars — so a
-   * 16-or-32-char hex-only string can never be a base64-encoded id.
-   * Decoding hex ids as base64 silently produced garbage ids that
-   * broke trace<->profile correlation.
+   * OTLP/JSON sends ids (trace/span and the 16-byte profile id) as hex
+   * strings, OTLP/protobuf as base64 — Text.convertOtlpIdToHex tells
+   * them apart so hex ids are never base64-decoded into garbage, which
+   * silently broke trace<->profile correlation.
    */
-  private static readonly HEX_ID_REGEX: RegExp =
-    /^(?:[0-9a-fA-F]{16}|[0-9a-fA-F]{32})$/;
-
   private static convertBase64ToHexSafe(value: string | undefined): string {
-    if (!value) {
-      return "";
-    }
-
-    if (OtelProfilesIngestService.HEX_ID_REGEX.test(value)) {
-      return value.toLowerCase();
-    }
-
-    try {
-      return Text.convertBase64ToHex(value);
-    } catch {
-      return "";
-    }
+    return Text.convertOtlpIdToHex(value);
   }
 }
