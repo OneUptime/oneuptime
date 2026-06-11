@@ -522,19 +522,21 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
               id="navbar-menu-listbox"
               role="listbox"
               aria-label="Products"
-              className="flex-1 overflow-y-auto px-4 py-4"
+              className="flex-1 overflow-y-auto overscroll-contain px-5 pb-5 pt-4"
             >
               {flatItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <Icon
-                    icon={IconProp.Search}
-                    className="mb-3 h-8 w-8 text-gray-300"
-                  />
-                  <p className="text-sm text-gray-500">
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-50 ring-1 ring-gray-100">
+                    <Icon
+                      icon={IconProp.Search}
+                      className="h-5 w-5 text-gray-400"
+                    />
+                  </div>
+                  <p className="text-sm font-medium text-gray-900">
                     {props.noResultsText || "No results found."}
                   </p>
                   {query && (
-                    <p className="mt-1 text-xs text-gray-400">
+                    <p className="mt-1 text-xs text-gray-500">
                       &ldquo;{query}&rdquo;
                     </p>
                   )}
@@ -543,10 +545,18 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                 displayGroups.map((group: MenuGroup) => {
                   return (
                     <div key={group.category} className="mb-6 last:mb-1">
-                      <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                        {group.category}
-                      </h3>
-                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                      <div className="mb-2.5 flex items-center gap-1.5 px-1">
+                        {group.isRecent && (
+                          <Icon
+                            icon={IconProp.Clock}
+                            className="h-3.5 w-3.5 text-gray-500"
+                          />
+                        )}
+                        <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-500">
+                          {group.category}
+                        </h3>
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                         {group.items.map((entry: IndexedItem) => {
                           const item: MoreMenuItem = entry.item;
                           const flatIndex: number = entry.flatIndex;
@@ -565,43 +575,44 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                               ref={(element: HTMLDivElement | null) => {
                                 cellRefs.current[flatIndex] = element;
                               }}
-                              onMouseEnter={() => {
+                              onMouseMove={() => {
                                 setActiveIndex(flatIndex);
                               }}
-                              className="relative"
                             >
-                              {isCurrent && (
-                                <span
-                                  aria-hidden="true"
-                                  className="absolute right-2 top-2 z-10 h-2 w-2 rounded-full bg-indigo-500 ring-2 ring-white"
-                                />
-                              )}
                               <Link
                                 to={item.route}
                                 onClick={() => {
                                   selectItem(item);
                                 }}
-                                className={`group flex h-full flex-col items-center gap-2 rounded-xl p-3 text-center transition-all duration-150 ${
+                                className={`group flex h-full items-start gap-3 rounded-xl border p-3 text-left transition-colors duration-150 ${
                                   isActive
-                                    ? "scale-[1.03] bg-indigo-50 shadow-sm ring-2 ring-indigo-400"
+                                    ? "border-indigo-300 bg-indigo-50 shadow-sm"
                                     : isCurrent
-                                      ? "bg-indigo-50/60 ring-1 ring-indigo-200 hover:bg-indigo-50"
-                                      : "hover:bg-gray-50"
+                                      ? "border-indigo-100 bg-indigo-50/40"
+                                      : "border-transparent"
                                 }`}
                               >
                                 <div
-                                  className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl ${colors.bg} ring-1 ${colors.ring}`}
+                                  className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${colors.bg} ring-1 ${colors.ring}`}
                                 >
                                   <Icon
                                     icon={item.icon}
-                                    className={`h-6 w-6 transition-transform duration-150 group-hover:scale-110 ${colors.text}`}
+                                    className={`h-5 w-5 transition-transform duration-150 group-hover:scale-110 ${colors.text}`}
                                   />
                                 </div>
-                                <div className="w-full">
-                                  <p className="text-sm font-medium text-gray-900">
-                                    {highlightMatch(item.title)}
+                                <div className="min-w-0 flex-1">
+                                  <p className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
+                                    <span className="truncate">
+                                      {highlightMatch(item.title)}
+                                    </span>
+                                    {isCurrent && (
+                                      <span
+                                        aria-hidden="true"
+                                        className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-indigo-500"
+                                      />
+                                    )}
                                   </p>
-                                  <p className="mt-0.5 text-xs leading-snug text-gray-500 line-clamp-2">
+                                  <p className="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">
                                     {highlightMatch(item.description)}
                                   </p>
                                 </div>
@@ -618,21 +629,25 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
 
             {/* Footer */}
             {props.footer && (
-              <div className="flex items-center justify-between gap-4 border-t border-gray-100 bg-gray-50 px-4 py-3">
+              <div className="flex items-center justify-between gap-4 border-t border-gray-100 bg-gray-50/80 px-5 py-3">
                 <Link
                   to={props.footer.link}
                   openInNewTab={true}
                   className="group flex min-w-0 items-center gap-3"
                 >
-                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 ring-1 ring-gray-200 transition-all group-hover:bg-gray-200">
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gray-900 transition-colors group-hover:bg-gray-700">
                     <Icon
                       icon={IconProp.GitHub}
-                      className="h-4 w-4 text-gray-700"
+                      className="h-4 w-4 text-white"
                     />
                   </div>
                   <div className="min-w-0 text-left">
-                    <p className="truncate text-sm font-medium text-gray-900">
-                      {props.footer.title}
+                    <p className="flex items-center gap-1 text-sm font-medium text-gray-900">
+                      <span className="truncate">{props.footer.title}</span>
+                      <Icon
+                        icon={IconProp.ExternalLink}
+                        className="h-3 w-3 flex-shrink-0 text-gray-400 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+                      />
                     </p>
                     <p className="truncate text-xs text-gray-500">
                       {props.footer.description}
