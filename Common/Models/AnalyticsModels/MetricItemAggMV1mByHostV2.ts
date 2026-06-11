@@ -140,10 +140,12 @@ export default class MetricItemAggMV1mByHostV2 extends AnalyticsBaseModel {
        * Per-host materialized view, reading the ingest-stamped
        * `hostEntityKey` scalar column (contract C3) rather than the raw
        * attributes map. Canonical definition; created by the
-       * RekeyMetricHostRollupToEntityKey migration and (once a service
-       * for this model is registered in AnalyticsServices) applied
-       * idempotently by the analytics schema-sync on boot. Rows without
-       * a host entity are filtered out so the per-host MV stays small.
+       * RekeyMetricHostRollupToEntityKey migration and applied
+       * idempotently by the analytics schema-sync on boot
+       * (MetricItemAggMV1mByHostV2Service is registered in
+       * AnalyticsServices, so a wiped ClickHouse volume self-heals).
+       * Rows without a host entity are filtered out so the per-host MV
+       * stays small.
        */
       materializedViews: [
         {

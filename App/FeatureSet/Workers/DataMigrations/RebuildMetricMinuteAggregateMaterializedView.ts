@@ -40,9 +40,8 @@ export default class RebuildMetricMinuteAggregateMaterializedView extends DataMi
      * schema, and then crash on `FROM MetricItemV2` (UNKNOWN_TABLE),
      * leaving an orphan that poisons boot schema-sync forever.
      */
-    const v2Exists: boolean = await ClickHouseMigrationUtil.tableExists(
-      "MetricItemV2",
-    );
+    const v2Exists: boolean =
+      await ClickHouseMigrationUtil.tableExists("MetricItemV2");
     if (!v2Exists) {
       logger.info(
         "RebuildMetricMinuteAggregateMaterializedView: MetricItemV2 not present (fresh V3 install) — skipping.",

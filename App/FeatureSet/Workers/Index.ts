@@ -216,14 +216,6 @@ const WorkersFeatureSet: FeatureSet = {
       // expose metrics endpoint used by KEDA
       app.use(["/worker", "/"], MetricsAPI);
 
-      // run async database migrations
-      RunDatabaseMigrations().catch((err: Error) => {
-        logger.error("Error running database migrations", {
-          service: "workers",
-        });
-        logger.error(err, { service: "workers" });
-      });
-
       // create tables in analytics database
       await AnalyticsTableManagement.createTables();
 
@@ -236,6 +228,21 @@ const WorkersFeatureSet: FeatureSet = {
        * createTables() so the source/target tables exist.
        */
       await AnalyticsTableManagement.createMaterializedViews();
+
+      /*
+       * Run async database migrations AFTER the awaited schema sync above:
+       * on a wiped/first-boot ClickHouse, migration ALTERs against
+       * model-owned tables would otherwise race table creation and throw
+       * UNKNOWN_TABLE, wedging the chain until the next boot. Still
+       * fire-and-forget — a long migration never blocks the listener,
+       * probes, queues, or cron scheduling.
+       */
+      RunDatabaseMigrations().catch((err: Error) => {
+        logger.error("Error running database migrations", {
+          service: "workers",
+        });
+        logger.error(err, { service: "workers" });
+      });
 
       /*
        * Job process. Skipped in the "api" role (DISABLE_QUEUE_WORKERS=true) —

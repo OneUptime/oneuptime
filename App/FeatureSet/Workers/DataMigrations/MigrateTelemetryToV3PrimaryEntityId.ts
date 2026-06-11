@@ -62,12 +62,24 @@ export default class MigrateTelemetryToV3PrimaryEntityId extends DataMigrationBa
      *    target tables would silently discard the aggregates the MVs
      *    already produced.
      */
-    const staleMvPairs: Array<[string, string]> = [
-      ["MetricItemAggMV1m_mv", "MetricItemAggMV1m"],
-      ["MetricItemAggMV1mByHost_mv", "MetricItemAggMV1mByHost"],
-      ["MetricBaselineHourly_mv", "MetricBaselineHourly"],
+    /*
+     * MetricItemAggMV1mByHost is deliberately VIEW-ONLY here (dropTable:
+     * false): backfilled V3 raw rows carry hostEntityKey = '' (V2 has no
+     * such column), so the ByHostV2 MV cannot rebuild per-host rollup
+     * history from the copy — the frozen old table is the ONLY source,
+     * and RekeyMetricHostRollupToEntityKey backfills from it and drops
+     * it afterwards. MV1m/Baseline targets ARE droppable: their history
+     * is rebuilt by the backfill cron's MV re-fire on primaryEntityId,
+     * which copied rows do carry.
+     */
+    const staleMvPairs: Array<
+      [view: string, table: string, dropTable: boolean]
+    > = [
+      ["MetricItemAggMV1m_mv", "MetricItemAggMV1m", true],
+      ["MetricItemAggMV1mByHost_mv", "MetricItemAggMV1mByHost", false],
+      ["MetricBaselineHourly_mv", "MetricBaselineHourly", true],
     ];
-    for (const [view, table] of staleMvPairs) {
+    for (const [view, table, dropTable] of staleMvPairs) {
       const viewCreateQuery: string | null =
         await ClickHouseMigrationUtil.getCreateQuery(view);
       const viewIsStale: boolean =
@@ -81,7 +93,7 @@ export default class MigrateTelemetryToV3PrimaryEntityId extends DataMigrationBa
        * drops) means the target table cannot be receiving rows — it is
        * either the stale one or new-but-empty, so dropping is safe.
        */
-      if (viewIsStale || viewCreateQuery === null) {
+      if (dropTable && (viewIsStale || viewCreateQuery === null)) {
         await this.safeExec(`DROP TABLE IF EXISTS ${table}`);
       }
     }
