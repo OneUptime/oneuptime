@@ -497,13 +497,19 @@ export const StatusPageApiClientUrl: URL = new URL(
 );
 
 /*
- *Internal URL for server-to-server communication (uses internal Docker hostname)
- *Note: The internal path is /api/status-page (not /status-page-api) because
- * /status-page-api is the external route that Nginx rewrites to /api/status-page
+ * Internal URL for server-to-server communication. Uses AppApiHostname
+ * (SERVER_APP_HOSTNAME:APP_PORT) instead of the public Host so that
+ * pod-to-pod calls stay within the cluster and do not hit the public
+ * ingress, which may be unreachable or cause ETIMEDOUT on Kubernetes.
+ *
+ * Path: /api/status-page (not /status-page-api, which is the external
+ * Nginx route that rewrites to /api/status-page).
  */
-export const StatusPageApiInternalUrl: URL = URL.fromString(
-  AppApiClientUrl.toString(),
-).addRoute(new Route("/status-page"));
+export const StatusPageApiInternalUrl: URL = new URL(
+  Protocol.HTTP,
+  AppApiHostname,
+  new Route(`${AppApiRoute.toString()}/status-page`),
+);
 
 export const DashboardClientUrl: URL = new URL(
   HttpProtocol,
