@@ -8,6 +8,209 @@ Ce guide explique comment mettre à niveau en toute sécurité votre installatio
 - Vous pouvez passer directement d'une version mineure/corrective à une autre (par exemple, 8.1 → 8.4) tant que vous suivez les notes de version.
 - Effectuez toujours des sauvegardes avant la mise à niveau et vérifiez que vous pouvez les restaurer.
 
+## Mise à niveau de OneUptime 10 → 11
+
+OneUptime 11 reconstruit le stockage de télémétrie ClickHouse. Cette page explique
+ce qui change, qui doit agir et — pour les installations qui souhaitent conserver
+leur historique de télémétrie — chaque requête nécessaire pour y parvenir.
+
+### Ce qui change dans la v11
+
+La télémétrie (journaux, traces, métriques, exceptions, profils, journaux de
+moniteurs, journaux d'audit) est déplacée vers de nouvelles tables ClickHouse
+avec un partitionnement temporel, des codecs de compression par colonne et les
+nouvelles colonnes du modèle d'entités :
+
+| Ancienne table        | Nouvelle table        |
+| --------------------- | --------------------- |
+| `LogItemV2`           | `LogItemV3`           |
+| `MetricItemV2`        | `MetricItemV3`        |
+| `SpanItemV2`          | `SpanItemV3`          |
+| `ExceptionItemV2`     | `ExceptionItemV3`     |
+| `ProfileItemV2`       | `ProfileItemV3`       |
+| `ProfileSampleItemV2` | `ProfileSampleItemV3` |
+| `MonitorLogV2`        | `MonitorLogV3`        |
+| `AuditLogV1`          | `AuditLogV2`          |
+
+Deux colonnes sont renommées sur chaque table de télémétrie : `serviceId` →
+`primaryEntityId` et `serviceType` → `primaryEntityType`. Il s'agit d'un
+renommage strict — **si vous interrogez directement l'API d'analytique de
+OneUptime avec des filtres `serviceId`/`serviceType`, mettez-les à jour avec
+les nouveaux noms.** Les tableaux de bord, les moniteurs et les alertes au
+sein de OneUptime sont migrés automatiquement.
+
+La bascule est **uniquement vers l'avant** : les nouvelles tables démarrent
+vides, toute la télémétrie ingérée après la mise à niveau y atterrit
+immédiatement, et l'historique se reconstitue naturellement au fil du temps.
+Les anciennes tables sont conservées et se vident progressivement d'elles-mêmes
+via leur TTL de rétention.
+
+### Qui doit agir
+
+- **Nouvelles installations :** rien à faire.
+- **Mises à niveau qui n'ont pas besoin de la télémétrie antérieure à la mise
+  à niveau dans l'interface :** rien à faire. Les pages de télémétrie
+  affichent simplement les données à partir du moment de la mise à niveau ;
+  les données plus anciennes expirent dans les anciennes tables sans être vues.
+- **Mises à niveau qui souhaitent rendre visible la télémétrie antérieure à la
+  mise à niveau :** exécutez la copie manuelle ci-dessous, à n'importe quel
+  moment après la mise à niveau.
+
+Comme toujours : mettez à niveau les versions majeures étape par étape
+(10 → 11, sans sauter de version) et effectuez des sauvegardes de Postgres et
+de ClickHouse avant la mise à niveau.
+
+### Optionnel : conserver l'historique de télémétrie
+
+Exécutez ces requêtes **après le démarrage complet de la mise à niveau** (les
+nouvelles tables et leurs vues matérialisées doivent exister). Connectez-vous
+directement sur votre hôte ClickHouse — le protocole natif n'a pas de délais
+d'expiration HTTP, donc des instructions de plusieurs heures ne posent aucun
+problème :
+
+```bash
+clickhouse-client --database oneuptime
+```
+
+Bon à savoir avant de commencer :
+
+- La copie peut être exécutée en toute sécurité pendant que OneUptime est en
+  service. La nouvelle télémétrie s'écrit dans les nouvelles tables de manière
+  indépendante ; l'historique copié se remplit en arrière-plan.
+- Prévoyez plusieurs heures à grande échelle (centaines de Go).
+- Chaque instruction ci-dessous porte un `insert_deduplication_token`, et les
+  nouvelles tables sont livrées avec une fenêtre de déduplication — donc
+  **réexécuter une instruction qui a échoué en cours de route est sans
+  danger** (les blocs déjà insérés sont ignorés, y compris dans les agrégats
+  de métriques), à condition de la réexécuter assez rapidement. Sous une forte
+  ingestion en direct, la fenêtre (les 10 000 derniers blocs d'insertion par
+  table) finit par évincer les anciens jetons.
+- La copie des métriques reconstruit aussi automatiquement les agrégats
+  pré-calculés des tableaux de bord (chaque ligne copiée réalimente les vues
+  matérialisées d'agrégation) — cela rend la copie des métriques plus lente
+  que les autres ; exécutez-la en dernier.
+
+#### Étape 1 — lister les partitions sources
+
+Chaque ancienne table compte au plus 16 partitions. Pour chaque table source :
+
+```sql
+SELECT DISTINCT _partition_id FROM LogItemV2 ORDER BY _partition_id;
+```
+
+#### Étape 2 — générer l'instruction de copie
+
+Les jeux de colonnes peuvent différer légèrement d'une installation à l'autre
+(les déploiements plus anciens peuvent ne pas avoir les colonnes ajoutées
+récemment) ; générez donc l'instruction à partir de votre schéma réel plutôt
+que de copier-coller une instruction figée. Définissez `src` et `dst` dans la
+clause `WITH` avec l'une des paires de tables du tableau ci-dessus, puis
+exécutez :
+
+```sql
+WITH 'LogItemV2' AS src, 'LogItemV3' AS dst
+SELECT concat(
+  'INSERT INTO ', dst, ' (`', arrayStringConcat(groupArray(name), '`, `'), '`)',
+  ' SELECT ', arrayStringConcat(groupArray(selectExpr), ', '),
+  ' FROM ', src,
+  ' WHERE _partition_id = ''{PARTITION}''',
+  ' ORDER BY ', (SELECT sorting_key FROM system.tables WHERE database = currentDatabase() AND name = dst), ', _id',
+  ' SETTINGS max_execution_time = 0, max_partitions_per_insert_block = 0, insert_deduplication_token = ''v3copy:', dst, ':{PARTITION}'', deduplicate_blocks_in_dependent_materialized_views = 1'
+) AS copy_sql
+FROM (
+  SELECT name,
+    multiIf(name = 'primaryEntityId', 'serviceId', name = 'primaryEntityType', 'serviceType', name) AS srcName,
+    if(srcName = name, concat('`', name, '`'), concat('`', srcName, '` AS `', name, '`')) AS selectExpr,
+    position
+  FROM system.columns
+  WHERE database = currentDatabase() AND table = dst
+    AND srcName IN (SELECT name FROM system.columns WHERE database = currentDatabase() AND table = src)
+  ORDER BY position
+);
+```
+
+L'instruction générée copie uniquement les colonnes communes aux deux tables
+(les nouvelles colonnes prennent leurs valeurs par défaut), renomme
+`serviceId`/`serviceType` à la volée, ordonne les lignes de manière
+déterministe afin qu'une nouvelle tentative produise des blocs identiques et
+dédupliquables, et lève les limites de temps d'exécution et de nombre de
+partitions qu'une instruction de cette taille nécessite.
+
+#### Étape 3 — exécuter, une partition à la fois
+
+Prenez l'instruction générée et remplacez `{PARTITION}` (il apparaît deux
+fois — dans le `WHERE` et dans le jeton) par chaque identifiant de partition
+de l'étape 1. Exécutez les instructions une par une, puis répétez les
+étapes 1 à 3 pour chaque paire de tables.
+
+Si une instruction échoue en cours de route, réexécutez rapidement la
+**même** instruction — les blocs déjà validés sont dédupliqués. Si la
+réexécution intervient beaucoup plus tard, comparez d'abord les nombres de
+lignes (étape 5).
+
+#### Étape 4 (optionnelle) — historique des agrégats de métriques par hôte
+
+Les lignes brutes de métriques copiées reconstruisent automatiquement les
+agrégats au niveau service, mais pas l'agrégat **par hôte** (les anciennes
+lignes n'ont pas de clé d'entité hôte). La mise à niveau laisse
+volontairement l'ancienne table d'agrégats par hôte en place afin que vous
+puissiez la reprendre, en calculant la nouvelle clé à partir du nom d'hôte :
+
+```sql
+INSERT INTO MetricItemAggMV1mByHostV2 (projectId, name, hostEntityKey, bucketTime, valueSumState, valueCountState, valueMinState, valueMaxState, retentionDate)
+SELECT
+  projectId,
+  name,
+  substring(lower(hex(SHA256(concat(projectId, '|host|host.name=', lower(trimBoth(hostIdentifier)))))), 1, 16) AS hostEntityKey,
+  bucketTime,
+  valueSumState,
+  valueCountState,
+  valueMinState,
+  valueMaxState,
+  retentionDate
+FROM MetricItemAggMV1mByHost
+SETTINGS max_execution_time = 0, insert_deduplication_token = 'v3copy:MetricItemAggMV1mByHostV2:all';
+```
+
+#### Étape 5 — vérifier
+
+Comparez les totaux pour chaque paire de tables (la nouvelle table contient
+aussi les lignes postérieures à la mise à niveau, elle doit donc être
+supérieure ou égale à l'ancienne) :
+
+```sql
+SELECT
+  (SELECT count() FROM LogItemV2) AS old_rows,
+  (SELECT count() FROM LogItemV3) AS new_rows;
+```
+
+#### Étape 6 (optionnelle) — récupérer l'espace disque plus tôt
+
+Les anciennes tables se vident d'elles-mêmes via le TTL, mais une fois que
+vous êtes satisfait de la copie, vous pouvez les supprimer immédiatement :
+
+```sql
+DROP TABLE IF EXISTS LogItemV2;
+DROP TABLE IF EXISTS MetricItemV2;
+DROP TABLE IF EXISTS SpanItemV2;
+DROP TABLE IF EXISTS ExceptionItemV2;
+DROP TABLE IF EXISTS ProfileItemV2;
+DROP TABLE IF EXISTS ProfileSampleItemV2;
+DROP TABLE IF EXISTS MonitorLogV2;
+DROP TABLE IF EXISTS AuditLogV1;
+DROP TABLE IF EXISTS MetricItemAggMV1mByHost;
+```
+
+> Conseil : comme pour toute mise à niveau majeure, testez d'abord dans un
+> environnement de staging et confirmez que la télémétrie arrive bien dans
+> les nouvelles tables avant de vous fier à la copie en production.
+
+
+
+## Mise à niveau de OneUptime 9 → 10
+
+Aucun changement nécessitant une action manuelle. Suivez simplement le processus de mise à niveau standard.
+
 ## Mise à niveau de OneUptime 8 → 9
 
 Le chart Helm ne provisionne plus de ressource Kubernetes Ingress. OneUptime inclut un conteneur de passerelle d'entrée qui termine déjà le TLS, gère les domaines des pages de statut et achemine le trafic pour la plateforme, de sorte qu'un contrôleur d'entrée de cluster n'est plus nécessaire.

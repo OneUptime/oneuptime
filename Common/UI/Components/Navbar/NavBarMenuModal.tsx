@@ -137,11 +137,13 @@ interface IndexedItem {
 interface MenuGroup {
   category: string;
   items: IndexedItem[];
+  isRecent: boolean;
 }
 
 interface RawGroup {
   category: string;
   items: MoreMenuItem[];
+  isRecent: boolean;
 }
 
 const NavBarMenuModal: FunctionComponent<ComponentProps> = (
@@ -230,7 +232,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
       byCategory.get(category)!.push(item);
     });
     return order.map((category: string) => {
-      return { category, items: byCategory.get(category)! };
+      return { category, items: byCategory.get(category)!, isRecent: false };
     });
   }, [filteredItems]);
 
@@ -242,7 +244,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   const displayGroups: MenuGroup[] = useMemo(() => {
     const raw: RawGroup[] = [];
     if (!query.trim() && recentItems.length > 0) {
-      raw.push({ category: recentLabel, items: recentItems });
+      raw.push({ category: recentLabel, items: recentItems, isRecent: true });
     }
     raw.push(...categoryGroups);
 
@@ -253,7 +255,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
         flatIndex++;
         return entry;
       });
-      return { category: group.category, items };
+      return { category: group.category, items, isRecent: group.isRecent };
     });
   }, [query, recentItems, categoryGroups, recentLabel]);
 
@@ -444,7 +446,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
     >
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm transition-opacity duration-200 ${
+        className={`fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity duration-200 ${
           isShown ? "opacity-100" : "opacity-0"
         }`}
       />
@@ -456,8 +458,10 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
       >
         <div className="flex min-h-full items-start justify-center p-4 sm:p-6">
           <div
-            className={`relative mt-[6vh] flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black ring-opacity-5 transition-all duration-200 ease-out ${
-              isShown ? "scale-100 opacity-100" : "scale-95 opacity-0"
+            className={`relative mt-[6vh] flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-gray-900/5 transition-all duration-200 ease-out ${
+              isShown
+                ? "translate-y-0 scale-100 opacity-100"
+                : "translate-y-2 scale-[0.98] opacity-0"
             }`}
             style={{ maxHeight: "80vh" }}
             onClick={(event: React.MouseEvent<HTMLDivElement>) => {
@@ -465,7 +469,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
             }}
           >
             {/* Search header */}
-            <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-3">
+            <div className="flex items-center gap-3 border-b border-gray-100 px-5 py-4">
               <Icon
                 icon={IconProp.Search}
                 className="h-5 w-5 flex-shrink-0 text-gray-400"
@@ -482,6 +486,10 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                     : undefined
                 }
                 aria-label={props.searchPlaceholder || "Search products"}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
                 value={query}
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                   setQuery(event.target.value);
@@ -490,9 +498,23 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                 placeholder={props.searchPlaceholder || "Search…"}
                 className="flex-1 border-0 bg-transparent p-0 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0"
               />
-              <kbd className="hidden items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-xs font-medium text-gray-400 sm:inline-flex">
-                {shortcutLabel}
-              </kbd>
+              {query ? (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => {
+                    setQuery("");
+                    inputRef.current?.focus();
+                  }}
+                  className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                >
+                  <Icon icon={IconProp.Close} className="h-4 w-4" />
+                </button>
+              ) : (
+                <kbd className="hidden items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-xs font-medium text-gray-400 sm:inline-flex">
+                  {shortcutLabel}
+                </kbd>
+              )}
             </div>
 
             {/* Body */}
