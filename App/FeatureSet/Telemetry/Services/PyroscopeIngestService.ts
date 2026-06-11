@@ -9,6 +9,7 @@ import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import logger from "Common/Server/Utils/Logger";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import { JSONObject } from "Common/Types/JSON";
+import OneUptimeDate from "Common/Types/Date";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import ObjectID from "Common/Types/ObjectID";
 import protobuf from "protobufjs";
@@ -119,14 +120,25 @@ export default class PyroscopeIngestService {
       const appName: string = this.parseAppName(
         (req.query["name"] as string) || "unknown",
       );
-      const fromSeconds: number = parseInt(
+      /*
+       * Pyroscope SDKs usually send unix seconds, but the param also
+       * accepts relative forms like "now-10s" that parseInt turns into
+       * NaN — which would poison every derived timestamp downstream.
+       * Treat anything non-numeric as "not provided" (0) and let the
+       * converter fall back to ingestion time.
+       */
+      const parsedFrom: number = parseInt(
         (req.query["from"] as string) || "0",
         10,
       );
-      const untilSeconds: number = parseInt(
+      const fromSeconds: number = Number.isFinite(parsedFrom) ? parsedFrom : 0;
+      const parsedUntil: number = parseInt(
         (req.query["until"] as string) || "0",
         10,
       );
+      const untilSeconds: number = Number.isFinite(parsedUntil)
+        ? parsedUntil
+        : 0;
       const format: string = ((req.query["format"] as string) || "")
         .toLowerCase()
         .trim();
@@ -714,15 +726,26 @@ export default class PyroscopeIngestService {
     const stackKeyMap: Map<string, number> = new Map<string, number>();
     const otlpSamples: Array<JSONObject> = [];
 
-    // Compute timestamps
-    const startTimeNanos: string = pprofData.timeNanos
-      ? pprofData.timeNanos.toString()
-      : (fromSeconds * 1_000_000_000).toString();
-    const endTimeNanos: string = pprofData.durationNanos
-      ? (
-          Number(pprofData.timeNanos) + Number(pprofData.durationNanos)
-        ).toString()
-      : (untilSeconds * 1_000_000_000).toString();
+    /*
+     * Compute timestamps. A missing/zero capture time would land every
+     * sample at the 1970 epoch — outside any dashboard window and
+     * instantly past retention — so fall back to ingestion time when
+     * neither the pprof payload nor the query params carry one.
+     */
+    const nowNanos: number =
+      OneUptimeDate.getCurrentDate().getTime() * 1_000_000;
+    const startNanos: number = pprofData.timeNanos
+      ? Number(pprofData.timeNanos)
+      : fromSeconds > 0
+        ? fromSeconds * 1_000_000_000
+        : nowNanos;
+    const endNanos: number = pprofData.durationNanos
+      ? startNanos + Number(pprofData.durationNanos)
+      : untilSeconds > 0
+        ? untilSeconds * 1_000_000_000
+        : startNanos;
+    const startTimeNanos: string = startNanos.toString();
+    const endTimeNanos: string = endNanos.toString();
 
     for (const sample of pprofData.sample || []) {
       // Convert location IDs to location indices
