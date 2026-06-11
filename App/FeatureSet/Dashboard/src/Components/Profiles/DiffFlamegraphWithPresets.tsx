@@ -31,7 +31,7 @@ export interface DiffFlamegraphWithPresetsProps {
   anchorTime?: Date | undefined;
 }
 
-type PresetKey = "1h" | "24h" | "7d" | "1w";
+type PresetKey = "1h" | "24h" | "7d";
 
 interface Preset {
   key: PresetKey;

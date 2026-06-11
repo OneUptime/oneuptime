@@ -164,11 +164,14 @@ const FunctionFocusPanel: FunctionComponent<FunctionFocusPanelProps> = (
 
   /*
    * Escape closes the panel. This is a window-level listener so it
-   * works no matter what inside the panel has focus.
+   * works no matter what inside the panel has focus. The embedded
+   * flame graphs consume Escape first (preventDefault) when they have
+   * an active zoom or search — zooming out must not also dismiss the
+   * panel on the same keystroke.
    */
   useEffect(() => {
     const handler: (e: KeyboardEvent) => void = (e: KeyboardEvent): void => {
-      if (e.key === "Escape") {
+      if (e.key === "Escape" && !e.defaultPrevented) {
         props.onClose();
       }
     };

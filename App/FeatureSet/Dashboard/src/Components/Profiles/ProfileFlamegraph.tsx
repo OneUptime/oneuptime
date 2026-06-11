@@ -3,6 +3,7 @@ import React, {
   ReactElement,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import API from "Common/UI/Utils/API/API";
@@ -66,7 +67,16 @@ const ProfileFlamegraph: FunctionComponent<ProfileFlamegraphProps> = (
       ? ProfileUtil.getProfileTypeUnit(queryProfileTypes[0]!)
       : "nanoseconds");
 
-  const load: () => Promise<void> = async (): Promise<void> => {
+  /*
+   * Generation counter guards every fetch — including manual retries —
+   * so a slow stale response can never overwrite a newer one, and no
+   * setState fires after the props that started it are gone.
+   */
+  const loadGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
+
+  const load: (generation: number) => Promise<void> = async (
+    generation: number,
+  ): Promise<void> => {
     try {
       setIsLoading(true);
       setError("");
@@ -85,6 +95,10 @@ const ProfileFlamegraph: FunctionComponent<ProfileFlamegraphProps> = (
           },
         });
 
+      if (generation !== loadGenerationRef.current) {
+        return;
+      }
+
       if (response instanceof HTTPErrorResponse) {
         throw response;
       }
@@ -95,14 +109,23 @@ const ProfileFlamegraph: FunctionComponent<ProfileFlamegraphProps> = (
       setServerRoot(root);
       setIsTruncated(Boolean(response.data["truncated"]));
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      if (generation === loadGenerationRef.current) {
+        setError(API.getFriendlyMessage(err));
+      }
     } finally {
-      setIsLoading(false);
+      if (generation === loadGenerationRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    void load();
+    loadGenerationRef.current += 1;
+    void load(loadGenerationRef.current);
+    return () => {
+      // Invalidate in-flight responses when scope changes or we unmount.
+      loadGenerationRef.current += 1;
+    };
   }, [props.profileId, props.profileType]);
 
   const root: FlamegraphNode = useMemo(() => {
@@ -117,7 +140,8 @@ const ProfileFlamegraph: FunctionComponent<ProfileFlamegraphProps> = (
       <ErrorMessage
         message={error}
         onRefreshClick={() => {
-          void load();
+          loadGenerationRef.current += 1;
+          void load(loadGenerationRef.current);
         }}
       />
     );

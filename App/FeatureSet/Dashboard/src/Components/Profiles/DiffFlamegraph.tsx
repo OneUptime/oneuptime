@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import API from "Common/UI/Utils/API/API";
@@ -168,6 +169,12 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
   const [error, setError] = useState<string>("");
   const [zoomStack, setZoomStack] = useState<Array<DiffFlamegraphNode>>([]);
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
+  /*
+   * Bumped whenever a newer fetch supersedes older ones (scope change,
+   * unmount, manual retry); in-flight loads compare against it before
+   * touching state.
+   */
+  const loadGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
 
   /*
    * The selector pill stores either a category (e.g. "cpu") or a raw
@@ -256,16 +263,18 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
   /*
    * Date/array props are compared by value (epoch millis / joined ids)
    * so a parent re-render with fresh-but-equal object identities doesn't
-   * refire the fetch; the cancelled flag keeps a slow stale response
-   * from overwriting a newer one.
+   * refire the fetch; the generation counter keeps any stale response —
+   * including one started by a manual retry — from overwriting a newer
+   * one.
    */
   useEffect(() => {
-    let cancelled: boolean = false;
+    loadGenerationRef.current += 1;
+    const generation: number = loadGenerationRef.current;
     void loadDiffFlamegraph(() => {
-      return cancelled;
+      return generation !== loadGenerationRef.current;
     });
     return () => {
-      cancelled = true;
+      loadGenerationRef.current += 1;
     };
   }, [
     props.baselineStartTime.getTime(),
@@ -379,38 +388,8 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
     setTooltip(null);
   }, []);
 
-  if (isLoading) {
-    return <PageLoader isVisible={true} />;
-  }
-
-  if (error) {
-    return (
-      <ErrorMessage
-        message={error}
-        onRefreshClick={() => {
-          void loadDiffFlamegraph(() => {
-            return false;
-          });
-        }}
-      />
-    );
-  }
-
-  if (
-    !activeRoot ||
-    (activeRoot.baselineValue === 0 && activeRoot.comparisonValue === 0)
-  ) {
-    return (
-      <div className="p-8 text-center text-gray-500">
-        No performance data found in the selected time ranges. Try adjusting the
-        time periods.
-      </div>
-    );
-  }
-
-  const getDeltaColor: (node: DiffFlamegraphNode) => string = (
-    node: DiffFlamegraphNode,
-  ): string => {
+  const getDeltaColor: (node: DiffFlamegraphNode) => string = useCallback(
+    (node: DiffFlamegraphNode): string => {
     const shareDelta: number = getShareDelta(node);
 
     if (Math.abs(shareDelta) < NOISE_FLOOR_PERCENTAGE_POINTS) {
@@ -448,14 +427,17 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
       return "bg-green-400";
     }
     return "bg-green-300";
-  };
+    },
+    [getShareDelta],
+  );
 
   const renderNode: (
     node: DiffFlamegraphNode,
     depth: number,
     offsetFraction: number,
     widthFraction: number,
-  ) => ReactElement | null = (
+  ) => ReactElement | null = useCallback(
+    (
     node: DiffFlamegraphNode,
     depth: number,
     offsetFraction: number,
@@ -522,7 +504,15 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
         })}
       </React.Fragment>
     );
-  };
+    },
+    [
+      getDeltaColor,
+      getShareDelta,
+      handleClickNode,
+      handleMouseEnter,
+      handleMouseLeave,
+    ],
+  );
 
   const getMaxDepth: (node: DiffFlamegraphNode, depth: number) => number = (
     node: DiffFlamegraphNode,
@@ -538,7 +528,50 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
     return max;
   };
 
-  const maxDepth: number = getMaxDepth(activeRoot, 0);
+  /*
+   * Tree and depth are memoised: hovering swaps tooltip state on every
+   * frame enter, and rebuilding thousands of frame elements per hover
+   * makes wide diffs unusable.
+   */
+  const treeElements: ReactElement | null = useMemo(() => {
+    return activeRoot ? renderNode(activeRoot, 0, 0, 1) : null;
+  }, [activeRoot, renderNode]);
+
+  const maxDepth: number = useMemo(() => {
+    return activeRoot ? getMaxDepth(activeRoot, 0) : 0;
+  }, [activeRoot]);
+
+  if (isLoading) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (error) {
+    return (
+      <ErrorMessage
+        message={error}
+        onRefreshClick={() => {
+          loadGenerationRef.current += 1;
+          const generation: number = loadGenerationRef.current;
+          void loadDiffFlamegraph(() => {
+            return generation !== loadGenerationRef.current;
+          });
+        }}
+      />
+    );
+  }
+
+  if (
+    !activeRoot ||
+    (activeRoot.baselineValue === 0 && activeRoot.comparisonValue === 0)
+  ) {
+    return (
+      <div className="p-8 text-center text-gray-500">
+        No performance data found in the selected time ranges. Try adjusting the
+        time periods.
+      </div>
+    );
+  }
+
   const height: number = (maxDepth + 1) * 26 + 10;
 
   const tooltipShareDelta: number | null = tooltip
@@ -601,7 +634,7 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
         className="relative w-full overflow-x-auto border border-gray-200 rounded bg-white"
         style={{ height: `${height}px` }}
       >
-        {renderNode(activeRoot, 0, 0, 1)}
+        {treeElements}
       </div>
 
       {tooltip && tooltipShareDelta !== null && (
