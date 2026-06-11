@@ -1,16 +1,16 @@
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
-import ObjectID from "../../../Types/ObjectID";
-import OneUptimeDate from "../../../Types/Date";
-import ProductType from "../../../Types/MeteredPlan/ProductType";
-import { JSONObject } from "../../../Types/JSON";
-import { TelemetryRequest } from "../../../Server/Middleware/TelemetryIngest";
-import Queue from "../../../Server/Infrastructure/Queue";
-import TelemetryBodyStore from "../../../../App/FeatureSet/Telemetry/Utils/TelemetryBodyStore";
+import ObjectID from "Common/Types/ObjectID";
+import OneUptimeDate from "Common/Types/Date";
+import ProductType from "Common/Types/MeteredPlan/ProductType";
+import { JSONObject } from "Common/Types/JSON";
+import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
+import Queue from "Common/Server/Infrastructure/Queue";
+import TelemetryBodyStore from "../../FeatureSet/Telemetry/Utils/TelemetryBodyStore";
 import TelemetryQueueService, {
   TelemetryType,
   TelemetryIngestJobData,
-} from "../../../../App/FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
-import { OtelPayloadFormat } from "../../../../App/FeatureSet/Telemetry/Utils/OtelPayloadDecoder";
+} from "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
+import { OtelPayloadFormat } from "../../FeatureSet/Telemetry/Utils/OtelPayloadDecoder";
 
 /*
  * The Queue module pulls in BullMQ / bull-board at import time, and the
@@ -18,7 +18,7 @@ import { OtelPayloadFormat } from "../../../../App/FeatureSet/Telemetry/Utils/Ot
  * so the whole module is replaced. QueueName values mirror the real enum
  * so the queue-name assertion stays meaningful.
  */
-jest.mock("../../../Server/Infrastructure/Queue", () => {
+jest.mock("Common/Server/Infrastructure/Queue", () => {
   return {
     __esModule: true,
     default: {
@@ -39,22 +39,19 @@ jest.mock("../../../Server/Infrastructure/Queue", () => {
  * data. Keys are unique per call so cross-call assertions can't pass by
  * accident.
  */
-jest.mock(
-  "../../../../App/FeatureSet/Telemetry/Utils/TelemetryBodyStore",
-  () => {
-    let keyCounter: number = 0;
-    return {
-      __esModule: true,
-      default: {
-        storeBody: jest.fn().mockImplementation(() => {
-          keyCounter++;
-          return Promise.resolve(`telemetry:body:test-key-${keyCounter}`);
-        }),
-        readAndDeleteBody: jest.fn(),
-      },
-    };
-  },
-);
+jest.mock("../../FeatureSet/Telemetry/Utils/TelemetryBodyStore", () => {
+  let keyCounter: number = 0;
+  return {
+    __esModule: true,
+    default: {
+      storeBody: jest.fn().mockImplementation(() => {
+        keyCounter++;
+        return Promise.resolve(`telemetry:body:test-key-${keyCounter}`);
+      }),
+      readAndDeleteBody: jest.fn(),
+    },
+  };
+});
 
 type MockedFn = jest.Mock;
 

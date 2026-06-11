@@ -4,7 +4,7 @@
  * is under test here, so the module is replaced — same idiom as
  * TelemetryQueueService.test.ts in this directory.
  */
-jest.mock("../../../Server/Infrastructure/Queue", () => {
+jest.mock("Common/Server/Infrastructure/Queue", () => {
   return {
     __esModule: true,
     default: {
@@ -19,9 +19,9 @@ jest.mock("../../../Server/Infrastructure/Queue", () => {
   };
 });
 
-import OtelTracesIngestService from "../../../../App/FeatureSet/Telemetry/Services/OtelTracesIngestService";
-import OtelProfilesIngestService from "../../../../App/FeatureSet/Telemetry/Services/OtelProfilesIngestService";
-import OtelMetricsIngestService from "../../../../App/FeatureSet/Telemetry/Services/OtelMetricsIngestService";
+import OtelTracesIngestService from "../../FeatureSet/Telemetry/Services/OtelTracesIngestService";
+import OtelProfilesIngestService from "../../FeatureSet/Telemetry/Services/OtelProfilesIngestService";
+import OtelMetricsIngestService from "../../FeatureSet/Telemetry/Services/OtelMetricsIngestService";
 import { describe, expect, test } from "@jest/globals";
 
 /*

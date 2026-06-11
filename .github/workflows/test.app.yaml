@@ -1,7 +1,7 @@
-name: Common Test
+name: App Test
 
 on:
-  pull_request: 
+  pull_request:
   push:
     branches-ignore:
       - 'hotfix-*'   # excludes hotfix branches
@@ -19,5 +19,7 @@ jobs:
         with:
           node-version: 24
       - run: cd Common && bash test-setup.sh
-      - run: cd Common && npm install && rm -rf build && npm run test
-  
+      # App tests import Common sources directly (jest maps Common/* to
+      # ../Common), so Common's own dependencies must be installed too.
+      - run: cd Common && npm install
+      - run: cd App && npm install && npm run test

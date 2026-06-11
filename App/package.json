@@ -32,7 +32,7 @@
     "dev": "bash ./scripts/dev.sh",
     "audit": "npm audit --audit-level=low",
     "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
-    "test": "rm -rf build && jest --detectOpenHandles --passWithNoTests",
+    "test": "cd .. && export $(grep -v '^#' config.env | xargs) && cd App && rm -rf build && node node_modules/.bin/jest --runInBand ./Tests --detectOpenHandles --passWithNoTests",
     "coverage": "jest --detectOpenHandles --coverage"
   },
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
@@ -61,6 +61,7 @@
     "@types/xml2js": "^0.4.14",
     "@types/xmldom": "^0.1.34",
     "jest": "^28.1.0",
-    "nodemon": "^2.0.20"
+    "nodemon": "^2.0.20",
+    "ts-jest": "^28.0.8"
   }
 }
