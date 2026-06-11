@@ -21,6 +21,7 @@ jest.mock("../../../Server/Infrastructure/Queue", () => {
 
 import OtelTracesIngestService from "../../../../App/FeatureSet/Telemetry/Services/OtelTracesIngestService";
 import OtelProfilesIngestService from "../../../../App/FeatureSet/Telemetry/Services/OtelProfilesIngestService";
+import OtelMetricsIngestService from "../../../../App/FeatureSet/Telemetry/Services/OtelMetricsIngestService";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -64,6 +65,14 @@ describe("OTLP id decoding in telemetry ingest services", () => {
           convertBase64ToHexSafe: IdConverter;
         }
       ).convertBase64ToHexSafe.bind(OtelProfilesIngestService),
+    },
+    {
+      name: "OtelMetricsIngestService (exemplar ids)",
+      convert: (
+        OtelMetricsIngestService as unknown as {
+          convertBase64ToHexSafe: IdConverter;
+        }
+      ).convertBase64ToHexSafe.bind(OtelMetricsIngestService),
     },
   ];
 
