@@ -390,43 +390,43 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
 
   const getDeltaColor: (node: DiffFlamegraphNode) => string = useCallback(
     (node: DiffFlamegraphNode): string => {
-    const shareDelta: number = getShareDelta(node);
+      const shareDelta: number = getShareDelta(node);
 
-    if (Math.abs(shareDelta) < NOISE_FLOOR_PERCENTAGE_POINTS) {
-      return "bg-gray-400";
-    }
-
-    /*
-     * A frame with no baseline at all is usually new code (or a
-     * renamed symbol), not a measured regression — cap it below the
-     * strongest intensity so genuine 10x regressions still stand out.
-     */
-    const isNewFrame: boolean =
-      node.baselineValue === 0 && node.comparisonValue > 0;
-
-    if (shareDelta > 0) {
-      if (shareDelta > 10) {
-        return isNewFrame ? "bg-red-500" : "bg-red-600";
+      if (Math.abs(shareDelta) < NOISE_FLOOR_PERCENTAGE_POINTS) {
+        return "bg-gray-400";
       }
-      if (shareDelta > 5) {
-        return "bg-red-500";
-      }
-      if (shareDelta > 2.5) {
-        return "bg-red-400";
-      }
-      return "bg-red-300";
-    }
 
-    if (shareDelta < -10) {
-      return "bg-green-600";
-    }
-    if (shareDelta < -5) {
-      return "bg-green-500";
-    }
-    if (shareDelta < -2.5) {
-      return "bg-green-400";
-    }
-    return "bg-green-300";
+      /*
+       * A frame with no baseline at all is usually new code (or a
+       * renamed symbol), not a measured regression — cap it below the
+       * strongest intensity so genuine 10x regressions still stand out.
+       */
+      const isNewFrame: boolean =
+        node.baselineValue === 0 && node.comparisonValue > 0;
+
+      if (shareDelta > 0) {
+        if (shareDelta > 10) {
+          return isNewFrame ? "bg-red-500" : "bg-red-600";
+        }
+        if (shareDelta > 5) {
+          return "bg-red-500";
+        }
+        if (shareDelta > 2.5) {
+          return "bg-red-400";
+        }
+        return "bg-red-300";
+      }
+
+      if (shareDelta < -10) {
+        return "bg-green-600";
+      }
+      if (shareDelta < -5) {
+        return "bg-green-500";
+      }
+      if (shareDelta < -2.5) {
+        return "bg-green-400";
+      }
+      return "bg-green-300";
     },
     [getShareDelta],
   );
@@ -438,72 +438,75 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
     widthFraction: number,
   ) => ReactElement | null = useCallback(
     (
-    node: DiffFlamegraphNode,
-    depth: number,
-    offsetFraction: number,
-    widthFraction: number,
-  ): ReactElement | null => {
-    if (widthFraction < 0.005) {
-      return null;
-    }
+      node: DiffFlamegraphNode,
+      depth: number,
+      offsetFraction: number,
+      widthFraction: number,
+    ): ReactElement | null => {
+      if (widthFraction < 0.005) {
+        return null;
+      }
 
-    const bgColor: string = getDeltaColor(node);
-    const maxValue: number = Math.max(node.baselineValue, node.comparisonValue);
+      const bgColor: string = getDeltaColor(node);
+      const maxValue: number = Math.max(
+        node.baselineValue,
+        node.comparisonValue,
+      );
 
-    /*
-     * Each frame's width is max(baseline, comparison), and the sum of
-     * children's maxima can exceed the parent's own maximum (one child
-     * grew while a sibling shrank). Scale by whichever is larger so
-     * children always fit inside the parent's box.
-     */
-    const childMaxSum: number = node.children.reduce(
-      (sum: number, child: DiffFlamegraphNode) => {
-        return sum + Math.max(child.baselineValue, child.comparisonValue);
-      },
-      0,
-    );
-    const childDenominator: number = Math.max(maxValue, childMaxSum);
+      /*
+       * Each frame's width is max(baseline, comparison), and the sum of
+       * children's maxima can exceed the parent's own maximum (one child
+       * grew while a sibling shrank). Scale by whichever is larger so
+       * children always fit inside the parent's box.
+       */
+      const childMaxSum: number = node.children.reduce(
+        (sum: number, child: DiffFlamegraphNode) => {
+          return sum + Math.max(child.baselineValue, child.comparisonValue);
+        },
+        0,
+      );
+      const childDenominator: number = Math.max(maxValue, childMaxSum);
 
-    let childOffset: number = 0;
+      let childOffset: number = 0;
 
-    const shareDelta: number = getShareDelta(node);
+      const shareDelta: number = getShareDelta(node);
 
-    return (
-      <React.Fragment key={`${node.functionName}-${depth}-${offsetFraction}`}>
-        <div
-          className={`absolute h-6 border border-white/30 cursor-pointer overflow-hidden text-xs text-white leading-6 px-1 truncate ${bgColor} hover:opacity-80`}
-          style={{
-            left: `${offsetFraction * 100}%`,
-            width: `${widthFraction * 100}%`,
-            top: `${depth * 26}px`,
-          }}
-          onClick={() => {
-            handleClickNode(node);
-          }}
-          onMouseEnter={(e: React.MouseEvent) => {
-            handleMouseEnter(node, e);
-          }}
-          onMouseLeave={handleMouseLeave}
-          title={`${node.functionName} (${shareDelta >= 0 ? "+" : ""}${shareDelta.toFixed(1)}% of total)`}
-        >
-          {widthFraction > 0.03 ? node.functionName : ""}
-        </div>
-        {node.children.map((child: DiffFlamegraphNode) => {
-          const childMax: number = Math.max(
-            child.baselineValue,
-            child.comparisonValue,
-          );
-          const childWidth: number =
-            childDenominator > 0
-              ? (childMax / childDenominator) * widthFraction
-              : 0;
-          const currentOffset: number = offsetFraction + childOffset;
-          childOffset += childWidth;
+      return (
+        <React.Fragment key={`${node.functionName}-${depth}-${offsetFraction}`}>
+          <div
+            className={`absolute h-6 border border-white/30 cursor-pointer overflow-hidden text-xs text-white leading-6 px-1 truncate ${bgColor} hover:opacity-80`}
+            style={{
+              left: `${offsetFraction * 100}%`,
+              width: `${widthFraction * 100}%`,
+              top: `${depth * 26}px`,
+            }}
+            onClick={() => {
+              handleClickNode(node);
+            }}
+            onMouseEnter={(e: React.MouseEvent) => {
+              handleMouseEnter(node, e);
+            }}
+            onMouseLeave={handleMouseLeave}
+            title={`${node.functionName} (${shareDelta >= 0 ? "+" : ""}${shareDelta.toFixed(1)}% of total)`}
+          >
+            {widthFraction > 0.03 ? node.functionName : ""}
+          </div>
+          {node.children.map((child: DiffFlamegraphNode) => {
+            const childMax: number = Math.max(
+              child.baselineValue,
+              child.comparisonValue,
+            );
+            const childWidth: number =
+              childDenominator > 0
+                ? (childMax / childDenominator) * widthFraction
+                : 0;
+            const currentOffset: number = offsetFraction + childOffset;
+            childOffset += childWidth;
 
-          return renderNode(child, depth + 1, currentOffset, childWidth);
-        })}
-      </React.Fragment>
-    );
+            return renderNode(child, depth + 1, currentOffset, childWidth);
+          })}
+        </React.Fragment>
+      );
     },
     [
       getDeltaColor,

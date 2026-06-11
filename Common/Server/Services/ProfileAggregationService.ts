@@ -687,8 +687,20 @@ export class ProfileAggregationService {
       totalValue += value;
       sampleCount += groupSampleCount;
 
-      // Function is the leaf — the time was spent in its own frames.
-      if (occurrenceIndex === 0) {
+      /*
+       * Self time counts whenever the function is the EXECUTING (leaf)
+       * frame — checked against index 0 directly rather than the split
+       * point, because a recursive stack splits at the root-most
+       * occurrence while the leaf may still be the same function
+       * (standard sandwich-view semantics: self = "was on CPU").
+       */
+      const leafFrame: ParsedFrame = ProfileAggregationService.parseFrame(
+        stacktrace[0]!,
+      );
+      if (
+        leafFrame.functionName === request.functionName &&
+        leafFrame.fileName === request.fileName
+      ) {
         selfValue += value;
       }
 

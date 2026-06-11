@@ -855,20 +855,20 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
         {props.onFocusFunction &&
           zoomStack.length > 0 &&
           activeRoot.name !== "(root)" && (
-          <button
-            type="button"
-            title={`Show callers and callees of ${activeRoot.name}`}
-            className="absolute right-1.5 top-[2px] z-10 inline-flex h-[18px] w-[18px] items-center justify-center rounded bg-white/90 text-gray-600 ring-1 ring-gray-300 hover:bg-white hover:text-gray-900"
-            onClick={() => {
-              props.onFocusFunction?.({
-                functionName: activeRoot.name,
-                fileName: activeRoot.fileName,
-              });
-            }}
-          >
-            <Icon icon={IconProp.ArrowUpDown} className="h-3 w-3" />
-          </button>
-        )}
+            <button
+              type="button"
+              title={`Show callers and callees of ${activeRoot.name}`}
+              className="absolute right-1.5 top-[2px] z-10 inline-flex h-[18px] w-[18px] items-center justify-center rounded bg-white/90 text-gray-600 ring-1 ring-gray-300 hover:bg-white hover:text-gray-900"
+              onClick={() => {
+                props.onFocusFunction?.({
+                  functionName: activeRoot.name,
+                  fileName: activeRoot.fileName,
+                });
+              }}
+            >
+              <Icon icon={IconProp.ArrowUpDown} className="h-3 w-3" />
+            </button>
+          )}
       </div>
 
       {hoveredNode && (

@@ -1033,12 +1033,19 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
 
           lineNumber = (line["line"] as number) || 0;
 
+          /*
+           * Stored shapes: 'fn@file:line', 'fn@file', or bare 'fn'.
+           * The line suffix rides only on a fileName: parseFrame treats
+           * any '@'-less token entirely as the function name, so a
+           * file-less 'fn:line' would bake the line number into the
+           * function's identity and break deploy-stable matching.
+           */
           let frame: string = functionName;
           if (fileName) {
             frame += `@${fileName}`;
-          }
-          if (lineNumber > 0) {
-            frame += `:${lineNumber}`;
+            if (lineNumber > 0) {
+              frame += `:${lineNumber}`;
+            }
           }
 
           frames.push(frame);

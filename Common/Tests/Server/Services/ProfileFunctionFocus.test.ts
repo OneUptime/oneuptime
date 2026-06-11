@@ -283,8 +283,12 @@ describe("ProfileAggregationService.getFunctionFocus", () => {
     expect(result.totalValue).toBe(10);
     expect(result.callers.totalValue).toBe(10);
     expect(result.callees.totalValue).toBe(10);
-    // The root-side occurrence is not the leaf, so no self time here.
-    expect(result.selfValue).toBe(0);
+    /*
+     * The split happens at the root-side occurrence, but the EXECUTING
+     * frame (index 0) is still the focused function — self time counts
+     * whenever the function is the leaf, per sandwich-view semantics.
+     */
+    expect(result.selfValue).toBe(10);
     expect(result.sampleCount).toBe(1);
 
     // Callers: only the frame above the root-side occurrence.

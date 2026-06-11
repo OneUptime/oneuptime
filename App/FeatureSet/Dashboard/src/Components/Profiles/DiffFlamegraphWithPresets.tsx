@@ -215,9 +215,20 @@ const DiffFlamegraphWithPresets: FunctionComponent<
         return p.key === preset;
       }) || PRESETS[0]!;
 
+    /*
+     * baselineEnd backs off from comparisonStart by (offset - window).
+     * Requires windowMinutes <= offsetMinutes — every preset's offset
+     * is >= 60 and all callers use 60-minute windows; clamp defensively
+     * so a larger window can never make the baseline overlap the
+     * comparison period.
+     */
+    const backOffMinutes: number = Math.max(
+      0,
+      active.offsetMinutes - windowMinutes,
+    );
     const baselineEnd: Date = OneUptimeDate.addRemoveMinutes(
       comparisonStart,
-      -(active.offsetMinutes - windowMinutes),
+      -backOffMinutes,
     );
     const baselineStart: Date = OneUptimeDate.addRemoveMinutes(
       baselineEnd,
