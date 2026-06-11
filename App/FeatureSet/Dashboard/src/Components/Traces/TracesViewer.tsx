@@ -62,7 +62,13 @@ import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import LessThan from "Common/Types/BaseDatabase/LessThan";
 import TracesAnalyticsView, {
   formatDurationMs,
+  TraceAnalyticsState,
 } from "./TracesAnalyticsView";
+import Navigation from "Common/UI/Utils/Navigation";
+import TraceAggregationType from "Common/Types/Trace/TraceAggregationType";
+import TraceRecordingRuleDefinition, {
+  TraceRecordingRuleAttributeFilter,
+} from "Common/Types/Trace/TraceRecordingRuleDefinition";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
@@ -413,6 +419,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
    */
   const [chartMetric, setChartMetric] = useState<string>("count");
 
+  // Bumped by the toolbar Refresh button so the analytics view refetches.
+  const [analyticsRefreshTick, setAnalyticsRefreshTick] = useState<number>(0);
+
   /*
    * The search bar's X button (and full backspace) only updates `searchValue`
    * — it doesn't call `onSubmit`. Without this effect, `submittedSearch`
@@ -496,7 +505,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
      *                       or unquoted `field:value` that fits in one word).
      */
     const rawTokens: Array<string> =
-      raw.match(/@?\S+:"[^"]*"|@\S+:[^\s]+|\S+/g) || [];
+      raw.match(/@?\S+:~?"[^"]*"|@\S+:[^\s]+|\S+/g) || [];
     /*
      * Two merges in this loop:
      *  - `name: POST` → `["name:", "POST"]` → `name:POST` (space after colon).
@@ -515,7 +524,10 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         if (isAttr || KNOWN_FIELD_KEYS.has(fieldName)) {
           let merged: string = token + rawTokens[i + 1]!;
           i++;
-          if (merged.includes(':"') && !merged.endsWith('"')) {
+          if (
+            (merged.includes(':"') || merged.includes(':~"')) &&
+            !merged.endsWith('"')
+          ) {
             while (i + 1 < rawTokens.length && !merged.endsWith('"')) {
               i++;
               merged = merged + " " + rawTokens[i]!;
@@ -526,7 +538,10 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         }
       }
       // Standalone token with an unclosed quote — absorb until close.
-      if (token.includes(':"') && !token.endsWith('"')) {
+      if (
+        (token.includes(':"') || token.includes(':~"')) &&
+        !token.endsWith('"')
+      ) {
         let merged: string = token;
         while (i + 1 < rawTokens.length && !merged.endsWith('"')) {
           i++;
@@ -790,16 +805,17 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     const mergedAttributes: Record<string, unknown> = {
       ...attributeChips,
       ...attributes,
-      ...(props.attributeFilters || {}),
     };
     const mergedAttributeSearches: Record<string, string> = {
       ...attributeSearchChips,
       ...attributeSearches,
     };
     for (const [key, value] of Object.entries(mergedAttributeSearches)) {
-      // A contains filter on a key supersedes an exact filter on the same key.
+      // A contains filter on a key supersedes an exact filter on the same key…
       mergedAttributes[key] = new Search(value);
     }
+    // …but the read-only resource scope (Host / Docker / K8s pages) always wins.
+    Object.assign(mergedAttributes, props.attributeFilters || {});
     if (Object.keys(mergedAttributes).length > 0) {
       (query as Record<string, unknown>)["attributes"] = mergedAttributes;
     }
@@ -1127,20 +1143,34 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       groups[key]!.push(...fieldFilters[key]!);
     }
 
-    // Pass attribute filters (chip + parsed + prop scope) to aggregation
+    /*
+     * Pass attribute filters (chip + parsed + prop scope) to aggregation,
+     * with the same precedence the list applies: a contains filter
+     * supersedes an exact filter on the same key, and the read-only
+     * resource scope supersedes both — otherwise the server would AND
+     * exact + contains and the chart would disagree with the list.
+     */
     const mergedAttributes: Record<string, string> = {
       ...attributeChips,
       ...attributes,
-      ...(props.attributeFilters || {}),
     };
-    if (Object.keys(mergedAttributes).length > 0) {
-      payload["attributes"] = mergedAttributes;
-    }
-
     const mergedAttributeSearches: Record<string, string> = {
       ...attributeSearchChips,
       ...attributeSearches,
     };
+    const scopeAttributes: Record<string, string> =
+      props.attributeFilters || {};
+    for (const key of Object.keys(mergedAttributeSearches)) {
+      if (scopeAttributes[key] !== undefined) {
+        delete mergedAttributeSearches[key];
+        continue;
+      }
+      delete mergedAttributes[key];
+    }
+    Object.assign(mergedAttributes, scopeAttributes);
+    if (Object.keys(mergedAttributes).length > 0) {
+      payload["attributes"] = mergedAttributes;
+    }
     if (Object.keys(mergedAttributeSearches).length > 0) {
       payload["attributeSearches"] = mergedAttributeSearches;
     }
@@ -1720,6 +1750,123 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     facetConfigs,
   ]);
 
+  /*
+   * "Create metric…" from the analytics view — prefill a Trace Recording
+   * Rule with the current analysis (filters + measure + split) and land on
+   * the recording-rules settings page with the create form open. This is
+   * how an ad-hoc analysis becomes a persistent, alertable metric.
+   */
+  const handleCreateMetric: (state: TraceAnalyticsState) => void = useCallback(
+    (state: TraceAnalyticsState): void => {
+      const metricToAggregation: Record<string, TraceAggregationType> = {
+        count: TraceAggregationType.Count,
+        errorCount: TraceAggregationType.ErrorCount,
+        avgDuration: TraceAggregationType.AvgDurationSeconds,
+        p50Duration: TraceAggregationType.P50DurationSeconds,
+        p90Duration: TraceAggregationType.P90DurationSeconds,
+        p95Duration: TraceAggregationType.P95DurationSeconds,
+        p99Duration: TraceAggregationType.P99DurationSeconds,
+        minDuration: TraceAggregationType.MinDurationSeconds,
+        maxDuration: TraceAggregationType.MaxDurationSeconds,
+      };
+
+      const escapeRegex: (value: string) => string = (
+        value: string,
+      ): string => {
+        return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      };
+
+      // Span-name filters → one regex the rule engine can evaluate.
+      let spanNameRegex: string | undefined = undefined;
+      const exactNames: Array<string> =
+        (aggregationRequest["spanNames"] as Array<string>) || [];
+      const nameSearches: Array<string> =
+        (aggregationRequest["spanNameSearches"] as Array<string>) || [];
+      if (exactNames.length > 0) {
+        spanNameRegex = `^(${exactNames.map(escapeRegex).join("|")})$`;
+      } else if (nameSearches.length > 0) {
+        spanNameRegex = escapeRegex(nameSearches[0]!);
+      } else if (aggregationRequest["nameSearchText"]) {
+        spanNameRegex = escapeRegex(
+          aggregationRequest["nameSearchText"] as string,
+        );
+      }
+
+      /*
+       * Exact attribute filters carry over; contains-filters have no
+       * rule-side equivalent and are dropped from the prefill.
+       */
+      const filterAttributes: Array<TraceRecordingRuleAttributeFilter> =
+        Object.entries(
+          (aggregationRequest["attributes"] as Record<string, string>) || {},
+        ).map(
+          ([key, value]: [
+            string,
+            string,
+          ]): TraceRecordingRuleAttributeFilter => {
+            return { key, value };
+          },
+        );
+
+      /*
+       * Rules group by attribute keys only — top-level dimensions (span
+       * name, service, status, kind) have no rule-side equivalent.
+       */
+      const TOP_LEVEL_DIMENSIONS: Set<string> = new Set([
+        "name",
+        "primaryEntityId",
+        "statusCode",
+        "kind",
+      ]);
+      const groupByAttribute: string =
+        state.groupBy.find((key: string): boolean => {
+          return !TOP_LEVEL_DIMENSIONS.has(key);
+        }) || "";
+
+      /*
+       * Filters with direct rule-side equivalents carry over. Rules cannot
+       * express service/duration/contains filters — those are dropped, so a
+       * heavily-filtered analysis may record a broader span set.
+       */
+      const statusCodes: Array<number> =
+        (aggregationRequest["statusCodes"] as Array<number>) || [];
+      const onlyErrors: boolean =
+        statusCodes.length === 1 && statusCodes[0] === 2;
+
+      const spanKinds: Array<string> =
+        (aggregationRequest["spanKinds"] as Array<string>) || [];
+      const spanKind: string | undefined =
+        spanKinds.length === 1 ? spanKinds[0] : undefined;
+
+      const definition: TraceRecordingRuleDefinition = {
+        sources: [
+          {
+            alias: "A",
+            aggregationType:
+              metricToAggregation[state.metric] || TraceAggregationType.Count,
+            ...(spanNameRegex ? { spanNameRegex } : {}),
+            ...(spanKind ? { spanKind } : {}),
+            ...(onlyErrors ? { onlyErrors } : {}),
+            ...(filterAttributes.length > 0 ? { filterAttributes } : {}),
+          },
+        ],
+        expression: "A",
+        groupByAttribute,
+      };
+
+      const route: Route = new Route(
+        RouteUtil.populateRouteParams(
+          RouteMap[PageMap.TRACES_SETTINGS_RECORDING_RULES]!,
+        ).toString(),
+      );
+      route.addQueryParams({
+        prefill: encodeURIComponent(JSON.stringify(definition)),
+      });
+      Navigation.navigate(route);
+    },
+    [aggregationRequest],
+  );
+
   // Histogram drag-to-zoom
   const handleHistogramTimeRangeSelect: (start: Date, end: Date) => void =
     useCallback((start: Date, end: Date) => {
@@ -1775,8 +1922,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         }),
         timeRange: serializeTimeRange(timeRange),
         pageSize: pageSize,
+        rootOnly: rootOnly,
       };
-    }, [submittedSearch, activeFilters, timeRange, pageSize]);
+    }, [submittedSearch, activeFilters, timeRange, pageSize, rootOnly]);
 
   // Apply a saved view's state back into the explorer.
   const applySavedViewState: (state: TelemetrySavedViewState) => void =
@@ -1800,6 +1948,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       if (state.pageSize) {
         setPageSize(state.pageSize);
       }
+      // Views saved before the toggle existed default to root-spans-only.
+      setRootOnly(state.rootOnly ?? true);
       setPage(1);
     }, []);
 
@@ -1811,6 +1961,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       onRefresh={() => {
         void fetchSpans();
         void fetchHistogramAndFacets();
+        setAnalyticsRefreshTick((tick: number) => {
+          return tick + 1;
+        });
       }}
       toolbarLeadingActions={
         enableSavedViews ? (
@@ -2018,15 +2171,13 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           }}
           title="Chart metric"
         >
-          {CHART_METRIC_OPTIONS.map(
-            (opt: { value: string; label: string }) => {
-              return (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              );
-            },
-          )}
+          {CHART_METRIC_OPTIONS.map((opt: { value: string; label: string }) => {
+            return (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            );
+          })}
         </select>
       }
       mainContentOverride={
@@ -2035,6 +2186,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
             baseFilters={aggregationRequest}
             attributeKeys={telemetryAttributes}
             serviceNameMap={serviceNameMap}
+            onCreateMetric={handleCreateMetric}
+            refreshTick={analyticsRefreshTick}
           />
         ) : undefined
       }

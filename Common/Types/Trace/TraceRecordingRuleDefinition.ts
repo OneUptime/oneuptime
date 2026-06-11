@@ -92,6 +92,11 @@ export class TraceRecordingRuleDefinitionUtil {
         description: "Median span duration.",
       },
       {
+        value: TraceAggregationType.P90DurationSeconds,
+        label: "p90 Duration (s)",
+        description: "90th percentile span duration.",
+      },
+      {
         value: TraceAggregationType.P95DurationSeconds,
         label: "p95 Duration (s)",
         description: "95th percentile span duration.",
@@ -136,6 +141,9 @@ export class TraceRecordingRuleDefinitionUtil {
     const seenKeys: Set<string> = new Set<string>();
 
     for (const filter of source.filterAttributes || []) {
+      if (!filter || typeof filter !== "object") {
+        continue;
+      }
       const key: string = (filter.key || "").trim();
       const value: string = (filter.value || "").trim();
       if (!key || !value || seenKeys.has(key)) {
@@ -203,6 +211,12 @@ export class TraceRecordingRuleDefinitionUtil {
     const aliases: Set<string> = new Set<string>();
     for (let i: number = 0; i < sources.length; i++) {
       const source: TraceRecordingRuleSource = sources[i]!;
+
+      // Definitions arrive as JSON (deep links, API writes) — never throw.
+      if (!source || typeof source !== "object") {
+        return `Source #${i + 1}: Invalid source.`;
+      }
+
       const prefix: string = `Source ${source.alias || `#${i + 1}`}: `;
 
       if (!source.alias || !ALIAS_REGEX.test(source.alias)) {
@@ -227,7 +241,17 @@ export class TraceRecordingRuleDefinitionUtil {
         return `${prefix}Attribute filter needs both a key and a value (or leave both empty).`;
       }
 
+      if (
+        source.filterAttributes !== undefined &&
+        !Array.isArray(source.filterAttributes)
+      ) {
+        return `${prefix}Invalid attribute filters.`;
+      }
+
       for (const filter of source.filterAttributes || []) {
+        if (!filter || typeof filter !== "object") {
+          return `${prefix}Invalid attribute filter row.`;
+        }
         const hasKey: boolean = Boolean(filter.key?.trim());
         const hasValue: boolean = Boolean(filter.value?.trim());
         if (hasKey !== hasValue) {

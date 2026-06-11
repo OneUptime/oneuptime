@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -73,6 +74,8 @@ export interface TracesAnalyticsViewProps {
    * Recording Rule so the analysis persists as a queryable metric.
    */
   onCreateMetric?: ((state: TraceAnalyticsState) => void) | undefined;
+  // Bump to force a refetch (toolbar Refresh button).
+  refreshTick?: number | undefined;
 }
 
 const CHART_COLORS: Array<string> = [
@@ -289,6 +292,13 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
   const [topListData, setTopListData] = useState<Array<TopItem>>([]);
   const [tableData, setTableData] = useState<Array<TableRow>>([]);
 
+  /*
+   * Staleness guard: these aggregations can run for many seconds under
+   * load; without a sequence check, an older slow response would clobber
+   * the result of a newer query after the user changed the controls.
+   */
+  const requestSequenceRef: React.MutableRefObject<number> = useRef<number>(0);
+
   const isDuration: boolean = isDurationMetric(metric);
 
   const allDimensionOptions: Array<{ value: string; label: string }> =
@@ -328,6 +338,10 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
 
   const fetchAnalytics: () => Promise<void> =
     useCallback(async (): Promise<void> => {
+      const requestSequence: number = ++requestSequenceRef.current;
+      const isStale: () => boolean = (): boolean => {
+        return requestSequence !== requestSequenceRef.current;
+      };
       try {
         setIsLoading(true);
         setError("");
@@ -370,6 +384,10 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
           throw response;
         }
 
+        if (isStale()) {
+          return;
+        }
+
         const data: unknown = response.data["data"] || [];
 
         if (chartType === "timeseries") {
@@ -380,14 +398,26 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
           setTableData(data as Array<TableRow>);
         }
       } catch (err) {
+        if (isStale()) {
+          return;
+        }
         setTimeseriesData([]);
         setTopListData([]);
         setTableData([]);
         setError(API.getFriendlyMessage(err));
       } finally {
-        setIsLoading(false);
+        if (!isStale()) {
+          setIsLoading(false);
+        }
       }
-    }, [chartType, metric, groupByFields, limit, props.baseFilters]);
+    }, [
+      chartType,
+      metric,
+      groupByFields,
+      limit,
+      props.baseFilters,
+      props.refreshTick,
+    ]);
 
   useEffect(() => {
     void fetchAnalytics();
@@ -522,6 +552,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
 
         {groupByFields[0] &&
           groupByFields[0].length > 0 &&
+          chartType !== "toplist" &&
           renderSelectControl(
             "then by",
             groupByFields[1] || "",
@@ -615,7 +646,11 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
 
     const sharedAxes: ReactElement = (
       <>
-        <CartesianGrid strokeDasharray="none" stroke="#f1f5f9" vertical={false} />
+        <CartesianGrid
+          strokeDasharray="none"
+          stroke="#f1f5f9"
+          vertical={false}
+        />
         <XAxis
           dataKey="time"
           tickFormatter={formatTickTime}

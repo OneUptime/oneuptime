@@ -229,59 +229,59 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
             cursor: props.onTimeRangeSelect ? "crosshair" : "default",
           }}
         >
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={pivotedData}
-            margin={{ top: 4, right: 8, bottom: 0, left: -4 }}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            barCategoryGap="15%"
-            barGap={0}
-          >
-            <XAxis
-              dataKey="time"
-              tickFormatter={formatTickTime}
-              tick={{ fontSize: 10, fill: "#9ca3af" }}
-              axisLine={{ stroke: "#e5e7eb" }}
-              tickLine={false}
-              minTickGap={40}
-              dy={4}
-              interval="preserveStartEnd"
-            />
-            <YAxis
-              tick={{ fontSize: 10, fill: "#9ca3af" }}
-              axisLine={false}
-              tickLine={false}
-              width={48}
-              allowDecimals={Boolean(props.valueFormatter)}
-              tickFormatter={props.valueFormatter || formatYAxisTick}
-            />
-            <Tooltip
-              content={
-                <TelemetryHistogramTooltip
-                  seriesByKey={seriesByKey}
-                  valueFormatter={props.valueFormatter}
-                />
-              }
-              cursor={{ fill: "rgba(99,102,241,0.06)" }}
-            />
-            {activeSeries.map(
-              (option: HistogramSeriesOption, index: number) => {
-                const isLast: boolean = index === activeSeries.length - 1;
-                return (
-                  <Bar
-                    key={option.key}
-                    dataKey={option.key}
-                    stackId="series"
-                    fill={option.color}
-                    radius={isLast ? [1.5, 1.5, 0, 0] : [0, 0, 0, 0]}
-                    isAnimationActive={false}
-                    maxBarSize={24}
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={pivotedData}
+              margin={{ top: 4, right: 8, bottom: 0, left: -4 }}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              barCategoryGap="15%"
+              barGap={0}
+            >
+              <XAxis
+                dataKey="time"
+                tickFormatter={formatTickTime}
+                tick={{ fontSize: 10, fill: "#9ca3af" }}
+                axisLine={{ stroke: "#e5e7eb" }}
+                tickLine={false}
+                minTickGap={40}
+                dy={4}
+                interval="preserveStartEnd"
+              />
+              <YAxis
+                tick={{ fontSize: 10, fill: "#9ca3af" }}
+                axisLine={false}
+                tickLine={false}
+                width={48}
+                allowDecimals={Boolean(props.valueFormatter)}
+                tickFormatter={props.valueFormatter || formatYAxisTick}
+              />
+              <Tooltip
+                content={
+                  <TelemetryHistogramTooltip
+                    seriesByKey={seriesByKey}
+                    valueFormatter={props.valueFormatter}
                   />
-                );
-              },
-            )}
+                }
+                cursor={{ fill: "rgba(99,102,241,0.06)" }}
+              />
+              {activeSeries.map(
+                (option: HistogramSeriesOption, index: number) => {
+                  const isLast: boolean = index === activeSeries.length - 1;
+                  return (
+                    <Bar
+                      key={option.key}
+                      dataKey={option.key}
+                      stackId="series"
+                      fill={option.color}
+                      radius={isLast ? [1.5, 1.5, 0, 0] : [0, 0, 0, 0]}
+                      isAnimationActive={false}
+                      maxBarSize={24}
+                    />
+                  );
+                },
+              )}
               {selectionStart && selectionEnd && (
                 <ReferenceArea
                   x1={selectionStart}

@@ -59,15 +59,20 @@ const TraceRecordingRuleSourceEditor: FunctionComponent<ComponentProps> = (
       const rows: Array<TraceRecordingRuleAttributeFilter> = [
         ...(props.source.filterAttributes || []),
       ];
+      /*
+       * Always fold the legacy pair in (API-authored rules can carry BOTH
+       * forms) — editing deletes the legacy fields, so it must be visible
+       * or it would silently disappear on save.
+       */
+      const legacyKey: string = props.source.filterAttributeKey || "";
+      const legacyValue: string = props.source.filterAttributeValue || "";
       if (
-        (props.source.filterAttributeKey ||
-          props.source.filterAttributeValue) &&
-        rows.length === 0
+        (legacyKey || legacyValue) &&
+        !rows.some((row: TraceRecordingRuleAttributeFilter): boolean => {
+          return row.key === legacyKey;
+        })
       ) {
-        rows.push({
-          key: props.source.filterAttributeKey || "",
-          value: props.source.filterAttributeValue || "",
-        });
+        rows.push({ key: legacyKey, value: legacyValue });
       }
       if (rows.length === 0) {
         rows.push({ key: "", value: "" });

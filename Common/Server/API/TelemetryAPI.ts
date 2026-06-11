@@ -632,14 +632,21 @@ function parseTraceFilterBody(body: JSONObject): TraceFilters {
       : undefined;
   };
 
+  /*
+   * Numeric strings are coerced (stringly-typed clients worked before the
+   * parsing was centralized) — dropping them would silently widen the
+   * filter to all statuses.
+   */
   const statusCodes: Array<number> | undefined = Array.isArray(
     body["statusCodes"],
   )
-    ? (body["statusCodes"] as Array<unknown>).filter(
-        (v: unknown): v is number => {
-          return typeof v === "number";
-        },
-      )
+    ? (body["statusCodes"] as Array<unknown>)
+        .map((v: unknown): number => {
+          return typeof v === "number" ? v : Number(v);
+        })
+        .filter((v: number): boolean => {
+          return Number.isFinite(v);
+        })
     : undefined;
 
   const stringRecord: (key: string) => Record<string, string> | undefined = (
@@ -1003,9 +1010,11 @@ router.post(
         ? OneUptimeDate.fromString(body["endTime"] as string)
         : OneUptimeDate.getCurrentDate();
 
+      const rawBucketSize: number = Number(body["bucketSizeInMinutes"]);
       const bucketSizeInMinutes: number =
-        (body["bucketSizeInMinutes"] as number) ||
-        computeDefaultBucketSize(startTime, endTime);
+        Number.isFinite(rawBucketSize) && rawBucketSize >= 1
+          ? Math.trunc(rawBucketSize)
+          : computeDefaultBucketSize(startTime, endTime);
 
       const groupBy: Array<string> | undefined = Array.isArray(body["groupBy"])
         ? (body["groupBy"] as Array<unknown>).filter(
@@ -1015,8 +1024,17 @@ router.post(
           )
         : undefined;
 
-      const limit: number | undefined =
-        typeof body["limit"] === "number" ? (body["limit"] as number) : undefined;
+      /*
+       * Clamp to a sane integer range — `limit` flows into LIMIT and the
+       * timeseries series cap, so negative/fractional values would 500 in
+       * ClickHouse and huge values would explode the result set. Numeric
+       * strings are accepted (dashboard widget arguments are stored as
+       * strings).
+       */
+      const rawLimit: number = Number(body["limit"]);
+      const limit: number | undefined = Number.isFinite(rawLimit)
+        ? Math.min(Math.max(Math.trunc(rawLimit), 1), 1000)
+        : undefined;
 
       const traceFilters: TraceFilters = parseTraceFilterBody(body);
 

@@ -77,6 +77,13 @@ const WIDGET_CATALOG: ReadonlyArray<CatalogCategory> = [
         icon: IconProp.Waterfall,
         description: "Most recent traces for a service or operation.",
       },
+      {
+        type: DashboardComponentType.TraceChart,
+        label: "Trace Chart",
+        icon: IconProp.ChartBar,
+        description:
+          "Span counts or response-time percentiles over time, optionally split by an attribute (e.g. per tenant).",
+      },
     ],
   },
   {

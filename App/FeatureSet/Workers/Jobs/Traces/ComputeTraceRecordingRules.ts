@@ -225,11 +225,16 @@ async function runSourceQuery(args: {
   }
 
   // Multi-filter array + legacy single pair, ANDed (e.g. route AND tenant).
+  /*
+   * Key matching is case-insensitive — the explorer/analytics filters that
+   * prefill these rules match attribute keys with lowerUTF8 (casings vary
+   * across OTel conventions), so the rule must count the same span set.
+   */
   const attributeFilters: Array<TraceRecordingRuleAttributeFilter> =
     TraceRecordingRuleDefinitionUtil.getSourceAttributeFilters(source);
   for (const attributeFilter of attributeFilters) {
     filters.push(
-      `attributes['${esc(attributeFilter.key)}'] = '${esc(attributeFilter.value)}'`,
+      `arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8('${esc(attributeFilter.key)}') AND v = '${esc(attributeFilter.value)}', mapKeys(attributes), mapValues(attributes))`,
     );
   }
 
@@ -290,6 +295,8 @@ function toSpanAggregateSql(type: TraceAggregationType): string {
       return "avg(durationUnixNano) / 1e9";
     case TraceAggregationType.P50DurationSeconds:
       return "quantile(0.5)(durationUnixNano) / 1e9";
+    case TraceAggregationType.P90DurationSeconds:
+      return "quantile(0.9)(durationUnixNano) / 1e9";
     case TraceAggregationType.P95DurationSeconds:
       return "quantile(0.95)(durationUnixNano) / 1e9";
     case TraceAggregationType.P99DurationSeconds:

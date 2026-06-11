@@ -260,9 +260,9 @@ describe("TraceAggregationService", () => {
         /attributes\[\{p\d+:String\}\] AS \{p\d+:Identifier\}/,
       );
       expect(query).toContain("mapContains(attributes, ");
-      expect(query).toContain(" GROUP BY bucket, attr_url_host");
+      expect(query).toContain(" GROUP BY bucket, attr_0_url_host");
       expect(paramValues(statement)).toContain("url.host");
-      expect(paramValues(statement)).toContain("attr_url_host");
+      expect(paramValues(statement)).toContain("attr_0_url_host");
     });
 
     test("timeseries caps series to pre-resolved top dimension values", () => {
@@ -335,7 +335,7 @@ describe("TraceAggregationService", () => {
       expect(query).toContain("min(durationUnixNano) / 1000000 AS min_ms");
       expect(query).toContain("max(durationUnixNano) / 1000000 AS max_ms");
       expect(query).toContain(" AND name IN (");
-      expect(query).toContain(" GROUP BY attr_url_host ORDER BY cnt DESC");
+      expect(query).toContain(" GROUP BY attr_0_url_host ORDER BY cnt DESC");
     });
 
     test("group-by rejects malicious dimension keys and >2 dimensions", () => {
@@ -354,6 +354,35 @@ describe("TraceAggregationService", () => {
       }).toThrow("groupBy supports at most 2 dimensions");
     });
 
+    test("colliding attribute keys get distinct index-based aliases", () => {
+      const statement: Statement = (
+        TraceAggregationService as any
+      ).buildAnalyticsTimeseriesStatement({
+        ...analyticsRequest,
+        groupBy: ["url.host", "url:host"],
+      });
+
+      const query: string = normalizedQuery(statement);
+      expect(query).toContain(" GROUP BY bucket, attr_0_url_host, attr_1_url_host");
+      expect(paramValues(statement)).toContain("attr_0_url_host");
+      expect(paramValues(statement)).toContain("attr_1_url_host");
+    });
+
+    test("Service dimension is restricted to telemetry-service spans", () => {
+      const statement: Statement = (
+        TraceAggregationService as any
+      ).buildAnalyticsTableStatement({
+        ...analyticsRequest,
+        chartType: "table",
+        groupBy: ["primaryEntityId"],
+      });
+
+      const query: string = normalizedQuery(statement);
+      expect(query).toContain(
+        " AND (primaryEntityType = '' OR primaryEntityType = ",
+      );
+    });
+
     test("metric validation", () => {
       expect(TraceAggregationService.isValidAnalyticsMetric("count")).toBe(
         true,
@@ -361,12 +390,12 @@ describe("TraceAggregationService", () => {
       expect(
         TraceAggregationService.isValidAnalyticsMetric("p95Duration"),
       ).toBe(true);
-      expect(
-        TraceAggregationService.isValidAnalyticsMetric("drop table"),
-      ).toBe(false);
-      expect(
-        TraceAggregationService.isValidAnalyticsMetric("__proto__"),
-      ).toBe(false);
+      expect(TraceAggregationService.isValidAnalyticsMetric("drop table")).toBe(
+        false,
+      );
+      expect(TraceAggregationService.isValidAnalyticsMetric("__proto__")).toBe(
+        false,
+      );
     });
   });
 });

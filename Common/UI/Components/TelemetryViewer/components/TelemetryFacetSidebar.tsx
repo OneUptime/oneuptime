@@ -41,12 +41,27 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
   const activeValuesByKey: Record<string, Set<string>> = useMemo(() => {
     const map: Record<string, Set<string>> = {};
 
+    const add: (key: string, value: string) => void = (
+      key: string,
+      value: string,
+    ): void => {
+      if (!map[key]) {
+        map[key] = new Set<string>();
+      }
+      map[key]!.add(value);
+    };
+
     if (props.activeFilters) {
       for (const filter of props.activeFilters) {
-        if (!map[filter.facetKey]) {
-          map[filter.facetKey] = new Set<string>();
+        add(filter.facetKey, filter.value);
+        /*
+         * Attribute-backed facets store chips as `attributes.<key>` while
+         * the facet config is keyed by the raw attribute key — index both
+         * so the facet row shows its selected state.
+         */
+        if (filter.facetKey.startsWith("attributes.")) {
+          add(filter.facetKey.substring("attributes.".length), filter.value);
         }
-        map[filter.facetKey]!.add(filter.value);
       }
     }
 

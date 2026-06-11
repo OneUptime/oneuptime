@@ -24,6 +24,7 @@ import DashboardLogStreamComponentUtil from "./DashboardLogStreamComponent";
 import DashboardMonitorListComponentUtil from "./DashboardMonitorListComponent";
 import DashboardTableComponentUtil from "./DashboardTableComponent";
 import DashboardTextComponentUtil from "./DashboardTextComponent";
+import DashboardTraceChartComponentUtil from "./DashboardTraceChartComponent";
 import DashboardTraceListComponentUtil from "./DashboardTraceListComponent";
 import DashboardValueComponentUtil from "./DashboardValueComponent";
 
@@ -69,6 +70,12 @@ export default class DashboardComponentsUtil {
 
     if (dashboardComponentType === DashboardComponentType.TraceList) {
       return DashboardTraceListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.TraceChart) {
+      return DashboardTraceChartComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }

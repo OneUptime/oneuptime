@@ -1025,23 +1025,29 @@ export class TraceAggregationService {
     /*
      * Cap the series count: a high-cardinality dimension (e.g. url.host
      * across hundreds of tenants) would otherwise return one series per
-     * value. Resolve the top values by count first and constrain the
-     * timeseries to them.
+     * value. Pre-resolve the top values of the first dimension — ranked by
+     * the SELECTED metric (so duration metrics chart the slowest dimension
+     * values, counts chart the busiest) — and constrain the timeseries to
+     * them. The full groupBy is passed so the ranking applies the same
+     * dimension-implied predicates (e.g. mapContains on the second
+     * dimension) as the final query.
      */
     let topValues: Array<string> | undefined = undefined;
     if (groupByKeys.length > 0) {
       const topItems: Array<TraceAnalyticsTopItem> =
-        await TraceAggregationService.getAnalyticsTopList({
-          ...request,
-          groupBy: [groupByKeys[0]!],
-        });
+        await TraceAggregationService.getAnalyticsTopList(request);
 
       topValues = topItems.map((item: TraceAnalyticsTopItem): string => {
         return item.value;
       });
 
+      /*
+       * No non-empty values → skip the cap rather than returning nothing:
+       * spans whose dimension value is an empty string still chart (as one
+       * "(empty)" series), consistent with the table view.
+       */
       if (topValues.length === 0) {
-        return [];
+        topValues = undefined;
       }
     }
 
@@ -1068,8 +1074,8 @@ export class TraceAggregationService {
     return rows.map((row: JSONObject): TraceAnalyticsTimeseriesRow => {
       const groupValues: Record<string, string> = {};
 
-      for (const key of groupByKeys) {
-        const alias: string = TraceAggregationService.groupByAlias(key);
+      for (const [index, key] of groupByKeys.entries()) {
+        const alias: string = TraceAggregationService.groupByAlias(key, index);
         groupValues[key] = String(row[alias] ?? "");
       }
 
@@ -1153,8 +1159,8 @@ export class TraceAggregationService {
     return rows.map((row: JSONObject): TraceAnalyticsTableRow => {
       const groupValues: Record<string, string> = {};
 
-      for (const key of groupByKeys) {
-        const alias: string = TraceAggregationService.groupByAlias(key);
+      for (const [index, key] of groupByKeys.entries()) {
+        const alias: string = TraceAggregationService.groupByAlias(key, index);
         groupValues[key] = String(row[alias] ?? "");
       }
 
@@ -1169,7 +1175,7 @@ export class TraceAggregationService {
     });
   }
 
-  private static groupByAlias(key: string): string {
+  private static groupByAlias(key: string, index: number): string {
     if (
       TraceAggregationService.isTopLevelColumn(key) ||
       TraceAggregationService.RESOURCE_FACET_KEYS.has(key)
@@ -1177,8 +1183,12 @@ export class TraceAggregationService {
       return key;
     }
 
-    // Attribute keys get a sanitized alias.
-    return `attr_${key.replace(/[^a-zA-Z0-9_]/g, "_")}`;
+    /*
+     * Attribute keys get a sanitized alias. The dimension index is included
+     * so two distinct keys that sanitize identically (url.host vs url:host)
+     * never collide into one alias (ClickHouse rejects duplicate aliases).
+     */
+    return `attr_${index}_${key.replace(/[^a-zA-Z0-9_]/g, "_")}`;
   }
 
   /*
@@ -1191,7 +1201,7 @@ export class TraceAggregationService {
     statement: Statement,
     groupByKeys: Array<string>,
   ): void {
-    for (const key of groupByKeys) {
+    for (const [index, key] of groupByKeys.entries()) {
       TraceAggregationService.validateFacetKey(key);
 
       if (TraceAggregationService.RESOURCE_FACET_KEYS.has(key)) {
@@ -1199,7 +1209,7 @@ export class TraceAggregationService {
       } else if (TraceAggregationService.isTopLevelColumn(key)) {
         statement.append(`, toString(${key}) AS ${key}`);
       } else {
-        const alias: string = TraceAggregationService.groupByAlias(key);
+        const alias: string = TraceAggregationService.groupByAlias(key, index);
         statement.append(
           SQL`, attributes[${{
             type: TableColumnType.Text,
@@ -1214,8 +1224,8 @@ export class TraceAggregationService {
     statement: Statement,
     groupByKeys: Array<string>,
   ): void {
-    for (const key of groupByKeys) {
-      statement.append(`, ${TraceAggregationService.groupByAlias(key)}`);
+    for (const [index, key] of groupByKeys.entries()) {
+      statement.append(`, ${TraceAggregationService.groupByAlias(key, index)}`);
     }
   }
 
@@ -1238,6 +1248,21 @@ export class TraceAggregationService {
             type: TableColumnType.Text,
             value: resourceType as string,
           }}`,
+        );
+        continue;
+      }
+
+      if (key === "primaryEntityId") {
+        /*
+         * Same restriction as the Service facet: keep host/docker/k8s
+         * entity ids out of the "Service" dimension (they reuse the
+         * primaryEntityId slot, disambiguated by primaryEntityType).
+         */
+        statement.append(
+          SQL` AND (primaryEntityType = '' OR primaryEntityType = ${{
+            type: TableColumnType.Text,
+            value: ServiceType.OpenTelemetry as string,
+          }})`,
         );
         continue;
       }
@@ -1431,9 +1456,15 @@ export class TraceAggregationService {
 
     statement.append(TraceAggregationService.RETENTION_FILTER);
 
-    TraceAggregationService.appendGroupByDimensionFilters(statement, [
-      groupByKey,
-    ]);
+    /*
+     * Dimension-implied predicates for EVERY groupBy key — when this query
+     * pre-resolves the series cap for a two-dimension timeseries, the
+     * ranking must count the same span set the final chart counts.
+     */
+    TraceAggregationService.appendGroupByDimensionFilters(
+      statement,
+      request.groupBy!,
+    );
 
     TraceAggregationService.appendCommonFilters(statement, request);
 
@@ -1498,9 +1529,9 @@ export class TraceAggregationService {
 
     statement.append(" GROUP BY");
     let first: boolean = true;
-    for (const key of groupByKeys) {
+    for (const [index, key] of groupByKeys.entries()) {
       statement.append(
-        `${first ? " " : ", "}${TraceAggregationService.groupByAlias(key)}`,
+        `${first ? " " : ", "}${TraceAggregationService.groupByAlias(key, index)}`,
       );
       first = false;
     }
