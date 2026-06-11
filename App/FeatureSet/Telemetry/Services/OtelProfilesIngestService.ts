@@ -433,14 +433,31 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
 
                   const stringTable: Array<string> = profile.stringTable;
 
+                  /*
+                   * pprof profiles routinely carry several parallel
+                   * sample types (Go CPU: [samples/count,
+                   * cpu/nanoseconds]; heap: [alloc_objects, alloc_space,
+                   * inuse_objects, inuse_space]). Pick the canonical one
+                   * once and use that index for BOTH the profile
+                   * metadata and every sample's value — mixing index 0
+                   * metadata with index-0 values made Go CPU profiles
+                   * report raw sample counts labelled as "samples"
+                   * instead of cpu time.
+                   */
                   const sampleTypes: JSONArray = profile.sampleType;
+                  const canonicalSampleTypeIndex: number =
+                    this.selectCanonicalSampleTypeIndex(
+                      sampleTypes,
+                      stringTable,
+                    );
                   if (sampleTypes.length > 0) {
-                    const firstSampleType: JSONObject =
-                      sampleTypes[0] as JSONObject;
+                    const canonicalSampleType: JSONObject = sampleTypes[
+                      canonicalSampleTypeIndex
+                    ] as JSONObject;
                     const typeIndex: number =
-                      (firstSampleType["type"] as number) || 0;
+                      (canonicalSampleType["type"] as number) || 0;
                     const unitIndex: number =
-                      (firstSampleType["unit"] as number) || 0;
+                      (canonicalSampleType["unit"] as number) || 0;
 
                     if (stringTable[typeIndex]) {
                       profileType = stringTable[typeIndex]!;
@@ -563,11 +580,21 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                        */
                       let sampleValue: number = 0;
                       if (values.length > 0) {
-                        const first: number | string = values[0]!;
+                        /*
+                         * `values` is parallel to `sample_type`; read the
+                         * canonical index so the value matches the
+                         * profileType/unit recorded on the profile row.
+                         * Defensive fallback to index 0 for producers
+                         * that emit fewer values than sample types.
+                         */
+                        const canonicalValue: number | string =
+                          values.length > canonicalSampleTypeIndex
+                            ? values[canonicalSampleTypeIndex]!
+                            : values[0]!;
                         sampleValue =
-                          typeof first === "string"
-                            ? parseInt(first, 10) || 0
-                            : Number(first) || 0;
+                          typeof canonicalValue === "string"
+                            ? parseInt(canonicalValue, 10) || 0
+                            : Number(canonicalValue) || 0;
                       } else if (timestamps.length > 0) {
                         sampleValue = timestamps.length;
                       } else {
@@ -789,6 +816,61 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
       logger.error(error, getLogAttributesFromRequest(req as RequestLike));
       throw error;
     }
+  }
+
+  /**
+   * Choose which entry of a multi-valued pprof `sample_type` array is
+   * the one worth charting. Preference order by (type, unit):
+   * cpu/nanoseconds (Go CPU profiles put it at index 1, after
+   * samples/count), then wall time, then inuse_space/bytes (live heap),
+   * then alloc_space/bytes, then the first available entry. The
+   * v1development OTLP schema normalises to a single sample type, so
+   * this only does work for multi-type pprof-derived payloads.
+   */
+  private static selectCanonicalSampleTypeIndex(
+    sampleTypes: JSONArray,
+    stringTable: Array<string>,
+  ): number {
+    if (sampleTypes.length <= 1) {
+      return 0;
+    }
+
+    const resolved: Array<{ type: string; unit: string }> = sampleTypes.map(
+      (st: JSONObject): { type: string; unit: string } => {
+        const obj: JSONObject = st || {};
+        const typeIndex: number = (obj["type"] as number) || 0;
+        const unitIndex: number = (obj["unit"] as number) || 0;
+        return {
+          type: (stringTable[typeIndex] || "").toLowerCase(),
+          unit: (stringTable[unitIndex] || "").toLowerCase(),
+        };
+      },
+    );
+
+    const preferences: Array<(st: { type: string; unit: string }) => boolean> =
+      [
+        (st: { type: string; unit: string }): boolean => {
+          return st.type === "cpu" && st.unit === "nanoseconds";
+        },
+        (st: { type: string; unit: string }): boolean => {
+          return st.type === "wall";
+        },
+        (st: { type: string; unit: string }): boolean => {
+          return st.type === "inuse_space" && st.unit === "bytes";
+        },
+        (st: { type: string; unit: string }): boolean => {
+          return st.type === "alloc_space" && st.unit === "bytes";
+        },
+      ];
+
+    for (const matches of preferences) {
+      const index: number = resolved.findIndex(matches);
+      if (index >= 0) {
+        return index;
+      }
+    }
+
+    return 0;
   }
 
   private static resolveStackFrames(data: {
@@ -1422,9 +1504,27 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
     return "";
   }
 
+  /*
+   * OTLP/JSON represents trace_id / span_id (and by extension the
+   * 16-byte profile_id) as case-insensitive HEX strings, while
+   * protobufjs' `.toJSON()` (the gRPC / OTLP-protobuf decode path)
+   * emits standard base64 for bytes fields. The two are
+   * distinguishable by length: hex ids are 16 or 32 chars, whereas
+   * base64 of the same 8/16-byte values is 12 or 24 chars — so a
+   * 16-or-32-char hex-only string can never be a base64-encoded id.
+   * Decoding hex ids as base64 silently produced garbage ids that
+   * broke trace<->profile correlation.
+   */
+  private static readonly HEX_ID_REGEX: RegExp =
+    /^(?:[0-9a-fA-F]{16}|[0-9a-fA-F]{32})$/;
+
   private static convertBase64ToHexSafe(value: string | undefined): string {
     if (!value) {
       return "";
+    }
+
+    if (OtelProfilesIngestService.HEX_ID_REGEX.test(value)) {
+      return value.toLowerCase();
     }
 
     try {

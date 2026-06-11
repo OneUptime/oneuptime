@@ -4,6 +4,7 @@ import Express, {
   ExpressResponse,
   ExpressRouter,
   NextFunction,
+  RequestHandler,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -41,9 +42,9 @@ import MetricAggregationService, {
 } from "../Services/MetricAggregationService";
 import ProfileAggregationService, {
   FlamegraphRequest,
+  FlamegraphResult,
   FunctionListRequest,
-  FunctionListItem,
-  ProfileFlamegraphNode,
+  FunctionListResult,
   DiffFlamegraphRequest,
   DiffFlamegraphNode,
   ServiceActivityRequest,
@@ -58,6 +59,7 @@ import ProfileSample from "../../Models/AnalyticsModels/ProfileSample";
 import ProfileService from "../Services/ProfileService";
 import ProfileSampleService from "../Services/ProfileSampleService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import Permission from "../../Types/Permission";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
@@ -1664,11 +1666,38 @@ function computeDefaultBucketSize(startTime: Date, endTime: Date): number {
   return 1440;
 }
 
+/*
+ * Shared guard for the bespoke profile routes below. These routes don't go
+ * through BaseAnalyticsAPI, so nothing downstream re-checks authorization:
+ * the tenantId comes straight from a caller-controlled header and
+ * UserMiddleware lets tokenless requests through as Public. Every profile
+ * route must therefore demand an authenticated principal that holds a
+ * telemetry-read permission on that tenant before any data is queried.
+ * The permission list mirrors the read access control declared on the
+ * Profile / ProfileSample analytics models.
+ */
+const requireProfileReadAccess: Array<RequestHandler> = [
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
+  UserMiddleware.requirePermission({
+    permissions: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadTelemetryServiceProfiles,
+    ],
+  }),
+];
+
 // --- Profile Get Attributes Endpoint ---
 
 router.post(
   "/telemetry/profiles/get-attributes",
-  UserMiddleware.getUserMiddleware,
+  ...requireProfileReadAccess,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     return getAttributes(req, res, next, TelemetryType.Profile);
   },
@@ -1678,7 +1707,7 @@ router.post(
 
 router.post(
   "/telemetry/profiles/flamegraph",
-  UserMiddleware.getUserMiddleware,
+  ...requireProfileReadAccess,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1751,11 +1780,12 @@ router.post(
           profileTypes.length > 0 && { profileTypes }),
       };
 
-      const flamegraph: ProfileFlamegraphNode =
+      const result: FlamegraphResult =
         await ProfileAggregationService.getFlamegraph(request);
 
       return Response.sendJsonObjectResponse(req, res, {
-        flamegraph: flamegraph as unknown as JSONObject,
+        flamegraph: result.flamegraph as unknown as JSONObject,
+        truncated: result.truncated,
       });
     } catch (err: unknown) {
       next(err);
@@ -1767,7 +1797,7 @@ router.post(
 
 router.post(
   "/telemetry/profiles/function-list",
-  UserMiddleware.getUserMiddleware,
+  ...requireProfileReadAccess,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1787,13 +1817,35 @@ router.post(
 
       const body: JSONObject = req.body as JSONObject;
 
-      const startTime: Date = body["startTime"]
-        ? OneUptimeDate.fromString(body["startTime"] as string)
-        : OneUptimeDate.addRemoveHours(OneUptimeDate.getCurrentDate(), -1);
+      const profileId: string | undefined = body["profileId"]
+        ? (body["profileId"] as string)
+        : undefined;
 
-      const endTime: Date = body["endTime"]
+      /*
+       * Only default the window when no profileId is given: a profile's
+       * samples are bounded by the profile itself, and a defaulted
+       * last-hour window would silently exclude any profile captured
+       * before the window started.
+       */
+      const startTime: Date | undefined = body["startTime"]
+        ? OneUptimeDate.fromString(body["startTime"] as string)
+        : profileId
+          ? undefined
+          : OneUptimeDate.addRemoveHours(OneUptimeDate.getCurrentDate(), -1);
+
+      const endTime: Date | undefined = body["endTime"]
         ? OneUptimeDate.fromString(body["endTime"] as string)
-        : OneUptimeDate.getCurrentDate();
+        : profileId
+          ? undefined
+          : OneUptimeDate.getCurrentDate();
+
+      if (!profileId && !startTime) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Either profileId or startTime must be provided"),
+        );
+      }
 
       const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
         ? (body["serviceIds"] as Array<string>).map((id: string) => {
@@ -1826,8 +1878,9 @@ router.post(
 
       const request: FunctionListRequest = {
         projectId: databaseProps.tenantId,
-        startTime,
-        endTime,
+        ...(startTime !== undefined && { startTime }),
+        ...(endTime !== undefined && { endTime }),
+        ...(profileId !== undefined && { profileId }),
         ...(serviceIds !== undefined && { serviceIds }),
         ...(profileType !== undefined && { profileType }),
         ...(profileTypes !== undefined &&
@@ -1836,11 +1889,13 @@ router.post(
         ...(sortBy !== undefined && { sortBy }),
       };
 
-      const functions: Array<FunctionListItem> =
+      const result: FunctionListResult =
         await ProfileAggregationService.getFunctionList(request);
 
       return Response.sendJsonObjectResponse(req, res, {
-        functions: functions as unknown as JSONObject,
+        functions: result.functions as unknown as JSONObject,
+        windowTotal: result.windowTotal,
+        truncated: result.truncated,
       });
     } catch (err: unknown) {
       next(err);
@@ -1852,7 +1907,7 @@ router.post(
 
 router.post(
   "/telemetry/profiles/service-activity",
-  UserMiddleware.getUserMiddleware,
+  ...requireProfileReadAccess,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1919,7 +1974,7 @@ router.post(
 
 router.get(
   "/telemetry/profiles/:profileId/pprof",
-  UserMiddleware.getUserMiddleware,
+  ...requireProfileReadAccess,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -2048,7 +2103,7 @@ router.get(
 
 router.post(
   "/telemetry/profiles/diff-flamegraph",
-  UserMiddleware.getUserMiddleware,
+  ...requireProfileReadAccess,
   async (
     req: ExpressRequest,
     res: ExpressResponse,

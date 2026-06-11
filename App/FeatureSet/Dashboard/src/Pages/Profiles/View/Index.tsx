@@ -17,12 +17,16 @@ import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelA
 import Profile from "Common/Models/AnalyticsModels/Profile";
 import ProjectUtil from "Common/UI/Utils/Project";
 import OneUptimeDate from "Common/Types/Date";
+import ObjectID from "Common/Types/ObjectID";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Link from "Common/UI/Components/Link/Link";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
+import { APP_API_URL } from "Common/UI/Config";
+import URL from "Common/Types/API/URL";
 
 const ProfileViewPage: FunctionComponent<
   PageComponentProps
@@ -52,6 +56,7 @@ const ProfileViewPage: FunctionComponent<
               profileId: true,
               profileType: true,
               primaryEntityId: true,
+              primaryEntityType: true,
               startTime: true,
               endTime: true,
               durationNano: true,
@@ -83,11 +88,41 @@ const ProfileViewPage: FunctionComponent<
 
   const resolvedType: string | undefined =
     selectedProfileType || profile?.profileType || undefined;
+
+  /*
+   * The pill may hold a category (e.g. "cpu") rather than a raw type —
+   * derive the unit from the first raw type it expands to, since the
+   * category string itself has no unit mapping.
+   */
+  const queryTypesForUnit: Array<string> | undefined =
+    ProfileUtil.getQueryProfileTypes(resolvedType);
+  const typeDerivedUnit: string =
+    queryTypesForUnit && queryTypesForUnit.length > 0
+      ? ProfileUtil.getProfileTypeUnit(queryTypesForUnit[0]!)
+      : "nanoseconds";
+
+  /*
+   * The profile's stored unit describes its primary type — when the
+   * user picks a different type with the pill, that stored unit no
+   * longer applies and the selection's unit wins.
+   */
   const resolvedUnit: string =
-    profile?.unit ||
-    (resolvedType
-      ? ProfileUtil.getProfileTypeUnit(resolvedType)
-      : "nanoseconds");
+    selectedProfileType && selectedProfileType !== profile?.profileType
+      ? typeDerivedUnit
+      : profile?.unit || typeDerivedUnit;
+
+  const profileStartTime: Date | undefined = profile?.startTime
+    ? new Date(profile.startTime as unknown as string)
+    : undefined;
+
+  /*
+   * Scope the baseline diff to the resource this profile came from and
+   * anchor it at the capture time — comparing the whole project over
+   * an arbitrary recent window says nothing about this profile.
+   */
+  const diffServiceIds: Array<ObjectID> | undefined = profile?.primaryEntityId
+    ? [new ObjectID(profile.primaryEntityId.toString())]
+    : undefined;
 
   const tabs: Array<Tab> = [
     {
@@ -129,6 +164,8 @@ const ProfileViewPage: FunctionComponent<
           <DiffFlamegraphWithPresets
             profileType={selectedProfileType}
             windowMinutes={60}
+            serviceIds={diffServiceIds}
+            anchorTime={profileStartTime}
           />
         </div>
       ),
@@ -141,7 +178,9 @@ const ProfileViewPage: FunctionComponent<
 
   return (
     <div>
-      {profile && <ProfileSummaryCard profile={profile} />}
+      {profile && (
+        <ProfileSummaryCard profile={profile} profileId={profileId} />
+      )}
 
       <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
         <ProfileTypeSelector
@@ -179,13 +218,37 @@ const ExplainerCard: FunctionComponent<ExplainerCardProps> = (
   );
 };
 
+/**
+ * Friendly label for the resource type a profile is attached to.
+ * primaryEntityId alone is ambiguous — the same column holds service,
+ * host, docker and k8s ids, disambiguated by primaryEntityType.
+ */
+function getEntityTypeLabel(entityType: ServiceType | undefined): string {
+  switch (entityType) {
+    case ServiceType.OpenTelemetry:
+      return "Service";
+    case ServiceType.Host:
+      return "Host";
+    case ServiceType.DockerHost:
+      return "Docker host";
+    case ServiceType.KubernetesCluster:
+      return "Kubernetes cluster";
+    case ServiceType.Monitor:
+      return "Monitor";
+    default:
+      return "Resource";
+  }
+}
+
 interface ProfileSummaryCardProps {
   profile: Profile;
+  profileId: string;
 }
 
 /*
- * Summary strip shown above the tabs: service, type, captured at,
- * duration, samples, and (when present) a link to the linked trace.
+ * Summary strip shown above the tabs: source resource, type, captured
+ * at, duration, samples, a pprof export, and (when present) a link to
+ * the linked trace.
  */
 const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
   props: ProfileSummaryCardProps,
@@ -200,9 +263,36 @@ const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
 
   const traceId: string | undefined = p.traceId?.toString();
 
+  /*
+   * Plain anchor download (same idiom as attachment downloads): auth
+   * rides on the session cookie, and the tenant comes from the query
+   * param because an <a> tag cannot send custom headers.
+   */
+  const pprofDownloadUrl: string = URL.fromURL(APP_API_URL)
+    .addRoute(`/telemetry/profiles/${props.profileId}/pprof`)
+    .addQueryParam(
+      "tenantid",
+      ProjectUtil.getCurrentProjectId()?.toString() || "",
+    )
+    .toString();
+
   return (
     <div className="mb-4 rounded-xl border border-gray-200 bg-white p-4">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+        {p.primaryEntityId && (
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-gray-400">
+              {getEntityTypeLabel(p.primaryEntityType)}
+            </div>
+            <div
+              className="text-sm font-medium text-gray-900 mt-0.5 font-mono truncate max-w-[16rem]"
+              title={p.primaryEntityId.toString()}
+            >
+              {p.primaryEntityId.toString()}
+            </div>
+          </div>
+        )}
+
         <div>
           <div className="text-[10px] uppercase tracking-wider text-gray-400">
             Type
@@ -245,8 +335,18 @@ const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
           </div>
         </div>
 
-        {traceId && (
-          <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          <a
+            href={pprofDownloadUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 ring-1 ring-gray-300 transition-colors"
+          >
+            <Icon icon={IconProp.Download} className="h-3.5 w-3.5" />
+            Download pprof
+          </a>
+
+          {traceId && (
             <Link
               to={RouteUtil.populateRouteParams(RouteMap[PageMap.TRACE_VIEW]!, {
                 modelId: traceId,
@@ -256,8 +356,8 @@ const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
               <Icon icon={IconProp.Link} className="h-3.5 w-3.5" />
               Open linked trace
             </Link>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

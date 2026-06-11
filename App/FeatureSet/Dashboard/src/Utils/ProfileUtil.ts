@@ -57,12 +57,21 @@ export default class ProfileUtil {
       case "heap":
         return "Heap memory";
       case "goroutine":
+      case "goroutines":
         return "Goroutines";
       case "contention":
       case "mutex":
         return "Lock contention";
       case "block":
         return "Blocking";
+      /*
+       * Category tokens carried by the pills (see getQueryProfileTypes)
+       * — shown when the user filters by a whole category.
+       */
+      case "memory":
+        return "Memory";
+      case "locks":
+        return "Locks";
       default:
         return profileType || "Unknown";
     }
@@ -94,38 +103,38 @@ export default class ProfileUtil {
   }
 
   /**
-   * Inverse of getProfileCategory: given a single raw profileType string
-   * (the value carried by the UI pill), return every raw type stored in
-   * ClickHouse that should be considered part of the same category.
+   * Translate the UI's type selection into the `profileTypes` filter sent
+   * to the backend (`WHERE profileType IN (...)`).
    *
-   * Why this matters: agents store the raw type with whatever name the
-   * runtime emits ("samples" for Node CPU, "cpu" for Go CPU, "inuse_space"
-   * vs "heap" for memory, etc.). The pill stores a single canonical value,
-   * so a literal `WHERE profileType = 'cpu'` filter would miss the user's
-   * actual rows. Backend filters with `IN (...)` instead.
+   * The selection is either a *category* token ("cpu", "memory", "locks",
+   * "wall", "goroutines" — what the primary pills carry) or a *specific*
+   * raw ClickHouse type ("samples", "alloc_space", ... — what the
+   * advanced dropdown carries). Categories expand to every raw type the
+   * runtimes emit for that concept ("samples" for Node CPU, "cpu" for Go
+   * CPU, etc.) — a literal equality filter on the category token would
+   * miss the user's actual rows. Specific raw types pass through verbatim
+   * so the user can drill into exactly one type.
+   *
+   * "memory" deliberately expands to the BYTE-valued types only
+   * (inuse_space / alloc_space / heap): object-count types use a
+   * different unit and summing counts with bytes produces meaningless
+   * totals. Counts stay reachable via the advanced dropdown.
    *
    * Returning `undefined` means "do not filter" — caller must pass
    * undefined to the backend, not an empty array.
    */
-  public static getRawProfileTypesForCategory(
-    profileType: string | undefined,
+  public static getQueryProfileTypes(
+    selection: string | undefined,
   ): Array<string> | undefined {
-    if (!profileType) {
+    if (!selection) {
       return undefined;
     }
-    const category: ProfileCategory =
-      ProfileUtil.getProfileCategory(profileType);
-    switch (category) {
+
+    switch (selection.toLowerCase().trim()) {
       case "cpu":
         return ["cpu", "samples"];
       case "memory":
-        return [
-          "inuse_space",
-          "inuse_objects",
-          "alloc_space",
-          "alloc_objects",
-          "heap",
-        ];
+        return ["inuse_space", "alloc_space", "heap"];
       case "locks":
         return ["mutex", "contention", "block"];
       case "wall":
@@ -133,16 +142,25 @@ export default class ProfileUtil {
       case "goroutines":
         return ["goroutine"];
       default:
-        /*
-         * Unknown / advanced specific type — pass through verbatim so the
-         * backend filters on exactly the chosen value.
-         */
-        return [profileType];
+        return [selection];
     }
   }
 
   /**
-   * Bucket a raw profileType string into one of three user-facing pills.
+   * Historical name kept for existing callers — same semantics as
+   * {@link getQueryProfileTypes}.
+   */
+  public static getRawProfileTypesForCategory(
+    profileType: string | undefined,
+  ): Array<string> | undefined {
+    return ProfileUtil.getQueryProfileTypes(profileType);
+  }
+
+  /**
+   * Bucket a profileType selection into one of the user-facing pills.
+   * Accepts both raw ClickHouse types ("samples", "alloc_space", ...)
+   * and the category tokens the pills themselves carry ("memory",
+   * "locks", ...), so formatting helpers work for either kind of value.
    */
   public static getProfileCategory(profileType: string): ProfileCategory {
     const type: string = profileType.toLowerCase().trim();
@@ -153,16 +171,19 @@ export default class ProfileUtil {
         return "cpu";
       case "wall":
         return "wall";
+      case "memory":
       case "inuse_objects":
       case "inuse_space":
       case "alloc_objects":
       case "alloc_space":
       case "heap":
         return "memory";
+      case "locks":
       case "contention":
       case "mutex":
       case "block":
         return "locks";
+      case "goroutines":
       case "goroutine":
         return "goroutines";
       default:

@@ -9,7 +9,8 @@ import React, {
 import Service from "Common/Models/DatabaseModels/Service";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import API from "Common/Utils/API";
+import API from "Common/UI/Utils/API/API";
+import Navigation from "Common/UI/Utils/Navigation";
 import { APP_API_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -108,29 +109,77 @@ function readStoredShowKernel(): boolean {
   return false;
 }
 
+/*
+ * URL state. Service, time window and type selection live in query
+ * params so a filtered view survives reloads and can be shared. The
+ * defaults (all services, 1h, CPU) are represented by *absence* — a
+ * clean URL must keep meaning the default view. "Everything" (no type
+ * filter) is a deliberate non-default choice, so it needs an explicit
+ * sentinel to be distinguishable from an absent param.
+ */
+const DEFAULT_RANGE_MINUTES: number = 60;
+const DEFAULT_PROFILE_TYPE: string = "cpu";
+const PROFILE_TYPE_ALL_SENTINEL: string = "all";
+
+function readServiceIdFromUrl(): string | null {
+  return Navigation.getQueryStringByName("serviceId");
+}
+
+function readRangeMinutesFromUrl(): number {
+  const raw: string | null = Navigation.getQueryStringByName("rangeMinutes");
+  const parsed: number = raw ? parseInt(raw, 10) : NaN;
+  if (
+    TIME_RANGES.some((r: TimeRange) => {
+      return r.minutes === parsed;
+    })
+  ) {
+    return parsed;
+  }
+  return DEFAULT_RANGE_MINUTES;
+}
+
+function readProfileTypeFromUrl(): string | undefined {
+  const raw: string | null = Navigation.getQueryStringByName("profileType");
+  if (raw === PROFILE_TYPE_ALL_SENTINEL) {
+    return undefined;
+  }
+  return raw || DEFAULT_PROFILE_TYPE;
+}
+
 const ProfilesDashboard: FunctionComponent = (): ReactElement => {
   const [services, setServices] = useState<Array<Service>>([]);
   const [selectedServiceId, setSelectedServiceId] = useState<
     string | "all" | null
-  >(null);
-  const [rangeMinutes, setRangeMinutes] = useState<number>(60);
-  const [profileType, setProfileType] = useState<string | undefined>("cpu");
+  >(() => {
+    return readServiceIdFromUrl();
+  });
+  const [rangeMinutes, setRangeMinutes] = useState<number>(() => {
+    return readRangeMinutesFromUrl();
+  });
+  const [profileType, setProfileType] = useState<string | undefined>(() => {
+    return readProfileTypeFromUrl();
+  });
   const [topFunctions, setTopFunctions] = useState<Array<TopFunction>>([]);
   const [topFunctionsLoading, setTopFunctionsLoading] = useState<boolean>(true);
+  const [topFunctionsError, setTopFunctionsError] = useState<string>("");
+  /*
+   * Sum of selfValue across ALL matching rows in the window (not just
+   * the fetched top-N) — the honest denominator for "% of the window".
+   */
+  const [windowTotal, setWindowTotal] = useState<number>(0);
   const [error, setError] = useState<string>("");
   const [isServicesLoading, setIsServicesLoading] = useState<boolean>(true);
-  const [servicesWithProfiles, setServicesWithProfiles] = useState<Set<string>>(
-    new Set(),
-  );
   const [sortMode, setSortMode] = useState<ProfileSortMode>(() => {
     return readStoredSortMode();
   });
   const [showKernel, setShowKernel] = useState<boolean>(() => {
     return readStoredShowKernel();
   });
+  const [showAllServices, setShowAllServices] = useState<boolean>(false);
   const [serviceActivity, setServiceActivity] = useState<
     Record<string, number>
   >({});
+  const [activityError, setActivityError] = useState<string>("");
 
   /*
    * Stable time window. We want a single (startTime, endTime) pair
@@ -154,6 +203,26 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
     return [new ObjectID(selectedServiceId)];
   }, [selectedServiceId]);
 
+  /*
+   * Mirror the selection into the URL (replaceState — no history spam).
+   * Defaults are removed rather than written so an untouched dashboard
+   * keeps a clean, canonical URL.
+   */
+  useEffect(() => {
+    Navigation.setQueryString({
+      serviceId:
+        selectedServiceId && selectedServiceId !== "all"
+          ? selectedServiceId
+          : null,
+      rangeMinutes:
+        rangeMinutes === DEFAULT_RANGE_MINUTES ? null : String(rangeMinutes),
+      profileType:
+        profileType === DEFAULT_PROFILE_TYPE
+          ? null
+          : profileType || PROFILE_TYPE_ALL_SENTINEL,
+    });
+  }, [selectedServiceId, rangeMinutes, profileType]);
+
   // Initial load: services list, plus which services have profile data.
   useEffect(() => {
     let cancelled: boolean = false;
@@ -176,13 +245,27 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
           return;
         }
         setServices(servicesResult.data || []);
-        // Default to "all services" on first load.
+        /*
+         * Default to "all services" on first load. A pre-selected id
+         * (carried in from the URL) only sticks if it still names a
+         * real service — otherwise a stale bookmark would render an
+         * empty picker filtering on a service that no longer exists.
+         */
         setSelectedServiceId((prev: string | "all" | null) => {
-          return prev || "all";
+          if (
+            prev &&
+            prev !== "all" &&
+            (servicesResult.data || []).some((s: Service): boolean => {
+              return s.id?.toString() === prev;
+            })
+          ) {
+            return prev;
+          }
+          return "all";
         });
       } catch (err) {
         if (!cancelled) {
-          setError(API.getFriendlyErrorMessage(err as Error));
+          setError(API.getFriendlyMessage(err));
         }
       } finally {
         if (!cancelled) {
@@ -204,6 +287,7 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
     void (async (): Promise<void> => {
       try {
         setTopFunctionsLoading(true);
+        setTopFunctionsError("");
         const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
           await API.post({
             url: URL.fromString(APP_API_URL.toString()).addRoute(
@@ -216,8 +300,7 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
                 return id.toString();
               }),
               profileType,
-              profileTypes:
-                ProfileUtil.getRawProfileTypesForCategory(profileType),
+              profileTypes: ProfileUtil.getQueryProfileTypes(profileType),
               limit: 8,
               sortBy: "selfValue",
             },
@@ -235,27 +318,12 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
         const fns: Array<TopFunction> = (response.data["functions"] ||
           []) as unknown as Array<TopFunction>;
         setTopFunctions(fns);
-
-        /*
-         * While we're here, capture which services actually have data
-         * — used to badge the service list below.
-         */
-        const fresh: Set<string> = new Set<string>();
-        for (const fn of fns) {
-          if ((fn as unknown as { primaryEntityId?: string }).primaryEntityId) {
-            fresh.add(
-              (
-                fn as unknown as { primaryEntityId: string }
-              ).primaryEntityId.toString(),
-            );
-          }
-        }
-        if (fresh.size > 0) {
-          setServicesWithProfiles(fresh);
-        }
-      } catch {
+        setWindowTotal(Number(response.data["windowTotal"]) || 0);
+      } catch (err) {
         if (!cancelled) {
           setTopFunctions([]);
+          setWindowTotal(0);
+          setTopFunctionsError(API.getFriendlyMessage(err));
         }
       } finally {
         if (!cancelled) {
@@ -293,6 +361,7 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
     let cancelled: boolean = false;
     void (async (): Promise<void> => {
       try {
+        setActivityError("");
         const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
           await API.post({
             url: URL.fromString(APP_API_URL.toString()).addRoute(
@@ -302,8 +371,7 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
               startTime: startTime.toISOString(),
               endTime: endTime.toISOString(),
               profileType,
-              profileTypes:
-                ProfileUtil.getRawProfileTypesForCategory(profileType),
+              profileTypes: ProfileUtil.getQueryProfileTypes(profileType),
             },
             headers: {
               ...ModelAPI.getCommonHeaders(),
@@ -330,9 +398,10 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
           }
         }
         setServiceActivity(next);
-      } catch {
+      } catch (err) {
         if (!cancelled) {
           setServiceActivity({});
+          setActivityError(API.getFriendlyMessage(err));
         }
       }
     })();
@@ -456,6 +525,73 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
     return k ? k.services.length : 0;
   }, [groupedServices]);
 
+  const totalVisibleServiceCount: number = useMemo(() => {
+    return visibleGroups.reduce(
+      (
+        acc: number,
+        g: { category: ProfileServiceCategory; services: Array<Service> },
+      ) => {
+        return acc + g.services.length;
+      },
+      0,
+    );
+  }, [visibleGroups]);
+
+  /*
+   * The grid defaults to services that actually produced samples in the
+   * window (plus the selected one, so the current filter never vanishes
+   * from view). A project can hold hundreds of registered services while
+   * only a handful are profiled — leading with the quiet majority buries
+   * the answer to "what's being profiled?". When *nothing* has activity
+   * the filter would render an empty grid, which reads as a bug, so we
+   * fall back to showing everything.
+   */
+  const gridGroups: Array<{
+    category: ProfileServiceCategory;
+    services: Array<Service>;
+  }> = useMemo(() => {
+    const hasAnyActivity: boolean = Object.values(serviceActivity).some(
+      (count: number) => {
+        return count > 0;
+      },
+    );
+    if (showAllServices || !hasAnyActivity) {
+      return visibleGroups;
+    }
+    return visibleGroups
+      .map(
+        (g: { category: ProfileServiceCategory; services: Array<Service> }) => {
+          return {
+            category: g.category,
+            services: g.services.filter((s: Service): boolean => {
+              const id: string = s.id?.toString() || "";
+              return (serviceActivity[id] || 0) > 0 || id === selectedServiceId;
+            }),
+          };
+        },
+      )
+      .filter(
+        (g: {
+          category: ProfileServiceCategory;
+          services: Array<Service>;
+        }): boolean => {
+          return g.services.length > 0;
+        },
+      );
+  }, [visibleGroups, serviceActivity, showAllServices, selectedServiceId]);
+
+  const gridServiceCount: number = useMemo(() => {
+    return gridGroups.reduce(
+      (
+        acc: number,
+        g: { category: ProfileServiceCategory; services: Array<Service> },
+      ) => {
+        return acc + g.services.length;
+      },
+      0,
+    );
+  }, [gridGroups]);
+
   const selectedServiceName: string = useMemo(() => {
     if (!selectedServiceId || selectedServiceId === "all") {
       return "all services";
@@ -465,6 +601,24 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
     });
     return s?.name || "selected service";
   }, [services, selectedServiceId]);
+
+  /*
+   * Footer link to the raw-profiles list, carrying the current
+   * selection so the list opens in the same service/window/type
+   * context the user was just looking at.
+   */
+  const allProfilesRoute: Route = useMemo(() => {
+    const base: Route = RouteUtil.populateRouteParams(
+      RouteMap[PageMap.PROFILES_INSIGHTS] as Route,
+    );
+    const params: Array<string> = [];
+    if (selectedServiceId && selectedServiceId !== "all") {
+      params.push(`serviceId=${selectedServiceId}`);
+    }
+    params.push(`rangeMinutes=${rangeMinutes}`);
+    params.push(`profileType=${profileType || PROFILE_TYPE_ALL_SENTINEL}`);
+    return new Route(`${base.toString()}?${params.join("&")}`);
+  }, [selectedServiceId, rangeMinutes, profileType]);
 
   if (isServicesLoading) {
     return <PageLoader isVisible={true} />;
@@ -595,7 +749,7 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
             <ProfileTypeSelector
               selectedProfileType={profileType}
               onChange={setProfileType}
-              showAdvanced={false}
+              showAdvanced={true}
             />
           </div>
 
@@ -615,24 +769,25 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
             </button>
             <AppLink
               className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
-              to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.PROFILES_INSIGHTS] as Route,
-              )}
+              to={allProfilesRoute}
             >
-              Browse raw profiles →
+              All profiles →
             </AppLink>
           </div>
         </div>
       </div>
 
       {/* Headline insight */}
-      <HeadlineInsight
-        topFunctions={topFunctions}
-        profileType={profileType}
-        serviceName={selectedServiceName}
-        rangeMinutes={rangeMinutes}
-        loading={topFunctionsLoading}
-      />
+      {!topFunctionsError && (
+        <HeadlineInsight
+          topFunctions={topFunctions}
+          windowTotal={windowTotal}
+          profileType={profileType}
+          serviceName={selectedServiceName}
+          rangeMinutes={rangeMinutes}
+          loading={topFunctionsLoading}
+        />
+      )}
 
       {/* Aggregated flame graph */}
       <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4">
@@ -668,11 +823,23 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
             </p>
           </div>
         </div>
-        <TopFunctionsList
-          functions={topFunctions}
-          unit={unit}
-          loading={topFunctionsLoading}
-        />
+        {topFunctionsError ? (
+          <ErrorMessage
+            message={topFunctionsError}
+            onRefreshClick={() => {
+              setNonce((n: number) => {
+                return n + 1;
+              });
+            }}
+          />
+        ) : (
+          <TopFunctionsList
+            functions={topFunctions}
+            windowTotal={windowTotal}
+            unit={unit}
+            loading={topFunctionsLoading}
+          />
+        )}
       </div>
 
       {/* Services being profiled */}
@@ -681,31 +848,69 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
           <h3 className="text-sm font-semibold text-gray-900">
             Services being profiled
           </h3>
-          {kernelCount > 0 && (
-            <button
-              type="button"
-              onClick={() => {
-                setShowKernel((v: boolean) => {
-                  return !v;
+          <div className="flex items-center gap-3">
+            {gridServiceCount < totalVisibleServiceCount && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAllServices(true);
+                }}
+                className="text-[11px] text-gray-500 hover:text-gray-800"
+                title="Include services with no profile samples in this window"
+              >
+                Show all {totalVisibleServiceCount.toLocaleString()} services
+              </button>
+            )}
+            {showAllServices && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAllServices(false);
+                }}
+                className="text-[11px] text-gray-500 hover:text-gray-800"
+                title="Only show services with profile samples in this window"
+              >
+                Show only active services
+              </button>
+            )}
+            {kernelCount > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowKernel((v: boolean) => {
+                    return !v;
+                  });
+                }}
+                className="text-[11px] text-gray-500 hover:text-gray-800 inline-flex items-center gap-1"
+                title={
+                  showKernel
+                    ? "Hide kernel-thread services"
+                    : "Show kernel-thread services"
+                }
+              >
+                <Icon
+                  icon={showKernel ? IconProp.Eye : IconProp.EyeSlash}
+                  className="h-3 w-3"
+                />
+                {showKernel ? "Hide" : "Show"} {kernelCount} kernel{" "}
+                {kernelCount === 1 ? "thread" : "threads"}
+              </button>
+            )}
+          </div>
+        </div>
+        {activityError && (
+          <div className="mb-3">
+            <ErrorMessage
+              message={activityError}
+              onRefreshClick={() => {
+                setNonce((n: number) => {
+                  return n + 1;
                 });
               }}
-              className="text-[11px] text-gray-500 hover:text-gray-800 inline-flex items-center gap-1"
-              title={
-                showKernel
-                  ? "Hide kernel-thread services"
-                  : "Show kernel-thread services"
-              }
-            >
-              <Icon
-                icon={showKernel ? IconProp.Eye : IconProp.EyeSlash}
-                className="h-3 w-3"
-              />
-              {showKernel ? "Hide" : "Show"} {kernelCount} kernel{" "}
-              {kernelCount === 1 ? "thread" : "threads"}
-            </button>
-          )}
-        </div>
-        {visibleGroups.map(
+            />
+          </div>
+        )}
+        {gridGroups.map(
           (group: {
             category: ProfileServiceCategory;
             services: Array<Service>;
@@ -722,8 +927,6 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
                   {group.services.map((s: Service) => {
                     const id: string = s.id?.toString() || "";
                     const sampleCount: number = serviceActivity[id] || 0;
-                    const hasProfiles: boolean =
-                      sampleCount > 0 || servicesWithProfiles.has(id);
                     return (
                       <button
                         key={id}
@@ -739,12 +942,10 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
                       >
                         <div className="flex items-center justify-between">
                           <ServiceElement service={s} />
-                          {hasProfiles && (
+                          {sampleCount > 0 && (
                             <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-700">
                               <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                              {sampleCount > 0
-                                ? `${sampleCount.toLocaleString()} samples`
-                                : "Active"}
+                              {sampleCount.toLocaleString()} samples
                             </span>
                           )}
                         </div>
@@ -768,6 +969,12 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
  */
 interface HeadlineInsightProps {
   topFunctions: Array<TopFunction>;
+  /*
+   * Sum of selfValue across every matching row in the window, supplied
+   * by the server. 0 when unavailable — shares then fall back to the
+   * fetched top-N as denominator, with copy that says so.
+   */
+  windowTotal: number;
   profileType: string | undefined;
   serviceName: string;
   rangeMinutes: number;
@@ -785,13 +992,23 @@ const HeadlineInsight: FunctionComponent<HeadlineInsightProps> = (
     return t;
   }, [props.topFunctions]);
 
+  /*
+   * "% of the window" must divide by the whole window's work, not just
+   * the handful of functions we fetched — dividing by the top-N sum
+   * inflates every share. Only when the server can't supply the true
+   * total do we fall back to the top-N sum, and the copy switches to
+   * "of the top sampled functions" so the number stays honest.
+   */
+  const hasWindowTotal: boolean = props.windowTotal > 0;
+  const denominator: number = hasWindowTotal ? props.windowTotal : totalSelf;
+
   const topN: Array<TopFunction> = props.topFunctions.slice(0, 3);
   const topShare: number =
-    totalSelf > 0
+    denominator > 0
       ? (topN.reduce((acc: number, f: TopFunction) => {
           return acc + f.selfValue;
         }, 0) /
-          totalSelf) *
+          denominator) *
         100
       : 0;
 
@@ -819,14 +1036,23 @@ const HeadlineInsight: FunctionComponent<HeadlineInsightProps> = (
     return (
       <div className="mb-4 rounded-xl border border-dashed border-gray-300 bg-white p-4 text-sm text-gray-500">
         No profile data in the last {timeLabel} for {props.serviceName}. Try a
-        wider time window.
+        wider time window — or, if you haven&apos;t sent profiles yet,{" "}
+        <AppLink
+          className="text-indigo-600 hover:text-indigo-800 font-medium"
+          to={RouteUtil.populateRouteParams(
+            RouteMap[PageMap.PROFILES_DOCUMENTATION] as Route,
+          )}
+        >
+          set up profiling
+        </AppLink>
+        .
       </div>
     );
   }
 
   const leader: TopFunction = topN[0]!;
   const leaderShare: number =
-    totalSelf > 0 ? (leader.selfValue / totalSelf) * 100 : 0;
+    denominator > 0 ? (leader.selfValue / denominator) * 100 : 0;
 
   return (
     <div className="mb-4 rounded-xl border border-gray-200 bg-gradient-to-br from-indigo-50/40 to-white p-4">
@@ -842,7 +1068,9 @@ const HeadlineInsight: FunctionComponent<HeadlineInsightProps> = (
             <span className="font-mono font-medium text-gray-900">
               {leader.functionName || "(anonymous)"}
             </span>{" "}
-            ({ProfileUtil.formatPercent(leaderShare)} of the window).
+            ({ProfileUtil.formatPercent(leaderShare)}{" "}
+            {hasWindowTotal ? "of the window" : "of top sampled functions"}
+            ).
             {topN.length >= 2 && (
               <>
                 {" "}
@@ -853,7 +1081,10 @@ const HeadlineInsight: FunctionComponent<HeadlineInsightProps> = (
                 <span className="font-semibold">
                   {ProfileUtil.formatPercent(topShare)}
                 </span>{" "}
-                of the total — those are your optimization targets.
+                {hasWindowTotal
+                  ? "of the window"
+                  : "of the top sampled functions"}{" "}
+                — those are your optimization targets.
               </>
             )}
           </div>
@@ -870,6 +1101,12 @@ const HeadlineInsight: FunctionComponent<HeadlineInsightProps> = (
 
 interface TopFunctionsListProps {
   functions: Array<TopFunction>;
+  /*
+   * Window-wide selfValue total from the server; 0 when unavailable.
+   * Used as the share denominator so percentages mean "of the window",
+   * not "of the rows we happened to fetch".
+   */
+  windowTotal: number;
   unit: string;
   loading: boolean;
 }
@@ -901,12 +1138,14 @@ const TopFunctionsList: FunctionComponent<TopFunctionsListProps> = (
   }
 
   const topValue: number = props.functions[0]?.selfValue || 1;
-  const totalValue: number = props.functions.reduce(
+  const fetchedTotal: number = props.functions.reduce(
     (acc: number, f: TopFunction) => {
       return acc + f.selfValue;
     },
     0,
   );
+  const totalValue: number =
+    props.windowTotal > 0 ? props.windowTotal : fetchedTotal;
 
   return (
     <div className="divide-y divide-gray-100 -mx-4">
@@ -975,14 +1214,26 @@ const EmptyState: FunctionComponent = (): ReactElement => {
         <Icon icon={IconProp.ChartBar} className="h-7 w-7 text-indigo-500" />
       </div>
       <h3 className="text-lg font-semibold text-gray-900 mb-2">
-        No services profiling yet
+        No profiles yet
       </h3>
       <p className="text-sm text-gray-500 max-w-md mx-auto leading-relaxed">
-        Add a service and enable the OneUptime profiler agent (Node, Go, Python,
-        Java, or Ruby). Once samples start arriving, this page will show a
-        merged flame graph and the functions consuming the most resources across
-        every recent recording.
+        Send continuous profiles with Grafana Alloy (zero-code eBPF profiling
+        for anything running on a host) or a Pyroscope SDK in your application
+        (Go, Node.js, Python, Java, .NET, Ruby, and more). Once samples start
+        arriving, this page shows a merged flame graph and the functions
+        consuming the most resources across every recent recording.
       </p>
+      <div className="mt-6">
+        <AppLink
+          className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+          to={RouteUtil.populateRouteParams(
+            RouteMap[PageMap.PROFILES_DOCUMENTATION] as Route,
+          )}
+        >
+          <Icon icon={IconProp.Book} className="h-4 w-4" />
+          <span>Set up profiling</span>
+        </AppLink>
+      </div>
     </div>
   );
 };

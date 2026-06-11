@@ -14,11 +14,18 @@ export interface DiffFlamegraphWithPresetsProps {
   serviceIds?: Array<ObjectID> | undefined;
   profileType?: string | undefined;
   /**
-   * Width of the "now" window (in minutes). The comparison period is
-   * `[now - windowMinutes, now]` and the baseline is the same window
-   * shifted by the preset's offset.
+   * Width of the comparison window (in minutes). Without `anchorTime`
+   * the comparison period is `[now - windowMinutes, now]`; the
+   * baseline is the same window shifted by the preset's offset.
    */
   windowMinutes?: number | undefined;
+  /**
+   * When set, the comparison window is centered on this moment instead
+   * of ending at "now". Used by the profile detail page so the diff
+   * describes the time the profile was actually captured — comparing
+   * an arbitrary recent window would say nothing about that profile.
+   */
+  anchorTime?: Date | undefined;
 }
 
 type PresetKey = "1h" | "24h" | "7d" | "1w";
@@ -69,9 +76,16 @@ const DiffFlamegraphWithPresets: FunctionComponent<
     comparisonStartTime: Date;
     comparisonEndTime: Date;
   } = useMemo(() => {
-    const now: Date = OneUptimeDate.getCurrentDate();
+    /*
+     * Anchored mode centers the window on the anchor so the capture
+     * moment sits in the middle of the comparison period; otherwise
+     * the window ends at "now" (live mode).
+     */
+    const comparisonEnd: Date = props.anchorTime
+      ? OneUptimeDate.addRemoveMinutes(props.anchorTime, windowMinutes / 2)
+      : OneUptimeDate.getCurrentDate();
     const comparisonStart: Date = OneUptimeDate.addRemoveMinutes(
-      now,
+      comparisonEnd,
       -windowMinutes,
     );
 
@@ -91,11 +105,11 @@ const DiffFlamegraphWithPresets: FunctionComponent<
 
     return {
       comparisonStartTime: comparisonStart,
-      comparisonEndTime: now,
+      comparisonEndTime: comparisonEnd,
       baselineStartTime: baselineStart,
       baselineEndTime: baselineEnd,
     };
-  }, [preset, windowMinutes]);
+  }, [preset, windowMinutes, props.anchorTime?.getTime()]);
 
   const activePreset: Preset =
     PRESETS.find((p: Preset) => {
@@ -113,7 +127,9 @@ const DiffFlamegraphWithPresets: FunctionComponent<
           <div>
             Diff compares the{" "}
             <span className="font-medium text-gray-800">
-              last {windowMinutes} minutes
+              {props.anchorTime
+                ? `${windowMinutes}-minute window around this capture`
+                : `last ${windowMinutes} minutes`}
             </span>{" "}
             against a baseline period. Red frames got slower, green got faster,
             gray stayed the same. Use this to answer{" "}

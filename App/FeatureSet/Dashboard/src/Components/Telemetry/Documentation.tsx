@@ -759,16 +759,10 @@ function getProfileInstallSnippet(lang: Language): {
       };
     case "java":
       return {
-        code: `<!-- Add to pom.xml -->
-<dependency>
-  <groupId>io.pyroscope</groupId>
-  <artifactId>agent</artifactId>
-  <version>2.1.2</version>
-</dependency>
-
-# Or download the Java agent JAR:
-curl -L -o pyroscope.jar \\
-  https://github.com/grafana/pyroscope-java/releases/latest/download/pyroscope.jar`,
+        code: `# The Pyroscope Java agent uploads profiles in JFR format, which
+# OneUptime does not ingest yet (pprof and folded text only).
+# Profile Java services with the "Grafana Alloy (eBPF)" method above
+# instead — it captures JVM CPU profiles with no agent and no code changes.`,
         language: "bash",
       };
     case "dotnet":
@@ -874,29 +868,10 @@ func main() {
       };
     case "java":
       return {
-        code: `// Option 1: Start from code
-import io.pyroscope.javaagent.PyroscopeAgent;
-import io.pyroscope.javaagent.config.Config;
-import io.pyroscope.javaagent.EventType;
-import io.pyroscope.http.Format;
-
-PyroscopeAgent.start(
-    new Config.Builder()
-        .setApplicationName("my-service")
-        .setProfilingEvent(EventType.ITIMER)
-        .setFormat(Format.JFR)
-        .setServerAddress("<YOUR_ONEUPTIME_PYROSCOPE_URL>")
-        .setAuthToken("<YOUR_ONEUPTIME_TOKEN>")
-        .build()
-);
-
-// Option 2: Attach as Java agent (no code changes)
-// java -javaagent:pyroscope.jar \\
-//   -Dpyroscope.application.name=my-service \\
-//   -Dpyroscope.server.address=<YOUR_ONEUPTIME_PYROSCOPE_URL> \\
-//   -Dpyroscope.auth.token=<YOUR_ONEUPTIME_TOKEN> \\
-//   -jar my-app.jar`,
-        language: "java",
+        code: `# No SDK configuration for Java — the Pyroscope Java agent's JFR
+# upload format is not supported yet. Switch to the "Grafana Alloy
+# (eBPF)" integration method above to profile Java services.`,
+        language: "bash",
       };
     case "dotnet":
       return {
@@ -1202,7 +1177,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
           key: "opentelemetry" as IntegrationMethod,
           label: "Language SDK",
           description:
-            "In-process profiling using Pyroscope SDKs for fine-grained control.",
+            "In-process profiling with Pyroscope SDKs: Go, Node.js, .NET, Python, Ruby, Rust.",
         },
       ];
     }
@@ -1248,7 +1223,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
     exceptions:
       "Capture and track exceptions from your application using OpenTelemetry SDKs.",
     profiles:
-      "Send continuous profiling data from your application to OneUptime using OpenTelemetry SDKs.",
+      "Send continuous profiling data to OneUptime using Grafana Alloy (eBPF) or Pyroscope language SDKs.",
   };
 
   const installSnippet: { code: string; language: string } = useMemo(() => {
@@ -1426,11 +1401,22 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    OTLP Endpoint
+                    {isProfiles ? "Profiling Endpoint" : "OTLP Endpoint"}
                   </div>
+                  {/*
+                   * Profiles are ingested over the Pyroscope-compatible API,
+                   * not OTLP — showing the OTLP URL here would point the
+                   * user's profiler at an endpoint it cannot push to.
+                   */}
                   <div className="text-sm text-gray-900 font-mono mt-0.5 break-all select-all">
-                    {otlpUrlValue}
+                    {isProfiles ? pyroscopeUrl : otlpUrlValue}
                   </div>
+                  {isProfiles && (
+                    <div className="text-xs text-gray-500 mt-1 leading-relaxed">
+                      Use this as the Pyroscope server address. SDKs and Grafana
+                      Alloy append the ingest path to it automatically.
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="px-4 py-3 flex items-start gap-3">

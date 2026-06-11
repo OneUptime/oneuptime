@@ -169,6 +169,13 @@ RunCron(
       >
     > = [];
 
+    /*
+     * Tracks which monitor each promise in monitorResponses belongs to
+     * (same index). Monitors without steps are skipped above, so
+     * telemetryMonitors cannot be used to attribute failures by index.
+     */
+    const evaluatedMonitors: Array<Monitor> = [];
+
     for (const monitor of telemetryMonitors) {
       try {
         if (
@@ -192,6 +199,7 @@ RunCron(
             projectId: monitor.projectId!,
           }),
         );
+        evaluatedMonitors.push(monitor);
       } catch (error) {
         const attrs: LogAttributes = {
           projectId: monitor.projectId?.toString(),
@@ -204,16 +212,39 @@ RunCron(
       }
     }
 
-    const responses: Array<
-      | LogMonitorResponse
-      | TraceMonitorResponse
-      | MetricMonitorResponse
-      | ExceptionMonitorResponse
-      | ProfileMonitorResponse
-    > = await Promise.all(monitorResponses);
+    /*
+     * Settle every evaluation instead of failing fast. A single rejected
+     * evaluation (e.g. a monitor step missing its type-specific config)
+     * must not abort criteria evaluation for every other monitor in this
+     * tick — telemetryMonitorLastMonitorAt has already been stamped above,
+     * so a skipped evaluation would not be retried until the next tick.
+     */
+    const settledResponses: Array<
+      PromiseSettledResult<
+        | LogMonitorResponse
+        | TraceMonitorResponse
+        | MetricMonitorResponse
+        | ExceptionMonitorResponse
+        | ProfileMonitorResponse
+      >
+    > = await Promise.allSettled(monitorResponses);
 
-    for (const response of responses) {
-      MonitorResourceUtil.monitorResource(response);
+    for (const [index, settledResponse] of settledResponses.entries()) {
+      const evaluatedMonitor: Monitor | undefined = evaluatedMonitors[index];
+
+      if (settledResponse.status === "rejected") {
+        const attrs: LogAttributes = {
+          projectId: evaluatedMonitor?.projectId?.toString(),
+        };
+        logger.error(
+          `Error while evaluating telemetry monitor: ${evaluatedMonitor?.id?.toString()}`,
+          attrs,
+        );
+        logger.error(settledResponse.reason, attrs);
+        continue;
+      }
+
+      MonitorResourceUtil.monitorResource(settledResponse.value);
     }
   },
 );

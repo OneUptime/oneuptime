@@ -64,22 +64,22 @@ const HostProfiles: FunctionComponent<
 
   const profileQuery: Query<Profile> = useMemo(() => {
     /*
-     * `any` sidesteps a TS2589 deep-instantiation on Query<Profile> with
-     * inline attribute maps — same workaround the Host/Docker logs pages use.
+     * `any` sidesteps a TS2589 deep-instantiation on Query<Profile>:
+     * "entityScope" is a synthetic query key the Query generic does not
+     * model — same workaround the Host/Docker logs pages use.
      */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const q: any = {
-      attributes: {
-        "resource.host.name": host?.hostIdentifier || "",
-      },
-    };
+    const q: any = {};
     /*
-     * entityScope is the query scope (contract C4 — compiled by
+     * entityScope is the sole scope predicate (contract C4 — compiled by
      * StatementGenerator to hasAny(entityKeys, [...]) OR the attribute
      * equality): new rows ride the bloom-indexed `entityKeys` membership
      * column, pre-column rows (no backfill, empty array) still match via
-     * the attribute. Drop the attribute fallback (the `attributes` key
-     * above and this OR) once deploy-date + max retention has passed.
+     * the attribute fallback inside the same OR. Do not AND a separate
+     * `attributes` equality on top — that collapses the OR to the
+     * attribute side and turns the indexed path into dead weight. Drop
+     * the attributeKey/attributeValue fallback once deploy-date + max
+     * retention has passed.
      */
     if (host?.hostIdentifier) {
       q["entityScope"] = {

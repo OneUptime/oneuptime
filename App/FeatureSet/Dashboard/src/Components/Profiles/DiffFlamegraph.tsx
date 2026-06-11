@@ -45,12 +45,107 @@ interface DiffFlamegraphNode {
 interface TooltipData {
   name: string;
   fileName: string;
+  lineNumber: number;
   baselineValue: number;
   comparisonValue: number;
   delta: number;
-  deltaPercent: number;
+  baselineShare: number;
+  comparisonShare: number;
   x: number;
   y: number;
+}
+
+/*
+ * Share-of-total changes below this many percentage points are treated
+ * as sampling noise and rendered neutral — without a floor the graph
+ * lights up red/green everywhere and real regressions drown.
+ */
+const NOISE_FLOOR_PERCENTAGE_POINTS: number = 1;
+
+/**
+ * Merge sibling frames that share function + file, summing their
+ * values and recursing into their combined children.
+ *
+ * The server's diff tree matches frames on function + file + line, but
+ * source lines shift on every recompile/deploy — exactly the event
+ * this comparison exists to analyse — which would split one logical
+ * frame into a disjoint "removed" and "added" pair. The line number is
+ * kept on the merged node for display only.
+ */
+function remergeChildren(
+  children: Array<DiffFlamegraphNode>,
+): Array<DiffFlamegraphNode> {
+  const byKey: Map<string, Array<DiffFlamegraphNode>> = new Map();
+
+  for (const child of children) {
+    const key: string = `${child.functionName}@${child.fileName}`;
+    const bucket: Array<DiffFlamegraphNode> | undefined = byKey.get(key);
+    if (bucket) {
+      bucket.push(child);
+    } else {
+      byKey.set(key, [child]);
+    }
+  }
+
+  const result: Array<DiffFlamegraphNode> = [];
+
+  for (const bucket of byKey.values()) {
+    const first: DiffFlamegraphNode = bucket[0]!;
+
+    let baselineValue: number = 0;
+    let comparisonValue: number = 0;
+    let selfBaselineValue: number = 0;
+    let selfComparisonValue: number = 0;
+    let lineNumber: number = 0;
+    const combinedChildren: Array<DiffFlamegraphNode> = [];
+
+    for (const node of bucket) {
+      baselineValue += node.baselineValue;
+      comparisonValue += node.comparisonValue;
+      selfBaselineValue += node.selfBaselineValue;
+      selfComparisonValue += node.selfComparisonValue;
+      if (!lineNumber && node.lineNumber) {
+        lineNumber = node.lineNumber;
+      }
+      combinedChildren.push(...node.children);
+    }
+
+    const delta: number = comparisonValue - baselineValue;
+    const deltaPercent: number =
+      baselineValue > 0
+        ? (delta / baselineValue) * 100
+        : comparisonValue > 0
+          ? 100
+          : 0;
+
+    result.push({
+      functionName: first.functionName,
+      fileName: first.fileName,
+      lineNumber,
+      baselineValue,
+      comparisonValue,
+      delta,
+      deltaPercent,
+      selfBaselineValue,
+      selfComparisonValue,
+      selfDelta: selfComparisonValue - selfBaselineValue,
+      frameType: first.frameType,
+      children: remergeChildren(combinedChildren),
+    });
+  }
+
+  result.sort((a: DiffFlamegraphNode, b: DiffFlamegraphNode) => {
+    return b.comparisonValue - a.comparisonValue;
+  });
+
+  return result;
+}
+
+function remergeDiffTree(root: DiffFlamegraphNode): DiffFlamegraphNode {
+  return {
+    ...root,
+    children: remergeChildren(root.children),
+  };
 }
 
 const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
@@ -61,6 +156,25 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
   const [error, setError] = useState<string>("");
   const [zoomStack, setZoomStack] = useState<Array<DiffFlamegraphNode>>([]);
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
+
+  /*
+   * The selector pill stores either a category (e.g. "cpu") or a raw
+   * type — expand it to the raw type strings agents actually emit so
+   * the server filters with IN (...) instead of a literal equality
+   * that would miss rows.
+   */
+  const queryProfileTypes: Array<string> | undefined =
+    ProfileUtil.getQueryProfileTypes(props.profileType);
+
+  /*
+   * Values are not always nanoseconds — memory profiles are bytes,
+   * goroutine profiles are counts. Derive the unit from what is being
+   * queried so the tooltip doesn't mislabel a 4 GB allocation as time.
+   */
+  const unit: string =
+    queryProfileTypes && queryProfileTypes.length > 0
+      ? ProfileUtil.getProfileTypeUnit(queryProfileTypes[0]!)
+      : "nanoseconds";
 
   const loadDiffFlamegraph: () => Promise<void> = async (): Promise<void> => {
     try {
@@ -80,10 +194,7 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
             serviceIds: props.serviceIds?.map((id: ObjectID) => {
               return id.toString();
             }),
-            profileType: props.profileType,
-            profileTypes: ProfileUtil.getRawProfileTypesForCategory(
-              props.profileType,
-            ),
+            profileTypes: queryProfileTypes,
           },
           headers: {
             ...ModelAPI.getCommonHeaders(),
@@ -116,12 +227,50 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
     props.profileType,
   ]);
 
+  const mergedRoot: DiffFlamegraphNode | null = useMemo(() => {
+    return rootNode ? remergeDiffTree(rootNode) : null;
+  }, [rootNode]);
+
+  /*
+   * A reload produces a new tree — any zoom path into the old one is
+   * stale and would show data that no longer exists.
+   */
+  useEffect(() => {
+    setZoomStack([]);
+    setTooltip(null);
+  }, [mergedRoot]);
+
   const activeRoot: DiffFlamegraphNode | null = useMemo(() => {
     if (zoomStack.length > 0) {
       return zoomStack[zoomStack.length - 1]!;
     }
-    return rootNode;
-  }, [rootNode, zoomStack]);
+    return mergedRoot;
+  }, [mergedRoot, zoomStack]);
+
+  /*
+   * Color and percentages are normalised per Pyroscope: each frame's
+   * share of its own tree's total, so a window where the service
+   * simply did 2x more work doesn't paint every frame red. Totals come
+   * from the full tree (not the zoomed subtree) so colors are stable
+   * while zooming.
+   */
+  const rootBaselineTotal: number = mergedRoot?.baselineValue || 0;
+  const rootComparisonTotal: number = mergedRoot?.comparisonValue || 0;
+
+  const getShareDelta: (node: DiffFlamegraphNode) => number = useCallback(
+    (node: DiffFlamegraphNode): number => {
+      const baselineShare: number =
+        rootBaselineTotal > 0
+          ? (node.baselineValue / rootBaselineTotal) * 100
+          : 0;
+      const comparisonShare: number =
+        rootComparisonTotal > 0
+          ? (node.comparisonValue / rootComparisonTotal) * 100
+          : 0;
+      return comparisonShare - baselineShare;
+    },
+    [rootBaselineTotal, rootComparisonTotal],
+  );
 
   const handleClickNode: (node: DiffFlamegraphNode) => void = useCallback(
     (node: DiffFlamegraphNode): void => {
@@ -152,15 +301,23 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
       setTooltip({
         name: node.functionName,
         fileName: node.fileName,
+        lineNumber: node.lineNumber,
         baselineValue: node.baselineValue,
         comparisonValue: node.comparisonValue,
         delta: node.delta,
-        deltaPercent: node.deltaPercent,
+        baselineShare:
+          rootBaselineTotal > 0
+            ? (node.baselineValue / rootBaselineTotal) * 100
+            : 0,
+        comparisonShare:
+          rootComparisonTotal > 0
+            ? (node.comparisonValue / rootComparisonTotal) * 100
+            : 0,
         x: event.clientX,
         y: event.clientY,
       });
     },
-    [],
+    [rootBaselineTotal, rootComparisonTotal],
   );
 
   const handleMouseLeave: () => void = useCallback((): void => {
@@ -194,45 +351,55 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
     );
   }
 
-  const getDeltaColor: (deltaPercent: number) => string = (
-    deltaPercent: number,
+  const getDeltaColor: (node: DiffFlamegraphNode) => string = (
+    node: DiffFlamegraphNode,
   ): string => {
-    if (deltaPercent > 50) {
-      return "bg-red-600";
+    const shareDelta: number = getShareDelta(node);
+
+    if (Math.abs(shareDelta) < NOISE_FLOOR_PERCENTAGE_POINTS) {
+      return "bg-gray-400";
     }
-    if (deltaPercent > 20) {
-      return "bg-red-500";
-    }
-    if (deltaPercent > 5) {
-      return "bg-red-400";
-    }
-    if (deltaPercent > 0) {
+
+    /*
+     * A frame with no baseline at all is usually new code (or a
+     * renamed symbol), not a measured regression — cap it below the
+     * strongest intensity so genuine 10x regressions still stand out.
+     */
+    const isNewFrame: boolean =
+      node.baselineValue === 0 && node.comparisonValue > 0;
+
+    if (shareDelta > 0) {
+      if (shareDelta > 10) {
+        return isNewFrame ? "bg-red-500" : "bg-red-600";
+      }
+      if (shareDelta > 5) {
+        return "bg-red-500";
+      }
+      if (shareDelta > 2.5) {
+        return "bg-red-400";
+      }
       return "bg-red-300";
     }
-    if (deltaPercent < -50) {
+
+    if (shareDelta < -10) {
       return "bg-green-600";
     }
-    if (deltaPercent < -20) {
+    if (shareDelta < -5) {
       return "bg-green-500";
     }
-    if (deltaPercent < -5) {
+    if (shareDelta < -2.5) {
       return "bg-green-400";
     }
-    if (deltaPercent < 0) {
-      return "bg-green-300";
-    }
-    return "bg-gray-400";
+    return "bg-green-300";
   };
 
   const renderNode: (
     node: DiffFlamegraphNode,
-    _parentMax: number,
     depth: number,
     offsetFraction: number,
     widthFraction: number,
   ) => ReactElement | null = (
     node: DiffFlamegraphNode,
-    _parentMax: number,
     depth: number,
     offsetFraction: number,
     widthFraction: number,
@@ -241,10 +408,26 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
       return null;
     }
 
-    const bgColor: string = getDeltaColor(node.deltaPercent);
+    const bgColor: string = getDeltaColor(node);
     const maxValue: number = Math.max(node.baselineValue, node.comparisonValue);
 
+    /*
+     * Each frame's width is max(baseline, comparison), and the sum of
+     * children's maxima can exceed the parent's own maximum (one child
+     * grew while a sibling shrank). Scale by whichever is larger so
+     * children always fit inside the parent's box.
+     */
+    const childMaxSum: number = node.children.reduce(
+      (sum: number, child: DiffFlamegraphNode) => {
+        return sum + Math.max(child.baselineValue, child.comparisonValue);
+      },
+      0,
+    );
+    const childDenominator: number = Math.max(maxValue, childMaxSum);
+
     let childOffset: number = 0;
+
+    const shareDelta: number = getShareDelta(node);
 
     return (
       <React.Fragment key={`${node.functionName}-${depth}-${offsetFraction}`}>
@@ -262,7 +445,7 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
             handleMouseEnter(node, e);
           }}
           onMouseLeave={handleMouseLeave}
-          title={`${node.functionName} (${node.deltaPercent >= 0 ? "+" : ""}${node.deltaPercent.toFixed(1)}%)`}
+          title={`${node.functionName} (${shareDelta >= 0 ? "+" : ""}${shareDelta.toFixed(1)}% of total)`}
         >
           {widthFraction > 0.03 ? node.functionName : ""}
         </div>
@@ -272,17 +455,13 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
             child.comparisonValue,
           );
           const childWidth: number =
-            maxValue > 0 ? (childMax / maxValue) * widthFraction : 0;
+            childDenominator > 0
+              ? (childMax / childDenominator) * widthFraction
+              : 0;
           const currentOffset: number = offsetFraction + childOffset;
           childOffset += childWidth;
 
-          return renderNode(
-            child,
-            maxValue,
-            depth + 1,
-            currentOffset,
-            childWidth,
-          );
+          return renderNode(child, depth + 1, currentOffset, childWidth);
         })}
       </React.Fragment>
     );
@@ -304,6 +483,10 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
 
   const maxDepth: number = getMaxDepth(activeRoot, 0);
   const height: number = (maxDepth + 1) * 26 + 10;
+
+  const tooltipShareDelta: number | null = tooltip
+    ? tooltip.comparisonShare - tooltip.baselineShare
+    : null;
 
   return (
     <div className="w-full">
@@ -331,15 +514,15 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
         <span className="font-medium">What the colors mean:</span>
         <span className="flex items-center space-x-1">
           <span className="inline-block w-3 h-3 rounded bg-red-500" />
-          <span>Got slower</span>
+          <span>Bigger share of total (worse)</span>
         </span>
         <span className="flex items-center space-x-1">
           <span className="inline-block w-3 h-3 rounded bg-green-500" />
-          <span>Got faster</span>
+          <span>Smaller share of total (better)</span>
         </span>
         <span className="flex items-center space-x-1">
           <span className="inline-block w-3 h-3 rounded bg-gray-400" />
-          <span>No change</span>
+          <span>No meaningful change</span>
         </span>
       </div>
 
@@ -347,16 +530,10 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
         className="relative w-full overflow-x-auto border border-gray-200 rounded bg-white"
         style={{ height: `${height}px` }}
       >
-        {renderNode(
-          activeRoot,
-          Math.max(activeRoot.baselineValue, activeRoot.comparisonValue),
-          0,
-          0,
-          1,
-        )}
+        {renderNode(activeRoot, 0, 0, 1)}
       </div>
 
-      {tooltip && (
+      {tooltip && tooltipShareDelta !== null && (
         <div
           className="fixed z-50 bg-gray-900 text-white text-xs rounded px-3 py-2 pointer-events-none shadow-lg"
           style={{
@@ -366,35 +543,36 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
         >
           <div className="font-semibold">{tooltip.name}</div>
           {tooltip.fileName && (
-            <div className="text-gray-300">{tooltip.fileName}</div>
+            <div className="text-gray-300">
+              {tooltip.fileName}
+              {tooltip.lineNumber > 0 ? `:${tooltip.lineNumber}` : ""}
+            </div>
           )}
           <div className="mt-1">
             Before:{" "}
-            {ProfileUtil.formatProfileValue(
-              tooltip.baselineValue,
-              "nanoseconds",
-            )}
+            {ProfileUtil.formatProfileValue(tooltip.baselineValue, unit)} (
+            {tooltip.baselineShare.toFixed(1)}% of total)
           </div>
           <div>
             After:{" "}
-            {ProfileUtil.formatProfileValue(
-              tooltip.comparisonValue,
-              "nanoseconds",
-            )}
+            {ProfileUtil.formatProfileValue(tooltip.comparisonValue, unit)} (
+            {tooltip.comparisonShare.toFixed(1)}% of total)
           </div>
           <div
             className={
-              tooltip.delta > 0
-                ? "text-red-300"
-                : tooltip.delta < 0
-                  ? "text-green-300"
-                  : ""
+              Math.abs(tooltipShareDelta) < NOISE_FLOOR_PERCENTAGE_POINTS
+                ? "text-gray-300"
+                : tooltipShareDelta > 0
+                  ? "text-red-300"
+                  : "text-green-300"
             }
           >
-            Change: {tooltip.delta > 0 ? "+" : ""}
-            {tooltip.delta.toLocaleString()} (
-            {tooltip.deltaPercent >= 0 ? "+" : ""}
-            {tooltip.deltaPercent.toFixed(1)}%)
+            Change: {tooltip.delta >= 0 ? "+" : "-"}
+            {ProfileUtil.formatProfileValue(
+              Math.abs(tooltip.delta),
+              unit,
+            )} · {tooltipShareDelta >= 0 ? "+" : ""}
+            {tooltipShareDelta.toFixed(1)}% of total
           </div>
         </div>
       )}

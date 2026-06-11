@@ -67,6 +67,12 @@ const DockerHostProfiles: FunctionComponent<
      */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const q: any = {
+      /*
+       * Docker hosts scope by resource attribute only — there is no
+       * entity-key builder for Docker hosts (see
+       * Common/Utils/Telemetry/EntityKey), so no entityScope predicate
+       * here. This mirrors the Docker logs / traces pages.
+       */
       attributes: {
         "resource.host.name": host?.hostIdentifier || "",
       },
