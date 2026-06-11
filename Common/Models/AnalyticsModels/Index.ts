@@ -2,7 +2,6 @@ import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
 import Log from "./Log";
 import Metric from "./Metric";
 import MetricItemAggMV1m from "./MetricItemAggMV1m";
-import MetricItemAggMV1mByHost from "./MetricItemAggMV1mByHost";
 import MetricItemAggMV1mByHostV2 from "./MetricItemAggMV1mByHostV2";
 import MetricBaselineHourly from "./MetricBaselineHourly";
 import Span from "./Span";
@@ -21,8 +20,11 @@ const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
    * are populated by attached MVs on `Metric` insert. Read-only.
    */
   MetricItemAggMV1m,
-  // Deprecated, superseded by ...V2 — see the model's doc comment.
-  MetricItemAggMV1mByHost,
+  /*
+   * The hostIdentifier-keyed V1 host rollup was dropped by the
+   * RekeyMetricHostRollupToEntityKey migration; only V2 is registered so
+   * boot-time schema sync doesn't resurrect the dropped V1 table.
+   */
   MetricItemAggMV1mByHostV2,
   MetricBaselineHourly,
   ExceptionInstance,

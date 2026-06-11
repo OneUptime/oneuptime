@@ -41,7 +41,7 @@ import LogService from "./LogService";
 import MailService from "./MailService";
 import MetricService from "./MetricService";
 import MetricItemAggMV1mService from "./MetricItemAggMV1mService";
-import MetricItemAggMV1mByHostService from "./MetricItemAggMV1mByHostService";
+import MetricItemAggMV1mByHostV2Service from "./MetricItemAggMV1mByHostV2Service";
 import MetricBaselineService from "./MetricBaselineService";
 import MonitorCustomFieldService from "./MonitorCustomFieldService";
 import MonitorGroupOwnerTeamService from "./MonitorGroupOwnerTeamService";
@@ -459,7 +459,7 @@ export const AnalyticsServices: Array<
    * DataMigrations that also create them. Both kept for backward compat.
    */
   MetricItemAggMV1mService,
-  MetricItemAggMV1mByHostService,
+  MetricItemAggMV1mByHostV2Service,
   MetricBaselineService,
   ExceptionInstanceService,
   MonitorLogService,

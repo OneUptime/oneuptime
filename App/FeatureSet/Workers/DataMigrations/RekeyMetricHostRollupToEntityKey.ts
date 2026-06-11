@@ -30,10 +30,23 @@ import logger from "Common/Server/Utils/Logger";
  *      that straddles it) is the only data loss, and only in the rollup;
  *      the raw MetricItemV3 rows are untouched.
  *   4. Backfill V2 from the frozen old table, computing the entity key
- *      in SQL. Partition-wise with a TelemetryV3CopyProgress marker per
- *      partition, so a partial failure resumes instead of double-copying
- *      (AggregateFunction state rows are merge-safe but NOT re-insert-safe
- *      — a duplicate partition would double every sum/count).
+ *      in SQL. Partition-wise (the rollup is small — month chunking is
+ *      unnecessary) through the shared copy protocol: each partition's
+ *      INSERT...SELECT is totally ordered (sort-key columns + `_id`
+ *      tiebreaker — AggregateFunction state bytes are read back verbatim,
+ *      so a deterministic row order yields deterministic blocks), carries
+ *      a per-partition insert_deduplication_token (the V2 table gets
+ *      non_replicated_deduplication_window via `ensureDedupWindow`, so a
+ *      retried partition dedups instead of double-counting every
+ *      sum/count — AggregateFunction rows are merge-safe but NOT
+ *      re-insert-safe), and streams HTTP progress headers so the client's
+ *      58s socket idle timer cannot kill it. Markers land in
+ *      `TelemetryV3CopyProgress` keyed by the SOURCE table name; a
+ *      predecessor that committed server-side without its marker
+ *      (client died) is detected via system.query_log and marked without
+ *      re-running; a predecessor still in system.processes defers to the
+ *      next boot. Throws on any partition failure so the migration is
+ *      not recorded and the next boot resumes.
  *   5. DROP the old table once every partition is marked copied.
  *
  * SQL key computation (backfill only — the MV reads the ingest-stamped
@@ -60,7 +73,6 @@ export default class RekeyMetricHostRollupToEntityKey extends DataMigrationBase 
   private static readonly oldTable: string = "MetricItemAggMV1mByHost";
   private static readonly oldView: string = "MetricItemAggMV1mByHost_mv";
   private static readonly newTable: string = "MetricItemAggMV1mByHostV2";
-  private static readonly progressTable: string = "TelemetryV3CopyProgress";
 
   /*
    * Byte-identical to EntityKey.keyForHost (verified on the dev
@@ -126,31 +138,31 @@ export default class RekeyMetricHostRollupToEntityKey extends DataMigrationBase 
   }
 
   /**
-   * Same mechanics as ClickHouseMigrationUtil.copyTablePartitionwise, but
-   * with an expression-computed destination column (hostEntityKey from
+   * Same protocol as ClickHouseMigrationUtil.copyTableChunked, but with an
+   * expression-computed destination column (hostEntityKey from
    * hostIdentifier), which the generic column-intersection copier can't
-   * express. Progress rows share the TelemetryV3CopyProgress marker table
-   * keyed by the SOURCE table name. Throws on any partition failure so
-   * the migration is not recorded and the next boot resumes from the
-   * partitions that are still missing.
+   * express, and partition-level (not month) chunks — the rollup is small.
    */
   private async backfillFromOldTable(): Promise<void> {
     const src: string = RekeyMetricHostRollupToEntityKey.oldTable;
     const dst: string = RekeyMetricHostRollupToEntityKey.newTable;
-    const progress: string = RekeyMetricHostRollupToEntityKey.progressTable;
 
-    await MetricService.execute(
-      `CREATE TABLE IF NOT EXISTS ${progress} (tableName String, \`partition\` String, copiedAt DateTime) ENGINE = MergeTree() ORDER BY (tableName, \`partition\`)`,
-    );
+    await ClickHouseMigrationUtil.ensureCopyProgressTable();
+    // Without the dedup window the per-partition tokens would be ignored.
+    await ClickHouseMigrationUtil.ensureDedupWindow(dst);
 
     const partitionIds: Array<string> = await this.queryStrings(
       `SELECT DISTINCT partition_id AS value FROM system.parts WHERE database = currentDatabase() AND table = '${src}' AND active ORDER BY partition_id`,
     );
     const copiedPartitionIds: Set<string> = new Set(
       await this.queryStrings(
-        `SELECT DISTINCT \`partition\` AS value FROM ${progress} WHERE tableName = '${src}'`,
+        `SELECT DISTINCT \`partition\` AS value FROM TelemetryV3CopyProgress WHERE tableName = '${src}'`,
       ),
     );
+    const runningKeys: Set<string> =
+      await ClickHouseMigrationUtil.getRunningChunkKeys(dst);
+    const finishedKeys: Set<string> =
+      await ClickHouseMigrationUtil.getFinishedChunkKeys(dst);
 
     if (partitionIds.length === 0) {
       logger.info(
@@ -159,15 +171,24 @@ export default class RekeyMetricHostRollupToEntityKey extends DataMigrationBase 
       return;
     }
 
+    /*
+     * Deterministic total order: old-table sort-key columns plus the
+     * `_id` tiebreaker (the old rollup has `_id` via
+     * AddIdAndTimestampsToMVTargetTables; guard anyway). State columns
+     * cannot be ordered on, but their serialized bytes are stable per
+     * row, so a total order on the scalar columns is sufficient for
+     * byte-identical retry blocks.
+     */
+    const sourceColumns: Set<string> = new Set(
+      await ClickHouseMigrationUtil.getColumns(src),
+    );
+    const orderBy: string = sourceColumns.has("_id")
+      ? "projectId, name, hostIdentifier, bucketTime, _id"
+      : "projectId, name, hostIdentifier, bucketTime";
+
     const errors: Array<string> = [];
 
     for (const partitionId of partitionIds) {
-      /*
-       * A crash after a partition's INSERT committed but before its
-       * marker row was written can still duplicate that single partition
-       * on the next run — same accepted tradeoff as
-       * copyTablePartitionwise.
-       */
       if (copiedPartitionIds.has(partitionId)) {
         logger.info(
           `RekeyMetricHostRollupToEntityKey: ${src} partition ${partitionId} already copied — skipping.`,
@@ -175,9 +196,26 @@ export default class RekeyMetricHostRollupToEntityKey extends DataMigrationBase 
         continue;
       }
 
+      // A previous boot's attempt is still executing server-side.
+      if (runningKeys.has(partitionId)) {
+        errors.push(
+          `partition ${partitionId}: previous attempt still running — will retry next boot.`,
+        );
+        continue;
+      }
+
+      // A previous attempt committed but crashed before its marker write.
+      if (finishedKeys.has(partitionId)) {
+        await ClickHouseMigrationUtil.markChunkCopied(src, partitionId, 0);
+        logger.warn(
+          `RekeyMetricHostRollupToEntityKey: ${src} partition ${partitionId} already finished server-side — marked copied without re-running.`,
+        );
+        continue;
+      }
+
       try {
-        await MetricService.execute(
-          `INSERT INTO ${dst} (projectId, name, hostEntityKey, bucketTime, valueSumState, valueCountState, valueMinState, valueMaxState, retentionDate)
+        await ClickHouseMigrationUtil.executeCopyStatement({
+          sql: `INSERT INTO ${dst} (projectId, name, hostEntityKey, bucketTime, valueSumState, valueCountState, valueMinState, valueMaxState, retentionDate)
            SELECT
              projectId,
              name,
@@ -189,11 +227,11 @@ export default class RekeyMetricHostRollupToEntityKey extends DataMigrationBase 
              valueMaxState,
              retentionDate
            FROM ${src}
-           WHERE _partition_id = '${partitionId}'`,
-        );
-        await MetricService.execute(
-          `INSERT INTO ${progress} (tableName, \`partition\`, copiedAt) VALUES ('${src}', '${partitionId}', now())`,
-        );
+           WHERE _partition_id = '${partitionId}'
+           ORDER BY ${orderBy}`,
+          token: `v3copy:${dst}:${partitionId}`,
+        });
+        await ClickHouseMigrationUtil.markChunkCopied(src, partitionId, 0);
         logger.info(
           `RekeyMetricHostRollupToEntityKey: copied ${src} partition ${partitionId} -> ${dst}.`,
         );

@@ -85,6 +85,7 @@ import AddZstdCodecToTelemetryIdColumns from "./AddZstdCodecToTelemetryIdColumns
 import AddTelemetryV3ColumnCodecs from "./AddTelemetryV3ColumnCodecs";
 import RekeyMetricHostRollupToEntityKey from "./RekeyMetricHostRollupToEntityKey";
 import RebuildMetricBaselineHourlyWithBFloat16Quantiles from "./RebuildMetricBaselineHourlyWithBFloat16Quantiles";
+import AddDedupWindowToTelemetryTables from "./AddDedupWindowToTelemetryTables";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -185,6 +186,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new AddTelemetryV3ColumnCodecs(),
   new RekeyMetricHostRollupToEntityKey(),
   new RebuildMetricBaselineHourlyWithBFloat16Quantiles(),
+  new AddDedupWindowToTelemetryTables(),
 ];
 
 export default DataMigrations;

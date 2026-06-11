@@ -27,7 +27,12 @@ export default class AddTtlOnlyDropPartsToTelemetryV3 extends DataMigrationBase 
       "ProfileItemV3",
       "ProfileSampleItemV3",
       "MetricItemAggMV1m",
-      "MetricItemAggMV1mByHost",
+      /*
+       * MetricItemAggMV1mByHost deliberately absent: it is either dropped
+       * by the V3 cut earlier in this run or never created (fresh V3
+       * installs use the model-owned ...ByHostV2, which carries this
+       * setting from its model tableSettings).
+       */
       "MetricBaselineHourly",
     ];
     for (const table of tables) {

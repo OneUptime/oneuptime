@@ -1,4 +1,5 @@
 import DataMigrationBase from "./DataMigrationBase";
+import ClickHouseMigrationUtil from "./ClickHouseMigrationUtil";
 import AnalyticsTableManagement from "../Utils/AnalyticsDatabase/TableManegement";
 import MetricService from "Common/Server/Services/MetricService";
 import logger from "Common/Server/Utils/Logger";
@@ -42,6 +43,21 @@ export default class AddMetricMinuteAggregateByHostMaterializedView extends Data
   }
 
   public override async migrate(): Promise<void> {
+    /*
+     * Only applicable while MetricItemV2 is the live metric table: this
+     * legacy rollup is superseded by the model-owned, hostEntityKey-keyed
+     * MetricItemAggMV1mByHostV2 (see RekeyMetricHostRollupToEntityKey,
+     * which drops the pair created here). On a fresh install of the V3
+     * cut, V2 never exists and the CREATE MATERIALIZED VIEW below would
+     * throw UNKNOWN_TABLE on its FROM clause and wedge the chain — skip.
+     */
+    if (!(await ClickHouseMigrationUtil.tableExists("MetricItemV2"))) {
+      logger.info(
+        "AddMetricMinuteAggregateByHostMaterializedView: MetricItemV2 not present (fresh V3 install) — skipping.",
+      );
+      return;
+    }
+
     /*
      * MV creation is now owned by the model + analytics schema-sync
      * (AnalyticsTableManagement.createMaterializedViews). Skip if the

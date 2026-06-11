@@ -331,6 +331,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       ` FROM ${databaseName}.${this.model.tableName} WHERE TRUE `,
     );
     statement.append(whereStatement);
+    statement.append(this.getRetentionReadFilter());
     statement.append(SQL`) `);
 
     statement.append(SQL` GROUP BY `).append(`${aggregationTimestampColumn}`);
@@ -512,7 +513,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     );
     statement.append(SQL` FROM ${databaseName}.MetricItemAggMV1m`);
     statement.append(
-      ` WHERE bucketTime >= toDateTime('${this.formatDateTime(aggregateBy.startTimestamp!)}') AND bucketTime <= toDateTime('${this.formatDateTime(aggregateBy.endTimestamp!)}')`,
+      ` WHERE bucketTime >= toDateTime('${this.formatDateTime(aggregateBy.startTimestamp!)}') AND bucketTime <= toDateTime('${this.formatDateTime(aggregateBy.endTimestamp!)}')${this.getRetentionReadFilter()}`,
     );
     statement.append(SQL` `).append(nonTimeWhere);
 
@@ -724,7 +725,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     );
     statement.append(SQL` FROM ${databaseName}.MetricItemAggMV1mByHostV2`);
     statement.append(
-      ` WHERE bucketTime >= toDateTime('${this.formatDateTime(aggregateBy.startTimestamp!)}') AND bucketTime <= toDateTime('${this.formatDateTime(aggregateBy.endTimestamp!)}')`,
+      ` WHERE bucketTime >= toDateTime('${this.formatDateTime(aggregateBy.startTimestamp!)}') AND bucketTime <= toDateTime('${this.formatDateTime(aggregateBy.endTimestamp!)}')${this.getRetentionReadFilter()}`,
     );
     statement.append(
       SQL` AND hostEntityKey = ${{

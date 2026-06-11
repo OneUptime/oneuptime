@@ -359,6 +359,13 @@ export default class ModelPermission {
       "deletedAt",
       "updatedAt",
       "version",
+      /*
+       * Synthetic query key compiled by StatementGenerator to
+       * (hasAny(entityKeys, ...) OR attributes[...] = ...) — not a real
+       * column; it only narrows rows on models that have entityKeys and
+       * never widens access (authorization stays on primaryEntityId).
+       */
+      "entityScope",
     ];
 
     return returnArr;
