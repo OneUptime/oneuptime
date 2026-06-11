@@ -515,6 +515,45 @@ sc.exe query "otelcol-contrib"
 
 The service runs under `LocalSystem` by default, which has the privileges needed to read the `Security` Windows Event Log channel.
 
+### Docker / Docker Compose
+
+If you prefer to run the collector as a container rather than installing it as a system service, use the official `otel/opentelemetry-collector-contrib` image. The container needs access to host namespaces so it can read `/proc`, `/sys`, and log files.
+
+Create `docker-compose.yml` alongside a `config.yaml` (see Step 2 for the config content):
+
+```yaml
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.107.0
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /var/log:/var/log:ro
+    environment:
+      - HOST_PROC=/host/proc
+      - HOST_SYS=/host/sys
+    restart: unless-stopped
+    # host network gives accurate network interface metrics; remove if not needed
+    network_mode: host
+```
+
+Start it:
+
+```bash
+docker compose up -d
+docker compose logs -f otel-collector
+```
+
+**Key points for the containerized collector:**
+
+- `HOST_PROC` and `HOST_SYS` tell the `hostmetrics` receiver where to find the host's `/proc` and `/sys` trees instead of the container's own view.
+- Mount `/var/log` read-only so `filelog` receivers can tail host log files.
+- `mute_process_name_error: true` and `mute_process_user_error: true` are strongly recommended on the `process` scraper (see [Host metrics](#host-metrics-linux-macos-windows)) — inside a container `/etc/passwd` is the container's user database, not the host's, so user lookups for host processes fail unless you suppress these errors.
+- The `journald` receiver requires `journalctl` in the image and the journal directory mounted; the contrib image includes `journalctl`, so mount `/var/log/journal:/var/log/journal:ro` and the host's `/run/log/journal:/run/log/journal:ro` if you need journal support.
+- Remove `network_mode: host` if you only need metrics and logs (not accurate per-interface network metrics) or if your security policy forbids host networking.
+
 ## Step 4 — Verify in OneUptime
 
 1. Generate some signal on the host:
