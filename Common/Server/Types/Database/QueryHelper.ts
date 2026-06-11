@@ -290,6 +290,47 @@ export default class QueryHelper {
   }
 
   /**
+   * Returns a filter that matches owner rows that are linked to *any* of the
+   * provided related entity ids through a many-to-many join table. The
+   * returned FindOperator is intended to be applied to the primary id column
+   * of the owner entity. An empty values array matches nothing (fail closed).
+   */
+  @CaptureSpan()
+  public static anyOfEntitiesInManyToMany(data: {
+    values: Array<string | ObjectID>;
+    joinTableName: string;
+    ownerColumnName: string;
+    relationColumnName: string;
+  }): FindWhereProperty<any> {
+    const values: Array<string> = data.values.map(
+      (value: string | ObjectID) => {
+        return value.toString();
+      },
+    );
+
+    if (!values || values.length === 0) {
+      return Raw(() => {
+        return `TRUE = FALSE`;
+      }, {});
+    }
+
+    const valuesRid: string = Text.generateRandomText(10);
+
+    const joinTable: string = data.joinTableName.replace(/"/g, '""');
+    const ownerCol: string = data.ownerColumnName.replace(/"/g, '""');
+    const relationCol: string = data.relationColumnName.replace(/"/g, '""');
+
+    return Raw(
+      (alias: string) => {
+        return `(${alias} IN (SELECT "${joinTable}"."${ownerCol}" FROM "${joinTable}" WHERE "${joinTable}"."${relationCol}" IN (:...${valuesRid})))`;
+      },
+      {
+        [valuesRid]: values,
+      },
+    );
+  }
+
+  /**
    * Matches owner rows that have no rows in the join table — i.e. the
    * many-to-many collection is empty. Apply to the owner's primary id column.
    */
