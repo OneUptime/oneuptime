@@ -8,17 +8,9 @@ on:
       - 'release'
 
 jobs:
-  test-app:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - run: cd App && npm install && npm run test
-
+  # App tests run in the dedicated "App Test" workflow (test.app.yaml),
+  # which also bootstraps config.env and Common's dependencies that the
+  # App jest suites need.
   test-home:
     runs-on: ubuntu-latest
     env:
