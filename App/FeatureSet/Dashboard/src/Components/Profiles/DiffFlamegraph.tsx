@@ -176,54 +176,55 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
       ? ProfileUtil.getProfileTypeUnit(queryProfileTypes[0]!)
       : "nanoseconds";
 
-  const loadDiffFlamegraph: (isCancelled: () => boolean) => Promise<void> =
-    async (isCancelled: () => boolean): Promise<void> => {
-      try {
-        setIsLoading(true);
-        setError("");
+  const loadDiffFlamegraph: (
+    isCancelled: () => boolean,
+  ) => Promise<void> = async (isCancelled: () => boolean): Promise<void> => {
+    try {
+      setIsLoading(true);
+      setError("");
 
-        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.post({
-            url: URL.fromString(APP_API_URL.toString()).addRoute(
-              "/telemetry/profiles/diff-flamegraph",
-            ),
-            data: {
-              baselineStartTime: props.baselineStartTime.toISOString(),
-              baselineEndTime: props.baselineEndTime.toISOString(),
-              comparisonStartTime: props.comparisonStartTime.toISOString(),
-              comparisonEndTime: props.comparisonEndTime.toISOString(),
-              serviceIds: props.serviceIds?.map((id: ObjectID) => {
-                return id.toString();
-              }),
-              profileTypes: queryProfileTypes,
-            },
-            headers: {
-              ...ModelAPI.getCommonHeaders(),
-            },
-          });
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            "/telemetry/profiles/diff-flamegraph",
+          ),
+          data: {
+            baselineStartTime: props.baselineStartTime.toISOString(),
+            baselineEndTime: props.baselineEndTime.toISOString(),
+            comparisonStartTime: props.comparisonStartTime.toISOString(),
+            comparisonEndTime: props.comparisonEndTime.toISOString(),
+            serviceIds: props.serviceIds?.map((id: ObjectID) => {
+              return id.toString();
+            }),
+            profileTypes: queryProfileTypes,
+          },
+          headers: {
+            ...ModelAPI.getCommonHeaders(),
+          },
+        });
 
-        if (isCancelled()) {
-          return;
-        }
-
-        if (response instanceof HTTPErrorResponse) {
-          throw response;
-        }
-
-        const data: DiffFlamegraphNode = response.data[
-          "diffFlamegraph"
-        ] as unknown as DiffFlamegraphNode;
-        setRootNode(data);
-      } catch (err) {
-        if (!isCancelled()) {
-          setError(API.getFriendlyMessage(err));
-        }
-      } finally {
-        if (!isCancelled()) {
-          setIsLoading(false);
-        }
+      if (isCancelled()) {
+        return;
       }
-    };
+
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
+      }
+
+      const data: DiffFlamegraphNode = response.data[
+        "diffFlamegraph"
+      ] as unknown as DiffFlamegraphNode;
+      setRootNode(data);
+    } catch (err) {
+      if (!isCancelled()) {
+        setError(API.getFriendlyMessage(err));
+      }
+    } finally {
+      if (!isCancelled()) {
+        setIsLoading(false);
+      }
+    }
+  };
 
   /*
    * Date/array props are compared by value (epoch millis / joined ids)
@@ -360,7 +361,9 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
       <ErrorMessage
         message={error}
         onRefreshClick={() => {
-          void loadDiffFlamegraph();
+          void loadDiffFlamegraph(() => {
+            return false;
+          });
         }}
       />
     );
