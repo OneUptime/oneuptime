@@ -3872,13 +3872,15 @@ export default class StatusPageAPI extends BaseAPI<
     statusPageSubscriber.statusPageId = objectId;
     statusPageSubscriber.sendYouHaveSubscribedMessage = true;
     statusPageSubscriber.projectId = statusPage.projectId!;
-    statusPageSubscriber.isSubscribedToAllResources = Boolean(
-      req.body.data["isSubscribedToAllResources"],
-    );
+    statusPageSubscriber.isSubscribedToAllResources =
+      req.body.data["isSubscribedToAllResources"] !== undefined
+        ? Boolean(req.body.data["isSubscribedToAllResources"])
+        : true;
 
-    statusPageSubscriber.isSubscribedToAllEventTypes = Boolean(
-      req.body.data["isSubscribedToAllEventTypes"],
-    );
+    statusPageSubscriber.isSubscribedToAllEventTypes =
+      req.body.data["isSubscribedToAllEventTypes"] !== undefined
+        ? Boolean(req.body.data["isSubscribedToAllEventTypes"])
+        : true;
 
     if (
       req.body.data["statusPageResources"] &&
