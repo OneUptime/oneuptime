@@ -650,9 +650,17 @@ export class OpenAPIParser {
 
           /*
            * If the field exists from create/update and now appears in read,
-           * it should be marked as both optional and computed (server-managed field)
+           * it should be marked as both optional and computed (server-managed field).
+           * Fields that are already computed-only (added by an earlier computed
+           * pass, e.g. the read response) must stay computed-only: marking them
+           * optional would put them in create/update request bodies, which the
+           * API rejects (e.g. deletedByUserId).
            */
-          if (existingField && !existingField.required) {
+          if (
+            existingField &&
+            !existingField.required &&
+            !existingField.computed
+          ) {
             schema[terraformName] = {
               ...existingField,
               computed: true,
