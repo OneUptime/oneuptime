@@ -226,7 +226,8 @@ GROUP BY projectId, name, primaryEntityId, day, hourOfWeek`,
         "day",
       ],
       partitionKey: "toYYYYMM(day)",
-      tableSettings: "ttl_only_drop_parts = 1",
+      tableSettings:
+        "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
       ttlExpression: "day + INTERVAL 90 DAY",
     });
   }

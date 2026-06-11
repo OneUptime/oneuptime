@@ -15,7 +15,7 @@ export interface ClickHouseJsonResult {
  * the V3 cut is forward-only — V3 tables start fresh and history ages in
  * over the retention window. Operators who want to carry history forward
  * run the documented queries by hand via clickhouse-client instead; see
- * Internal/Docs/TelemetryV3UpgradeGuide.md.
+ * App/FeatureSet/Docs/Content/en/installation/upgrading.md ('Upgrading from OneUptime 10 → 11').
  */
 export default class ClickHouseMigrationUtil {
   public static async tableExists(table: string): Promise<boolean> {

@@ -50,8 +50,13 @@ describe("LogAggregationService", () => {
       facetKey,
     });
 
+    /*
+     * attributes is Map(String, String) — facet reads MUST use subscript
+     * access + mapContains. The previous JSONExtractRaw/JSONHas shape
+     * throws ILLEGAL_TYPE_OF_ARGUMENT (Code 43) against Map columns.
+     */
     expect(statement.query).toBe(
-      "SELECT JSONExtractRaw(attributes, {p0:String}) AS val, count() AS cnt FROM {p1:Identifier} WHERE projectId = {p2:String} AND time >= {p3:DateTime} AND time <= {p4:DateTime} AND JSONHas(attributes, {p5:String}) = 1 AND retentionDate >= now() GROUP BY val ORDER BY cnt DESC LIMIT {p6:Int32} SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break', max_memory_usage = 3221225472, max_bytes_before_external_group_by = 1610612736, max_bytes_before_external_sort = 1610612736",
+      "SELECT attributes[{p0:String}] AS val, count() AS cnt FROM {p1:Identifier} WHERE projectId = {p2:String} AND time >= {p3:DateTime} AND time <= {p4:DateTime} AND mapContains(attributes, {p5:String}) AND retentionDate >= now() GROUP BY val ORDER BY cnt DESC LIMIT {p6:Int32} SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break', max_memory_usage = 3221225472, max_bytes_before_external_group_by = 1610612736, max_bytes_before_external_sort = 1610612736",
     );
 
     expect(statement.query_params).toStrictEqual({

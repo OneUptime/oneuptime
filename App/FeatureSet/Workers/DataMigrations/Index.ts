@@ -177,7 +177,7 @@ const DataMigrations: Array<DataMigrationBase> = [
    *
    * There is deliberately NO V2 -> V3 historical data copy in this chain:
    * the cut is forward-only and operators carry history forward manually
-   * if they want it (Internal/Docs/TelemetryV3UpgradeGuide.md).
+   * if they want it (App/FeatureSet/Docs/Content/en/installation/upgrading.md ('Upgrading from OneUptime 10 → 11')).
    */
   new AddScalarEntityKeysToTelemetryTables(),
   new MaterializeEntityKeysIndexOnTelemetryTables(),

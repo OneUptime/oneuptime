@@ -31,9 +31,9 @@ import logger from "Common/Server/Utils/Logger";
  * GRANULARITY 1` skip index, mirroring `idx_entity_keys`.
  *
  * Unlike the `entityKeys` array, a scalar equality predicate can feed an
- * MV/sort key — `MetricItemAggMV1mByHostV2_mv` (created by the later
- * RekeyMetricHostRollupToEntityKey migration) groups by `hostEntityKey`,
- * so THIS migration must run first.
+ * MV/sort key — the model-owned `MetricItemAggMV1mByHostV2_mv` (created
+ * by boot schema-sync) groups by `hostEntityKey`, so THIS migration must
+ * run before that MV first fires on a table missing the column.
  *
  * Metadata-only and idempotent: ADD COLUMN IF NOT EXISTS + ADD INDEX
  * IF NOT EXISTS, no part rewrite, sort keys untouched. Mirrors

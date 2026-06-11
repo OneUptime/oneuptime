@@ -132,6 +132,12 @@ twice — in the `WHERE` and in the token) with each partition id from
 Step 1. Run the statements one at a time, then repeat Steps 1–3 for each
 table pair.
 
+> Note: if a source table from the pair list does not exist on your
+> installation (deployments older than mid-10.0.x may lack `AuditLogV1`
+> or some `…V2` tables entirely), the generator returns an empty/NULL
+> result for that pair — simply skip it; there is no history of that
+> type to copy.
+
 If a statement fails partway, re-run the **same** statement promptly —
 already-committed blocks deduplicate. If re-running much later, compare
 row counts first (Step 5).
@@ -156,8 +162,16 @@ SELECT
   valueMaxState,
   retentionDate
 FROM MetricItemAggMV1mByHost
+ORDER BY projectId, name, hostIdentifier, bucketTime, _id
 SETTINGS max_execution_time = 0, insert_deduplication_token = 'v3copy:MetricItemAggMV1mByHostV2:all';
 ```
+
+The `ORDER BY` matters: it makes a re-run produce identical insert blocks
+so the deduplication token can recognize them. Without it, a retry could
+be silently skipped or double-counted. (Edge case: hostnames containing
+`\`, `|`, or `=` — not legal RFC-1123 hostname characters — would compute
+a different key than the application; ignore unless you know you have
+such hosts.)
 
 #### Step 5 — verify
 

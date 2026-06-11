@@ -1,4 +1,5 @@
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
+import { getQuerySettings } from "Common/Server/Utils/AnalyticsDatabase/QuerySettingsHelper";
 import RunCron from "../../Utils/Cron";
 import logger from "Common/Server/Utils/Logger";
 import MetricRecordingRuleService from "Common/Server/Services/MetricRecordingRuleService";
@@ -263,6 +264,7 @@ async function runSourceQuery(args: {
       AND time < toDateTime64('${endIso}', 9)
       ${filterSql}
     ${groupSqlGroupBy}
+    ${getQuerySettings({ maxExecutionTimeInSeconds: 60, additionalSettings: { max_threads: 4 } })}
   `;
 
   const resultSet: {
@@ -346,7 +348,7 @@ function buildDerivedMetricRow(args: {
   const retentionDate: Date = OneUptimeDate.addRemoveDays(now, 15);
 
   return {
-    _id: ObjectID.generate().toString(),
+    _id: ObjectID.generateTimeOrdered().toString(),
     projectId: rule.projectId!.toString(),
     createdAt: OneUptimeDate.toClickhouseDateTime(now),
     time: OneUptimeDate.toClickhouseDateTime(bucketStart),

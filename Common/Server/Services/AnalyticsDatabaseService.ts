@@ -1769,7 +1769,7 @@ export default class AnalyticsDatabaseService<
     data: TBaseModel
   ): TBaseModel {
     if (!data.id) {
-      data.id = ObjectID.generate();
+      data.id = ObjectID.generateTimeOrdered();
     }
 
     data.createdAt = OneUptimeDate.getCurrentDate();

@@ -227,10 +227,10 @@ export class ExceptionAggregationService {
       );
     } else {
       statement.append(
-        SQL`SELECT JSONExtractRaw(attributes, ${{
+        SQL`SELECT attributes[${{
           type: TableColumnType.Text,
           value: request.facetKey,
-        }}) AS val, count() AS cnt FROM ${ExceptionAggregationService.TABLE_NAME}`,
+        }}] AS val, count() AS cnt FROM ${ExceptionAggregationService.TABLE_NAME}`,
       );
     }
 
@@ -268,10 +268,10 @@ export class ExceptionAggregationService {
       );
     } else if (!isTopLevelColumn) {
       statement.append(
-        SQL` AND JSONHas(attributes, ${{
+        SQL` AND mapContains(attributes, ${{
           type: TableColumnType.Text,
           value: request.facetKey,
-        }}) = 1`,
+        }})`,
       );
     }
 

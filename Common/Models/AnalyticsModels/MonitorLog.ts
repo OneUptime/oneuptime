@@ -194,7 +194,8 @@ export default class MonitorLog extends AnalyticsBaseModel {
       sortKeys: ["projectId", "time", "monitorId"],
       primaryKeys: ["projectId", "time", "monitorId"],
       partitionKey: "toYYYYMMDD(time)",
-      tableSettings: "ttl_only_drop_parts = 1",
+      tableSettings:
+        "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
       ttlExpression: "retentionDate DELETE",
       defaultSortColumn: "time",
     });

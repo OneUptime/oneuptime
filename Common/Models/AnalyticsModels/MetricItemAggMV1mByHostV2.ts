@@ -171,7 +171,8 @@ GROUP BY projectId, name, hostEntityKey, bucketTime`,
       sortKeys: ["projectId", "name", "hostEntityKey", "bucketTime"],
       primaryKeys: ["projectId", "name", "hostEntityKey", "bucketTime"],
       partitionKey: "toYYYYMM(bucketTime)",
-      tableSettings: "ttl_only_drop_parts = 1",
+      tableSettings:
+        "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
       ttlExpression: "retentionDate DELETE",
     });
   }

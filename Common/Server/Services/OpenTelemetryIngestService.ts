@@ -201,6 +201,7 @@ export default class OTelIngestService {
         serviceNamespace?: string | undefined;
         runtimeName?: string | undefined;
         runtimeVersion?: string | undefined;
+        telemetrySdkLanguage?: string | undefined;
         cloudProvider?: string | undefined;
         cloudPlatform?: string | undefined;
         cloudRegion?: string | undefined;
@@ -232,6 +233,11 @@ export default class OTelIngestService {
           attributes,
           "process.runtime.version",
         ) || undefined,
+      telemetrySdkLanguage:
+        this.getResourceStringAttribute(
+          attributes,
+          "telemetry.sdk.language",
+        )?.toLowerCase() || undefined,
       cloudProvider:
         this.getResourceStringAttribute(attributes, "cloud.provider") ||
         undefined,

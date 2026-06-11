@@ -23,7 +23,7 @@ import logger from "Common/Server/Utils/Logger";
  * MVs), and the background-cron replacement was machinery nobody needs
  * by default. Operators who want to carry history forward run the
  * documented per-partition clickhouse-client queries instead:
- * Internal/Docs/TelemetryV3UpgradeGuide.md (the native protocol has no
+ * App/FeatureSet/Docs/Content/en/installation/upgrading.md ('Upgrading from OneUptime 10 → 11') (the native protocol has no
  * idle-timeout problem, and the V3 tables' dedup windows make a re-run
  * with the documented token settings safe).
  *
@@ -99,7 +99,7 @@ export default class MigrateTelemetryToV3PrimaryEntityId extends DataMigrationBa
     await AnalyticsTableManagement.createMaterializedViews();
 
     logger.info(
-      "MigrateTelemetryToV3: DDL complete. V3 tables start fresh (forward-only cut); to carry V2 history forward manually, see Internal/Docs/TelemetryV3UpgradeGuide.md.",
+      "MigrateTelemetryToV3: DDL complete. V3 tables start fresh (forward-only cut); to carry V2 history forward manually, see the v11 upgrade guide: https://oneuptime.com/docs/installation/upgrading",
     );
   }
 

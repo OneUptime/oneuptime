@@ -283,11 +283,12 @@ export class LogAggregationService {
         SQL`SELECT toString(${request.facetKey}) AS val, count() AS cnt FROM ${LogAggregationService.TABLE_NAME}`,
       );
     } else {
+      // attributes is Map(String, String) — subscript access, not JSON functions.
       statement.append(
-        SQL`SELECT JSONExtractRaw(attributes, ${{
+        SQL`SELECT attributes[${{
           type: TableColumnType.Text,
           value: request.facetKey,
-        }}) AS val, count() AS cnt FROM ${LogAggregationService.TABLE_NAME}`,
+        }}] AS val, count() AS cnt FROM ${LogAggregationService.TABLE_NAME}`,
       );
     }
 
@@ -325,10 +326,10 @@ export class LogAggregationService {
       );
     } else if (!isTopLevelColumn) {
       statement.append(
-        SQL` AND JSONHas(attributes, ${{
+        SQL` AND mapContains(attributes, ${{
           type: TableColumnType.Text,
           value: request.facetKey,
-        }}) = 1`,
+        }})`,
       );
     }
 
@@ -480,10 +481,10 @@ export class LogAggregationService {
       } else {
         const alias: string = LogAggregationService.groupByAlias(key);
         statement.append(
-          SQL`, JSONExtractRaw(attributes, ${{
+          SQL`, attributes[${{
             type: TableColumnType.Text,
             value: key,
-          }}) AS ${alias}`,
+          }}] AS ${alias}`,
         );
       }
     }
@@ -511,7 +512,7 @@ export class LogAggregationService {
         return `uniqExact(${request.aggregationField})`;
       }
 
-      return `uniqExact(JSONExtractRaw(attributes, '${request.aggregationField.replace(/'/g, "\\'")}'))`;
+      return `uniqExact(attributes['${request.aggregationField.replace(/'/g, "\\'")}'])`;
     }
 
     return "count()";
@@ -620,7 +621,7 @@ export class LogAggregationService {
         `SELECT toString(${groupByKey}) AS val, ${aggExpr} AS cnt FROM ${LogAggregationService.TABLE_NAME}`,
       );
     } else {
-      statement.append(`SELECT JSONExtractRaw(attributes, `);
+      statement.append(`SELECT attributes[`);
       statement.append(
         SQL`${{
           type: TableColumnType.Text,
@@ -628,7 +629,7 @@ export class LogAggregationService {
         }}`,
       );
       statement.append(
-        `) AS val, ${aggExpr} AS cnt FROM ${LogAggregationService.TABLE_NAME}`,
+        `] AS val, ${aggExpr} AS cnt FROM ${LogAggregationService.TABLE_NAME}`,
       );
     }
 
@@ -647,10 +648,10 @@ export class LogAggregationService {
 
     if (!isTopLevel) {
       statement.append(
-        SQL` AND JSONHas(attributes, ${{
+        SQL` AND mapContains(attributes, ${{
           type: TableColumnType.Text,
           value: groupByKey,
-        }}) = 1`,
+        }})`,
       );
     }
 
@@ -812,7 +813,7 @@ export class LogAggregationService {
 
     if (request.bodySearchText && request.bodySearchText.trim().length > 0) {
       statement.append(
-        ` AND body ILIKE ${{
+        SQL` AND body ILIKE ${{
           type: TableColumnType.Text,
           value: `%${request.bodySearchText.trim()}%`,
         }}`,

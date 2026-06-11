@@ -156,7 +156,7 @@ import "./Jobs/TelemetryEntity/ComputeServiceDependencies";
  * copy. The V3 cut is forward-only (decision 2026-06-11): V3 tables start
  * fresh, history ages in over the retention window, and operators who
  * want to carry history forward run the documented clickhouse-client
- * queries instead — see Internal/Docs/TelemetryV3UpgradeGuide.md.
+ * queries instead — see App/FeatureSet/Docs/Content/en/installation/upgrading.md ('Upgrading from OneUptime 10 → 11').
  */
 
 /*

@@ -46,10 +46,11 @@ export default class AddMetricMinuteAggregateByHostMaterializedView extends Data
     /*
      * Only applicable while MetricItemV2 is the live metric table: this
      * legacy rollup is superseded by the model-owned, hostEntityKey-keyed
-     * MetricItemAggMV1mByHostV2 (see RekeyMetricHostRollupToEntityKey,
-     * which drops the pair created here). On a fresh install of the V3
-     * cut, V2 never exists and the CREATE MATERIALIZED VIEW below would
-     * throw UNKNOWN_TABLE on its FROM clause and wedge the chain — skip.
+     * MetricItemAggMV1mByHostV2 (the V3 cut detaches the view created
+     * here; the frozen table self-drains via TTL and serves as the manual
+     * per-host backfill source). On a fresh install of the V3 cut, V2
+     * never exists and the CREATE MATERIALIZED VIEW below would throw
+     * UNKNOWN_TABLE on its FROM clause and wedge the chain — skip.
      */
     if (!(await ClickHouseMigrationUtil.tableExists("MetricItemV2"))) {
       logger.info(

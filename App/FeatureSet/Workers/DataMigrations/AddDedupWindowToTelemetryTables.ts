@@ -37,6 +37,19 @@ export default class AddDedupWindowToTelemetryTables extends DataMigrationBase {
       "ExceptionItemV3",
       "ProfileItemV3",
       "ProfileSampleItemV3",
+      /*
+       * MonitorLogV3/AuditLogV2 and the metric rollup MV targets need the
+       * window too: the v11 upgrade guide's manual history-copy statements
+       * rely on token dedup for safe re-runs, and deduplicating a metric
+       * copy through its MVs requires the window on the MV TARGET tables
+       * (verified empirically: without it a retried metric insert doubles
+       * the rollups even when the raw table dedups).
+       */
+      "MonitorLogV3",
+      "AuditLogV2",
+      "MetricItemAggMV1m",
+      "MetricItemAggMV1mByHostV2",
+      "MetricBaselineHourly",
     ];
     for (const table of tables) {
       try {

@@ -30,9 +30,11 @@ import logger from "Common/Server/Utils/Logger";
  * setColumnCodecIfNotSet skips columns that already carry the codec.
  *
  * The deprecated `MetricItemAggMV1mByHost` table is intentionally
- * excluded: the very next migration (RekeyMetricHostRollupToEntityKey)
- * drops it, and its V2 replacement is created with the codec from the
- * model. Failures are collected and re-thrown so a partial run retries.
+ * excluded: the V3 cut detaches its view and the frozen table self-drains
+ * via TTL (kept only as the manual per-host backfill source — see the v11
+ * upgrade guide); its ...ByHostV2 replacement is created with the codec
+ * from the model. Failures are collected and re-thrown so a partial run
+ * retries.
  */
 export default class AddZstdCodecToTelemetryIdColumns extends DataMigrationBase {
   public constructor() {
