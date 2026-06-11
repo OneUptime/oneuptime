@@ -832,10 +832,44 @@ export default class ModelPermission {
     }
 
     const fkColumn: string = model.ownedThrough.fkColumn;
-    const idList: Array<string> =
+    const sentinelNoMatch: Array<string> = [
+      ObjectID.getZeroObjectID().toString(),
+    ];
+    let idList: Array<string> =
       allowedResourceIds.size > 0
         ? Array.from(allowedResourceIds)
-        : [ObjectID.getZeroObjectID().toString()]; // sentinel: match nothing
+        : sentinelNoMatch;
+
+    /*
+     * Intersect with any caller-supplied FK filter (e.g. a per-service
+     * telemetry page querying primaryEntityId) instead of overwriting it —
+     * overwriting would widen the query to every allowed resource. The FK
+     * is a scalar column, so set intersection is exact.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const existingFkFilter: unknown = (query as any)[fkColumn];
+    if (existingFkFilter instanceof Includes) {
+      const requestedIds: Set<string> = new Set<string>(
+        existingFkFilter.values.map((value: string | ObjectID | number) => {
+          return value.toString();
+        }),
+      );
+      idList = idList.filter((id: string) => {
+        return requestedIds.has(id);
+      });
+    } else if (
+      typeof existingFkFilter === "string" ||
+      existingFkFilter instanceof ObjectID
+    ) {
+      const requestedId: string = existingFkFilter.toString();
+      idList = idList.filter((id: string) => {
+        return id === requestedId;
+      });
+    }
+
+    if (idList.length === 0) {
+      idList = sentinelNoMatch;
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (query as any)[fkColumn] = new Includes(idList);
