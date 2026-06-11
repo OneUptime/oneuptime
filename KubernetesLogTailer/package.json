@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/kubernetes-log-tailer",
-  "version": "10.8.2",
+  "version": "11.0.0",
   "description": "OneUptime Kubernetes log tailer — collects pod logs via the Kubernetes API (GKE Autopilot compatible) and forwards to OneUptime via OTLP-HTTP.",
   "repository": {
     "type": "git",
