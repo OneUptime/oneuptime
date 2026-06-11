@@ -97,7 +97,37 @@ export interface FlamegraphViewProps {
    * of the sampled subset — the banner tells the user that.
    */
   truncated?: boolean | undefined;
+  /**
+   * Controlled search term. When provided it drives highlighting and
+   * the input value, and the component never touches its internal
+   * search state — callers that sync search to the URL pass this
+   * together with {@link onSearchTermChange}. When omitted, search is
+   * fully internal (uncontrolled), as before.
+   */
+  searchTerm?: string | undefined;
+  /**
+   * Called on every search input edit. When omitted the component
+   * falls back to its internal search state.
+   */
+  onSearchTermChange?: ((term: string) => void) | undefined;
+  /**
+   * When provided, the view renders a "Callers & callees" affordance
+   * for the currently zoomed frame (a chip next to the breadcrumb and
+   * an icon button on the zoomed frame bar). The tooltip itself is
+   * pointer-transparent, so the affordance cannot live there.
+   */
+  onFocusFunction?:
+    | ((frame: { functionName: string; fileName: string }) => void)
+    | undefined;
 }
+
+/**
+ * How an active search term affects the rendered tree. "highlight"
+ * dims non-matching frames in place; "stacks" prunes the tree to the
+ * complete root-to-leaf paths that pass through a match — the pattern
+ * profiler UIs converged on for isolating one function's stacks.
+ */
+type SearchMode = "highlight" | "stacks";
 
 const FRAME_HEIGHT: number = 22;
 
@@ -118,8 +148,29 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
 ): ReactElement => {
   const [zoomStack, setZoomStack] = useState<Array<FlamegraphNode>>([]);
   const [hoveredNode, setHoveredNode] = useState<FlamegraphNode | null>(null);
-  const [search, setSearch] = useState<string>("");
+  const [internalSearch, setInternalSearch] = useState<string>("");
+  const [searchMode, setSearchMode] = useState<SearchMode>("highlight");
   const [onlyOwnCode, setOnlyOwnCode] = useState<boolean>(false);
+
+  /*
+   * Search can be parent-controlled (e.g. URL-synced) or internal.
+   * The controlled value wins whenever it is provided so the input
+   * always reflects the parent's state.
+   */
+  const search: string =
+    props.searchTerm !== undefined ? props.searchTerm : internalSearch;
+
+  const setSearchTerm: (term: string) => void = useCallback(
+    (term: string): void => {
+      if (props.onSearchTermChange) {
+        props.onSearchTermChange(term);
+      }
+      if (props.searchTerm === undefined) {
+        setInternalSearch(term);
+      }
+    },
+    [props.onSearchTermChange, props.searchTerm],
+  );
 
   /*
    * Several flame graphs can be on screen at once (e.g. dashboard
@@ -146,17 +197,93 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
     useRef<boolean>(false);
 
   /*
-   * A reload (refresh, time-range change) produces a new root object.
-   * Any zoom path into the old tree is stale — keeping it would show a
-   * frozen view of data that no longer exists.
+   * "Stacks only" pre-render transform. Keeps a frame when it matches,
+   * when any descendant matches, or when any ancestor matches — i.e.
+   * complete root-to-leaf paths through matches survive. Pure and
+   * memoised so zoom and tooltips operate on the pruned tree exactly
+   * like they do on the full one. Null means "no pruning applies".
+   */
+  const prunedRoot: FlamegraphNode | null = useMemo(() => {
+    const q: string = search.trim().toLowerCase();
+    if (searchMode !== "stacks" || !q) {
+      return null;
+    }
+
+    const matchesQuery: (n: FlamegraphNode) => boolean = (
+      n: FlamegraphNode,
+    ): boolean => {
+      return (
+        n.name.toLowerCase().includes(q) || n.fileName.toLowerCase().includes(q)
+      );
+    };
+
+    const walk: (n: FlamegraphNode) => FlamegraphNode | null = (
+      n: FlamegraphNode,
+    ): FlamegraphNode | null => {
+      /*
+       * A matching frame keeps its entire subtree by reference: every
+       * root-to-leaf path through it contains the match, so all of its
+       * descendants (and their original values) stay intact.
+       */
+      if (matchesQuery(n)) {
+        return n;
+      }
+
+      const keptChildren: Array<FlamegraphNode> = [];
+      let keptTotal: number = 0;
+      for (const child of n.children) {
+        const kept: FlamegraphNode | null = walk(child);
+        if (kept) {
+          keptChildren.push(kept);
+          keptTotal += kept.totalValue;
+        }
+      }
+      if (keptChildren.length === 0) {
+        return null;
+      }
+
+      /*
+       * Pass-through ancestor: only the value flowing into matching
+       * descendants survives. Stacks that end here (its self value)
+       * contain no match, so self is zeroed and total is recomputed —
+       * frame widths then reflect the pruned values.
+       */
+      return {
+        ...n,
+        selfValue: 0,
+        totalValue: keptTotal,
+        children: keptChildren,
+      };
+    };
+
+    const pruned: FlamegraphNode | null = walk(props.root);
+    if (pruned) {
+      return pruned;
+    }
+
+    /*
+     * Nothing matched: render a bare zero-value root instead of
+     * collapsing the graph area — the match counter in the toolbar
+     * explains why it is empty.
+     */
+    return { ...props.root, selfValue: 0, totalValue: 0, children: [] };
+  }, [search, searchMode, props.root]);
+
+  const displayRoot: FlamegraphNode = prunedRoot ?? props.root;
+
+  /*
+   * A reload (refresh, time-range change) produces a new root object,
+   * and so does re-pruning in stacks-only mode. Any zoom path into the
+   * previous tree is stale — its nodes are no longer part of what is
+   * rendered — so the zoom must reset alongside it.
    */
   useEffect(() => {
     setZoomStack([]);
     setHoveredNode(null);
-  }, [props.root]);
+  }, [displayRoot]);
 
   const activeRoot: FlamegraphNode =
-    zoomStack.length > 0 ? zoomStack[zoomStack.length - 1]! : props.root;
+    zoomStack.length > 0 ? zoomStack[zoomStack.length - 1]! : displayRoot;
 
   /*
    * Find the hottest self value across the whole tree so we can scale
@@ -197,6 +324,33 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
     return matched;
   }, [search, activeRoot]);
 
+  /*
+   * Counted over the full (un-pruned, un-zoomed) tree so the number is
+   * stable while the user zooms or toggles between search modes — it
+   * answers "how many frames match anywhere?", not "how many are
+   * visible right now?".
+   */
+  const matchedFrameCount: number = useMemo(() => {
+    const q: string = search.trim().toLowerCase();
+    if (!q) {
+      return 0;
+    }
+    let count: number = 0;
+    const walk: (n: FlamegraphNode) => void = (n: FlamegraphNode): void => {
+      if (
+        n.name.toLowerCase().includes(q) ||
+        n.fileName.toLowerCase().includes(q)
+      ) {
+        count += 1;
+      }
+      for (const c of n.children) {
+        walk(c);
+      }
+    };
+    walk(props.root);
+    return count;
+  }, [search, props.root]);
+
   useEffect(() => {
     const handler: (e: KeyboardEvent) => void = (e: KeyboardEvent): void => {
       /*
@@ -228,7 +382,7 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
         if (zoomStack.length > 0) {
           setZoomStack([]);
         } else if (search) {
-          setSearch("");
+          setSearchTerm("");
         }
       }
     };
@@ -236,7 +390,7 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
     return () => {
       window.removeEventListener("keydown", handler);
     };
-  }, [zoomStack, search]);
+  }, [zoomStack, search, setSearchTerm]);
 
   /*
    * Position the tooltip box next to the cursor by writing styles
@@ -486,9 +640,44 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
                 className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 value={search}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  setSearch(e.target.value);
+                  setSearchTerm(e.target.value);
                 }}
               />
+            </div>
+
+            <div
+              className="inline-flex items-center rounded-md border border-gray-300 bg-gray-50 p-0.5"
+              role="group"
+              aria-label="Search display mode"
+            >
+              <button
+                type="button"
+                title="Dim frames that do not match the search"
+                onClick={() => {
+                  setSearchMode("highlight");
+                }}
+                className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                  searchMode === "highlight"
+                    ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                Highlight
+              </button>
+              <button
+                type="button"
+                title="Show only stacks that pass through a matching frame"
+                onClick={() => {
+                  setSearchMode("stacks");
+                }}
+                className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                  searchMode === "stacks"
+                    ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                Stacks only
+              </button>
             </div>
 
             <label className="inline-flex items-center gap-1.5 text-xs text-gray-700 cursor-pointer px-2.5 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50 select-none">
@@ -527,6 +716,12 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
                 <span className="ml-3">
                   <span className="font-medium text-gray-700">Matched: </span>
                   {ProfileUtil.formatPercent(searchPct)}
+                  <span className="ml-1.5 text-gray-400">
+                    ·{" "}
+                    {matchedFrameCount === 1
+                      ? "1 frame matches"
+                      : `${matchedFrameCount.toLocaleString()} frames match`}
+                  </span>
                 </span>
               )}
             </div>
@@ -563,6 +758,22 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
               <Icon icon={IconProp.Filter} className="h-3 w-3" />
               Zoomed into{" "}
               <span className="font-mono text-gray-800">{activeRoot.name}</span>
+              {props.onFocusFunction && (
+                <button
+                  type="button"
+                  title={`Show callers and callees of ${activeRoot.name}`}
+                  className="ml-1 inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-0.5 text-[11px] font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                  onClick={() => {
+                    props.onFocusFunction?.({
+                      functionName: activeRoot.name,
+                      fileName: activeRoot.fileName,
+                    });
+                  }}
+                >
+                  <Icon icon={IconProp.ArrowUpDown} className="h-3 w-3" />
+                  Callers &amp; callees
+                </button>
+              )}
             </div>
           )}
         </>
@@ -586,6 +797,27 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
         style={{ height: `${height}px` }}
       >
         {treeElements}
+        {/*
+         * The tooltip is pointer-transparent, so the per-frame focus
+         * action lives on the zoomed frame bar instead: when zoomed,
+         * the top row is exactly one frame, so a single corner button
+         * is unambiguous.
+         */}
+        {props.onFocusFunction && zoomStack.length > 0 && (
+          <button
+            type="button"
+            title={`Show callers and callees of ${activeRoot.name}`}
+            className="absolute right-1.5 top-[2px] z-10 inline-flex h-[18px] w-[18px] items-center justify-center rounded bg-white/90 text-gray-600 ring-1 ring-gray-300 hover:bg-white hover:text-gray-900"
+            onClick={() => {
+              props.onFocusFunction?.({
+                functionName: activeRoot.name,
+                fileName: activeRoot.fileName,
+              });
+            }}
+          >
+            <Icon icon={IconProp.ArrowUpDown} className="h-3 w-3" />
+          </button>
+        )}
       </div>
 
       {hoveredNode && (

@@ -23,6 +23,8 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import AggregatedFlamegraph from "./AggregatedFlamegraph";
+import BreakdownCard from "./BreakdownCard";
+import FunctionFocusPanel from "./FunctionFocusPanel";
 import ProfileTypeSelector from "./ProfileTypeSelector";
 import ProfileUtil, { ModuleCategory } from "../../Utils/ProfileUtil";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -66,13 +68,17 @@ interface TopFunction {
  * "where is your service spending time right now?" — answered by an
  * aggregated flame graph across every recent profile.
  *
- * Layout:
+ * Layout (one glance, top to bottom):
  *   1. Service picker + time range chips + profile-type pills
  *   2. Headline insight card (auto-generated from the top function)
  *   3. Aggregated flame graph (the centerpiece)
- *   4. Top functions list
+ *   4. Top functions list + "break down by" card, side by side
  *   5. Services-being-profiled grid
  *   6. Footer link to the raw list of individual profiles
+ *
+ * A callers/callees slide-over panel can be opened for any function —
+ * from a flame-graph frame or a top-functions row — without leaving
+ * the page or losing the current filter selection.
  */
 /*
  * Persisted UI prefs. Activity-first sort matches a developer's
@@ -162,6 +168,32 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
   const [topFunctions, setTopFunctions] = useState<Array<TopFunction>>([]);
   const [topFunctionsLoading, setTopFunctionsLoading] = useState<boolean>(true);
   const [topFunctionsError, setTopFunctionsError] = useState<string>("");
+  /*
+   * True when the server capped the function list rather than scanning
+   * every stack in the window — surfaced as a note so the ranking is
+   * read as "largest stacks", not an exhaustive census.
+   */
+  const [topFunctionsTruncated, setTopFunctionsTruncated] =
+    useState<boolean>(false);
+  /*
+   * Flame-graph search term, lifted here so the top-functions list can
+   * drive the highlight: clicking a row paints every matching frame in
+   * the flame graph, clicking the same row again clears it. Empty
+   * string means "no highlight" — typing inside the flame graph's own
+   * search box flows back up through onSearchTermChange so the two
+   * stay in lockstep.
+   */
+  const [flameSearch, setFlameSearch] = useState<string>("");
+  /*
+   * Function currently open in the callers/callees panel; null when
+   * closed. Matching is on functionName + fileName (functions can
+   * share a name across files) — line numbers are deliberately not
+   * part of the identity, so the focus survives redeploys.
+   */
+  const [focusedFunction, setFocusedFunction] = useState<{
+    functionName: string;
+    fileName: string;
+  } | null>(null);
   /*
    * Sum of selfValue across ALL matching rows in the window (not just
    * the fetched top-N) — the honest denominator for "% of the window".
@@ -319,10 +351,12 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
           []) as unknown as Array<TopFunction>;
         setTopFunctions(fns);
         setWindowTotal(Number(response.data["windowTotal"]) || 0);
+        setTopFunctionsTruncated(Boolean(response.data["truncated"]));
       } catch (err) {
         if (!cancelled) {
           setTopFunctions([]);
           setWindowTotal(0);
+          setTopFunctionsTruncated(false);
           setTopFunctionsError(API.getFriendlyMessage(err));
         }
       } finally {
@@ -603,6 +637,26 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
   }, [services, selectedServiceId]);
 
   /*
+   * Toggle semantics: a second click on the already-highlighted
+   * function reads as "turn it off", so compare against the previous
+   * term instead of unconditionally setting it.
+   */
+  const toggleFlameSearch: (functionName: string) => void = (
+    functionName: string,
+  ): void => {
+    setFlameSearch((prev: string) => {
+      return prev === functionName ? "" : functionName;
+    });
+  };
+
+  const handleFocusFunction: (frame: {
+    functionName: string;
+    fileName: string;
+  }) => void = (frame: { functionName: string; fileName: string }): void => {
+    setFocusedFunction(frame);
+  };
+
+  /*
    * Footer link to the raw-profiles list, carrying the current
    * service/type selection so the list opens in the same context the
    * user was just looking at (the table reads these as dismissible
@@ -827,38 +881,62 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
           serviceIds={selectedServiceIds}
           profileType={profileType}
           unit={unit}
+          searchTerm={flameSearch}
+          onSearchTermChange={setFlameSearch}
+          onFocusFunction={handleFocusFunction}
         />
       </div>
 
-      {/* Top functions */}
-      <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">
-              Top functions
-            </h3>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Ranked by self time — the actual work each function did.
-            </p>
+      {/* Top functions + breakdown, side by side on wide screens */}
+      <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="rounded-xl border border-gray-200 bg-white p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <div className="flex items-baseline gap-2">
+                <h3 className="text-sm font-semibold text-gray-900">
+                  Top functions
+                </h3>
+                {topFunctionsTruncated && (
+                  <span
+                    className="text-[10px] text-gray-400"
+                    title="The window held more distinct stacks than the server aggregates in one pass — the ranking covers the heaviest ones"
+                  >
+                    showing the largest stacks
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Ranked by self time — the actual work each function did.
+              </p>
+            </div>
           </div>
+          {topFunctionsError ? (
+            <ErrorMessage
+              message={topFunctionsError}
+              onRefreshClick={() => {
+                setNonce((n: number) => {
+                  return n + 1;
+                });
+              }}
+            />
+          ) : (
+            <TopFunctionsList
+              functions={topFunctions}
+              windowTotal={windowTotal}
+              unit={unit}
+              loading={topFunctionsLoading}
+              highlightedFunctionName={flameSearch}
+              onToggleHighlight={toggleFlameSearch}
+              onFocusFunction={handleFocusFunction}
+            />
+          )}
         </div>
-        {topFunctionsError ? (
-          <ErrorMessage
-            message={topFunctionsError}
-            onRefreshClick={() => {
-              setNonce((n: number) => {
-                return n + 1;
-              });
-            }}
-          />
-        ) : (
-          <TopFunctionsList
-            functions={topFunctions}
-            windowTotal={windowTotal}
-            unit={unit}
-            loading={topFunctionsLoading}
-          />
-        )}
+        <BreakdownCard
+          startTime={startTime}
+          endTime={endTime}
+          profileType={profileType}
+          serviceIds={selectedServiceIds}
+        />
       </div>
 
       {/* Services being profiled */}
@@ -977,6 +1055,27 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
           },
         )}
       </div>
+
+      {/*
+       * Callers/callees slide-over. Rendered last so it stacks above
+       * the page; it inherits the dashboard's current window/service/
+       * type selection so the sandwich view answers questions about
+       * exactly what the flame graph is showing.
+       */}
+      {focusedFunction && (
+        <FunctionFocusPanel
+          functionName={focusedFunction.functionName}
+          fileName={focusedFunction.fileName}
+          unit={unit}
+          startTime={startTime}
+          endTime={endTime}
+          serviceIds={selectedServiceIds}
+          profileType={profileType}
+          onClose={() => {
+            setFocusedFunction(null);
+          }}
+        />
+      )}
     </Fragment>
   );
 };
@@ -1128,6 +1227,23 @@ interface TopFunctionsListProps {
   windowTotal: number;
   unit: string;
   loading: boolean;
+  /*
+   * The flame-graph search term currently in effect, so the row whose
+   * function is highlighted in the flame graph renders as selected and
+   * a second click reads as "clear". Empty string when nothing is
+   * highlighted.
+   */
+  highlightedFunctionName: string;
+  /*
+   * Invoked with the row's function name on click — the parent owns
+   * the toggle semantics so the list stays presentational.
+   */
+  onToggleHighlight: (functionName: string) => void;
+  /*
+   * Opens the callers/callees panel for a row. fileName rides along
+   * because function names alone are ambiguous across files.
+   */
+  onFocusFunction: (frame: { functionName: string; fileName: string }) => void;
 }
 
 const TopFunctionsList: FunctionComponent<TopFunctionsListProps> = (
@@ -1179,23 +1295,58 @@ const TopFunctionsList: FunctionComponent<TopFunctionsListProps> = (
           category,
           0.7,
         );
+        const isHighlighted: boolean =
+          props.highlightedFunctionName.length > 0 &&
+          props.highlightedFunctionName === fn.functionName;
         return (
           <div
             key={`${fn.functionName}-${fn.fileName}-${index}`}
-            className="px-4 py-2.5 hover:bg-gray-50/60"
+            className={`group px-4 py-2.5 ${
+              isHighlighted ? "bg-indigo-50/60" : "hover:bg-gray-50/60"
+            }`}
           >
             <div className="flex items-start gap-3">
               <span className="text-[11px] font-mono text-gray-400 w-5 flex-shrink-0 mt-0.5">
                 #{index + 1}
               </span>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 min-w-0">
                   <span
                     className={`inline-block h-2 w-2 rounded-sm ${style.bg} flex-shrink-0`}
                     title={ProfileUtil.getModuleCategoryLabel(category)}
                   />
-                  <span className="font-mono text-sm text-gray-900 truncate">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      props.onToggleHighlight(fn.functionName);
+                    }}
+                    className={`min-w-0 truncate text-left font-mono text-sm cursor-pointer hover:underline decoration-dotted underline-offset-2 ${
+                      isHighlighted
+                        ? "text-indigo-700 font-semibold"
+                        : "text-gray-900"
+                    }`}
+                    title={
+                      isHighlighted
+                        ? "Clear the flame-graph highlight"
+                        : "Highlight this function in the flame graph"
+                    }
+                  >
                     {fn.functionName || "(anonymous)"}
+                  </button>
+                  {/*
+                   * Hover-only hint: the affordance must be
+                   * discoverable without permanently cluttering every
+                   * row. The highlighted row keeps it visible so the
+                   * way back out is obvious.
+                   */}
+                  <span
+                    className={`flex-shrink-0 text-[10px] text-gray-400 ${
+                      isHighlighted ? "" : "hidden group-hover:inline"
+                    }`}
+                  >
+                    {isHighlighted
+                      ? "highlighted — click to clear"
+                      : "click to highlight in flame graph"}
                   </span>
                 </div>
                 {fn.fileName && (
@@ -1210,13 +1361,31 @@ const TopFunctionsList: FunctionComponent<TopFunctionsListProps> = (
                   />
                 </div>
               </div>
-              <div className="text-right flex-shrink-0">
-                <div className="text-sm font-mono font-semibold text-gray-900">
-                  {ProfileUtil.formatProfileValue(fn.selfValue, props.unit)}
+              <div className="flex items-start gap-1.5 flex-shrink-0">
+                <div className="text-right">
+                  <div className="text-sm font-mono font-semibold text-gray-900">
+                    {ProfileUtil.formatProfileValue(fn.selfValue, props.unit)}
+                  </div>
+                  <div className="text-[11px] text-gray-400">
+                    {ProfileUtil.formatPercent(share)}
+                  </div>
                 </div>
-                <div className="text-[11px] text-gray-400">
-                  {ProfileUtil.formatPercent(share)}
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    props.onFocusFunction({
+                      functionName: fn.functionName,
+                      fileName: fn.fileName,
+                    });
+                  }}
+                  className="mt-0.5 rounded p-1 text-gray-300 hover:text-indigo-600 hover:bg-indigo-50 group-hover:text-gray-400 transition-colors"
+                  title="Callers & callees"
+                  aria-label={`Show callers and callees of ${
+                    fn.functionName || "(anonymous)"
+                  }`}
+                >
+                  <Icon icon={IconProp.ArrowUpDown} className="h-3.5 w-3.5" />
+                </button>
               </div>
             </div>
           </div>

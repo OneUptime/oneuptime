@@ -108,6 +108,18 @@ const KubernetesClusterProfiles: FunctionComponent<
     return <ErrorMessage message="Cluster not found." />;
   }
 
+  /*
+   * No aggregate flame graph on this tab (unlike the Service / Host
+   * profile tabs): the flamegraph endpoint scopes rows by
+   * primaryEntityId, but profiles captured inside a cluster carry the
+   * KubernetesCluster row id there only when the batch has no
+   * service.name — SDK and per-target eBPF profiles route to Service
+   * rows instead (see OtelIngestBaseService.selectPrimaryEntity).
+   * The table below scopes by entityScope (cluster entity key OR the
+   * cluster-name attribute) and so shows the full set; a
+   * primaryEntityId-scoped graph would silently omit most of it. Skip
+   * the graph until the endpoint can scope by entity keys.
+   */
   return (
     <Fragment>
       <ProfileTable

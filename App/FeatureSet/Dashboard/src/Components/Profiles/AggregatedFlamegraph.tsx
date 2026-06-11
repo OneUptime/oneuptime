@@ -29,6 +29,23 @@ export interface AggregatedFlamegraphProps {
   profileType?: string | undefined;
   unit?: string | undefined;
   compact?: boolean | undefined;
+  /**
+   * Controlled search term, forwarded to {@link FlamegraphView} so the
+   * page can keep flame graph search in shareable state (e.g. the
+   * URL). Leave undefined for fully internal search.
+   */
+  searchTerm?: string | undefined;
+  /**
+   * Forwarded to {@link FlamegraphView}; called on every search edit.
+   */
+  onSearchTermChange?: ((term: string) => void) | undefined;
+  /**
+   * Forwarded to {@link FlamegraphView}; enables the "Callers &
+   * callees" affordance on the zoomed frame.
+   */
+  onFocusFunction?:
+    | ((frame: { functionName: string; fileName: string }) => void)
+    | undefined;
 }
 
 /**
@@ -139,6 +156,9 @@ const AggregatedFlamegraph: FunctionComponent<AggregatedFlamegraphProps> = (
       unit={unit}
       compact={props.compact}
       truncated={isTruncated}
+      searchTerm={props.searchTerm}
+      onSearchTermChange={props.onSearchTermChange}
+      onFocusFunction={props.onFocusFunction}
     />
   );
 };

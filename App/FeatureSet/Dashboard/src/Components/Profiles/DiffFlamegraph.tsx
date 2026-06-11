@@ -17,6 +17,8 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ProfileUtil from "../../Utils/ProfileUtil";
+import Icon from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
 
 export interface DiffFlamegraphProps {
   baselineStartTime: Date;
@@ -25,9 +27,18 @@ export interface DiffFlamegraphProps {
   comparisonEndTime: Date;
   serviceIds?: Array<ObjectID> | undefined;
   profileType?: string | undefined;
+  /**
+   * Invoked after each successful load with the merged diff tree (the
+   * same line-agnostic merge this graph renders — analysing the raw
+   * server tree would split logical frames whose line numbers moved
+   * between deploys), or null when the window pair had no data. Lets
+   * parents derive views like a most-regressed-functions table
+   * without a second fetch of the same data.
+   */
+  onDataLoaded?: ((root: DiffFlamegraphNode | null) => void) | undefined;
 }
 
-interface DiffFlamegraphNode {
+export interface DiffFlamegraphNode {
   functionName: string;
   fileName: string;
   lineNumber: number;
@@ -152,6 +163,7 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
   props: DiffFlamegraphProps,
 ): ReactElement => {
   const [rootNode, setRootNode] = useState<DiffFlamegraphNode | null>(null);
+  const [isTruncated, setIsTruncated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [zoomStack, setZoomStack] = useState<Array<DiffFlamegraphNode>>([]);
@@ -215,6 +227,21 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
         "diffFlamegraph"
       ] as unknown as DiffFlamegraphNode;
       setRootNode(data);
+      setIsTruncated(Boolean(response.data["truncated"]));
+
+      /*
+       * Hand consumers the merged tree (not the raw one) so anything
+       * they derive agrees frame-for-frame with what this graph
+       * paints. Null signals "nothing to analyse" — either no tree at
+       * all, or a tree with zero weight on both sides (which this
+       * graph renders as its empty state).
+       */
+      if (props.onDataLoaded) {
+        const hasData: boolean = Boolean(
+          data && (data.baselineValue > 0 || data.comparisonValue > 0),
+        );
+        props.onDataLoaded(hasData ? remergeDiffTree(data) : null);
+      }
     } catch (err) {
       if (!isCancelled()) {
         setError(API.getFriendlyMessage(err));
@@ -555,6 +582,20 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
           <span>No meaningful change</span>
         </span>
       </div>
+
+      {isTruncated && (
+        <div className="mb-2 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          <Icon
+            icon={IconProp.Alert}
+            className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-amber-500"
+          />
+          <span>
+            Data is truncated to the largest stacks — the sample limit was hit.
+            Percentages are of the sampled subset, not the full comparison
+            windows.
+          </span>
+        </div>
+      )}
 
       <div
         className="relative w-full overflow-x-auto border border-gray-200 rounded bg-white"

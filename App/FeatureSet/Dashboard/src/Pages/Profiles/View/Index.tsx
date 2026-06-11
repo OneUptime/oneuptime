@@ -3,6 +3,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import React, {
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -13,6 +14,7 @@ import ProfileFlamegraph from "../../../Components/Profiles/ProfileFlamegraph";
 import ProfileFunctionList from "../../../Components/Profiles/ProfileFunctionList";
 import ProfileTypeSelector from "../../../Components/Profiles/ProfileTypeSelector";
 import DiffFlamegraphWithPresets from "../../../Components/Profiles/DiffFlamegraphWithPresets";
+import FunctionFocusPanel from "../../../Components/Profiles/FunctionFocusPanel";
 import ProfileUtil from "../../../Utils/ProfileUtil";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import Profile from "Common/Models/AnalyticsModels/Profile";
@@ -37,6 +39,30 @@ const ProfileViewPage: FunctionComponent<
     string | undefined
   >(undefined);
   const [profile, setProfile] = useState<Profile | null>(null);
+
+  /*
+   * The frame the user asked to focus on (callers & callees view).
+   * Identified by function + file only — line numbers shift on every
+   * deploy, so they are deliberately not part of the identity.
+   */
+  const [focusedFunction, setFocusedFunction] = useState<{
+    functionName: string;
+    fileName: string;
+  } | null>(null);
+
+  const handleFocusFunction: (frame: {
+    functionName: string;
+    fileName: string;
+  }) => void = useCallback(
+    (frame: { functionName: string; fileName: string }): void => {
+      setFocusedFunction(frame);
+    },
+    [],
+  );
+
+  const handleCloseFocus: () => void = useCallback((): void => {
+    setFocusedFunction(null);
+  }, []);
 
   /*
    * Load the profile's metadata so we can show the right unit, the
@@ -154,6 +180,7 @@ const ProfileViewPage: FunctionComponent<
             profileId={profileId}
             profileType={selectedProfileType}
             unit={resolvedUnit}
+            onFocusFunction={handleFocusFunction}
           />
         </div>
       ),
@@ -166,6 +193,7 @@ const ProfileViewPage: FunctionComponent<
             profileId={profileId}
             profileType={selectedProfileType}
             unit={resolvedUnit}
+            onFocusFunction={handleFocusFunction}
           />
         </div>
       ),
@@ -203,6 +231,23 @@ const ProfileViewPage: FunctionComponent<
       </div>
 
       <Tabs tabs={tabs} onTabChange={handleTabChange} />
+
+      {focusedFunction && (
+        /*
+         * Scoped by profileId (times omitted) so the callers/callees
+         * describe this capture specifically — a time-window scope
+         * would mix in samples from other profiles of the same
+         * service and misattribute weight.
+         */
+        <FunctionFocusPanel
+          functionName={focusedFunction.functionName}
+          fileName={focusedFunction.fileName}
+          unit={resolvedUnit}
+          profileId={profileId}
+          profileType={selectedProfileType}
+          onClose={handleCloseFocus}
+        />
+      )}
     </div>
   );
 };

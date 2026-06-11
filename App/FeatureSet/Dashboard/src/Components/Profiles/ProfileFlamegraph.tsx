@@ -25,6 +25,13 @@ export interface ProfileFlamegraphProps {
   profileId: string;
   profileType?: string | undefined;
   unit?: string | undefined;
+  /**
+   * Forwarded to {@link FlamegraphView}; enables the "Callers &
+   * callees" affordance on the zoomed frame.
+   */
+  onFocusFunction?:
+    | ((frame: { functionName: string; fileName: string }) => void)
+    | undefined;
 }
 
 /**
@@ -116,7 +123,14 @@ const ProfileFlamegraph: FunctionComponent<ProfileFlamegraphProps> = (
     );
   }
 
-  return <FlamegraphView root={root} unit={unit} truncated={isTruncated} />;
+  return (
+    <FlamegraphView
+      root={root}
+      unit={unit}
+      truncated={isTruncated}
+      onFocusFunction={props.onFocusFunction}
+    />
+  );
 };
 
 export default ProfileFlamegraph;

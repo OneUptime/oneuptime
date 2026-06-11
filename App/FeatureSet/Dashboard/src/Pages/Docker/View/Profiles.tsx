@@ -92,6 +92,19 @@ const DockerHostProfiles: FunctionComponent<
     return <ErrorMessage message="Host not found." />;
   }
 
+  /*
+   * No aggregate flame graph on this tab (unlike the Service / Host
+   * profile tabs): the flamegraph endpoint scopes rows by
+   * primaryEntityId, but profiles produced on a Docker host rarely
+   * carry the DockerHost row id there — batches with a resolvable
+   * container name are routed to per-container Service rows, and only
+   * the degenerate "container.id with no name" batches land on the
+   * DockerHost id (see OtelIngestBaseService.selectPrimaryEntity).
+   * The table below scopes by the resource.host.name attribute and so
+   * shows the full set; a primaryEntityId-scoped graph would silently
+   * omit most of it. Skip the graph until the endpoint can scope by
+   * attributes / entity keys.
+   */
   return (
     <Fragment>
       <ProfileTable

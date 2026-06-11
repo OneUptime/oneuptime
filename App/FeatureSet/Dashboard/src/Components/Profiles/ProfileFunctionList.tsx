@@ -22,6 +22,15 @@ export interface ProfileFunctionListProps {
   profileId: string;
   profileType?: string | undefined;
   unit?: string | undefined;
+  /**
+   * When provided, every row gets a "Callers & callees" icon button
+   * that calls back with that row's function identity. Line numbers
+   * are deliberately not part of the identity — they shift between
+   * deploys while function + file stay stable.
+   */
+  onFocusFunction?:
+    | ((frame: { functionName: string; fileName: string }) => void)
+    | undefined;
 }
 
 /**
@@ -325,6 +334,27 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
                     <span className="font-mono text-sm text-gray-900 truncate">
                       {row.functionName || "(anonymous)"}
                     </span>
+                    {props.onFocusFunction && (
+                      <button
+                        type="button"
+                        title={`Show callers and callees of ${
+                          row.functionName || "(anonymous)"
+                        }`}
+                        aria-label="Show callers and callees"
+                        className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-gray-300 hover:bg-gray-200 hover:text-gray-700 transition-colors"
+                        onClick={() => {
+                          props.onFocusFunction?.({
+                            functionName: row.functionName,
+                            fileName: row.fileName,
+                          });
+                        }}
+                      >
+                        <Icon
+                          icon={IconProp.ArrowUpDown}
+                          className="h-3.5 w-3.5"
+                        />
+                      </button>
+                    )}
                   </div>
                   {row.fileName && (
                     <div className="text-[11px] text-gray-400 ml-4 font-mono truncate">
