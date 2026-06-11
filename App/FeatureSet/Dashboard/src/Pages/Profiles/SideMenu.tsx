@@ -14,7 +14,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
       items: [
         {
           link: {
-            title: "Find what's slow",
+            title: "Overview",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.PROFILES] as Route,
             ),
@@ -23,7 +23,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
         },
         {
           link: {
-            title: "Browse raw profiles",
+            title: "All profiles",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.PROFILES_INSIGHTS] as Route,
             ),

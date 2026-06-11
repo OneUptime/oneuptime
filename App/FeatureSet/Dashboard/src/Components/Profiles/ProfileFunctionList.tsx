@@ -5,19 +5,16 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import ProfileSample from "Common/Models/AnalyticsModels/ProfileSample";
-import AnalyticsModelAPI, {
-  ListResult,
-} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import ProjectUtil from "Common/UI/Utils/Project";
 import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import ProfileUtil, {
-  ModuleCategory,
-  ParsedStackFrame,
-} from "../../Utils/ProfileUtil";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { APP_API_URL } from "Common/UI/Config";
+import URL from "Common/Types/API/URL";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import { JSONObject } from "Common/Types/JSON";
+import ProfileUtil, { ModuleCategory } from "../../Utils/ProfileUtil";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 
@@ -25,6 +22,28 @@ export interface ProfileFunctionListProps {
   profileId: string;
   profileType?: string | undefined;
   unit?: string | undefined;
+  /**
+   * When provided, every row gets a "Callers & callees" icon button
+   * that calls back with that row's function identity. Line numbers
+   * are deliberately not part of the identity — they shift between
+   * deploys while function + file stay stable.
+   */
+  onFocusFunction?:
+    | ((frame: { functionName: string; fileName: string }) => void)
+    | undefined;
+}
+
+/**
+ * Wire shape of one entry returned by /telemetry/profiles/function-list.
+ * Matches `FunctionListItem` on the server.
+ */
+interface ServerFunctionListItem {
+  functionName: string;
+  fileName: string;
+  selfValue: number;
+  totalValue: number;
+  sampleCount: number;
+  frameType: string;
 }
 
 interface FunctionRow {
@@ -38,50 +57,84 @@ interface FunctionRow {
 
 type RankMode = "self" | "total";
 
+const FUNCTION_LIST_LIMIT: number = 100;
+
 const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
   props: ProfileFunctionListProps,
 ): ReactElement => {
-  const [samples, setSamples] = useState<Array<ProfileSample>>([]);
+  const [functionRows, setFunctionRows] = useState<Array<FunctionRow>>([]);
+  const [windowTotal, setWindowTotal] = useState<number>(0);
+  const [isTruncated, setIsTruncated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [rankMode, setRankMode] = useState<RankMode>("self");
   const [onlyOwnCode, setOnlyOwnCode] = useState<boolean>(false);
   const [search, setSearch] = useState<string>("");
 
+  /*
+   * The selector pill stores either a category (e.g. "cpu") or a raw
+   * type — expand it to the raw type strings agents actually emit so
+   * the server filters with IN (...) instead of a literal equality
+   * that would miss rows.
+   */
+  const queryProfileTypes: Array<string> | undefined =
+    ProfileUtil.getQueryProfileTypes(props.profileType);
+
   const unit: string =
     props.unit ||
-    (props.profileType
-      ? ProfileUtil.getProfileTypeUnit(props.profileType)
+    (queryProfileTypes && queryProfileTypes.length > 0
+      ? ProfileUtil.getProfileTypeUnit(queryProfileTypes[0]!)
       : "nanoseconds");
 
-  const loadSamples: () => Promise<void> = async (): Promise<void> => {
+  const loadFunctions: () => Promise<void> = async (): Promise<void> => {
     try {
       setIsLoading(true);
       setError("");
 
-      const result: ListResult<ProfileSample> = await AnalyticsModelAPI.getList(
-        {
-          modelType: ProfileSample,
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
+      /*
+       * The server aggregates over every sample in the profile and
+       * ranks before applying the limit — so the top-N is exact, which
+       * a client-side aggregation of a capped raw-sample fetch can
+       * never guarantee.
+       */
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            "/telemetry/profiles/function-list",
+          ),
+          data: {
             profileId: props.profileId,
-            ...(props.profileType ? { profileType: props.profileType } : {}),
+            profileTypes: queryProfileTypes,
+            limit: FUNCTION_LIST_LIMIT,
+            sortBy: rankMode === "total" ? "totalValue" : "selfValue",
           },
-          select: {
-            stacktrace: true,
-            frameTypes: true,
-            value: true,
-            profileType: true,
+          headers: {
+            ...ModelAPI.getCommonHeaders(),
           },
-          limit: 10000,
-          skip: 0,
-          sort: {
-            value: SortOrder.Descending,
-          },
-        },
-      );
+        });
 
-      setSamples(result.data || []);
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
+      }
+
+      const items: Array<ServerFunctionListItem> = (response.data[
+        "functions"
+      ] || []) as unknown as Array<ServerFunctionListItem>;
+
+      setFunctionRows(
+        items.map((item: ServerFunctionListItem): FunctionRow => {
+          return {
+            functionName: item.functionName || "",
+            fileName: item.fileName || "",
+            category: ProfileUtil.getModuleCategory(item.fileName || ""),
+            selfValue: Number(item.selfValue || 0),
+            totalValue: Number(item.totalValue || 0),
+            sampleCount: Number(item.sampleCount || 0),
+          };
+        }),
+      );
+      setWindowTotal(Number(response.data["windowTotal"] || 0));
+      setIsTruncated(Boolean(response.data["truncated"]));
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     } finally {
@@ -90,60 +143,8 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
   };
 
   useEffect(() => {
-    void loadSamples();
-  }, [props.profileId, props.profileType]);
-
-  const functionRows: Array<FunctionRow> = useMemo(() => {
-    const functionMap: Map<string, FunctionRow> = new Map();
-
-    for (const sample of samples) {
-      const stacktrace: Array<string> = sample.stacktrace || [];
-      const value: number = sample.value || 0;
-
-      const seenInThisSample: Set<string> = new Set<string>();
-
-      for (let i: number = 0; i < stacktrace.length; i++) {
-        const frame: string = stacktrace[i]!;
-        const parsed: ParsedStackFrame = ProfileUtil.parseStackFrame(frame);
-        const key: string = `${parsed.functionName}@${parsed.fileName}`;
-
-        let entry: FunctionRow | undefined = functionMap.get(key);
-
-        if (!entry) {
-          entry = {
-            functionName: parsed.functionName,
-            fileName: parsed.fileName,
-            category: ProfileUtil.getModuleCategory(parsed.fileName),
-            selfValue: 0,
-            totalValue: 0,
-            sampleCount: 0,
-          };
-          functionMap.set(key, entry);
-        }
-
-        if (!seenInThisSample.has(key)) {
-          entry.totalValue += value;
-          entry.sampleCount += 1;
-          seenInThisSample.add(key);
-        }
-
-        if (i === stacktrace.length - 1) {
-          entry.selfValue += value;
-        }
-      }
-    }
-
-    return Array.from(functionMap.values());
-  }, [samples]);
-
-  const totalValue: number = useMemo(() => {
-    // Sum of all self values = total cost of the profile.
-    let t: number = 0;
-    for (const row of functionRows) {
-      t += row.selfValue;
-    }
-    return t;
-  }, [functionRows]);
+    void loadFunctions();
+  }, [props.profileId, props.profileType, rankMode]);
 
   const displayedRows: Array<FunctionRow> = useMemo(() => {
     let rows: Array<FunctionRow> = [...functionRows];
@@ -164,15 +165,8 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
       });
     }
 
-    rows.sort((a: FunctionRow, b: FunctionRow) => {
-      if (rankMode === "total") {
-        return b.totalValue - a.totalValue;
-      }
-      return b.selfValue - a.selfValue;
-    });
-
-    return rows.slice(0, 100);
-  }, [functionRows, onlyOwnCode, search, rankMode]);
+    return rows;
+  }, [functionRows, onlyOwnCode, search]);
 
   const topValue: number = displayedRows[0]
     ? rankMode === "total"
@@ -189,13 +183,13 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
       <ErrorMessage
         message={error}
         onRefreshClick={() => {
-          void loadSamples();
+          void loadFunctions();
         }}
       />
     );
   }
 
-  if (samples.length === 0) {
+  if (functionRows.length === 0) {
     return (
       <div className="p-8 text-center text-gray-500 text-sm">
         No performance data in this profile yet.
@@ -221,6 +215,20 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
           </div>
         </div>
       </div>
+
+      {isTruncated && (
+        <div className="mb-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          <Icon
+            icon={IconProp.Alert}
+            className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-amber-500"
+          />
+          <span>
+            Data is truncated to the largest stacks — the sample limit was hit.
+            Per-function values may undercount; percentages are of the full
+            window.
+          </span>
+        </div>
+      )}
 
       {/* Toolbar */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -284,15 +292,11 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
 
       {/* Rows */}
       <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-        <div className="grid grid-cols-[2.5rem_1fr_9rem_7rem] px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-gray-500 bg-gray-50 border-b border-gray-200">
+        <div className="grid grid-cols-[2.5rem_1fr_9rem_8rem] px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-gray-500 bg-gray-50 border-b border-gray-200">
           <div>#</div>
           <div>Function</div>
-          <div className="text-right">
-            {rankMode === "self" ? "Self" : "Total"}
-          </div>
-          <div className="text-right">
-            {rankMode === "self" ? "Total" : "Self"}
-          </div>
+          <div className="text-right">Self</div>
+          <div className="text-right">Total</div>
         </div>
 
         {displayedRows.length === 0 ? (
@@ -302,13 +306,11 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
         ) : (
           displayedRows.map((row: FunctionRow, index: number) => {
             const primary: number =
-              rankMode === "self" ? row.selfValue : row.totalValue;
-            const secondary: number =
-              rankMode === "self" ? row.totalValue : row.selfValue;
+              rankMode === "total" ? row.totalValue : row.selfValue;
             const barPct: number =
               topValue > 0 ? (primary / topValue) * 100 : 0;
-            const sharePct: number =
-              totalValue > 0 ? (row.selfValue / totalValue) * 100 : 0;
+            const selfSharePct: number =
+              windowTotal > 0 ? (row.selfValue / windowTotal) * 100 : 0;
             const style: { bg: string } = ProfileUtil.getModuleFrameStyle(
               row.category,
               0.7,
@@ -317,7 +319,7 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
             return (
               <div
                 key={`${row.functionName}-${row.fileName}-${index}`}
-                className="grid grid-cols-[2.5rem_1fr_9rem_7rem] px-4 py-2.5 items-center border-t border-gray-100 hover:bg-gray-50/60 transition-colors"
+                className="grid grid-cols-[2.5rem_1fr_9rem_8rem] px-4 py-2.5 items-center border-t border-gray-100 hover:bg-gray-50/60 transition-colors"
               >
                 <div className="text-xs font-mono text-gray-400">
                   {index + 1}
@@ -332,6 +334,27 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
                     <span className="font-mono text-sm text-gray-900 truncate">
                       {row.functionName || "(anonymous)"}
                     </span>
+                    {props.onFocusFunction && (
+                      <button
+                        type="button"
+                        title={`Show callers and callees of ${
+                          row.functionName || "(anonymous)"
+                        }`}
+                        aria-label="Show callers and callees"
+                        className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-gray-300 hover:bg-gray-200 hover:text-gray-700 transition-colors"
+                        onClick={() => {
+                          props.onFocusFunction?.({
+                            functionName: row.functionName,
+                            fileName: row.fileName,
+                          });
+                        }}
+                      >
+                        <Icon
+                          icon={IconProp.ArrowUpDown}
+                          className="h-3.5 w-3.5"
+                        />
+                      </button>
+                    )}
                   </div>
                   {row.fileName && (
                     <div className="text-[11px] text-gray-400 ml-4 font-mono truncate">
@@ -350,18 +373,19 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
 
                 <div className="text-right">
                   <div className="text-sm font-mono font-semibold text-gray-900">
-                    {ProfileUtil.formatProfileValue(primary, unit)}
+                    {ProfileUtil.formatProfileValue(row.selfValue, unit)}
                   </div>
                   <div className="text-[11px] text-gray-400">
-                    {rankMode === "self"
-                      ? `${ProfileUtil.formatPercent(sharePct)} of total`
-                      : `${row.sampleCount.toLocaleString()} samples`}
+                    {ProfileUtil.formatPercent(selfSharePct)} of total
                   </div>
                 </div>
 
                 <div className="text-right">
                   <div className="text-sm font-mono text-gray-700">
-                    {ProfileUtil.formatProfileValue(secondary, unit)}
+                    {ProfileUtil.formatProfileValue(row.totalValue, unit)}
+                  </div>
+                  <div className="text-[11px] text-gray-400">
+                    {row.sampleCount.toLocaleString()} samples
                   </div>
                 </div>
               </div>

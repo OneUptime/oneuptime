@@ -164,6 +164,20 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
     req: ExpressRequest,
   ): Promise<void> {
     try {
+      /*
+       * An empty body means the queued payload was lost (the Redis body
+       * key expired or was already consumed) — there is nothing to
+       * ingest and never will be, so skip instead of throwing into a
+       * pointless BullMQ retry loop. Matches the logs/traces/metrics
+       * services' handling of the same condition.
+       */
+      if (Object.keys(req.body as JSONObject).length === 0) {
+        logger.debug(
+          "Profiles ingest: empty body (queued payload expired or already consumed) — skipping.",
+        );
+        return;
+      }
+
       const resourceProfiles: JSONArray = req.body[
         "resourceProfiles"
       ] as JSONArray;
@@ -433,14 +447,31 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
 
                   const stringTable: Array<string> = profile.stringTable;
 
+                  /*
+                   * pprof profiles routinely carry several parallel
+                   * sample types (Go CPU: [samples/count,
+                   * cpu/nanoseconds]; heap: [alloc_objects, alloc_space,
+                   * inuse_objects, inuse_space]). Pick the canonical one
+                   * once and use that index for BOTH the profile
+                   * metadata and every sample's value — mixing index 0
+                   * metadata with index-0 values made Go CPU profiles
+                   * report raw sample counts labelled as "samples"
+                   * instead of cpu time.
+                   */
                   const sampleTypes: JSONArray = profile.sampleType;
+                  const canonicalSampleTypeIndex: number =
+                    this.selectCanonicalSampleTypeIndex(
+                      sampleTypes,
+                      stringTable,
+                    );
                   if (sampleTypes.length > 0) {
-                    const firstSampleType: JSONObject =
-                      sampleTypes[0] as JSONObject;
+                    const canonicalSampleType: JSONObject = sampleTypes[
+                      canonicalSampleTypeIndex
+                    ] as JSONObject;
                     const typeIndex: number =
-                      (firstSampleType["type"] as number) || 0;
+                      (canonicalSampleType["type"] as number) || 0;
                     const unitIndex: number =
-                      (firstSampleType["unit"] as number) || 0;
+                      (canonicalSampleType["unit"] as number) || 0;
 
                     if (stringTable[typeIndex]) {
                       profileType = stringTable[typeIndex]!;
@@ -563,11 +594,21 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                        */
                       let sampleValue: number = 0;
                       if (values.length > 0) {
-                        const first: number | string = values[0]!;
+                        /*
+                         * `values` is parallel to `sample_type`; read the
+                         * canonical index so the value matches the
+                         * profileType/unit recorded on the profile row.
+                         * Defensive fallback to index 0 for producers
+                         * that emit fewer values than sample types.
+                         */
+                        const canonicalValue: number | string =
+                          values.length > canonicalSampleTypeIndex
+                            ? values[canonicalSampleTypeIndex]!
+                            : values[0]!;
                         sampleValue =
-                          typeof first === "string"
-                            ? parseInt(first, 10) || 0
-                            : Number(first) || 0;
+                          typeof canonicalValue === "string"
+                            ? parseInt(canonicalValue, 10) || 0
+                            : Number(canonicalValue) || 0;
                       } else if (timestamps.length > 0) {
                         sampleValue = timestamps.length;
                       } else {
@@ -791,6 +832,61 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
     }
   }
 
+  /**
+   * Choose which entry of a multi-valued pprof `sample_type` array is
+   * the one worth charting. Preference order by (type, unit):
+   * cpu/nanoseconds (Go CPU profiles put it at index 1, after
+   * samples/count), then wall time, then inuse_space/bytes (live heap),
+   * then alloc_space/bytes, then the first available entry. The
+   * v1development OTLP schema normalises to a single sample type, so
+   * this only does work for multi-type pprof-derived payloads.
+   */
+  private static selectCanonicalSampleTypeIndex(
+    sampleTypes: JSONArray,
+    stringTable: Array<string>,
+  ): number {
+    if (sampleTypes.length <= 1) {
+      return 0;
+    }
+
+    const resolved: Array<{ type: string; unit: string }> = sampleTypes.map(
+      (st: JSONObject): { type: string; unit: string } => {
+        const obj: JSONObject = st || {};
+        const typeIndex: number = (obj["type"] as number) || 0;
+        const unitIndex: number = (obj["unit"] as number) || 0;
+        return {
+          type: (stringTable[typeIndex] || "").toLowerCase(),
+          unit: (stringTable[unitIndex] || "").toLowerCase(),
+        };
+      },
+    );
+
+    const preferences: Array<(st: { type: string; unit: string }) => boolean> =
+      [
+        (st: { type: string; unit: string }): boolean => {
+          return st.type === "cpu" && st.unit === "nanoseconds";
+        },
+        (st: { type: string; unit: string }): boolean => {
+          return st.type === "wall";
+        },
+        (st: { type: string; unit: string }): boolean => {
+          return st.type === "inuse_space" && st.unit === "bytes";
+        },
+        (st: { type: string; unit: string }): boolean => {
+          return st.type === "alloc_space" && st.unit === "bytes";
+        },
+      ];
+
+    for (const matches of preferences) {
+      const index: number = resolved.findIndex(matches);
+      if (index >= 0) {
+        return index;
+      }
+    }
+
+    return 0;
+  }
+
   private static resolveStackFrames(data: {
     sample: JSONObject;
     stackTable: JSONArray;
@@ -937,12 +1033,19 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
 
           lineNumber = (line["line"] as number) || 0;
 
+          /*
+           * Stored shapes: 'fn@file:line', 'fn@file', or bare 'fn'.
+           * The line suffix rides only on a fileName: parseFrame treats
+           * any '@'-less token entirely as the function name, so a
+           * file-less 'fn:line' would bake the line number into the
+           * function's identity and break deploy-stable matching.
+           */
           let frame: string = functionName;
           if (fileName) {
             frame += `@${fileName}`;
-          }
-          if (lineNumber > 0) {
-            frame += `:${lineNumber}`;
+            if (lineNumber > 0) {
+              frame += `:${lineNumber}`;
+            }
           }
 
           frames.push(frame);
@@ -1422,15 +1525,13 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
     return "";
   }
 
+  /*
+   * OTLP/JSON sends ids (trace/span and the 16-byte profile id) as hex
+   * strings, OTLP/protobuf as base64 — Text.convertOtlpIdToHex tells
+   * them apart so hex ids are never base64-decoded into garbage, which
+   * silently broke trace<->profile correlation.
+   */
   private static convertBase64ToHexSafe(value: string | undefined): string {
-    if (!value) {
-      return "";
-    }
-
-    try {
-      return Text.convertBase64ToHex(value);
-    } catch {
-      return "";
-    }
+    return Text.convertOtlpIdToHex(value);
   }
 }

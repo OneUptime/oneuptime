@@ -106,7 +106,14 @@ export class MonitorTypeHelper {
           MonitorType.Metrics,
           MonitorType.Traces,
           MonitorType.Exceptions,
-          MonitorType.Profiles,
+          /*
+           * MonitorType.Profiles is intentionally not offered here: the
+           * dashboard has no configuration form for the profile monitor
+           * step, so a Profiles monitor created from this picker would have
+           * no profileMonitor config and could never evaluate. Existing
+           * Profiles monitors keep working — the enum value, its props in
+           * getAllMonitorTypeProps, and worker-side evaluation all remain.
+           */
         ],
       },
       {
