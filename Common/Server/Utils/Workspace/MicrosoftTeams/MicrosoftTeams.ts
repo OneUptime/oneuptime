@@ -56,6 +56,8 @@ import AlertStateService from "../../../Services/AlertStateService";
 // Import user services
 import User from "../../../../Models/DatabaseModels/User";
 import UserService from "../../../Services/UserService";
+import WorkspaceUserAuthToken from "../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
+import WorkspaceUserAuthTokenService from "../../../Services/WorkspaceUserAuthTokenService";
 
 // Import database utilities
 import QueryHelper from "../../../Types/Database/QueryHelper";
@@ -3215,7 +3217,7 @@ All monitoring checks are passing normally.`;
     }
   }
 
-  // Method to get user's joined teams using app-scoped token
+  // Method to get user's joined teams, preferring user-scoped delegated token
   @CaptureSpan()
   public static async getUserJoinedTeams(data: {
     userId: ObjectID;
@@ -3225,11 +3227,44 @@ All monitoring checks are passing normally.`;
       projectId: data.projectId.toString(),
       userId: data.userId.toString(),
     });
-    logger.debug(`User ID: ${data.userId.toString()}`);
-    logger.debug(`Project ID: ${data.projectId.toString()}`);
 
     try {
-      // Fetch user email from UserService
+      // Prefer user-scoped delegated token so we only need Team.ReadBasic.All delegated permission
+      const userAuth: WorkspaceUserAuthToken | null =
+        await WorkspaceUserAuthTokenService.getUserAuth({
+          projectId: data.projectId,
+          userId: data.userId,
+          workspaceType: WorkspaceType.MicrosoftTeams,
+        });
+
+      if (userAuth?.authToken) {
+        logger.debug(
+          "Using user-scoped delegated token to fetch joined teams via /me/joinedTeams",
+        );
+        const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
+          await API.get<JSONObject>({
+            url: URL.fromString(
+              "https://graph.microsoft.com/v1.0/me/joinedTeams",
+            ),
+            headers: {
+              Authorization: `Bearer ${userAuth.authToken}`,
+            },
+          });
+
+        if (teamsResponse instanceof HTTPErrorResponse) {
+          logger.warn(
+            "User-scoped token request failed, will fall back to app token:",
+          );
+          logger.warn(teamsResponse);
+        } else {
+          const teams: Array<JSONObject> =
+            (teamsResponse.data["value"] as Array<JSONObject>) || [];
+          logger.debug(`Fetched ${teams.length} joined teams via user scope`);
+          return teams;
+        }
+      }
+
+      // Fall back to app-scoped token with users/{email}/joinedTeams
       const user: User | null = await UserService.findOneById({
         id: data.userId,
         select: {
@@ -3240,23 +3275,20 @@ All monitoring checks are passing normally.`;
         },
       });
       if (!user || !user.email) {
-        logger.error("User or user email not found");
         throw new BadDataException(
           "User email not found for Microsoft Teams integration",
         );
       }
       const userEmail: string = user.email.toString();
-      logger.debug(`Retrieved user email: ${userEmail}`);
 
-      // Get a valid app access token (refreshed if needed)
-      logger.debug("Refreshing app access token before fetching teams");
+      logger.debug(
+        "Falling back to app-scoped token for users/{email}/joinedTeams",
+      );
       const accessToken: string = await this.getValidAccessToken({
-        authToken: "", // Not needed for app token refresh
+        authToken: "",
         projectId: data.projectId,
       });
-      logger.debug("App access token refreshed successfully");
 
-      // Get user's teams using app-scoped token
       const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
         await API.get<JSONObject>({
           url: URL.fromString(
@@ -3273,12 +3305,11 @@ All monitoring checks are passing normally.`;
         throw teamsResponse;
       }
 
-      const teamsData: JSONObject = teamsResponse.data;
       const teams: Array<JSONObject> =
-        (teamsData["value"] as Array<JSONObject>) || [];
-
-      logger.debug(`Fetched ${teams.length} joined teams`);
-
+        (teamsResponse.data["value"] as Array<JSONObject>) || [];
+      logger.debug(
+        `Fetched ${teams.length} joined teams via app-scoped fallback`,
+      );
       return teams;
     } catch (error) {
       logger.error("Error getting user joined teams:", {
