@@ -42,7 +42,7 @@ export default class DnsMonitorCriteria {
         });
 
         if (Array.isArray(overTimeValue) && overTimeValue.length === 0) {
-          overTimeValue = undefined;
+          return null;
         }
       } catch (err) {
         logger.error(
