@@ -1,6 +1,7 @@
 import TraceAggregationService, {
   FacetRequest,
   HistogramRequest,
+  TraceAnalyticsRequest,
 } from "../../../Server/Services/TraceAggregationService";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import ObjectID from "../../../Types/ObjectID";
@@ -204,5 +205,168 @@ describe("TraceAggregationService", () => {
     expect(statement.query).toContain(" AND name ILIKE ");
     expect(statement.query).toContain(" AND hasException = 1");
     expect(paramValues(statement)).toContain("%ShipShipment%");
+  });
+
+  test("attributeSearches compiles to case-insensitive-key contains match", () => {
+    const statement: Statement = buildHistogramStatement({
+      attributeSearches: { "url.host": "starship.online" },
+    });
+
+    expect(statement.query).toContain(
+      "arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(",
+    );
+    expect(statement.query).toContain(") AND v ILIKE ");
+    expect(paramValues(statement)).toContain("url.host");
+    expect(paramValues(statement)).toContain("%starship.online%");
+  });
+
+  test("attributeSearches rejects malicious keys and skips blank values", () => {
+    expect(() => {
+      buildHistogramStatement({
+        attributeSearches: { "x') OR 1=1 --": "v" },
+      });
+    }).toThrow("Invalid facetKey");
+
+    const statement: Statement = buildHistogramStatement({
+      attributeSearches: { "url.host": "   " },
+    });
+    expect(statement.query).not.toContain("ILIKE");
+  });
+
+  describe("analytics builders", () => {
+    const analyticsRequest: TraceAnalyticsRequest = {
+      projectId: defaultRequest.projectId,
+      startTime: defaultRequest.startTime,
+      endTime: defaultRequest.endTime,
+      bucketSizeInMinutes: 5,
+      chartType: "timeseries",
+      metric: "p50Duration",
+    };
+
+    test("timeseries groups by an attribute dimension with sanitized alias", () => {
+      const statement: Statement = (
+        TraceAggregationService as any
+      ).buildAnalyticsTimeseriesStatement({
+        ...analyticsRequest,
+        groupBy: ["url.host"],
+      });
+
+      const query: string = normalizedQuery(statement);
+      expect(query).toContain(
+        "quantile(0.5)(durationUnixNano) / 1000000 AS val",
+      );
+      // The alias binds as an Identifier param (same as the logs builder).
+      expect(query).toMatch(
+        /attributes\[\{p\d+:String\}\] AS \{p\d+:Identifier\}/,
+      );
+      expect(query).toContain("mapContains(attributes, ");
+      expect(query).toContain(" GROUP BY bucket, attr_url_host");
+      expect(paramValues(statement)).toContain("url.host");
+      expect(paramValues(statement)).toContain("attr_url_host");
+    });
+
+    test("timeseries caps series to pre-resolved top dimension values", () => {
+      const statement: Statement = (
+        TraceAggregationService as any
+      ).buildAnalyticsTimeseriesStatement(
+        {
+          ...analyticsRequest,
+          groupBy: ["url.host"],
+        },
+        ["torginol.starship.online", "daymotorsports.starship.online"],
+      );
+
+      const query: string = normalizedQuery(statement);
+      expect(query).toMatch(/attributes\[\{p\d+:String\}\] IN \(/);
+      expect(paramValues(statement)).toContainEqual([
+        "torginol.starship.online",
+        "daymotorsports.starship.online",
+      ]);
+    });
+
+    test("timeseries groups by a top-level column without parameterization", () => {
+      const statement: Statement = (
+        TraceAggregationService as any
+      ).buildAnalyticsTimeseriesStatement({
+        ...analyticsRequest,
+        metric: "count",
+        groupBy: ["name"],
+      });
+
+      const query: string = normalizedQuery(statement);
+      expect(query).toContain("count() AS val");
+      expect(query).toContain(", toString(name) AS name");
+      expect(query).toContain(" GROUP BY bucket, name");
+    });
+
+    test("top list ranks by the selected metric and returns counts", () => {
+      const statement: Statement = (
+        TraceAggregationService as any
+      ).buildAnalyticsTopListStatement({
+        ...analyticsRequest,
+        metric: "errorCount",
+        groupBy: ["url.host"],
+        limit: 25,
+      });
+
+      const query: string = normalizedQuery(statement);
+      expect(query).toContain("countIf(statusCode = 2) AS val");
+      expect(query).toContain("count() AS cnt");
+      expect(query).toContain(" GROUP BY dim ORDER BY val DESC LIMIT ");
+      expect(paramValues(statement)).toContain(25);
+    });
+
+    test("table returns the full duration stat set per dimension", () => {
+      const statement: Statement = (
+        TraceAggregationService as any
+      ).buildAnalyticsTableStatement({
+        ...analyticsRequest,
+        chartType: "table",
+        groupBy: ["url.host"],
+        spanNames: ["/Shipment/ShipShipment"],
+      });
+
+      const query: string = normalizedQuery(statement);
+      expect(query).toContain("count() AS cnt");
+      expect(query).toContain("avg(durationUnixNano) / 1000000 AS avg_ms");
+      expect(query).toContain(
+        "quantile(0.5)(durationUnixNano) / 1000000 AS p50_ms",
+      );
+      expect(query).toContain("min(durationUnixNano) / 1000000 AS min_ms");
+      expect(query).toContain("max(durationUnixNano) / 1000000 AS max_ms");
+      expect(query).toContain(" AND name IN (");
+      expect(query).toContain(" GROUP BY attr_url_host ORDER BY cnt DESC");
+    });
+
+    test("group-by rejects malicious dimension keys and >2 dimensions", () => {
+      expect(() => {
+        (TraceAggregationService as any).buildAnalyticsTimeseriesStatement({
+          ...analyticsRequest,
+          groupBy: ["x') AS v FROM system.tables --"],
+        });
+      }).toThrow("Invalid facetKey");
+
+      expect(() => {
+        (TraceAggregationService as any).buildAnalyticsTimeseriesStatement({
+          ...analyticsRequest,
+          groupBy: ["name", "kind", "statusCode"],
+        });
+      }).toThrow("groupBy supports at most 2 dimensions");
+    });
+
+    test("metric validation", () => {
+      expect(TraceAggregationService.isValidAnalyticsMetric("count")).toBe(
+        true,
+      );
+      expect(
+        TraceAggregationService.isValidAnalyticsMetric("p95Duration"),
+      ).toBe(true);
+      expect(
+        TraceAggregationService.isValidAnalyticsMetric("drop table"),
+      ).toBe(false);
+      expect(
+        TraceAggregationService.isValidAnalyticsMetric("__proto__"),
+      ).toBe(false);
+    });
   });
 });

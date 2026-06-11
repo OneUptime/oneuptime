@@ -29,6 +29,12 @@ import TraceAggregationService, {
   HistogramRequest as TraceHistogramRequest,
   FacetValue as TraceFacetValue,
   MultiFacetRequest as TraceMultiFacetRequest,
+  TraceFilters,
+  TraceAnalyticsChartType,
+  TraceAnalyticsRequest,
+  TraceAnalyticsTimeseriesRow,
+  TraceAnalyticsTopItem,
+  TraceAnalyticsTableRow,
 } from "../Services/TraceAggregationService";
 import ExceptionAggregationService, {
   HistogramBucket as ExceptionHistogramBucket,
@@ -596,6 +602,115 @@ router.post(
   },
 );
 
+/*
+ * Shared body parsing for every trace aggregation endpoint (histogram,
+ * facets, analytics). Defensive about shapes: arrays are validated and
+ * filtered to strings, booleans/numbers use strict typeof checks (JSON null
+ * or a stringly-typed value must mean "no filter", never an active
+ * predicate).
+ */
+function parseTraceFilterBody(body: JSONObject): TraceFilters {
+  const serviceIds: Array<ObjectID> | undefined = Array.isArray(
+    body["serviceIds"],
+  )
+    ? (body["serviceIds"] as Array<unknown>)
+        .filter((v: unknown): v is string => {
+          return typeof v === "string";
+        })
+        .map((id: string) => {
+          return new ObjectID(id);
+        })
+    : undefined;
+
+  const stringArray: (key: string) => Array<string> | undefined = (
+    key: string,
+  ): Array<string> | undefined => {
+    return Array.isArray(body[key])
+      ? (body[key] as Array<unknown>).filter((v: unknown): v is string => {
+          return typeof v === "string";
+        })
+      : undefined;
+  };
+
+  const statusCodes: Array<number> | undefined = Array.isArray(
+    body["statusCodes"],
+  )
+    ? (body["statusCodes"] as Array<unknown>).filter(
+        (v: unknown): v is number => {
+          return typeof v === "number";
+        },
+      )
+    : undefined;
+
+  const stringRecord: (key: string) => Record<string, string> | undefined = (
+    key: string,
+  ): Record<string, string> | undefined => {
+    const raw: unknown = body[key];
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      return undefined;
+    }
+    const entries: Array<[string, string]> = Object.entries(
+      raw as Record<string, unknown>,
+    ).filter((entry: [string, unknown]): entry is [string, string] => {
+      return typeof entry[1] === "string";
+    });
+    if (entries.length === 0) {
+      return undefined;
+    }
+    return Object.fromEntries(entries);
+  };
+
+  return {
+    serviceIds,
+    entityKeys: stringArray("entityKeys"),
+    statusCodes,
+    spanKinds: stringArray("spanKinds"),
+    spanNames: stringArray("spanNames"),
+    /*
+     * spanNameSearches is the only multiplicative filter (one ILIKE
+     * predicate per entry) — cap it. The dashboard sends at most one.
+     */
+    spanNameSearches: stringArray("spanNameSearches")?.slice(0, 10),
+    spanIds: stringArray("spanIds"),
+    traceIds: stringArray("traceIds"),
+    nameSearchText:
+      typeof body["nameSearchText"] === "string" && body["nameSearchText"]
+        ? (body["nameSearchText"] as string)
+        : undefined,
+    statusMessageSearchText:
+      typeof body["statusMessageSearchText"] === "string" &&
+      body["statusMessageSearchText"]
+        ? (body["statusMessageSearchText"] as string)
+        : undefined,
+    statusMessages: stringArray("statusMessages"),
+    /*
+     * Strict boolean check — unlike rootOnly, a coerced `false` is a
+     * meaningful predicate here (JSON null must mean "no filter", not
+     * "exclude exception spans").
+     */
+    hasException:
+      typeof body["hasException"] === "boolean"
+        ? (body["hasException"] as boolean)
+        : undefined,
+    minDurationNano:
+      typeof body["minDurationNano"] === "number"
+        ? (body["minDurationNano"] as number)
+        : undefined,
+    maxDurationNano:
+      typeof body["maxDurationNano"] === "number"
+        ? (body["maxDurationNano"] as number)
+        : undefined,
+    exactDurationNano:
+      typeof body["exactDurationNano"] === "number"
+        ? (body["exactDurationNano"] as number)
+        : undefined,
+    rootOnly:
+      body["rootOnly"] === undefined ? undefined : Boolean(body["rootOnly"]),
+    attributes: stringRecord("attributes"),
+    attributeSearches: stringRecord("attributeSearches"),
+  };
+}
+
 // --- Trace Histogram Endpoint ---
 
 router.post(
@@ -632,129 +747,14 @@ router.post(
         (body["bucketSizeInMinutes"] as number) ||
         computeDefaultBucketSize(startTime, endTime);
 
-      const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
-        ? (body["serviceIds"] as Array<string>).map((id: string) => {
-            return new ObjectID(id);
-          })
-        : undefined;
-
-      const entityKeys: Array<string> | undefined = body["entityKeys"]
-        ? (body["entityKeys"] as Array<string>)
-        : undefined;
-
-      const statusCodes: Array<number> | undefined = body["statusCodes"]
-        ? (body["statusCodes"] as Array<number>)
-        : undefined;
-
-      const spanKinds: Array<string> | undefined = body["spanKinds"]
-        ? (body["spanKinds"] as Array<string>)
-        : undefined;
-
-      const spanNames: Array<string> | undefined = body["spanNames"]
-        ? (body["spanNames"] as Array<string>)
-        : undefined;
-
-      const traceIds: Array<string> | undefined = body["traceIds"]
-        ? (body["traceIds"] as Array<string>)
-        : undefined;
-
-      const nameSearchText: string | undefined = body["nameSearchText"]
-        ? (body["nameSearchText"] as string)
-        : undefined;
-
-      /*
-       * spanNameSearches is the only multiplicative filter (one ILIKE
-       * predicate per entry) — validate the shape (a plain string would
-       * iterate per character) and cap it. The dashboard sends at most one.
-       */
-      const spanNameSearches: Array<string> | undefined = Array.isArray(
-        body["spanNameSearches"],
-      )
-        ? (body["spanNameSearches"] as Array<unknown>)
-            .filter((v: unknown): v is string => {
-              return typeof v === "string";
-            })
-            .slice(0, 10)
-        : undefined;
-
-      const spanIds: Array<string> | undefined = Array.isArray(body["spanIds"])
-        ? (body["spanIds"] as Array<unknown>).filter(
-            (v: unknown): v is string => {
-              return typeof v === "string";
-            },
-          )
-        : undefined;
-
-      const statusMessageSearchText: string | undefined =
-        typeof body["statusMessageSearchText"] === "string" &&
-        body["statusMessageSearchText"]
-          ? (body["statusMessageSearchText"] as string)
-          : undefined;
-
-      const statusMessages: Array<string> | undefined = Array.isArray(
-        body["statusMessages"],
-      )
-        ? (body["statusMessages"] as Array<unknown>).filter(
-            (v: unknown): v is string => {
-              return typeof v === "string";
-            },
-          )
-        : undefined;
-
-      /*
-       * Strict boolean check — unlike rootOnly, a coerced `false` is a
-       * meaningful predicate here (JSON null must mean "no filter", not
-       * "exclude exception spans").
-       */
-      const hasException: boolean | undefined =
-        typeof body["hasException"] === "boolean"
-          ? (body["hasException"] as boolean)
-          : undefined;
-
-      const minDurationNano: number | undefined =
-        typeof body["minDurationNano"] === "number"
-          ? (body["minDurationNano"] as number)
-          : undefined;
-
-      const maxDurationNano: number | undefined =
-        typeof body["maxDurationNano"] === "number"
-          ? (body["maxDurationNano"] as number)
-          : undefined;
-
-      const exactDurationNano: number | undefined =
-        typeof body["exactDurationNano"] === "number"
-          ? (body["exactDurationNano"] as number)
-          : undefined;
-
-      const rootOnly: boolean | undefined =
-        body["rootOnly"] === undefined ? undefined : Boolean(body["rootOnly"]);
-
-      const attributes: Record<string, string> | undefined = body["attributes"]
-        ? (body["attributes"] as Record<string, string>)
-        : undefined;
+      const traceFilters: TraceFilters = parseTraceFilterBody(body);
 
       const request: TraceHistogramRequest = {
         projectId: databaseProps.tenantId,
         startTime,
         endTime,
         bucketSizeInMinutes,
-        serviceIds,
-        entityKeys,
-        statusCodes,
-        spanKinds,
-        spanNames,
-        spanNameSearches,
-        spanIds,
-        traceIds,
-        nameSearchText,
-        statusMessageSearchText,
-        statusMessages,
-        hasException,
-        minDurationNano,
-        maxDurationNano,
-        exactDurationNano,
-        rootOnly,
-        attributes,
+        ...traceFilters,
       };
 
       const buckets: Array<TraceHistogramBucket> =
@@ -807,106 +807,7 @@ router.post(
 
       const limit: number = (body["limit"] as number) || 500;
 
-      const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
-        ? (body["serviceIds"] as Array<string>).map((id: string) => {
-            return new ObjectID(id);
-          })
-        : undefined;
-
-      const entityKeys: Array<string> | undefined = body["entityKeys"]
-        ? (body["entityKeys"] as Array<string>)
-        : undefined;
-
-      const statusCodes: Array<number> | undefined = body["statusCodes"]
-        ? (body["statusCodes"] as Array<number>)
-        : undefined;
-
-      const spanKinds: Array<string> | undefined = body["spanKinds"]
-        ? (body["spanKinds"] as Array<string>)
-        : undefined;
-
-      const spanNames: Array<string> | undefined = body["spanNames"]
-        ? (body["spanNames"] as Array<string>)
-        : undefined;
-
-      const traceIds: Array<string> | undefined = body["traceIds"]
-        ? (body["traceIds"] as Array<string>)
-        : undefined;
-
-      const nameSearchText: string | undefined = body["nameSearchText"]
-        ? (body["nameSearchText"] as string)
-        : undefined;
-
-      /*
-       * spanNameSearches is the only multiplicative filter (one ILIKE
-       * predicate per entry) — validate the shape (a plain string would
-       * iterate per character) and cap it. The dashboard sends at most one.
-       */
-      const spanNameSearches: Array<string> | undefined = Array.isArray(
-        body["spanNameSearches"],
-      )
-        ? (body["spanNameSearches"] as Array<unknown>)
-            .filter((v: unknown): v is string => {
-              return typeof v === "string";
-            })
-            .slice(0, 10)
-        : undefined;
-
-      const spanIds: Array<string> | undefined = Array.isArray(body["spanIds"])
-        ? (body["spanIds"] as Array<unknown>).filter(
-            (v: unknown): v is string => {
-              return typeof v === "string";
-            },
-          )
-        : undefined;
-
-      const statusMessageSearchText: string | undefined =
-        typeof body["statusMessageSearchText"] === "string" &&
-        body["statusMessageSearchText"]
-          ? (body["statusMessageSearchText"] as string)
-          : undefined;
-
-      const statusMessages: Array<string> | undefined = Array.isArray(
-        body["statusMessages"],
-      )
-        ? (body["statusMessages"] as Array<unknown>).filter(
-            (v: unknown): v is string => {
-              return typeof v === "string";
-            },
-          )
-        : undefined;
-
-      /*
-       * Strict boolean check — unlike rootOnly, a coerced `false` is a
-       * meaningful predicate here (JSON null must mean "no filter", not
-       * "exclude exception spans").
-       */
-      const hasException: boolean | undefined =
-        typeof body["hasException"] === "boolean"
-          ? (body["hasException"] as boolean)
-          : undefined;
-
-      const minDurationNano: number | undefined =
-        typeof body["minDurationNano"] === "number"
-          ? (body["minDurationNano"] as number)
-          : undefined;
-
-      const maxDurationNano: number | undefined =
-        typeof body["maxDurationNano"] === "number"
-          ? (body["maxDurationNano"] as number)
-          : undefined;
-
-      const exactDurationNano: number | undefined =
-        typeof body["exactDurationNano"] === "number"
-          ? (body["exactDurationNano"] as number)
-          : undefined;
-
-      const rootOnly: boolean | undefined =
-        body["rootOnly"] === undefined ? undefined : Boolean(body["rootOnly"]);
-
-      const attributes: Record<string, string> | undefined = body["attributes"]
-        ? (body["attributes"] as Record<string, string>)
-        : undefined;
+      const traceFilters: TraceFilters = parseTraceFilterBody(body);
 
       /*
        * Per-facet partial-match filter applied at the Postgres source-of-truth
@@ -932,23 +833,7 @@ router.post(
         endTime,
         facetKeys,
         limit,
-        serviceIds,
-        entityKeys,
-        statusCodes,
-        spanKinds,
-        spanNames,
-        spanNameSearches,
-        spanIds,
-        traceIds,
-        nameSearchText,
-        statusMessageSearchText,
-        statusMessages,
-        hasException,
-        minDurationNano,
-        maxDurationNano,
-        exactDurationNano,
-        rootOnly,
-        attributes,
+        ...traceFilters,
       };
 
       /*
@@ -1058,6 +943,118 @@ router.post(
 
       return Response.sendJsonObjectResponse(req, res, {
         facets: facets as unknown as JSONObject,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Trace Analytics Endpoint ---
+
+router.post(
+  "/telemetry/traces/analytics",
+  ...requireTraceReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      const chartType: TraceAnalyticsChartType =
+        (body["chartType"] as TraceAnalyticsChartType) || "timeseries";
+
+      if (!["timeseries", "toplist", "table"].includes(chartType)) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid chartType"),
+        );
+      }
+
+      const metric: string = (body["metric"] as string) || "count";
+
+      if (!TraceAggregationService.isValidAnalyticsMetric(metric)) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid metric"),
+        );
+      }
+
+      const startTime: Date = body["startTime"]
+        ? OneUptimeDate.fromString(body["startTime"] as string)
+        : OneUptimeDate.addRemoveHours(OneUptimeDate.getCurrentDate(), -1);
+
+      const endTime: Date = body["endTime"]
+        ? OneUptimeDate.fromString(body["endTime"] as string)
+        : OneUptimeDate.getCurrentDate();
+
+      const bucketSizeInMinutes: number =
+        (body["bucketSizeInMinutes"] as number) ||
+        computeDefaultBucketSize(startTime, endTime);
+
+      const groupBy: Array<string> | undefined = Array.isArray(body["groupBy"])
+        ? (body["groupBy"] as Array<unknown>).filter(
+            (v: unknown): v is string => {
+              return typeof v === "string" && v.length > 0;
+            },
+          )
+        : undefined;
+
+      const limit: number | undefined =
+        typeof body["limit"] === "number" ? (body["limit"] as number) : undefined;
+
+      const traceFilters: TraceFilters = parseTraceFilterBody(body);
+
+      const request: TraceAnalyticsRequest = {
+        projectId: databaseProps.tenantId,
+        startTime,
+        endTime,
+        bucketSizeInMinutes,
+        chartType,
+        metric,
+        groupBy,
+        limit,
+        ...traceFilters,
+      };
+
+      if (chartType === "timeseries") {
+        const data: Array<TraceAnalyticsTimeseriesRow> =
+          await TraceAggregationService.getAnalyticsTimeseries(request);
+
+        return Response.sendJsonObjectResponse(req, res, {
+          data: data as unknown as JSONObject,
+        });
+      }
+
+      if (chartType === "toplist") {
+        const data: Array<TraceAnalyticsTopItem> =
+          await TraceAggregationService.getAnalyticsTopList(request);
+
+        return Response.sendJsonObjectResponse(req, res, {
+          data: data as unknown as JSONObject,
+        });
+      }
+
+      const data: Array<TraceAnalyticsTableRow> =
+        await TraceAggregationService.getAnalyticsTable(request);
+
+      return Response.sendJsonObjectResponse(req, res, {
+        data: data as unknown as JSONObject,
       });
     } catch (err: unknown) {
       next(err);

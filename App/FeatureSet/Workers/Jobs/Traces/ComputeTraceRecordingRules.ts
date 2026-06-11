@@ -6,6 +6,8 @@ import TraceRecordingRuleService from "Common/Server/Services/TraceRecordingRule
 import MetricService from "Common/Server/Services/MetricService";
 import TraceRecordingRule from "Common/Models/DatabaseModels/TraceRecordingRule";
 import TraceRecordingRuleDefinition, {
+  TraceRecordingRuleAttributeFilter,
+  TraceRecordingRuleDefinitionUtil,
   TraceRecordingRuleSource,
 } from "Common/Types/Trace/TraceRecordingRuleDefinition";
 import TraceAggregationType from "Common/Types/Trace/TraceAggregationType";
@@ -222,9 +224,12 @@ async function runSourceQuery(args: {
     filters.push(`statusCode = 2`);
   }
 
-  if (source.filterAttributeKey && source.filterAttributeValue) {
+  // Multi-filter array + legacy single pair, ANDed (e.g. route AND tenant).
+  const attributeFilters: Array<TraceRecordingRuleAttributeFilter> =
+    TraceRecordingRuleDefinitionUtil.getSourceAttributeFilters(source);
+  for (const attributeFilter of attributeFilters) {
     filters.push(
-      `attributes['${esc(source.filterAttributeKey)}'] = '${esc(source.filterAttributeValue)}'`,
+      `attributes['${esc(attributeFilter.key)}'] = '${esc(attributeFilter.value)}'`,
     );
   }
 

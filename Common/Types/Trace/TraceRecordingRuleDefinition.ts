@@ -6,6 +6,11 @@ import TraceAggregationType from "./TraceAggregationType";
  * match. Each source is aliased (A, B, C, ...) and referenced from the rule's
  * expression string.
  */
+export interface TraceRecordingRuleAttributeFilter {
+  key: string;
+  value: string;
+}
+
 export interface TraceRecordingRuleSource {
   alias: string;
   aggregationType: TraceAggregationType;
@@ -13,8 +18,16 @@ export interface TraceRecordingRuleSource {
   spanNameRegex?: string;
   spanKind?: string;
   onlyErrors?: boolean;
+  /*
+   * Legacy single attribute filter — superseded by `filterAttributes` but
+   * still honored for rules saved before multi-filter support. Use
+   * TraceRecordingRuleDefinitionUtil.getSourceAttributeFilters to read the
+   * combined set.
+   */
   filterAttributeKey?: string;
   filterAttributeValue?: string;
+  // Multiple attribute equality filters — ANDed (e.g. http.route AND url.host).
+  filterAttributes?: Array<TraceRecordingRuleAttributeFilter>;
 }
 
 /*
@@ -112,6 +125,35 @@ export class TraceRecordingRuleDefinitionUtil {
     ];
   }
 
+  /*
+   * Combined attribute filters for a source: the multi-filter array plus the
+   * legacy single pair (deduplicated by key, array entries win).
+   */
+  public static getSourceAttributeFilters(
+    source: TraceRecordingRuleSource,
+  ): Array<TraceRecordingRuleAttributeFilter> {
+    const filters: Array<TraceRecordingRuleAttributeFilter> = [];
+    const seenKeys: Set<string> = new Set<string>();
+
+    for (const filter of source.filterAttributes || []) {
+      const key: string = (filter.key || "").trim();
+      const value: string = (filter.value || "").trim();
+      if (!key || !value || seenKeys.has(key)) {
+        continue;
+      }
+      seenKeys.add(key);
+      filters.push({ key, value });
+    }
+
+    const legacyKey: string = (source.filterAttributeKey || "").trim();
+    const legacyValue: string = (source.filterAttributeValue || "").trim();
+    if (legacyKey && legacyValue && !seenKeys.has(legacyKey)) {
+      filters.push({ key: legacyKey, value: legacyValue });
+    }
+
+    return filters;
+  }
+
   public static getNextAlias(
     sources: Array<TraceRecordingRuleSource> | undefined,
   ): string {
@@ -183,6 +225,14 @@ export class TraceRecordingRuleDefinitionUtil {
 
       if (hasFilterKey !== hasFilterValue) {
         return `${prefix}Attribute filter needs both a key and a value (or leave both empty).`;
+      }
+
+      for (const filter of source.filterAttributes || []) {
+        const hasKey: boolean = Boolean(filter.key?.trim());
+        const hasValue: boolean = Boolean(filter.value?.trim());
+        if (hasKey !== hasValue) {
+          return `${prefix}Attribute filter needs both a key and a value (or remove the row).`;
+        }
       }
     }
 

@@ -1,6 +1,7 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useMemo,
   useCallback,
   useRef,
@@ -30,6 +31,10 @@ export interface TelemetryHistogramProps {
   series: Array<HistogramSeriesOption>;
   title?: string | undefined;
   onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
+  // Extra controls rendered in the chart header (e.g. a metric selector).
+  headerActions?: ReactNode;
+  // Formats Y-axis ticks and tooltip values (e.g. milliseconds → "1.2 s").
+  valueFormatter?: ((value: number) => string) | undefined;
 }
 
 interface PivotedRow {
@@ -173,7 +178,12 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
     );
   }
 
-  if (pivotedData.length === 0) {
+  /*
+   * With header actions (e.g. a metric selector) the header must survive an
+   * empty result, or switching away from a metric with no data would strand
+   * the user with no control to switch back.
+   */
+  if (pivotedData.length === 0 && !props.headerActions) {
     return <></>;
   }
 
@@ -202,16 +212,23 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
               </div>
             );
           })}
+          {props.headerActions}
         </div>
       </div>
+      {pivotedData.length === 0 && (
+        <div className="flex h-[120px] items-center justify-center text-xs text-gray-400">
+          No data for this metric in the selected range
+        </div>
+      )}
 
-      <div
-        className="px-2 pb-1 pt-2"
-        style={{
-          height: 120,
-          cursor: props.onTimeRangeSelect ? "crosshair" : "default",
-        }}
-      >
+      {pivotedData.length > 0 && (
+        <div
+          className="px-2 pb-1 pt-2"
+          style={{
+            height: 120,
+            cursor: props.onTimeRangeSelect ? "crosshair" : "default",
+          }}
+        >
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={pivotedData}
@@ -237,11 +254,16 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
               axisLine={false}
               tickLine={false}
               width={48}
-              allowDecimals={false}
-              tickFormatter={formatYAxisTick}
+              allowDecimals={Boolean(props.valueFormatter)}
+              tickFormatter={props.valueFormatter || formatYAxisTick}
             />
             <Tooltip
-              content={<TelemetryHistogramTooltip seriesByKey={seriesByKey} />}
+              content={
+                <TelemetryHistogramTooltip
+                  seriesByKey={seriesByKey}
+                  valueFormatter={props.valueFormatter}
+                />
+              }
               cursor={{ fill: "rgba(99,102,241,0.06)" }}
             />
             {activeSeries.map(
@@ -260,19 +282,20 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
                 );
               },
             )}
-            {selectionStart && selectionEnd && (
-              <ReferenceArea
-                x1={selectionStart}
-                x2={selectionEnd}
-                fill="rgba(99,102,241,0.12)"
-                stroke="rgba(99,102,241,0.5)"
-                strokeWidth={1}
-                radius={2}
-              />
-            )}
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+              {selectionStart && selectionEnd && (
+                <ReferenceArea
+                  x1={selectionStart}
+                  x2={selectionEnd}
+                  fill="rgba(99,102,241,0.12)"
+                  stroke="rgba(99,102,241,0.5)"
+                  strokeWidth={1}
+                  radius={2}
+                />
+              )}
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </div>
   );
 };

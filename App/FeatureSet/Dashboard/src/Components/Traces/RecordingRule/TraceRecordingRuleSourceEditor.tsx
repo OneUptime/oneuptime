@@ -1,6 +1,7 @@
 import TraceAggregationType from "Common/Types/Trace/TraceAggregationType";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
+  TraceRecordingRuleAttributeFilter,
   TraceRecordingRuleSource,
   TraceRecordingRuleDefinitionUtil,
 } from "Common/Types/Trace/TraceRecordingRuleDefinition";
@@ -38,11 +39,56 @@ const TraceRecordingRuleSourceEditor: FunctionComponent<ComponentProps> = (
       props.source.onlyErrors,
   );
   const hasAttrFilter: boolean = Boolean(
-    props.source.filterAttributeKey || props.source.filterAttributeValue,
+    props.source.filterAttributeKey ||
+      props.source.filterAttributeValue ||
+      (props.source.filterAttributes &&
+        props.source.filterAttributes.length > 0),
   );
 
   const [showSpanFilter, setShowSpanFilter] = useState<boolean>(hasSpanFilter);
   const [showAttrFilter, setShowAttrFilter] = useState<boolean>(hasAttrFilter);
+
+  /*
+   * Rows shown in the editor: the multi-filter array, with the legacy single
+   * pair folded in (editing migrates the source to `filterAttributes`).
+   * Unlike getSourceAttributeFilters, incomplete rows are kept so the user
+   * can type key and value independently.
+   */
+  const attributeFilterRows: Array<TraceRecordingRuleAttributeFilter> =
+    useMemo(() => {
+      const rows: Array<TraceRecordingRuleAttributeFilter> = [
+        ...(props.source.filterAttributes || []),
+      ];
+      if (
+        (props.source.filterAttributeKey ||
+          props.source.filterAttributeValue) &&
+        rows.length === 0
+      ) {
+        rows.push({
+          key: props.source.filterAttributeKey || "",
+          value: props.source.filterAttributeValue || "",
+        });
+      }
+      if (rows.length === 0) {
+        rows.push({ key: "", value: "" });
+      }
+      return rows;
+    }, [props.source]);
+
+  const setAttributeFilterRows: (
+    rows: Array<TraceRecordingRuleAttributeFilter>,
+  ) => void = (rows: Array<TraceRecordingRuleAttributeFilter>): void => {
+    const next: TraceRecordingRuleSource = { ...props.source };
+    // Editing migrates the legacy pair into the array form.
+    delete next.filterAttributeKey;
+    delete next.filterAttributeValue;
+    if (rows.length > 0) {
+      next.filterAttributes = rows;
+    } else {
+      delete next.filterAttributes;
+    }
+    props.onChange(next);
+  };
 
   const aggregationOptions: Array<DropdownOption> = useMemo(() => {
     return TraceRecordingRuleDefinitionUtil.getAggregationOptions().map(
@@ -82,6 +128,7 @@ const TraceRecordingRuleSourceEditor: FunctionComponent<ComponentProps> = (
     const next: TraceRecordingRuleSource = { ...props.source };
     delete next.filterAttributeKey;
     delete next.filterAttributeValue;
+    delete next.filterAttributes;
     props.onChange(next);
   };
 
@@ -227,7 +274,7 @@ const TraceRecordingRuleSourceEditor: FunctionComponent<ComponentProps> = (
         <div className="rounded-md bg-gray-50 border border-gray-200 p-3 mt-3">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold uppercase tracking-widest text-gray-500">
-              Attribute Filter
+              Attribute Filters (ANDed)
             </span>
             <button
               type="button"
@@ -237,31 +284,81 @@ const TraceRecordingRuleSourceEditor: FunctionComponent<ComponentProps> = (
                 clearAttributeFilter();
               }}
             >
-              Remove
+              Remove all
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <FieldLabelElement title="Attribute Key" />
-              <Input
-                placeholder="e.g. http.method"
-                value={props.source.filterAttributeKey || ""}
-                onChange={(v: string) => {
-                  update({ filterAttributeKey: v });
-                }}
-              />
-            </div>
-            <div>
-              <FieldLabelElement title="Equals" />
-              <Input
-                placeholder="e.g. POST"
-                value={props.source.filterAttributeValue || ""}
-                onChange={(v: string) => {
-                  update({ filterAttributeValue: v });
-                }}
-              />
-            </div>
+          <div className="space-y-3">
+            {attributeFilterRows.map(
+              (row: TraceRecordingRuleAttributeFilter, index: number) => {
+                return (
+                  <div
+                    key={index}
+                    className="grid grid-cols-1 items-end gap-3 md:grid-cols-[1fr_1fr_auto]"
+                  >
+                    <div>
+                      <FieldLabelElement title="Attribute Key" />
+                      <Input
+                        placeholder="e.g. http.route"
+                        value={row.key}
+                        onChange={(v: string) => {
+                          const next: Array<TraceRecordingRuleAttributeFilter> =
+                            [...attributeFilterRows];
+                          next[index] = { ...next[index]!, key: v };
+                          setAttributeFilterRows(next);
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <FieldLabelElement title="Equals" />
+                      <Input
+                        placeholder="e.g. /Shipment/ShipShipment"
+                        value={row.value}
+                        onChange={(v: string) => {
+                          const next: Array<TraceRecordingRuleAttributeFilter> =
+                            [...attributeFilterRows];
+                          next[index] = { ...next[index]!, value: v };
+                          setAttributeFilterRows(next);
+                        }}
+                      />
+                    </div>
+                    <Button
+                      title=""
+                      icon={IconProp.Trash}
+                      buttonStyle={ButtonStyleType.OUTLINE}
+                      buttonSize={ButtonSize.Small}
+                      onClick={() => {
+                        const next: Array<TraceRecordingRuleAttributeFilter> =
+                          attributeFilterRows.filter(
+                            (
+                              _row: TraceRecordingRuleAttributeFilter,
+                              i: number,
+                            ): boolean => {
+                              return i !== index;
+                            },
+                          );
+                        setAttributeFilterRows(next);
+                        if (next.length === 0) {
+                          setShowAttrFilter(false);
+                        }
+                      }}
+                    />
+                  </div>
+                );
+              },
+            )}
           </div>
+          <button
+            type="button"
+            className="mt-3 text-xs font-medium text-indigo-600 hover:text-indigo-700"
+            onClick={() => {
+              setAttributeFilterRows([
+                ...attributeFilterRows,
+                { key: "", value: "" },
+              ]);
+            }}
+          >
+            + Add another attribute
+          </button>
         </div>
       )}
     </div>
