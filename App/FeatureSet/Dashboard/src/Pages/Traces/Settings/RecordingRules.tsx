@@ -109,9 +109,7 @@ const TraceRecordingRules: FunctionComponent<
                     ...(typeof source.spanKind === "string"
                       ? { spanKind: source.spanKind }
                       : {}),
-                    ...(source.onlyErrors === true
-                      ? { onlyErrors: true }
-                      : {}),
+                    ...(source.onlyErrors === true ? { onlyErrors: true } : {}),
                     ...(Array.isArray(source.filterAttributes)
                       ? {
                           filterAttributes: source.filterAttributes.filter(
@@ -121,8 +119,8 @@ const TraceRecordingRules: FunctionComponent<
                                 typeof filter === "object" &&
                                 typeof (filter as { key?: unknown }).key ===
                                   "string" &&
-                                typeof (filter as { value?: unknown })
-                                  .value === "string"
+                                typeof (filter as { value?: unknown }).value ===
+                                  "string"
                               );
                             },
                           ),

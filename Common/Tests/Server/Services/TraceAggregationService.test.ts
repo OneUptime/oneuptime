@@ -363,7 +363,9 @@ describe("TraceAggregationService", () => {
       });
 
       const query: string = normalizedQuery(statement);
-      expect(query).toContain(" GROUP BY bucket, attr_0_url_host, attr_1_url_host");
+      expect(query).toContain(
+        " GROUP BY bucket, attr_0_url_host, attr_1_url_host",
+      );
       expect(paramValues(statement)).toContain("attr_0_url_host");
       expect(paramValues(statement)).toContain("attr_1_url_host");
     });
