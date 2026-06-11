@@ -14,18 +14,18 @@ import logger from "Common/Server/Utils/Logger";
  * the partition key is fixed at table creation — so the signal tables are
  * cut to a new `…V3` name.
  *
- * This migration deliberately does NOT copy data. The historical V2 → V3
- * copy is hours-to-days of work at production scale and used to run
- * inline here, which blocked the boot migration runner (and, before the
- * chunked copy engine existed, kept timing out client-side at the 58s
- * socket idle limit and re-running whole partitions on every boot —
- * duplicating rows and double-firing the metric MVs). The copy is now
- * owned by the `Telemetry:BackfillTelemetryV3` cron
- * (App/FeatureSet/Workers/Jobs/Telemetry/BackfillTelemetryV3.ts), which
- * resumes chunk-by-chunk from the `TelemetryV3CopyProgress` marker table
- * this migration creates. This migration only runs fast, idempotent DDL
- * and completes in seconds, so the ~23 migrations behind it are never
- * blocked.
+ * This migration deliberately does NOT copy data — the V3 cut is
+ * FORWARD-ONLY by decision (2026-06-11). V3 tables start fresh; history
+ * ages in over the retention window. An in-app copy was tried twice and
+ * removed: inline it blocked the boot migration runner and kept timing
+ * out client-side at the 58s socket idle limit (re-running whole
+ * partitions every boot — duplicating rows and double-firing the metric
+ * MVs), and the background-cron replacement was machinery nobody needs
+ * by default. Operators who want to carry history forward run the
+ * documented per-partition clickhouse-client queries instead:
+ * Internal/Docs/TelemetryV3UpgradeGuide.md (the native protocol has no
+ * idle-timeout problem, and the V3 tables' dedup windows make a re-run
+ * with the documented token settings safe).
  *
  * Steps:
  *   1. Drop the 3 stale metric MVs (old `serviceId` column + sipHash
@@ -33,17 +33,12 @@ import logger from "Common/Server/Utils/Logger";
  *      the views already read `FROM MetricItemV3`.
  *   2. Recreate every analytics table + MV from the updated models via
  *      the schema-sync helpers — creating the `…V3` signal tables and
- *      rebuilding the MVs (`FROM MetricItemV3`). Idempotent. The MVs
- *      MUST exist before any data lands in MetricItemV3 — the backfill
- *      cron double-checks this before copying.
- *   3. Ensure the `TelemetryV3CopyProgress` marker table exists so the
- *      backfill cron (and the remaining inline copies in later
- *      migrations) can record progress.
+ *      rebuilding the MVs (`FROM MetricItemV3`). Idempotent.
  *
- * The `…V2` tables are intentionally retained (the backfill cron reads
- * them; they self-drain via their `retentionDate` TTL). A follow-up
- * migration can DROP them once every table carries the cron's
- * '__completed__' marker.
+ * The `…V2` tables are intentionally retained: they self-drain via their
+ * `retentionDate` TTL, and they are the source for the optional manual
+ * history copy in the upgrade guide (which also documents dropping them
+ * early to reclaim disk).
  *
  * All statements run through `MetricService` — every analytics service
  * shares one ClickHouse connection, and each statement names its own
@@ -64,13 +59,14 @@ export default class MigrateTelemetryToV3PrimaryEntityId extends DataMigrationBa
      */
     /*
      * MetricItemAggMV1mByHost is deliberately VIEW-ONLY here (dropTable:
-     * false): backfilled V3 raw rows carry hostEntityKey = '' (V2 has no
-     * such column), so the ByHostV2 MV cannot rebuild per-host rollup
-     * history from the copy — the frozen old table is the ONLY source,
-     * and RekeyMetricHostRollupToEntityKey backfills from it and drops
-     * it afterwards. MV1m/Baseline targets ARE droppable: their history
-     * is rebuilt by the backfill cron's MV re-fire on primaryEntityId,
-     * which copied rows do carry.
+     * false): a manual V2 -> V3 raw-metric copy stamps hostEntityKey = ''
+     * (V2 has no such column), so the ByHostV2 MV cannot rebuild per-host
+     * rollup history from copied rows — the frozen old table is the ONLY
+     * source for the optional per-host history backfill in the upgrade
+     * guide. It self-drains via TTL; the guide documents dropping it
+     * early. MV1m/Baseline targets ARE droppable: a manual raw-metric
+     * copy re-fires their MVs via primaryEntityId, which copied rows do
+     * carry.
      */
     const staleMvPairs: Array<
       [view: string, table: string, dropTable: boolean]
@@ -102,11 +98,8 @@ export default class MigrateTelemetryToV3PrimaryEntityId extends DataMigrationBa
     await AnalyticsTableManagement.createTables();
     await AnalyticsTableManagement.createMaterializedViews();
 
-    // 3. Marker table for the backfill cron's chunk progress.
-    await ClickHouseMigrationUtil.ensureCopyProgressTable();
-
     logger.info(
-      "MigrateTelemetryToV3: DDL complete. Historical V2 -> V3 data copy is handled incrementally by the Telemetry:BackfillTelemetryV3 cron.",
+      "MigrateTelemetryToV3: DDL complete. V3 tables start fresh (forward-only cut); to carry V2 history forward manually, see Internal/Docs/TelemetryV3UpgradeGuide.md.",
     );
   }
 

@@ -152,12 +152,12 @@ import "./Jobs/TelemetryEntity/PruneStaleEntities";
 import "./Jobs/TelemetryEntity/ComputeServiceDependencies";
 
 /*
- * Historical V2 -> V3 telemetry copy (chunked, resumable, dedup-token
- * protected). Runs after the boot migration chain finishes; a no-op once
- * every table carries its '__completed__' marker (and from the first tick
- * on fresh installs).
+ * NOTE: there is deliberately no in-app V2 -> V3 historical telemetry
+ * copy. The V3 cut is forward-only (decision 2026-06-11): V3 tables start
+ * fresh, history ages in over the retention window, and operators who
+ * want to carry history forward run the documented clickhouse-client
+ * queries instead — see Internal/Docs/TelemetryV3UpgradeGuide.md.
  */
-import "./Jobs/Telemetry/BackfillTelemetryV3";
 
 /*
  * Metric retention is handled by ClickHouse TTL on Metric.retentionDate

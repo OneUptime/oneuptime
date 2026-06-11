@@ -73,7 +73,6 @@ import ExtendMetricBaselineHourlyTTL from "./ExtendMetricBaselineHourlyTTL";
 import AddTelemetryStorageCompression from "./AddTelemetryStorageCompression";
 import MigrateTelemetryToV3PrimaryEntityId from "./MigrateTelemetryToV3PrimaryEntityId";
 import AddTtlOnlyDropPartsToTelemetryV3 from "./AddTtlOnlyDropPartsToTelemetryV3";
-import MigrateMonitorAndAuditLogToV3 from "./MigrateMonitorAndAuditLogToV3";
 import AddGorillaCodecToMetricValues from "./AddGorillaCodecToMetricValues";
 import AddUInt64TimestampsToTelemetryV3 from "./AddUInt64TimestampsToTelemetryV3";
 import AddUInt64ToRemainingTelemetryColumns from "./AddUInt64ToRemainingTelemetryColumns";
@@ -83,7 +82,6 @@ import AddScalarEntityKeysToTelemetryTables from "./AddScalarEntityKeysToTelemet
 import MaterializeEntityKeysIndexOnTelemetryTables from "./MaterializeEntityKeysIndexOnTelemetryTables";
 import AddZstdCodecToTelemetryIdColumns from "./AddZstdCodecToTelemetryIdColumns";
 import AddTelemetryV3ColumnCodecs from "./AddTelemetryV3ColumnCodecs";
-import RekeyMetricHostRollupToEntityKey from "./RekeyMetricHostRollupToEntityKey";
 import RebuildMetricBaselineHourlyWithBFloat16Quantiles from "./RebuildMetricBaselineHourlyWithBFloat16Quantiles";
 import AddDedupWindowToTelemetryTables from "./AddDedupWindowToTelemetryTables";
 
@@ -163,7 +161,6 @@ const DataMigrations: Array<DataMigrationBase> = [
   new AddTelemetryStorageCompression(),
   new MigrateTelemetryToV3PrimaryEntityId(),
   new AddTtlOnlyDropPartsToTelemetryV3(),
-  new MigrateMonitorAndAuditLogToV3(),
   new AddGorillaCodecToMetricValues(),
   new AddUInt64TimestampsToTelemetryV3(),
   new AddUInt64ToRemainingTelemetryColumns(),
@@ -175,16 +172,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    *     and the MV-target _id columns (AddIdAndTimestampsToMVTargetTables).
    *   - MaterializeEntityKeysIndexOnTelemetryTables needs idx_entity_keys
    *     (AddEntityKeysToTelemetryTables, directly above).
-   *   - RekeyMetricHostRollupToEntityKey needs the hostEntityKey scalar
-   *     column (AddScalarEntityKeysToTelemetryTables) — its MV reads it.
-   *   - AddZstdCodecToTelemetryIdColumns runs before the re-key/rebuild so
-   *     it never touches the tables those two drop and recreate.
+   *   - AddZstdCodecToTelemetryIdColumns runs before the baseline rebuild so
+   *     it never touches the table that one drops and recreates.
+   *
+   * There is deliberately NO V2 -> V3 historical data copy in this chain:
+   * the cut is forward-only and operators carry history forward manually
+   * if they want it (Internal/Docs/TelemetryV3UpgradeGuide.md).
    */
   new AddScalarEntityKeysToTelemetryTables(),
   new MaterializeEntityKeysIndexOnTelemetryTables(),
   new AddZstdCodecToTelemetryIdColumns(),
   new AddTelemetryV3ColumnCodecs(),
-  new RekeyMetricHostRollupToEntityKey(),
   new RebuildMetricBaselineHourlyWithBFloat16Quantiles(),
   new AddDedupWindowToTelemetryTables(),
 ];
