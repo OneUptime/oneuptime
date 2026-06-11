@@ -24,8 +24,28 @@ export interface TraceFilters {
   statusCodes?: Array<number> | undefined;
   spanKinds?: Array<string> | undefined;
   spanNames?: Array<string> | undefined;
+  /*
+   * Substring name matches (ANDed). The span list compiles a single `name`
+   * filter to `name ILIKE '%v%'` (Search) — aggregations must use the same
+   * semantics or the histogram/facets disagree with the list. `spanNames`
+   * stays exact-match for multi-value filters (list-side `Includes`).
+   */
+  spanNameSearches?: Array<string> | undefined;
+  spanIds?: Array<string> | undefined;
   traceIds?: Array<string> | undefined;
   nameSearchText?: string | undefined;
+  statusMessageSearchText?: string | undefined;
+  // Exact-match for multi-value statusMessage filters (list-side `Includes`).
+  statusMessages?: Array<string> | undefined;
+  hasException?: boolean | undefined;
+  /*
+   * Strict bounds (`>` / `<`) — the list compiles duration:>N / duration:<N
+   * to GreaterThan / LessThan, which are strict comparisons. `duration:N`
+   * (no operator) is exact equality, carried by exactDurationNano.
+   */
+  minDurationNano?: number | undefined;
+  maxDurationNano?: number | undefined;
+  exactDurationNano?: number | undefined;
   rootOnly?: boolean | undefined;
   attributes?: Record<string, string> | undefined;
 }
@@ -519,9 +539,11 @@ export class TraceAggregationService {
      * minute-bucketed output and only shifts the first/last bucket by the
      * partial boundary minute when the range is not minute-aligned.
      *
-     * If any non-projection filter (kind, name, traceId, nameSearchText,
-     * entityKeys, attributes) is active, ClickHouse transparently falls back
-     * to scanning the main table for the inner query — same cost as before.
+     * If any non-projection filter (kind, name, traceId, spanId,
+     * nameSearchText, spanNameSearches, statusMessageSearchText,
+     * hasException, duration bounds, entityKeys, attributes) is active,
+     * ClickHouse transparently falls back to scanning the main table for the
+     * inner query — same cost as before.
      * The retention read-filter is omitted for the same reason (see
      * RETENTION_FILTER).
      */
@@ -735,6 +757,34 @@ export class TraceAggregationService {
       );
     }
 
+    /*
+     * Values are kept verbatim (no trim) — the list-side Search serialization
+     * wraps the raw value in %...%, and quoted search values deliberately
+     * preserve whitespace. Only blank entries are skipped.
+     */
+    if (request.spanNameSearches && request.spanNameSearches.length > 0) {
+      for (const search of request.spanNameSearches) {
+        if (search.trim().length === 0) {
+          continue;
+        }
+        statement.append(
+          SQL` AND name ILIKE ${{
+            type: TableColumnType.Text,
+            value: `%${search}%`,
+          }}`,
+        );
+      }
+    }
+
+    if (request.spanIds && request.spanIds.length > 0) {
+      statement.append(
+        SQL` AND spanId IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(request.spanIds),
+        }})`,
+      );
+    }
+
     if (request.traceIds && request.traceIds.length > 0) {
       statement.append(
         SQL` AND traceId IN (${{
@@ -749,6 +799,75 @@ export class TraceAggregationService {
         SQL` AND name ILIKE ${{
           type: TableColumnType.Text,
           value: `%${request.nameSearchText.trim()}%`,
+        }}`,
+      );
+    }
+
+    if (
+      request.statusMessageSearchText &&
+      request.statusMessageSearchText.trim().length > 0
+    ) {
+      statement.append(
+        SQL` AND statusMessage ILIKE ${{
+          type: TableColumnType.Text,
+          value: `%${request.statusMessageSearchText}%`,
+        }}`,
+      );
+    }
+
+    if (request.statusMessages && request.statusMessages.length > 0) {
+      statement.append(
+        SQL` AND statusMessage IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(request.statusMessages),
+        }})`,
+      );
+    }
+
+    if (request.hasException !== undefined) {
+      statement.append(
+        request.hasException
+          ? " AND hasException = 1"
+          : " AND hasException = 0",
+      );
+    }
+
+    /*
+     * durationUnixNano is LongNumber (Int128) — a Number (Int32) param would
+     * overflow for spans longer than ~2.1 seconds.
+     */
+    if (
+      request.minDurationNano !== undefined &&
+      !isNaN(request.minDurationNano)
+    ) {
+      statement.append(
+        SQL` AND durationUnixNano > ${{
+          type: TableColumnType.LongNumber,
+          value: request.minDurationNano,
+        }}`,
+      );
+    }
+
+    if (
+      request.maxDurationNano !== undefined &&
+      !isNaN(request.maxDurationNano)
+    ) {
+      statement.append(
+        SQL` AND durationUnixNano < ${{
+          type: TableColumnType.LongNumber,
+          value: request.maxDurationNano,
+        }}`,
+      );
+    }
+
+    if (
+      request.exactDurationNano !== undefined &&
+      !isNaN(request.exactDurationNano)
+    ) {
+      statement.append(
+        SQL` AND durationUnixNano = ${{
+          type: TableColumnType.LongNumber,
+          value: request.exactDurationNano,
         }}`,
       );
     }

@@ -588,14 +588,30 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           : new Includes(Array.from(resourceIds));
     }
 
+    const { fieldFilters, freeText, attributes } = parseSearch(submittedSearch);
+
     /*
      * Text columns need substring matching, not exact equality. The search
      * bar turns typed `name:GET` into a chip via `onFieldValueSelect`, and
      * span names are full strings like "GET api/..." — exact-match would
-     * silently return zero rows. Mirror what `parseSearch` does for the same
-     * fields and wrap with `Search`.
+     * silently return zero rows.
+     *
+     * Search-bar tokens for these fields merge into the chip groups so chips
+     * and `name:` / `statusMessage:` tokens share one rule: a single value
+     * matches as a substring (Search → ILIKE), multiple values match exactly
+     * (Includes). The aggregation payload applies the same single/multi
+     * routing, keeping the histogram consistent with the list.
      */
     const TEXT_CHIP_FIELDS: Set<string> = new Set(["name", "statusMessage"]);
+    for (const textKey of TEXT_CHIP_FIELDS) {
+      const tokenValues: Array<string> | undefined = fieldFilters[textKey];
+      if (tokenValues && tokenValues.length > 0) {
+        facetGroups[textKey] = [
+          ...(facetGroups[textKey] || []),
+          ...tokenValues,
+        ];
+      }
+    }
     for (const key of Object.keys(facetGroups)) {
       if (resourceFacetKeys.has(key)) {
         continue;
@@ -612,8 +628,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       }
     }
 
-    // Apply search field filters
-    const { fieldFilters, attributes } = parseSearch(submittedSearch);
+    // Apply remaining search field filters
     for (const key of Object.keys(fieldFilters)) {
       const values: Array<string> = fieldFilters[key]!;
 
@@ -631,10 +646,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         (query as Record<string, unknown>)[key] =
           mapped.length === 1 ? mapped[0] : new Includes(mapped);
       } else if (key === "name" || key === "statusMessage") {
-        // Substring matching for text fields
-        if (values.length === 1) {
-          (query as Record<string, unknown>)[key] = new Search(values[0]!);
-        }
+        // Already merged into the chip groups above.
+        continue;
       } else if (key === "kind") {
         // Map friendly kind names (server, client, etc.) to backend enum
         const mapped: Array<string> = values.map((v: string): string => {
@@ -676,6 +689,21 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       } else {
         (query as Record<string, unknown>)[key] = new Includes(values);
       }
+    }
+
+    /*
+     * Bare free text matches span names as a substring — the aggregation
+     * payload already sends it as nameSearchText, so the list must apply it
+     * too or the chart filters tighter than the list. Query<Span> holds one
+     * predicate per column, so an explicit name filter wins when both are
+     * present (the chart then ANDs both and may be slightly narrower).
+     */
+    if (
+      freeText &&
+      freeText.length > 0 &&
+      !(query as Record<string, unknown>)["name"]
+    ) {
+      (query as Record<string, unknown>)["name"] = new Search(freeText);
     }
 
     /*
@@ -1054,8 +1082,20 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       });
     }
 
+    /*
+     * Mirror the list's name semantics: a single name value filters the list
+     * as a substring (Search → ILIKE, see TEXT_CHIP_FIELDS in baseQuery), so
+     * route it to spanNameSearches — exact-match spanNames would make the
+     * chart disagree with the list for partial names like "ShipShipment".
+     * Multiple name values filter the list exactly (Includes), which
+     * spanNames preserves.
+     */
     if (groups["name"] && groups["name"].length > 0) {
-      payload["spanNames"] = groups["name"];
+      if (groups["name"].length === 1) {
+        payload["spanNameSearches"] = groups["name"];
+      } else {
+        payload["spanNames"] = groups["name"];
+      }
     }
 
     if (groups["traceId"] && groups["traceId"].length > 0) {
@@ -1071,8 +1111,16 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         groups["hasException"][0]!.toLowerCase() === "true";
     }
 
+    /*
+     * Same single/multi routing as `name`: one value matches as a substring
+     * (mirrors the list's Search), several match exactly (mirrors Includes).
+     */
     if (groups["statusMessage"] && groups["statusMessage"].length > 0) {
-      payload["statusMessageSearchText"] = groups["statusMessage"][0];
+      if (groups["statusMessage"].length === 1) {
+        payload["statusMessageSearchText"] = groups["statusMessage"][0];
+      } else {
+        payload["statusMessages"] = groups["statusMessage"];
+      }
     }
 
     if (groups["durationUnixNano"] && groups["durationUnixNano"].length > 0) {
@@ -1087,6 +1135,12 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         const ms: number = Number(raw.substring(1));
         if (!isNaN(ms)) {
           payload["maxDurationNano"] = ms * msToNano;
+        }
+      } else {
+        // duration:N (no operator) filters the list as exact equality.
+        const ms: number = Number(raw);
+        if (!isNaN(ms)) {
+          payload["exactDurationNano"] = ms * msToNano;
         }
       }
     }

@@ -662,6 +662,70 @@ router.post(
         ? (body["nameSearchText"] as string)
         : undefined;
 
+      /*
+       * spanNameSearches is the only multiplicative filter (one ILIKE
+       * predicate per entry) — validate the shape (a plain string would
+       * iterate per character) and cap it. The dashboard sends at most one.
+       */
+      const spanNameSearches: Array<string> | undefined = Array.isArray(
+        body["spanNameSearches"],
+      )
+        ? (body["spanNameSearches"] as Array<unknown>)
+            .filter((v: unknown): v is string => {
+              return typeof v === "string";
+            })
+            .slice(0, 10)
+        : undefined;
+
+      const spanIds: Array<string> | undefined = Array.isArray(body["spanIds"])
+        ? (body["spanIds"] as Array<unknown>).filter(
+            (v: unknown): v is string => {
+              return typeof v === "string";
+            },
+          )
+        : undefined;
+
+      const statusMessageSearchText: string | undefined =
+        typeof body["statusMessageSearchText"] === "string" &&
+        body["statusMessageSearchText"]
+          ? (body["statusMessageSearchText"] as string)
+          : undefined;
+
+      const statusMessages: Array<string> | undefined = Array.isArray(
+        body["statusMessages"],
+      )
+        ? (body["statusMessages"] as Array<unknown>).filter(
+            (v: unknown): v is string => {
+              return typeof v === "string";
+            },
+          )
+        : undefined;
+
+      /*
+       * Strict boolean check — unlike rootOnly, a coerced `false` is a
+       * meaningful predicate here (JSON null must mean "no filter", not
+       * "exclude exception spans").
+       */
+      const hasException: boolean | undefined =
+        typeof body["hasException"] === "boolean"
+          ? (body["hasException"] as boolean)
+          : undefined;
+
+      const minDurationNano: number | undefined =
+        typeof body["minDurationNano"] === "number"
+          ? (body["minDurationNano"] as number)
+          : undefined;
+
+      const maxDurationNano: number | undefined =
+        typeof body["maxDurationNano"] === "number"
+          ? (body["maxDurationNano"] as number)
+          : undefined;
+
+      const exactDurationNano: number | undefined =
+        typeof body["exactDurationNano"] === "number"
+          ? (body["exactDurationNano"] as number)
+          : undefined;
+
       const rootOnly: boolean | undefined =
         body["rootOnly"] === undefined ? undefined : Boolean(body["rootOnly"]);
 
@@ -679,8 +743,16 @@ router.post(
         statusCodes,
         spanKinds,
         spanNames,
+        spanNameSearches,
+        spanIds,
         traceIds,
         nameSearchText,
+        statusMessageSearchText,
+        statusMessages,
+        hasException,
+        minDurationNano,
+        maxDurationNano,
+        exactDurationNano,
         rootOnly,
         attributes,
       };
@@ -765,6 +837,70 @@ router.post(
         ? (body["nameSearchText"] as string)
         : undefined;
 
+      /*
+       * spanNameSearches is the only multiplicative filter (one ILIKE
+       * predicate per entry) — validate the shape (a plain string would
+       * iterate per character) and cap it. The dashboard sends at most one.
+       */
+      const spanNameSearches: Array<string> | undefined = Array.isArray(
+        body["spanNameSearches"],
+      )
+        ? (body["spanNameSearches"] as Array<unknown>)
+            .filter((v: unknown): v is string => {
+              return typeof v === "string";
+            })
+            .slice(0, 10)
+        : undefined;
+
+      const spanIds: Array<string> | undefined = Array.isArray(body["spanIds"])
+        ? (body["spanIds"] as Array<unknown>).filter(
+            (v: unknown): v is string => {
+              return typeof v === "string";
+            },
+          )
+        : undefined;
+
+      const statusMessageSearchText: string | undefined =
+        typeof body["statusMessageSearchText"] === "string" &&
+        body["statusMessageSearchText"]
+          ? (body["statusMessageSearchText"] as string)
+          : undefined;
+
+      const statusMessages: Array<string> | undefined = Array.isArray(
+        body["statusMessages"],
+      )
+        ? (body["statusMessages"] as Array<unknown>).filter(
+            (v: unknown): v is string => {
+              return typeof v === "string";
+            },
+          )
+        : undefined;
+
+      /*
+       * Strict boolean check — unlike rootOnly, a coerced `false` is a
+       * meaningful predicate here (JSON null must mean "no filter", not
+       * "exclude exception spans").
+       */
+      const hasException: boolean | undefined =
+        typeof body["hasException"] === "boolean"
+          ? (body["hasException"] as boolean)
+          : undefined;
+
+      const minDurationNano: number | undefined =
+        typeof body["minDurationNano"] === "number"
+          ? (body["minDurationNano"] as number)
+          : undefined;
+
+      const maxDurationNano: number | undefined =
+        typeof body["maxDurationNano"] === "number"
+          ? (body["maxDurationNano"] as number)
+          : undefined;
+
+      const exactDurationNano: number | undefined =
+        typeof body["exactDurationNano"] === "number"
+          ? (body["exactDurationNano"] as number)
+          : undefined;
+
       const rootOnly: boolean | undefined =
         body["rootOnly"] === undefined ? undefined : Boolean(body["rootOnly"]);
 
@@ -801,8 +937,16 @@ router.post(
         statusCodes,
         spanKinds,
         spanNames,
+        spanNameSearches,
+        spanIds,
         traceIds,
         nameSearchText,
+        statusMessageSearchText,
+        statusMessages,
+        hasException,
+        minDurationNano,
+        maxDurationNano,
+        exactDurationNano,
         rootOnly,
         attributes,
       };
