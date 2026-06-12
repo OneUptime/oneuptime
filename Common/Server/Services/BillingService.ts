@@ -793,14 +793,35 @@ export class BillingService extends BaseService {
     const customer: Stripe.Response<Stripe.Customer | Stripe.DeletedCustomer> =
       await this.stripe.customers.retrieve(customerId);
 
-    if (
+    const defaultPaymentMethod:
+      | string
+      | Stripe.PaymentMethod
+      | null
+      | undefined = (customer as Stripe.Customer).invoice_settings
+      ?.default_payment_method;
+
+    const defaultPaymentMethodId: string | undefined =
+      typeof defaultPaymentMethod === "string"
+        ? defaultPaymentMethod
+        : defaultPaymentMethod?.id;
+
+    if (defaultPaymentMethodId) {
+      for (const paymentMethod of paymentMethods) {
+        paymentMethod.isDefault = paymentMethod.id === defaultPaymentMethodId;
+      }
+
+      // default payment method first — it's charged first when paying invoices.
+      paymentMethods.sort((a: PaymentMethod, b: PaymentMethod) => {
+        return Number(b.isDefault) - Number(a.isDefault);
+      });
+    } else if (
       (customer as Stripe.Customer).invoice_settings &&
-      !(customer as Stripe.Customer).invoice_settings?.default_payment_method
+      paymentMethods.length > 0 &&
+      paymentMethods[0]?.id
     ) {
       // set the first payment method as default.
-      if (paymentMethods.length > 0 && paymentMethods[0]?.id) {
-        await this.setDefaultPaymentMethod(customerId, paymentMethods[0]?.id);
-      }
+      await this.setDefaultPaymentMethod(customerId, paymentMethods[0].id);
+      paymentMethods[0].isDefault = true;
     }
 
     return paymentMethods;
@@ -1237,6 +1258,30 @@ export class BillingService extends BaseService {
     return invoice;
   }
 
+  /*
+   * Returns true if the error is attributable to the payment method itself
+   * (declined, expired, requires authentication), meaning paying with a
+   * different payment method may succeed. Invoice-state or connectivity
+   * errors return false: retrying those with another payment method would
+   * not help, and if the outcome of the attempt is unknown a retry could
+   * double-charge the customer.
+   */
+  private canRetryWithDifferentPaymentMethod(err: unknown): boolean {
+    const stripeError: { type?: string; code?: string } = err as {
+      type?: string;
+      code?: string;
+    };
+
+    if (stripeError?.type === "StripeCardError") {
+      return true;
+    }
+
+    return (
+      stripeError?.code === "invoice_payment_intent_requires_action" ||
+      Boolean(stripeError?.code?.startsWith("payment_method_"))
+    );
+  }
+
   @CaptureSpan()
   public async payInvoice(
     customerId: string,
@@ -1250,23 +1295,49 @@ export class BillingService extends BaseService {
       throw new BadDataException(Errors.BillingService.NO_PAYMENTS_METHODS);
     }
 
-    const invoice: Stripe.Invoice = await this.stripe.invoices.pay(invoiceId, {
-      payment_method: paymentMethods[0]?.id || "",
-    });
+    /*
+     * getPaymentMethods returns the default payment method first. If it is
+     * declined, fall back to the customer's other payment methods before
+     * giving up.
+     */
+    let lastError: unknown = null;
 
-    return {
-      id: invoice.id!,
-      amount: invoice.amount_due,
-      currencyCode: invoice.currency,
-      subscriptionId: invoice.subscription?.toString() || undefined,
-      status: invoice.status?.toString() || "Unknown",
-      downloadableLink: invoice.invoice_pdf?.toString() || "",
-      customerId: invoice.customer?.toString() || "",
-      invoiceDate: invoice.created
-        ? new Date(invoice.created * 1000)
-        : OneUptimeDate.getCurrentDate(),
-      invoiceNumber: invoice.number || undefined,
-    };
+    for (const paymentMethod of paymentMethods) {
+      try {
+        const invoice: Stripe.Invoice = await this.stripe.invoices.pay(
+          invoiceId,
+          {
+            payment_method: paymentMethod.id,
+          },
+        );
+
+        return {
+          id: invoice.id!,
+          amount: invoice.amount_due,
+          currencyCode: invoice.currency,
+          subscriptionId: invoice.subscription?.toString() || undefined,
+          status: invoice.status?.toString() || "Unknown",
+          downloadableLink: invoice.invoice_pdf?.toString() || "",
+          customerId: invoice.customer?.toString() || "",
+          invoiceDate: invoice.created
+            ? new Date(invoice.created * 1000)
+            : OneUptimeDate.getCurrentDate(),
+          invoiceNumber: invoice.number || undefined,
+        };
+      } catch (err) {
+        logger.error(
+          `Failed to pay invoice ${invoiceId} with payment method ${paymentMethod.type} ending in ${paymentMethod.last4Digits}: ${err}`,
+        );
+
+        if (!this.canRetryWithDifferentPaymentMethod(err)) {
+          throw err;
+        }
+
+        lastError = err;
+      }
+    }
+
+    throw lastError;
   }
 
   public getMeteredPlanPriceId(productType: ProductType): string {

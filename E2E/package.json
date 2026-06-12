@@ -22,10 +22,10 @@
     "@types/node": "^20.10.4"
   },
   "dependencies": {
-    "@playwright/test": "^1.49.1",
+    "@playwright/test": "^1.60.0",
     "Common": "file:../Common",
-    
-    "playwright": "^1.49.1",
+
+    "playwright": "^1.60.0",
     "typescript": "^5.9.2"
   }
 }
