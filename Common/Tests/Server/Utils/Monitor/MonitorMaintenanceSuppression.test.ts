@@ -12,6 +12,8 @@ function emptyMaintained(): MaintainedResourceKeys {
     hosts: { ids: new Set<string>(), names: new Set<string>() },
     dockerHosts: { ids: new Set<string>(), names: new Set<string>() },
     kubernetesClusters: { ids: new Set<string>(), names: new Set<string>() },
+    proxmoxClusters: { ids: new Set<string>(), names: new Set<string>() },
+    cephClusters: { ids: new Set<string>(), names: new Set<string>() },
     services: { ids: new Set<string>(), names: new Set<string>() },
   };
 }
@@ -90,6 +92,17 @@ describe("SeriesResourceLabels", () => {
       expect(refs.dockerHostNames).toEqual(["d1"]);
       expect(refs.kubernetesClusterNames).toEqual(["c1"]);
       expect(refs.serviceNames).toEqual(["s1"]);
+    });
+
+    it("maps proxmox and ceph cluster name keys (prefixed and unprefixed)", () => {
+      const refs: SeriesResourceRefs = SeriesResourceLabels.extractResourceRefs(
+        {
+          "resource.proxmox.cluster.name": "pve-1",
+          "ceph.cluster.name": "ceph-1",
+        },
+      );
+      expect(refs.proxmoxClusterNames).toEqual(["pve-1"]);
+      expect(refs.cephClusterNames).toEqual(["ceph-1"]);
     });
   });
 });

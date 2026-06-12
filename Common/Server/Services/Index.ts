@@ -37,6 +37,16 @@ import KubernetesClusterService from "./KubernetesClusterService";
 import DockerHostService from "./DockerHostService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
 import CephClusterService from "./CephClusterService";
+import ProxmoxResourceService from "./ProxmoxResourceService";
+import CephResourceService from "./CephResourceService";
+import ProxmoxClusterLabelRuleService from "./ProxmoxClusterLabelRuleService";
+import ProxmoxClusterOwnerRuleService from "./ProxmoxClusterOwnerRuleService";
+import ProxmoxClusterOwnerTeamService from "./ProxmoxClusterOwnerTeamService";
+import ProxmoxClusterOwnerUserService from "./ProxmoxClusterOwnerUserService";
+import CephClusterLabelRuleService from "./CephClusterLabelRuleService";
+import CephClusterOwnerRuleService from "./CephClusterOwnerRuleService";
+import CephClusterOwnerTeamService from "./CephClusterOwnerTeamService";
+import CephClusterOwnerUserService from "./CephClusterOwnerUserService";
 import LlmProviderService from "./LlmProviderService";
 import AuditLogService from "./AuditLogService";
 import LogService from "./LogService";
@@ -274,6 +284,16 @@ const services: Array<BaseService> = [
   DockerHostService,
   ProxmoxClusterService,
   CephClusterService,
+  ProxmoxResourceService,
+  CephResourceService,
+  ProxmoxClusterLabelRuleService,
+  ProxmoxClusterOwnerRuleService,
+  ProxmoxClusterOwnerTeamService,
+  ProxmoxClusterOwnerUserService,
+  CephClusterLabelRuleService,
+  CephClusterOwnerRuleService,
+  CephClusterOwnerTeamService,
+  CephClusterOwnerUserService,
   LlmProviderService,
 
   MailService,

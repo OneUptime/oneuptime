@@ -40,10 +40,7 @@ describe("inferRelationshipType", () => {
       inferRelationshipType(EntityType.ProxmoxGuest, EntityType.ProxmoxNode),
     ).toBe(EntityRelationshipType.RunsOn);
     expect(
-      inferRelationshipType(
-        EntityType.ProxmoxGuest,
-        EntityType.ProxmoxCluster,
-      ),
+      inferRelationshipType(EntityType.ProxmoxGuest, EntityType.ProxmoxCluster),
     ).toBe(EntityRelationshipType.MemberOf);
   });
 
@@ -163,9 +160,9 @@ describe("deriveRelationships", () => {
       { entityType: EntityType.ProxmoxGuest, entityKey: "guest" },
     ]);
 
-    expect(hasEdge(edges, "node", "cluster", EntityRelationshipType.MemberOf)).toBe(
-      true,
-    );
+    expect(
+      hasEdge(edges, "node", "cluster", EntityRelationshipType.MemberOf),
+    ).toBe(true);
     expect(hasEdge(edges, "guest", "node", EntityRelationshipType.RunsOn)).toBe(
       true,
     );

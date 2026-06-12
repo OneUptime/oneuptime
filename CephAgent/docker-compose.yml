@@ -4,6 +4,11 @@ services:
     container_name: oneuptime-ceph-agent
     volumes:
       - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      # Uncomment (together with the filelog receiver and logs pipeline in
+      # otel-collector-config.yaml) to ship /var/log/ceph/ceph.log — this
+      # powers the Cluster Log page. Requires the agent to run on a host
+      # that has the cluster log (a mon host by default).
+      # - /var/log/ceph:/var/log/ceph:ro
     environment:
       - ONEUPTIME_URL=${ONEUPTIME_URL}
       - ONEUPTIME_TELEMETRY_INGESTION_KEY=${ONEUPTIME_TELEMETRY_INGESTION_KEY}

@@ -27,6 +27,36 @@ receivers:
             - targets: ["${env:PVE_EXPORTER_URL}"]
 
 processors:
+  # Split the pve-exporter identity label into equality-filterable parts.
+  # pve-exporter encodes resource identity in a single datapoint label
+  # `id` with values like `node/pve1`, `qemu/100`, `lxc/101` or
+  # `storage/pve1/local`. OneUptime monitor criteria and attribute
+  # filters match on equality (not prefix), so derive three attributes:
+  #   pve.scope — node | guest | storage | cluster
+  #               (`qemu` and `lxc` both map to `guest`)
+  #   pve.type  — node | qemu | lxc | storage
+  #               (left unset on `cluster/*` series)
+  #   pve.id    — everything after the first slash of `id`
+  #               (`pve1`, `100`, `pve1/local`)
+  # The original `id` label is kept untouched — group-by pages and
+  # breakdowns still use it. Do not remove this processor: the built-in
+  # Proxmox alert templates filter on these attributes.
+  transform/pve-identity:
+    error_mode: ignore
+    metric_statements:
+      - context: datapoint
+        statements:
+          - set(attributes["pve.scope"], "node") where attributes["id"] != nil and IsMatch(attributes["id"], "^node/")
+          - set(attributes["pve.type"], "node") where attributes["id"] != nil and IsMatch(attributes["id"], "^node/")
+          - set(attributes["pve.scope"], "guest") where attributes["id"] != nil and IsMatch(attributes["id"], "^qemu/")
+          - set(attributes["pve.type"], "qemu") where attributes["id"] != nil and IsMatch(attributes["id"], "^qemu/")
+          - set(attributes["pve.scope"], "guest") where attributes["id"] != nil and IsMatch(attributes["id"], "^lxc/")
+          - set(attributes["pve.type"], "lxc") where attributes["id"] != nil and IsMatch(attributes["id"], "^lxc/")
+          - set(attributes["pve.scope"], "storage") where attributes["id"] != nil and IsMatch(attributes["id"], "^storage/")
+          - set(attributes["pve.type"], "storage") where attributes["id"] != nil and IsMatch(attributes["id"], "^storage/")
+          - set(attributes["pve.scope"], "cluster") where attributes["id"] != nil and IsMatch(attributes["id"], "^cluster/")
+          - set(attributes["pve.id"], attributes["id"]) where attributes["id"] != nil and IsMatch(attributes["id"], "/")
+          - replace_pattern(attributes["pve.id"], "^[^/]+/", "") where attributes["pve.id"] != nil
   # Stamp every metric with the cluster identity. OneUptime auto-registers
   # the Proxmox cluster from `proxmox.cluster.name`, and every Proxmox
   # page and monitor scopes on it — this attribute is what makes the data
@@ -67,5 +97,5 @@ service:
   pipelines:
     metrics:
       receivers: [prometheus]
-      processors: [memory_limiter, resource, batch]
+      processors: [memory_limiter, transform/pve-identity, resource, batch]
       exporters: [otlphttp]

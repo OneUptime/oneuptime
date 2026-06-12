@@ -523,6 +523,30 @@ enum Permission {
   EditKubernetesClusterLabelRule = "EditKubernetesClusterLabelRule",
   ReadKubernetesClusterLabelRule = "ReadKubernetesClusterLabelRule",
 
+  // Proxmox Cluster Owner Rule Permissions
+  CreateProxmoxClusterOwnerRule = "CreateProxmoxClusterOwnerRule",
+  DeleteProxmoxClusterOwnerRule = "DeleteProxmoxClusterOwnerRule",
+  EditProxmoxClusterOwnerRule = "EditProxmoxClusterOwnerRule",
+  ReadProxmoxClusterOwnerRule = "ReadProxmoxClusterOwnerRule",
+
+  // Proxmox Cluster Label Rule Permissions
+  CreateProxmoxClusterLabelRule = "CreateProxmoxClusterLabelRule",
+  DeleteProxmoxClusterLabelRule = "DeleteProxmoxClusterLabelRule",
+  EditProxmoxClusterLabelRule = "EditProxmoxClusterLabelRule",
+  ReadProxmoxClusterLabelRule = "ReadProxmoxClusterLabelRule",
+
+  // Ceph Cluster Owner Rule Permissions
+  CreateCephClusterOwnerRule = "CreateCephClusterOwnerRule",
+  DeleteCephClusterOwnerRule = "DeleteCephClusterOwnerRule",
+  EditCephClusterOwnerRule = "EditCephClusterOwnerRule",
+  ReadCephClusterOwnerRule = "ReadCephClusterOwnerRule",
+
+  // Ceph Cluster Label Rule Permissions
+  CreateCephClusterLabelRule = "CreateCephClusterLabelRule",
+  DeleteCephClusterLabelRule = "DeleteCephClusterLabelRule",
+  EditCephClusterLabelRule = "EditCephClusterLabelRule",
+  ReadCephClusterLabelRule = "ReadCephClusterLabelRule",
+
   // Runbook Owner Rule Permissions
   CreateRunbookOwnerRule = "CreateRunbookOwnerRule",
   DeleteRunbookOwnerRule = "DeleteRunbookOwnerRule",
@@ -1118,6 +1142,26 @@ enum Permission {
   DeleteCephCluster = "DeleteCephCluster",
   EditCephCluster = "EditCephCluster",
   ReadCephCluster = "ReadCephCluster",
+
+  CreateProxmoxClusterOwnerTeam = "CreateProxmoxClusterOwnerTeam",
+  DeleteProxmoxClusterOwnerTeam = "DeleteProxmoxClusterOwnerTeam",
+  EditProxmoxClusterOwnerTeam = "EditProxmoxClusterOwnerTeam",
+  ReadProxmoxClusterOwnerTeam = "ReadProxmoxClusterOwnerTeam",
+
+  CreateProxmoxClusterOwnerUser = "CreateProxmoxClusterOwnerUser",
+  DeleteProxmoxClusterOwnerUser = "DeleteProxmoxClusterOwnerUser",
+  EditProxmoxClusterOwnerUser = "EditProxmoxClusterOwnerUser",
+  ReadProxmoxClusterOwnerUser = "ReadProxmoxClusterOwnerUser",
+
+  CreateCephClusterOwnerTeam = "CreateCephClusterOwnerTeam",
+  DeleteCephClusterOwnerTeam = "DeleteCephClusterOwnerTeam",
+  EditCephClusterOwnerTeam = "EditCephClusterOwnerTeam",
+  ReadCephClusterOwnerTeam = "ReadCephClusterOwnerTeam",
+
+  CreateCephClusterOwnerUser = "CreateCephClusterOwnerUser",
+  DeleteCephClusterOwnerUser = "DeleteCephClusterOwnerUser",
+  EditCephClusterOwnerUser = "EditCephClusterOwnerUser",
+  ReadCephClusterOwnerUser = "ReadCephClusterOwnerUser",
 
   CreateHost = "CreateHost",
   DeleteHost = "DeleteHost",
@@ -7406,8 +7450,7 @@ export class PermissionHelper {
       {
         permission: Permission.CreateCephCluster,
         title: "Create Ceph Cluster",
-        description:
-          "This permission can create Ceph Cluster in this project.",
+        description: "This permission can create Ceph Cluster in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -7416,8 +7459,7 @@ export class PermissionHelper {
       {
         permission: Permission.DeleteCephCluster,
         title: "Delete Ceph Cluster",
-        description:
-          "This permission can delete Ceph Cluster of this project.",
+        description: "This permission can delete Ceph Cluster of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -8136,6 +8178,170 @@ export class PermissionHelper {
         title: "Read Kubernetes Cluster User Owner",
         description:
           "This permission can read Kubernetes Cluster User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateProxmoxClusterOwnerTeam,
+        title: "Create Proxmox Cluster Team Owner",
+        description:
+          "This permission can create Proxmox Cluster Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteProxmoxClusterOwnerTeam,
+        title: "Delete Proxmox Cluster Team Owner",
+        description:
+          "This permission can delete Proxmox Cluster Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditProxmoxClusterOwnerTeam,
+        title: "Edit Proxmox Cluster Team Owner",
+        description:
+          "This permission can edit Proxmox Cluster Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadProxmoxClusterOwnerTeam,
+        title: "Read Proxmox Cluster Team Owner",
+        description:
+          "This permission can read Proxmox Cluster Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateProxmoxClusterOwnerUser,
+        title: "Create Proxmox Cluster User Owner",
+        description:
+          "This permission can create Proxmox Cluster User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteProxmoxClusterOwnerUser,
+        title: "Delete Proxmox Cluster User Owner",
+        description:
+          "This permission can delete Proxmox Cluster User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditProxmoxClusterOwnerUser,
+        title: "Edit Proxmox Cluster User Owner",
+        description:
+          "This permission can edit Proxmox Cluster User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadProxmoxClusterOwnerUser,
+        title: "Read Proxmox Cluster User Owner",
+        description:
+          "This permission can read Proxmox Cluster User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateCephClusterOwnerTeam,
+        title: "Create Ceph Cluster Team Owner",
+        description:
+          "This permission can create Ceph Cluster Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteCephClusterOwnerTeam,
+        title: "Delete Ceph Cluster Team Owner",
+        description:
+          "This permission can delete Ceph Cluster Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditCephClusterOwnerTeam,
+        title: "Edit Ceph Cluster Team Owner",
+        description:
+          "This permission can edit Ceph Cluster Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadCephClusterOwnerTeam,
+        title: "Read Ceph Cluster Team Owner",
+        description:
+          "This permission can read Ceph Cluster Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateCephClusterOwnerUser,
+        title: "Create Ceph Cluster User Owner",
+        description:
+          "This permission can create Ceph Cluster User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteCephClusterOwnerUser,
+        title: "Delete Ceph Cluster User Owner",
+        description:
+          "This permission can delete Ceph Cluster User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditCephClusterOwnerUser,
+        title: "Edit Ceph Cluster User Owner",
+        description:
+          "This permission can edit Ceph Cluster User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadCephClusterOwnerUser,
+        title: "Read Ceph Cluster User Owner",
+        description:
+          "This permission can read Ceph Cluster User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -10107,6 +10313,174 @@ export class PermissionHelper {
         title: "Read Kubernetes Cluster Label Rule",
         description:
           "This permission can read Kubernetes Cluster Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Proxmox Cluster Owner Rule Permissions
+      {
+        permission: Permission.CreateProxmoxClusterOwnerRule,
+        title: "Create Proxmox Cluster Owner Rule",
+        description:
+          "This permission can create Proxmox Cluster Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteProxmoxClusterOwnerRule,
+        title: "Delete Proxmox Cluster Owner Rule",
+        description:
+          "This permission can delete Proxmox Cluster Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditProxmoxClusterOwnerRule,
+        title: "Edit Proxmox Cluster Owner Rule",
+        description:
+          "This permission can edit Proxmox Cluster Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadProxmoxClusterOwnerRule,
+        title: "Read Proxmox Cluster Owner Rule",
+        description:
+          "This permission can read Proxmox Cluster Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Proxmox Cluster Label Rule Permissions
+      {
+        permission: Permission.CreateProxmoxClusterLabelRule,
+        title: "Create Proxmox Cluster Label Rule",
+        description:
+          "This permission can create Proxmox Cluster Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteProxmoxClusterLabelRule,
+        title: "Delete Proxmox Cluster Label Rule",
+        description:
+          "This permission can delete Proxmox Cluster Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditProxmoxClusterLabelRule,
+        title: "Edit Proxmox Cluster Label Rule",
+        description:
+          "This permission can edit Proxmox Cluster Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadProxmoxClusterLabelRule,
+        title: "Read Proxmox Cluster Label Rule",
+        description:
+          "This permission can read Proxmox Cluster Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Ceph Cluster Owner Rule Permissions
+      {
+        permission: Permission.CreateCephClusterOwnerRule,
+        title: "Create Ceph Cluster Owner Rule",
+        description:
+          "This permission can create Ceph Cluster Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteCephClusterOwnerRule,
+        title: "Delete Ceph Cluster Owner Rule",
+        description:
+          "This permission can delete Ceph Cluster Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditCephClusterOwnerRule,
+        title: "Edit Ceph Cluster Owner Rule",
+        description:
+          "This permission can edit Ceph Cluster Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadCephClusterOwnerRule,
+        title: "Read Ceph Cluster Owner Rule",
+        description:
+          "This permission can read Ceph Cluster Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Ceph Cluster Label Rule Permissions
+      {
+        permission: Permission.CreateCephClusterLabelRule,
+        title: "Create Ceph Cluster Label Rule",
+        description:
+          "This permission can create Ceph Cluster Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteCephClusterLabelRule,
+        title: "Delete Ceph Cluster Label Rule",
+        description:
+          "This permission can delete Ceph Cluster Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditCephClusterLabelRule,
+        title: "Edit Ceph Cluster Label Rule",
+        description:
+          "This permission can edit Ceph Cluster Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadCephClusterLabelRule,
+        title: "Read Ceph Cluster Label Rule",
+        description:
+          "This permission can read Ceph Cluster Label Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

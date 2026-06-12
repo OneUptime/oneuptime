@@ -31,6 +31,27 @@ const ProxmoxClusterSettings: FunctionComponent<
         formFields={[
           {
             field: {
+              name: true,
+            },
+            title: "Name",
+            description:
+              "Name for this Proxmox cluster. This should match the proxmox.cluster.name resource attribute reported by the Proxmox Agent.",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: "pve-production",
+          },
+          {
+            field: {
+              description: true,
+            },
+            title: "Description",
+            description: "Friendly description for this Proxmox cluster.",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder: "Production Proxmox cluster running in US East",
+          },
+          {
+            field: {
               retainTelemetryDataForDays: true,
             },
             title: "Retain Telemetry Data For (Days)",

@@ -125,9 +125,7 @@ export class AddProxmoxAndCephClusterTables1781500000000
     );
     await queryRunner.query(`DROP INDEX "public"."IDX_ceph_cluster_slug"`);
     await queryRunner.query(`DROP INDEX "public"."IDX_ceph_cluster_name"`);
-    await queryRunner.query(
-      `DROP INDEX "public"."IDX_ceph_cluster_projectId"`,
-    );
+    await queryRunner.query(`DROP INDEX "public"."IDX_ceph_cluster_projectId"`);
     await queryRunner.query(`DROP TABLE "CephCluster"`);
 
     // Proxmox cluster label join table.

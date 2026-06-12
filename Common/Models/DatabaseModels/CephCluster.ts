@@ -71,6 +71,14 @@ import {
 })
 @CrudApiEndpoint(new Route("/ceph-cluster"))
 @SlugifyColumn("name", "slug")
+/*
+ * DB-level unique index on (projectId, name) — the @UniqueColumnBy decorator
+ * on `name` is app-level only and does not defuse the concurrent
+ * find-or-create race at ingest (multiple agent pods discovering the same
+ * cluster simultaneously). Mirrors KubernetesCluster's
+ * (projectId, clusterIdentifier) unique index.
+ */
+@Index(["projectId", "name"], { unique: true })
 @TableMetadata({
   tableName: "CephCluster",
   singularName: "Ceph Cluster",
@@ -526,6 +534,68 @@ export default class CephCluster extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.Number,
+    title: "OSDs Up Count",
+    description:
+      "Cached count of OSDs that are up (ceph_osd_up == 1) in this cluster. Rendered as 'X up / Y in / Z total' next to osdCount.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+    default: 0,
+  })
+  public osdUpCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCephCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditCephCluster,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "OSDs In Count",
+    description:
+      "Cached count of OSDs that are in the cluster (ceph_osd_in == 1). Rendered as 'X up / Y in / Z total' next to osdCount.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+    default: 0,
+  })
+  public osdInCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCephCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditCephCluster,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
     title: "Pool Count",
     description: "Cached count of pools in this cluster",
   })
@@ -535,6 +605,84 @@ export default class CephCluster extends BaseModel {
     default: 0,
   })
   public poolCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCephCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditCephCluster,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Health Status",
+    description:
+      "Cached latest ceph_health_status value: 0 = HEALTH_OK, 1 = HEALTH_WARN, 2 = HEALTH_ERR. Rendered as the OK/WARN/ERR health pill. Null until the first metric batch arrives.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public healthStatus?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCephCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditCephCluster,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Capacity Used Percent",
+    description:
+      "Cached cluster capacity usage percent (ceph_cluster_total_used_bytes / ceph_cluster_total_bytes * 100). Stored as decimal so sub-percent precision survives the round trip. Null until both series appear in one metric batch.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Decimal,
+    transformer: {
+      to: (value: number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        return value;
+      },
+      from: (value: string | number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        if (typeof value === "number") {
+          return value;
+        }
+        const parsed: number = parseFloat(value);
+        return isNaN(parsed) ? null : parsed;
+      },
+    },
+  })
+  public capacityUsedPercent?: number = undefined;
 
   @ColumnAccessControl({
     create: [

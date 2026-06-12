@@ -1,13 +1,16 @@
 import DatabaseService from "./DatabaseService";
+import ProxmoxClusterLabelRuleEngineService from "./ProxmoxClusterLabelRuleEngineService";
+import ProxmoxClusterOwnerRuleEngineService from "./ProxmoxClusterOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/ProxmoxCluster";
 import Label from "../../Models/DatabaseModels/Label";
+import { OnCreate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "../../Types/Date";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import GlobalCache from "../Infrastructure/GlobalCache";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "proxmox-cluster-last-seen";
@@ -19,6 +22,41 @@ const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    /*
+     * Rules run once, on creation only — exact parity with
+     * KubernetesClusterService. Label engine first: it syncs the
+     * in-memory labels so the owner engine can match rule-added labels.
+     */
+    if (createdItem.projectId && createdItem.id) {
+      Promise.resolve()
+        .then(async () => {
+          await ProxmoxClusterLabelRuleEngineService.applyRulesToProxmoxCluster(
+            createdItem,
+          );
+        })
+        .then(async () => {
+          await ProxmoxClusterOwnerRuleEngineService.applyRulesToProxmoxCluster(
+            createdItem,
+          );
+        })
+        .catch((error: Error) => {
+          logger.error(
+            `Error applying proxmox cluster rules in ProxmoxClusterService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              proxmoxClusterId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        });
+    }
+    return createdItem;
   }
 
   @CaptureSpan()
@@ -104,12 +142,26 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * Refresh lastSeenAt / connection status and (optionally) the
+   * snapshot columns the list page renders. Count columns ride this
+   * extras path with COALESCE-per-column semantics: a key that is
+   * undefined is simply not written, so a partial batch (one that
+   * lacked the matching *_info series) never zeroes a count. The
+   * 60-second extras fingerprint cache is the write throttle — the
+   * steady state (identical snapshot every scrape) costs one Redis
+   * read per batch and at most one Postgres UPDATE per minute.
+   */
   @CaptureSpan()
   public async updateLastSeen(
     clusterId: ObjectID,
     extra?: {
       pveVersion?: string | undefined;
       agentVersion?: string | undefined;
+      nodeCount?: number | undefined;
+      onlineNodeCount?: number | undefined;
+      guestCount?: number | undefined;
+      storageCount?: number | undefined;
     },
   ): Promise<void> {
     const cacheKey: string = clusterId.toString();
@@ -119,6 +171,10 @@ export class Service extends DatabaseService<Model> {
         JSON.stringify({
           pveVersion: extra?.pveVersion ?? null,
           agentVersion: extra?.agentVersion ?? null,
+          nodeCount: extra?.nodeCount ?? null,
+          onlineNodeCount: extra?.onlineNodeCount ?? null,
+          guestCount: extra?.guestCount ?? null,
+          storageCount: extra?.storageCount ?? null,
         }),
       )
       .digest("hex");
@@ -150,6 +206,19 @@ export class Service extends DatabaseService<Model> {
     }
     if (extra?.agentVersion) {
       data.agentVersion = extra.agentVersion;
+    }
+    // Counts: 0 is a legitimate value — gate on undefined, not falsiness.
+    if (extra?.nodeCount !== undefined) {
+      data.nodeCount = extra.nodeCount;
+    }
+    if (extra?.onlineNodeCount !== undefined) {
+      data.onlineNodeCount = extra.onlineNodeCount;
+    }
+    if (extra?.guestCount !== undefined) {
+      data.guestCount = extra.guestCount;
+    }
+    if (extra?.storageCount !== undefined) {
+      data.storageCount = extra.storageCount;
     }
 
     await this.updateOneById({

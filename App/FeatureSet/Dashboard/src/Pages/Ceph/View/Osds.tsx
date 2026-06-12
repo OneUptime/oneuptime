@@ -1,179 +1,103 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
-import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
-  useMemo,
   useState,
 } from "react";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import AnalyticsModelAPI, {
-  ListResult,
-} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import Metric from "Common/Models/AnalyticsModels/Metric";
-import ProjectUtil from "Common/UI/Utils/Project";
-import OneUptimeDate from "Common/Types/Date";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import Table from "Common/UI/Components/Table/Table";
-import FieldType from "Common/UI/Components/Types/FieldType";
-import Column from "Common/UI/Components/Table/Types/Column";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import IconProp from "Common/Types/Icon/IconProp";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
+import ResourceTable, {
+  InfrastructureResource,
+} from "../../../Components/Infrastructure/ResourceTable";
+import CephResourceModel from "Common/Models/DatabaseModels/CephResource";
+import CephResourceUtils from "../Utils/CephResourceUtils";
 
-interface CephOsdRow {
-  osdName: string;
-  isUp: boolean;
-  upStatus: string;
-  isIn: boolean;
-  inStatus: string;
-}
-
-const CLUSTER_ATTR: string = "resource.ceph.cluster.name";
-const OSD_ATTR: string = "ceph_daemon";
-
+/*
+ * OSD list page reading the CephResource Postgres inventory (kind=Osd)
+ * instead of groupBy-ing ClickHouse metrics — same architecture as
+ * Pages/Kubernetes/View/Nodes.tsx. The detail route param is the
+ * resource externalId (the `ceph_daemon` label, e.g. `osd.3`).
+ */
 const CephClusterOsds: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const [osds, setOsds] = useState<Array<CephOsdRow>>([]);
+  const [resources, setResources] = useState<Array<InfrastructureResource>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
-    setError("");
     try {
-      const cluster: CephCluster | null = await ModelAPI.getItem({
-        modelType: CephCluster,
-        id: modelId,
-        select: {
-          name: true,
-        },
+      const rows: Array<CephResourceModel> =
+        await CephResourceUtils.fetchCephResources({
+          cephClusterId: modelId,
+          kinds: ["Osd"],
+        });
+
+      rows.sort((a: CephResourceModel, b: CephResourceModel) => {
+        return CephResourceUtils.compareDaemonNames(
+          a.externalId || "",
+          b.externalId || "",
+        );
       });
 
-      if (!cluster?.name) {
-        setError("Cluster not found.");
-        setIsLoading(false);
-        return;
-      }
+      const list: Array<InfrastructureResource> = rows.map(
+        (row: CephResourceModel): InfrastructureResource => {
+          const statBytes: number | null = CephResourceUtils.freshMetricValue(
+            row,
+            row.statBytes,
+          );
+          const statBytesUsed: number | null =
+            CephResourceUtils.freshMetricValue(row, row.statBytesUsed);
+          const usedPercent: number | null =
+            statBytes !== null && statBytesUsed !== null && statBytes > 0
+              ? (statBytesUsed / statBytes) * 100
+              : null;
+          const applyLatencyMs: number | null =
+            CephResourceUtils.freshMetricValue(row, row.applyLatencyMs);
+          const commitLatencyMs: number | null =
+            CephResourceUtils.freshMetricValue(row, row.commitLatencyMs);
+          const pgCount: number | null = CephResourceUtils.freshMetricValue(
+            row,
+            row.pgCount,
+          );
 
-      const endDate: Date = OneUptimeDate.getCurrentDate();
-      const startDate: Date = OneUptimeDate.addRemoveMinutes(endDate, -5);
-
-      const metricNames: Array<string> = ["ceph_osd_up", "ceph_osd_in"];
-
-      const projectId: string = ProjectUtil.getCurrentProjectId()!.toString();
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const buildQuery: (metricName: string) => any = (metricName: string) => {
-        return {
-          modelType: Metric,
-          query: {
-            projectId: projectId,
-            name: metricName,
-            time: new InBetween<Date>(startDate, endDate),
-            attributes: {
-              [CLUSTER_ATTR]: cluster.name,
+          return {
+            name: row.externalId || "",
+            namespace: row.hostname || "",
+            cpuUtilization: null,
+            memoryUsageBytes: null,
+            memoryLimitBytes: null,
+            status: row.isUp ? "Up" : "Down",
+            age: CephResourceUtils.formatAge(row.createdAt),
+            additionalAttributes: {
+              in: row.isIn ? "In" : "Out",
+              deviceClass: row.deviceClass || "—",
+              used:
+                usedPercent !== null
+                  ? `${CephResourceUtils.formatBytes(statBytesUsed)} / ${CephResourceUtils.formatBytes(statBytes)} (${usedPercent.toFixed(1)}%)`
+                  : "—",
+              pgs: pgCount !== null ? Math.round(pgCount).toString() : "—",
+              latency:
+                applyLatencyMs !== null || commitLatencyMs !== null
+                  ? `${applyLatencyMs !== null ? applyLatencyMs.toFixed(0) : "—"} / ${commitLatencyMs !== null ? commitLatencyMs.toFixed(0) : "—"} ms`
+                  : "—",
             },
-          },
-          limit: 500,
-          skip: 0,
-          select: {
-            time: true,
-            value: true,
-            attributes: true,
-          },
-          sort: {
-            time: SortOrder.Descending,
-          },
-          requestOptions: {},
-        };
-      };
-
-      const results: Array<ListResult<Metric>> = await Promise.all(
-        metricNames.map((n: string) => {
-          return AnalyticsModelAPI.getList<Metric>(buildQuery(n));
-        }),
+          };
+        },
       );
 
-      /*
-       * For each metric, take the latest value per OSD. The ceph-mgr
-       * prometheus module keeps OSD identity in the `ceph_daemon`
-       * datapoint label (`osd.3`).
-       */
-      const latestByMetric: Map<string, Map<string, Metric>> = new Map();
-      metricNames.forEach((name: string, idx: number) => {
-        const perOsd: Map<string, Metric> = new Map();
-        const listResult: ListResult<Metric> = results[idx]!;
-        for (const metric of listResult.data) {
-          const attrs: Record<string, unknown> =
-            (metric.attributes as Record<string, unknown>) || {};
-          const osd: string = (attrs[OSD_ATTR] as string) || "";
-          if (!osd) {
-            continue;
-          }
-          if (!perOsd.has(osd)) {
-            perOsd.set(osd, metric);
-          }
-        }
-        latestByMetric.set(name, perOsd);
-      });
-
-      // Collect union of OSD names.
-      const osdNames: Set<string> = new Set();
-      for (const perOsd of latestByMetric.values()) {
-        for (const name of perOsd.keys()) {
-          osdNames.add(name);
-        }
-      }
-
-      const rows: Array<CephOsdRow> = [];
-      for (const osdName of osdNames) {
-        const upMetric: Metric | undefined = latestByMetric
-          .get("ceph_osd_up")
-          ?.get(osdName);
-        const inMetric: Metric | undefined = latestByMetric
-          .get("ceph_osd_in")
-          ?.get(osdName);
-
-        const isUp: boolean =
-          upMetric !== undefined && Number(upMetric.value) >= 1;
-        const isIn: boolean =
-          inMetric !== undefined && Number(inMetric.value) >= 1;
-
-        rows.push({
-          osdName: osdName,
-          isUp: isUp,
-          upStatus: isUp ? "Up" : "Down",
-          isIn: isIn,
-          inStatus: isIn ? "In" : "Out",
-        });
-      }
-
-      /*
-       * Sort numerically by OSD id (`osd.10` after `osd.9`) with a
-       * lexicographic fallback for unexpected daemon names.
-       */
-      rows.sort((a: CephOsdRow, b: CephOsdRow) => {
-        const aNum: number = Number(a.osdName.split(".").pop());
-        const bNum: number = Number(b.osdName.split(".").pop());
-        if (Number.isFinite(aNum) && Number.isFinite(bNum)) {
-          return aNum - bNum;
-        }
-        return a.osdName.localeCompare(b.osdName);
-      });
-
-      setOsds(rows);
+      setResources(list);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -186,74 +110,6 @@ const CephClusterOsds: FunctionComponent<
     });
   }, []);
 
-  const tableColumns: Array<Column<CephOsdRow>> = useMemo(() => {
-    return [
-      {
-        title: "OSD",
-        type: FieldType.Text,
-        key: "osdName",
-      },
-      {
-        title: "Up / Down",
-        type: FieldType.Element,
-        key: "upStatus",
-        getElement: (row: CephOsdRow): ReactElement => {
-          return (
-            <div className="flex items-center gap-2">
-              <span
-                className={`inline-block w-2 h-2 rounded-full ${
-                  row.isUp ? "bg-emerald-500" : "bg-red-500"
-                }`}
-              />
-              <span
-                className={`text-sm font-medium ${
-                  row.isUp ? "text-emerald-700" : "text-red-700"
-                }`}
-              >
-                {row.upStatus}
-              </span>
-            </div>
-          );
-        },
-      },
-      {
-        title: "In / Out",
-        type: FieldType.Element,
-        key: "inStatus",
-        getElement: (row: CephOsdRow): ReactElement => {
-          return (
-            <div className="flex items-center gap-2">
-              <span
-                className={`inline-block w-2 h-2 rounded-full ${
-                  row.isIn ? "bg-emerald-500" : "bg-amber-500"
-                }`}
-              />
-              <span
-                className={`text-sm font-medium ${
-                  row.isIn ? "text-emerald-700" : "text-amber-700"
-                }`}
-              >
-                {row.inStatus}
-              </span>
-            </div>
-          );
-        },
-      },
-    ];
-  }, []);
-
-  const cardButtons: Array<CardButtonSchema> = [
-    {
-      title: "",
-      buttonStyle: ButtonStyleType.ICON,
-      className: "py-0 pr-0 pl-1 mt-1",
-      onClick: () => {
-        fetchData().catch(() => {});
-      },
-      icon: IconProp.Refresh,
-    },
-  ];
-
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -263,29 +119,34 @@ const CephClusterOsds: FunctionComponent<
   }
 
   return (
-    <Card
-      title="Ceph OSDs"
-      description="Object storage daemons in this Ceph cluster (last 5 minutes). Up means the daemon is running; In means it participates in data placement."
-      buttons={cardButtons}
-    >
-      <Table<CephOsdRow>
-        id="ceph-osds-table"
-        columns={tableColumns}
-        data={osds}
-        singularLabel="OSD"
-        pluralLabel="OSDs"
-        isLoading={false}
-        error=""
-        currentPageNumber={1}
-        totalItemsCount={osds.length}
-        itemsOnPage={osds.length}
-        onNavigateToPage={() => {}}
-        sortOrder={SortOrder.Ascending}
-        sortBy={null}
-        onSortChanged={() => {}}
-        noItemsMessage="No OSDs found in the last 5 minutes. Make sure the Ceph agent is sending metrics."
-      />
-    </Card>
+    <ResourceTable
+      onRefreshClick={() => {
+        fetchData().catch(() => {});
+      }}
+      title="OSDs"
+      description="Object storage daemons in this cluster. Up means the daemon is running; In means it participates in data placement."
+      resources={resources}
+      tableIdPrefix="ceph"
+      groupColumnTitle="Host"
+      showResourceMetrics={false}
+      columns={[
+        { title: "In / Out", key: "in" },
+        { title: "Class", key: "deviceClass" },
+        { title: "Used / Total", key: "used" },
+        { title: "PGs", key: "pgs" },
+        { title: "Apply / Commit Latency", key: "latency" },
+      ]}
+      emptyMessage="No OSDs found in the inventory yet. OSDs appear here a few minutes after the Ceph agent starts sending metrics."
+      getViewRoute={(resource: InfrastructureResource) => {
+        return RouteUtil.populateRouteParams(
+          RouteMap[PageMap.CEPH_CLUSTER_VIEW_OSD_DETAIL] as Route,
+          {
+            modelId: modelId,
+            subModelId: new ObjectID(resource.name),
+          },
+        );
+      }}
+    />
   );
 };
 

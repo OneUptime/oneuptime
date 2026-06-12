@@ -26,15 +26,18 @@ import React, {
 /*
  * Each of the Incident, Alert, and ScheduledMaintenance models exposes
  * the same set of resource-relation fields (`hosts`, `kubernetesClusters`,
- * `dockerHosts`, `services`). The host/k8s/docker/service overview pages
- * filter their activity tables by populating one of these keys with an
- * `Includes` over the current resource id — this component does the same
- * for the count cards so the numbers match what the filtered pages show.
+ * `dockerHosts`, `proxmoxClusters`, `cephClusters`, `services`). The
+ * host/k8s/docker/proxmox/ceph/service overview pages filter their
+ * activity tables by populating one of these keys with an `Includes`
+ * over the current resource id — this component does the same for the
+ * count cards so the numbers match what the filtered pages show.
  */
 export type ResourceQueryKey =
   | "hosts"
   | "kubernetesClusters"
   | "dockerHosts"
+  | "proxmoxClusters"
+  | "cephClusters"
   | "services";
 
 export interface ComponentProps {

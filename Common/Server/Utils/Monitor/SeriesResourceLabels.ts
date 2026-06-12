@@ -61,6 +61,29 @@ export const KubernetesClusterNameLabelKeys: ReadonlyArray<string> = [
 ];
 
 /*
+ * Proxmox/Ceph cluster identity rides the agent-stamped resource
+ * attribute (`proxmox.cluster.name` / `ceph.cluster.name`) and its
+ * ClickHouse `resource.`-prefixed twin. Ingest keys cluster rows by
+ * name only — there is no `oneuptime.*.id` stamp for these clusters —
+ * so only name keys exist. The name maps to the cluster model's `name`
+ * column. Note the shipped Proxmox/Ceph alert templates group by
+ * datapoint labels (`id`, `ceph_daemon`, `pool_id`), so their series
+ * labels do NOT carry these keys; the deterministic cluster link for
+ * those monitors comes from the monitor step config instead (see
+ * MonitorClusterContext). These keys cover user-built monitors that
+ * group by the cluster attribute, exactly like the K8s keys above.
+ */
+export const ProxmoxClusterNameLabelKeys: ReadonlyArray<string> = [
+  "resource.proxmox.cluster.name",
+  "proxmox.cluster.name",
+];
+
+export const CephClusterNameLabelKeys: ReadonlyArray<string> = [
+  "resource.ceph.cluster.name",
+  "ceph.cluster.name",
+];
+
+/*
  * Services come from OTel-ingested telemetry. The ingest pipeline
  * auto-creates a Service row keyed by `service.name`, so any series
  * label carrying that attribute (raw or prefixed) tells us the emitting
@@ -91,6 +114,8 @@ export interface SeriesResourceRefs {
   dockerHostNames: Array<string>;
   kubernetesClusterIds: Array<string>;
   kubernetesClusterNames: Array<string>;
+  proxmoxClusterNames: Array<string>;
+  cephClusterNames: Array<string>;
   serviceIds: Array<string>;
   serviceNames: Array<string>;
 }
@@ -148,6 +173,14 @@ export default class SeriesResourceLabels {
       kubernetesClusterNames: this.collectLabelValues(
         seriesLabels,
         KubernetesClusterNameLabelKeys,
+      ),
+      proxmoxClusterNames: this.collectLabelValues(
+        seriesLabels,
+        ProxmoxClusterNameLabelKeys,
+      ),
+      cephClusterNames: this.collectLabelValues(
+        seriesLabels,
+        CephClusterNameLabelKeys,
       ),
       serviceIds: this.collectLabelValues(seriesLabels, ServiceIdLabelKeys),
       serviceNames: this.collectLabelValues(seriesLabels, ServiceNameLabelKeys),

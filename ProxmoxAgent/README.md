@@ -80,6 +80,18 @@ The agent scrapes the exporter's `/pve` endpoint every 30 seconds with both the 
 - **Storage**: `pve_disk_usage_bytes`, `pve_disk_size_bytes`
 - **HA**: `pve_ha_state`
 
+### Derived identity attributes — `pve.scope` / `pve.type` / `pve.id`
+
+OneUptime monitor criteria and attribute filters match on equality, not prefix, so the shipped config includes a `transform/pve-identity` processor that splits the `id` label into three extra datapoint attributes. The built-in Proxmox alert templates filter on them — do not remove the processor:
+
+| Attribute | Values | Example for `qemu/100` |
+|-----------|--------|------------------------|
+| `pve.scope` | `node`, `guest`, `storage`, `cluster` (`qemu` and `lxc` both map to `guest`) | `guest` |
+| `pve.type` | `node`, `qemu`, `lxc`, `storage` (unset on `cluster/*` series) | `qemu` |
+| `pve.id` | Everything after the first `/` of `id` (`pve1`, `100`, `pve1/local`) | `100` |
+
+The original `id` label is kept untouched — group-by pages and breakdowns still use it.
+
 ## Zero-install Alternative — Proxmox VE 9+ Native OpenTelemetry Push
 
 Proxmox VE 9.0 and later can push metrics directly to OneUptime via the built-in OpenTelemetry metric server (*Datacenter → Metric Server → Add → OpenTelemetry*) — no agent or exporter required:
@@ -95,6 +107,27 @@ Two trade-offs to be aware of:
 2. **Metric names differ**: the native push emits `proxmox_node_*` / `proxmox_vm_*` / `proxmox_storage_*` series, while the agent emits pve-exporter's `pve_*` series. OneUptime's built-in Proxmox monitor catalog and alert templates target the `pve_*` names.
 
 See the [Proxmox telemetry docs](https://oneuptime.com/docs/telemetry/proxmox) for the full walkthrough.
+
+## Auto-tag with Project Labels
+
+Any resource attribute prefixed with `oneuptime.label.` is promoted to a project Label and attached to the cluster. Pattern: `oneuptime.label.<dimension>=<value>` becomes a label named `<dimension>:<value>`.
+
+Add the attributes to the `resource` processor in `otel-collector-config.yaml` (next to `proxmox.cluster.name`):
+
+```yaml
+processors:
+  resource:
+    attributes:
+      # ...existing attributes...
+      - key: oneuptime.label.team
+        value: platform
+        action: upsert
+      - key: oneuptime.label.env
+        value: production
+        action: upsert
+```
+
+The cluster shows up tagged `team:platform` and `env:production`. Labels are matched case-insensitively, so an existing manually-created `Production` label is reused rather than duplicated; labels added manually in the OneUptime UI are never removed by the agent.
 
 ## Run as a systemd Service
 
@@ -124,6 +157,15 @@ docker compose down
 ```
 
 ## Troubleshooting
+
+### Run the doctor script first
+
+`troubleshoot.sh` checks the whole chain — container runtime, exporter scrape, cluster-name stamping, token shape, collector self-metrics, and a **definitive server-side token validation**. The last one matters most: OneUptime's OTLP endpoints deliberately return a silent `200` on a bad ingestion key (so a misconfigured collector cannot retry-flood the server), which means log inspection alone can never tell you the key is wrong. The script asks `GET <url>/otlp/v1/validate` from inside the agent's network namespace for a real 200/401 verdict:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/ProxmoxAgent/troubleshoot.sh -o troubleshoot.sh
+bash troubleshoot.sh                 # add -d <dir> if you installed outside /opt/oneuptime-proxmox-agent
+```
 
 ### No cluster appears in OneUptime
 

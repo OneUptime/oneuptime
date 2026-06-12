@@ -3,6 +3,8 @@ import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import DashboardAlertListComponentUtil from "./DashboardAlertListComponent";
+import DashboardCephOsdListComponentUtil from "./DashboardCephOsdListComponent";
+import DashboardCephPoolListComponentUtil from "./DashboardCephPoolListComponent";
 import DashboardChartComponentUtil from "./DashboardChartComponent";
 import DashboardDockerContainerListComponentUtil from "./DashboardDockerContainerListComponent";
 import DashboardDockerHostListComponentUtil from "./DashboardDockerHostListComponent";
@@ -22,6 +24,8 @@ import DashboardKubernetesPodListComponentUtil from "./DashboardKubernetesPodLis
 import DashboardKubernetesStatefulSetListComponentUtil from "./DashboardKubernetesStatefulSetListComponent";
 import DashboardLogStreamComponentUtil from "./DashboardLogStreamComponent";
 import DashboardMonitorListComponentUtil from "./DashboardMonitorListComponent";
+import DashboardProxmoxGuestListComponentUtil from "./DashboardProxmoxGuestListComponent";
+import DashboardProxmoxNodeListComponentUtil from "./DashboardProxmoxNodeListComponent";
 import DashboardTableComponentUtil from "./DashboardTableComponent";
 import DashboardTextComponentUtil from "./DashboardTextComponent";
 import DashboardTraceChartComponentUtil from "./DashboardTraceChartComponent";
@@ -189,6 +193,30 @@ export default class DashboardComponentsUtil {
 
     if (dashboardComponentType === DashboardComponentType.HostList) {
       return DashboardHostListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.ProxmoxNodeList) {
+      return DashboardProxmoxNodeListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.ProxmoxGuestList) {
+      return DashboardProxmoxGuestListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.CephOsdList) {
+      return DashboardCephOsdListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.CephPoolList) {
+      return DashboardCephPoolListComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }

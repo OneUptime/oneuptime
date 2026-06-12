@@ -93,6 +93,8 @@ import AlertCustomFieldService, {
 import AlertInternalNoteAPI from "Common/Server/API/AlertInternalNoteAPI";
 import TelemetryExceptionAPI from "Common/Server/API/TelemetryExceptionAPI";
 import KubernetesResourceAPI from "Common/Server/API/KubernetesResourceAPI";
+import ProxmoxResourceAPI from "Common/Server/API/ProxmoxResourceAPI";
+import CephResourceAPI from "Common/Server/API/CephResourceAPI";
 import KubernetesContainer from "Common/Models/DatabaseModels/KubernetesContainer";
 import KubernetesContainerService, {
   Service as KubernetesContainerServiceType,
@@ -281,6 +283,22 @@ import KubernetesClusterOwnerRuleService, {
 import KubernetesClusterLabelRuleService, {
   Service as KubernetesClusterLabelRuleServiceType,
 } from "Common/Server/Services/KubernetesClusterLabelRuleService";
+
+import ProxmoxClusterOwnerRuleService, {
+  Service as ProxmoxClusterOwnerRuleServiceType,
+} from "Common/Server/Services/ProxmoxClusterOwnerRuleService";
+
+import ProxmoxClusterLabelRuleService, {
+  Service as ProxmoxClusterLabelRuleServiceType,
+} from "Common/Server/Services/ProxmoxClusterLabelRuleService";
+
+import CephClusterOwnerRuleService, {
+  Service as CephClusterOwnerRuleServiceType,
+} from "Common/Server/Services/CephClusterOwnerRuleService";
+
+import CephClusterLabelRuleService, {
+  Service as CephClusterLabelRuleServiceType,
+} from "Common/Server/Services/CephClusterLabelRuleService";
 
 import RunbookOwnerRuleService, {
   Service as RunbookOwnerRuleServiceType,
@@ -490,6 +508,18 @@ import ProxmoxClusterService, {
 import CephClusterService, {
   Service as CephClusterServiceType,
 } from "Common/Server/Services/CephClusterService";
+import ProxmoxClusterOwnerTeamService, {
+  Service as ProxmoxClusterOwnerTeamServiceType,
+} from "Common/Server/Services/ProxmoxClusterOwnerTeamService";
+import ProxmoxClusterOwnerUserService, {
+  Service as ProxmoxClusterOwnerUserServiceType,
+} from "Common/Server/Services/ProxmoxClusterOwnerUserService";
+import CephClusterOwnerTeamService, {
+  Service as CephClusterOwnerTeamServiceType,
+} from "Common/Server/Services/CephClusterOwnerTeamService";
+import CephClusterOwnerUserService, {
+  Service as CephClusterOwnerUserServiceType,
+} from "Common/Server/Services/CephClusterOwnerUserService";
 import HostService, {
   Service as HostServiceType,
 } from "Common/Server/Services/HostService";
@@ -854,6 +884,10 @@ import DockerHostOwnerRule from "Common/Models/DatabaseModels/DockerHostOwnerRul
 import DockerHostLabelRule from "Common/Models/DatabaseModels/DockerHostLabelRule";
 import KubernetesClusterOwnerRule from "Common/Models/DatabaseModels/KubernetesClusterOwnerRule";
 import KubernetesClusterLabelRule from "Common/Models/DatabaseModels/KubernetesClusterLabelRule";
+import ProxmoxClusterOwnerRule from "Common/Models/DatabaseModels/ProxmoxClusterOwnerRule";
+import ProxmoxClusterLabelRule from "Common/Models/DatabaseModels/ProxmoxClusterLabelRule";
+import CephClusterOwnerRule from "Common/Models/DatabaseModels/CephClusterOwnerRule";
+import CephClusterLabelRule from "Common/Models/DatabaseModels/CephClusterLabelRule";
 import RunbookOwnerRule from "Common/Models/DatabaseModels/RunbookOwnerRule";
 import RunbookLabelRule from "Common/Models/DatabaseModels/RunbookLabelRule";
 import ScheduledMaintenanceOwnerRule from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerRule";
@@ -914,7 +948,11 @@ import DockerHostOwnerTeam from "Common/Models/DatabaseModels/DockerHostOwnerTea
 import DockerHostOwnerUser from "Common/Models/DatabaseModels/DockerHostOwnerUser";
 import DockerResource from "Common/Models/DatabaseModels/DockerResource";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import ProxmoxClusterOwnerTeam from "Common/Models/DatabaseModels/ProxmoxClusterOwnerTeam";
+import ProxmoxClusterOwnerUser from "Common/Models/DatabaseModels/ProxmoxClusterOwnerUser";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import CephClusterOwnerTeam from "Common/Models/DatabaseModels/CephClusterOwnerTeam";
+import CephClusterOwnerUser from "Common/Models/DatabaseModels/CephClusterOwnerUser";
 import Host from "Common/Models/DatabaseModels/Host";
 import HostOwnerTeam from "Common/Models/DatabaseModels/HostOwnerTeam";
 import HostOwnerUser from "Common/Models/DatabaseModels/HostOwnerUser";
@@ -1974,6 +2012,38 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ProxmoxClusterOwnerRule, ProxmoxClusterOwnerRuleServiceType>(
+        ProxmoxClusterOwnerRule,
+        ProxmoxClusterOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ProxmoxClusterLabelRule, ProxmoxClusterLabelRuleServiceType>(
+        ProxmoxClusterLabelRule,
+        ProxmoxClusterLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CephClusterOwnerRule, CephClusterOwnerRuleServiceType>(
+        CephClusterOwnerRule,
+        CephClusterOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CephClusterLabelRule, CephClusterLabelRuleServiceType>(
+        CephClusterLabelRule,
+        CephClusterLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<RunbookOwnerRule, RunbookOwnerRuleServiceType>(
         RunbookOwnerRule,
         RunbookOwnerRuleService,
@@ -2060,6 +2130,16 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new KubernetesResourceAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new ProxmoxResourceAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CephResourceAPI().getRouter(),
     );
 
     app.use(
@@ -3111,9 +3191,41 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ProxmoxClusterOwnerTeam, ProxmoxClusterOwnerTeamServiceType>(
+        ProxmoxClusterOwnerTeam,
+        ProxmoxClusterOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ProxmoxClusterOwnerUser, ProxmoxClusterOwnerUserServiceType>(
+        ProxmoxClusterOwnerUser,
+        ProxmoxClusterOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<CephCluster, CephClusterServiceType>(
         CephCluster,
         CephClusterService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CephClusterOwnerTeam, CephClusterOwnerTeamServiceType>(
+        CephClusterOwnerTeam,
+        CephClusterOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CephClusterOwnerUser, CephClusterOwnerUserServiceType>(
+        CephClusterOwnerUser,
+        CephClusterOwnerUserService,
       ).getRouter(),
     );
 

@@ -48,6 +48,16 @@ import DockerResourceService, {
   ParsedDockerContainer,
 } from "Common/Server/Services/DockerResourceService";
 import CloudResourceInstanceService from "Common/Server/Services/CloudResourceInstanceService";
+import ProxmoxResourceService, {
+  ParsedProxmoxResource,
+  ProxmoxResourceLatestMetric,
+} from "Common/Server/Services/ProxmoxResourceService";
+import CephResourceService, {
+  ParsedCephResource,
+  CephResourceLatestMetric,
+} from "Common/Server/Services/CephResourceService";
+import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
+import CephClusterService from "Common/Server/Services/CephClusterService";
 import HostService from "Common/Server/Services/HostService";
 import LabelService from "Common/Server/Services/LabelService";
 import Host from "Common/Models/DatabaseModels/Host";
@@ -130,6 +140,74 @@ const CLOUD_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "container.memory.usage.total",
 ]);
 
+/*
+ * Proxmox snapshot metrics — emitted by pve-exporter (prometheus
+ * receiver), identity in the `id` datapoint label (node/pve1,
+ * qemu/100, lxc/101, storage/local) plus the pve.scope / pve.type /
+ * pve.id attributes the agent's transform processor derives from it.
+ * Unlike K8s there is no separate object stream: identity, status AND
+ * the latest-metric mirror all arrive on every scrape, so the same
+ * scan feeds the ProxmoxResource inventory upsert and the
+ * ProxmoxCluster count/version snapshot columns (single source — the
+ * list-page counts and the sidebar badges can never drift).
+ *
+ * pve_cpu_usage_ratio is already a true 0..1 ratio — no allocatable-
+ * denominator cache is needed, unlike K8s cpuCoresToPercent.
+ */
+const PVE_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
+  // Identity / status (WI-3 cluster counts derive from these)
+  "pve_up",
+  "pve_node_info",
+  "pve_guest_info",
+  "pve_storage_info",
+  "pve_version_info",
+  "pve_ha_state",
+  "pve_onboot_status",
+  // Latest-metric mirror (WI-6 inventory columns)
+  "pve_uptime_seconds",
+  "pve_cpu_usage_ratio",
+  "pve_memory_usage_bytes",
+  "pve_memory_size_bytes",
+  "pve_disk_usage_bytes",
+  "pve_disk_size_bytes",
+]);
+
+/*
+ * Ceph snapshot metrics — emitted by the ceph-mgr prometheus module
+ * (honor_labels), identity in the `ceph_daemon` (osd.3, mon.a, …) or
+ * `pool_id` datapoint labels. Same single-source rule as Proxmox: one
+ * scan feeds the CephResource inventory and the CephCluster
+ * count/health/capacity snapshot columns.
+ */
+const CEPH_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
+  // Cluster-level health / capacity (WI-3 columns)
+  "ceph_health_status",
+  "ceph_cluster_total_bytes",
+  "ceph_cluster_total_used_bytes",
+  // Daemon identity / status
+  "ceph_mon_quorum_status",
+  "ceph_mon_metadata",
+  "ceph_osd_up",
+  "ceph_osd_in",
+  "ceph_osd_metadata",
+  "ceph_mgr_metadata",
+  "ceph_mds_metadata",
+  "ceph_rgw_metadata",
+  // OSD latest-metric mirror (WI-6 inventory columns)
+  "ceph_osd_stat_bytes",
+  "ceph_osd_stat_bytes_used",
+  "ceph_osd_apply_latency_ms",
+  "ceph_osd_commit_latency_ms",
+  "ceph_osd_numpg",
+  // Pool identity + latest-metric mirror
+  "ceph_pool_metadata",
+  "ceph_pool_stored",
+  "ceph_pool_max_avail",
+  "ceph_pool_objects",
+  "ceph_pool_rd",
+  "ceph_pool_wr",
+]);
+
 interface ResourceMetricBufferEntry {
   kind: string;
   namespaceKey: string;
@@ -165,6 +243,84 @@ interface CloudResourceInstanceMetricBufferEntry {
   cpuPercent: number | null;
   memoryBytes: number | null;
   observedAt: Date;
+}
+
+/*
+ * One Proxmox resource (Node / Guest / Storage) folded across a batch.
+ * Identity labels are first-non-null-wins (stable for the lifetime of
+ * the resource); status / metric fields are newest-observedAt-wins.
+ */
+interface ProxmoxResourceBufferEntry {
+  kind: string; // Node | Guest | Storage
+  externalId: string; // raw `id` label
+  name: string | null;
+  vmid: number | null;
+  guestType: string | null;
+  parentNodeName: string | null;
+  isUp: boolean | null;
+  haState: string | null;
+  onboot: boolean | null;
+  uptimeSeconds: number | null;
+  latestCpuPercent: number | null;
+  latestMemoryBytes: number | null;
+  maxMemoryBytes: number | null;
+  latestDiskBytes: number | null;
+  maxDiskBytes: number | null;
+  observedAt: Date;
+}
+
+/*
+ * Per-cluster Proxmox snapshot state. The saw* flags implement the
+ * never-zero-a-count-on-a-partial-batch contract: a count column is
+ * only written when the batch carried the matching identity series.
+ */
+interface ProxmoxClusterSnapshotBufferEntry {
+  sawNodeIdentity: boolean; // pve_node_info, or pve_up on a node id
+  sawNodeUp: boolean; // pve_up on a node id
+  sawGuestIdentity: boolean; // pve_guest_info
+  sawStorageIdentity: boolean; // pve_storage_info
+  pveVersion: string | null; // pve_version_info `version` label
+}
+
+/*
+ * One Ceph resource (Osd / Pool / Mon / Mgr / Mds / Rgw) folded across
+ * a batch. Same merge semantics as ProxmoxResourceBufferEntry.
+ */
+interface CephResourceBufferEntry {
+  kind: string;
+  externalId: string; // ceph_daemon or pool_id
+  name: string | null; // pool name
+  hostname: string | null;
+  daemonVersion: string | null;
+  deviceClass: string | null;
+  isUp: boolean | null;
+  isIn: boolean | null;
+  inQuorum: boolean | null;
+  statBytes: number | null;
+  statBytesUsed: number | null;
+  applyLatencyMs: number | null;
+  commitLatencyMs: number | null;
+  pgCount: number | null;
+  storedBytes: number | null;
+  maxAvailBytes: number | null;
+  objects: number | null;
+  readOpsCounter: number | null;
+  writeOpsCounter: number | null;
+  observedAt: Date;
+}
+
+// Per-cluster Ceph snapshot state — same saw* contract as Proxmox.
+interface CephClusterSnapshotBufferEntry {
+  sawMonMetadata: boolean;
+  sawOsdMetadata: boolean;
+  sawOsdUp: boolean;
+  sawOsdIn: boolean;
+  sawPoolMetadata: boolean;
+  healthStatus: number | null; // 0 OK / 1 WARN / 2 ERR
+  totalBytes: number | null;
+  totalUsedBytes: number | null;
+  // ceph_version label occurrences across ceph_mon_metadata — modal wins.
+  cephVersionCounts: Map<string, number>;
 }
 
 export default class OtelMetricsIngestService extends OtelIngestBaseService {
@@ -495,6 +651,22 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       const cloudResourceInstanceMetricsBuffer: Map<
         string,
         Map<string, CloudResourceInstanceMetricBufferEntry>
+      > = new Map();
+      const proxmoxResourceMetricsBuffer: Map<
+        string,
+        Map<string, ProxmoxResourceBufferEntry>
+      > = new Map();
+      const proxmoxClusterSnapshotBuffer: Map<
+        string,
+        ProxmoxClusterSnapshotBufferEntry
+      > = new Map();
+      const cephResourceMetricsBuffer: Map<
+        string,
+        Map<string, CephResourceBufferEntry>
+      > = new Map();
+      const cephClusterSnapshotBuffer: Map<
+        string,
+        CephClusterSnapshotBufferEntry
       > = new Map();
 
       // Load project + service-scoped pipeline rules once per batch (60s cached).
@@ -972,6 +1144,38 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                           });
                         }
 
+                        /*
+                         * Proxmox / Ceph identity lives in datapoint
+                         * labels (prometheus receiver), not resource
+                         * attributes — the buffer functions read the
+                         * raw datapoint attribute array directly.
+                         */
+                        if (
+                          proxmoxClusterId &&
+                          PVE_SNAPSHOT_METRIC_NAMES.has(metricName)
+                        ) {
+                          this.bufferProxmoxSnapshotMetric({
+                            clusterIdStr: proxmoxClusterId.toString(),
+                            metricName,
+                            datapoint: datapoint as JSONObject,
+                            resourceBuffer: proxmoxResourceMetricsBuffer,
+                            clusterBuffer: proxmoxClusterSnapshotBuffer,
+                          });
+                        }
+
+                        if (
+                          cephClusterId &&
+                          CEPH_SNAPSHOT_METRIC_NAMES.has(metricName)
+                        ) {
+                          this.bufferCephSnapshotMetric({
+                            clusterIdStr: cephClusterId.toString(),
+                            metricName,
+                            datapoint: datapoint as JSONObject,
+                            resourceBuffer: cephResourceMetricsBuffer,
+                            clusterBuffer: cephClusterSnapshotBuffer,
+                          });
+                        }
+
                         const metricRow: JSONObject = this.buildMetricRow({
                           datapoint: datapoint as JSONObject,
                           baseAttributes: metricAttributes,
@@ -1065,6 +1269,18 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       await this.flushCloudResourceSnapshotBuffer({
         projectId,
         buffer: cloudResourceInstanceMetricsBuffer,
+      });
+
+      await this.flushProxmoxSnapshotBuffers({
+        projectId,
+        resourceBuffer: proxmoxResourceMetricsBuffer,
+        clusterBuffer: proxmoxClusterSnapshotBuffer,
+      });
+
+      await this.flushCephSnapshotBuffers({
+        projectId,
+        resourceBuffer: cephResourceMetricsBuffer,
+        clusterBuffer: cephClusterSnapshotBuffer,
       });
 
       if (totalMetricsProcessed === 0) {
@@ -1959,6 +2175,981 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       } catch (err) {
         logger.warn(
           `Cloud resource instance snapshot writeback failed for ${cloudResourceIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
+  private static getOrCreateProxmoxClusterSnapshot(
+    buffer: Map<string, ProxmoxClusterSnapshotBufferEntry>,
+    clusterIdStr: string,
+  ): ProxmoxClusterSnapshotBufferEntry {
+    let entry: ProxmoxClusterSnapshotBufferEntry | undefined =
+      buffer.get(clusterIdStr);
+    if (!entry) {
+      entry = {
+        sawNodeIdentity: false,
+        sawNodeUp: false,
+        sawGuestIdentity: false,
+        sawStorageIdentity: false,
+        pveVersion: null,
+      };
+      buffer.set(clusterIdStr, entry);
+    }
+    return entry;
+  }
+
+  /*
+   * Fold one pve_* datapoint into the per-cluster buffers. Identity
+   * lives in the `id` DATAPOINT label (prometheus receiver), so this
+   * reads the raw datapoint attribute array — not the merged
+   * resource-prefixed map the K8s scan uses.
+   */
+  private static bufferProxmoxSnapshotMetric(data: {
+    clusterIdStr: string;
+    metricName: string;
+    datapoint: JSONObject;
+    resourceBuffer: Map<string, Map<string, ProxmoxResourceBufferEntry>>;
+    clusterBuffer: Map<string, ProxmoxClusterSnapshotBufferEntry>;
+  }): void {
+    const valueFromInt: number | null = this.toNumberOrNull(
+      data.datapoint["asInt"],
+    );
+    const valueFromDouble: number | null = this.toNumberOrNull(
+      data.datapoint["asDouble"],
+    );
+    const rawValue: number | null = valueFromDouble ?? valueFromInt;
+    if (rawValue === null) {
+      return;
+    }
+
+    const ts: MetricTimestamp = this.safeParseUnixNano(
+      data.datapoint["timeUnixNano"] as string | number | undefined,
+      "pve snapshot timeUnixNano",
+    );
+
+    const dpAttributes: JSONArray =
+      (data.datapoint["attributes"] as JSONArray) || [];
+
+    const cluster: ProxmoxClusterSnapshotBufferEntry =
+      this.getOrCreateProxmoxClusterSnapshot(
+        data.clusterBuffer,
+        data.clusterIdStr,
+      );
+
+    /*
+     * pve_version_info carries no `id` label — it is the cluster-level
+     * PVE version (this is what populates ProxmoxCluster.pveVersion).
+     */
+    if (data.metricName === "pve_version_info") {
+      const version: string | null = this.getStringAttribute(
+        dpAttributes,
+        "version",
+      );
+      if (version) {
+        cluster.pveVersion = version;
+      }
+      return;
+    }
+
+    const id: string | null = this.getStringAttribute(dpAttributes, "id");
+    if (!id) {
+      return;
+    }
+
+    /*
+     * Scope/type: prefer the pve.scope / pve.type attributes stamped
+     * by the agent's transform/pve-identity processor; fall back to
+     * parsing the id prefix so inventory still populates on a
+     * hand-rolled collector config without the transform.
+     */
+    const slashIndex: number = id.indexOf("/");
+    const idPrefix: string = slashIndex > 0 ? id.substring(0, slashIndex) : "";
+    const pveType: string =
+      this.getStringAttribute(dpAttributes, "pve.type") || idPrefix;
+    let scope: string | null = this.getStringAttribute(
+      dpAttributes,
+      "pve.scope",
+    );
+    if (!scope) {
+      scope = idPrefix === "qemu" || idPrefix === "lxc" ? "guest" : idPrefix;
+    }
+
+    let kind: string;
+    if (scope === "node") {
+      kind = "Node";
+    } else if (scope === "guest") {
+      kind = "Guest";
+    } else if (scope === "storage") {
+      kind = "Storage";
+    } else {
+      // cluster/* series and unknown scopes aren't inventory rows.
+      return;
+    }
+
+    const patch: ProxmoxResourceBufferEntry = {
+      kind,
+      externalId: id,
+      name: null,
+      vmid: null,
+      guestType: null,
+      parentNodeName: null,
+      isUp: null,
+      haState: null,
+      onboot: null,
+      uptimeSeconds: null,
+      latestCpuPercent: null,
+      latestMemoryBytes: null,
+      maxMemoryBytes: null,
+      latestDiskBytes: null,
+      maxDiskBytes: null,
+      observedAt: ts.date,
+    };
+
+    if (kind === "Guest") {
+      patch.guestType =
+        pveType === "qemu" || pveType === "lxc" ? pveType : null;
+      if (slashIndex > 0) {
+        const vmidParsed: number = parseInt(id.substring(slashIndex + 1), 10);
+        patch.vmid = isNaN(vmidParsed) ? null : vmidParsed;
+      }
+    }
+
+    // `node` label: present on the info series and pve_onboot_status.
+    const nodeLabel: string | null = this.getStringAttribute(
+      dpAttributes,
+      "node",
+    );
+    if (nodeLabel && kind !== "Node") {
+      patch.parentNodeName = nodeLabel;
+    }
+
+    switch (data.metricName) {
+      case "pve_up": {
+        patch.isUp = rawValue >= 1;
+        if (kind === "Node") {
+          // pve_up doubles as the node-identity fallback per the spec.
+          cluster.sawNodeIdentity = true;
+          cluster.sawNodeUp = true;
+        }
+        break;
+      }
+      case "pve_node_info": {
+        patch.name = this.getStringAttribute(dpAttributes, "name");
+        cluster.sawNodeIdentity = true;
+        break;
+      }
+      case "pve_guest_info": {
+        patch.name = this.getStringAttribute(dpAttributes, "name");
+        cluster.sawGuestIdentity = true;
+        break;
+      }
+      case "pve_storage_info": {
+        patch.name = this.getStringAttribute(dpAttributes, "storage");
+        cluster.sawStorageIdentity = true;
+        break;
+      }
+      case "pve_ha_state": {
+        /*
+         * Enum-series: one row per possible state, value 1 marks the
+         * current one. Only the active row carries signal — skip the
+         * zero-valued rows entirely so they don't create empty patches.
+         */
+        if (rawValue < 1) {
+          return;
+        }
+        patch.haState = this.getStringAttribute(dpAttributes, "state");
+        break;
+      }
+      case "pve_onboot_status": {
+        patch.onboot = rawValue >= 1;
+        break;
+      }
+      case "pve_uptime_seconds": {
+        patch.uptimeSeconds = Math.max(0, Math.trunc(rawValue));
+        break;
+      }
+      case "pve_cpu_usage_ratio": {
+        /*
+         * Already a true 0..1 ratio — no allocatable-denominator cache
+         * needed, unlike K8s cpuCoresToPercent.
+         */
+        patch.latestCpuPercent = rawValue * 100;
+        break;
+      }
+      case "pve_memory_usage_bytes": {
+        patch.latestMemoryBytes = Math.max(0, Math.trunc(rawValue));
+        break;
+      }
+      case "pve_memory_size_bytes": {
+        patch.maxMemoryBytes = Math.max(0, Math.trunc(rawValue));
+        break;
+      }
+      case "pve_disk_usage_bytes": {
+        patch.latestDiskBytes = Math.max(0, Math.trunc(rawValue));
+        break;
+      }
+      case "pve_disk_size_bytes": {
+        patch.maxDiskBytes = Math.max(0, Math.trunc(rawValue));
+        break;
+      }
+      default: {
+        return;
+      }
+    }
+
+    this.foldProxmoxResourceSnapshot({
+      buffer: data.resourceBuffer,
+      clusterIdStr: data.clusterIdStr,
+      patch,
+    });
+  }
+
+  /*
+   * Merge a patch into the per-cluster Proxmox buffer: identity labels
+   * are first-non-null-wins (stable, and a batch missing an info
+   * series must not blank them), status/metric fields are
+   * newest-observedAt-wins (K8s buffer semantics).
+   */
+  private static foldProxmoxResourceSnapshot(data: {
+    buffer: Map<string, Map<string, ProxmoxResourceBufferEntry>>;
+    clusterIdStr: string;
+    patch: ProxmoxResourceBufferEntry;
+  }): void {
+    let perCluster: Map<string, ProxmoxResourceBufferEntry> | undefined =
+      data.buffer.get(data.clusterIdStr);
+    if (!perCluster) {
+      perCluster = new Map();
+      data.buffer.set(data.clusterIdStr, perCluster);
+    }
+    const key: string = `${data.patch.kind}|${data.patch.externalId}`;
+    const existing: ProxmoxResourceBufferEntry | undefined =
+      perCluster.get(key);
+    if (!existing) {
+      perCluster.set(key, data.patch);
+      return;
+    }
+
+    const patch: ProxmoxResourceBufferEntry = data.patch;
+    const newer: boolean = patch.observedAt >= existing.observedAt;
+
+    // Identity: first-non-null wins.
+    if (existing.name === null && patch.name !== null) {
+      existing.name = patch.name;
+    }
+    if (existing.vmid === null && patch.vmid !== null) {
+      existing.vmid = patch.vmid;
+    }
+    if (existing.guestType === null && patch.guestType !== null) {
+      existing.guestType = patch.guestType;
+    }
+    if (existing.parentNodeName === null && patch.parentNodeName !== null) {
+      existing.parentNodeName = patch.parentNodeName;
+    }
+
+    // Status / metrics: newest observation wins.
+    if (patch.isUp !== null && newer) {
+      existing.isUp = patch.isUp;
+    }
+    if (patch.haState !== null && newer) {
+      existing.haState = patch.haState;
+    }
+    if (patch.onboot !== null && newer) {
+      existing.onboot = patch.onboot;
+    }
+    if (patch.uptimeSeconds !== null && newer) {
+      existing.uptimeSeconds = patch.uptimeSeconds;
+    }
+    if (patch.latestCpuPercent !== null && newer) {
+      existing.latestCpuPercent = patch.latestCpuPercent;
+    }
+    if (patch.latestMemoryBytes !== null && newer) {
+      existing.latestMemoryBytes = patch.latestMemoryBytes;
+    }
+    if (patch.maxMemoryBytes !== null && newer) {
+      existing.maxMemoryBytes = patch.maxMemoryBytes;
+    }
+    if (patch.latestDiskBytes !== null && newer) {
+      existing.latestDiskBytes = patch.latestDiskBytes;
+    }
+    if (patch.maxDiskBytes !== null && newer) {
+      existing.maxDiskBytes = patch.maxDiskBytes;
+    }
+    if (patch.observedAt > existing.observedAt) {
+      existing.observedAt = patch.observedAt;
+    }
+  }
+
+  /*
+   * Drain the Proxmox buffers: inventory upsert + latest-metric
+   * mirror, then the ProxmoxCluster snapshot columns. The count
+   * columns are computed from the SAME buffer the inventory rows were
+   * upserted from — single-source rule, so list-page counts and
+   * sidebar badges can never drift (K8s badge-drift lesson). Failures
+   * are logged and swallowed: snapshots are best-effort and must never
+   * affect ClickHouse ingest.
+   */
+  private static async flushProxmoxSnapshotBuffers(data: {
+    projectId: ObjectID;
+    resourceBuffer: Map<string, Map<string, ProxmoxResourceBufferEntry>>;
+    clusterBuffer: Map<string, ProxmoxClusterSnapshotBufferEntry>;
+  }): Promise<void> {
+    const clusterIdStrs: Set<string> = new Set<string>([
+      ...data.resourceBuffer.keys(),
+      ...data.clusterBuffer.keys(),
+    ]);
+
+    for (const clusterIdStr of clusterIdStrs) {
+      const byKey: Map<string, ProxmoxResourceBufferEntry> | undefined =
+        data.resourceBuffer.get(clusterIdStr);
+      const entries: Array<ProxmoxResourceBufferEntry> = byKey
+        ? Array.from(byKey.values())
+        : [];
+
+      if (entries.length > 0) {
+        try {
+          const resources: Array<ParsedProxmoxResource> = entries.map(
+            (e: ProxmoxResourceBufferEntry) => {
+              return {
+                kind: e.kind,
+                externalId: e.externalId,
+                name: e.name,
+                vmid: e.vmid,
+                guestType: e.guestType,
+                parentNodeName: e.parentNodeName,
+                isUp: e.isUp,
+                haState: e.haState,
+                onboot: e.onboot,
+                uptimeSeconds: e.uptimeSeconds,
+                lastSeenAt: e.observedAt,
+              };
+            },
+          );
+          await ProxmoxResourceService.bulkUpsert({
+            projectId: data.projectId,
+            proxmoxClusterId: new ObjectID(clusterIdStr),
+            resources,
+          });
+
+          const metrics: Array<ProxmoxResourceLatestMetric> = entries.map(
+            (e: ProxmoxResourceBufferEntry) => {
+              return {
+                kind: e.kind,
+                externalId: e.externalId,
+                cpuPercent: e.latestCpuPercent,
+                memoryBytes: e.latestMemoryBytes,
+                maxMemoryBytes: e.maxMemoryBytes,
+                memoryPercent:
+                  e.latestMemoryBytes !== null &&
+                  e.maxMemoryBytes !== null &&
+                  e.maxMemoryBytes > 0
+                    ? (e.latestMemoryBytes / e.maxMemoryBytes) * 100
+                    : null,
+                diskBytes: e.latestDiskBytes,
+                maxDiskBytes: e.maxDiskBytes,
+                observedAt: e.observedAt,
+              };
+            },
+          );
+          await ProxmoxResourceService.bulkUpdateLatestMetrics({
+            projectId: data.projectId,
+            proxmoxClusterId: new ObjectID(clusterIdStr),
+            metrics,
+          });
+        } catch (err) {
+          logger.warn(
+            `Proxmox snapshot writeback (inventory) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      try {
+        const snap: ProxmoxClusterSnapshotBufferEntry | undefined =
+          data.clusterBuffer.get(clusterIdStr);
+        const extras: {
+          pveVersion?: string | undefined;
+          nodeCount?: number | undefined;
+          onlineNodeCount?: number | undefined;
+          guestCount?: number | undefined;
+          storageCount?: number | undefined;
+        } = {};
+
+        if (snap?.pveVersion) {
+          extras.pveVersion = snap.pveVersion;
+        }
+        /*
+         * Counts are only written when the batch carried the matching
+         * identity series — never zero a count on a partial batch.
+         */
+        if (snap?.sawNodeIdentity) {
+          extras.nodeCount = entries.filter((e: ProxmoxResourceBufferEntry) => {
+            return e.kind === "Node";
+          }).length;
+        }
+        if (snap?.sawNodeUp) {
+          extras.onlineNodeCount = entries.filter(
+            (e: ProxmoxResourceBufferEntry) => {
+              return e.kind === "Node" && e.isUp === true;
+            },
+          ).length;
+        }
+        if (snap?.sawGuestIdentity) {
+          extras.guestCount = entries.filter(
+            (e: ProxmoxResourceBufferEntry) => {
+              return e.kind === "Guest";
+            },
+          ).length;
+        }
+        if (snap?.sawStorageIdentity) {
+          extras.storageCount = entries.filter(
+            (e: ProxmoxResourceBufferEntry) => {
+              return e.kind === "Storage";
+            },
+          ).length;
+        }
+
+        if (Object.keys(extras).length > 0) {
+          await ProxmoxClusterService.updateLastSeen(
+            new ObjectID(clusterIdStr),
+            extras,
+          );
+        }
+      } catch (err) {
+        logger.warn(
+          `Proxmox snapshot writeback (cluster) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
+  private static getOrCreateCephClusterSnapshot(
+    buffer: Map<string, CephClusterSnapshotBufferEntry>,
+    clusterIdStr: string,
+  ): CephClusterSnapshotBufferEntry {
+    let entry: CephClusterSnapshotBufferEntry | undefined =
+      buffer.get(clusterIdStr);
+    if (!entry) {
+      entry = {
+        sawMonMetadata: false,
+        sawOsdMetadata: false,
+        sawOsdUp: false,
+        sawOsdIn: false,
+        sawPoolMetadata: false,
+        healthStatus: null,
+        totalBytes: null,
+        totalUsedBytes: null,
+        cephVersionCounts: new Map(),
+      };
+      buffer.set(clusterIdStr, entry);
+    }
+    return entry;
+  }
+
+  private static emptyCephResourceEntry(
+    kind: string,
+    externalId: string,
+    observedAt: Date,
+  ): CephResourceBufferEntry {
+    return {
+      kind,
+      externalId,
+      name: null,
+      hostname: null,
+      daemonVersion: null,
+      deviceClass: null,
+      isUp: null,
+      isIn: null,
+      inQuorum: null,
+      statBytes: null,
+      statBytesUsed: null,
+      applyLatencyMs: null,
+      commitLatencyMs: null,
+      pgCount: null,
+      storedBytes: null,
+      maxAvailBytes: null,
+      objects: null,
+      readOpsCounter: null,
+      writeOpsCounter: null,
+      observedAt,
+    };
+  }
+
+  /*
+   * Fold one ceph_* datapoint into the per-cluster buffers. Pool
+   * series are keyed by the `pool_id` datapoint label, daemon series
+   * by `ceph_daemon` (osd.3, mon.a, mgr.x, …).
+   */
+  private static bufferCephSnapshotMetric(data: {
+    clusterIdStr: string;
+    metricName: string;
+    datapoint: JSONObject;
+    resourceBuffer: Map<string, Map<string, CephResourceBufferEntry>>;
+    clusterBuffer: Map<string, CephClusterSnapshotBufferEntry>;
+  }): void {
+    const valueFromInt: number | null = this.toNumberOrNull(
+      data.datapoint["asInt"],
+    );
+    const valueFromDouble: number | null = this.toNumberOrNull(
+      data.datapoint["asDouble"],
+    );
+    const rawValue: number | null = valueFromDouble ?? valueFromInt;
+    if (rawValue === null) {
+      return;
+    }
+
+    const ts: MetricTimestamp = this.safeParseUnixNano(
+      data.datapoint["timeUnixNano"] as string | number | undefined,
+      "ceph snapshot timeUnixNano",
+    );
+
+    const dpAttributes: JSONArray =
+      (data.datapoint["attributes"] as JSONArray) || [];
+
+    const cluster: CephClusterSnapshotBufferEntry =
+      this.getOrCreateCephClusterSnapshot(
+        data.clusterBuffer,
+        data.clusterIdStr,
+      );
+
+    // Cluster-level series — no per-resource row.
+    if (data.metricName === "ceph_health_status") {
+      // 0 = HEALTH_OK, 1 = HEALTH_WARN, 2 = HEALTH_ERR.
+      cluster.healthStatus = Math.max(0, Math.trunc(rawValue));
+      return;
+    }
+    if (data.metricName === "ceph_cluster_total_bytes") {
+      cluster.totalBytes = Math.max(0, rawValue);
+      return;
+    }
+    if (data.metricName === "ceph_cluster_total_used_bytes") {
+      cluster.totalUsedBytes = Math.max(0, rawValue);
+      return;
+    }
+
+    if (data.metricName.startsWith("ceph_pool_")) {
+      const poolId: string | null = this.getStringAttribute(
+        dpAttributes,
+        "pool_id",
+      );
+      if (!poolId) {
+        return;
+      }
+
+      const patch: CephResourceBufferEntry = this.emptyCephResourceEntry(
+        "Pool",
+        poolId,
+        ts.date,
+      );
+
+      switch (data.metricName) {
+        case "ceph_pool_metadata": {
+          // The only pool series that carries the human-readable name.
+          patch.name = this.getStringAttribute(dpAttributes, "name");
+          cluster.sawPoolMetadata = true;
+          break;
+        }
+        case "ceph_pool_stored": {
+          patch.storedBytes = Math.max(0, Math.trunc(rawValue));
+          break;
+        }
+        case "ceph_pool_max_avail": {
+          patch.maxAvailBytes = Math.max(0, Math.trunc(rawValue));
+          break;
+        }
+        case "ceph_pool_objects": {
+          patch.objects = Math.max(0, Math.trunc(rawValue));
+          break;
+        }
+        /*
+         * Latest RAW cumulative counters — the Pools list computes
+         * IOPS rates on read from ClickHouse, never from these.
+         */
+        case "ceph_pool_rd": {
+          patch.readOpsCounter = Math.max(0, Math.trunc(rawValue));
+          break;
+        }
+        case "ceph_pool_wr": {
+          patch.writeOpsCounter = Math.max(0, Math.trunc(rawValue));
+          break;
+        }
+        default: {
+          return;
+        }
+      }
+
+      this.foldCephResourceSnapshot({
+        buffer: data.resourceBuffer,
+        clusterIdStr: data.clusterIdStr,
+        patch,
+      });
+      return;
+    }
+
+    const cephDaemon: string | null = this.getStringAttribute(
+      dpAttributes,
+      "ceph_daemon",
+    );
+    if (!cephDaemon) {
+      return;
+    }
+
+    const dotIndex: number = cephDaemon.indexOf(".");
+    const daemonPrefix: string =
+      dotIndex > 0 ? cephDaemon.substring(0, dotIndex) : "";
+    let kind: string;
+    if (daemonPrefix === "osd") {
+      kind = "Osd";
+    } else if (daemonPrefix === "mon") {
+      kind = "Mon";
+    } else if (daemonPrefix === "mgr") {
+      kind = "Mgr";
+    } else if (daemonPrefix === "mds") {
+      kind = "Mds";
+    } else if (daemonPrefix === "rgw") {
+      kind = "Rgw";
+    } else {
+      return;
+    }
+
+    const patch: CephResourceBufferEntry = this.emptyCephResourceEntry(
+      kind,
+      cephDaemon,
+      ts.date,
+    );
+
+    switch (data.metricName) {
+      case "ceph_mon_quorum_status": {
+        patch.inQuorum = rawValue >= 1;
+        break;
+      }
+      case "ceph_mon_metadata": {
+        patch.hostname = this.getStringAttribute(dpAttributes, "hostname");
+        patch.daemonVersion = this.getStringAttribute(
+          dpAttributes,
+          "ceph_version",
+        );
+        cluster.sawMonMetadata = true;
+        // CephCluster.cephVersion = modal mon version across the batch.
+        if (patch.daemonVersion) {
+          cluster.cephVersionCounts.set(
+            patch.daemonVersion,
+            (cluster.cephVersionCounts.get(patch.daemonVersion) || 0) + 1,
+          );
+        }
+        break;
+      }
+      case "ceph_osd_up": {
+        patch.isUp = rawValue >= 1;
+        cluster.sawOsdUp = true;
+        break;
+      }
+      case "ceph_osd_in": {
+        patch.isIn = rawValue >= 1;
+        cluster.sawOsdIn = true;
+        break;
+      }
+      case "ceph_osd_metadata": {
+        patch.hostname = this.getStringAttribute(dpAttributes, "hostname");
+        patch.deviceClass = this.getStringAttribute(
+          dpAttributes,
+          "device_class",
+        );
+        patch.daemonVersion = this.getStringAttribute(
+          dpAttributes,
+          "ceph_version",
+        );
+        cluster.sawOsdMetadata = true;
+        break;
+      }
+      case "ceph_mgr_metadata":
+      case "ceph_mds_metadata":
+      case "ceph_rgw_metadata": {
+        patch.hostname = this.getStringAttribute(dpAttributes, "hostname");
+        patch.daemonVersion = this.getStringAttribute(
+          dpAttributes,
+          "ceph_version",
+        );
+        break;
+      }
+      case "ceph_osd_stat_bytes": {
+        patch.statBytes = Math.max(0, Math.trunc(rawValue));
+        break;
+      }
+      case "ceph_osd_stat_bytes_used": {
+        patch.statBytesUsed = Math.max(0, Math.trunc(rawValue));
+        break;
+      }
+      case "ceph_osd_apply_latency_ms": {
+        patch.applyLatencyMs = Math.max(0, rawValue);
+        break;
+      }
+      case "ceph_osd_commit_latency_ms": {
+        patch.commitLatencyMs = Math.max(0, rawValue);
+        break;
+      }
+      case "ceph_osd_numpg": {
+        patch.pgCount = Math.max(0, Math.trunc(rawValue));
+        break;
+      }
+      default: {
+        return;
+      }
+    }
+
+    this.foldCephResourceSnapshot({
+      buffer: data.resourceBuffer,
+      clusterIdStr: data.clusterIdStr,
+      patch,
+    });
+  }
+
+  /*
+   * Merge a patch into the per-cluster Ceph buffer — same semantics
+   * as foldProxmoxResourceSnapshot (identity first-non-null-wins,
+   * status/metrics newest-observedAt-wins).
+   */
+  private static foldCephResourceSnapshot(data: {
+    buffer: Map<string, Map<string, CephResourceBufferEntry>>;
+    clusterIdStr: string;
+    patch: CephResourceBufferEntry;
+  }): void {
+    let perCluster: Map<string, CephResourceBufferEntry> | undefined =
+      data.buffer.get(data.clusterIdStr);
+    if (!perCluster) {
+      perCluster = new Map();
+      data.buffer.set(data.clusterIdStr, perCluster);
+    }
+    const key: string = `${data.patch.kind}|${data.patch.externalId}`;
+    const existing: CephResourceBufferEntry | undefined = perCluster.get(key);
+    if (!existing) {
+      perCluster.set(key, data.patch);
+      return;
+    }
+
+    const patch: CephResourceBufferEntry = data.patch;
+    const newer: boolean = patch.observedAt >= existing.observedAt;
+
+    // Identity: first-non-null wins.
+    if (existing.name === null && patch.name !== null) {
+      existing.name = patch.name;
+    }
+    if (existing.hostname === null && patch.hostname !== null) {
+      existing.hostname = patch.hostname;
+    }
+    if (existing.daemonVersion === null && patch.daemonVersion !== null) {
+      existing.daemonVersion = patch.daemonVersion;
+    }
+    if (existing.deviceClass === null && patch.deviceClass !== null) {
+      existing.deviceClass = patch.deviceClass;
+    }
+
+    // Status / metrics: newest observation wins.
+    if (patch.isUp !== null && newer) {
+      existing.isUp = patch.isUp;
+    }
+    if (patch.isIn !== null && newer) {
+      existing.isIn = patch.isIn;
+    }
+    if (patch.inQuorum !== null && newer) {
+      existing.inQuorum = patch.inQuorum;
+    }
+    if (patch.statBytes !== null && newer) {
+      existing.statBytes = patch.statBytes;
+    }
+    if (patch.statBytesUsed !== null && newer) {
+      existing.statBytesUsed = patch.statBytesUsed;
+    }
+    if (patch.applyLatencyMs !== null && newer) {
+      existing.applyLatencyMs = patch.applyLatencyMs;
+    }
+    if (patch.commitLatencyMs !== null && newer) {
+      existing.commitLatencyMs = patch.commitLatencyMs;
+    }
+    if (patch.pgCount !== null && newer) {
+      existing.pgCount = patch.pgCount;
+    }
+    if (patch.storedBytes !== null && newer) {
+      existing.storedBytes = patch.storedBytes;
+    }
+    if (patch.maxAvailBytes !== null && newer) {
+      existing.maxAvailBytes = patch.maxAvailBytes;
+    }
+    if (patch.objects !== null && newer) {
+      existing.objects = patch.objects;
+    }
+    if (patch.readOpsCounter !== null && newer) {
+      existing.readOpsCounter = patch.readOpsCounter;
+    }
+    if (patch.writeOpsCounter !== null && newer) {
+      existing.writeOpsCounter = patch.writeOpsCounter;
+    }
+    if (patch.observedAt > existing.observedAt) {
+      existing.observedAt = patch.observedAt;
+    }
+  }
+
+  /*
+   * Drain the Ceph buffers: inventory upsert + latest-metric mirror,
+   * then the CephCluster snapshot columns — computed from the SAME
+   * buffer the inventory rows were upserted from (single-source rule).
+   * Failures are logged and swallowed: snapshots are best-effort and
+   * must never affect ClickHouse ingest.
+   */
+  private static async flushCephSnapshotBuffers(data: {
+    projectId: ObjectID;
+    resourceBuffer: Map<string, Map<string, CephResourceBufferEntry>>;
+    clusterBuffer: Map<string, CephClusterSnapshotBufferEntry>;
+  }): Promise<void> {
+    const clusterIdStrs: Set<string> = new Set<string>([
+      ...data.resourceBuffer.keys(),
+      ...data.clusterBuffer.keys(),
+    ]);
+
+    for (const clusterIdStr of clusterIdStrs) {
+      const byKey: Map<string, CephResourceBufferEntry> | undefined =
+        data.resourceBuffer.get(clusterIdStr);
+      const entries: Array<CephResourceBufferEntry> = byKey
+        ? Array.from(byKey.values())
+        : [];
+
+      if (entries.length > 0) {
+        try {
+          const resources: Array<ParsedCephResource> = entries.map(
+            (e: CephResourceBufferEntry) => {
+              return {
+                kind: e.kind,
+                externalId: e.externalId,
+                name: e.name,
+                hostname: e.hostname,
+                daemonVersion: e.daemonVersion,
+                deviceClass: e.deviceClass,
+                isUp: e.isUp,
+                isIn: e.isIn,
+                inQuorum: e.inQuorum,
+                lastSeenAt: e.observedAt,
+              };
+            },
+          );
+          await CephResourceService.bulkUpsert({
+            projectId: data.projectId,
+            cephClusterId: new ObjectID(clusterIdStr),
+            resources,
+          });
+
+          const metrics: Array<CephResourceLatestMetric> = entries.map(
+            (e: CephResourceBufferEntry) => {
+              return {
+                kind: e.kind,
+                externalId: e.externalId,
+                statBytes: e.statBytes,
+                statBytesUsed: e.statBytesUsed,
+                applyLatencyMs: e.applyLatencyMs,
+                commitLatencyMs: e.commitLatencyMs,
+                pgCount: e.pgCount,
+                storedBytes: e.storedBytes,
+                maxAvailBytes: e.maxAvailBytes,
+                objects: e.objects,
+                readOpsCounter: e.readOpsCounter,
+                writeOpsCounter: e.writeOpsCounter,
+                observedAt: e.observedAt,
+              };
+            },
+          );
+          await CephResourceService.bulkUpdateLatestMetrics({
+            projectId: data.projectId,
+            cephClusterId: new ObjectID(clusterIdStr),
+            metrics,
+          });
+        } catch (err) {
+          logger.warn(
+            `Ceph snapshot writeback (inventory) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      try {
+        const snap: CephClusterSnapshotBufferEntry | undefined =
+          data.clusterBuffer.get(clusterIdStr);
+        const extras: {
+          cephVersion?: string | undefined;
+          monCount?: number | undefined;
+          osdCount?: number | undefined;
+          osdUpCount?: number | undefined;
+          osdInCount?: number | undefined;
+          poolCount?: number | undefined;
+          healthStatus?: number | undefined;
+          capacityUsedPercent?: number | undefined;
+        } = {};
+
+        /*
+         * Counts are only written when the batch carried the matching
+         * identity series — never zero a count on a partial batch.
+         */
+        if (snap?.sawMonMetadata) {
+          extras.monCount = entries.filter((e: CephResourceBufferEntry) => {
+            return e.kind === "Mon";
+          }).length;
+        }
+        if (snap?.sawOsdMetadata) {
+          extras.osdCount = entries.filter((e: CephResourceBufferEntry) => {
+            return e.kind === "Osd";
+          }).length;
+        }
+        if (snap?.sawOsdUp) {
+          extras.osdUpCount = entries.filter((e: CephResourceBufferEntry) => {
+            return e.kind === "Osd" && e.isUp === true;
+          }).length;
+        }
+        if (snap?.sawOsdIn) {
+          extras.osdInCount = entries.filter((e: CephResourceBufferEntry) => {
+            return e.kind === "Osd" && e.isIn === true;
+          }).length;
+        }
+        if (snap?.sawPoolMetadata) {
+          extras.poolCount = entries.filter((e: CephResourceBufferEntry) => {
+            return e.kind === "Pool";
+          }).length;
+        }
+        if (snap && snap.healthStatus !== null) {
+          extras.healthStatus = snap.healthStatus;
+        }
+        if (
+          snap &&
+          snap.totalBytes !== null &&
+          snap.totalBytes > 0 &&
+          snap.totalUsedBytes !== null
+        ) {
+          /*
+           * Round to 2 decimals: full float precision would change the
+           * extras fingerprint on every scrape and defeat the 60-s
+           * write throttle for an invisible difference.
+           */
+          extras.capacityUsedPercent =
+            Math.round((snap.totalUsedBytes / snap.totalBytes) * 10000) / 100;
+        }
+        if (snap && snap.cephVersionCounts.size > 0) {
+          let modalVersion: string | null = null;
+          let modalCount: number = 0;
+          for (const [version, count] of snap.cephVersionCounts.entries()) {
+            if (count > modalCount) {
+              modalVersion = version;
+              modalCount = count;
+            }
+          }
+          if (modalVersion) {
+            extras.cephVersion = modalVersion;
+          }
+        }
+
+        if (Object.keys(extras).length > 0) {
+          await CephClusterService.updateLastSeen(
+            new ObjectID(clusterIdStr),
+            extras,
+          );
+        }
+      } catch (err) {
+        logger.warn(
+          `Ceph snapshot writeback (cluster) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     }

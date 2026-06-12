@@ -1,13 +1,16 @@
 import DatabaseService from "./DatabaseService";
+import CephClusterLabelRuleEngineService from "./CephClusterLabelRuleEngineService";
+import CephClusterOwnerRuleEngineService from "./CephClusterOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/CephCluster";
 import Label from "../../Models/DatabaseModels/Label";
+import { OnCreate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "../../Types/Date";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import GlobalCache from "../Infrastructure/GlobalCache";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "ceph-cluster-last-seen";
@@ -19,6 +22,41 @@ const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    /*
+     * Rules run once, on creation only — exact parity with
+     * KubernetesClusterService. Label engine first: it syncs the
+     * in-memory labels so the owner engine can match rule-added labels.
+     */
+    if (createdItem.projectId && createdItem.id) {
+      Promise.resolve()
+        .then(async () => {
+          await CephClusterLabelRuleEngineService.applyRulesToCephCluster(
+            createdItem,
+          );
+        })
+        .then(async () => {
+          await CephClusterOwnerRuleEngineService.applyRulesToCephCluster(
+            createdItem,
+          );
+        })
+        .catch((error: Error) => {
+          logger.error(
+            `Error applying ceph cluster rules in CephClusterService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              cephClusterId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        });
+    }
+    return createdItem;
   }
 
   @CaptureSpan()
@@ -104,6 +142,16 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * Refresh lastSeenAt / connection status and (optionally) the
+   * snapshot columns the list page renders. Count/health columns ride
+   * this extras path with COALESCE-per-column semantics: a key that is
+   * undefined is simply not written, so a partial batch (one that
+   * lacked the matching *_metadata series) never zeroes a count. The
+   * 60-second extras fingerprint cache is the write throttle — the
+   * steady state (identical snapshot every scrape) costs one Redis
+   * read per batch and at most one Postgres UPDATE per minute.
+   */
   @CaptureSpan()
   public async updateLastSeen(
     clusterId: ObjectID,
@@ -111,6 +159,13 @@ export class Service extends DatabaseService<Model> {
       cephVersion?: string | undefined;
       fsid?: string | undefined;
       agentVersion?: string | undefined;
+      monCount?: number | undefined;
+      osdCount?: number | undefined;
+      osdUpCount?: number | undefined;
+      osdInCount?: number | undefined;
+      poolCount?: number | undefined;
+      healthStatus?: number | undefined;
+      capacityUsedPercent?: number | undefined;
     },
   ): Promise<void> {
     const cacheKey: string = clusterId.toString();
@@ -121,6 +176,13 @@ export class Service extends DatabaseService<Model> {
           cephVersion: extra?.cephVersion ?? null,
           fsid: extra?.fsid ?? null,
           agentVersion: extra?.agentVersion ?? null,
+          monCount: extra?.monCount ?? null,
+          osdCount: extra?.osdCount ?? null,
+          osdUpCount: extra?.osdUpCount ?? null,
+          osdInCount: extra?.osdInCount ?? null,
+          poolCount: extra?.poolCount ?? null,
+          healthStatus: extra?.healthStatus ?? null,
+          capacityUsedPercent: extra?.capacityUsedPercent ?? null,
         }),
       )
       .digest("hex");
@@ -155,6 +217,31 @@ export class Service extends DatabaseService<Model> {
     }
     if (extra?.agentVersion) {
       data.agentVersion = extra.agentVersion;
+    }
+    /*
+     * Counts and health: 0 is a legitimate value (healthStatus 0 = OK,
+     * osdUpCount 0 = every OSD down) — gate on undefined, not falsiness.
+     */
+    if (extra?.monCount !== undefined) {
+      data.monCount = extra.monCount;
+    }
+    if (extra?.osdCount !== undefined) {
+      data.osdCount = extra.osdCount;
+    }
+    if (extra?.osdUpCount !== undefined) {
+      data.osdUpCount = extra.osdUpCount;
+    }
+    if (extra?.osdInCount !== undefined) {
+      data.osdInCount = extra.osdInCount;
+    }
+    if (extra?.poolCount !== undefined) {
+      data.poolCount = extra.poolCount;
+    }
+    if (extra?.healthStatus !== undefined) {
+      data.healthStatus = extra.healthStatus;
+    }
+    if (extra?.capacityUsedPercent !== undefined) {
+      data.capacityUsedPercent = extra.capacityUsedPercent;
     }
 
     await this.updateOneById({

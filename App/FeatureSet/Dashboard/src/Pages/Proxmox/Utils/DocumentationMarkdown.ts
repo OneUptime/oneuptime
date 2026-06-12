@@ -69,6 +69,114 @@ PVE_EXPORTER_URL=your-exporter-host:9221
 | \`PVE_API_TOKEN_SECRET\` | Bundled exporter only | Proxmox API token secret |
 | \`PVE_VERIFY_SSL\` | No | Verify the Proxmox API TLS certificate (default: \`false\` — PVE ships self-signed certificates) |
 
+## The Collector Config
+
+This is the full \`otel-collector-config.yaml\` the agent runs (the \`.env\` file above supplies the \`\${env:...}\` values). The \`transform/pve-identity\` processor derives the \`pve.scope\` / \`pve.type\` / \`pve.id\` attributes that the built-in Proxmox alert templates and dashboard filters rely on — keep it in place if you customize the config:
+
+\`\`\`yaml
+receivers:
+  # Scrape prometheus-pve-exporter, which translates the Proxmox VE API
+  # into Prometheus metrics (pve_* series for nodes, guests, storage and
+  # HA state). The exporter can run as the bundled compose service (see
+  # docker-compose.yml, profile "pve-exporter") or anywhere else — point
+  # PVE_EXPORTER_URL (host:port, no scheme) at it.
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: oneuptime-proxmox
+          # The exporter serves metrics on /pve and proxies each scrape
+          # to the Proxmox VE API host given in the \`target\` parameter.
+          metrics_path: /pve
+          params:
+            # Proxmox VE API host (any cluster node) the exporter queries.
+            target: ["\${env:PVE_HOST}"]
+            # Enable both the cluster collectors (guest up/cpu/memory,
+            # HA state — pve_up, pve_guest_info, pve_ha_state) and the
+            # node collectors (node cpu/memory/disk — pve_node_info,
+            # pve_cpu_usage_ratio on node ids).
+            cluster: ["1"]
+            node: ["1"]
+          # pve-exporter answers each scrape with a live Proxmox VE API
+          # round-trip; 30s keeps the load on pveproxy negligible.
+          scrape_interval: 30s
+          static_configs:
+            - targets: ["\${env:PVE_EXPORTER_URL}"]
+
+processors:
+  # Split the pve-exporter identity label into equality-filterable parts.
+  # pve-exporter encodes resource identity in a single datapoint label
+  # \`id\` with values like \`node/pve1\`, \`qemu/100\`, \`lxc/101\` or
+  # \`storage/pve1/local\`. OneUptime monitor criteria and attribute
+  # filters match on equality (not prefix), so derive three attributes:
+  #   pve.scope — node | guest | storage | cluster
+  #               (\`qemu\` and \`lxc\` both map to \`guest\`)
+  #   pve.type  — node | qemu | lxc | storage
+  #               (left unset on \`cluster/*\` series)
+  #   pve.id    — everything after the first slash of \`id\`
+  #               (\`pve1\`, \`100\`, \`pve1/local\`)
+  # The original \`id\` label is kept untouched — group-by pages and
+  # breakdowns still use it. Do not remove this processor: the built-in
+  # Proxmox alert templates filter on these attributes.
+  transform/pve-identity:
+    error_mode: ignore
+    metric_statements:
+      - context: datapoint
+        statements:
+          - set(attributes["pve.scope"], "node") where attributes["id"] != nil and IsMatch(attributes["id"], "^node/")
+          - set(attributes["pve.type"], "node") where attributes["id"] != nil and IsMatch(attributes["id"], "^node/")
+          - set(attributes["pve.scope"], "guest") where attributes["id"] != nil and IsMatch(attributes["id"], "^qemu/")
+          - set(attributes["pve.type"], "qemu") where attributes["id"] != nil and IsMatch(attributes["id"], "^qemu/")
+          - set(attributes["pve.scope"], "guest") where attributes["id"] != nil and IsMatch(attributes["id"], "^lxc/")
+          - set(attributes["pve.type"], "lxc") where attributes["id"] != nil and IsMatch(attributes["id"], "^lxc/")
+          - set(attributes["pve.scope"], "storage") where attributes["id"] != nil and IsMatch(attributes["id"], "^storage/")
+          - set(attributes["pve.type"], "storage") where attributes["id"] != nil and IsMatch(attributes["id"], "^storage/")
+          - set(attributes["pve.scope"], "cluster") where attributes["id"] != nil and IsMatch(attributes["id"], "^cluster/")
+          - set(attributes["pve.id"], attributes["id"]) where attributes["id"] != nil and IsMatch(attributes["id"], "/")
+          - replace_pattern(attributes["pve.id"], "^[^/]+/", "") where attributes["pve.id"] != nil
+  # Stamp every metric with the cluster identity. OneUptime auto-registers
+  # the Proxmox cluster from \`proxmox.cluster.name\`, and every Proxmox
+  # page and monitor scopes on it — this attribute is what makes the data
+  # appear under the Proxmox section of the dashboard. Keep it stable:
+  # changing it later registers a brand-new cluster.
+  resource:
+    attributes:
+      - key: proxmox.cluster.name
+        value: "\${env:PROXMOX_CLUSTER_NAME}"
+        action: upsert
+      # The prometheus receiver synthesizes service.name (= the scrape job
+      # name, "oneuptime-proxmox") and service.instance.id on every batch
+      # per the Prometheus->OTLP compatibility spec. Drop them: OneUptime
+      # routes batches by service.name first, so leaving them in would
+      # register a phantom "oneuptime-proxmox" Service instead of routing
+      # this data to the Proxmox cluster discovered from
+      # \`proxmox.cluster.name\` (which would also break per-cluster
+      # retention settings). Do not remove these two deletes.
+      - key: service.name
+        action: delete
+      - key: service.instance.id
+        action: delete
+  batch:
+    timeout: 10s
+    send_batch_size: 1024
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 256
+    spike_limit_mib: 64
+
+exporters:
+  otlphttp:
+    endpoint: "\${env:ONEUPTIME_URL}/otlp"
+    headers:
+      x-oneuptime-token: "\${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [prometheus]
+      processors: [memory_limiter, transform/pve-identity, resource, batch]
+      exporters: [otlphttp]
+\`\`\`
+
 ## Verify the Installation
 
 Check that the agent is running:
@@ -96,6 +204,16 @@ The agent scrapes the exporter every 30 seconds with both the cluster and node c
 | **Guest (VM / LXC)** | \`pve_guest_info\`, plus CPU / memory / network series on \`qemu/*\` and \`lxc/*\` ids |
 | **Storage** | \`pve_disk_usage_bytes\`, \`pve_disk_size_bytes\` |
 | **HA** | \`pve_ha_state\` |
+
+The collector also splits the \`id\` label into three equality-filterable datapoint attributes (see the \`transform/pve-identity\` processor in the config above) — monitor criteria and dashboard filters match on these:
+
+| Attribute | Values | Example for \`qemu/100\` |
+|-----------|--------|------------------------|
+| \`pve.scope\` | \`node\`, \`guest\`, \`storage\`, \`cluster\` (\`qemu\` and \`lxc\` both map to \`guest\`) | \`guest\` |
+| \`pve.type\` | \`node\`, \`qemu\`, \`lxc\`, \`storage\` | \`qemu\` |
+| \`pve.id\` | Everything after the first \`/\` of \`id\` (\`pve1\`, \`100\`, \`pve1/local\`) | \`100\` |
+
+The original \`id\` label is kept untouched.
 
 ## Zero-install Alternative — Proxmox VE 9+ Native OpenTelemetry Push
 
@@ -126,6 +244,15 @@ docker compose down
 
 ## Troubleshooting
 
+### Run the Diagnostic Script First
+
+\`troubleshoot.sh\` checks the whole chain — container runtime, the exporter scrape, cluster-name stamping, token shape, collector self-metrics, and a **definitive server-side token validation** (OneUptime's OTLP endpoints return a silent \`200\` on a bad ingestion key, so log inspection alone cannot tell you the key is wrong; the script asks \`GET /otlp/v1/validate\` for a real 200/401 verdict):
+
+\`\`\`bash
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/ProxmoxAgent/troubleshoot.sh -o troubleshoot.sh
+bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-proxmox-agent
+\`\`\`
+
 ### Cluster Shows as Disconnected
 
 1. Check that the agent is running: \`docker compose ps\`
@@ -135,7 +262,7 @@ docker compose down
 
 ### No Metrics Appearing
 
-1. Check the exporter is reachable: \`curl "http://localhost:9221/pve?target=<PVE_HOST>&cluster=1&node=1"\`
+1. Check the exporter is reachable. The bundled exporter does not publish its port on the host, so run curl inside its network namespace: \`docker run --rm --network container:oneuptime-pve-exporter curlimages/curl -s "http://localhost:9221/pve?target=<PVE_HOST>&cluster=1&node=1" | head\` — you should see \`pve_*\` metric lines. (For an external exporter, curl its \`host:9221\` directly.)
 2. Verify the Proxmox API token has the **PVEAuditor** role on path \`/\`
 3. Check the collector logs for scrape or export errors
 

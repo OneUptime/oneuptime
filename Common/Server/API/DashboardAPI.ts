@@ -45,6 +45,8 @@ import Host from "../../Models/DatabaseModels/Host";
 import KubernetesResource from "../../Models/DatabaseModels/KubernetesResource";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import DockerResource from "../../Models/DatabaseModels/DockerResource";
+import ProxmoxResource from "../../Models/DatabaseModels/ProxmoxResource";
+import CephResource from "../../Models/DatabaseModels/CephResource";
 import Span from "../../Models/AnalyticsModels/Span";
 import Log from "../../Models/AnalyticsModels/Log";
 import IncidentService from "../Services/IncidentService";
@@ -54,6 +56,8 @@ import HostService from "../Services/HostService";
 import KubernetesResourceService from "../Services/KubernetesResourceService";
 import DockerHostService from "../Services/DockerHostService";
 import DockerResourceService from "../Services/DockerResourceService";
+import ProxmoxResourceService from "../Services/ProxmoxResourceService";
+import CephResourceService from "../Services/CephResourceService";
 import SpanService from "../Services/SpanService";
 import LogService from "../Services/LogService";
 
@@ -209,6 +213,48 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
       state: true,
       dockerHostId: true,
       dockerHost: { name: true },
+    },
+  },
+  "proxmox-resource": {
+    modelType: ProxmoxResource,
+    service: ProxmoxResourceService,
+    select: {
+      _id: true,
+      name: true,
+      externalId: true,
+      kind: true,
+      vmid: true,
+      guestType: true,
+      parentNodeName: true,
+      isUp: true,
+      haState: true,
+      latestCpuPercent: true,
+      latestMemoryPercent: true,
+      lastSeenAt: true,
+      proxmoxClusterId: true,
+      proxmoxCluster: { name: true },
+    },
+  },
+  "ceph-resource": {
+    modelType: CephResource,
+    service: CephResourceService,
+    select: {
+      _id: true,
+      name: true,
+      externalId: true,
+      kind: true,
+      hostname: true,
+      deviceClass: true,
+      isUp: true,
+      isIn: true,
+      statBytes: true,
+      statBytesUsed: true,
+      storedBytes: true,
+      maxAvailBytes: true,
+      objects: true,
+      lastSeenAt: true,
+      cephClusterId: true,
+      cephCluster: { name: true },
     },
   },
   span: {

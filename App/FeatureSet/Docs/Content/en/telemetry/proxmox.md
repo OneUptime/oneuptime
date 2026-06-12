@@ -100,6 +100,16 @@ The agent scrapes the exporter every 30 seconds with both the cluster and node c
 | **Storage** | `pve_disk_usage_bytes`, `pve_disk_size_bytes` |
 | **HA** | `pve_ha_state` |
 
+OneUptime monitor criteria and attribute filters match on equality, not prefix, so the shipped collector config also splits the `id` label into three extra datapoint attributes (the built-in Proxmox alert templates filter on them — keep the `transform/pve-identity` processor in place):
+
+| Attribute | Values | Example for `qemu/100` |
+|-----------|--------|------------------------|
+| `pve.scope` | `node`, `guest`, `storage`, `cluster` (`qemu` and `lxc` both map to `guest`) | `guest` |
+| `pve.type` | `node`, `qemu`, `lxc`, `storage` | `qemu` |
+| `pve.id` | Everything after the first `/` of `id` (`pve1`, `100`, `pve1/local`) | `100` |
+
+The original `id` label is kept untouched.
+
 ## Zero-install Alternative — Proxmox VE 9+ Native OpenTelemetry Push
 
 Proxmox VE 9.0 and later ship a built-in **OpenTelemetry metric server** that pushes node, guest, and storage metrics to any OTLP/HTTP endpoint — no agent or exporter to install. Configure it under *Datacenter → Metric Server → Add → OpenTelemetry*:
@@ -155,6 +165,17 @@ ONEUPTIME_URL=https://your-oneuptime-host.example.com
 If your instance is HTTP-only, use `http://` and the appropriate port.
 
 ## Troubleshooting
+
+### Run the diagnostic script first
+
+The agent ships with a doctor script, [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/ProxmoxAgent/troubleshoot.sh), that checks the whole chain: container runtime, the exporter scrape, cluster-name stamping, ingestion-token shape, collector self-metrics, and a **definitive server-side token validation**. The token check is the important one — OneUptime's OTLP endpoints deliberately return a silent `200` on a bad ingestion token (so a misconfigured collector cannot retry-flood the server), which means the collector logs look clean even when every datapoint is being dropped. The script calls `GET <url>/otlp/v1/validate` from inside the agent's network namespace to get a real `200` (valid) / `401` (invalid) verdict, falling back to `POST /fluentd/v1/logs` on older servers.
+
+```bash
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/ProxmoxAgent/troubleshoot.sh -o troubleshoot.sh
+bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-proxmox-agent
+```
+
+It ends with a VERDICT section naming the most likely root cause. The sections below cover the same ground manually.
 
 ### No cluster appears in OneUptime
 

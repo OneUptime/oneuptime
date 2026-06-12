@@ -71,6 +71,14 @@ import {
 })
 @CrudApiEndpoint(new Route("/proxmox-cluster"))
 @SlugifyColumn("name", "slug")
+/*
+ * DB-level unique index on (projectId, name) — the @UniqueColumnBy decorator
+ * on `name` is app-level only and does not defuse the concurrent
+ * find-or-create race at ingest (multiple agent pods discovering the same
+ * cluster simultaneously). Mirrors KubernetesCluster's
+ * (projectId, clusterIdentifier) unique index.
+ */
+@Index(["projectId", "name"], { unique: true })
 @TableMetadata({
   tableName: "ProxmoxCluster",
   singularName: "Proxmox Cluster",
@@ -441,6 +449,37 @@ export default class ProxmoxCluster extends BaseModel {
     default: 0,
   })
   public nodeCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProxmoxCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProxmoxCluster,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Online Node Count",
+    description:
+      "Cached count of nodes currently online (pve_up == 1) in this cluster. Rendered as 'Nodes X/Y online' next to nodeCount.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+    default: 0,
+  })
+  public onlineNodeCount?: number = undefined;
 
   @ColumnAccessControl({
     create: [],

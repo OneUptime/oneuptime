@@ -107,6 +107,16 @@ The mgr module covers cluster-level health and capacity. For deeper visibility y
 
 Both inherit the `ceph.cluster.name` resource attribute from the shipped `resource` processor, so they land on the same cluster in OneUptime.
 
+## Optional — Ship the Ceph Cluster Log
+
+The agent can tail `/var/log/ceph/ceph.log` and ship it to OneUptime, which powers the **Cluster Log** page of the Ceph dashboard. It is off by default because it requires the agent to run on a host that has the cluster log (a mon host by default). To enable it:
+
+1. Uncomment the `filelog` receiver and the `logs` pipeline in `otel-collector-config.yaml`.
+2. Uncomment the `/var/log/ceph` volume mount in `docker-compose.yml`.
+3. Restart: `docker compose up -d`
+
+Lines ship verbatim; OneUptime parses the ceph.log format (timestamp, daemon, INF/WRN/ERR level, message) at read time, and the `resource` processor stamps `ceph.cluster.name` so the log lands on this cluster.
+
 ## Run as a systemd Service
 
 ```bash
@@ -143,6 +153,17 @@ ONEUPTIME_URL=https://your-oneuptime-host.example.com
 If your instance is HTTP-only, use `http://` and the appropriate port.
 
 ## Troubleshooting
+
+### Run the diagnostic script first
+
+The agent ships with a doctor script, [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/CephAgent/troubleshoot.sh), that checks the whole chain: container runtime, every configured mgr endpoint (including the active-vs-standby trap — only the active mgr serves metrics, so it warns loudly when no endpoint returns `ceph_health_status` or when only one endpoint is configured), cluster-name stamping, ingestion-token shape, collector self-metrics, and a **definitive server-side token validation**. The token check is the important one — OneUptime's OTLP endpoints deliberately return a silent `200` on a bad ingestion token (so a misconfigured collector cannot retry-flood the server), which means the collector logs look clean even when every datapoint is being dropped. The script calls `GET <url>/otlp/v1/validate` from inside the agent's network namespace to get a real `200` (valid) / `401` (invalid) verdict, falling back to `POST /fluentd/v1/logs` on older servers.
+
+```bash
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/CephAgent/troubleshoot.sh -o troubleshoot.sh
+bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-ceph-agent
+```
+
+It ends with a VERDICT section naming the most likely root cause. The sections below cover the same ground manually.
 
 ### No cluster appears in OneUptime
 

@@ -10,7 +10,13 @@ import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
 import DockerHostOwnerUser from "./DockerHostOwnerUser";
 import DockerResource from "./DockerResource";
 import ProxmoxCluster from "./ProxmoxCluster";
+import ProxmoxClusterOwnerTeam from "./ProxmoxClusterOwnerTeam";
+import ProxmoxClusterOwnerUser from "./ProxmoxClusterOwnerUser";
+import ProxmoxResource from "./ProxmoxResource";
 import CephCluster from "./CephCluster";
+import CephClusterOwnerTeam from "./CephClusterOwnerTeam";
+import CephClusterOwnerUser from "./CephClusterOwnerUser";
+import CephResource from "./CephResource";
 import Host from "./Host";
 import HostOwnerTeam from "./HostOwnerTeam";
 import HostOwnerUser from "./HostOwnerUser";
@@ -326,6 +332,10 @@ import DockerHostOwnerRule from "./DockerHostOwnerRule";
 import DockerHostLabelRule from "./DockerHostLabelRule";
 import KubernetesClusterOwnerRule from "./KubernetesClusterOwnerRule";
 import KubernetesClusterLabelRule from "./KubernetesClusterLabelRule";
+import ProxmoxClusterOwnerRule from "./ProxmoxClusterOwnerRule";
+import ProxmoxClusterLabelRule from "./ProxmoxClusterLabelRule";
+import CephClusterOwnerRule from "./CephClusterOwnerRule";
+import CephClusterLabelRule from "./CephClusterLabelRule";
 import RunbookOwnerRule from "./RunbookOwnerRule";
 import RunbookLabelRule from "./RunbookLabelRule";
 import WorkflowOwnerRule from "./WorkflowOwnerRule";
@@ -492,6 +502,10 @@ const AllModelTypes: Array<{
   DockerHostLabelRule,
   KubernetesClusterOwnerRule,
   KubernetesClusterLabelRule,
+  ProxmoxClusterOwnerRule,
+  ProxmoxClusterLabelRule,
+  CephClusterOwnerRule,
+  CephClusterLabelRule,
   RunbookOwnerRule,
   RunbookLabelRule,
   WorkflowOwnerRule,
@@ -707,7 +721,13 @@ const AllModelTypes: Array<{
   DockerHostOwnerUser,
   DockerResource,
   ProxmoxCluster,
+  ProxmoxClusterOwnerTeam,
+  ProxmoxClusterOwnerUser,
+  ProxmoxResource,
   CephCluster,
+  CephClusterOwnerTeam,
+  CephClusterOwnerUser,
+  CephResource,
   Host,
   HostOwnerTeam,
   HostOwnerUser,

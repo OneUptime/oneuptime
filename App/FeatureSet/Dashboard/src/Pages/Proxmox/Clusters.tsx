@@ -3,6 +3,15 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import ProxmoxClusterOwnerTeam from "Common/Models/DatabaseModels/ProxmoxClusterOwnerTeam";
+import ProxmoxClusterOwnerUser from "Common/Models/DatabaseModels/ProxmoxClusterOwnerUser";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners, {
+  ResourceFacet,
+  buildEnumFacetQuery,
+} from "../../Components/ResourceOwners/useResourceOwners";
+import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
+import IconProp from "Common/Types/Icon/IconProp";
 import React, {
   Fragment,
   FunctionComponent,
@@ -12,6 +21,7 @@ import React, {
 } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -34,6 +44,49 @@ const ProxmoxClusters: FunctionComponent<
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<ProxmoxCluster>({ modelType: ProxmoxCluster });
+
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<ProxmoxCluster>({
+      ownerUserModelType: ProxmoxClusterOwnerUser,
+      ownerTeamModelType: ProxmoxClusterOwnerTeam,
+      resourceIdField: "proxmoxClusterId",
+    });
+
+  const proxmoxExtraFacets: Array<ResourceFacet> = [
+    {
+      key: "otelCollectorStatus",
+      label: "Status",
+      icon: IconProp.Wifi,
+      isMultiSelect: false,
+      options: [
+        { value: "connected", label: "Connected" },
+        { value: "disconnected", label: "Disconnected" },
+      ],
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildEnumFacetQuery(values, operator, false);
+      },
+    },
+  ];
+
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<ProxmoxCluster>({
+    persistKey: "proxmox-clusters-table",
+    ownerUserModelType: ProxmoxClusterOwnerUser,
+    ownerTeamModelType: ProxmoxClusterOwnerTeam,
+    resourceIdField: "proxmoxClusterId",
+    showLabelsFacet: true,
+    extraFacets: proxmoxExtraFacets,
+  });
 
   const fetchClusterCount: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -80,12 +133,19 @@ const ProxmoxClusters: FunctionComponent<
         modelType={ProxmoxCluster}
         id="proxmox-clusters-table"
         userPreferencesKey="proxmox-clusters-table"
+        topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery(undefined)}
+        onFetchSuccess={(data: Array<ProxmoxCluster>) => {
+          onResourcesFetched(data);
+        }}
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
         showRefreshButton={true}
         bulkActions={{
-          buttons: [...labelBulkActions],
+          buttons: [...labelBulkActions, ...ownerBulkActions],
         }}
         name="Proxmox Clusters"
         isViewable={true}
@@ -188,9 +248,69 @@ const ProxmoxClusters: FunctionComponent<
           },
           {
             field: {
+              nodeCount: true,
+              onlineNodeCount: true,
+            },
+            title: "Nodes",
+            type: FieldType.Element,
+            getElement: (item: ProxmoxCluster): ReactElement => {
+              /*
+               * Snapshot columns written by the ingest path from the
+               * same buffer that populates the ProxmoxResource
+               * inventory — no ClickHouse round-trip here (WI-3).
+               */
+              const total: number = item.nodeCount || 0;
+              if (total <= 0) {
+                return <span className="text-sm text-gray-400">—</span>;
+              }
+              const online: number = item.onlineNodeCount || 0;
+              const allOnline: boolean = online >= total;
+              return (
+                <span
+                  className={`text-sm font-medium ${
+                    allOnline ? "text-gray-900" : "text-red-700"
+                  }`}
+                >
+                  {online}/{total} online
+                </span>
+              );
+            },
+          },
+          {
+            field: {
+              guestCount: true,
+            },
+            title: "Guests",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: ProxmoxCluster): ReactElement => {
+              return (
+                <span className="text-sm text-gray-700">
+                  {item.guestCount || 0}
+                </span>
+              );
+            },
+          },
+          {
+            field: {
+              storageCount: true,
+            },
+            title: "Storage",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: ProxmoxCluster): ReactElement => {
+              return (
+                <span className="text-sm text-gray-700">
+                  {item.storageCount || 0}
+                </span>
+              );
+            },
+          },
+          {
+            field: {
               pveVersion: true,
             },
-            title: "PVE Version",
+            title: "Version",
             type: FieldType.Text,
             hideOnMobile: true,
           },
@@ -215,6 +335,22 @@ const ProxmoxClusters: FunctionComponent<
               return <LabelsElement labels={item["labels"] || []} />;
             },
           },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: ProxmoxCluster): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
+            },
+          },
         ]}
         onViewPage={(item: ProxmoxCluster): Promise<Route> => {
           return Promise.resolve(
@@ -230,6 +366,7 @@ const ProxmoxClusters: FunctionComponent<
         }}
       />
       {labelBulkActionModals}
+      {ownerBulkActionModals}
     </Fragment>
   );
 };

@@ -29,6 +29,10 @@ import SpanService from "Common/Server/Services/SpanService";
 import MetricMonitorResponse, {
   KubernetesResourceBreakdown,
   KubernetesAffectedResource,
+  ProxmoxResourceBreakdown,
+  ProxmoxAffectedResource,
+  CephResourceBreakdown,
+  CephAffectedResource,
 } from "Common/Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import MonitorStepMetricMonitor, {
   MonitorStepMetricMonitorUtil,
@@ -70,6 +74,7 @@ import MonitorStepDockerMonitor, {
 } from "Common/Types/Monitor/MonitorStepDockerMonitor";
 import MonitorStepProxmoxMonitor, {
   ProxmoxResourceFilters,
+  ProxmoxResourceScope,
 } from "Common/Types/Monitor/MonitorStepProxmoxMonitor";
 import MonitorStepCephMonitor, {
   CephResourceFilters,
@@ -78,6 +83,14 @@ import {
   getKubernetesMetricByMetricName,
   KubernetesMetricDefinition,
 } from "Common/Types/Monitor/KubernetesMetricCatalog";
+import {
+  getProxmoxMetricByMetricName,
+  ProxmoxMetricDefinition,
+} from "Common/Types/Monitor/ProxmoxMetricCatalog";
+import {
+  getCephMetricByMetricName,
+  CephMetricDefinition,
+} from "Common/Types/Monitor/CephMetricCatalog";
 import { JSONObject } from "Common/Types/JSON";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
@@ -1585,6 +1598,8 @@ const monitorProxmox: MonitorProxmoxFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
+  let proxmoxResourceBreakdown: ProxmoxResourceBreakdown | undefined =
+    undefined;
 
   const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
     proxmoxMonitorConfig.metricViewConfig.queryConfigs,
@@ -1628,10 +1643,14 @@ const monitorProxmox: MonitorProxmoxFunction = async (data: {
     /*
      * Proxmox-specific resource filters. pve-exporter keeps resource
      * identity in datapoint labels (stored unprefixed): every metric
-     * carries an `id` label — `node/<name>` for nodes, `qemu/<vmid>` /
-     * `lxc/<vmid>` for guests — while `name` only exists on the
-     * pve_guest_info / pve_node_info metadata series. guestId (an exact
-     * `id` value) wins over nodeName when both are set.
+     * carries an `id` label (`node/pve1`, `qemu/100`, `lxc/101`,
+     * `storage/local`) which the agent's OTTL transform splits into the
+     * `pve.scope` / `pve.type` / `pve.id` datapoint attributes. The
+     * `name` label only exists on the pve_*_info metadata series, so
+     * filters never target it. guestId (an exact raw `id` value) wins
+     * over the other filters; nodeName scopes to the node's OWN series
+     * via pve.scope + pve.id equality (for nodes, pve.id IS the node
+     * name).
      */
     if (proxmoxMonitorConfig.resourceFilters) {
       const resourceFilters: ProxmoxResourceFilters =
@@ -1640,11 +1659,16 @@ const monitorProxmox: MonitorProxmoxFunction = async (data: {
       if (resourceFilters.guestId) {
         attributes["id"] = resourceFilters.guestId;
       } else if (resourceFilters.nodeName) {
-        attributes["id"] = `node/${resourceFilters.nodeName}`;
-      }
+        attributes["pve.scope"] = ProxmoxResourceScope.Node;
+        attributes["pve.id"] = resourceFilters.nodeName;
+      } else {
+        if (resourceFilters.scope) {
+          attributes["pve.scope"] = resourceFilters.scope;
+        }
 
-      if (resourceFilters.guestName) {
-        attributes["name"] = resourceFilters.guestName;
+        if (resourceFilters.pveId) {
+          attributes["pve.id"] = resourceFilters.pveId;
+        }
       }
     }
 
@@ -1708,6 +1732,97 @@ const monitorProxmox: MonitorProxmoxFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
+
+    // Fetch raw metrics to extract per-resource Proxmox context
+    try {
+      const rawMetrics: Array<Metric> = await MetricService.findBy({
+        query: query,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: 100,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (rawMetrics.length > 0) {
+        const affectedResourcesMap: Map<string, ProxmoxAffectedResource> =
+          new Map();
+
+        for (const metric of rawMetrics) {
+          const metricAttrs: JSONObject =
+            (metric.attributes as JSONObject) || {};
+          const resourceId: string | undefined = metricAttrs["id"] as
+            | string
+            | undefined;
+          const resourceName: string | undefined = metricAttrs["name"] as
+            | string
+            | undefined;
+          const nodeName: string | undefined = metricAttrs["node"] as
+            | string
+            | undefined;
+          const scope: string | undefined = metricAttrs["pve.scope"] as
+            | string
+            | undefined;
+          const resourceType: string | undefined = metricAttrs["pve.type"] as
+            | string
+            | undefined;
+
+          // Build unique key for deduplication
+          const resourceKey: string = [
+            resourceId || "",
+            resourceName || "",
+            nodeName || "",
+          ].join("|");
+
+          const metricValue: number =
+            typeof metric.value === "number"
+              ? metric.value
+              : Number(metric.value) || 0;
+
+          // Keep the highest value per resource
+          const existing: ProxmoxAffectedResource | undefined =
+            affectedResourcesMap.get(resourceKey);
+          if (!existing || metricValue > existing.metricValue) {
+            affectedResourcesMap.set(resourceKey, {
+              resourceId: resourceId || undefined,
+              resourceName: resourceName || undefined,
+              resourceType: resourceType || undefined,
+              scope: scope || undefined,
+              nodeName: nodeName || undefined,
+              metricValue: metricValue,
+            });
+          }
+        }
+
+        const metricDef: ProxmoxMetricDefinition | undefined =
+          getProxmoxMetricByMetricName(metricName);
+
+        proxmoxResourceBreakdown = {
+          clusterName: proxmoxMonitorConfig.clusterIdentifier,
+          metricName: metricName,
+          metricFriendlyName: metricDef?.friendlyName || metricName,
+          affectedResources: Array.from(affectedResourcesMap.values()),
+          attributes: attributes,
+        };
+      }
+    } catch (err) {
+      logger.error("Failed to fetch Proxmox resource breakdown", {
+        service: "workers",
+        projectId: data.projectId.toString(),
+      });
+      logger.error(err, {
+        service: "workers",
+        projectId: data.projectId.toString(),
+      });
+    }
   }
 
   const nativeUnitsByMetricName: Map<string, string> =
@@ -1747,6 +1862,7 @@ const monitorProxmox: MonitorProxmoxFunction = async (data: {
     metricViewConfig: proxmoxMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
     metricResult: resultsWithFormulas,
+    proxmoxResourceBreakdown: proxmoxResourceBreakdown,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
   };
@@ -1776,6 +1892,7 @@ const monitorCeph: MonitorCephFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
+  let cephResourceBreakdown: CephResourceBreakdown | undefined = undefined;
 
   const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
     cephMonitorConfig.metricViewConfig.queryConfigs,
@@ -1819,8 +1936,10 @@ const monitorCeph: MonitorCephFunction = async (data: {
      * Ceph-specific resource filters. The mgr prometheus module keeps
      * daemon / pool identity in datapoint labels (stored unprefixed):
      * `ceph_daemon` (e.g. "osd.3", "mon.a") on daemon metrics and
-     * `name` on the ceph_pool_metadata series (pool data metrics carry
-     * only pool_id).
+     * `pool_id` on pool data series. The pool name exists only on the
+     * ceph_pool_metadata series, so it is never an equality filter
+     * here — filter by pool_id and join the metadata series when a
+     * display name is needed.
      */
     if (cephMonitorConfig.resourceFilters) {
       const resourceFilters: CephResourceFilters =
@@ -1830,8 +1949,8 @@ const monitorCeph: MonitorCephFunction = async (data: {
         attributes["ceph_daemon"] = resourceFilters.osdId;
       }
 
-      if (resourceFilters.poolName) {
-        attributes["name"] = resourceFilters.poolName;
+      if (resourceFilters.poolId) {
+        attributes["pool_id"] = resourceFilters.poolId;
       }
     }
 
@@ -1895,6 +2014,96 @@ const monitorCeph: MonitorCephFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
+
+    // Fetch raw metrics to extract per-resource Ceph context
+    try {
+      const rawMetrics: Array<Metric> = await MetricService.findBy({
+        query: query,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: 100,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (rawMetrics.length > 0) {
+        const affectedResourcesMap: Map<string, CephAffectedResource> =
+          new Map();
+
+        for (const metric of rawMetrics) {
+          const metricAttrs: JSONObject =
+            (metric.attributes as JSONObject) || {};
+          const daemon: string | undefined = metricAttrs["ceph_daemon"] as
+            | string
+            | undefined;
+          const poolIdRaw: unknown = metricAttrs["pool_id"];
+          const poolId: string | undefined =
+            poolIdRaw !== undefined && poolIdRaw !== null
+              ? String(poolIdRaw)
+              : undefined;
+          const poolName: string | undefined = metricAttrs["name"] as
+            | string
+            | undefined;
+          const hostname: string | undefined = metricAttrs["hostname"] as
+            | string
+            | undefined;
+
+          // Build unique key for deduplication
+          const resourceKey: string = [
+            daemon || "",
+            poolId || "",
+            poolName || "",
+            hostname || "",
+          ].join("|");
+
+          const metricValue: number =
+            typeof metric.value === "number"
+              ? metric.value
+              : Number(metric.value) || 0;
+
+          // Keep the highest value per resource
+          const existing: CephAffectedResource | undefined =
+            affectedResourcesMap.get(resourceKey);
+          if (!existing || metricValue > existing.metricValue) {
+            affectedResourcesMap.set(resourceKey, {
+              daemon: daemon || undefined,
+              poolId: poolId || undefined,
+              poolName: poolName || undefined,
+              hostname: hostname || undefined,
+              metricValue: metricValue,
+            });
+          }
+        }
+
+        const metricDef: CephMetricDefinition | undefined =
+          getCephMetricByMetricName(metricName);
+
+        cephResourceBreakdown = {
+          clusterName: cephMonitorConfig.clusterIdentifier,
+          metricName: metricName,
+          metricFriendlyName: metricDef?.friendlyName || metricName,
+          affectedResources: Array.from(affectedResourcesMap.values()),
+          attributes: attributes,
+        };
+      }
+    } catch (err) {
+      logger.error("Failed to fetch Ceph resource breakdown", {
+        service: "workers",
+        projectId: data.projectId.toString(),
+      });
+      logger.error(err, {
+        service: "workers",
+        projectId: data.projectId.toString(),
+      });
+    }
   }
 
   const nativeUnitsByMetricName: Map<string, string> =
@@ -1934,6 +2143,7 @@ const monitorCeph: MonitorCephFunction = async (data: {
     metricViewConfig: cephMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
     metricResult: resultsWithFormulas,
+    cephResourceBreakdown: cephResourceBreakdown,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
   };

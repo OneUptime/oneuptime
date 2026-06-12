@@ -8,7 +8,12 @@ import MonitorStepProxmoxMonitor from "./MonitorStepProxmoxMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 
-export type ProxmoxAlertTemplateCategory = "Node" | "Guest" | "Storage" | "HA";
+export type ProxmoxAlertTemplateCategory =
+  | "Availability"
+  | "Node"
+  | "Guest"
+  | "Storage"
+  | "HA";
 
 export type ProxmoxAlertTemplateSeverity = "Critical" | "Warning";
 
@@ -29,6 +34,17 @@ export interface ProxmoxAlertTemplate {
   severity: ProxmoxAlertTemplateSeverity;
   getMonitorStep: (args: ProxmoxAlertTemplateArgs) => MonitorStep;
 }
+
+/*
+ * Filter contract: pve-exporter data metrics carry only the `id` datapoint
+ * label (`node/pve1`, `qemu/100`, `lxc/101`, `storage/local`). The agent's
+ * OTTL transform processor splits it into the datapoint attributes
+ * `pve.scope` (node | guest | storage | cluster), `pve.type` (node | qemu |
+ * lxc | storage) and `pve.id` (the part after the slash). Templates filter
+ * on `pve.scope` / `pve.type` and group by the untouched `id` label so one
+ * incident fires per resource. All of these are datapoint attributes, so
+ * they are NOT `resource.`-prefixed in ClickHouse.
+ */
 
 export function buildProxmoxMonitorStep(args: {
   proxmoxMonitor: MonitorStepProxmoxMonitor;
@@ -185,6 +201,7 @@ export function buildProxmoxMonitorConfig(args: {
   rollingTime: RollingTime;
   aggregationType: MetricsAggregationType;
   attributes?: Record<string, string>;
+  groupByAttributeKey?: string | undefined;
 }): MonitorStepProxmoxMonitor {
   return {
     clusterIdentifier: args.clusterIdentifier,
@@ -206,6 +223,9 @@ export function buildProxmoxMonitorConfig(args: {
               aggegationType: args.aggregationType,
               aggregateBy: {},
             },
+            ...(args.groupByAttributeKey
+              ? { groupByAttributeKeys: [args.groupByAttributeKey] }
+              : {}),
           },
         },
       ],
@@ -215,29 +235,119 @@ export function buildProxmoxMonitorConfig(args: {
   };
 }
 
+/**
+ * Build a ratio monitor: `(numerator / denominator) * 100`, optionally
+ * grouped by an OpenTelemetry attribute so one incident fires per group
+ * (e.g. per `id` = per node/guest/storage volume).
+ *
+ * Aggregation contract (see buildKubernetesRatioMonitorConfig for the full
+ * derivation): the per-series worker buckets raw rows by (group, minute)
+ * and applies the aggregation across both the grouped series AND the
+ * scrapes in that minute. `Sum` is only correct when numerator and
+ * denominator ride the SAME receiver/scrape so the scrape multiple
+ * cancels: `(Σnum × scrapes) / (Σden × scrapes)`. Every Proxmox metric
+ * comes from ONE receiver — the prometheus scrape of pve-exporter — so
+ * all Proxmox ratios are same-receiver and default to `Sum`/`Sum`.
+ * (`Avg`/`Avg` is the cross-receiver variant; not needed here.)
+ *
+ * `attributes` is applied to BOTH queries — the agent stamps `pve.scope` /
+ * `pve.type` on every series of a scrape (including the *_info metadata
+ * series, which also carry `id`), so a shared equality filter is safe.
+ */
+export function buildProxmoxRatioMonitorConfig(args: {
+  clusterIdentifier: string;
+  numeratorMetricName: string;
+  denominatorMetricName: string;
+  numeratorAlias: string;
+  denominatorAlias: string;
+  resultAlias: string;
+  resultLegend: string;
+  rollingTime: RollingTime;
+  attributes?: Record<string, string> | undefined;
+  groupByAttributeKey?: string | undefined;
+  aggregationType?: MetricsAggregationType | undefined;
+}): MonitorStepProxmoxMonitor {
+  const aggregationType: MetricsAggregationType =
+    args.aggregationType || MetricsAggregationType.Sum;
+
+  const buildQueryConfig: (alias: string, metricName: string) => any = (
+    alias: string,
+    metricName: string,
+  ): any => {
+    return {
+      metricAliasData: {
+        metricVariable: alias,
+        title: alias,
+        description: alias,
+        legend: alias,
+        legendUnit: undefined,
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: metricName,
+          attributes: args.attributes || {},
+          aggegationType: aggregationType,
+          aggregateBy: {},
+        },
+        ...(args.groupByAttributeKey
+          ? { groupByAttributeKeys: [args.groupByAttributeKey] }
+          : {}),
+      },
+    };
+  };
+
+  return {
+    clusterIdentifier: args.clusterIdentifier,
+    resourceFilters: {},
+    metricViewConfig: {
+      queryConfigs: [
+        buildQueryConfig(args.numeratorAlias, args.numeratorMetricName),
+        buildQueryConfig(args.denominatorAlias, args.denominatorMetricName),
+      ],
+      formulaConfigs: [
+        {
+          metricAliasData: {
+            metricVariable: args.resultAlias,
+            title: args.resultLegend,
+            description: args.resultLegend,
+            legend: args.resultLegend,
+            legendUnit: "%",
+          },
+          metricFormulaData: {
+            metricFormula: `(${args.numeratorAlias} / ${args.denominatorAlias}) * 100`,
+          },
+        },
+      ],
+    },
+    rollingTime: args.rollingTime,
+  };
+}
+
 // --- Template Definitions ---
 
 const nodeOfflineTemplate: ProxmoxAlertTemplate = {
-  id: "proxmox-node-offline",
+  id: "pve-node-offline",
   name: "Node Offline",
   description:
-    "Alert when a Proxmox resource reports as down. Add an `id` attribute filter (e.g. node/pve1) to scope to a specific node.",
-  category: "Node",
+    "Alert when any Proxmox node reports as down (pve_up = 0, scoped to nodes via pve.scope). One incident per node.",
+  category: "Availability",
   severity: "Critical",
   getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
-    const metricAlias: string = "pve_up";
+    const metricAlias: string = "node_up";
 
     return buildProxmoxMonitorStep({
       proxmoxMonitor: buildProxmoxMonitorConfig({
         clusterIdentifier: args.clusterIdentifier,
         metricName: "pve_up",
         metricAlias,
-        rollingTime: RollingTime.Past1Minute,
+        rollingTime: RollingTime.Past5Minutes,
         /*
-         * Use Min so a single offline resource trips the threshold instead
-         * of being masked by resources that are still up.
+         * Min per node — a single down scrape trips the threshold instead
+         * of being masked by scrapes where the node was still up.
          */
         aggregationType: MetricsAggregationType.Min,
+        attributes: { "pve.scope": "node" },
+        groupByAttributeKey: "id",
       }),
       offlineCriteriaInstance: buildProxmoxOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -248,10 +358,10 @@ const nodeOfflineTemplate: ProxmoxAlertTemplate = {
         filterType: FilterType.LessThan,
         value: 1,
         incidentTitle: `[Proxmox] Node Offline - ${args.monitorName}`,
-        incidentDescription: `A Proxmox resource is reporting as down (pve_up = 0). If this monitor is scoped to a node, the node is unreachable or has crashed and its guests may be offline. Check the root cause for the affected resource id. Note: intentionally stopped guests also report pve_up = 0 — add an id attribute filter (e.g. node/pve1) to scope this monitor to nodes only.`,
+        incidentDescription: `A Proxmox node is reporting as down (pve_up = 0). The node is unreachable or has crashed and every guest running on it may be offline. Check the root cause for the affected node id, verify the node's power/network state, and check whether HA has relocated its guests.`,
         criteriaName: "Node Offline - pve_up < 1",
         criteriaDescription:
-          "Triggers when any monitored Proxmox resource reports pve_up below 1.",
+          "Triggers when any node reports pve_up below 1 over the monitoring window.",
       }),
       onlineCriteriaInstance: buildProxmoxOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -264,22 +374,28 @@ const nodeOfflineTemplate: ProxmoxAlertTemplate = {
 };
 
 const guestDownTemplate: ProxmoxAlertTemplate = {
-  id: "proxmox-guest-down",
-  name: "Guest Down (Zero Uptime)",
+  id: "pve-guest-down",
+  name: "Guest Down",
   description:
-    "Alert when a VM or container's uptime drops to zero, indicating it has stopped or crashed. Add an `id` attribute filter (e.g. qemu/100) to scope to a specific guest.",
-  category: "Guest",
-  severity: "Critical",
+    "Alert when any VM or container reports as down (pve_up = 0, scoped to guests via pve.scope). One incident per guest. Intentionally stopped guests also report 0 — add a pve.id filter to scope to guests that should always run.",
+  category: "Availability",
+  severity: "Warning",
   getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
-    const metricAlias: string = "guest_uptime";
+    const metricAlias: string = "guest_up";
 
     return buildProxmoxMonitorStep({
       proxmoxMonitor: buildProxmoxMonitorConfig({
         clusterIdentifier: args.clusterIdentifier,
-        metricName: "pve_uptime_seconds",
+        metricName: "pve_up",
         metricAlias,
-        rollingTime: RollingTime.Past1Minute,
+        rollingTime: RollingTime.Past5Minutes,
+        /*
+         * Min per guest — a single down scrape trips the threshold instead
+         * of being masked by scrapes where the guest was still up.
+         */
         aggregationType: MetricsAggregationType.Min,
+        attributes: { "pve.scope": "guest" },
+        groupByAttributeKey: "id",
       }),
       offlineCriteriaInstance: buildProxmoxOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -287,29 +403,80 @@ const guestDownTemplate: ProxmoxAlertTemplate = {
         alertSeverityId: args.defaultAlertSeverityId,
         monitorName: args.monitorName,
         metricAlias,
-        filterType: FilterType.EqualTo,
-        value: 0,
+        filterType: FilterType.LessThan,
+        value: 1,
         incidentTitle: `[Proxmox] Guest Down - ${args.monitorName}`,
-        incidentDescription: `A Proxmox guest (VM or container) has zero uptime, indicating it has stopped or crashed. Check the root cause for the affected guest id. To avoid alerts for intentionally stopped guests, add an id attribute filter (e.g. qemu/100) to scope this monitor to guests that should always be running.`,
-        criteriaName: "Guest Down - Uptime = 0",
+        incidentDescription: `A Proxmox guest (VM or container) is reporting as down (pve_up = 0). It has stopped or crashed. Check the root cause for the affected guest id. Note: intentionally stopped guests also report pve_up = 0 — add a pve.id attribute filter to scope this monitor to guests that should always be running.`,
+        criteriaName: "Guest Down - pve_up < 1",
         criteriaDescription:
-          "Triggers when any monitored guest's uptime drops to zero.",
+          "Triggers when any guest reports pve_up below 1 over the monitoring window.",
+      }),
+      onlineCriteriaInstance: buildProxmoxOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: 1,
+      }),
+    });
+  },
+};
+
+const quorumRiskTemplate: ProxmoxAlertTemplate = {
+  id: "pve-quorum-risk",
+  name: "Cluster Quorum at Risk",
+  description:
+    "Alert when 50% or fewer of the cluster's nodes are online. Derived from node visibility (online pve_up nodes ÷ pve_node_info node count) — pve-exporter exposes no corosync metric, so this is the honest quorum proxy: at ≤50% node availability the cluster has lost (or is about to lose) quorum and HA recovery stops.",
+  category: "Availability",
+  severity: "Critical",
+  getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "node_availability";
+
+    return buildProxmoxMonitorStep({
+      proxmoxMonitor: buildProxmoxRatioMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        /*
+         * Numerator Σpve_up over node series = nodes online; denominator
+         * Σpve_node_info (a constant-1 metadata series per node) = nodes
+         * total. Same receiver ⇒ the scrape multiple cancels (Sum/Sum).
+         */
+        numeratorMetricName: "pve_up",
+        denominatorMetricName: "pve_node_info",
+        numeratorAlias: "nodes_online",
+        denominatorAlias: "nodes_total",
+        resultAlias: metricAlias,
+        resultLegend: "Node Availability (%)",
+        rollingTime: RollingTime.Past5Minutes,
+        attributes: { "pve.scope": "node" },
+      }),
+      offlineCriteriaInstance: buildProxmoxOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: 50,
+        incidentTitle: `[Proxmox] CRITICAL: Cluster Quorum at Risk - ${args.monitorName}`,
+        incidentDescription: `Half or more of the Proxmox cluster's nodes are offline. With ≤50% of nodes online the cluster has lost (or is about to lose) corosync quorum — pmxcfs goes read-only, guests cannot be started or migrated, and HA recovery stops. Identify and recover the offline nodes immediately. (This is derived from node visibility: online nodes ÷ total nodes; pve-exporter exposes no direct corosync metric.)`,
+        criteriaName: "Quorum Risk - Node Availability <= 50%",
+        criteriaDescription:
+          "Triggers when 50% or fewer of the cluster's nodes report as online.",
       }),
       onlineCriteriaInstance: buildProxmoxOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
         filterType: FilterType.GreaterThan,
-        value: 0,
+        value: 50,
       }),
     });
   },
 };
 
 const nodeHighCpuTemplate: ProxmoxAlertTemplate = {
-  id: "proxmox-node-high-cpu",
+  id: "pve-node-high-cpu",
   name: "High Node CPU Usage",
   description:
-    "Alert when CPU usage on a Proxmox node exceeds 90% of available cores sustained.",
+    "Alert when any node's average CPU usage exceeds 90% of its cores (pve_cpu_usage_ratio > 0.9, scoped to nodes). One incident per node.",
   category: "Node",
   severity: "Warning",
   getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
@@ -322,10 +489,13 @@ const nodeHighCpuTemplate: ProxmoxAlertTemplate = {
         metricAlias,
         rollingTime: RollingTime.Past5Minutes,
         /*
-         * Use Max so a single hot node trips the threshold instead of
-         * being diluted by idle nodes in the cluster.
+         * Avg per node — pve_cpu_usage_ratio is already a true 0-1 ratio
+         * (one series per node), so the per-minute average is the
+         * sustained utilization regardless of scrape count.
          */
-        aggregationType: MetricsAggregationType.Max,
+        aggregationType: MetricsAggregationType.Avg,
+        attributes: { "pve.scope": "node" },
+        groupByAttributeKey: "id",
       }),
       offlineCriteriaInstance: buildProxmoxOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -336,10 +506,10 @@ const nodeHighCpuTemplate: ProxmoxAlertTemplate = {
         filterType: FilterType.GreaterThan,
         value: 0.9,
         incidentTitle: `[Proxmox] High Node CPU Usage (>90%) - ${args.monitorName}`,
-        incidentDescription: `CPU usage in the Proxmox cluster has exceeded 90% of available cores. Sustained high CPU usage on a node degrades performance of every guest running on it. Check the root cause for the affected resource id, then consider migrating guests to another node or adding capacity.`,
-        criteriaName: "High CPU - Usage Ratio > 0.9",
+        incidentDescription: `A Proxmox node's CPU usage has exceeded 90% of its available cores. Sustained high CPU on a node degrades performance of every guest running on it. Check the root cause for the affected node id, then consider migrating guests to another node or adding capacity.`,
+        criteriaName: "High Node CPU - Usage Ratio > 0.9",
         criteriaDescription:
-          "Triggers when CPU usage ratio exceeds 0.9 over the monitoring window.",
+          "Triggers when any node's average CPU usage ratio exceeds 0.9 over the monitoring window.",
       }),
       onlineCriteriaInstance: buildProxmoxOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -351,27 +521,28 @@ const nodeHighCpuTemplate: ProxmoxAlertTemplate = {
   },
 };
 
-const highMemoryTemplate: ProxmoxAlertTemplate = {
-  id: "proxmox-high-memory",
-  name: "High Memory Usage",
+const nodeHighMemoryTemplate: ProxmoxAlertTemplate = {
+  id: "pve-node-high-memory",
+  name: "High Node Memory Usage",
   description:
-    "Alert when memory usage on a node or guest exceeds a byte threshold. Tune the threshold to roughly 90% of your node's RAM.",
+    "Alert when any node's memory usage exceeds 85% of its RAM. Computed per node as pve_memory_usage_bytes ÷ pve_memory_size_bytes × 100 — both are bytes from the same scrape, so this is a true percentage with no per-node threshold tuning.",
   category: "Node",
   severity: "Warning",
   getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
-    const metricAlias: string = "node_memory";
+    const metricAlias: string = "node_memory_utilization";
 
     return buildProxmoxMonitorStep({
-      proxmoxMonitor: buildProxmoxMonitorConfig({
+      proxmoxMonitor: buildProxmoxRatioMonitorConfig({
         clusterIdentifier: args.clusterIdentifier,
-        metricName: "pve_memory_usage_bytes",
-        metricAlias,
+        numeratorMetricName: "pve_memory_usage_bytes",
+        denominatorMetricName: "pve_memory_size_bytes",
+        numeratorAlias: "used_mem",
+        denominatorAlias: "total_mem",
+        resultAlias: metricAlias,
+        resultLegend: "Node Memory Utilization (%)",
         rollingTime: RollingTime.Past5Minutes,
-        /*
-         * Use Max so the busiest node trips the threshold instead of
-         * being diluted by nodes with free memory.
-         */
-        aggregationType: MetricsAggregationType.Max,
+        attributes: { "pve.scope": "node" },
+        groupByAttributeKey: "id",
       }),
       offlineCriteriaInstance: buildProxmoxOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -380,125 +551,28 @@ const highMemoryTemplate: ProxmoxAlertTemplate = {
         monitorName: args.monitorName,
         metricAlias,
         filterType: FilterType.GreaterThan,
-        // 100 GB default — adjust to ~90% of the node's physical RAM.
-        value: 100000000000,
-        incidentTitle: `[Proxmox] High Memory Usage - ${args.monitorName}`,
-        incidentDescription: `Memory usage in the Proxmox cluster has exceeded the configured threshold. Memory pressure on a node can cause the kernel OOM killer to terminate guests. Check the root cause for the affected resource id. Adjust this monitor's threshold to roughly 90% of your node's physical RAM (pve-exporter reports absolute bytes, not a percentage).`,
-        criteriaName: "High Memory - Usage > Threshold",
+        value: 85,
+        incidentTitle: `[Proxmox] High Node Memory Usage (>85%) - ${args.monitorName}`,
+        incidentDescription: `A Proxmox node's memory usage has exceeded 85% of its physical RAM. Memory pressure on a node can trigger the kernel OOM killer, which terminates guests. Check the root cause for the affected node id, then consider migrating guests, reducing guest memory allocations, or adding RAM.`,
+        criteriaName: "High Node Memory - Utilization > 85%",
         criteriaDescription:
-          "Triggers when memory usage exceeds the configured byte threshold over the monitoring window.",
+          "Triggers when any node's memory usage exceeds 85% of its total memory over the monitoring window.",
       }),
       onlineCriteriaInstance: buildProxmoxOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
         filterType: FilterType.LessThanOrEqualTo,
-        value: 100000000000,
-      }),
-    });
-  },
-};
-
-const storageNearFullTemplate: ProxmoxAlertTemplate = {
-  id: "proxmox-storage-near-full",
-  name: "Storage Near Full",
-  description:
-    "Alert when disk usage on a storage volume exceeds a byte threshold. Tune the threshold to roughly 90% of your storage capacity.",
-  category: "Storage",
-  severity: "Warning",
-  getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
-    const metricAlias: string = "storage_usage";
-
-    return buildProxmoxMonitorStep({
-      proxmoxMonitor: buildProxmoxMonitorConfig({
-        clusterIdentifier: args.clusterIdentifier,
-        metricName: "pve_disk_usage_bytes",
-        metricAlias,
-        rollingTime: RollingTime.Past5Minutes,
-        /*
-         * Use Max so the fullest storage volume trips the threshold
-         * instead of being diluted by emptier volumes.
-         */
-        aggregationType: MetricsAggregationType.Max,
-      }),
-      offlineCriteriaInstance: buildProxmoxOfflineCriteriaInstance({
-        offlineMonitorStatusId: args.offlineMonitorStatusId,
-        incidentSeverityId: args.defaultIncidentSeverityId,
-        alertSeverityId: args.defaultAlertSeverityId,
-        monitorName: args.monitorName,
-        metricAlias,
-        filterType: FilterType.GreaterThan,
-        // 500 GB default — adjust to ~90% of your storage capacity.
-        value: 500000000000,
-        incidentTitle: `[Proxmox] Storage Near Full - ${args.monitorName}`,
-        incidentDescription: `Disk usage in the Proxmox cluster has exceeded the configured threshold. A full storage volume prevents guests from writing, can pause VMs, and blocks backups and snapshots. Check the root cause for the affected resource id (e.g. storage/pve1/local). Adjust this monitor's threshold to roughly 90% of the volume's capacity, and add an id attribute filter to scope it to a specific storage volume.`,
-        criteriaName: "Storage Near Full - Usage > Threshold",
-        criteriaDescription:
-          "Triggers when disk usage exceeds the configured byte threshold over the monitoring window.",
-      }),
-      onlineCriteriaInstance: buildProxmoxOnlineCriteriaInstance({
-        onlineMonitorStatusId: args.onlineMonitorStatusId,
-        metricAlias,
-        filterType: FilterType.LessThanOrEqualTo,
-        value: 500000000000,
-      }),
-    });
-  },
-};
-
-const haStateDegradedTemplate: ProxmoxAlertTemplate = {
-  id: "proxmox-ha-state-degraded",
-  name: "HA State Degraded",
-  description:
-    "Alert when any HA-managed resource enters the error state, meaning high availability could not recover it.",
-  category: "HA",
-  severity: "Critical",
-  getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
-    const metricAlias: string = "ha_error_state";
-
-    return buildProxmoxMonitorStep({
-      proxmoxMonitor: buildProxmoxMonitorConfig({
-        clusterIdentifier: args.clusterIdentifier,
-        metricName: "pve_ha_state",
-        metricAlias,
-        rollingTime: RollingTime.Past5Minutes,
-        aggregationType: MetricsAggregationType.Max,
-        /*
-         * pve_ha_state is an enum-style metric: one series per possible
-         * state with value 1 for the current state. Filtering on
-         * state="error" makes the series go to 1 only when an HA-managed
-         * resource is in the error state.
-         */
-        attributes: { state: "error" },
-      }),
-      offlineCriteriaInstance: buildProxmoxOfflineCriteriaInstance({
-        offlineMonitorStatusId: args.offlineMonitorStatusId,
-        incidentSeverityId: args.defaultIncidentSeverityId,
-        alertSeverityId: args.defaultAlertSeverityId,
-        monitorName: args.monitorName,
-        metricAlias,
-        filterType: FilterType.GreaterThanOrEqualTo,
-        value: 1,
-        incidentTitle: `[Proxmox] HA Resource in Error State - ${args.monitorName}`,
-        incidentDescription: `A high-availability managed resource in the Proxmox cluster has entered the error state. The HA manager could not start or recover the resource automatically — manual intervention is required (typically \`ha-manager set <sid> --state disabled\` followed by re-enabling after fixing the underlying issue). Check the root cause for the affected resource id.`,
-        criteriaName: "HA Degraded - Error State Present",
-        criteriaDescription:
-          "Triggers when any HA-managed resource reports the error state.",
-      }),
-      onlineCriteriaInstance: buildProxmoxOnlineCriteriaInstance({
-        onlineMonitorStatusId: args.onlineMonitorStatusId,
-        metricAlias,
-        filterType: FilterType.LessThan,
-        value: 1,
+        value: 85,
       }),
     });
   },
 };
 
 const guestHighCpuTemplate: ProxmoxAlertTemplate = {
-  id: "proxmox-guest-high-cpu",
+  id: "pve-guest-high-cpu",
   name: "High Guest CPU Usage",
   description:
-    "Alert when a VM or container uses more than 90% of its allocated vCPUs sustained. Add an `id` attribute filter (e.g. qemu/100) to scope to a specific guest.",
+    "Alert when any VM or container uses more than 90% of its allocated vCPUs (pve_cpu_usage_ratio > 0.9, scoped to guests). One incident per guest.",
   category: "Guest",
   severity: "Warning",
   getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
@@ -511,10 +585,13 @@ const guestHighCpuTemplate: ProxmoxAlertTemplate = {
         metricAlias,
         rollingTime: RollingTime.Past5Minutes,
         /*
-         * Use Max so a single hot guest trips the threshold instead of
-         * being diluted by idle guests in the cluster.
+         * Avg per guest — pve_cpu_usage_ratio is already a true 0-1 ratio
+         * (one series per guest), so the per-minute average is the
+         * sustained utilization regardless of scrape count.
          */
-        aggregationType: MetricsAggregationType.Max,
+        aggregationType: MetricsAggregationType.Avg,
+        attributes: { "pve.scope": "guest" },
+        groupByAttributeKey: "id",
       }),
       offlineCriteriaInstance: buildProxmoxOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -525,10 +602,10 @@ const guestHighCpuTemplate: ProxmoxAlertTemplate = {
         filterType: FilterType.GreaterThan,
         value: 0.9,
         incidentTitle: `[Proxmox] High Guest CPU Usage (>90%) - ${args.monitorName}`,
-        incidentDescription: `A guest (VM or container) is using more than 90% of its allocated vCPUs. The workload inside the guest may be CPU-starved. Check the root cause for the affected guest id, then consider allocating more vCPUs or investigating the workload. Add an id attribute filter (e.g. qemu/100) to scope this monitor to a specific guest.`,
+        incidentDescription: `A guest (VM or container) is using more than 90% of its allocated vCPUs. The workload inside the guest may be CPU-starved. Check the root cause for the affected guest id, then consider allocating more vCPUs or investigating the workload inside the guest.`,
         criteriaName: "High Guest CPU - Usage Ratio > 0.9",
         criteriaDescription:
-          "Triggers when any guest's CPU usage ratio exceeds 0.9 over the monitoring window.",
+          "Triggers when any guest's average CPU usage ratio exceeds 0.9 over the monitoring window.",
       }),
       onlineCriteriaInstance: buildProxmoxOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -540,15 +617,161 @@ const guestHighCpuTemplate: ProxmoxAlertTemplate = {
   },
 };
 
+const storageNearFullTemplate: ProxmoxAlertTemplate = {
+  id: "pve-storage-near-full",
+  name: "Storage Near Full",
+  description:
+    "Alert when any storage volume's disk usage exceeds 85% of its capacity. Computed per volume as pve_disk_usage_bytes ÷ pve_disk_size_bytes × 100 — a true percentage with no per-volume threshold tuning.",
+  category: "Storage",
+  severity: "Warning",
+  getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "storage_utilization";
+
+    return buildProxmoxMonitorStep({
+      proxmoxMonitor: buildProxmoxRatioMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        numeratorMetricName: "pve_disk_usage_bytes",
+        denominatorMetricName: "pve_disk_size_bytes",
+        numeratorAlias: "used_disk",
+        denominatorAlias: "total_disk",
+        resultAlias: metricAlias,
+        resultLegend: "Storage Utilization (%)",
+        rollingTime: RollingTime.Past5Minutes,
+        attributes: { "pve.scope": "storage" },
+        groupByAttributeKey: "id",
+      }),
+      offlineCriteriaInstance: buildProxmoxOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 85,
+        incidentTitle: `[Proxmox] Storage Near Full (>85%) - ${args.monitorName}`,
+        incidentDescription: `A Proxmox storage volume is more than 85% full. A full storage volume prevents guests from writing, can pause VMs, and blocks backups and snapshots. Check the root cause for the affected storage id, then free space, prune old backups/snapshots, or extend the volume.`,
+        criteriaName: "Storage Near Full - Utilization > 85%",
+        criteriaDescription:
+          "Triggers when any storage volume's disk usage exceeds 85% of its capacity over the monitoring window.",
+      }),
+      onlineCriteriaInstance: buildProxmoxOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: 85,
+      }),
+    });
+  },
+};
+
+const lxcDiskNearFullTemplate: ProxmoxAlertTemplate = {
+  id: "pve-lxc-disk-near-full",
+  name: "Container Root Disk Near Full",
+  description:
+    "Alert when any LXC container's root disk usage exceeds 90% of its size (pve_disk_usage_bytes ÷ pve_disk_size_bytes × 100, scoped to pve.type=lxc). QEMU VMs are excluded — their in-guest disk usage is only reported when the QEMU guest agent is installed, so it reads 0 otherwise.",
+  category: "Storage",
+  severity: "Warning",
+  getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "lxc_disk_utilization";
+
+    return buildProxmoxMonitorStep({
+      proxmoxMonitor: buildProxmoxRatioMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        numeratorMetricName: "pve_disk_usage_bytes",
+        denominatorMetricName: "pve_disk_size_bytes",
+        numeratorAlias: "used_disk",
+        denominatorAlias: "total_disk",
+        resultAlias: metricAlias,
+        resultLegend: "Container Root Disk Utilization (%)",
+        rollingTime: RollingTime.Past5Minutes,
+        attributes: { "pve.type": "lxc" },
+        groupByAttributeKey: "id",
+      }),
+      offlineCriteriaInstance: buildProxmoxOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 90,
+        incidentTitle: `[Proxmox] Container Root Disk Near Full (>90%) - ${args.monitorName}`,
+        incidentDescription: `An LXC container's root disk is more than 90% full. When the root filesystem fills up, services inside the container start failing and the container may become unresponsive. Check the root cause for the affected container id, then free space inside the container or grow its root disk.`,
+        criteriaName: "LXC Disk Near Full - Utilization > 90%",
+        criteriaDescription:
+          "Triggers when any LXC container's root disk usage exceeds 90% of its size over the monitoring window.",
+      }),
+      onlineCriteriaInstance: buildProxmoxOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: 90,
+      }),
+    });
+  },
+};
+
+const haStateErrorTemplate: ProxmoxAlertTemplate = {
+  id: "pve-ha-state-error",
+  name: "HA Resource in Error State",
+  description:
+    "Alert when any HA-managed resource enters the error state, meaning high availability could not recover it. One incident per HA resource.",
+  category: "HA",
+  severity: "Critical",
+  getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "ha_error_state";
+
+    return buildProxmoxMonitorStep({
+      proxmoxMonitor: buildProxmoxMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        metricName: "pve_ha_state",
+        metricAlias,
+        rollingTime: RollingTime.Past5Minutes,
+        /*
+         * pve_ha_state is an enum-style metric: one series per possible
+         * state with value 1 for the current state. Filtering on
+         * state="error" makes the series go to 1 only when an HA-managed
+         * resource is in the error state; Max per resource catches it.
+         */
+        aggregationType: MetricsAggregationType.Max,
+        attributes: { state: "error" },
+        groupByAttributeKey: "id",
+      }),
+      offlineCriteriaInstance: buildProxmoxOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+        incidentTitle: `[Proxmox] HA Resource in Error State - ${args.monitorName}`,
+        incidentDescription: `A high-availability managed resource in the Proxmox cluster has entered the error state. The HA manager could not start or recover the resource automatically — manual intervention is required (typically \`ha-manager set <sid> --state disabled\` followed by re-enabling after fixing the underlying issue). Check the root cause for the affected resource id.`,
+        criteriaName: "HA Error - Error State Present",
+        criteriaDescription:
+          "Triggers when any HA-managed resource reports the error state.",
+      }),
+      onlineCriteriaInstance: buildProxmoxOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.EqualTo,
+        value: 0,
+      }),
+    });
+  },
+};
+
 export function getAllProxmoxAlertTemplates(): Array<ProxmoxAlertTemplate> {
   return [
     nodeOfflineTemplate,
     guestDownTemplate,
+    quorumRiskTemplate,
     nodeHighCpuTemplate,
-    highMemoryTemplate,
-    storageNearFullTemplate,
-    haStateDegradedTemplate,
+    nodeHighMemoryTemplate,
     guestHighCpuTemplate,
+    storageNearFullTemplate,
+    lxcDiskNearFullTemplate,
+    haStateErrorTemplate,
   ];
 }
 

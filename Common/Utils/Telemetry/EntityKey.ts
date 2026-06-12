@@ -152,34 +152,35 @@ export function keyForKubernetesCluster(
 
 /**
  * `proxmox.cluster.name` is the cluster identity (matches the ProxmoxCluster
- * row's `clusterIdentifier`; the ingest resolver is name-only — see
- * `TelemetryEntity.proxmoxClusterIdentity`). Pass
- * `ProxmoxCluster.clusterIdentifier`.
+ * row's `name`, the project-unique join key written by
+ * `findOrCreateByName`; the ingest resolver is name-only — see
+ * `TelemetryEntity.proxmoxClusterIdentity`). Pass `ProxmoxCluster.name`.
  */
 export function keyForProxmoxCluster(
   projectId: string,
-  clusterIdentifier: string,
+  clusterName: string,
 ): string {
   return computeEntityKey({
     projectId,
     entityType: EntityType.ProxmoxCluster,
-    identifyingAttributes: { "proxmox.cluster.name": clusterIdentifier },
+    identifyingAttributes: { "proxmox.cluster.name": clusterName },
   });
 }
 
 /**
  * `ceph.cluster.name` is the cluster identity (matches the CephCluster
- * row's `clusterIdentifier`; the ingest resolver is name-only —
+ * row's `name`, the project-unique join key written by
+ * `findOrCreateByName`; the ingest resolver is name-only —
  * `ceph.cluster.fsid` is descriptive, never identity). Pass
- * `CephCluster.clusterIdentifier`.
+ * `CephCluster.name`.
  */
 export function keyForCephCluster(
   projectId: string,
-  clusterIdentifier: string,
+  clusterName: string,
 ): string {
   return computeEntityKey({
     projectId,
     entityType: EntityType.CephCluster,
-    identifyingAttributes: { "ceph.cluster.name": clusterIdentifier },
+    identifyingAttributes: { "ceph.cluster.name": clusterName },
   });
 }

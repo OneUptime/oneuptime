@@ -1,3 +1,4 @@
+import { ProxmoxResourceScope } from "./MonitorStepProxmoxMonitor";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 
 export type ProxmoxMetricCategory =
@@ -14,6 +15,7 @@ export interface ProxmoxMetricDefinition {
   metricName: string;
   category: ProxmoxMetricCategory;
   defaultAggregation: MetricsAggregationType;
+  defaultResourceScope: ProxmoxResourceScope;
   unit?: string;
 }
 
@@ -21,7 +23,12 @@ export interface ProxmoxMetricDefinition {
  * Metric names follow the prometheus-pve-exporter naming scheme. Each series
  * carries an `id` datapoint label identifying the Proxmox resource it belongs
  * to: `node/<name>` for nodes, `qemu/<vmid>` for VMs, `lxc/<vmid>` for
- * containers, and `storage/<node>/<storage>` for storage volumes.
+ * containers, and `storage/<storage>` for storage volumes. The agent's OTTL
+ * transform additionally stamps `pve.scope` (node | guest | storage |
+ * cluster), `pve.type` (node | qemu | lxc | storage) and `pve.id` (the part
+ * after the slash) as datapoint attributes — `defaultResourceScope` is the
+ * `pve.scope` value the metric is usually filtered to (Cluster = spans
+ * multiple scopes; don't pre-filter).
  */
 const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   // Availability Metrics
@@ -29,10 +36,11 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
     id: "pve-up",
     friendlyName: "Resource Up",
     description:
-      "Whether a Proxmox resource is up (1) or down/stopped (0). Reported for nodes and guests — use the id label (e.g. node/pve1, qemu/100) to scope to a specific resource.",
+      "Whether a Proxmox resource is up (1) or down/stopped (0). Reported for nodes and guests — filter on pve.scope (node/guest) or the id label to scope.",
     metricName: "pve_up",
     category: "Availability",
     defaultAggregation: MetricsAggregationType.Min,
+    defaultResourceScope: ProxmoxResourceScope.Cluster,
   },
   {
     id: "pve-uptime-seconds",
@@ -42,7 +50,19 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
     metricName: "pve_uptime_seconds",
     category: "Availability",
     defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: ProxmoxResourceScope.Cluster,
     unit: "seconds",
+  },
+  {
+    id: "pve-version-info",
+    friendlyName: "PVE Version Info",
+    description:
+      "Metadata series carrying the Proxmox VE release in its version/release labels (value is always 1).",
+    metricName: "pve_version_info",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: ProxmoxResourceScope.Cluster,
+    unit: "count",
   },
 
   // Node Metrics
@@ -50,10 +70,11 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
     id: "pve-cpu-usage-ratio",
     friendlyName: "CPU Usage Ratio",
     description:
-      "CPU usage as a ratio of available CPU (0 to 1, where 1 = all cores fully used). Reported for nodes and guests — use the id label to scope.",
+      "CPU usage as a ratio of available CPU (0 to 1, where 1 = all cores fully used). Reported for nodes and guests — filter on pve.scope to pick one.",
     metricName: "pve_cpu_usage_ratio",
     category: "Node",
     defaultAggregation: MetricsAggregationType.Avg,
+    defaultResourceScope: ProxmoxResourceScope.Node,
     unit: "ratio",
   },
   {
@@ -64,6 +85,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
     metricName: "pve_cpu_usage_limit",
     category: "Node",
     defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: ProxmoxResourceScope.Node,
     unit: "cores",
   },
   {
@@ -74,6 +96,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
     metricName: "pve_memory_usage_bytes",
     category: "Node",
     defaultAggregation: MetricsAggregationType.Avg,
+    defaultResourceScope: ProxmoxResourceScope.Node,
     unit: "bytes",
   },
   {
@@ -84,16 +107,18 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
     metricName: "pve_memory_size_bytes",
     category: "Node",
     defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: ProxmoxResourceScope.Node,
     unit: "bytes",
   },
   {
     id: "pve-node-info",
     friendlyName: "Node Info",
     description:
-      "Metadata series for each Proxmox node (value is always 1). Sum it to count the nodes reporting in the cluster.",
+      "Metadata series for each Proxmox node (value is always 1) carrying the node's name label. Sum it to count the nodes reporting in the cluster.",
     metricName: "pve_node_info",
     category: "Node",
     defaultAggregation: MetricsAggregationType.Sum,
+    defaultResourceScope: ProxmoxResourceScope.Node,
     unit: "count",
   },
 
@@ -102,20 +127,44 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
     id: "pve-network-receive-bytes",
     friendlyName: "Network Received",
     description:
-      "Cumulative bytes received over the network by a guest (VM or container).",
+      "Cumulative bytes received over the network by a guest (VM or container). Chart as a rate to see throughput.",
     metricName: "pve_network_receive_bytes",
     category: "Guest",
     defaultAggregation: MetricsAggregationType.Sum,
+    defaultResourceScope: ProxmoxResourceScope.Guest,
     unit: "bytes",
   },
   {
     id: "pve-network-transmit-bytes",
     friendlyName: "Network Transmitted",
     description:
-      "Cumulative bytes transmitted over the network by a guest (VM or container).",
+      "Cumulative bytes transmitted over the network by a guest (VM or container). Chart as a rate to see throughput.",
     metricName: "pve_network_transmit_bytes",
     category: "Guest",
     defaultAggregation: MetricsAggregationType.Sum,
+    defaultResourceScope: ProxmoxResourceScope.Guest,
+    unit: "bytes",
+  },
+  {
+    id: "pve-disk-read-bytes",
+    friendlyName: "Disk Read",
+    description:
+      "Cumulative bytes read from disk by a guest (VM or container). Chart as a rate to see read throughput.",
+    metricName: "pve_disk_read_bytes",
+    category: "Guest",
+    defaultAggregation: MetricsAggregationType.Sum,
+    defaultResourceScope: ProxmoxResourceScope.Guest,
+    unit: "bytes",
+  },
+  {
+    id: "pve-disk-write-bytes",
+    friendlyName: "Disk Write",
+    description:
+      "Cumulative bytes written to disk by a guest (VM or container). Chart as a rate to see write throughput.",
+    metricName: "pve_disk_write_bytes",
+    category: "Guest",
+    defaultAggregation: MetricsAggregationType.Sum,
+    defaultResourceScope: ProxmoxResourceScope.Guest,
     unit: "bytes",
   },
   {
@@ -126,6 +175,18 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
     metricName: "pve_guest_info",
     category: "Guest",
     defaultAggregation: MetricsAggregationType.Sum,
+    defaultResourceScope: ProxmoxResourceScope.Guest,
+    unit: "count",
+  },
+  {
+    id: "pve-onboot-status",
+    friendlyName: "Start-on-Boot Status",
+    description:
+      "Whether a guest is configured to start on node boot (1) or not (0). A stopped guest with onboot=1 is usually unintended downtime.",
+    metricName: "pve_onboot_status",
+    category: "Guest",
+    defaultAggregation: MetricsAggregationType.Min,
+    defaultResourceScope: ProxmoxResourceScope.Guest,
     unit: "count",
   },
 
@@ -134,10 +195,11 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
     id: "pve-disk-usage-bytes",
     friendlyName: "Disk Usage",
     description:
-      "Disk space currently used. Reported for storage volumes, node root filesystems, and guest root disks — use the id label to scope.",
+      "Disk space currently used. Reported for storage volumes, node root filesystems, and guest root disks — filter on pve.scope to pick one. For QEMU guests this reads 0 unless the QEMU guest agent is installed.",
     metricName: "pve_disk_usage_bytes",
     category: "Storage",
     defaultAggregation: MetricsAggregationType.Avg,
+    defaultResourceScope: ProxmoxResourceScope.Storage,
     unit: "bytes",
   },
   {
@@ -148,7 +210,19 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
     metricName: "pve_disk_size_bytes",
     category: "Storage",
     defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: ProxmoxResourceScope.Storage,
     unit: "bytes",
+  },
+  {
+    id: "pve-storage-info",
+    friendlyName: "Storage Info",
+    description:
+      "Metadata series for each storage volume (value is always 1) carrying node and storage labels. Sum it to count storage volumes in the cluster.",
+    metricName: "pve_storage_info",
+    category: "Storage",
+    defaultAggregation: MetricsAggregationType.Sum,
+    defaultResourceScope: ProxmoxResourceScope.Storage,
+    unit: "count",
   },
 
   // HA Metrics
@@ -160,6 +234,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
     metricName: "pve_ha_state",
     category: "HA",
     defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: ProxmoxResourceScope.Cluster,
   },
 ];
 

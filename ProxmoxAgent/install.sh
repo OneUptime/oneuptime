@@ -56,8 +56,16 @@ if [ -z "$PVE_EXPORTER_URL" ]; then
             read -rp "Proxmox API token secret: " PVE_API_TOKEN_SECRET
         fi
     else
-        read -rp "Address of your existing pve-exporter (host:port) [localhost:9221]: " PVE_EXPORTER_URL
-        PVE_EXPORTER_URL="${PVE_EXPORTER_URL:-localhost:9221}"
+        # No localhost default here: the agent runs as a container on the
+        # compose bridge network, so "localhost" inside it is the agent
+        # itself — it can never reach an exporter running on this host.
+        # Use an address reachable from containers: the host's LAN IP or
+        # DNS name (or host.docker.internal on Docker Desktop).
+        echo "Note: the agent runs in a container, so 'localhost' cannot reach an"
+        echo "exporter on this host — use the host's LAN IP or DNS name instead."
+        while [ -z "$PVE_EXPORTER_URL" ]; do
+            read -rp "Address of your existing pve-exporter (host:port, e.g. 192.168.1.10:9221): " PVE_EXPORTER_URL
+        done
     fi
 fi
 

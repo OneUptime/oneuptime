@@ -24,6 +24,48 @@ export interface KubernetesResourceBreakdown {
   attributes: Dictionary<string>;
 }
 
+export interface ProxmoxAffectedResource {
+  /** Raw pve-exporter `id` datapoint label, e.g. "node/pve1", "qemu/100". */
+  resourceId?: string | undefined;
+  /** `name` label — present only on the pve_*_info metadata series. */
+  resourceName?: string | undefined;
+  /** Agent-stamped `pve.type` attribute (node | qemu | lxc | storage). */
+  resourceType?: string | undefined;
+  /** Agent-stamped `pve.scope` attribute (cluster | node | guest | storage). */
+  scope?: string | undefined;
+  /** `node` label — present only on the pve_*_info metadata series. */
+  nodeName?: string | undefined;
+  metricValue: number;
+}
+
+export interface ProxmoxResourceBreakdown {
+  clusterName: string;
+  metricName: string;
+  metricFriendlyName: string;
+  affectedResources: Array<ProxmoxAffectedResource>;
+  attributes: Dictionary<string>;
+}
+
+export interface CephAffectedResource {
+  /** `ceph_daemon` datapoint label, e.g. "osd.3", "mon.a". */
+  daemon?: string | undefined;
+  /** `pool_id` label — the only pool identity on pool data series. */
+  poolId?: string | undefined;
+  /** Pool `name` label — present only on ceph_pool_metadata. */
+  poolName?: string | undefined;
+  /** `hostname` label — present only on the *_metadata series. */
+  hostname?: string | undefined;
+  metricValue: number;
+}
+
+export interface CephResourceBreakdown {
+  clusterName: string;
+  metricName: string;
+  metricFriendlyName: string;
+  affectedResources: Array<CephAffectedResource>;
+  attributes: Dictionary<string>;
+}
+
 export default interface MetricMonitorResponse {
   projectId: ObjectID;
   startAndEndDate?: InBetween<Date>;
@@ -32,6 +74,8 @@ export default interface MetricMonitorResponse {
   monitorId: ObjectID;
   evaluationSummary?: MonitorEvaluationSummary | undefined;
   kubernetesResourceBreakdown?: KubernetesResourceBreakdown | undefined;
+  proxmoxResourceBreakdown?: ProxmoxResourceBreakdown | undefined;
+  cephResourceBreakdown?: CephResourceBreakdown | undefined;
   /**
    * Per-series breakdown when any queryConfig sets groupByAttributeKeys.
    * Each entry carries a fingerprint, the label values identifying that

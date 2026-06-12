@@ -18,6 +18,8 @@ import Card from "Common/UI/Components/Card/Card";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
+import ProjectUtil from "Common/UI/Utils/Project";
+import { keyForProxmoxCluster } from "Common/Utils/Telemetry/EntityKey";
 
 const ProxmoxClusterLogs: FunctionComponent<
   PageComponentProps
@@ -61,8 +63,8 @@ const ProxmoxClusterLogs: FunctionComponent<
 
   const logQuery: Query<Log> = useMemo(() => {
     /*
-     * Using `any` to sidestep a TS2589 "excessively deep type instantiation"
-     * error on the Query<Log> generic when inline attribute maps are used.
+     * `any` sidesteps a TS2589 deep-instantiation on Query<Log> with
+     * inline attribute maps — same workaround the Host/Docker logs pages use.
      */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const q: any = {
@@ -81,7 +83,7 @@ const ProxmoxClusterLogs: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
-  if (!cluster) {
+  if (!cluster?.name) {
     return <ErrorMessage message="Cluster not found." />;
   }
 
@@ -90,9 +92,29 @@ const ProxmoxClusterLogs: FunctionComponent<
       title="Cluster Logs"
       description="OpenTelemetry logs ingested with this cluster's proxmox.cluster.name resource attribute. Use the filter bar to scope by severity, trace id, or any resource attribute."
     >
+      {/*
+       * entityScope is the query scope (contract C4): new rows match via the
+       * bloom-indexed `entityKeys` membership column, pre-column rows (no
+       * backfill, empty array) via the attribute equality inside the same OR.
+       * `logQuery.attributes` stays for the histogram / facet scoping —
+       * display behavior is unchanged. Do NOT also AND a separate
+       * attributes-equality filter into the query itself — that defeats the
+       * OR. Drop the attribute fallback (here and in the logQuery merge)
+       * once deploy-date + max retention has passed.
+       */}
       <DashboardLogsViewer
         id={`proxmox-cluster-logs-${modelId.toString()}`}
         logQuery={logQuery}
+        entityScope={{
+          entityKeys: [
+            keyForProxmoxCluster(
+              ProjectUtil.getCurrentProjectId()!.toString(),
+              cluster.name!,
+            ),
+          ],
+          attributeKey: "resource.proxmox.cluster.name",
+          attributeValue: cluster.name!,
+        }}
         showFilters={true}
         enableRealtime={true}
         noLogsMessage="No logs found. The Proxmox agent ships metrics only — logs appear here when you send OpenTelemetry logs stamped with this cluster's proxmox.cluster.name resource attribute."

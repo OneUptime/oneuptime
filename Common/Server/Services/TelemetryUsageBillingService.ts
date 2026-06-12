@@ -26,9 +26,13 @@ import ServiceModel from "../../Models/DatabaseModels/Service";
 import HostService from "./HostService";
 import DockerHostService from "./DockerHostService";
 import KubernetesClusterService from "./KubernetesClusterService";
+import ProxmoxClusterService from "./ProxmoxClusterService";
+import CephClusterService from "./CephClusterService";
 import Host from "../../Models/DatabaseModels/Host";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
+import ProxmoxCluster from "../../Models/DatabaseModels/ProxmoxCluster";
+import CephCluster from "../../Models/DatabaseModels/CephCluster";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import {
   AverageSpanRowSizeInBytes,
@@ -347,9 +351,10 @@ export class Service extends DatabaseService<Model> {
   /*
    * Map of resourceId -> retainTelemetryDataForDays for every resource in
    * the project that can own telemetry (Service, Host, DockerHost,
-   * KubernetesCluster). Used to scale billed cost by the actual retention
-   * applied to each resource's telemetry. Resources without an override
-   * (and the unattributed bucket) fall back to the project default.
+   * KubernetesCluster, ProxmoxCluster, CephCluster). Used to scale billed
+   * cost by the actual retention applied to each resource's telemetry.
+   * Resources without an override (and the unattributed bucket) fall back
+   * to the project default.
    */
   @CaptureSpan()
   private async buildTelemetryRetentionMap(
@@ -418,6 +423,39 @@ export class Service extends DatabaseService<Model> {
         retentionByServiceId.set(
           cluster.id.toString(),
           cluster.retainTelemetryDataForDays,
+        );
+      }
+    }
+
+    const proxmoxClusters: Array<ProxmoxCluster> =
+      await ProxmoxClusterService.findBy({
+        query: { projectId: projectId },
+        select: { _id: true, retainTelemetryDataForDays: true },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: { isRoot: true },
+      });
+    for (const proxmoxCluster of proxmoxClusters) {
+      if (proxmoxCluster.id && proxmoxCluster.retainTelemetryDataForDays) {
+        retentionByServiceId.set(
+          proxmoxCluster.id.toString(),
+          proxmoxCluster.retainTelemetryDataForDays,
+        );
+      }
+    }
+
+    const cephClusters: Array<CephCluster> = await CephClusterService.findBy({
+      query: { projectId: projectId },
+      select: { _id: true, retainTelemetryDataForDays: true },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: { isRoot: true },
+    });
+    for (const cephCluster of cephClusters) {
+      if (cephCluster.id && cephCluster.retainTelemetryDataForDays) {
+        retentionByServiceId.set(
+          cephCluster.id.toString(),
+          cephCluster.retainTelemetryDataForDays,
         );
       }
     }

@@ -26,6 +26,24 @@ receivers:
             #   CEPH_MGR_ENDPOINTS=[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]
             - targets: ${env:CEPH_MGR_ENDPOINTS}
 
+  # Optional: tail the Ceph cluster log and ship it to OneUptime — this is
+  # what powers the Cluster Log page of the Ceph dashboard. Off by default
+  # because it requires the agent to run on a host that has
+  # /var/log/ceph/ceph.log (a mon host by default) AND the directory
+  # mounted into the container — uncomment the matching volume in
+  # docker-compose.yml:
+  #   - /var/log/ceph:/var/log/ceph:ro
+  # Then uncomment this receiver and the `logs` pipeline at the bottom of
+  # this file. Lines ship verbatim; OneUptime parses the ceph.log format
+  # (timestamp, daemon, INF/WRN/ERR level, message) at read time, and the
+  # resource processor below stamps `ceph.cluster.name` so the log lands
+  # on this cluster.
+  # filelog:
+  #   include:
+  #     - /var/log/ceph/ceph.log
+  #   # Tail from the end so an agent restart does not re-ship the file.
+  #   start_at: end
+
 processors:
   # Stamp every metric with the cluster identity. OneUptime auto-registers
   # the Ceph cluster from `ceph.cluster.name`, and every Ceph page and
@@ -74,3 +92,9 @@ service:
       receivers: [prometheus]
       processors: [memory_limiter, resource, batch]
       exporters: [otlphttp]
+    # Uncomment together with the filelog receiver above to ship the Ceph
+    # cluster log (powers the Cluster Log page):
+    # logs:
+    #   receivers: [filelog]
+    #   processors: [memory_limiter, resource, batch]
+    #   exporters: [otlphttp]

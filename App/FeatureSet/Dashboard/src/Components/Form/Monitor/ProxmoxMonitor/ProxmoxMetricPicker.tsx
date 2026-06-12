@@ -25,10 +25,11 @@ const ProxmoxMetricPicker: FunctionComponent<ComponentProps> = (
 
   const groupedOptions: Array<DropdownOptionGroup> = allCategories.map(
     (category: ProxmoxMetricCategory) => {
-      const categoryMetrics: Array<ProxmoxMetricDefinition> =
-        allMetrics.filter((m: ProxmoxMetricDefinition) => {
+      const categoryMetrics: Array<ProxmoxMetricDefinition> = allMetrics.filter(
+        (m: ProxmoxMetricDefinition) => {
           return m.category === category;
-        });
+        },
+      );
 
       return {
         label: category,

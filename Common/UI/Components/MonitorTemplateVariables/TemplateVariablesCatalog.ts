@@ -32,10 +32,10 @@ export default class TemplateVariablesCatalog {
     monitorType: MonitorType;
     /**
      * Attribute keys the user has configured on the metric query
-     * (e.g. ["host.name", "region"]). For metric/kubernetes/docker
-     * monitors, these become per-series template variables — one
-     * incident fires per unique value combination, and each incident
-     * can reference the label values via `{{host.name}}` etc.
+     * (e.g. ["host.name", "region"]). For metric/kubernetes/docker/
+     * proxmox/ceph monitors, these become per-series template variables
+     * — one incident fires per unique value combination, and each
+     * incident can reference the label values via `{{host.name}}` etc.
      */
     seriesAttributeKeys?: Array<string> | undefined;
   }): Array<TemplateVariableGroup> {
@@ -52,7 +52,9 @@ export default class TemplateVariablesCatalog {
     if (
       input.monitorType === MonitorType.Metrics ||
       input.monitorType === MonitorType.Kubernetes ||
-      input.monitorType === MonitorType.Docker
+      input.monitorType === MonitorType.Docker ||
+      input.monitorType === MonitorType.Proxmox ||
+      input.monitorType === MonitorType.Ceph
     ) {
       groups.push(
         TemplateVariablesCatalog.seriesLabelsGroup(input.seriesAttributeKeys),
@@ -485,6 +487,8 @@ export default class TemplateVariablesCatalog {
       case MonitorType.Metrics:
       case MonitorType.Kubernetes:
       case MonitorType.Docker:
+      case MonitorType.Proxmox:
+      case MonitorType.Ceph:
         return {
           title: "Metric",
           variables: [

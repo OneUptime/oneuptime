@@ -249,22 +249,24 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
 
         <div className="mt-3">
           <FieldLabelElement
-            title="Pool"
-            description={"Filter by pool name (optional)."}
+            title="Pool ID"
+            description={
+              "Filter by pool id — the pool_id label (optional). Pool data series carry only pool_id; the pool name exists solely on ceph_pool_metadata."
+            }
             required={false}
           />
           <Input
-            value={monitorStepCephMonitor.resourceFilters.poolName || ""}
+            value={monitorStepCephMonitor.resourceFilters.poolId || ""}
             onChange={(value: string) => {
               props.onChange({
                 ...monitorStepCephMonitor,
                 resourceFilters: {
                   ...monitorStepCephMonitor.resourceFilters,
-                  poolName: value || undefined,
+                  poolId: value || undefined,
                 },
               });
             }}
-            placeholder="e.g. rbd"
+            placeholder="e.g. 2"
           />
         </div>
       </>

@@ -1,3 +1,4 @@
+import CephCluster from "../../../Models/DatabaseModels/CephCluster";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import Host from "../../../Models/DatabaseModels/Host";
 import Incident from "../../../Models/DatabaseModels/Incident";
@@ -8,6 +9,7 @@ import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster"
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
+import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import Service from "../../../Models/DatabaseModels/Service";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -20,10 +22,12 @@ import ObjectID from "../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import { DisableAutomaticIncidentCreation } from "../../EnvironmentConfig";
+import CephClusterService from "../../Services/CephClusterService";
 import DockerHostService from "../../Services/DockerHostService";
 import HostService from "../../Services/HostService";
 import IncidentService from "../../Services/IncidentService";
 import KubernetesClusterService from "../../Services/KubernetesClusterService";
+import ProxmoxClusterService from "../../Services/ProxmoxClusterService";
 import ServiceService from "../../Services/ServiceService";
 import IncidentSeverityService from "../../Services/IncidentSeverityService";
 import IncidentStateTimelineService from "../../Services/IncidentStateTimelineService";
@@ -37,6 +41,9 @@ import OneUptimeDate from "../../../Types/Date";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
 import { IncidentMemberRoleAssignment } from "../../../Types/Monitor/CriteriaIncident";
 import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
+import MonitorClusterContextUtil, {
+  MonitorClusterContext,
+} from "./MonitorClusterContext";
 import SeriesResourceLabels, {
   SeriesResourceRefs,
 } from "./SeriesResourceLabels";
@@ -195,6 +202,19 @@ export default class MonitorIncident {
     if (!input.criteriaInstance.data?.createIncidents) {
       return;
     }
+
+    /*
+     * Proxmox/Ceph monitors: resolve the monitored cluster once per
+     * evaluation (lookup-only, from the step config's clusterIdentifier)
+     * so every incident created below is attached to it. Series labels
+     * cannot supply this — they carry datapoint labels (`id`,
+     * `ceph_daemon`, `pool_id`), not cluster identity, and ungrouped
+     * templates have no series at all. No-op for other monitor types.
+     */
+    const clusterContext: MonitorClusterContext =
+      await MonitorClusterContextUtil.resolveClusterContextForMonitor({
+        monitor: input.monitor,
+      });
 
     /*
      * Series-less path: one incident per criteriaIncident template as
@@ -384,6 +404,15 @@ export default class MonitorIncident {
           });
         }
 
+        /*
+         * Deterministic Proxmox/Ceph cluster link from the monitor's
+         * step config (resolved once above). Runs for both grouped and
+         * ungrouped incidents and merges with anything the series-label
+         * path resolved, so the per-cluster Activity tabs always see
+         * monitor-created incidents.
+         */
+        this.attachClusterContext({ incident, clusterContext });
+
         incident.onCallDutyPolicies =
           criteriaIncident.onCallPolicyIds?.map((id: ObjectID) => {
             const onCallPolicy: OnCallDutyPolicy = new OnCallDutyPolicy();
@@ -527,13 +556,14 @@ export default class MonitorIncident {
   }
 
   /*
-   * Pull every host / docker-host / k8s-cluster / service identifier
-   * out of the series labels and attach the matching project-scoped
-   * records to the incident. The label-key → resource-type mapping
-   * lives in SeriesResourceLabels (shared with the scheduled-maintenance
-   * suppression path so the two never disagree about which labels
-   * identify which resource). Lookups are always project-scoped so a
-   * stale or hostile stamp can't pull in a record from another tenant.
+   * Pull every host / docker-host / k8s-cluster / proxmox-cluster /
+   * ceph-cluster / service identifier out of the series labels and
+   * attach the matching project-scoped records to the incident. The
+   * label-key → resource-type mapping lives in SeriesResourceLabels
+   * (shared with the scheduled-maintenance suppression path so the two
+   * never disagree about which labels identify which resource). Lookups
+   * are always project-scoped so a stale or hostile stamp can't pull in
+   * a record from another tenant.
    */
   private static async linkResourceContextFromSeries(input: {
     incident: Incident;
@@ -549,6 +579,8 @@ export default class MonitorIncident {
       resolvedDockerHosts,
       resolvedClusters,
       resolvedServices,
+      resolvedProxmoxClusters,
+      resolvedCephClusters,
     ] = await Promise.all([
       this.resolveResourceIds({
         ids: refs.hostIds,
@@ -577,6 +609,20 @@ export default class MonitorIncident {
         nameColumn: "name",
         projectId: input.projectId,
         findBy: ServiceService.findBy.bind(ServiceService),
+      }),
+      this.resolveResourceIds({
+        ids: [],
+        names: refs.proxmoxClusterNames,
+        nameColumn: "name",
+        projectId: input.projectId,
+        findBy: ProxmoxClusterService.findBy.bind(ProxmoxClusterService),
+      }),
+      this.resolveResourceIds({
+        ids: [],
+        names: refs.cephClusterNames,
+        nameColumn: "name",
+        projectId: input.projectId,
+        findBy: CephClusterService.findBy.bind(CephClusterService),
       }),
     ]);
 
@@ -611,6 +657,83 @@ export default class MonitorIncident {
         service._id = id;
         return service;
       });
+    }
+    if (resolvedProxmoxClusters.length > 0) {
+      input.incident.proxmoxClusters = resolvedProxmoxClusters.map(
+        (id: string): ProxmoxCluster => {
+          const cluster: ProxmoxCluster = new ProxmoxCluster();
+          cluster._id = id;
+          return cluster;
+        },
+      );
+    }
+    if (resolvedCephClusters.length > 0) {
+      input.incident.cephClusters = resolvedCephClusters.map(
+        (id: string): CephCluster => {
+          const cluster: CephCluster = new CephCluster();
+          cluster._id = id;
+          return cluster;
+        },
+      );
+    }
+  }
+
+  /*
+   * Attach the monitor-step-resolved Proxmox/Ceph cluster ids to the
+   * incident, merging with (never overwriting) anything the
+   * series-label path already linked. Both paths can resolve the same
+   * cluster, so dedupe by id.
+   */
+  private static attachClusterContext(input: {
+    incident: Incident;
+    clusterContext: MonitorClusterContext;
+  }): void {
+    if (input.clusterContext.proxmoxClusterIds.length > 0) {
+      const existingIds: Set<string> = new Set<string>(
+        (input.incident.proxmoxClusters || []).map(
+          (cluster: ProxmoxCluster) => {
+            return String(cluster._id);
+          },
+        ),
+      );
+
+      const merged: Array<ProxmoxCluster> = [
+        ...(input.incident.proxmoxClusters || []),
+      ];
+
+      for (const id of input.clusterContext.proxmoxClusterIds) {
+        if (existingIds.has(id)) {
+          continue;
+        }
+        const cluster: ProxmoxCluster = new ProxmoxCluster();
+        cluster._id = id;
+        merged.push(cluster);
+      }
+
+      input.incident.proxmoxClusters = merged;
+    }
+
+    if (input.clusterContext.cephClusterIds.length > 0) {
+      const existingIds: Set<string> = new Set<string>(
+        (input.incident.cephClusters || []).map((cluster: CephCluster) => {
+          return String(cluster._id);
+        }),
+      );
+
+      const merged: Array<CephCluster> = [
+        ...(input.incident.cephClusters || []),
+      ];
+
+      for (const id of input.clusterContext.cephClusterIds) {
+        if (existingIds.has(id)) {
+          continue;
+        }
+        const cluster: CephCluster = new CephCluster();
+        cluster._id = id;
+        merged.push(cluster);
+      }
+
+      input.incident.cephClusters = merged;
     }
   }
 

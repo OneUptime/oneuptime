@@ -10,6 +10,7 @@ import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService"
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import CephClusterService from "Common/Server/Services/CephClusterService";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import ProxmoxResourceService from "Common/Server/Services/ProxmoxResourceService";
 import HostService from "Common/Server/Services/HostService";
 import Host from "Common/Models/DatabaseModels/Host";
 import ServerlessFunctionService from "Common/Server/Services/ServerlessFunctionService";
@@ -2116,6 +2117,19 @@ export default abstract class OtelIngestBaseService {
             cloudRegion: cloudRegion || undefined,
             cloudAccountId: cloudAccountId || undefined,
           });
+          /*
+           * Proxmox guest cross-link heuristic (best-effort): when this
+           * host's identifier matches a ProxmoxResource guest name in
+           * the same project, stamp Host.proxmoxClusterId so the
+           * GuestDetail page can show the linked Host card. Rides the
+           * same maintenance fence as updateLastSeen — at most one
+           * lookup per host per fence window.
+           */
+          await this.tryLinkHostToProxmoxGuest({
+            projectId: data.projectId,
+            hostId: new ObjectID(hostIdStr),
+            hostName,
+          });
         }
         return new ObjectID(hostIdStr);
       }
@@ -2124,6 +2138,106 @@ export default abstract class OtelIngestBaseService {
     } catch (err) {
       logger.error("Error auto-discovering Host: " + (err as Error).message);
       return null;
+    }
+  }
+
+  private static readonly HOST_PROXMOX_LINK_CACHE_NAMESPACE: string =
+    "host-proxmox-guest-link";
+  private static readonly HOST_PROXMOX_LINK_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  /**
+   * WI-17 ingest heuristic: a Host whose hostIdentifier
+   * case-insensitively equals a ProxmoxResource guest `name` in the
+   * same project is (almost certainly) the host agent running inside
+   * that VM — stamp Host.proxmoxClusterId so the two products
+   * cross-link. Best-effort and additive only:
+   *
+   *   - NEVER overwrites a non-null proxmoxClusterId (a manual or
+   *     earlier link wins; guest names are not guaranteed unique
+   *     across clusters).
+   *   - A successful (or already-present) link is cached for a day so
+   *     the steady state costs one Redis read.
+   *   - A miss is NOT negatively cached — the guest inventory may
+   *     simply not have been scraped yet; we retry on the next
+   *     maintenance fence window (≤ one indexed SELECT per host per
+   *     5 minutes).
+   *   - Failures are logged and swallowed; host discovery must never
+   *     depend on the Proxmox inventory.
+   */
+  protected static async tryLinkHostToProxmoxGuest(data: {
+    projectId: ObjectID;
+    hostId: ObjectID;
+    hostName: string;
+  }): Promise<void> {
+    try {
+      const cacheKey: string = `${data.projectId.toString()}:${data.hostId.toString()}`;
+      const alreadyLinked: string | null = await GlobalCache.getString(
+        this.HOST_PROXMOX_LINK_CACHE_NAMESPACE,
+        cacheKey,
+      );
+      if (alreadyLinked) {
+        return;
+      }
+
+      const host: Host | null = await HostService.findOneById({
+        id: data.hostId,
+        select: {
+          _id: true,
+          proxmoxClusterId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!host) {
+        return;
+      }
+
+      if (host.proxmoxClusterId) {
+        // Already linked — cache so we skip the SELECT next window.
+        await GlobalCache.setString(
+          this.HOST_PROXMOX_LINK_CACHE_NAMESPACE,
+          cacheKey,
+          "1",
+          { expiresInSeconds: this.HOST_PROXMOX_LINK_CACHE_EXPIRY_SECONDS },
+        );
+        return;
+      }
+
+      const proxmoxClusterId: ObjectID | null =
+        await ProxmoxResourceService.findGuestClusterIdByName({
+          projectId: data.projectId,
+          name: data.hostName,
+        });
+
+      if (!proxmoxClusterId) {
+        return; // No matching guest (yet) — retry next fence window.
+      }
+
+      await HostService.updateOneById({
+        id: data.hostId,
+        data: {
+          proxmoxClusterId: proxmoxClusterId,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      await GlobalCache.setString(
+        this.HOST_PROXMOX_LINK_CACHE_NAMESPACE,
+        cacheKey,
+        "1",
+        { expiresInSeconds: this.HOST_PROXMOX_LINK_CACHE_EXPIRY_SECONDS },
+      );
+    } catch (err) {
+      logger.warn(
+        `Host → Proxmox guest link failed for host ${data.hostId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
     }
   }
 

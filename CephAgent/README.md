@@ -84,6 +84,37 @@ The mgr module covers cluster-level health and capacity. For deeper visibility y
 
 Both inherit the `ceph.cluster.name` resource attribute from the shipped `resource` processor, so they land on the same cluster in OneUptime.
 
+## Optional — Ship the Ceph Cluster Log
+
+The agent can tail `/var/log/ceph/ceph.log` and ship it to OneUptime, which powers the **Cluster Log** page of the Ceph dashboard. It is off by default because it requires the agent to run on a host that has the cluster log (a mon host by default). To enable it:
+
+1. Uncomment the `filelog` receiver and the `logs` pipeline in `otel-collector-config.yaml`.
+2. Uncomment the `/var/log/ceph` volume mount in `docker-compose.yml`.
+3. Restart: `docker compose up -d`
+
+Lines ship verbatim; OneUptime parses the ceph.log format (timestamp, daemon, INF/WRN/ERR level, message) at read time, and the `resource` processor stamps `ceph.cluster.name` so the log lands on this cluster.
+
+## Auto-tag with Project Labels
+
+Any resource attribute prefixed with `oneuptime.label.` is promoted to a project Label and attached to the cluster. Pattern: `oneuptime.label.<dimension>=<value>` becomes a label named `<dimension>:<value>`.
+
+Add the attributes to the `resource` processor in `otel-collector-config.yaml` (next to `ceph.cluster.name`):
+
+```yaml
+processors:
+  resource:
+    attributes:
+      # ...existing attributes...
+      - key: oneuptime.label.team
+        value: storage
+        action: upsert
+      - key: oneuptime.label.env
+        value: production
+        action: upsert
+```
+
+The cluster shows up tagged `team:storage` and `env:production`. Labels are matched case-insensitively, so an existing manually-created `Production` label is reused rather than duplicated; labels added manually in the OneUptime UI are never removed by the agent.
+
 ## Run as a systemd Service
 
 To survive reboots without relying on Docker's restart policy alone, install the provided unit:
@@ -112,6 +143,15 @@ docker compose down
 ```
 
 ## Troubleshooting
+
+### Run the doctor script first
+
+`troubleshoot.sh` checks the whole chain — container runtime, every mgr endpoint (including the active-vs-standby trap), cluster-name stamping, token shape, collector self-metrics, and a **definitive server-side token validation**. The last one matters most: OneUptime's OTLP endpoints deliberately return a silent `200` on a bad ingestion key (so a misconfigured collector cannot retry-flood the server), which means log inspection alone can never tell you the key is wrong. The script asks `GET <url>/otlp/v1/validate` from inside the agent's network namespace for a real 200/401 verdict:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/CephAgent/troubleshoot.sh -o troubleshoot.sh
+bash troubleshoot.sh                 # add -d <dir> if you installed outside /opt/oneuptime-ceph-agent
+```
 
 ### No cluster appears in OneUptime
 

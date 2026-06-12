@@ -54,6 +54,10 @@ import { DashboardClientUrl } from "../../EnvironmentConfig";
 import MetricMonitorResponse, {
   KubernetesAffectedResource,
   KubernetesResourceBreakdown,
+  ProxmoxAffectedResource,
+  ProxmoxResourceBreakdown,
+  CephAffectedResource,
+  CephResourceBreakdown,
 } from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import MetricSeriesResult from "../../../Types/Monitor/MetricMonitor/MetricSeriesResult";
 import MetricCriteriaContext, {
@@ -1597,38 +1601,27 @@ ${contextBlock}
     const metricResponse: MetricMonitorResponse =
       input.dataToProcess as MetricMonitorResponse;
 
+    const breakdown: ProxmoxResourceBreakdown | undefined =
+      metricResponse.proxmoxResourceBreakdown;
+
     const sections: Array<string> = [];
 
     // Proxmox cluster context
     const proxmoxMonitor: MonitorStepProxmoxMonitor | undefined =
       input.monitorStep.data?.proxmoxMonitor;
 
-    if (proxmoxMonitor) {
+    if (proxmoxMonitor || breakdown) {
       const clusterDetails: Array<string> = [];
       clusterDetails.push(
-        `- Cluster: ${proxmoxMonitor.clusterIdentifier || "Unknown"}`,
+        `- Cluster: ${breakdown?.clusterName || proxmoxMonitor?.clusterIdentifier || "Unknown"}`,
       );
 
-      if (proxmoxMonitor.resourceFilters?.nodeName) {
+      if (breakdown) {
         clusterDetails.push(
-          `- Node Filter: ${proxmoxMonitor.resourceFilters.nodeName}`,
+          `- Metric: ${breakdown.metricFriendlyName} (\`${breakdown.metricName}\`)`,
         );
-      }
-
-      if (proxmoxMonitor.resourceFilters?.guestId) {
-        clusterDetails.push(
-          `- Guest ID Filter: ${proxmoxMonitor.resourceFilters.guestId}`,
-        );
-      }
-
-      if (proxmoxMonitor.resourceFilters?.guestName) {
-        clusterDetails.push(
-          `- Guest Name Filter: ${proxmoxMonitor.resourceFilters.guestName}`,
-        );
-      }
-
-      // Add metric name from the query config
-      if (
+      } else if (
+        proxmoxMonitor &&
         proxmoxMonitor.metricViewConfig?.queryConfigs?.length > 0 &&
         proxmoxMonitor.metricViewConfig.queryConfigs[0]
       ) {
@@ -1639,13 +1632,114 @@ ${contextBlock}
         }
       }
 
+      if (proxmoxMonitor?.resourceFilters?.scope) {
+        clusterDetails.push(
+          `- Scope Filter: ${proxmoxMonitor.resourceFilters.scope}`,
+        );
+      }
+
+      if (proxmoxMonitor?.resourceFilters?.pveId) {
+        clusterDetails.push(
+          `- Resource ID Filter: ${proxmoxMonitor.resourceFilters.pveId}`,
+        );
+      }
+
+      if (proxmoxMonitor?.resourceFilters?.nodeName) {
+        clusterDetails.push(
+          `- Node Filter: ${proxmoxMonitor.resourceFilters.nodeName}`,
+        );
+      }
+
+      if (proxmoxMonitor?.resourceFilters?.guestId) {
+        clusterDetails.push(
+          `- Guest ID Filter: ${proxmoxMonitor.resourceFilters.guestId}`,
+        );
+      }
+
       sections.push(
         `**Proxmox Cluster Details**\n${clusterDetails.join("\n")}`,
       );
     }
 
-    // Metric results summary
-    if (metricResponse.metricResult && metricResponse.metricResult.length > 0) {
+    // Affected resources (Resource / Type / Node / Value)
+    let renderedBreakdownTable: boolean = false;
+
+    if (breakdown && breakdown.affectedResources.length > 0) {
+      /*
+       * K8s-parity render: drop zero-value rows, worst (highest)
+       * first, top 10. Note that for availability metrics (pve_up)
+       * zero-valued rows ARE the down resources — those still drive
+       * alerting through the per-series criteria evaluation; this
+       * table is supplementary context only.
+       */
+      const sortedResources: Array<ProxmoxAffectedResource> = [
+        ...breakdown.affectedResources,
+      ]
+        .filter((r: ProxmoxAffectedResource) => {
+          return r.metricValue > 0;
+        })
+        .sort((a: ProxmoxAffectedResource, b: ProxmoxAffectedResource) => {
+          return b.metricValue - a.metricValue;
+        });
+
+      /*
+       * Skip the table when no row carries any identity label
+       * (cluster-wide series) — it would add nothing.
+       */
+      const hasIdentity: boolean = sortedResources.some(
+        (r: ProxmoxAffectedResource) => {
+          return r.resourceId || r.resourceName || r.nodeName;
+        },
+      );
+
+      if (sortedResources.length > 0 && hasIdentity) {
+        const resourcesToShow: Array<ProxmoxAffectedResource> =
+          sortedResources.slice(0, 10);
+
+        const resourceLines: Array<string> = [];
+        resourceLines.push(`| Resource | Type | Node | Value |`);
+        resourceLines.push(`| --- | --- | --- | --- |`);
+
+        for (const resource of resourcesToShow) {
+          let resourceCell: string = "-";
+          if (resource.resourceName && resource.resourceId) {
+            resourceCell = `\`${resource.resourceName}\` (\`${resource.resourceId}\`)`;
+          } else if (resource.resourceId) {
+            resourceCell = `\`${resource.resourceId}\``;
+          } else if (resource.resourceName) {
+            resourceCell = `\`${resource.resourceName}\``;
+          }
+
+          const typeCell: string =
+            resource.resourceType || resource.scope || "-";
+          const nodeCell: string = resource.nodeName
+            ? `\`${resource.nodeName}\``
+            : "-";
+
+          resourceLines.push(
+            `| ${resourceCell} | ${typeCell} | ${nodeCell} | **${resource.metricValue}** |`,
+          );
+        }
+
+        if (sortedResources.length > 10) {
+          resourceLines.push(
+            `\n*... and ${sortedResources.length - 10} more affected resources*`,
+          );
+        }
+
+        sections.push(
+          `\n\n**Affected Resources** (${sortedResources.length} total)\n\n${resourceLines.join("\n")}`,
+        );
+        renderedBreakdownTable = true;
+      }
+    }
+
+    // Metric results summary (fallback context when no table rendered)
+    if (
+      !renderedBreakdownTable &&
+      metricResponse.metricResult &&
+      metricResponse.metricResult.length > 0
+    ) {
       const resultDetails: Array<string> = [];
 
       for (const result of metricResponse.metricResult) {
@@ -1672,32 +1766,27 @@ ${contextBlock}
     const metricResponse: MetricMonitorResponse =
       input.dataToProcess as MetricMonitorResponse;
 
+    const breakdown: CephResourceBreakdown | undefined =
+      metricResponse.cephResourceBreakdown;
+
     const sections: Array<string> = [];
 
     // Ceph cluster context
     const cephMonitor: MonitorStepCephMonitor | undefined =
       input.monitorStep.data?.cephMonitor;
 
-    if (cephMonitor) {
+    if (cephMonitor || breakdown) {
       const clusterDetails: Array<string> = [];
       clusterDetails.push(
-        `- Cluster: ${cephMonitor.clusterIdentifier || "Unknown"}`,
+        `- Cluster: ${breakdown?.clusterName || cephMonitor?.clusterIdentifier || "Unknown"}`,
       );
 
-      if (cephMonitor.resourceFilters?.osdId) {
+      if (breakdown) {
         clusterDetails.push(
-          `- OSD Filter: ${cephMonitor.resourceFilters.osdId}`,
+          `- Metric: ${breakdown.metricFriendlyName} (\`${breakdown.metricName}\`)`,
         );
-      }
-
-      if (cephMonitor.resourceFilters?.poolName) {
-        clusterDetails.push(
-          `- Pool Filter: ${cephMonitor.resourceFilters.poolName}`,
-        );
-      }
-
-      // Add metric name from the query config
-      if (
+      } else if (
+        cephMonitor &&
         cephMonitor.metricViewConfig?.queryConfigs?.length > 0 &&
         cephMonitor.metricViewConfig.queryConfigs[0]
       ) {
@@ -1708,11 +1797,104 @@ ${contextBlock}
         }
       }
 
+      if (cephMonitor?.resourceFilters?.osdId) {
+        clusterDetails.push(
+          `- OSD Filter: ${cephMonitor.resourceFilters.osdId}`,
+        );
+      }
+
+      if (cephMonitor?.resourceFilters?.poolId) {
+        clusterDetails.push(
+          `- Pool ID Filter: ${cephMonitor.resourceFilters.poolId}`,
+        );
+      }
+
       sections.push(`**Ceph Cluster Details**\n${clusterDetails.join("\n")}`);
     }
 
-    // Metric results summary
-    if (metricResponse.metricResult && metricResponse.metricResult.length > 0) {
+    // Affected resources (Daemon / Pool / Host / Value)
+    let renderedBreakdownTable: boolean = false;
+
+    if (breakdown && breakdown.affectedResources.length > 0) {
+      /*
+       * K8s-parity render: drop zero-value rows, worst (highest)
+       * first, top 10. Note that for availability metrics
+       * (ceph_osd_up / ceph_osd_in / ceph_mon_quorum_status)
+       * zero-valued rows ARE the down resources — those still drive
+       * alerting through the per-series criteria evaluation; this
+       * table is supplementary context only.
+       */
+      const sortedResources: Array<CephAffectedResource> = [
+        ...breakdown.affectedResources,
+      ]
+        .filter((r: CephAffectedResource) => {
+          return r.metricValue > 0;
+        })
+        .sort((a: CephAffectedResource, b: CephAffectedResource) => {
+          return b.metricValue - a.metricValue;
+        });
+
+      /*
+       * Skip the table when no row carries any identity label
+       * (cluster-wide series like ceph_health_status) — it would add
+       * nothing.
+       */
+      const hasIdentity: boolean = sortedResources.some(
+        (r: CephAffectedResource) => {
+          return r.daemon || r.poolId || r.poolName || r.hostname;
+        },
+      );
+
+      if (sortedResources.length > 0 && hasIdentity) {
+        const resourcesToShow: Array<CephAffectedResource> =
+          sortedResources.slice(0, 10);
+
+        const resourceLines: Array<string> = [];
+        resourceLines.push(`| Daemon | Pool | Host | Value |`);
+        resourceLines.push(`| --- | --- | --- | --- |`);
+
+        for (const resource of resourcesToShow) {
+          const daemonCell: string = resource.daemon
+            ? `\`${resource.daemon}\``
+            : "-";
+
+          let poolCell: string = "-";
+          if (resource.poolName && resource.poolId) {
+            poolCell = `\`${resource.poolName}\` (\`${resource.poolId}\`)`;
+          } else if (resource.poolName) {
+            poolCell = `\`${resource.poolName}\``;
+          } else if (resource.poolId) {
+            poolCell = `\`${resource.poolId}\``;
+          }
+
+          const hostCell: string = resource.hostname
+            ? `\`${resource.hostname}\``
+            : "-";
+
+          resourceLines.push(
+            `| ${daemonCell} | ${poolCell} | ${hostCell} | **${resource.metricValue}** |`,
+          );
+        }
+
+        if (sortedResources.length > 10) {
+          resourceLines.push(
+            `\n*... and ${sortedResources.length - 10} more affected resources*`,
+          );
+        }
+
+        sections.push(
+          `\n\n**Affected Resources** (${sortedResources.length} total)\n\n${resourceLines.join("\n")}`,
+        );
+        renderedBreakdownTable = true;
+      }
+    }
+
+    // Metric results summary (fallback context when no table rendered)
+    if (
+      !renderedBreakdownTable &&
+      metricResponse.metricResult &&
+      metricResponse.metricResult.length > 0
+    ) {
       const resultDetails: Array<string> = [];
 
       for (const result of metricResponse.metricResult) {
