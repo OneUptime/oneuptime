@@ -67,6 +67,9 @@
     .feature-glow-cyan-wrapper::before { background: radial-gradient(ellipse at center, rgb(6 182 212 / 0.12) 0%, rgb(6 182 212 / 0.04) 40%, transparent 70%); }
     .feature-glow-cyan:hover { box-shadow: 0 0 0 2px rgb(6 182 212 / 0.3), 0 20px 40px -12px rgb(6 182 212 / 0.25); }
 
+    .feature-glow-red-wrapper::before { background: radial-gradient(ellipse at center, rgb(220 38 38 / 0.12) 0%, rgb(220 38 38 / 0.04) 40%, transparent 70%); }
+    .feature-glow-red:hover { box-shadow: 0 0 0 2px rgb(220 38 38 / 0.3), 0 20px 40px -12px rgb(220 38 38 / 0.25); }
+
     .feature-list-item {
         display: flex;
         align-items: flex-start;
@@ -255,7 +258,7 @@
                                     <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">HTTP, TCP, UDP, DNS, ICMP</span></li>
                                     <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Multi-step API monitoring</span></li>
                                     <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">User journey monitoring</span></li>
-                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Container, VM & Kubernetes</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Container, VM, Kubernetes, Proxmox & Ceph</span></li>
                                     <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">SSL certificate monitoring</span></li>
                                 </ul>
                                 <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
@@ -571,6 +574,75 @@
                                 </ul>
                                 <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
                                     <p class="text-xs text-cyan-600 font-medium">Replaces Lens, K9s</p>
+                                    <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                                </div>
+                            </a>
+                        </div>
+
+                        <!-- Proxmox - Orange -->
+                        <div class="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] flex-shrink-0 feature-card-wrapper feature-glow-orange-wrapper">
+                            <a href="/product/proxmox" class="feature-card feature-glow-orange group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-orange-300 h-full">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-orange-50 to-orange-100 ring-1 ring-orange-200">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6 text-orange-600">
+                                            <rect x="4" y="4" width="4.5" height="4.5" rx="0.5" stroke-linecap="round" stroke-linejoin="round"></rect>
+                                            <rect x="9.75" y="4" width="4.5" height="4.5" rx="0.5" stroke-linecap="round" stroke-linejoin="round"></rect>
+                                            <rect x="15.5" y="4" width="4.5" height="4.5" rx="0.5" stroke-linecap="round" stroke-linejoin="round"></rect>
+                                            <line x1="6.25" y1="8.5" x2="6.25" y2="14.5" stroke-linecap="round"></line>
+                                            <line x1="12" y1="8.5" x2="12" y2="14.5" stroke-linecap="round"></line>
+                                            <line x1="17.75" y1="8.5" x2="17.75" y2="14.5" stroke-linecap="round"></line>
+                                            <rect x="3" y="14.5" width="18" height="5.5" rx="1" stroke-linecap="round" stroke-linejoin="round"></rect>
+                                            <circle cx="6" cy="17.25" r="0.6" fill="currentColor"></circle>
+                                            <line x1="9" y1="17.25" x2="18" y2="17.25" stroke-linecap="round"></line>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <h3 class="text-lg font-semibold text-gray-900">Proxmox</h3>
+                                    <p class="mt-2 text-sm text-gray-600 leading-relaxed">Monitor Proxmox VE clusters with one agent: nodes, VMs, storage, backups, and replication.</p>
+                                </div>
+                                <ul class="mt-5 space-y-3 flex-1">
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Node, VM & LXC health</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Backup coverage gaps</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Replication failure alerts</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Quorum & HA state alerts</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Storage usage & growth</span></li>
+                                </ul>
+                                <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                                    <p class="text-xs text-orange-600 font-medium">Replaces Datadog, Zabbix</p>
+                                    <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                                </div>
+                            </a>
+                        </div>
+
+                        <!-- Ceph - Red -->
+                        <div class="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] flex-shrink-0 feature-card-wrapper feature-glow-red-wrapper">
+                            <a href="/product/ceph" class="feature-card feature-glow-red group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-red-300 h-full">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-red-50 to-red-100 ring-1 ring-red-200">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6 text-red-600">
+                                            <polygon stroke-linecap="round" stroke-linejoin="round" points="7.6,3.6 11.24,5.7 11.24,9.9 7.6,12 3.96,9.9 3.96,5.7"></polygon>
+                                            <polygon stroke-linecap="round" stroke-linejoin="round" points="16.4,3.6 20.04,5.7 20.04,9.9 16.4,12 12.76,9.9 12.76,5.7"></polygon>
+                                            <polygon stroke-linecap="round" stroke-linejoin="round" points="12,12 15.64,14.1 15.64,18.3 12,20.4 8.36,18.3 8.36,14.1"></polygon>
+                                            <circle cx="7.6" cy="7.8" r="0.8" fill="currentColor"></circle>
+                                            <circle cx="16.4" cy="7.8" r="0.8" fill="currentColor"></circle>
+                                            <circle cx="12" cy="16.2" r="0.8" fill="currentColor"></circle>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <h3 class="text-lg font-semibold text-gray-900">Ceph</h3>
+                                    <p class="mt-2 text-sm text-gray-600 leading-relaxed">Watch cluster health, OSDs, pools, and capacity without bolting Grafana onto the dashboard.</p>
+                                </div>
+                                <ul class="mt-5 space-y-3 flex-1">
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Health pill with reasons</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">OSD up/in & PG states</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Capacity growth forecasts</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Pool usage, IOPS & throughput</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Alerting with on-call built in</span></li>
+                                </ul>
+                                <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                                    <p class="text-xs text-red-600 font-medium">Replaces Grafana + ceph-mixin</p>
                                     <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                                 </div>
                             </a>

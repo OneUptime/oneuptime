@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generic hypervisor glyph (VM tiles on a server base). Not the official Proxmox logo — Proxmox is a trademark of Proxmox Server Solutions GmbH. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="1.5">
+  <rect x="4" y="4" width="4.5" height="4.5" rx="0.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="9.75" y="4" width="4.5" height="4.5" rx="0.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="15.5" y="4" width="4.5" height="4.5" rx="0.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="6.25" y1="8.5" x2="6.25" y2="14.5" stroke-linecap="round"/>
+  <line x1="12" y1="8.5" x2="12" y2="14.5" stroke-linecap="round"/>
+  <line x1="17.75" y1="8.5" x2="17.75" y2="14.5" stroke-linecap="round"/>
+  <rect x="3" y="14.5" width="18" height="5.5" rx="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="6" cy="17.25" r="0.6" fill="#ea580c"/>
+  <line x1="9" y1="17.25" x2="18" y2="17.25" stroke-linecap="round"/>
+</svg>

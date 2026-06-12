@@ -2894,6 +2894,90 @@ const Icon: FunctionComponent<ComponentProps> = ({
         />
       </>,
     );
+  } else if (icon === IconProp.Proxmox) {
+    /*
+     * Generic hypervisor glyph — VM tiles running on a server base.
+     * Intentionally NOT the official Proxmox logo (trademark of Proxmox
+     * Server Solutions GmbH); follows the hand-drawn-generic convention
+     * used for Kubernetes/Docker above.
+     */
+    return getSvgWrapper(
+      <>
+        {/* Virtual machine tiles */}
+        <rect
+          x="4"
+          y="4"
+          width="4.5"
+          height="4.5"
+          rx="0.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <rect
+          x="9.75"
+          y="4"
+          width="4.5"
+          height="4.5"
+          rx="0.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <rect
+          x="15.5"
+          y="4"
+          width="4.5"
+          height="4.5"
+          rx="0.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {/* Connectors from VMs down to the hypervisor */}
+        <line x1="6.25" y1="8.5" x2="6.25" y2="14.5" strokeLinecap="round" />
+        <line x1="12" y1="8.5" x2="12" y2="14.5" strokeLinecap="round" />
+        <line x1="17.75" y1="8.5" x2="17.75" y2="14.5" strokeLinecap="round" />
+        {/* Hypervisor / server base */}
+        <rect
+          x="3"
+          y="14.5"
+          width="18"
+          height="5.5"
+          rx="1"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle cx="6" cy="17.25" r="0.6" fill="currentColor" />
+        <line x1="9" y1="17.25" x2="18" y2="17.25" strokeLinecap="round" />
+      </>,
+    );
+  } else if (icon === IconProp.Ceph) {
+    /*
+     * Generic hexagon-cluster glyph — honeycomb of storage nodes.
+     * Intentionally NOT the official Ceph logo (trademark of the Ceph
+     * Foundation); follows the hand-drawn-generic convention used for
+     * Kubernetes/Docker above.
+     */
+    return getSvgWrapper(
+      <>
+        <polygon
+          points="7.6,3.6 11.24,5.7 11.24,9.9 7.6,12 3.96,9.9 3.96,5.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <polygon
+          points="16.4,3.6 20.04,5.7 20.04,9.9 16.4,12 12.76,9.9 12.76,5.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <polygon
+          points="12,12 15.64,14.1 15.64,18.3 12,20.4 8.36,18.3 8.36,14.1"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle cx="7.6" cy="7.8" r="0.8" fill="currentColor" />
+        <circle cx="16.4" cy="7.8" r="0.8" fill="currentColor" />
+        <circle cx="12" cy="16.2" r="0.8" fill="currentColor" />
+      </>,
+    );
   } else if (icon === IconProp.Gauge) {
     // Gauge/speedometer icon — semicircular meter with needle
     return getSvgWrapper(
