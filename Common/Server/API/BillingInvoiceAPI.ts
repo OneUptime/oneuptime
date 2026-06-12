@@ -41,7 +41,9 @@ export default class UserAPI extends BaseAPI<
           }
 
           if (req.body["projectId"]) {
-            throw new BadDataException("projectId is required in request body");
+            throw new BadDataException(
+              "projectId should not be passed in the request body. The project is resolved from the tenantid header.",
+            );
           }
 
           const userPermissions: Array<UserPermission> = (
@@ -129,6 +131,12 @@ export default class UserAPI extends BaseAPI<
               },
               props: {
                 isRoot: true,
+                /*
+                 * skip onBeforeFind: it requires props.tenantId and would
+                 * re-sync all invoices from Stripe on every pay attempt.
+                 * The query above is already scoped to the project.
+                 */
+                ignoreHooks: true,
               },
             });
 

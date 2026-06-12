@@ -40,24 +40,34 @@ automáticamente.
 
 El corte es **solo hacia adelante**: las nuevas tablas empiezan vacías, toda la telemetría
 ingerida después de la actualización aterriza en ellas de inmediato, y el historial se va
-completando de forma natural con el paso del tiempo. Las tablas antiguas se conservan y se
-eliminan gradualmente por sí solas mediante su TTL de retención.
+completando de forma natural con el paso del tiempo. Las tablas antiguas se **eliminan
+automáticamente** durante la actualización para recuperar su disco — si quieres
+conservar la opción de trasladar el historial, renómbralas **antes** de
+actualizar (Paso 0 más abajo).
+
+> **¿Ya estás en 11.0.0 u 11.0.1?** Esas versiones conservaban las tablas antiguas
+> (se vaciaban mediante TTL y la copia podía ejecutarse "en cualquier momento
+> después de la actualización"). Cualquier actualización posterior **las elimina
+> al arrancar**. Si todavía quieres la copia del historial y aún no la has hecho,
+> ejecuta el Paso 0 más abajo antes de aplicar la actualización.
 
 ### Quién debe hacer algo
 
 - **Instalaciones nuevas:** nada que hacer.
 - **Actualizaciones que no necesitan ver en la interfaz la telemetría previa a la actualización:** nada que
   hacer. Las páginas de telemetría simplemente muestran datos desde el momento de la actualización en adelante;
-  los datos más antiguos caducan en las tablas antiguas sin verse.
-- **Actualizaciones que quieren tener visible la telemetría previa a la actualización:** ejecuta la copia
-  manual descrita más abajo, en cualquier momento después de actualizar.
+  las tablas antiguas se eliminan durante la actualización.
+- **Actualizaciones que quieren tener visible la telemetría previa a la actualización:** renombra las tablas
+  antiguas **antes** de la actualización (Paso 0 más abajo) y, después, ejecuta la copia
+  manual en cualquier momento posterior.
 
 Como siempre: actualiza las versiones principales paso a paso (10 → 11, sin saltarte ninguna),
 y realiza copias de seguridad de Postgres y ClickHouse antes de actualizar.
 
 ### Opcional: conservar el historial de telemetría
 
-Ejecuta estos pasos **después de que la actualización haya arrancado por completo** (las nuevas tablas y
+El Paso 0 se ejecuta **antes de la actualización**; todo lo demás, a partir del Paso 1, se
+ejecuta **después de que la actualización haya arrancado por completo** (las nuevas tablas y
 sus vistas materializadas deben existir). Conéctate directamente en tu host de ClickHouse
 — el protocolo nativo no tiene tiempos de espera HTTP, así que las sentencias de varias horas
 no suponen problema:

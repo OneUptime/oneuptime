@@ -29,7 +29,9 @@ Telemetriedaten (Logs, Traces, Metriken, Exceptions, Profile, Monitor-Logs, Audi
 
 In jeder Telemetrie-Tabelle werden zwei Spalten umbenannt: `serviceId` → `primaryEntityId` und `serviceType` → `primaryEntityType`. Dies ist eine harte Umbenennung – **wenn Sie die OneUptime-Analytics-API direkt mit `serviceId`-/`serviceType`-Filtern abfragen, stellen Sie diese auf die neuen Namen um.** Dashboards, Monitore und Alerts innerhalb von OneUptime werden automatisch migriert.
 
-Der Umstieg erfolgt **ausschließlich vorwärtsgerichtet**: Die neuen Tabellen starten leer, alle nach dem Upgrade eingelieferten Telemetriedaten landen sofort darin, und die Historie füllt sich mit der Zeit auf natürliche Weise wieder auf. Die alten Tabellen bleiben erhalten und löschen sich über ihre Aufbewahrungs-TTL schrittweise selbst.
+Der Umstieg erfolgt **ausschließlich vorwärtsgerichtet**: Die neuen Tabellen starten leer, alle nach dem Upgrade eingelieferten Telemetriedaten landen sofort darin, und die Historie füllt sich mit der Zeit auf natürliche Weise wieder auf. Die alten Tabellen werden während des Upgrades **automatisch gelöscht**, um ihren Speicherplatz freizugeben – wenn Sie sich die Möglichkeit offenhalten möchten, die Historie zu übernehmen, benennen Sie sie **vor** dem Upgrade um (Schritt 0 unten).
+
+> **Bereits auf 11.0.0 oder 11.0.1?** Diese Releases behielten die alten Tabellen bei (sie leerten sich über die TTL, und die Kopie konnte „jederzeit nach dem Upgrade" ausgeführt werden). Jedes spätere Update **löscht sie beim Start**. Wenn Sie die Historien-Kopie noch durchführen möchten und dies bisher nicht getan haben, führen Sie Schritt 0 unten aus, bevor Sie das Update einspielen.
 
 ### Wer handeln muss
 

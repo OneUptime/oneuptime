@@ -42,7 +42,15 @@ Dashboards, monitorer og alarmer inde i OneUptime migreres automatisk.
 Skiftet er **kun fremadrettet**: de nye tabeller starter tomme, al
 telemetri, der indtages efter opgraderingen, lander straks i dem, og
 historikken fyldes naturligt op igen, efterhånden som tiden går. De gamle
-tabeller beholdes og sletter gradvist sig selv via deres retentions-TTL.
+tabeller **droppes automatisk** under opgraderingen for at frigive deres
+diskplads — hvis du vil have muligheden for at tage historikken med
+videre, skal du omdøbe dem **inden** opgraderingen (trin 0 nedenfor).
+
+> **Allerede på 11.0.0 eller 11.0.1?** Disse udgivelser beholdt de gamle
+> tabeller (de tømtes via TTL, og kopieringen kunne køres "når som helst
+> efter opgraderingen"). Enhver senere opdatering **dropper dem ved
+> opstart**. Hvis du stadig ønsker historikkopien og endnu ikke har lavet
+> den, så kør trin 0 nedenfor, inden du anvender opdateringen.
 
 ### Hvem skal foretage sig noget
 

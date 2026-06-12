@@ -45,6 +45,12 @@ automatically** during the upgrade to reclaim their disk — if you want
 the option of carrying history forward, rename them **before**
 upgrading (Step 0 below).
 
+> **Already on 11.0.0 or 11.0.1?** Those releases kept the old tables
+> (they drained via TTL, and the copy could be run "any time after the
+> upgrade"). Any later update **drops them at boot**. If you still want
+> the history copy and have not done it yet, run Step 0 below before
+> applying the update.
+
 ### Who needs to do anything
 
 - **Fresh installations:** nothing to do.
@@ -90,24 +96,30 @@ Good to know before starting:
 The upgrade drops the old tables at boot, so move the ones you want to
 copy from out of its reach first. Stop OneUptime (scale the deployment
 down) so nothing is writing to or able to recreate them, then rename —
-`RENAME TABLE` is an instant metadata operation:
+`RENAME TABLE` is an instant metadata operation, and `IF EXISTS` lets
+the batch skip tables your installation never had (deployments older
+than mid-10.0.x may lack `AuditLogV1` or some `…V2` tables entirely —
+there is no history of that type to copy):
 
 ```sql
-RENAME TABLE LogItemV2 TO LogItemV2_backup;
-RENAME TABLE MetricItemV2 TO MetricItemV2_backup;
-RENAME TABLE SpanItemV2 TO SpanItemV2_backup;
-RENAME TABLE ExceptionItemV2 TO ExceptionItemV2_backup;
-RENAME TABLE ProfileItemV2 TO ProfileItemV2_backup;
-RENAME TABLE ProfileSampleItemV2 TO ProfileSampleItemV2_backup;
-RENAME TABLE MonitorLogV2 TO MonitorLogV2_backup;
-RENAME TABLE AuditLogV1 TO AuditLogV1_backup;
-RENAME TABLE MetricItemAggMV1mByHost TO MetricItemAggMV1mByHost_backup;
+RENAME TABLE IF EXISTS LogItemV2 TO LogItemV2_backup;
+RENAME TABLE IF EXISTS MetricItemV2 TO MetricItemV2_backup;
+RENAME TABLE IF EXISTS SpanItemV2 TO SpanItemV2_backup;
+RENAME TABLE IF EXISTS ExceptionItemV2 TO ExceptionItemV2_backup;
+RENAME TABLE IF EXISTS ProfileItemV2 TO ProfileItemV2_backup;
+RENAME TABLE IF EXISTS ProfileSampleItemV2 TO ProfileSampleItemV2_backup;
+RENAME TABLE IF EXISTS MonitorLogV2 TO MonitorLogV2_backup;
+RENAME TABLE IF EXISTS AuditLogV1 TO AuditLogV1_backup;
+RENAME TABLE IF EXISTS MetricItemAggMV1mByHost TO MetricItemAggMV1mByHost_backup;
 ```
 
-Skip any table that does not exist on your installation (deployments
-older than mid-10.0.x may lack `AuditLogV1` or some `…V2` tables
-entirely — there is no history of that type to copy). Then upgrade and
-let OneUptime boot fully before continuing.
+Then upgrade and let OneUptime boot fully before continuing.
+
+> If you roll back to v10 after renaming (v10 recreates empty old-name
+> tables at boot), rename the `_backup` tables back to their original
+> names before restarting v10 — otherwise telemetry ingested during the
+> rollback lands in the recreated tables and is dropped at the eventual
+> upgrade.
 
 #### Step 1 — list the source partitions
 
@@ -161,8 +173,8 @@ Step 1. Run the statements one at a time, then repeat Steps 1–3 for each
 table pair.
 
 > Note: if a source table was skipped in Step 0 because it did not exist
-> on your installation, the generator returns an empty/NULL result for
-> that pair — simply skip it; there is no history of that type to copy.
+> on your installation, Step 1 fails with `UNKNOWN_TABLE` for that pair —
+> simply skip the pair; there is no history of that type to copy.
 
 If a statement fails partway, re-run the **same** statement promptly —
 already-committed blocks deduplicate. If re-running much later, compare

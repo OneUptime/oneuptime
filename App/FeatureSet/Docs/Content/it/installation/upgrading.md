@@ -43,8 +43,17 @@ vengono migrati automaticamente.
 Il passaggio è **solo in avanti (forward-only)**: le nuove tabelle partono
 vuote, tutta la telemetria ingerita dopo l'aggiornamento vi confluisce
 immediatamente e lo storico si ricostruisce naturalmente col passare del
-tempo. Le vecchie tabelle vengono mantenute e si svuotano gradualmente
-tramite il loro TTL di retention.
+tempo. Le vecchie tabelle vengono **eliminate automaticamente** durante
+l'aggiornamento per recuperarne lo spazio su disco — se vuoi conservare la
+possibilità di riportare in avanti lo storico, rinominale **prima** di
+aggiornare (Passo 0 più sotto).
+
+> **Sei già su 11.0.0 o 11.0.1?** Quelle release mantenevano le vecchie
+> tabelle (si svuotavano tramite TTL e la copia poteva essere eseguita
+> "in qualsiasi momento dopo l'aggiornamento"). Qualsiasi aggiornamento
+> successivo **le elimina all'avvio**. Se vuoi ancora la copia dello
+> storico e non l'hai ancora eseguita, esegui il Passo 0 più sotto prima
+> di applicare l'aggiornamento.
 
 ### Chi deve intervenire
 
@@ -52,11 +61,11 @@ tramite il loro TTL di retention.
 - **Aggiornamenti che non hanno bisogno della telemetria precedente
   all'aggiornamento nell'interfaccia:** nulla da fare. Le pagine di
   telemetria mostrano semplicemente i dati dal momento dell'aggiornamento
-  in poi; i dati più vecchi scadono nelle vecchie tabelle senza essere
-  visualizzati.
+  in poi; le vecchie tabelle vengono eliminate durante l'aggiornamento.
 - **Aggiornamenti che vogliono rendere visibile la telemetria precedente
-  all'aggiornamento:** esegui la copia manuale descritta di seguito, in
-  qualsiasi momento dopo l'aggiornamento.
+  all'aggiornamento:** rinomina le vecchie tabelle **prima**
+  dell'aggiornamento (Passo 0 più sotto), poi esegui la copia manuale in
+  qualsiasi momento dopo di esso.
 
 Come sempre: aggiorna le versioni principali passo dopo passo (10 → 11,
 senza saltare) ed esegui i backup di Postgres e ClickHouse prima di

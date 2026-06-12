@@ -42,8 +42,17 @@ sein de OneUptime sont migrés automatiquement.
 La bascule est **uniquement vers l'avant** : les nouvelles tables démarrent
 vides, toute la télémétrie ingérée après la mise à niveau y atterrit
 immédiatement, et l'historique se reconstitue naturellement au fil du temps.
-Les anciennes tables sont conservées et se vident progressivement d'elles-mêmes
-via leur TTL de rétention.
+Les anciennes tables sont **supprimées automatiquement** pendant la mise à
+niveau afin de récupérer leur espace disque — si vous voulez garder la
+possibilité de conserver l'historique, renommez-les **avant** la mise à
+niveau (étape 0 ci-dessous).
+
+> **Déjà en 11.0.0 ou 11.0.1 ?** Ces versions conservaient les anciennes
+> tables (elles se vidaient via le TTL, et la copie pouvait être exécutée
+> « à n'importe quel moment après la mise à niveau »). Toute mise à jour
+> ultérieure **les supprime au démarrage**. Si vous souhaitez encore copier
+> l'historique et ne l'avez pas encore fait, exécutez l'étape 0 ci-dessous
+> avant d'appliquer la mise à jour.
 
 ### Qui doit agir
 
@@ -51,10 +60,11 @@ via leur TTL de rétention.
 - **Mises à niveau qui n'ont pas besoin de la télémétrie antérieure à la mise
   à niveau dans l'interface :** rien à faire. Les pages de télémétrie
   affichent simplement les données à partir du moment de la mise à niveau ;
-  les données plus anciennes expirent dans les anciennes tables sans être vues.
+  les anciennes tables sont supprimées pendant la mise à niveau.
 - **Mises à niveau qui souhaitent rendre visible la télémétrie antérieure à la
-  mise à niveau :** exécutez la copie manuelle ci-dessous, à n'importe quel
-  moment après la mise à niveau.
+  mise à niveau :** renommez les anciennes tables **avant** la mise à niveau
+  (étape 0 ci-dessous), puis exécutez la copie manuelle à n'importe quel
+  moment après celle-ci.
 
 Comme toujours : mettez à niveau les versions majeures étape par étape
 (10 → 11, sans sauter de version) et effectuez des sauvegardes de Postgres et
@@ -62,7 +72,8 @@ de ClickHouse avant la mise à niveau.
 
 ### Optionnel : conserver l'historique de télémétrie
 
-Exécutez ces requêtes **après le démarrage complet de la mise à niveau** (les
+L'étape 0 s'exécute **avant la mise à niveau** ; tout ce qui suit à partir de
+l'étape 1 s'exécute **après le démarrage complet de la mise à niveau** (les
 nouvelles tables et leurs vues matérialisées doivent exister). Connectez-vous
 directement sur votre hôte ClickHouse — le protocole natif n'a pas de délais
 d'expiration HTTP, donc des instructions de plusieurs heures ne posent aucun
@@ -90,12 +101,44 @@ Bon à savoir avant de commencer :
   matérialisées d'agrégation) — cela rend la copie des métriques plus lente
   que les autres ; exécutez-la en dernier.
 
+#### Étape 0 — avant la mise à niveau, renommer les anciennes tables
+
+La mise à niveau supprime les anciennes tables au démarrage ; mettez donc
+d'abord hors de sa portée celles depuis lesquelles vous voulez copier.
+Arrêtez OneUptime (réduisez le déploiement à zéro) afin que rien n'y écrive
+ni ne puisse les recréer, puis renommez-les — `RENAME TABLE` est une
+opération de métadonnées instantanée, et `IF EXISTS` permet au lot d'ignorer
+les tables que votre installation n'a jamais eues (les déploiements
+antérieurs à la mi-10.0.x peuvent ne pas avoir `AuditLogV1` ou certaines
+tables `…V2` du tout — il n'y a alors pas d'historique de ce type à copier) :
+
+```sql
+RENAME TABLE IF EXISTS LogItemV2 TO LogItemV2_backup;
+RENAME TABLE IF EXISTS MetricItemV2 TO MetricItemV2_backup;
+RENAME TABLE IF EXISTS SpanItemV2 TO SpanItemV2_backup;
+RENAME TABLE IF EXISTS ExceptionItemV2 TO ExceptionItemV2_backup;
+RENAME TABLE IF EXISTS ProfileItemV2 TO ProfileItemV2_backup;
+RENAME TABLE IF EXISTS ProfileSampleItemV2 TO ProfileSampleItemV2_backup;
+RENAME TABLE IF EXISTS MonitorLogV2 TO MonitorLogV2_backup;
+RENAME TABLE IF EXISTS AuditLogV1 TO AuditLogV1_backup;
+RENAME TABLE IF EXISTS MetricItemAggMV1mByHost TO MetricItemAggMV1mByHost_backup;
+```
+
+Ensuite, mettez à niveau et laissez OneUptime démarrer complètement avant de
+continuer.
+
+> Si vous revenez à la v10 après le renommage (la v10 recrée au démarrage des
+> tables vides portant les anciens noms), renommez les tables `_backup` vers
+> leurs noms d'origine avant de redémarrer la v10 — sinon la télémétrie
+> ingérée pendant le retour en arrière atterrit dans les tables recréées et
+> sera supprimée lors de la mise à niveau finale.
+
 #### Étape 1 — lister les partitions sources
 
 Chaque ancienne table compte au plus 16 partitions. Pour chaque table source :
 
 ```sql
-SELECT DISTINCT _partition_id FROM LogItemV2 ORDER BY _partition_id;
+SELECT DISTINCT _partition_id FROM LogItemV2_backup ORDER BY _partition_id;
 ```
 
 #### Étape 2 — générer l'instruction de copie
