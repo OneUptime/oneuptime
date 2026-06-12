@@ -6,7 +6,12 @@
 # hostPath volumes, no host access) and forwards them to OneUptime via OTLP.
 #
 
-FROM public.ecr.aws/docker/library/node:24.9-slim
+FROM public.ecr.aws/docker/library/node:24-slim
+
+# Upgrade the bundled npm CLI so its vendored deps (tar, glob, minimatch,
+# brace-expansion, diff, ip-address, picomatch, ...) pick up security fixes
+# that the base image's npm still carries.
+RUN npm install -g npm@latest
 
 # Per-build args (GIT_SHA / APP_VERSION / IS_ENTERPRISE_EDITION) are declared at
 # the bottom so the npm ci / compile layers stay cacheable across commits and
@@ -24,6 +29,7 @@ LABEL org.opencontainers.image.licenses="Apache-2.0"
 ## Add intermediate CA certs
 COPY ./SslCertificates /usr/local/share/ca-certificates
 RUN apt-get update \
+    && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends ca-certificates tini \
     && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/*

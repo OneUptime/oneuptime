@@ -14,6 +14,11 @@ RUN npm config set fetch-retry-maxtimeout 60000
 # /Common/node_modules/esbuild/bin/esbuild). See esbuild#1711, #2785.
 RUN npm config set foreground-scripts true
 
+# Upgrade the bundled npm CLI so its vendored deps (tar, glob, minimatch,
+# brace-expansion, diff, ip-address, picomatch, ...) pick up security fixes
+# that the base image's npm still carries.
+RUN npm install -g npm@latest
+
 # Per-build args (GIT_SHA / APP_VERSION) are declared at the bottom so the npm ci
 # layers stay cacheable across commits.
 ENV NODE_OPTIONS="--use-openssl-ca"
@@ -30,9 +35,11 @@ COPY ./SslCertificates /usr/local/share/ca-certificates
 RUN update-ca-certificates
 
 
-# bash + tini for process control; python3/make/g++ to compile `isolated-vm`
-# (the sandbox used to run JavaScript runbook steps).
+# Upgrade OS packages (Debian security fixes published since the base image
+# was built), then install bash + tini for process control and python3/make/g++
+# to compile `isolated-vm` (the sandbox used to run JavaScript runbook steps).
 RUN apt-get update \
+  && apt-get upgrade -y \
   && apt-get install -y bash curl tini python3 make g++ \
   && rm -rf /var/lib/apt/lists/*
 

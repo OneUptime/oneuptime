@@ -1,8 +1,8 @@
-FROM otel/opentelemetry-collector-contrib:0.118.0
+FROM otel/opentelemetry-collector-contrib:0.154.0
 
 
 
-FROM public.ecr.aws/ubuntu/ubuntu:25.04
+FROM public.ecr.aws/ubuntu/ubuntu:26.04
 
 # Per-build args (GIT_SHA / APP_VERSION / IS_ENTERPRISE_EDITION) are declared at
 # the bottom so the apt-get / gomplate-download layers stay cacheable across the
@@ -16,10 +16,14 @@ LABEL org.opencontainers.image.documentation="https://oneuptime.com/docs"
 LABEL org.opencontainers.image.vendor="OneUptime"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
 
-ENV COLLECTOR_VERSION=0.104.0
+ENV COLLECTOR_VERSION=0.154.0
 
-# Get the architecture
-RUN apt-get update && apt-get install -y curl bash wget
+# Upgrade OS packages (Ubuntu security fixes published since the base image
+# was built) and install the tools needed below. apt lists are removed in the
+# same RUN so package metadata doesn't persist in the layer.
+RUN apt-get update && apt-get upgrade -y \
+    && apt-get install -y curl bash wget \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install gomplate
 RUN /bin/bash -c 'set -ex && \

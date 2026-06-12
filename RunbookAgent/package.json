@@ -28,7 +28,7 @@
     "@types/jest": "^27.5.2",
     "@types/node": "^17.0.31",
     "jest": "^28.1.0",
-    "nodemon": "^2.0.20",
+    "nodemon": "^3.1.14",
     "ts-jest": "^28.0.2",
     "typescript": "5.3.3"
   }

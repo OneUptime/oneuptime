@@ -1,4 +1,4 @@
-FROM nginx:1.29.5-alpine 
+FROM nginx:1.30.2-alpine
 
 
 # Per-build args (GIT_SHA / APP_VERSION / IS_ENTERPRISE_EDITION) are declared at
@@ -16,22 +16,24 @@ LABEL org.opencontainers.image.licenses="Apache-2.0"
 
 
 
-# Install bash. 
-RUN apk add bash && apk add curl && apk add openssl
+# Upgrade OS packages (Alpine security fixes published since the base image
+# was built), then install runtime tools (bash, curl, openssl), the NJS
+# module, and nodejs/npm in a single --no-cache layer so the apk index data
+# doesn't persist in the image.
+RUN apk upgrade --no-cache \
+    && apk add --no-cache bash curl openssl nginx-module-njs nodejs npm
 
-# Install NJS module
-RUN apk add nginx-module-njs
+# Upgrade the bundled npm CLI so its vendored deps (tar, glob, minimatch,
+# brace-expansion, picomatch, ...) pick up security fixes that the apk npm
+# package still carries.
+RUN npm install -g npm@latest
 
 COPY ./Nginx/envsubst-on-templates.sh /etc/nginx/envsubst-on-templates.sh
 
 RUN chmod +x /etc/nginx/envsubst-on-templates.sh
 
-COPY ./Nginx/default.conf.template /etc/nginx/templates/default.conf.template 
+COPY ./Nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY ./Nginx/nginx.conf /etc/nginx/nginx.conf
-
-# Now install nodejs
-
-RUN apk add nodejs npm
 
 # Serialize npm lifecycle scripts so esbuild's postinstall doesn't race against
 # concurrent package extractions on BuildKit's overlayfs (ETXTBSY on

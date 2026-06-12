@@ -8,14 +8,16 @@ import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { registerInstrumentations } from "@opentelemetry/instrumentation";
 import { FetchInstrumentation } from "@opentelemetry/instrumentation-fetch";
 import { XMLHttpRequestInstrumentation } from "@opentelemetry/instrumentation-xml-http-request";
-import { Resource } from "@opentelemetry/resources";
+import { resourceFromAttributes } from "@opentelemetry/resources";
 import {
   BatchSpanProcessor,
   TracerConfig,
   WebTracerProvider,
 } from "@opentelemetry/sdk-trace-web";
-import type { SpanExporter } from "@opentelemetry/sdk-trace-base";
-import type { SpanExporter as WebSpanExporter } from "@opentelemetry/sdk-trace-web/node_modules/@opentelemetry/sdk-trace-base/build/src/export/SpanExporter";
+import type {
+  SpanExporter,
+  SpanProcessor,
+} from "@opentelemetry/sdk-trace-base";
 import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 import URL from "../../../Types/API/URL";
 
@@ -87,14 +89,6 @@ export default class Telemetry {
       Object.keys(OpenTelemetryExporterOtlpHeaders).length > 0;
 
     if (OpenTelemetryExporterOtlpEndpoint && hasHeaders) {
-      const providerConfig: TracerConfig = {
-        resource: new Resource({
-          [ATTR_SERVICE_NAME]: data.serviceName,
-        }),
-      };
-
-      const provider: WebTracerProvider = new WebTracerProvider(providerConfig);
-
       const traceExporter: SpanExporter = new OTLPTraceExporter({
         url: URL.fromString(
           OpenTelemetryExporterOtlpEndpoint?.toString() + "/v1/traces",
@@ -102,17 +96,18 @@ export default class Telemetry {
         headers: OpenTelemetryExporterOtlpHeaders,
       }) as unknown as SpanExporter;
 
-      const webTraceExporter: WebSpanExporter =
-        traceExporter as unknown as WebSpanExporter;
+      const providerConfig: TracerConfig = {
+        resource: resourceFromAttributes({
+          [ATTR_SERVICE_NAME]: data.serviceName,
+        }),
+        // Stamp global RUM attributes (userId, projectId, ...) onto every span.
+        spanProcessors: [
+          new BatchSpanProcessor(traceExporter),
+          new GlobalAttributeSpanProcessor() as unknown as SpanProcessor,
+        ],
+      };
 
-      provider.addSpanProcessor(new BatchSpanProcessor(webTraceExporter));
-
-      // Stamp global RUM attributes (userId, projectId, ...) onto every span.
-      provider.addSpanProcessor(
-        new GlobalAttributeSpanProcessor() as unknown as Parameters<
-          WebTracerProvider["addSpanProcessor"]
-        >[0],
-      );
+      const provider: WebTracerProvider = new WebTracerProvider(providerConfig);
 
       provider.register({
         contextManager: new ZoneContextManager(),

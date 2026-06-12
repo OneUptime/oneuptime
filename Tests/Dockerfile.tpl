@@ -1,14 +1,20 @@
-FROM public.ecr.aws/docker/library/node:24.9-alpine3.21
+FROM public.ecr.aws/docker/library/node:24-alpine3.24
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
 
 RUN npm config set fetch-retries 5
 RUN npm config set fetch-retry-mintimeout 20000
 RUN npm config set fetch-retry-maxtimeout 60000
 
+# Upgrade the bundled npm CLI so its vendored deps (tar, glob, minimatch,
+# brace-expansion, diff, ip-address, picomatch, ...) pick up security fixes
+# that the base image's npm still carries.
+RUN npm install -g npm@latest
 
-# Install runtime tools in a single layer with --no-cache so the apk index
-# data doesn't persist in the image.
-RUN apk add --no-cache bash curl
+
+# Upgrade OS packages (Alpine security fixes published since the base image
+# was built) and install runtime tools in a single layer with --no-cache so
+# the apk index data doesn't persist in the image.
+RUN apk upgrade --no-cache && apk add --no-cache bash curl
 
 
 # Per-build args (GIT_SHA / APP_VERSION / IS_ENTERPRISE_EDITION) are declared at

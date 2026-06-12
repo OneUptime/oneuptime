@@ -18,6 +18,11 @@ RUN npm config set fetch-retry-maxtimeout 60000
 # /Common/node_modules/esbuild/bin/esbuild). See esbuild#1711, #2785.
 RUN npm config set foreground-scripts true
 
+# Upgrade the bundled npm CLI so its vendored deps (tar, glob, minimatch,
+# brace-expansion, diff, ip-address, picomatch, ...) pick up security fixes
+# that the base image's npm still carries.
+RUN npm install -g npm@latest
+
 
 # Per-build args (GIT_SHA / APP_VERSION / IS_ENTERPRISE_EDITION) are declared at
 # the bottom so the npm ci / compile layers stay cacheable across commits and
@@ -32,13 +37,15 @@ LABEL org.opencontainers.image.vendor="OneUptime"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
 
 
-# Install OS packages in a single layer:
+# Upgrade OS packages (Debian security fixes published since the base image
+# was built) and install OS packages in a single layer:
 #   - Runtime tools: bash, curl
 #   - Build toolchain: python3, make, g++ (removed later, after npm install)
 #   - Playwright/Chromium system libs
 # `--no-install-recommends` keeps the surface small. apt cache is cleaned in
 # the same RUN so package metadata doesn't persist in the layer.
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends \
         bash \
         curl \
         python3 \

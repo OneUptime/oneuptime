@@ -4,12 +4,22 @@
 #
 
 # Pull base image nodejs image.
-FROM public.ecr.aws/docker/library/node:24.9
+# Floating on the 24.x patch + slim so each rebuild picks up the latest Node
+# and Debian security patches without manual bumps. Lockfiles still keep JS
+# deps reproducible. The slim variant drops the full image's preinstalled
+# toolchain (and its hundreds of OS-package CVEs); everything the probe needs
+# is installed explicitly below.
+FROM public.ecr.aws/docker/library/node:24-slim
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
 
 RUN npm config set fetch-retries 5
 RUN npm config set fetch-retry-mintimeout 20000
 RUN npm config set fetch-retry-maxtimeout 60000
+
+# Upgrade the bundled npm CLI so its vendored deps (tar, glob, minimatch,
+# brace-expansion, diff, ip-address, picomatch, ...) pick up security fixes
+# that the base image's npm still carries.
+RUN npm install -g npm@latest
 
 
 ARG GIT_SHA
@@ -33,34 +43,38 @@ LABEL org.opencontainers.image.licenses="Apache-2.0"
 LABEL org.opencontainers.image.revision="${GIT_SHA}"
 LABEL org.opencontainers.image.version="${APP_VERSION}"
 
-## Add Intermediate Certs 
+## Add Intermediate Certs
 COPY ./SslCertificates /usr/local/share/ca-certificates
-RUN update-ca-certificates
 
 
 # IF APP_VERSION is not set, set it to 1.0.0
 RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=1.0.0; fi
 
 
-RUN apt-get update
-
-# Install bash. 
-RUN apt-get install bash -y && apt-get install curl -y && apt-get install iputils-ping -y
-
-# Install tini - a tiny init for containers to properly reap zombie processes
-RUN apt-get install -y tini
-
-# Install python
-RUN apt-get update && apt-get install -y .gyp python3 make g++
-
-# Install playwright dependencies
-RUN apt-get install -y libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libgtk-3-0 libpango-1.0-0 libcairo2 libgdk-pixbuf2.0-0 libasound2 libatspi2.0-0
+# Upgrade OS packages and install everything the probe needs in one layer:
+#   - Runtime tools: bash, curl, iputils-ping, net-tools, dnsutils (dig is
+#     used in DNSSEC validation)
+#   - tini: a tiny init for containers to properly reap zombie processes
+#   - ca-certificates: required by update-ca-certificates (intermediate certs
+#     copied above)
+#   - Build toolchain: python3, make, g++ (node-gyp / native npm modules)
+#   - Playwright/Chromium system libraries
+# apt lists are removed in the same RUN so package metadata doesn't persist
+# in the layer.
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends \
+        bash curl iputils-ping net-tools dnsutils tini ca-certificates \
+        python3 make g++ \
+        libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+        libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+        libgbm1 libgtk-3-0 libpango-1.0-0 libcairo2 libgdk-pixbuf2.0-0 \
+        libasound2 libatspi2.0-0 \
+    && update-ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
-
-# Install iputils and dnsutils (for dig, used in DNSSEC validation)
-RUN apt-get install net-tools dnsutils -y
 
 RUN mkdir -p /usr/src
 
@@ -90,7 +104,12 @@ RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 
 # Install browsers to a fixed path accessible by any runtime user (root or non-root)
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright-browsers
-RUN npx playwright install --with-deps && chmod -R 755 /ms-playwright-browsers
+# `--with-deps` apt-installs any remaining browser dependencies (fonts, webkit
+# libs, ...), so refresh the apt lists first and drop them again afterwards.
+RUN apt-get update \
+    && npx playwright install --with-deps \
+    && rm -rf /var/lib/apt/lists/* \
+    && chmod -R 755 /ms-playwright-browsers
 
 # Use tini as init to properly reap zombie processes (like Chrome/Chromium)
 ENTRYPOINT ["/usr/bin/tini", "--"]

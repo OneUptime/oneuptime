@@ -3,7 +3,7 @@
 #
 
 # Pull base image nodejs image.
-FROM public.ecr.aws/docker/library/node:24.9-alpine3.21
+FROM public.ecr.aws/docker/library/node:24-alpine3.24
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
 
 RUN npm config set fetch-retries 5
@@ -13,6 +13,11 @@ RUN npm config set fetch-retry-maxtimeout 60000
 # concurrent package extractions on BuildKit's overlayfs (ETXTBSY on
 # /Common/node_modules/esbuild/bin/esbuild). See esbuild#1711, #2785.
 RUN npm config set foreground-scripts true
+
+# Upgrade the bundled npm CLI so its vendored deps (tar, glob, minimatch,
+# brace-expansion, diff, ip-address, picomatch, ...) pick up security fixes
+# that the base image's npm still carries.
+RUN npm install -g npm@latest
 
 # Per-build args (GIT_SHA / APP_VERSION / IS_ENTERPRISE_EDITION) are declared at
 # the bottom so the npm install / compile layers stay cacheable across commits
@@ -28,11 +33,14 @@ LABEL org.opencontainers.image.vendor="OneUptime"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
 
 
-# Install runtime tools + build toolchain.
-# Build toolchain (.gyp virtual) is installed temporarily for native npm
-# modules and is removed after all npm installs complete (see `apk del .gyp`
-# below). --no-cache avoids retaining apk index data in the image layer.
-RUN apk add --no-cache bash curl \
+# Upgrade OS packages, then install runtime tools + build toolchain.
+# `apk upgrade` pulls in Alpine security fixes published since the base image
+# was built. Build toolchain (.gyp virtual) is installed temporarily for
+# native npm modules and is removed after all npm installs complete (see
+# `apk del .gyp` below). --no-cache avoids retaining apk index data in the
+# image layer.
+RUN apk upgrade --no-cache \
+    && apk add --no-cache bash curl \
     && apk add --no-cache --virtual .gyp python3 make g++
 
 #Use bash shell by default

@@ -39,6 +39,30 @@ export default class ClickHouseMigrationUtil {
     });
   }
 
+  /**
+   * Names of the materialized views whose SELECT reads from `table`.
+   * This is the exact set ClickHouse consults when it rejects
+   * ALTER DROP/RENAME COLUMN with error 524 ALTER_OF_COLUMN_IS_FORBIDDEN
+   * (system.tables.dependencies_table on the source table), so a
+   * migration that must alter an MV-referenced column can drop these
+   * view triggers first and recreate them from the models afterwards
+   * via AnalyticsTableManagement.createMaterializedViews().
+   */
+  public static async getDependentMaterializedViews(
+    table: string,
+  ): Promise<Array<string>> {
+    const escapedTable: string = table.replace(/'/g, "''");
+    const result: { json: () => Promise<unknown> } =
+      await MetricService.executeQuery(
+        `SELECT name FROM system.tables WHERE database = currentDatabase() AND engine = 'MaterializedView' AND name IN (SELECT arrayJoin(dependencies_table) FROM system.tables WHERE database = currentDatabase() AND name = '${escapedTable}')`,
+      );
+    const json: ClickHouseJsonResult =
+      (await result.json()) as ClickHouseJsonResult;
+    return (json.data ?? []).map((r: Record<string, unknown>) => {
+      return String(r["name"]);
+    });
+  }
+
   /** Stored CREATE statement of a table/view, or null if it does not exist. */
   public static async getCreateQuery(name: string): Promise<string | null> {
     const result: { json: () => Promise<unknown> } =

@@ -448,7 +448,8 @@ redis:
       passwordKey:
   image:
     repository: redis
-    tag: latest
+    # Use the alpine variant. The debian-based redis:latest image carries unfixable CVEs; alpine is a drop-in replacement.
+    tag: alpine
     pullPolicy: IfNotPresent
   master:
     service:

@@ -15,6 +15,11 @@ RUN npm config set fetch-retry-maxtimeout 60000
 # /Common/node_modules/esbuild/bin/esbuild). See esbuild#1711, #2785.
 RUN npm config set foreground-scripts true
 
+# Upgrade the bundled npm CLI so its vendored deps (tar, glob, minimatch,
+# brace-expansion, diff, ip-address, picomatch, ...) pick up security fixes
+# that the base image's npm still carries.
+RUN npm install -g npm@latest
+
 
 # Per-build args (GIT_SHA / APP_VERSION / IS_ENTERPRISE_EDITION) are declared at
 # the bottom so the npm ci / compile layers stay cacheable across commits and
@@ -29,9 +34,12 @@ LABEL org.opencontainers.image.documentation="https://oneuptime.com/docs"
 LABEL org.opencontainers.image.vendor="OneUptime"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
 
-# Install runtime tools (bash, curl, ca-certificates) in a single layer with
-# cache cleanup. ca-certificates is required by `update-ca-certificates` below.
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Upgrade OS packages (Debian security fixes published since the base image
+# was built) and install runtime tools (bash, curl, ca-certificates) in a
+# single layer with cache cleanup. ca-certificates is required by
+# `update-ca-certificates` below.
+RUN apt-get update && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends \
         ca-certificates \
         bash \
         curl \

@@ -11,7 +11,7 @@
 #   - DOCKER_HOST_NAME (optional) (friendly host name, defaults to docker-host)
 #
 
-FROM otel/opentelemetry-collector-contrib:0.118.0
+FROM otel/opentelemetry-collector-contrib:0.154.0
 
 # Per-build args (GIT_SHA / APP_VERSION / IS_ENTERPRISE_EDITION) are declared at
 # the bottom so the COPY layer stays cacheable across the community + enterprise

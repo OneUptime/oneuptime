@@ -285,7 +285,7 @@ export default class AnalyticsDatabaseService<
 
     const columnName: string = column.key;
 
-    if (!this.doesColumnExistInDatabase(columnName)) {
+    if (!(await this.doesColumnExistInDatabase(columnName))) {
       return null;
     }
 
