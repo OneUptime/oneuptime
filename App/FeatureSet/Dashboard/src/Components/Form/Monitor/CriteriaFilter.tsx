@@ -47,6 +47,8 @@ const isMetricOnlyMonitorType: (monitorType: MonitorType) => boolean = (
   return (
     monitorType === MonitorType.Kubernetes ||
     monitorType === MonitorType.Docker ||
+    monitorType === MonitorType.Proxmox ||
+    monitorType === MonitorType.Ceph ||
     monitorType === MonitorType.Metrics
   );
 };
@@ -157,11 +159,16 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
       );
     });
 
-  // Collect metric variables from metricMonitor, kubernetesMonitor, and dockerMonitor configs
+  /*
+   * Collect metric variables from metricMonitor, kubernetesMonitor,
+   * dockerMonitor, proxmoxMonitor, and cephMonitor configs
+   */
   const metricViewConfig: MetricsViewConfig | undefined =
     props.monitorStep.data?.metricMonitor?.metricViewConfig ||
     props.monitorStep.data?.kubernetesMonitor?.metricViewConfig ||
-    props.monitorStep.data?.dockerMonitor?.metricViewConfig;
+    props.monitorStep.data?.dockerMonitor?.metricViewConfig ||
+    props.monitorStep.data?.proxmoxMonitor?.metricViewConfig ||
+    props.monitorStep.data?.cephMonitor?.metricViewConfig;
 
   let metricVariables: Array<string> =
     metricViewConfig?.queryConfigs?.map(

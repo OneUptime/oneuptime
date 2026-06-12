@@ -385,6 +385,7 @@ import { AddTelemetryEntityRelationshipTable1781200000001 } from "./178120000000
 import { MigrationName1781250074195 } from "./1781250074195-MigrationName";
 import { AddTelemetryEntityLabels1781300000000 } from "./1781300000000-AddTelemetryEntityLabels";
 import { AddServiceTelemetrySdkLanguage1781400000000 } from "./1781400000000-AddServiceTelemetrySdkLanguage";
+import { AddProxmoxAndCephClusterTables1781500000000 } from "./1781500000000-AddProxmoxAndCephClusterTables";
 
 export default [
   InitialMigration,
@@ -774,4 +775,5 @@ export default [
   AddTelemetryEntityLabels1781300000000,
   AddServiceTelemetrySdkLanguage1781400000000,
   MigrationName1781250074195,
+  AddProxmoxAndCephClusterTables1781500000000,
 ];

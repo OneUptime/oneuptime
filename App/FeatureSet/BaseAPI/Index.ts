@@ -484,6 +484,12 @@ import DockerHostOwnerUserService, {
 import DockerResourceService, {
   Service as DockerResourceServiceType,
 } from "Common/Server/Services/DockerResourceService";
+import ProxmoxClusterService, {
+  Service as ProxmoxClusterServiceType,
+} from "Common/Server/Services/ProxmoxClusterService";
+import CephClusterService, {
+  Service as CephClusterServiceType,
+} from "Common/Server/Services/CephClusterService";
 import HostService, {
   Service as HostServiceType,
 } from "Common/Server/Services/HostService";
@@ -907,6 +913,8 @@ import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerHostOwnerTeam from "Common/Models/DatabaseModels/DockerHostOwnerTeam";
 import DockerHostOwnerUser from "Common/Models/DatabaseModels/DockerHostOwnerUser";
 import DockerResource from "Common/Models/DatabaseModels/DockerResource";
+import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import Host from "Common/Models/DatabaseModels/Host";
 import HostOwnerTeam from "Common/Models/DatabaseModels/HostOwnerTeam";
 import HostOwnerUser from "Common/Models/DatabaseModels/HostOwnerUser";
@@ -3090,6 +3098,22 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DockerResource, DockerResourceServiceType>(
         DockerResource,
         DockerResourceService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ProxmoxCluster, ProxmoxClusterServiceType>(
+        ProxmoxCluster,
+        ProxmoxClusterService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CephCluster, CephClusterServiceType>(
+        CephCluster,
+        CephClusterService,
       ).getRouter(),
     );
 

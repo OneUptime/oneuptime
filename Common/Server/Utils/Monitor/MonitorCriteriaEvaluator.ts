@@ -62,6 +62,8 @@ import MetricCriteriaContext, {
   MetricComponentValue,
 } from "../../../Types/Monitor/MetricMonitor/MetricCriteriaContext";
 import MonitorStepDockerMonitor from "../../../Types/Monitor/MonitorStepDockerMonitor";
+import MonitorStepProxmoxMonitor from "../../../Types/Monitor/MonitorStepProxmoxMonitor";
+import MonitorStepCephMonitor from "../../../Types/Monitor/MonitorStepCephMonitor";
 
 export default class MonitorCriteriaEvaluator {
   public static async processMonitorStep(input: {
@@ -214,8 +216,8 @@ ${contextBlock}
   }
 
   /**
-   * For metric-backed monitors (Metrics/Kubernetes/Docker) with
-   * per-series aggregated results, re-evaluate the matched criteria
+   * For metric-backed monitors (Metrics/Kubernetes/Docker/Proxmox/Ceph)
+   * with per-series aggregated results, re-evaluate the matched criteria
    * once per series and return one entry per series that breached.
    * Returns an empty array when the monitor is not series-aware or
    * no series matched — the caller falls back to the single-incident
@@ -230,7 +232,9 @@ ${contextBlock}
     if (
       input.monitor.monitorType !== MonitorType.Metrics &&
       input.monitor.monitorType !== MonitorType.Kubernetes &&
-      input.monitor.monitorType !== MonitorType.Docker
+      input.monitor.monitorType !== MonitorType.Docker &&
+      input.monitor.monitorType !== MonitorType.Proxmox &&
+      input.monitor.monitorType !== MonitorType.Ceph
     ) {
       return [];
     }
@@ -676,7 +680,9 @@ ${contextBlock}
     if (
       input.monitor.monitorType === MonitorType.Metrics ||
       input.monitor.monitorType === MonitorType.Kubernetes ||
-      input.monitor.monitorType === MonitorType.Docker
+      input.monitor.monitorType === MonitorType.Docker ||
+      input.monitor.monitorType === MonitorType.Proxmox ||
+      input.monitor.monitorType === MonitorType.Ceph
     ) {
       const metricMonitorResult: string | null =
         await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
@@ -807,6 +813,16 @@ ${contextBlock}
     // Handle Docker monitors with resource context
     if (input.monitor.monitorType === MonitorType.Docker) {
       return MonitorCriteriaEvaluator.buildDockerRootCauseContext(input);
+    }
+
+    // Handle Proxmox monitors with resource context
+    if (input.monitor.monitorType === MonitorType.Proxmox) {
+      return MonitorCriteriaEvaluator.buildProxmoxRootCauseContext(input);
+    }
+
+    // Handle Ceph monitors with resource context
+    if (input.monitor.monitorType === MonitorType.Ceph) {
+      return MonitorCriteriaEvaluator.buildCephRootCauseContext(input);
     }
 
     // Handle generic Metric monitors with metric identity + breaching series
@@ -1551,6 +1567,148 @@ ${contextBlock}
       }
 
       sections.push(`**Docker Host Details**\n${hostDetails.join("\n")}`);
+    }
+
+    // Metric results summary
+    if (metricResponse.metricResult && metricResponse.metricResult.length > 0) {
+      const resultDetails: Array<string> = [];
+
+      for (const result of metricResponse.metricResult) {
+        if (result.data && result.data.length > 0) {
+          resultDetails.push(
+            `- ${result.data.length} metric data point(s) returned`,
+          );
+        }
+      }
+
+      if (resultDetails.length > 0) {
+        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
+      }
+    }
+
+    return sections.length > 0 ? sections.join("\n") : null;
+  }
+
+  private static buildProxmoxRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+  }): string | null {
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    const sections: Array<string> = [];
+
+    // Proxmox cluster context
+    const proxmoxMonitor: MonitorStepProxmoxMonitor | undefined =
+      input.monitorStep.data?.proxmoxMonitor;
+
+    if (proxmoxMonitor) {
+      const clusterDetails: Array<string> = [];
+      clusterDetails.push(
+        `- Cluster: ${proxmoxMonitor.clusterIdentifier || "Unknown"}`,
+      );
+
+      if (proxmoxMonitor.resourceFilters?.nodeName) {
+        clusterDetails.push(
+          `- Node Filter: ${proxmoxMonitor.resourceFilters.nodeName}`,
+        );
+      }
+
+      if (proxmoxMonitor.resourceFilters?.guestId) {
+        clusterDetails.push(
+          `- Guest ID Filter: ${proxmoxMonitor.resourceFilters.guestId}`,
+        );
+      }
+
+      if (proxmoxMonitor.resourceFilters?.guestName) {
+        clusterDetails.push(
+          `- Guest Name Filter: ${proxmoxMonitor.resourceFilters.guestName}`,
+        );
+      }
+
+      // Add metric name from the query config
+      if (
+        proxmoxMonitor.metricViewConfig?.queryConfigs?.length > 0 &&
+        proxmoxMonitor.metricViewConfig.queryConfigs[0]
+      ) {
+        const metricName: string = proxmoxMonitor.metricViewConfig
+          .queryConfigs[0].metricQueryData?.filterData?.metricName as string;
+        if (metricName) {
+          clusterDetails.push(`- Metric: \`${metricName}\``);
+        }
+      }
+
+      sections.push(
+        `**Proxmox Cluster Details**\n${clusterDetails.join("\n")}`,
+      );
+    }
+
+    // Metric results summary
+    if (metricResponse.metricResult && metricResponse.metricResult.length > 0) {
+      const resultDetails: Array<string> = [];
+
+      for (const result of metricResponse.metricResult) {
+        if (result.data && result.data.length > 0) {
+          resultDetails.push(
+            `- ${result.data.length} metric data point(s) returned`,
+          );
+        }
+      }
+
+      if (resultDetails.length > 0) {
+        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
+      }
+    }
+
+    return sections.length > 0 ? sections.join("\n") : null;
+  }
+
+  private static buildCephRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+  }): string | null {
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    const sections: Array<string> = [];
+
+    // Ceph cluster context
+    const cephMonitor: MonitorStepCephMonitor | undefined =
+      input.monitorStep.data?.cephMonitor;
+
+    if (cephMonitor) {
+      const clusterDetails: Array<string> = [];
+      clusterDetails.push(
+        `- Cluster: ${cephMonitor.clusterIdentifier || "Unknown"}`,
+      );
+
+      if (cephMonitor.resourceFilters?.osdId) {
+        clusterDetails.push(
+          `- OSD Filter: ${cephMonitor.resourceFilters.osdId}`,
+        );
+      }
+
+      if (cephMonitor.resourceFilters?.poolName) {
+        clusterDetails.push(
+          `- Pool Filter: ${cephMonitor.resourceFilters.poolName}`,
+        );
+      }
+
+      // Add metric name from the query config
+      if (
+        cephMonitor.metricViewConfig?.queryConfigs?.length > 0 &&
+        cephMonitor.metricViewConfig.queryConfigs[0]
+      ) {
+        const metricName: string = cephMonitor.metricViewConfig.queryConfigs[0]
+          .metricQueryData?.filterData?.metricName as string;
+        if (metricName) {
+          clusterDetails.push(`- Metric: \`${metricName}\``);
+        }
+      }
+
+      sections.push(`**Ceph Cluster Details**\n${clusterDetails.join("\n")}`);
     }
 
     // Metric results summary

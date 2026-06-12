@@ -1,0 +1,71 @@
+receivers:
+  # Scrape prometheus-pve-exporter, which translates the Proxmox VE API
+  # into Prometheus metrics (pve_* series for nodes, guests, storage and
+  # HA state). The exporter can run as the bundled compose service (see
+  # docker-compose.yml, profile "pve-exporter") or anywhere else — point
+  # PVE_EXPORTER_URL (host:port, no scheme) at it.
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: oneuptime-proxmox
+          # The exporter serves metrics on /pve and proxies each scrape
+          # to the Proxmox VE API host given in the `target` parameter.
+          metrics_path: /pve
+          params:
+            # Proxmox VE API host (any cluster node) the exporter queries.
+            target: ["${env:PVE_HOST}"]
+            # Enable both the cluster collectors (guest up/cpu/memory,
+            # HA state — pve_up, pve_guest_info, pve_ha_state) and the
+            # node collectors (node cpu/memory/disk — pve_node_info,
+            # pve_cpu_usage_ratio on node ids).
+            cluster: ["1"]
+            node: ["1"]
+          # pve-exporter answers each scrape with a live Proxmox VE API
+          # round-trip; 30s keeps the load on pveproxy negligible.
+          scrape_interval: 30s
+          static_configs:
+            - targets: ["${env:PVE_EXPORTER_URL}"]
+
+processors:
+  # Stamp every metric with the cluster identity. OneUptime auto-registers
+  # the Proxmox cluster from `proxmox.cluster.name`, and every Proxmox
+  # page and monitor scopes on it — this attribute is what makes the data
+  # appear under the Proxmox section of the dashboard. Keep it stable:
+  # changing it later registers a brand-new cluster.
+  resource:
+    attributes:
+      - key: proxmox.cluster.name
+        value: "${env:PROXMOX_CLUSTER_NAME}"
+        action: upsert
+      # The prometheus receiver synthesizes service.name (= the scrape job
+      # name, "oneuptime-proxmox") and service.instance.id on every batch
+      # per the Prometheus->OTLP compatibility spec. Drop them: OneUptime
+      # routes batches by service.name first, so leaving them in would
+      # register a phantom "oneuptime-proxmox" Service instead of routing
+      # this data to the Proxmox cluster discovered from
+      # `proxmox.cluster.name` (which would also break per-cluster
+      # retention settings). Do not remove these two deletes.
+      - key: service.name
+        action: delete
+      - key: service.instance.id
+        action: delete
+  batch:
+    timeout: 10s
+    send_batch_size: 1024
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 256
+    spike_limit_mib: 64
+
+exporters:
+  otlphttp:
+    endpoint: "${env:ONEUPTIME_URL}/otlp"
+    headers:
+      x-oneuptime-token: "${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [prometheus]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp]

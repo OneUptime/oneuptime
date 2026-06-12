@@ -207,6 +207,34 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       category: resourcesCategory,
     },
     {
+      title: t("navbar.items.proxmoxTitle", "Proxmox"),
+      description: t(
+        "navbar.items.proxmoxDescription",
+        "Monitor Proxmox clusters, nodes and guests.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.PROXMOX_CLUSTERS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.PROXMOX_CLUSTERS],
+      icon: IconProp.ServerStack,
+      iconColor: "blue",
+      category: resourcesCategory,
+    },
+    {
+      title: t("navbar.items.cephTitle", "Ceph"),
+      description: t(
+        "navbar.items.cephDescription",
+        "Monitor Ceph clusters, OSDs and pools.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.CEPH_CLUSTERS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.CEPH_CLUSTERS],
+      icon: IconProp.Database,
+      iconColor: "blue",
+      category: resourcesCategory,
+    },
+    {
       title: t("navbar.items.hostsTitle"),
       description: t("navbar.items.hostsDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.HOSTS] as Route),

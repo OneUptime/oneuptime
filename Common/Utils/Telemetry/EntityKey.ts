@@ -149,3 +149,37 @@ export function keyForKubernetesCluster(
     identifyingAttributes: { "k8s.cluster.name": clusterIdentifier },
   });
 }
+
+/**
+ * `proxmox.cluster.name` is the cluster identity (matches the ProxmoxCluster
+ * row's `clusterIdentifier`; the ingest resolver is name-only — see
+ * `TelemetryEntity.proxmoxClusterIdentity`). Pass
+ * `ProxmoxCluster.clusterIdentifier`.
+ */
+export function keyForProxmoxCluster(
+  projectId: string,
+  clusterIdentifier: string,
+): string {
+  return computeEntityKey({
+    projectId,
+    entityType: EntityType.ProxmoxCluster,
+    identifyingAttributes: { "proxmox.cluster.name": clusterIdentifier },
+  });
+}
+
+/**
+ * `ceph.cluster.name` is the cluster identity (matches the CephCluster
+ * row's `clusterIdentifier`; the ingest resolver is name-only —
+ * `ceph.cluster.fsid` is descriptive, never identity). Pass
+ * `CephCluster.clusterIdentifier`.
+ */
+export function keyForCephCluster(
+  projectId: string,
+  clusterIdentifier: string,
+): string {
+  return computeEntityKey({
+    projectId,
+    entityType: EntityType.CephCluster,
+    identifyingAttributes: { "ceph.cluster.name": clusterIdentifier },
+  });
+}

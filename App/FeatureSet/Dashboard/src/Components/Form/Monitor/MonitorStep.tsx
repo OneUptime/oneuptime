@@ -77,6 +77,14 @@ import DockerMonitorStepForm from "./DockerMonitor/DockerMonitorStepForm";
 import MonitorStepDockerMonitor, {
   MonitorStepDockerMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepDockerMonitor";
+import ProxmoxMonitorStepForm from "./ProxmoxMonitor/ProxmoxMonitorStepForm";
+import MonitorStepProxmoxMonitor, {
+  MonitorStepProxmoxMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepProxmoxMonitor";
+import CephMonitorStepForm from "./CephMonitor/CephMonitorStepForm";
+import MonitorStepCephMonitor, {
+  MonitorStepCephMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepCephMonitor";
 import Link from "Common/UI/Components/Link/Link";
 import TinyFormDocumentation from "Common/UI/Components/TinyFormDocumentation/TinyFormDocumentation";
 import ExceptionMonitorStepForm from "./ExceptionMonitor/ExceptionMonitorStepForm";
@@ -1247,6 +1255,60 @@ return {
             }
             onChange={(value: MonitorStepDockerMonitor) => {
               monitorStep.setDockerMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onMonitorCriteriaChange={(criteria: MonitorCriteria) => {
+              monitorStep.setMonitorCriteria(criteria);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onlineMonitorStatusId={props.onlineMonitorStatusId}
+            offlineMonitorStatusId={props.offlineMonitorStatusId}
+            defaultIncidentSeverityId={props.defaultIncidentSeverityId}
+            defaultAlertSeverityId={props.defaultAlertSeverityId}
+            monitorName={props.monitorName}
+          />
+        </Card>
+      )}
+
+      {props.monitorType === MonitorType.Proxmox && (
+        <Card
+          title="Proxmox Monitor Configuration"
+          description="Configure your Proxmox cluster monitoring using templates, curated metrics, or the advanced query builder."
+        >
+          <ProxmoxMonitorStepForm
+            monitorStepProxmoxMonitor={
+              monitorStep.data?.proxmoxMonitor ||
+              MonitorStepProxmoxMonitorUtil.getDefault()
+            }
+            onChange={(value: MonitorStepProxmoxMonitor) => {
+              monitorStep.setProxmoxMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onMonitorCriteriaChange={(criteria: MonitorCriteria) => {
+              monitorStep.setMonitorCriteria(criteria);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onlineMonitorStatusId={props.onlineMonitorStatusId}
+            offlineMonitorStatusId={props.offlineMonitorStatusId}
+            defaultIncidentSeverityId={props.defaultIncidentSeverityId}
+            defaultAlertSeverityId={props.defaultAlertSeverityId}
+            monitorName={props.monitorName}
+          />
+        </Card>
+      )}
+
+      {props.monitorType === MonitorType.Ceph && (
+        <Card
+          title="Ceph Monitor Configuration"
+          description="Configure your Ceph cluster monitoring using templates, curated metrics, or the advanced query builder."
+        >
+          <CephMonitorStepForm
+            monitorStepCephMonitor={
+              monitorStep.data?.cephMonitor ||
+              MonitorStepCephMonitorUtil.getDefault()
+            }
+            onChange={(value: MonitorStepCephMonitor) => {
+              monitorStep.setCephMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
             onMonitorCriteriaChange={(criteria: MonitorCriteria) => {

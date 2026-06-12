@@ -558,14 +558,21 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             );
 
           /*
-           * Auto-discover Kubernetes cluster and Docker host from
-           * resource attributes. The two lookups are independent —
-           * they read different attributes and don't share state —
-           * so issue them concurrently to collapse per-resource
-           * latency. autoDiscoverHost still has to wait below
-           * because it consumes both ids.
+           * Auto-discover Kubernetes cluster, Docker host, Proxmox
+           * cluster and Ceph cluster from resource attributes. The
+           * lookups are independent — they read different attributes
+           * and don't share state — so issue them concurrently to
+           * collapse per-resource latency. autoDiscoverHost still has
+           * to wait below because it consumes the first two ids.
            */
-          const [kubernetesClusterId, dockerHostId]: [
+          const [
+            kubernetesClusterId,
+            dockerHostId,
+            proxmoxClusterId,
+            cephClusterId,
+          ]: [
+            ObjectID | null,
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
           ] = await Promise.all([
@@ -574,6 +581,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               attributes: resourceAttributes_raw,
             }),
             this.autoDiscoverDockerHost({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverProxmoxCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverCephCluster({
               projectId,
               attributes: resourceAttributes_raw,
             }),
@@ -632,6 +647,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               hostId,
               dockerHostId,
               kubernetesClusterId,
+              proxmoxClusterId,
+              cephClusterId,
               serverlessFunctionId,
               cloudResourceId,
               rumApplicationId,

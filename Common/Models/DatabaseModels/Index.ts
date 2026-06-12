@@ -9,6 +9,8 @@ import DockerHost from "./DockerHost";
 import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
 import DockerHostOwnerUser from "./DockerHostOwnerUser";
 import DockerResource from "./DockerResource";
+import ProxmoxCluster from "./ProxmoxCluster";
+import CephCluster from "./CephCluster";
 import Host from "./Host";
 import HostOwnerTeam from "./HostOwnerTeam";
 import HostOwnerUser from "./HostOwnerUser";
@@ -704,6 +706,8 @@ const AllModelTypes: Array<{
   DockerHostOwnerTeam,
   DockerHostOwnerUser,
   DockerResource,
+  ProxmoxCluster,
+  CephCluster,
   Host,
   HostOwnerTeam,
   HostOwnerUser,

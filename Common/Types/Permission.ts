@@ -1109,6 +1109,16 @@ enum Permission {
   EditDockerHostOwnerUser = "EditDockerHostOwnerUser",
   ReadDockerHostOwnerUser = "ReadDockerHostOwnerUser",
 
+  CreateProxmoxCluster = "CreateProxmoxCluster",
+  DeleteProxmoxCluster = "DeleteProxmoxCluster",
+  EditProxmoxCluster = "EditProxmoxCluster",
+  ReadProxmoxCluster = "ReadProxmoxCluster",
+
+  CreateCephCluster = "CreateCephCluster",
+  DeleteCephCluster = "DeleteCephCluster",
+  EditCephCluster = "EditCephCluster",
+  ReadCephCluster = "ReadCephCluster",
+
   CreateHost = "CreateHost",
   DeleteHost = "DeleteHost",
   EditHost = "EditHost",
@@ -7346,6 +7356,86 @@ export class PermissionHelper {
         permission: Permission.ReadDockerHost,
         title: "Read Docker Host",
         description: "This permission can read Docker Host of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateProxmoxCluster,
+        title: "Create Proxmox Cluster",
+        description:
+          "This permission can create Proxmox Cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteProxmoxCluster,
+        title: "Delete Proxmox Cluster",
+        description:
+          "This permission can delete Proxmox Cluster of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditProxmoxCluster,
+        title: "Edit Proxmox Cluster",
+        description:
+          "This permission can edit Proxmox Cluster of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadProxmoxCluster,
+        title: "Read Proxmox Cluster",
+        description:
+          "This permission can read Proxmox Cluster of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateCephCluster,
+        title: "Create Ceph Cluster",
+        description:
+          "This permission can create Ceph Cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteCephCluster,
+        title: "Delete Ceph Cluster",
+        description:
+          "This permission can delete Ceph Cluster of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditCephCluster,
+        title: "Edit Ceph Cluster",
+        description: "This permission can edit Ceph Cluster of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadCephCluster,
+        title: "Read Ceph Cluster",
+        description: "This permission can read Ceph Cluster of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,

@@ -255,13 +255,21 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             );
 
           /*
-           * Auto-discover Kubernetes cluster and Docker host from
-           * resource attributes. They look at disjoint attributes
-           * and don't share state, so we issue both Postgres
-           * lookups concurrently and only wait once. The cluster id
-           * is also what the inventory hook below keys its buffer on.
+           * Auto-discover Kubernetes cluster, Docker host, Proxmox
+           * cluster and Ceph cluster from resource attributes. They
+           * look at disjoint attributes and don't share state, so we
+           * issue all Postgres lookups concurrently and only wait
+           * once. The cluster id is also what the inventory hook
+           * below keys its buffer on.
            */
-          const [kubernetesClusterId, dockerHostId]: [
+          const [
+            kubernetesClusterId,
+            dockerHostId,
+            proxmoxClusterId,
+            cephClusterId,
+          ]: [
+            ObjectID | null,
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
           ] = await Promise.all([
@@ -270,6 +278,14 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               attributes: resourceAttributes_raw,
             }),
             this.autoDiscoverDockerHost({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverProxmoxCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverCephCluster({
               projectId,
               attributes: resourceAttributes_raw,
             }),
@@ -330,6 +346,8 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               hostId,
               dockerHostId,
               kubernetesClusterId,
+              proxmoxClusterId,
+              cephClusterId,
               serverlessFunctionId,
               cloudResourceId,
               rumApplicationId,

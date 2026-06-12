@@ -261,6 +261,14 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/docker-monitor",
       },
       {
+        title: "Proxmox Monitor",
+        url: "/docs/monitor/proxmox-monitor",
+      },
+      {
+        title: "Ceph Monitor",
+        url: "/docs/monitor/ceph-monitor",
+      },
+      {
         title: "Logs Monitor",
         url: "/docs/monitor/logs-monitor",
       },
@@ -514,6 +522,14 @@ const DocsNav: NavGroup[] = [
       {
         title: "Docker Agent",
         url: "/docs/telemetry/docker-host",
+      },
+      {
+        title: "Proxmox Agent",
+        url: "/docs/telemetry/proxmox",
+      },
+      {
+        title: "Ceph Agent",
+        url: "/docs/telemetry/ceph",
       },
       {
         title: "Serverless Functions",

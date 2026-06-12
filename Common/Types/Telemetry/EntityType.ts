@@ -27,6 +27,17 @@ enum EntityType {
   KubernetesNode = "k8s.node",
   KubernetesPod = "k8s.pod",
   KubernetesDeployment = "k8s.deployment",
+  /*
+   * Proxmox VE / Ceph types are OneUptime-defined (no upstream semconv
+   * exists for either) but follow the same dotted naming convention. The
+   * identifying attributes (`proxmox.cluster.name`, `proxmox.node.name`,
+   * `proxmox.guest.vmid`, `ceph.cluster.name`) are stamped by our agent
+   * collector configs — see Internal/Roadmap/ProxmoxCephProducts.md §1.
+   */
+  ProxmoxCluster = "proxmox.cluster",
+  ProxmoxNode = "proxmox.node",
+  ProxmoxGuest = "proxmox.guest",
+  CephCluster = "ceph.cluster",
   TelemetrySdk = "telemetry.sdk",
 }
 

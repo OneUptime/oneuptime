@@ -1,0 +1,21 @@
+services:
+  oneuptime-ceph-agent:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: oneuptime-ceph-agent
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    environment:
+      - ONEUPTIME_URL=${ONEUPTIME_URL}
+      - ONEUPTIME_TELEMETRY_INGESTION_KEY=${ONEUPTIME_TELEMETRY_INGESTION_KEY}
+      - CEPH_CLUSTER_NAME=${CEPH_CLUSTER_NAME:-ceph}
+      # Comma-separated host:port list of ALL mgr daemons, wrapped in
+      # square brackets so the collector parses it as a list, e.g.
+      #   CEPH_MGR_ENDPOINTS=[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]
+      # Scrape every mgr (active + standbys) so metrics survive failover.
+      - CEPH_MGR_ENDPOINTS=${CEPH_MGR_ENDPOINTS}
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

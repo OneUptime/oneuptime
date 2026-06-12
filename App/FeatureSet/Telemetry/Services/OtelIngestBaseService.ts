@@ -6,6 +6,10 @@ import KubernetesClusterService from "Common/Server/Services/KubernetesClusterSe
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import DockerHostService from "Common/Server/Services/DockerHostService";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
+import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import CephClusterService from "Common/Server/Services/CephClusterService";
+import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import HostService from "Common/Server/Services/HostService";
 import Host from "Common/Models/DatabaseModels/Host";
 import ServerlessFunctionService from "Common/Server/Services/ServerlessFunctionService";
@@ -209,6 +213,20 @@ export default abstract class OtelIngestBaseService {
    *      ServiceType.KubernetesCluster, primaryEntityId = Cluster._id.
    *      Rare in practice — most k8s batches also carry host.name
    *      and route via #2.
+   *   4b. Else if a ProxmoxCluster / CephCluster was discovered →
+   *      ServiceType.ProxmoxCluster / ServiceType.CephCluster,
+   *      primaryEntityId = cluster row id. The shipped Proxmox / Ceph
+   *      agent configs use the OTel prometheus receiver, which
+   *      synthesizes `service.name` (= scrape job name) on every batch;
+   *      both configs therefore explicitly DELETE service.name /
+   *      service.instance.id in their resource processor and stamp only
+   *      `proxmox.cluster.name` / `ceph.cluster.name`, so their batches
+   *      land here instead of registering a phantom Service via #1.
+   *      Caveat: sources that keep a service.name (e.g. the PVE 9+
+   *      native OTLP push, which stamps service.name="proxmox-ve")
+   *      still route via #1 — cluster discovery and the
+   *      attribute-scoped dashboards work regardless, but per-cluster
+   *      retention only applies to batches that land here.
    *   5. Fallback: no Service row at all. primaryEntityId = projectId,
    *      ServiceType.Unknown. The read side groups these under a
    *      synthetic "Unknown Service" bucket. No oneuptime.label.*
@@ -224,6 +242,8 @@ export default abstract class OtelIngestBaseService {
     hostId?: ObjectID | null;
     dockerHostId?: ObjectID | null;
     kubernetesClusterId?: ObjectID | null;
+    proxmoxClusterId?: ObjectID | null;
+    cephClusterId?: ObjectID | null;
     serverlessFunctionId?: ObjectID | null;
     cloudResourceId?: ObjectID | null;
     rumApplicationId?: ObjectID | null;
@@ -339,6 +359,8 @@ export default abstract class OtelIngestBaseService {
     hostId?: ObjectID | null;
     dockerHostId?: ObjectID | null;
     kubernetesClusterId?: ObjectID | null;
+    proxmoxClusterId?: ObjectID | null;
+    cephClusterId?: ObjectID | null;
     serverlessFunctionId?: ObjectID | null;
     cloudResourceId?: ObjectID | null;
     rumApplicationId?: ObjectID | null;
@@ -386,6 +408,29 @@ export default abstract class OtelIngestBaseService {
         serviceName: clusterName ? `k8s/${clusterName}` : "Kubernetes Cluster",
         resourceId: data.kubernetesClusterId,
         primaryEntityType: ServiceType.KubernetesCluster,
+        projectId: data.projectId,
+      });
+    }
+
+    if (data.proxmoxClusterId) {
+      const clusterName: string | null =
+        this.getProxmoxClusterNameFromAttributes(data.attributes);
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: clusterName ? `proxmox/${clusterName}` : "Proxmox Cluster",
+        resourceId: data.proxmoxClusterId,
+        primaryEntityType: ServiceType.ProxmoxCluster,
+        projectId: data.projectId,
+      });
+    }
+
+    if (data.cephClusterId) {
+      const clusterName: string | null = this.getCephClusterNameFromAttributes(
+        data.attributes,
+      );
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: clusterName ? `ceph/${clusterName}` : "Ceph Cluster",
+        resourceId: data.cephClusterId,
+        primaryEntityType: ServiceType.CephCluster,
         projectId: data.projectId,
       });
     }
@@ -706,6 +751,269 @@ export default abstract class OtelIngestBaseService {
     } catch (err) {
       logger.warn(
         `Kubernetes cluster label promotion failed for ${data.kubernetesClusterId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  /*
+   * `proxmox.cluster.name` is the Proxmox join key — a OneUptime-defined
+   * resource attribute (no upstream semconv exists) stamped by the
+   * Proxmox Agent collector config from the PROXMOX_CLUSTER_NAME env.
+   */
+  @CaptureSpan()
+  protected static getProxmoxClusterNameFromAttributes(
+    attributes: JSONArray,
+  ): string | null {
+    return this.getStringAttribute(attributes, "proxmox.cluster.name");
+  }
+
+  private static readonly PROXMOX_CLUSTER_ID_CACHE_NAMESPACE: string =
+    "proxmox-cluster-id";
+  private static readonly PROXMOX_CLUSTER_ID_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  @CaptureSpan()
+  protected static async autoDiscoverProxmoxCluster(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    try {
+      const clusterName: string | null =
+        this.getProxmoxClusterNameFromAttributes(data.attributes);
+
+      if (!clusterName) {
+        return null;
+      }
+
+      const cacheKey: string = `${data.projectId.toString()}:${clusterName}`;
+      let clusterIdStr: string | null = await GlobalCache.getString(
+        this.PROXMOX_CLUSTER_ID_CACHE_NAMESPACE,
+        cacheKey,
+      );
+
+      if (!clusterIdStr) {
+        const cluster: ProxmoxCluster =
+          await ProxmoxClusterService.findOrCreateByName({
+            projectId: data.projectId,
+            name: clusterName,
+          });
+
+        if (cluster._id) {
+          clusterIdStr = cluster._id.toString();
+          await GlobalCache.setString(
+            this.PROXMOX_CLUSTER_ID_CACHE_NAMESPACE,
+            cacheKey,
+            clusterIdStr,
+            { expiresInSeconds: this.PROXMOX_CLUSTER_ID_CACHE_EXPIRY_SECONDS },
+          );
+        }
+      }
+
+      if (clusterIdStr) {
+        const clusterId: ObjectID = new ObjectID(clusterIdStr);
+        /*
+         * Same fence rationale as the Kubernetes path — skip the
+         * per-batch maintenance UPDATE + label upsert when we
+         * already ran it within the fence window.
+         */
+        if (await this.shouldRunMaintenance("proxmox-cluster", clusterIdStr)) {
+          const agentVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "oneuptime.agent.version",
+          );
+          await ProxmoxClusterService.updateLastSeen(clusterId, {
+            agentVersion: agentVersion || undefined,
+          });
+          await this.promoteOneuptimeLabelsToProxmoxCluster({
+            projectId: data.projectId,
+            proxmoxClusterId: clusterId,
+            attributes: data.attributes,
+          });
+        }
+        return clusterId;
+      }
+
+      return null;
+    } catch (err) {
+      logger.error(
+        "Error auto-discovering Proxmox cluster: " + (err as Error).message,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * Promote `oneuptime.label.<dim>=<val>` resource attributes into
+   * project labels and attach them to the discovered Proxmox
+   * cluster. Mirrors the Kubernetes cluster label promotion.
+   * Throttled per-cluster inside `attachLabels` so steady-state
+   * ingest with unchanged labels costs one in-memory cache lookup.
+   */
+  @CaptureSpan()
+  protected static async promoteOneuptimeLabelsToProxmoxCluster(data: {
+    projectId: ObjectID;
+    proxmoxClusterId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      const labelNames: Array<string> = extractOneuptimeLabelNames(
+        data.attributes,
+      );
+      if (labelNames.length === 0) {
+        return;
+      }
+      const labelIds: Array<ObjectID> =
+        await LabelService.findOrCreateLabelsByNames({
+          projectId: data.projectId,
+          labelNames,
+        });
+      if (labelIds.length === 0) {
+        return;
+      }
+      await ProxmoxClusterService.attachLabels({
+        proxmoxClusterId: data.proxmoxClusterId,
+        labelIds,
+      });
+    } catch (err) {
+      logger.warn(
+        `Proxmox cluster label promotion failed for ${data.proxmoxClusterId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  /*
+   * `ceph.cluster.name` is the Ceph join key — a OneUptime-defined
+   * resource attribute (no upstream semconv exists) stamped by the
+   * Ceph Agent collector config from the CEPH_CLUSTER_NAME env.
+   */
+  @CaptureSpan()
+  protected static getCephClusterNameFromAttributes(
+    attributes: JSONArray,
+  ): string | null {
+    return this.getStringAttribute(attributes, "ceph.cluster.name");
+  }
+
+  private static readonly CEPH_CLUSTER_ID_CACHE_NAMESPACE: string =
+    "ceph-cluster-id";
+  private static readonly CEPH_CLUSTER_ID_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  @CaptureSpan()
+  protected static async autoDiscoverCephCluster(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    try {
+      const clusterName: string | null = this.getCephClusterNameFromAttributes(
+        data.attributes,
+      );
+
+      if (!clusterName) {
+        return null;
+      }
+
+      const cacheKey: string = `${data.projectId.toString()}:${clusterName}`;
+      let clusterIdStr: string | null = await GlobalCache.getString(
+        this.CEPH_CLUSTER_ID_CACHE_NAMESPACE,
+        cacheKey,
+      );
+
+      if (!clusterIdStr) {
+        const cluster: CephCluster =
+          await CephClusterService.findOrCreateByName({
+            projectId: data.projectId,
+            name: clusterName,
+          });
+
+        if (cluster._id) {
+          clusterIdStr = cluster._id.toString();
+          await GlobalCache.setString(
+            this.CEPH_CLUSTER_ID_CACHE_NAMESPACE,
+            cacheKey,
+            clusterIdStr,
+            { expiresInSeconds: this.CEPH_CLUSTER_ID_CACHE_EXPIRY_SECONDS },
+          );
+        }
+      }
+
+      if (clusterIdStr) {
+        const clusterId: ObjectID = new ObjectID(clusterIdStr);
+        /*
+         * Same fence rationale as the Kubernetes path — skip the
+         * per-batch maintenance UPDATE + label upsert when we
+         * already ran it within the fence window.
+         */
+        if (await this.shouldRunMaintenance("ceph-cluster", clusterIdStr)) {
+          const agentVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "oneuptime.agent.version",
+          );
+          // Optional fsid stamping (ships commented-out in the agent config).
+          const fsid: string | null = this.getStringAttribute(
+            data.attributes,
+            "ceph.cluster.fsid",
+          );
+          await CephClusterService.updateLastSeen(clusterId, {
+            agentVersion: agentVersion || undefined,
+            fsid: fsid || undefined,
+          });
+          await this.promoteOneuptimeLabelsToCephCluster({
+            projectId: data.projectId,
+            cephClusterId: clusterId,
+            attributes: data.attributes,
+          });
+        }
+        return clusterId;
+      }
+
+      return null;
+    } catch (err) {
+      logger.error(
+        "Error auto-discovering Ceph cluster: " + (err as Error).message,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * Promote `oneuptime.label.<dim>=<val>` resource attributes into
+   * project labels and attach them to the discovered Ceph cluster.
+   * Mirrors the Kubernetes cluster label promotion. Throttled
+   * per-cluster inside `attachLabels` so steady-state ingest with
+   * unchanged labels costs one in-memory cache lookup.
+   */
+  @CaptureSpan()
+  protected static async promoteOneuptimeLabelsToCephCluster(data: {
+    projectId: ObjectID;
+    cephClusterId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      const labelNames: Array<string> = extractOneuptimeLabelNames(
+        data.attributes,
+      );
+      if (labelNames.length === 0) {
+        return;
+      }
+      const labelIds: Array<ObjectID> =
+        await LabelService.findOrCreateLabelsByNames({
+          projectId: data.projectId,
+          labelNames,
+        });
+      if (labelIds.length === 0) {
+        return;
+      }
+      await CephClusterService.attachLabels({
+        cephClusterId: data.cephClusterId,
+        labelIds,
+      });
+    } catch (err) {
+      logger.warn(
+        `Ceph cluster label promotion failed for ${data.cephClusterId.toString()}: ${
           err instanceof Error ? err.message : String(err)
         }`,
       );

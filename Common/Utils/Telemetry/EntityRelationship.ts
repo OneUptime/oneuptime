@@ -57,6 +57,12 @@ const RULES: Record<string, EntityRelationshipType> = {
     EntityRelationshipType.MemberOf,
   [`${EntityType.KubernetesDeployment}|${EntityType.KubernetesCluster}`]:
     EntityRelationshipType.MemberOf,
+  [`${EntityType.ProxmoxNode}|${EntityType.ProxmoxCluster}`]:
+    EntityRelationshipType.MemberOf,
+  [`${EntityType.ProxmoxGuest}|${EntityType.ProxmoxNode}`]:
+    EntityRelationshipType.RunsOn,
+  [`${EntityType.ProxmoxGuest}|${EntityType.ProxmoxCluster}`]:
+    EntityRelationshipType.MemberOf,
 };
 
 /** The relationship `fromType` → `toType` implies, or null if none. */
