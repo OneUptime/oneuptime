@@ -84,6 +84,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
     <Fragment>
       <ModelTable<IncidentTemplate>
         modelType={IncidentTemplate}
+        enableJsonImportExport={true}
         id="incident-templates-table"
         userPreferencesKey="incident-templates-table"
         name="Settings > Incident Templates"

@@ -35,6 +35,7 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
     <Fragment>
       <ModelTable<MonitorTemplate>
         modelType={MonitorTemplate}
+        enableJsonImportExport={true}
         id="monitor-templates-table"
         userPreferencesKey="monitor-templates-table"
         saveFilterProps={{

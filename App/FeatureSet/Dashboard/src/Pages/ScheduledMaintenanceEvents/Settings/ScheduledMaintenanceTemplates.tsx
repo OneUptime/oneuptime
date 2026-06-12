@@ -506,6 +506,7 @@ const ScheduledMaintenanceTemplates: FunctionComponent<PageComponentProps> = (
     <Fragment>
       <ModelTable<ScheduledMaintenanceTemplate>
         modelType={ScheduledMaintenanceTemplate}
+        enableJsonImportExport={true}
         id="Scheduled-Maintenance-templates-table"
         userPreferencesKey="scheduled-maintenance-templates-table"
         saveFilterProps={{

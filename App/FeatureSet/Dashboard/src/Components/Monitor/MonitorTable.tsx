@@ -477,6 +477,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
     <div>
       <ModelTable<Monitor>
         modelType={Monitor}
+        enableJsonImportExport={!props.disableCreate}
         name="Monitors"
         userPreferencesKey="monitors-table"
         id="Monitors-table"
