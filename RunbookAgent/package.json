@@ -21,7 +21,7 @@
   "dependencies": {
     "axios": "^1.13.1",
     "Common": "file:../Common",
-    "isolated-vm": "^6.1.2",
+    "isolated-vm": "^7.0.0",
     "ts-node": "^10.9.1"
   },
   "devDependencies": {

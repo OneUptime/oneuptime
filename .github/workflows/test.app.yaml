@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 26
       - run: cd Common && bash test-setup.sh
       # App tests import Common sources directly (jest maps Common/* to
       # ../Common), so Common's own dependencies must be installed too.

@@ -3,7 +3,9 @@
 # OneUptime Runbook Agent Dockerfile
 #
 
-FROM public.ecr.aws/docker/library/node:24.9
+# Floating on the 26 major so each rebuild picks up the latest Node security
+# patches without manual bumps. Lockfiles still keep JS deps reproducible.
+FROM public.ecr.aws/docker/library/node:26
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
 
 RUN npm config set fetch-retries 5
@@ -37,7 +39,9 @@ RUN update-ca-certificates
 
 # Upgrade OS packages (Debian security fixes published since the base image
 # was built), then install bash + tini for process control and python3/make/g++
-# to compile `isolated-vm` (the sandbox used to run JavaScript runbook steps).
+# as a node-gyp safety net for native npm modules. `isolated-vm` (the sandbox
+# used to run JavaScript runbook steps) ships Node 26 prebuilds, so the
+# toolchain normally goes unused; it only kicks in if a prebuild is missing.
 RUN apt-get update \
   && apt-get upgrade -y \
   && apt-get install -y bash curl tini python3 make g++ \

@@ -6,7 +6,7 @@
 # hostPath volumes, no host access) and forwards them to OneUptime via OTLP.
 #
 
-FROM public.ecr.aws/docker/library/node:24-bookworm-slim
+FROM public.ecr.aws/docker/library/node:26-bookworm-slim
 
 # Upgrade the bundled npm CLI so its vendored deps (tar, glob, minimatch,
 # brace-expansion, diff, ip-address, picomatch, ...) pick up security fixes
