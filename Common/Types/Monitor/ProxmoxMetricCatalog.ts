@@ -6,7 +6,9 @@ export type ProxmoxMetricCategory =
   | "Node"
   | "Guest"
   | "Storage"
-  | "HA";
+  | "HA"
+  | "Backup"
+  | "Replication";
 
 export interface ProxmoxMetricDefinition {
   id: string;
@@ -236,6 +238,107 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: ProxmoxResourceScope.Cluster,
   },
+
+  /*
+   * Backup Metrics — cluster-level backup-info collector (default-on).
+   * These report backup-JOB coverage only: whether backups ran
+   * recently or succeeded is not exposed by pve-exporter.
+   */
+  {
+    id: "pve-not-backed-up-total",
+    friendlyName: "Guests Without Backup",
+    description:
+      "Count of guests (VMs and containers) not covered by ANY backup job. A single cluster-level series with no id label. Covers backup-job membership only — not whether backups ran recently or succeeded.",
+    metricName: "pve_not_backed_up_total",
+    category: "Backup",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: ProxmoxResourceScope.Cluster,
+    unit: "count",
+  },
+  {
+    id: "pve-not-backed-up-info",
+    friendlyName: "Guest Without Backup Info",
+    description:
+      "Metadata series present for each guest NOT covered by any backup job (value is always 1), labeled only with the guest's id. Group by id to list the uncovered guests; the series disappears once the guest joins a backup job.",
+    metricName: "pve_not_backed_up_info",
+    category: "Backup",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: ProxmoxResourceScope.Cluster,
+    unit: "count",
+  },
+
+  /*
+   * Replication Metrics — node-level replication collector
+   * (default-on). Series carry the replication JOB id in the `id`
+   * label (e.g. 100-0), not a node/qemu/lxc-prefixed resource id;
+   * pve_replication_info additionally carries type, source, target
+   * and guest labels.
+   */
+  {
+    id: "pve-replication-failed-syncs",
+    friendlyName: "Replication Failed Syncs",
+    description:
+      "Number of consecutive failed sync attempts for a storage replication job. Anything above 0 means the job's replica is going stale — group by id to alert per job.",
+    metricName: "pve_replication_failed_syncs",
+    category: "Replication",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: ProxmoxResourceScope.Cluster,
+    unit: "count",
+  },
+  {
+    id: "pve-replication-duration-seconds",
+    friendlyName: "Replication Duration",
+    description:
+      "How long a replication job's last sync took. A rising duration usually means growing deltas or a slow/congested target.",
+    metricName: "pve_replication_duration_seconds",
+    category: "Replication",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: ProxmoxResourceScope.Cluster,
+    unit: "seconds",
+  },
+  {
+    id: "pve-replication-last-sync-timestamp-seconds",
+    friendlyName: "Replication Last Sync",
+    description:
+      "Unix timestamp of a replication job's last SUCCESSFUL sync. Compare against the current time to gauge replica staleness (the criteria engine has no wall-clock math, so staleness is a chart/UI concern, not an alert).",
+    metricName: "pve_replication_last_sync_timestamp_seconds",
+    category: "Replication",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: ProxmoxResourceScope.Cluster,
+    unit: "seconds",
+  },
+  {
+    id: "pve-replication-last-try-timestamp-seconds",
+    friendlyName: "Replication Last Try",
+    description:
+      "Unix timestamp of a replication job's last sync ATTEMPT. A last-try newer than last-sync means the most recent attempt failed.",
+    metricName: "pve_replication_last_try_timestamp_seconds",
+    category: "Replication",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: ProxmoxResourceScope.Cluster,
+    unit: "seconds",
+  },
+  {
+    id: "pve-replication-next-sync-timestamp-seconds",
+    friendlyName: "Replication Next Sync",
+    description: "Unix timestamp of a replication job's next scheduled sync.",
+    metricName: "pve_replication_next_sync_timestamp_seconds",
+    category: "Replication",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: ProxmoxResourceScope.Cluster,
+    unit: "seconds",
+  },
+  {
+    id: "pve-replication-info",
+    friendlyName: "Replication Info",
+    description:
+      "Metadata series for each storage replication job (value is always 1) carrying type, source, target and guest labels. Sum it to count replication jobs; join its labels to map a job id to the guest and node pair it replicates.",
+    metricName: "pve_replication_info",
+    category: "Replication",
+    defaultAggregation: MetricsAggregationType.Sum,
+    defaultResourceScope: ProxmoxResourceScope.Cluster,
+    unit: "count",
+  },
 ];
 
 export function getAllProxmoxMetrics(): Array<ProxmoxMetricDefinition> {
@@ -267,5 +370,13 @@ export function getProxmoxMetricByMetricName(
 }
 
 export function getAllProxmoxMetricCategories(): Array<ProxmoxMetricCategory> {
-  return ["Availability", "Node", "Guest", "Storage", "HA"];
+  return [
+    "Availability",
+    "Node",
+    "Guest",
+    "Storage",
+    "HA",
+    "Backup",
+    "Replication",
+  ];
 }

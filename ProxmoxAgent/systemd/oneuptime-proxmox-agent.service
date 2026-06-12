@@ -1,6 +1,10 @@
 [Unit]
 Description=OneUptime Proxmox Agent (OpenTelemetry Collector)
 Documentation=https://oneuptime.com/docs/telemetry/proxmox
+# Note: the optional journald logs pipeline (PVE service logs) needs the
+# journal volumes uncommented in docker-compose.yml and only works when
+# this unit runs on a Proxmox VE node — see "Shipping Proxmox service
+# logs" in the agent README.
 After=network-online.target docker.service
 Wants=network-online.target
 Requires=docker.service

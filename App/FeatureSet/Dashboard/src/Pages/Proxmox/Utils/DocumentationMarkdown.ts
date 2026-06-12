@@ -6,9 +6,22 @@ export function getProxmoxInstallationMarkdown(data: {
 ## Prerequisites
 
 - Docker Engine 20.10+ with the Docker Compose v2 plugin, on any machine that can reach your Proxmox VE API (port 8006)
-- A Proxmox VE API token with the **PVEAuditor** role (read-only) — create one under *Datacenter → Permissions → API Tokens*
+- A Proxmox VE API token with the **PVEAuditor** role (read-only) — mint it with the two-liner below, or in the UI under *Datacenter → Permissions → API Tokens*
+
+**Agent placement:** run the agent somewhere that survives a node failure — a VM outside the cluster, a management host, or at minimum point \`PVE_HOST\` at a virtual IP that fails over between nodes. An agent running on (or scraping) a single PVE node goes dark exactly when that node dies.
 
 ### Creating the Proxmox API token
+
+**Fastest path** — run this shell two-liner as root on any PVE node (create the user first with \`pveum user add monitoring@pam\` if it doesn't exist yet):
+
+\`\`\`bash
+pveum user token add monitoring@pam oneuptime --privsep 1
+pveum acl modify / --roles PVEAuditor --tokens 'monitoring@pam!oneuptime'
+\`\`\`
+
+The first command prints the token secret — copy it now, it is shown only once. The ACL must sit on the root path \`/\`: pve-exporter reads cluster-wide status, and a token scoped to a sub-path fails with \`Permission check failed (/, Sys.Audit)\`.
+
+**Prefer the UI?** The same token in 4 clicks:
 
 1. In the Proxmox web UI go to *Datacenter → Permissions → API Tokens* and click **Add**.
 2. Pick (or create) a user, give the token an ID like \`oneuptime\`, and **uncheck Privilege Separation** (or grant the token its own permissions in the next step).

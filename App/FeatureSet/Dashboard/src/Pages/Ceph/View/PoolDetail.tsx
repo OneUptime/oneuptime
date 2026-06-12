@@ -14,6 +14,14 @@ import React, {
   useState,
 } from "react";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import Metric from "Common/Models/AnalyticsModels/Metric";
+import ProjectUtil from "Common/UI/Utils/Project";
+import OneUptimeDate from "Common/Types/Date";
+import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
+import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
+import Dictionary from "Common/Types/Dictionary";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -25,7 +33,10 @@ import ResourceOverviewTab, {
 } from "../../../Components/Infrastructure/ResourceOverviewTab";
 import ResourceMetricsTab from "../../../Components/Infrastructure/ResourceMetricsTab";
 import CephRateChart from "../../../Components/Ceph/CephRateChart";
-import CephResourceUtils from "../Utils/CephResourceUtils";
+import CephResourceUtils, {
+  GrowthFitSample,
+  GrowthProjection,
+} from "../Utils/CephResourceUtils";
 
 /*
  * Pool detail page. The route param (subModelId) is the CephResource
@@ -33,6 +44,22 @@ import CephResourceUtils from "../Utils/CephResourceUtils";
  * id and not the pool name: pool DATA series carry only `pool_id`, so
  * every metric filter below stays valid even when the pool is renamed.
  */
+
+const CLUSTER_ATTR: string = "resource.ceph.cluster.name";
+
+/*
+ * Growth projection (WI-29): least-squares fit of ceph_pool_stored over
+ * the last 24h against the pool's writable limit (stored + max_avail) —
+ * the UI-only analog of the upstream CephPoolGrowthWarning mixin alert.
+ */
+const PROJECTION_WINDOW_HOURS: number = 24;
+
+/*
+ * Below this much observed history the projection is rendered with an
+ * explicit low-confidence caveat instead of a confident "~N days".
+ */
+const MIN_CONFIDENT_FIT_SPAN_MS: number = 2 * 60 * 60 * 1000;
+
 const CephClusterPoolDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -41,6 +68,7 @@ const CephClusterPoolDetail: FunctionComponent<
 
   const [cluster, setCluster] = useState<CephCluster | null>(null);
   const [resource, setResource] = useState<CephResourceModel | null>(null);
+  const [growth, setGrowth] = useState<GrowthProjection | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLoadingResource, setIsLoadingResource] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -94,12 +122,118 @@ const CephClusterPoolDetail: FunctionComponent<
     setIsLoadingResource(false);
   };
 
+  /*
+   * Pure client math on the already-stored metric series — no new
+   * metrics, no alerting (same fetch shape as the cluster Overview's
+   * capacity projection). Failures simply hide the growth row.
+   */
+  const fetchGrowthProjection: (clusterName: string) => Promise<void> = async (
+    clusterName: string,
+  ): Promise<void> => {
+    try {
+      const endDate: Date = OneUptimeDate.getCurrentDate();
+      const startDate: Date = OneUptimeDate.addRemoveHours(
+        endDate,
+        -PROJECTION_WINDOW_HOURS,
+      );
+
+      const fetchSamples: (
+        metricName: string,
+      ) => Promise<Array<GrowthFitSample>> = async (
+        metricName: string,
+      ): Promise<Array<GrowthFitSample>> => {
+        const result: AggregatedResult =
+          await AnalyticsModelAPI.aggregate<Metric>({
+            modelType: Metric,
+            aggregateBy: {
+              query: {
+                projectId: ProjectUtil.getCurrentProjectId()!,
+                time: new InBetween(startDate, endDate),
+                name: metricName,
+                attributes: {
+                  [CLUSTER_ATTR]: clusterName,
+                  pool_id: poolId,
+                } as Dictionary<string | number | boolean>,
+              },
+              aggregationType: AggregationType.Avg,
+              aggregateColumnName: "value",
+              aggregationTimestampColumnName: "time",
+              startTimestamp: startDate,
+              endTimestamp: endDate,
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+            },
+          });
+
+        const samples: Array<GrowthFitSample> = [];
+        for (const p of (result.data || []) as Array<AggregatedModel>) {
+          const raw: unknown =
+            p["timestamp"] !== undefined ? p["timestamp"] : p["time"];
+          const t: number =
+            raw instanceof Date
+              ? raw.getTime()
+              : new Date(raw as string).getTime();
+          const v: number = Number(p["value"]);
+          if (Number.isFinite(t) && Number.isFinite(v)) {
+            samples.push({ t, v });
+          }
+        }
+        samples.sort((a: GrowthFitSample, b: GrowthFitSample) => {
+          return a.t - b.t;
+        });
+        return samples;
+      };
+
+      const [storedSamples, maxAvailSamples]: [
+        Array<GrowthFitSample>,
+        Array<GrowthFitSample>,
+      ] = await Promise.all([
+        fetchSamples("ceph_pool_stored"),
+        fetchSamples("ceph_pool_max_avail"),
+      ]);
+
+      if (storedSamples.length < 3 || maxAvailSamples.length === 0) {
+        return;
+      }
+
+      /*
+       * The pool is full when stored reaches stored + max_avail — both
+       * taken from the latest samples so the target tracks replication
+       * and cluster-capacity changes.
+       */
+      const latestStored: number = storedSamples[storedSamples.length - 1]!.v;
+      const latestMaxAvail: number =
+        maxAvailSamples[maxAvailSamples.length - 1]!.v;
+      const capacityBytes: number = latestStored + latestMaxAvail;
+      if (capacityBytes <= 0) {
+        return;
+      }
+
+      setGrowth(
+        CephResourceUtils.linearGrowthDaysToTarget(
+          storedSamples,
+          capacityBytes,
+        ),
+      );
+    } catch {
+      // Best-effort — the growth projection row simply stays hidden.
+    }
+  };
+
   useEffect(() => {
     fetchCluster().catch((err: Error) => {
       setError(API.getFriendlyMessage(err));
     });
     fetchResource().catch(() => {});
   }, []);
+
+  // ClickHouse-backed projection loads once the cluster name is known.
+  useEffect(() => {
+    if (!cluster?.name) {
+      return;
+    }
+    fetchGrowthProjection(cluster.name).catch(() => {});
+  }, [cluster?.name]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -200,6 +334,32 @@ const CephClusterPoolDetail: FunctionComponent<
     { title: "Cluster", value: clusterName },
   ];
 
+  /*
+   * WI-29: "pool ~full in N days" from the stored-bytes linear fit.
+   * Shown only when it carries signal (growing or already at capacity);
+   * an explicit caveat keeps it honest when under 2h of history backs
+   * the fit.
+   */
+  const growthValue: string | null = (() => {
+    if (!growth || growth.daysToTarget === null) {
+      return null;
+    }
+    if (growth.daysToTarget === 0) {
+      return "At capacity — no writable space left";
+    }
+    if (!Number.isFinite(growth.daysToTarget)) {
+      return null;
+    }
+    const caveat: string =
+      growth.sampleSpanMs < MIN_CONFIDENT_FIT_SPAN_MS
+        ? " (low confidence — under 2h of history)"
+        : "";
+    if (growth.daysToTarget > 365) {
+      return `Full in >1 year at current growth${caveat}`;
+    }
+    return `Full in ~${Math.max(1, Math.round(growth.daysToTarget))}d at current growth${caveat}`;
+  })();
+
   if (resource) {
     summaryFields.push(
       {
@@ -214,6 +374,14 @@ const CephClusterPoolDetail: FunctionComponent<
         title: "Used",
         value: CephResourceUtils.formatPercent(usedPercent),
       },
+    );
+    if (growthValue) {
+      summaryFields.push({
+        title: "Growth",
+        value: growthValue,
+      });
+    }
+    summaryFields.push(
       {
         title: "Objects",
         value: CephResourceUtils.formatCount(

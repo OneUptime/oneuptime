@@ -13,7 +13,9 @@ export type ProxmoxAlertTemplateCategory =
   | "Node"
   | "Guest"
   | "Storage"
-  | "HA";
+  | "HA"
+  | "Backup"
+  | "Replication";
 
 export type ProxmoxAlertTemplateSeverity = "Critical" | "Warning";
 
@@ -761,6 +763,105 @@ const haStateErrorTemplate: ProxmoxAlertTemplate = {
   },
 };
 
+const guestNotBackedUpTemplate: ProxmoxAlertTemplate = {
+  id: "pve-guest-not-backed-up",
+  name: "Guest Not Backed Up",
+  description:
+    "Alert when one or more guests are not covered by ANY backup job (pve_not_backed_up_total > 0, cluster scope). Identify the uncovered guests via pve_not_backed_up_info grouped by id. Honest boundary: this checks backup-JOB coverage only — whether backups ran recently or succeeded is not exposed by pve-exporter.",
+  category: "Backup",
+  severity: "Warning",
+  getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "guests_without_backup";
+
+    return buildProxmoxMonitorStep({
+      proxmoxMonitor: buildProxmoxMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        /*
+         * Cluster-level gauge from the backup-info collector — one
+         * series, no `id` label, so no groupBy: one incident per
+         * cluster. Per-guest naming belongs to the breakdown table
+         * (pve_not_backed_up_info grouped by `id`), not the alert.
+         */
+        metricName: "pve_not_backed_up_total",
+        metricAlias,
+        rollingTime: RollingTime.Past5Minutes,
+        // Max — a single scrape reporting uncovered guests trips it.
+        aggregationType: MetricsAggregationType.Max,
+      }),
+      offlineCriteriaInstance: buildProxmoxOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+        incidentTitle: `[Proxmox] Guest Not Backed Up - ${args.monitorName}`,
+        incidentDescription: `One or more guests (VMs or containers) in the Proxmox cluster are not covered by any backup job. A guest outside every backup job has NO recovery path if its node or storage fails. Query pve_not_backed_up_info grouped by id to list the uncovered guests, then add them to a vzdump backup job (Datacenter → Backup). Note: this alert covers backup-job membership only — pve-exporter does not expose whether backups ran recently or succeeded.`,
+        criteriaName: "Guests Without Backup - Total > 0",
+        criteriaDescription:
+          "Triggers when any guest is not covered by a backup job over the monitoring window.",
+      }),
+      onlineCriteriaInstance: buildProxmoxOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.EqualTo,
+        value: 0,
+      }),
+    });
+  },
+};
+
+const replicationFailingTemplate: ProxmoxAlertTemplate = {
+  id: "pve-replication-failing",
+  name: "Replication Failing",
+  description:
+    "Alert when any storage replication job reports failed syncs (pve_replication_failed_syncs > 0). One incident per replication job (grouped by the job id). A failing job means the guest's replica on the target node is going stale — manual failover would lose the data written since the last successful sync.",
+  category: "Replication",
+  severity: "Critical",
+  getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "replication_failed_syncs";
+
+    return buildProxmoxMonitorStep({
+      proxmoxMonitor: buildProxmoxMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        /*
+         * Node-level replication collector (default-on). Series are
+         * labeled `id` with the replication JOB id (e.g. 100-0), not a
+         * node/qemu/lxc-prefixed resource id — so no pve.scope filter,
+         * and groupBy `id` fires one incident per job.
+         */
+        metricName: "pve_replication_failed_syncs",
+        metricAlias,
+        rollingTime: RollingTime.Past5Minutes,
+        // Max per job — any scrape reporting a failed sync trips it.
+        aggregationType: MetricsAggregationType.Max,
+        groupByAttributeKey: "id",
+      }),
+      offlineCriteriaInstance: buildProxmoxOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+        incidentTitle: `[Proxmox] CRITICAL: Replication Failing - ${args.monitorName}`,
+        incidentDescription: `A Proxmox storage replication job is reporting failed syncs (pve_replication_failed_syncs > 0). The guest's replica on the target node is going stale — a failover now would lose every write since the last successful sync. Check the root cause for the affected replication job id, then inspect the job's log on the source node (Datacenter → Replication) for the failure reason — common causes are a full target storage, an offline target node, or a broken SSH trust between nodes.`,
+        criteriaName: "Replication Failing - Failed Syncs > 0",
+        criteriaDescription:
+          "Triggers when any replication job reports one or more failed syncs over the monitoring window.",
+      }),
+      onlineCriteriaInstance: buildProxmoxOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.EqualTo,
+        value: 0,
+      }),
+    });
+  },
+};
+
 export function getAllProxmoxAlertTemplates(): Array<ProxmoxAlertTemplate> {
   return [
     nodeOfflineTemplate,
@@ -772,6 +873,8 @@ export function getAllProxmoxAlertTemplates(): Array<ProxmoxAlertTemplate> {
     storageNearFullTemplate,
     lxcDiskNearFullTemplate,
     haStateErrorTemplate,
+    guestNotBackedUpTemplate,
+    replicationFailingTemplate,
   ];
 }
 

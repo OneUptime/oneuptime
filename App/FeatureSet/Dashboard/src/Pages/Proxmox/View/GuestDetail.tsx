@@ -259,6 +259,27 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
       });
     }
 
+    /*
+     * WI-24: backup-JOB coverage from pve_not_backed_up_info. "In a
+     * backup job" means a vzdump job selects this guest — NOT that
+     * recent backups succeeded (freshness/success need the PVE/PBS
+     * API — v4). Unset = the cluster has not reported the backup-info
+     * series; render nothing rather than implying coverage.
+     */
+    if (row.isBackedUp !== null && row.isBackedUp !== undefined) {
+      summaryFields.push({
+        title: "Backup Job Coverage",
+        value: (
+          <StatusBadge
+            text={row.isBackedUp ? "In a backup job" : "Not in any backup job"}
+            type={
+              row.isBackedUp ? StatusBadgeType.Success : StatusBadgeType.Danger
+            }
+          />
+        ),
+      });
+    }
+
     const uptime: string = formatUptime(row.uptimeSeconds);
     if (uptime) {
       summaryFields.push({ title: "Uptime", value: uptime });

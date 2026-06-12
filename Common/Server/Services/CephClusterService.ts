@@ -151,6 +151,19 @@ export class Service extends DatabaseService<Model> {
    * 60-second extras fingerprint cache is the write throttle — the
    * steady state (identical snapshot every scrape) costs one Redis
    * read per batch and at most one Postgres UPDATE per minute.
+   *
+   * Two callers share this throttle with DISJOINT extras shapes: the
+   * metrics snapshot flush (version + counts/health, every batch) and
+   * the fenced autoDiscoverCephCluster maintenance path (agentVersion
+   * + optional fsid only — and usually an all-null fingerprint, since
+   * the shipped agent config stamps neither oneuptime.agent.version
+   * nor ceph.cluster.fsid by default). The single fingerprint covers
+   * the whole extras object, so each alternation between the two
+   * shapes busts the throttle: at most one extra Postgres UPDATE per
+   * maintenance-fence window (~5 min), which is accepted. Do NOT key
+   * the cache per-caller — that would let two callers each refresh
+   * lastSeenAt under their own throttle and is not worth the
+   * complexity for one UPDATE per 5 minutes.
    */
   @CaptureSpan()
   public async updateLastSeen(

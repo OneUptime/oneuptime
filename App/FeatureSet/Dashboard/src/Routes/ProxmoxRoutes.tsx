@@ -25,6 +25,8 @@ import ProxmoxClusterLogs from "../Pages/Proxmox/View/Logs";
 import ProxmoxClusterIncidents from "../Pages/Proxmox/View/Incidents";
 import ProxmoxClusterAlerts from "../Pages/Proxmox/View/Alerts";
 import ProxmoxClusterScheduledMaintenance from "../Pages/Proxmox/View/ScheduledMaintenance";
+import ProxmoxClusterOwners from "../Pages/Proxmox/View/Owners";
+import ProxmoxClusterAuditLogs from "../Pages/Proxmox/View/AuditLogs";
 import ProxmoxClusterSettings from "../Pages/Proxmox/View/Settings";
 import ProxmoxClusterDelete from "../Pages/Proxmox/View/Delete";
 import ProxmoxClusterDocumentation from "../Pages/Proxmox/View/Documentation";
@@ -256,6 +258,34 @@ const ProxmoxRoutes: FunctionComponent<ComponentProps> = (
                 RouteMap[
                   PageMap.PROXMOX_CLUSTER_VIEW_SCHEDULED_MAINTENANCE
                 ] as Route
+              }
+            />
+          }
+        />
+
+        {/* Owners */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.PROXMOX_CLUSTER_VIEW_OWNERS,
+          )}
+          element={
+            <ProxmoxClusterOwners
+              {...props}
+              pageRoute={RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_OWNERS] as Route}
+            />
+          }
+        />
+
+        {/* Audit Logs */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.PROXMOX_CLUSTER_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <ProxmoxClusterAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_AUDIT_LOGS] as Route
               }
             />
           }

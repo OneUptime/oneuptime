@@ -91,12 +91,14 @@ Within a minute or so the cluster should appear in the OneUptime dashboard with 
 
 ## What Gets Collected
 
+The agent ships everything the mgr prometheus module exports. The series OneUptime's Ceph dashboard, metric catalog, and alert templates are built on:
+
 | Category | Metrics |
 |----------|---------|
-| **Cluster Health** | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), `ceph_mon_quorum_status`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
-| **OSD** | `ceph_osd_up`, `ceph_osd_in` — per OSD via the `ceph_daemon` label (e.g. `osd.3`) |
-| **Pool** | `ceph_pool_stored`, `ceph_pool_max_avail`, `ceph_pool_objects`, `ceph_pool_rd`, `ceph_pool_wr`, `ceph_pool_rd_bytes`, `ceph_pool_wr_bytes` |
-| **Placement Groups** | `ceph_pg_active`, `ceph_pg_degraded`, `ceph_pg_undersized` |
+| **Cluster Health** | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail` (one series per **active** health check, labeled `name`/`severity` — Quincy and later; powers the health-check alert templates and the dashboard's "why" drill-down), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics` (per-daemon, keyed by `type`), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
+| **OSD** | `ceph_osd_up`, `ceph_osd_in`, `ceph_osd_apply_latency_ms`, `ceph_osd_commit_latency_ms`, `ceph_osd_stat_bytes`, `ceph_osd_stat_bytes_used`, `ceph_osd_numpg`, `ceph_osd_metadata` — per OSD via the `ceph_daemon` label (e.g. `osd.3`) |
+| **Pool** | `ceph_pool_stored`, `ceph_pool_max_avail`, `ceph_pool_objects`, `ceph_pool_rd`, `ceph_pool_wr`, `ceph_pool_rd_bytes`, `ceph_pool_wr_bytes`, `ceph_pool_metadata` — data series carry only a `pool_id` label; the pool name lives on `ceph_pool_metadata` |
+| **Placement Groups** | `ceph_pg_total`, `ceph_pg_active`, `ceph_pg_clean`, `ceph_pg_degraded`, `ceph_pg_undersized` (all per pool, `pool_id` label), `ceph_num_objects_degraded`, `ceph_num_objects_misplaced` |
 
 ## Optional Extra Scrape Targets
 
@@ -185,6 +187,6 @@ OneUptime auto-registers Ceph clusters by `ceph.cluster.name`, taken from the `C
 
 ## Next steps
 
-- Configure **Ceph Monitors** to alert on health status, OSD availability, PG degradation, and pool capacity — see [Ceph Monitor](/docs/monitor/ceph-monitor).
+- Configure **Ceph Monitors** to alert on health status, OSD availability, PG states, capacity, daemon crashes, clock skew, slow operations, and more — see [Ceph Monitor](/docs/monitor/ceph-monitor).
 - Running Ceph as storage for Proxmox VE? Pair this agent with the [OneUptime Proxmox Agent](/docs/telemetry/proxmox).
 - For the OS-level view of individual hosts, use the [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector).

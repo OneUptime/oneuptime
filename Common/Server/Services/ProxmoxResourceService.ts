@@ -35,6 +35,13 @@ export interface ParsedProxmoxResource {
   isUp: boolean | null;
   haState: string | null;
   onboot: boolean | null;
+  /*
+   * WI-24 backup coverage: true = covered by at least one backup job,
+   * false = a pve_not_backed_up_info series carried this guest's id,
+   * null = batch lacked the backup-info collector output (keeps the
+   * last-known value via COALESCE) or non-Guest kind.
+   */
+  isBackedUp: boolean | null;
   uptimeSeconds: number | null;
   lastSeenAt: Date;
 }
@@ -76,6 +83,7 @@ const UPSERT_COLUMNS: Array<string> = [
   "isUp",
   "haState",
   "onboot",
+  "isBackedUp",
   "uptimeSeconds",
   "lastSeenAt",
   "version",
@@ -138,6 +146,7 @@ export class Service extends DatabaseService<Model> {
           r.isUp,
           r.haState,
           r.onboot,
+          r.isBackedUp,
           r.uptimeSeconds !== null ? Math.trunc(r.uptimeSeconds) : null,
           r.lastSeenAt,
           0, // version (BaseModel @VersionColumn)
@@ -148,7 +157,7 @@ export class Service extends DatabaseService<Model> {
         INSERT INTO "ProxmoxResource" (
           "projectId", "proxmoxClusterId", "kind", "externalId",
           "name", "vmid", "guestType", "parentNodeName",
-          "isUp", "haState", "onboot", "uptimeSeconds",
+          "isUp", "haState", "onboot", "isBackedUp", "uptimeSeconds",
           "lastSeenAt", "version"
         )
         VALUES ${valueFragments.join(", ")}
@@ -161,6 +170,7 @@ export class Service extends DatabaseService<Model> {
           "isUp" = COALESCE(EXCLUDED."isUp", "ProxmoxResource"."isUp"),
           "haState" = COALESCE(EXCLUDED."haState", "ProxmoxResource"."haState"),
           "onboot" = COALESCE(EXCLUDED."onboot", "ProxmoxResource"."onboot"),
+          "isBackedUp" = COALESCE(EXCLUDED."isBackedUp", "ProxmoxResource"."isBackedUp"),
           "uptimeSeconds" = COALESCE(EXCLUDED."uptimeSeconds", "ProxmoxResource"."uptimeSeconds"),
           "lastSeenAt" = EXCLUDED."lastSeenAt",
           "updatedAt" = now()

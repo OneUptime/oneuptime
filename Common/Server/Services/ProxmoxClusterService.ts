@@ -151,6 +151,18 @@ export class Service extends DatabaseService<Model> {
    * 60-second extras fingerprint cache is the write throttle — the
    * steady state (identical snapshot every scrape) costs one Redis
    * read per batch and at most one Postgres UPDATE per minute.
+   *
+   * Two callers share this throttle with DISJOINT extras shapes: the
+   * metrics snapshot flush (pveVersion + counts, every batch) and the
+   * fenced autoDiscoverProxmoxCluster maintenance path (agentVersion
+   * only — and usually an all-null fingerprint, since the shipped
+   * agent config does not stamp oneuptime.agent.version). The single
+   * fingerprint covers the whole extras object, so each alternation
+   * between the two shapes busts the throttle: at most one extra
+   * Postgres UPDATE per maintenance-fence window (~5 min), which is
+   * accepted. Do NOT key the cache per-caller — that would let two
+   * callers each refresh lastSeenAt under their own throttle and is
+   * not worth the complexity for one UPDATE per 5 minutes.
    */
   @CaptureSpan()
   public async updateLastSeen(
@@ -162,6 +174,7 @@ export class Service extends DatabaseService<Model> {
       onlineNodeCount?: number | undefined;
       guestCount?: number | undefined;
       storageCount?: number | undefined;
+      guestsWithoutBackupCount?: number | undefined;
     },
   ): Promise<void> {
     const cacheKey: string = clusterId.toString();
@@ -175,6 +188,7 @@ export class Service extends DatabaseService<Model> {
           onlineNodeCount: extra?.onlineNodeCount ?? null,
           guestCount: extra?.guestCount ?? null,
           storageCount: extra?.storageCount ?? null,
+          guestsWithoutBackupCount: extra?.guestsWithoutBackupCount ?? null,
         }),
       )
       .digest("hex");
@@ -219,6 +233,9 @@ export class Service extends DatabaseService<Model> {
     }
     if (extra?.storageCount !== undefined) {
       data.storageCount = extra.storageCount;
+    }
+    if (extra?.guestsWithoutBackupCount !== undefined) {
+      data.guestsWithoutBackupCount = extra.guestsWithoutBackupCount;
     }
 
     await this.updateOneById({

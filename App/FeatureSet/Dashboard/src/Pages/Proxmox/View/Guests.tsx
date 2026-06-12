@@ -94,6 +94,28 @@ const ProxmoxClusterGuests: FunctionComponent<
             return resource.additionalAttributes["haState"] || "-";
           },
         },
+        {
+          /*
+           * WI-24: backup-JOB coverage from pve_not_backed_up_info —
+           * "In job" means the guest is selected by some backup job,
+           * not that recent backups succeeded (that needs the PVE/PBS
+           * API — v4). Empty until the cluster reports the
+           * backup-info series.
+           */
+          title: "Backup",
+          key: "backedUp",
+          getValue: (resource: InfrastructureResource): string => {
+            const backedUp: string =
+              resource.additionalAttributes["backedUp"] || "";
+            if (backedUp === "true") {
+              return "In job";
+            }
+            if (backedUp === "false") {
+              return "Not backed up";
+            }
+            return "-";
+          },
+        },
       ]}
       getViewRoute={(resource: InfrastructureResource) => {
         return RouteUtil.populateRouteParams(

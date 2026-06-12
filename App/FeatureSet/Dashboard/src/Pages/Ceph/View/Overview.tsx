@@ -547,35 +547,14 @@ const CephClusterOverview: FunctionComponent<
        * Least-squares linear fit of used bytes over the projection
        * window → growth in bytes/ms → "85% (nearfull) in ~N days".
        * Pure client math, no server-side forecasting (K8s raw-fetch
-       * precedent).
+       * precedent). Shared with the per-pool projection (WI-29).
        */
       let daysToNearfull: number | null = null;
-      if (samples.length >= 3 && totalBytes !== null && usedBytes !== null) {
-        const n: number = samples.length;
-        const meanT: number =
-          samples.reduce((sum: number, s: Sample) => {
-            return sum + s.t;
-          }, 0) / n;
-        const meanV: number =
-          samples.reduce((sum: number, s: Sample) => {
-            return sum + s.v;
-          }, 0) / n;
-        let num: number = 0;
-        let den: number = 0;
-        for (const s of samples) {
-          num += (s.t - meanT) * (s.v - meanV);
-          den += (s.t - meanT) * (s.t - meanT);
-        }
-        const slopePerMs: number = den > 0 ? num / den : 0;
-        const targetBytes: number = NEARFULL_RATIO * totalBytes;
-        if (usedBytes >= targetBytes) {
-          daysToNearfull = 0;
-        } else if (slopePerMs > 0) {
-          daysToNearfull =
-            (targetBytes - usedBytes) / (slopePerMs * 1000 * 60 * 60 * 24);
-        } else {
-          daysToNearfull = Number.POSITIVE_INFINITY;
-        }
+      if (totalBytes !== null && usedBytes !== null) {
+        daysToNearfull = CephResourceUtils.linearGrowthDaysToTarget(
+          samples,
+          NEARFULL_RATIO * totalBytes,
+        ).daysToTarget;
       }
 
       setCapacity({

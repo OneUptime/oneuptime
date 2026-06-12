@@ -239,6 +239,73 @@ export function formatLastSeen(date: Date | undefined | null): string {
   return OneUptimeDate.fromNow(new Date(date));
 }
 
+export type GrowthFitSample = { t: number; v: number };
+
+export interface GrowthProjection {
+  /*
+   * Days until the fitted series crosses targetValue: 0 = already at or
+   * above the target, Infinity = not growing, null = not enough samples
+   * for a fit.
+   */
+  daysToTarget: number | null;
+  /*
+   * Wall-clock span covered by the samples — callers use this to be
+   * honest when the projection rests on very little history.
+   */
+  sampleSpanMs: number;
+}
+
+/**
+ * Least-squares linear fit of a byte series over time → "target crossed
+ * in ~N days" (v2 WI-8 cluster-capacity projection, reused per-pool by
+ * V3 WI-29). Pure client math — no server-side forecasting.
+ */
+export function linearGrowthDaysToTarget(
+  samples: Array<GrowthFitSample>,
+  targetValue: number,
+): GrowthProjection {
+  if (samples.length < 3) {
+    return { daysToTarget: null, sampleSpanMs: 0 };
+  }
+
+  const sorted: Array<GrowthFitSample> = [...samples].sort(
+    (a: GrowthFitSample, b: GrowthFitSample): number => {
+      return a.t - b.t;
+    },
+  );
+  const sampleSpanMs: number = sorted[sorted.length - 1]!.t - sorted[0]!.t;
+  const latestValue: number = sorted[sorted.length - 1]!.v;
+
+  const n: number = sorted.length;
+  const meanT: number =
+    sorted.reduce((sum: number, s: GrowthFitSample) => {
+      return sum + s.t;
+    }, 0) / n;
+  const meanV: number =
+    sorted.reduce((sum: number, s: GrowthFitSample) => {
+      return sum + s.v;
+    }, 0) / n;
+  let num: number = 0;
+  let den: number = 0;
+  for (const s of sorted) {
+    num += (s.t - meanT) * (s.v - meanV);
+    den += (s.t - meanT) * (s.t - meanT);
+  }
+  const slopePerMs: number = den > 0 ? num / den : 0;
+
+  if (latestValue >= targetValue) {
+    return { daysToTarget: 0, sampleSpanMs: sampleSpanMs };
+  }
+  if (slopePerMs > 0) {
+    return {
+      daysToTarget:
+        (targetValue - latestValue) / (slopePerMs * 1000 * 60 * 60 * 24),
+      sampleSpanMs: sampleSpanMs,
+    };
+  }
+  return { daysToTarget: Number.POSITIVE_INFINITY, sampleSpanMs: sampleSpanMs };
+}
+
 export default {
   METRIC_STALE_MS,
   formatBytes,
@@ -250,4 +317,5 @@ export default {
   freshMetricValue,
   computeRatePerSeriesKey,
   formatLastSeen,
+  linearGrowthDaysToTarget,
 };

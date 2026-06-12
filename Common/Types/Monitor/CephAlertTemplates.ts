@@ -3,7 +3,12 @@ import MonitorStep from "./MonitorStep";
 import MonitorCriteria from "./MonitorCriteria";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
 import FilterCondition from "../Filter/FilterCondition";
-import { CheckOn, FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
+import {
+  CheckOn,
+  FilterType,
+  EvaluateOverTimeType,
+  NoDataPolicy,
+} from "./CriteriaFilter";
 import MonitorStepCephMonitor from "./MonitorStepCephMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
@@ -41,12 +46,30 @@ export interface CephAlertTemplate {
  * pool name exists solely on ceph_pool_metadata. Templates group by these
  * labels so one incident fires per daemon/pool. Datapoint labels are NOT
  * `resource.`-prefixed in ClickHouse.
+ *
+ * Health-check contract: `ceph_health_detail{name,severity}` (Quincy and
+ * later) exports one series per ACTIVE health check — equality-filter on
+ * the `name` datapoint label, exactly like the `pve_ha_state` state filter.
+ * A series exists only while its check fires, so absence = healthy: the
+ * fire criteria use Max > 0 (no data never fires under the default Ignore
+ * no-data policy) and the recover criteria use = 0 with TreatAsZero so the
+ * monitor returns to Healthy when the series disappears.
+ * `ceph_daemon_health_metrics{type,ceph_daemon}` follows the same pattern
+ * per daemon.
  */
 
 export function buildCephMonitorStep(args: {
   cephMonitor: MonitorStepCephMonitor;
   offlineCriteriaInstance: MonitorCriteriaInstance;
   onlineCriteriaInstance: MonitorCriteriaInstance;
+  /*
+   * Optional extra unhealthy tiers, evaluated AFTER the primary offline
+   * instance and before the online instance. Criteria are first-match-
+   * wins, so pass tiers worst-first (e.g. ceph-mon-disk-space pairs a
+   * Critical MON_DISK_CRIT tier with a Warning MON_DISK_LOW tier in one
+   * template).
+   */
+  additionalOfflineCriteriaInstances?: Array<MonitorCriteriaInstance>;
 }): MonitorStep {
   const monitorStep: MonitorStep = new MonitorStep();
 
@@ -55,6 +78,7 @@ export function buildCephMonitorStep(args: {
   monitorCriteria.data = {
     monitorCriteriaInstanceArray: [
       args.offlineCriteriaInstance,
+      ...(args.additionalOfflineCriteriaInstances || []),
       args.onlineCriteriaInstance,
     ],
   };
@@ -89,6 +113,17 @@ export function buildCephMonitorStep(args: {
   return monitorStep;
 }
 
+/**
+ * One extra threshold filter inside a criteria instance — references
+ * another query alias of the same monitor step. Used by health-check
+ * templates that watch two `ceph_health_detail` names at once.
+ */
+export interface CephCriteriaFilterSpec {
+  metricAlias: string;
+  filterType: FilterType;
+  value: number;
+}
+
 export function buildCephOfflineCriteriaInstance(args: {
   offlineMonitorStatusId: ObjectID;
   incidentSeverityId: ObjectID;
@@ -101,6 +136,12 @@ export function buildCephOfflineCriteriaInstance(args: {
   incidentDescription?: string;
   criteriaName?: string;
   criteriaDescription?: string;
+  /*
+   * Extra OR'd filters (the instance is FilterCondition.Any) — fires when
+   * EITHER the primary alias or any additional alias breaches, e.g.
+   * PG_DAMAGED OR OSD_SCRUB_ERRORS.
+   */
+  additionalFilters?: Array<CephCriteriaFilterSpec> | undefined;
 }): MonitorCriteriaInstance {
   const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
 
@@ -124,6 +165,19 @@ export function buildCephOfflineCriteriaInstance(args: {
         },
         value: args.value,
       },
+      ...(args.additionalFilters || []).map(
+        (filter: CephCriteriaFilterSpec) => {
+          return {
+            checkOn: CheckOn.MetricValue,
+            filterType: filter.filterType,
+            metricMonitorOptions: {
+              metricAggregationType: EvaluateOverTimeType.AnyValue,
+              metricAlias: filter.metricAlias,
+            },
+            value: filter.value,
+          };
+        },
+      ),
     ],
     incidents: [
       {
@@ -161,13 +215,31 @@ export function buildCephOnlineCriteriaInstance(args: {
   metricAlias: string;
   filterType: FilterType;
   value: number;
+  /*
+   * Extra filters for multi-alias recovery. Pass FilterCondition.All with
+   * them so the monitor only recovers when EVERY watched health check has
+   * cleared (the complement of the offline instance's Any).
+   */
+  additionalFilters?: Array<CephCriteriaFilterSpec> | undefined;
+  filterCondition?: FilterCondition | undefined;
+  /*
+   * Health-detail series exist only while the check is active, so the
+   * recover comparison (= 0) would otherwise see no data and never match.
+   * TreatAsZero makes series absence count as 0 — the spec'd
+   * "Max > 0 fire / = 0 recover" semantics.
+   */
+  treatNoDataAsZero?: boolean | undefined;
 }): MonitorCriteriaInstance {
   const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+
+  const onNoDataPolicy: NoDataPolicy | undefined = args.treatNoDataAsZero
+    ? NoDataPolicy.TreatAsZero
+    : undefined;
 
   instance.data = {
     id: ObjectID.generate().toString(),
     monitorStatusId: args.onlineMonitorStatusId,
-    filterCondition: FilterCondition.Any,
+    filterCondition: args.filterCondition || FilterCondition.Any,
     filters: [
       {
         checkOn: CheckOn.MetricValue,
@@ -175,9 +247,24 @@ export function buildCephOnlineCriteriaInstance(args: {
         metricMonitorOptions: {
           metricAggregationType: EvaluateOverTimeType.AnyValue,
           metricAlias: args.metricAlias,
+          onNoDataPolicy: onNoDataPolicy,
         },
         value: args.value,
       },
+      ...(args.additionalFilters || []).map(
+        (filter: CephCriteriaFilterSpec) => {
+          return {
+            checkOn: CheckOn.MetricValue,
+            filterType: filter.filterType,
+            metricMonitorOptions: {
+              metricAggregationType: EvaluateOverTimeType.AnyValue,
+              metricAlias: filter.metricAlias,
+              onNoDataPolicy: onNoDataPolicy,
+            },
+            value: filter.value,
+          };
+        },
+      ),
     ],
     incidents: [],
     alerts: [],
@@ -359,6 +446,54 @@ export function buildCephRatioMonitorConfig(args: {
     aggregationType: args.aggregationType || MetricsAggregationType.Sum,
     groupByAttributeKey: args.groupByAttributeKey,
   });
+}
+
+/**
+ * Build a multi-query monitor with NO formula — each query keeps its own
+ * alias and the criteria filters reference the aliases independently
+ * (combined with FilterCondition.Any/All). Used by health-check templates
+ * that watch two `ceph_health_detail` names at once: a formula like
+ * `a + b` would yield no result whenever one check is inactive (health-
+ * detail series exist only while a check fires), while independent
+ * filters evaluate each alias on its own.
+ */
+export function buildCephMultiQueryMonitorConfig(args: {
+  clusterIdentifier: string;
+  queries: Array<CephFormulaQuery>;
+  rollingTime: RollingTime;
+  aggregationType: MetricsAggregationType;
+  groupByAttributeKey?: string | undefined;
+}): MonitorStepCephMonitor {
+  return {
+    clusterIdentifier: args.clusterIdentifier,
+    resourceFilters: {},
+    metricViewConfig: {
+      queryConfigs: args.queries.map((query: CephFormulaQuery) => {
+        return {
+          metricAliasData: {
+            metricVariable: query.alias,
+            title: query.alias,
+            description: query.alias,
+            legend: query.alias,
+            legendUnit: undefined,
+          },
+          metricQueryData: {
+            filterData: {
+              metricName: query.metricName,
+              attributes: query.attributes || {},
+              aggegationType: args.aggregationType,
+              aggregateBy: {},
+            },
+            ...(args.groupByAttributeKey
+              ? { groupByAttributeKeys: [args.groupByAttributeKey] }
+              : {}),
+          },
+        };
+      }),
+      formulaConfigs: [],
+    },
+    rollingTime: args.rollingTime,
+  };
 }
 
 // --- Template Definitions ---
@@ -971,6 +1106,502 @@ const slowOpsTemplate: CephAlertTemplate = {
   },
 };
 
+/*
+ * --- Health-check-driven templates (V3 WI-26) ---
+ *
+ * All of the following watch `ceph_health_detail{name=...}` (or
+ * `ceph_daemon_health_metrics{type=...}`) — see the health-check contract
+ * comment at the top of this file. Series exist only while a check is
+ * active (Quincy+), so every template fires on Max > 0 and recovers on
+ * = 0 with TreatAsZero, staying quiet by default.
+ */
+
+const pgDamagedTemplate: CephAlertTemplate = {
+  id: "ceph-pg-damaged",
+  name: "Damaged Placement Groups",
+  description:
+    "Alert when scrubbing finds data damage — the PG_DAMAGED or OSD_SCRUB_ERRORS health check is active (ceph_health_detail; Quincy and later, absent series = healthy).",
+  category: "PG",
+  severity: "Critical",
+  getMonitorStep: (args: CephAlertTemplateArgs): MonitorStep => {
+    const pgDamagedAlias: string = "pg_damaged";
+    const scrubErrorsAlias: string = "scrub_errors";
+
+    return buildCephMonitorStep({
+      cephMonitor: buildCephMultiQueryMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        queries: [
+          {
+            alias: pgDamagedAlias,
+            metricName: "ceph_health_detail",
+            attributes: { name: "PG_DAMAGED" },
+          },
+          {
+            alias: scrubErrorsAlias,
+            metricName: "ceph_health_detail",
+            attributes: { name: "OSD_SCRUB_ERRORS" },
+          },
+        ],
+        rollingTime: RollingTime.Past5Minutes,
+        aggregationType: MetricsAggregationType.Max,
+      }),
+      offlineCriteriaInstance: buildCephOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias: pgDamagedAlias,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+        additionalFilters: [
+          {
+            metricAlias: scrubErrorsAlias,
+            filterType: FilterType.GreaterThan,
+            value: 0,
+          },
+        ],
+        incidentTitle: `[Ceph] CRITICAL: Damaged Placement Groups - ${args.monitorName}`,
+        incidentDescription: `Ceph scrubbing has found damaged placement groups or OSD read errors (PG_DAMAGED / OSD_SCRUB_ERRORS health checks). Data integrity is at risk on at least one replica. Run \`ceph health detail\` to see the affected PGs, \`rados list-inconsistent-pg <pool>\` to locate the inconsistencies, and repair with \`ceph pg repair <pg.id>\`. Scrub errors usually indicate failing media — check the backing disks' SMART data before repairing.`,
+        criteriaName: "PG Damaged - Scrub Found Errors",
+        criteriaDescription:
+          "Triggers when the PG_DAMAGED or OSD_SCRUB_ERRORS health check is active.",
+      }),
+      onlineCriteriaInstance: buildCephOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias: pgDamagedAlias,
+        filterType: FilterType.EqualTo,
+        value: 0,
+        additionalFilters: [
+          {
+            metricAlias: scrubErrorsAlias,
+            filterType: FilterType.EqualTo,
+            value: 0,
+          },
+        ],
+        filterCondition: FilterCondition.All,
+        treatNoDataAsZero: true,
+      }),
+    });
+  },
+};
+
+const daemonCrashTemplate: CephAlertTemplate = {
+  id: "ceph-daemon-crash",
+  name: "Daemon Crash",
+  description:
+    "Alert when one or more Ceph daemons have recently crashed (RECENT_CRASH health check). This is the only crash signal the mgr exports — there is no ceph_crash_* metric.",
+  category: "Cluster Health",
+  severity: "Critical",
+  getMonitorStep: (args: CephAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "recent_crash";
+
+    return buildCephMonitorStep({
+      cephMonitor: buildCephMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        metricName: "ceph_health_detail",
+        metricAlias,
+        rollingTime: RollingTime.Past5Minutes,
+        aggregationType: MetricsAggregationType.Max,
+        attributes: { name: "RECENT_CRASH" },
+      }),
+      offlineCriteriaInstance: buildCephOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+        incidentTitle: `[Ceph] CRITICAL: Daemon Crash Detected - ${args.monitorName}`,
+        incidentDescription: `One or more Ceph daemons have crashed recently and the crashes have not been acknowledged (RECENT_CRASH health check). Run \`ceph crash ls-new\` to list the new crashes and \`ceph crash info <crash-id>\` to inspect the backtrace. Once investigated, archive them with \`ceph crash archive <crash-id>\` (or \`ceph crash archive-all\`) — the health check clears when all crashes are archived.`,
+        criteriaName: "Daemon Crash - RECENT_CRASH Active",
+        criteriaDescription:
+          "Triggers when the RECENT_CRASH health check reports unacknowledged daemon crashes.",
+      }),
+      onlineCriteriaInstance: buildCephOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.EqualTo,
+        value: 0,
+        treatNoDataAsZero: true,
+      }),
+    });
+  },
+};
+
+const osdSlowHeartbeatsTemplate: CephAlertTemplate = {
+  id: "ceph-osd-slow-heartbeats",
+  name: "OSD Slow Heartbeats",
+  description:
+    "Alert when OSD heartbeat pings on the front (public) or back (cluster) network exceed Ceph's grace threshold (OSD_SLOW_PING_TIME_FRONT/BACK health checks — the mgr exports no ping-time gauge, so these are the only signal).",
+  category: "OSD",
+  severity: "Warning",
+  getMonitorStep: (args: CephAlertTemplateArgs): MonitorStep => {
+    const frontAlias: string = "slow_ping_front";
+    const backAlias: string = "slow_ping_back";
+
+    return buildCephMonitorStep({
+      cephMonitor: buildCephMultiQueryMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        queries: [
+          {
+            alias: frontAlias,
+            metricName: "ceph_health_detail",
+            attributes: { name: "OSD_SLOW_PING_TIME_FRONT" },
+          },
+          {
+            alias: backAlias,
+            metricName: "ceph_health_detail",
+            attributes: { name: "OSD_SLOW_PING_TIME_BACK" },
+          },
+        ],
+        rollingTime: RollingTime.Past5Minutes,
+        aggregationType: MetricsAggregationType.Max,
+      }),
+      offlineCriteriaInstance: buildCephOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias: frontAlias,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+        additionalFilters: [
+          {
+            metricAlias: backAlias,
+            filterType: FilterType.GreaterThan,
+            value: 0,
+          },
+        ],
+        incidentTitle: `[Ceph] OSD Slow Heartbeats - ${args.monitorName}`,
+        incidentDescription: `OSD heartbeat pings on the front (client/public) or back (cluster/replication) network are exceeding Ceph's grace threshold (OSD_SLOW_PING_TIME_FRONT / OSD_SLOW_PING_TIME_BACK health checks). Slow heartbeats usually mean network congestion, packet loss, or a saturated NIC — and can escalate to OSDs being wrongly marked down. Run \`ceph health detail\` to see the affected OSD pairs, then inspect the network path between their hosts.`,
+        criteriaName: "Slow Heartbeats - Front or Back Network",
+        criteriaDescription:
+          "Triggers when the OSD_SLOW_PING_TIME_FRONT or OSD_SLOW_PING_TIME_BACK health check is active.",
+      }),
+      onlineCriteriaInstance: buildCephOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias: frontAlias,
+        filterType: FilterType.EqualTo,
+        value: 0,
+        additionalFilters: [
+          {
+            metricAlias: backAlias,
+            filterType: FilterType.EqualTo,
+            value: 0,
+          },
+        ],
+        filterCondition: FilterCondition.All,
+        treatNoDataAsZero: true,
+      }),
+    });
+  },
+};
+
+const monClockSkewTemplate: CephAlertTemplate = {
+  id: "ceph-mon-clock-skew",
+  name: "Monitor Clock Skew",
+  description:
+    "Alert when clock skew between Ceph monitors exceeds the allowed threshold (MON_CLOCK_SKEW health check). Skewed clocks can drop monitors from quorum.",
+  category: "Cluster Health",
+  severity: "Warning",
+  getMonitorStep: (args: CephAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "mon_clock_skew";
+
+    return buildCephMonitorStep({
+      cephMonitor: buildCephMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        metricName: "ceph_health_detail",
+        metricAlias,
+        rollingTime: RollingTime.Past5Minutes,
+        aggregationType: MetricsAggregationType.Max,
+        attributes: { name: "MON_CLOCK_SKEW" },
+      }),
+      offlineCriteriaInstance: buildCephOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+        incidentTitle: `[Ceph] Monitor Clock Skew - ${args.monitorName}`,
+        incidentDescription: `Clock skew between Ceph monitor daemons has exceeded the allowed threshold (MON_CLOCK_SKEW health check; default 0.05 s). Monitors need closely synchronized clocks to maintain quorum — sustained skew can drop monitors out and stall the cluster. Run \`ceph time-sync-status\` to see per-monitor offsets and fix time synchronization (chrony/ntpd) on the affected monitor hosts.`,
+        criteriaName: "Clock Skew - MON_CLOCK_SKEW Active",
+        criteriaDescription:
+          "Triggers when the MON_CLOCK_SKEW health check is active.",
+      }),
+      onlineCriteriaInstance: buildCephOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.EqualTo,
+        value: 0,
+        treatNoDataAsZero: true,
+      }),
+    });
+  },
+};
+
+const osdNearfullTemplate: CephAlertTemplate = {
+  id: "ceph-osd-nearfull",
+  name: "OSD Nearfull",
+  description:
+    "Alert when any individual OSD crosses the nearfull threshold (OSD_NEARFULL health check; default 85%). Single OSDs fill up long before the cluster average does.",
+  category: "Capacity",
+  severity: "Warning",
+  getMonitorStep: (args: CephAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "osd_nearfull";
+
+    return buildCephMonitorStep({
+      cephMonitor: buildCephMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        metricName: "ceph_health_detail",
+        metricAlias,
+        rollingTime: RollingTime.Past5Minutes,
+        aggregationType: MetricsAggregationType.Max,
+        attributes: { name: "OSD_NEARFULL" },
+      }),
+      offlineCriteriaInstance: buildCephOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+        incidentTitle: `[Ceph] OSD Nearfull - ${args.monitorName}`,
+        incidentDescription: `One or more OSDs have crossed the nearfull threshold (OSD_NEARFULL health check; default 85%). Capacity is rarely perfectly balanced — individual OSDs fill up before the cluster does, and any single OSD reaching the full ratio blocks writes cluster-wide. Run \`ceph osd df\` to find the affected OSDs, rebalance with the balancer module or \`ceph osd reweight-by-utilization\`, and plan capacity now.`,
+        criteriaName: "OSD Nearfull - Health Check Active",
+        criteriaDescription:
+          "Triggers when the OSD_NEARFULL health check is active.",
+      }),
+      onlineCriteriaInstance: buildCephOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.EqualTo,
+        value: 0,
+        treatNoDataAsZero: true,
+      }),
+    });
+  },
+};
+
+const osdBackfillfullTemplate: CephAlertTemplate = {
+  id: "ceph-osd-backfillfull",
+  name: "OSD Backfillfull",
+  description:
+    "Alert when any OSD crosses the backfillfull threshold (OSD_BACKFILLFULL health check; default 90%). Backfill to these OSDs is blocked, stalling recovery and rebalancing.",
+  category: "Capacity",
+  severity: "Warning",
+  getMonitorStep: (args: CephAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "osd_backfillfull";
+
+    return buildCephMonitorStep({
+      cephMonitor: buildCephMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        metricName: "ceph_health_detail",
+        metricAlias,
+        rollingTime: RollingTime.Past5Minutes,
+        aggregationType: MetricsAggregationType.Max,
+        attributes: { name: "OSD_BACKFILLFULL" },
+      }),
+      offlineCriteriaInstance: buildCephOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+        incidentTitle: `[Ceph] OSD Backfillfull - ${args.monitorName}`,
+        incidentDescription: `One or more OSDs have crossed the backfillfull threshold (OSD_BACKFILLFULL health check; default 90%). Backfill and rebalance operations onto these OSDs are now refused, which stalls recovery after failures and can leave the cluster degraded. Run \`ceph osd df\` to find the affected OSDs, then free space or add capacity so recovery can proceed before the OSDs reach the full ratio.`,
+        criteriaName: "OSD Backfillfull - Health Check Active",
+        criteriaDescription:
+          "Triggers when the OSD_BACKFILLFULL health check is active.",
+      }),
+      onlineCriteriaInstance: buildCephOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.EqualTo,
+        value: 0,
+        treatNoDataAsZero: true,
+      }),
+    });
+  },
+};
+
+const osdFullTemplate: CephAlertTemplate = {
+  id: "ceph-osd-full",
+  name: "OSD Full",
+  description:
+    "Alert immediately when any OSD reaches the full threshold (OSD_FULL health check; default 95%) — writes to the cluster are refused until space is freed.",
+  category: "Capacity",
+  severity: "Critical",
+  getMonitorStep: (args: CephAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "osd_full";
+
+    return buildCephMonitorStep({
+      cephMonitor: buildCephMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        metricName: "ceph_health_detail",
+        metricAlias,
+        /*
+         * Past1Minute — writes are already blocked when this check fires,
+         * so alert on the very first scrape that reports it.
+         */
+        rollingTime: RollingTime.Past1Minute,
+        aggregationType: MetricsAggregationType.Max,
+        attributes: { name: "OSD_FULL" },
+      }),
+      offlineCriteriaInstance: buildCephOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+        incidentTitle: `[Ceph] CRITICAL: OSD Full - ${args.monitorName}`,
+        incidentDescription: `One or more OSDs have reached the full threshold (OSD_FULL health check; default 95%) and Ceph is refusing writes to protect data integrity — client I/O is stalling now. Free capacity immediately: delete unneeded data or snapshots, add OSDs, or as a last resort temporarily raise the ratio with \`ceph osd set-full-ratio\` (extreme caution) to restore write availability. Run \`ceph osd df\` to identify the full OSDs.`,
+        criteriaName: "OSD Full - Health Check Active",
+        criteriaDescription:
+          "Triggers when the OSD_FULL health check is active.",
+      }),
+      onlineCriteriaInstance: buildCephOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.EqualTo,
+        value: 0,
+        treatNoDataAsZero: true,
+      }),
+    });
+  },
+};
+
+const monDiskSpaceTemplate: CephAlertTemplate = {
+  id: "ceph-mon-disk-space",
+  name: "Monitor Disk Space",
+  description:
+    "Alert when a Ceph monitor's database disk runs low — Critical at the MON_DISK_CRIT threshold (default 5% free), Warning at MON_DISK_LOW (default 30% free), both tiers in one template. A full monitor disk crashes the monitor and risks quorum.",
+  category: "Cluster Health",
+  severity: "Critical",
+  getMonitorStep: (args: CephAlertTemplateArgs): MonitorStep => {
+    const critAlias: string = "mon_disk_crit";
+    const lowAlias: string = "mon_disk_low";
+
+    return buildCephMonitorStep({
+      cephMonitor: buildCephMultiQueryMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        queries: [
+          {
+            alias: critAlias,
+            metricName: "ceph_health_detail",
+            attributes: { name: "MON_DISK_CRIT" },
+          },
+          {
+            alias: lowAlias,
+            metricName: "ceph_health_detail",
+            attributes: { name: "MON_DISK_LOW" },
+          },
+        ],
+        rollingTime: RollingTime.Past5Minutes,
+        aggregationType: MetricsAggregationType.Max,
+      }),
+      // Critical tier first — criteria are evaluated first-match-wins.
+      offlineCriteriaInstance: buildCephOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias: critAlias,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+        incidentTitle: `[Ceph] CRITICAL: Monitor Disk Critically Low - ${args.monitorName}`,
+        incidentDescription: `A Ceph monitor's database disk has crossed the critical threshold (MON_DISK_CRIT health check; default 5% free). If the disk fills completely the monitor crashes — and losing too many monitors loses quorum and halts the cluster. Free space on the affected monitor host immediately: compact the mon store (\`ceph tell mon.<id> compact\`), remove old logs, or grow the volume. Run \`ceph health detail\` to see which monitor is affected.`,
+        criteriaName: "Mon Disk Critical - MON_DISK_CRIT Active",
+        criteriaDescription:
+          "Triggers when the MON_DISK_CRIT health check is active.",
+      }),
+      additionalOfflineCriteriaInstances: [
+        buildCephOfflineCriteriaInstance({
+          offlineMonitorStatusId: args.offlineMonitorStatusId,
+          incidentSeverityId: args.defaultIncidentSeverityId,
+          alertSeverityId: args.defaultAlertSeverityId,
+          monitorName: args.monitorName,
+          metricAlias: lowAlias,
+          filterType: FilterType.GreaterThan,
+          value: 0,
+          incidentTitle: `[Ceph] Monitor Disk Space Low - ${args.monitorName}`,
+          incidentDescription: `A Ceph monitor's database disk is running low on space (MON_DISK_LOW health check; default 30% free). The monitor keeps working, but if the disk keeps filling it will cross the critical threshold and eventually crash, putting quorum at risk. Free space on the affected monitor host: compact the mon store (\`ceph tell mon.<id> compact\`), clean up logs, or grow the volume. Run \`ceph health detail\` to see which monitor is affected.`,
+          criteriaName: "Mon Disk Low - MON_DISK_LOW Active",
+          criteriaDescription:
+            "Triggers when the MON_DISK_LOW health check is active.",
+        }),
+      ],
+      onlineCriteriaInstance: buildCephOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias: critAlias,
+        filterType: FilterType.EqualTo,
+        value: 0,
+        additionalFilters: [
+          {
+            metricAlias: lowAlias,
+            filterType: FilterType.EqualTo,
+            value: 0,
+          },
+        ],
+        filterCondition: FilterCondition.All,
+        treatNoDataAsZero: true,
+      }),
+    });
+  },
+};
+
+const daemonSlowOpsTemplate: CephAlertTemplate = {
+  id: "ceph-daemon-slow-ops",
+  name: "Daemon Slow Operations",
+  description:
+    "Alert when a specific OSD or monitor daemon reports slow operations (ceph_daemon_health_metrics, type SLOW_OPS) — the per-daemon complement to the cluster-level Slow Operations template. One incident per daemon.",
+  category: "Cluster Health",
+  severity: "Warning",
+  getMonitorStep: (args: CephAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "daemon_slow_ops";
+
+    return buildCephMonitorStep({
+      cephMonitor: buildCephMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        metricName: "ceph_daemon_health_metrics",
+        metricAlias,
+        rollingTime: RollingTime.Past5Minutes,
+        aggregationType: MetricsAggregationType.Max,
+        attributes: { type: "SLOW_OPS" },
+        groupByAttributeKey: "ceph_daemon",
+      }),
+      offlineCriteriaInstance: buildCephOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+        incidentTitle: `[Ceph] Daemon Slow Operations - ${args.monitorName}`,
+        incidentDescription: `A Ceph daemon is reporting operations that exceed the configured complaint time (ceph_daemon_health_metrics with type SLOW_OPS). Unlike the cluster-level Slow Operations alert, this pinpoints the exact OSD or monitor. Inspect the daemon with \`ceph daemon <ceph_daemon> dump_ops_in_flight\` and check its host for a failing or saturated disk and network problems. Check the root cause for the affected ceph_daemon label.`,
+        criteriaName: "Daemon Slow Ops - Count > 0",
+        criteriaDescription:
+          "Triggers when any daemon reports slow operations via ceph_daemon_health_metrics.",
+      }),
+      onlineCriteriaInstance: buildCephOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.EqualTo,
+        value: 0,
+        treatNoDataAsZero: true,
+      }),
+    });
+  },
+};
+
 export function getAllCephAlertTemplates(): Array<CephAlertTemplate> {
   return [
     healthErrorTemplate,
@@ -986,6 +1617,16 @@ export function getAllCephAlertTemplates(): Array<CephAlertTemplate> {
     clusterFullTemplate,
     poolNearFullTemplate,
     slowOpsTemplate,
+    // Health-check-driven templates (V3 WI-26):
+    pgDamagedTemplate,
+    daemonCrashTemplate,
+    osdSlowHeartbeatsTemplate,
+    monClockSkewTemplate,
+    osdNearfullTemplate,
+    osdBackfillfullTemplate,
+    osdFullTemplate,
+    monDiskSpaceTemplate,
+    daemonSlowOpsTemplate,
   ];
 }
 

@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import ProxmoxResourceModel from "Common/Models/DatabaseModels/ProxmoxResource";
+import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -103,7 +104,13 @@ interface TopGuestRow {
 }
 
 interface DegradedItem {
-  kind: "Node" | "Guest" | "Storage";
+  kind: "Node" | "Guest" | "Storage" | "Replication";
+  /*
+   * Detail-page link target. For Replication rows this is the guest's
+   * externalId when the job's `guest` label resolved against the
+   * inventory — empty means "no detail page", the row renders
+   * unclickable.
+   */
   externalId: string;
   name: string;
   reasons: Array<string>;
@@ -124,6 +131,31 @@ interface InventorySummary {
   topGuestsByMemory: Array<TopGuestRow>;
   degradedItems: Array<DegradedItem>;
   health: ClusterHealth;
+  /*
+   * WI-24 backup-job coverage, derived from ProxmoxResource.backedUp
+   * (tri-state: unset until the cluster reports the backup-info
+   * series). guestsWithBackupInfo === 0 ⇒ coverage unknown — render
+   * "—", never "all covered".
+   */
+  guestsWithBackupInfo: number;
+  guestsNotBackedUp: number;
+  /* vmid → guest identity, for joining replication `guest` labels. */
+  guestsByVmid: Record<string, { name: string; externalId: string }>;
+}
+
+/*
+ * WI-25 replication health — one row per pve_replication_info series
+ * (node-level `replication` collector, default-on). All values are the
+ * latest sample in the recent window.
+ */
+interface ReplicationJob {
+  jobId: string;
+  guestVmid: string;
+  source: string;
+  target: string;
+  lastSyncTimestampSeconds: number | null;
+  durationSeconds: number | null;
+  failedSyncs: number | null;
 }
 
 const formatPercent: (value: number | null) => string = (
@@ -138,6 +170,22 @@ const formatPercent: (value: number | null) => string = (
 const TILE_WINDOW_MINUTES: number = 5;
 
 const STORAGE_NEAR_FULL_PERCENT: number = 85;
+
+/*
+ * WI-25: replication gauges are scraped every 30s — a 30-minute lookback
+ * is plenty to catch the latest sample of every series while keeping
+ * the card "current" (an agent that has been dark longer than this
+ * hides the card rather than showing stale sync ages).
+ */
+const REPLICATION_WINDOW_MINUTES: number = 30;
+
+/*
+ * Fixed, documented staleness thresholds for "last sync age" — the job
+ * schedule itself is not exported by pve-exporter, so these cannot be
+ * schedule-aware (most replication jobs run every 15 minutes).
+ */
+const REPLICATION_SYNC_WARN_SECONDS: number = 60 * 60; // 1 h → amber
+const REPLICATION_SYNC_DANGER_SECONDS: number = 6 * 60 * 60; // 6 h → red
 
 const DEFAULT_TIME_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_THIRTY_MINS,
@@ -163,6 +211,21 @@ const ProxmoxClusterOverview: FunctionComponent<
   const [isInventoryLoading, setIsInventoryLoading] = useState<boolean>(true);
   const [inventoryError, setInventoryError] = useState<string>("");
   const [inventory, setInventory] = useState<InventorySummary | null>(null);
+
+  /*
+   * WI-25: null = no pve_replication_info series in the recent window
+   * (or the fetch failed) — the card stays hidden, an honest zero
+   * state for clusters without storage replication.
+   */
+  const [replicationJobs, setReplicationJobs] =
+    useState<Array<ReplicationJob> | null>(null);
+
+  /*
+   * WI-28: the CephCluster manually linked via cephClusterId on the
+   * Settings page. null = not linked / fetch failed → card hidden.
+   */
+  const [linkedCephCluster, setLinkedCephCluster] =
+    useState<CephCluster | null>(null);
 
   // Golden metrics state — independent of the inventory summary.
   const [goldenStats, setGoldenStats] = useState<GoldenStats | null>(null);
@@ -222,6 +285,10 @@ const ProxmoxClusterOverview: FunctionComponent<
       const haStateCounts: Record<string, number> = {};
       const guests: Array<TopGuestRow> = [];
       const degradedItems: Array<DegradedItem> = [];
+      let guestsWithBackupInfo: number = 0;
+      let guestsNotBackedUp: number = 0;
+      const guestsByVmid: Record<string, { name: string; externalId: string }> =
+        {};
 
       for (const row of rows) {
         const name: string = displayNameForResource(row);
@@ -262,6 +329,23 @@ const ProxmoxClusterOverview: FunctionComponent<
             guestsRunning++;
           }
 
+          if (row.vmid !== null && row.vmid !== undefined) {
+            guestsByVmid[String(row.vmid)] = { name, externalId };
+          }
+
+          /*
+           * WI-24 backup-job coverage. backedUp is tri-state: unset
+           * means the cluster has not reported the backup-info
+           * series — excluded from both counters so the tile renders
+           * "unknown" instead of "all covered".
+           */
+          if (row.isBackedUp !== null && row.isBackedUp !== undefined) {
+            guestsWithBackupInfo++;
+            if (row.isBackedUp === false) {
+              guestsNotBackedUp++;
+            }
+          }
+
           const reasons: Array<string> = [];
           let isCritical: boolean = false;
           if (haCritical) {
@@ -270,6 +354,10 @@ const ProxmoxClusterOverview: FunctionComponent<
           }
           if (row.onboot && row.isUp === false) {
             reasons.push("Stopped but configured to start on boot");
+          }
+          if (row.isBackedUp === false) {
+            // Coverage gap, not a failed backup — amber, never red.
+            reasons.push("Not covered by any backup job");
           }
           if (reasons.length > 0) {
             degradedItems.push({
@@ -391,6 +479,9 @@ const ProxmoxClusterOverview: FunctionComponent<
         topGuestsByMemory,
         degradedItems,
         health,
+        guestsWithBackupInfo,
+        guestsNotBackedUp,
+        guestsByVmid,
       });
     } catch (err) {
       /*
@@ -400,6 +491,159 @@ const ProxmoxClusterOverview: FunctionComponent<
       setInventoryError(API.getFriendlyMessage(err));
     } finally {
       setIsInventoryLoading(false);
+    }
+  };
+
+  /*
+   * WI-25: storage replication health. pve-exporter's node-level
+   * `replication` collector is default-on, so these series flow from
+   * every agent today. The card renders ONLY when pve_replication_info
+   * series exist in the recent window — clusters without replication
+   * (or with a dark agent) show nothing. Best-effort: failures hide
+   * the card instead of erroring the page.
+   */
+  const loadReplication: (clusterName: string) => Promise<void> = async (
+    clusterName: string,
+  ): Promise<void> => {
+    try {
+      const endDate: Date = OneUptimeDate.getCurrentDate();
+      const startDate: Date = OneUptimeDate.addRemoveMinutes(
+        endDate,
+        -REPLICATION_WINDOW_MINUTES,
+      );
+      const projectId: string = ProjectUtil.getCurrentProjectId()!.toString();
+
+      const baseAttributes: Record<string, string> = {
+        "resource.proxmox.cluster.name": clusterName,
+      };
+
+      const buildAggregateBy: (metricName: string) => AggregateBy<Metric> = (
+        metricName: string,
+      ): AggregateBy<Metric> => {
+        return {
+          query: {
+            projectId: projectId,
+            time: new InBetween<Date>(startDate, endDate),
+            name: metricName,
+            attributes: { ...baseAttributes },
+          } as AggregateBy<Metric>["query"],
+          aggregationType: AggregationType.Max,
+          aggregateColumnName: "value",
+          aggregationTimestampColumnName: "time",
+          startTimestamp: startDate,
+          endTimestamp: endDate,
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          sort: {
+            time: SortOrder.Descending,
+          },
+          // Preserve the `id` (job) label + info-series labels.
+          groupBy: { attributes: true },
+        };
+      };
+
+      const [infoResult, lastSyncResult, durationResult, failedResult]: [
+        AggregatedResult,
+        AggregatedResult,
+        AggregatedResult,
+        AggregatedResult,
+      ] = await Promise.all([
+        AnalyticsModelAPI.aggregate<Metric>({
+          modelType: Metric,
+          aggregateBy: buildAggregateBy("pve_replication_info"),
+        }),
+        AnalyticsModelAPI.aggregate<Metric>({
+          modelType: Metric,
+          aggregateBy: buildAggregateBy(
+            "pve_replication_last_sync_timestamp_seconds",
+          ),
+        }),
+        AnalyticsModelAPI.aggregate<Metric>({
+          modelType: Metric,
+          aggregateBy: buildAggregateBy("pve_replication_duration_seconds"),
+        }),
+        AnalyticsModelAPI.aggregate<Metric>({
+          modelType: Metric,
+          aggregateBy: buildAggregateBy("pve_replication_failed_syncs"),
+        }),
+      ]);
+
+      type LatestEntry = {
+        value: number;
+        attributes: Record<string, unknown>;
+      };
+
+      // id (job) label → value at the latest bucket in the window.
+      const latestPerJobId: (
+        result: AggregatedResult,
+      ) => Map<string, LatestEntry> = (
+        result: AggregatedResult,
+      ): Map<string, LatestEntry> => {
+        const latestTs: Map<string, number> = new Map();
+        const out: Map<string, LatestEntry> = new Map();
+        for (const p of (result.data || []) as Array<AggregatedModel>) {
+          const attributes: Record<string, unknown> =
+            (p["attributes"] as Record<string, unknown>) || {};
+          const jobId: string = (attributes["id"] as string) || "";
+          if (!jobId) {
+            continue;
+          }
+          const raw: unknown =
+            p["timestamp"] !== undefined ? p["timestamp"] : p["time"];
+          const t: number =
+            raw instanceof Date
+              ? raw.getTime()
+              : new Date(raw as string).getTime();
+          const v: number = Number(p["value"]);
+          if (!Number.isFinite(t) || !Number.isFinite(v)) {
+            continue;
+          }
+          const prev: number | undefined = latestTs.get(jobId);
+          if (prev === undefined || t > prev) {
+            latestTs.set(jobId, t);
+            out.set(jobId, { value: v, attributes });
+          }
+        }
+        return out;
+      };
+
+      const infoByJob: Map<string, LatestEntry> = latestPerJobId(infoResult);
+      if (infoByJob.size === 0) {
+        setReplicationJobs(null);
+        return;
+      }
+      const lastSyncByJob: Map<string, LatestEntry> =
+        latestPerJobId(lastSyncResult);
+      const durationByJob: Map<string, LatestEntry> =
+        latestPerJobId(durationResult);
+      const failedByJob: Map<string, LatestEntry> =
+        latestPerJobId(failedResult);
+
+      const jobs: Array<ReplicationJob> = Array.from(infoByJob.entries())
+        .map(([jobId, info]: [string, LatestEntry]): ReplicationJob => {
+          return {
+            jobId: jobId,
+            guestVmid: (info.attributes["guest"] as string) || "",
+            source: (info.attributes["source"] as string) || "",
+            target: (info.attributes["target"] as string) || "",
+            lastSyncTimestampSeconds: lastSyncByJob.get(jobId)?.value ?? null,
+            durationSeconds: durationByJob.get(jobId)?.value ?? null,
+            failedSyncs: failedByJob.get(jobId)?.value ?? null,
+          };
+        })
+        .sort((a: ReplicationJob, b: ReplicationJob) => {
+          // Failing jobs first, then by job id for a stable table.
+          const aFailed: number = a.failedSyncs ?? 0;
+          const bFailed: number = b.failedSyncs ?? 0;
+          if (aFailed !== bFailed) {
+            return bFailed - aFailed;
+          }
+          return a.jobId.localeCompare(b.jobId);
+        });
+
+      setReplicationJobs(jobs);
+    } catch {
+      // Supplementary card — keep it hidden on failure.
     }
   };
 
@@ -804,6 +1048,30 @@ const ProxmoxClusterOverview: FunctionComponent<
   > = useRef<(clusterName: string) => Promise<void>>(loadGoldenMetrics);
   loadGoldenMetricsRef.current = loadGoldenMetrics;
 
+  /*
+   * WI-28: resolve the manually linked Ceph cluster (Settings page
+   * dropdown) into its Postgres snapshot columns — instant, no
+   * ClickHouse. Best-effort: failure (or no link) hides the card.
+   */
+  const loadLinkedCephCluster: (
+    cephClusterId: ObjectID,
+  ) => Promise<void> = async (cephClusterId: ObjectID): Promise<void> => {
+    try {
+      const cephCluster: CephCluster | null = await ModelAPI.getItem({
+        modelType: CephCluster,
+        id: cephClusterId,
+        select: {
+          name: true,
+          healthStatus: true,
+          capacityUsedPercent: true,
+        },
+      });
+      setLinkedCephCluster(cephCluster);
+    } catch {
+      // Cross-link card is supplementary.
+    }
+  };
+
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     try {
@@ -821,15 +1089,22 @@ const ProxmoxClusterOverview: FunctionComponent<
           onlineNodeCount: true,
           guestCount: true,
           storageCount: true,
+          guestsWithoutBackupCount: true,
+          cephClusterId: true,
         },
       });
       setCluster(item);
       setIsLoading(false);
 
+      if (item?.cephClusterId) {
+        void loadLinkedCephCluster(new ObjectID(item.cephClusterId.toString()));
+      }
+
       if (item?.name) {
         // Fire section fetches independently — no Promise.all.
         void loadInventory();
         void loadGoldenMetricsRef.current(item.name);
+        void loadReplication(item.name);
       } else {
         setIsInventoryLoading(false);
         setIsGoldenLoading(false);
@@ -867,6 +1142,7 @@ const ProxmoxClusterOverview: FunctionComponent<
       if (cluster?.name) {
         void loadGoldenMetricsRef.current(cluster.name);
         void loadInventory();
+        void loadReplication(cluster.name);
       }
     }, ms);
     return () => {
@@ -887,6 +1163,7 @@ const ProxmoxClusterOverview: FunctionComponent<
     if (cluster?.name) {
       void loadGoldenMetricsRef.current(cluster.name);
       void loadInventory();
+      void loadReplication(cluster.name);
     }
   };
 
@@ -923,7 +1200,42 @@ const ProxmoxClusterOverview: FunctionComponent<
   const storageCount: number =
     inventory?.storageCount || cluster.storageCount || 0;
 
-  const clusterHealth: ClusterHealth = inventory?.health || "Healthy";
+  /*
+   * WI-25: failing replication jobs feed the "Why degraded?" list.
+   * Amber (Degraded), not red — the documented Unhealthy drivers stay
+   * node-offline / HA error-fence only. The linked Ceph cluster's
+   * health (WI-28) deliberately does NOT feed this badge: separate
+   * products, separate alerting — the Ceph card carries its own pill.
+   */
+  const replicationDegradedItems: Array<DegradedItem> = (replicationJobs || [])
+    .filter((job: ReplicationJob) => {
+      return (job.failedSyncs ?? 0) > 0;
+    })
+    .map((job: ReplicationJob): DegradedItem => {
+      const guest: { name: string; externalId: string } | undefined =
+        inventory?.guestsByVmid[job.guestVmid];
+      const failed: number = job.failedSyncs ?? 0;
+      return {
+        kind: "Replication",
+        externalId: guest?.externalId || "",
+        name: guest
+          ? `Replication job ${job.jobId} (${guest.name})`
+          : `Replication job ${job.jobId}`,
+        reasons: [`${failed} failed sync${failed === 1 ? "" : "s"}`],
+        isCritical: false,
+      };
+    });
+
+  const allDegradedItems: Array<DegradedItem> = [
+    ...(inventory?.degradedItems || []),
+    ...replicationDegradedItems,
+  ];
+
+  const inventoryHealth: ClusterHealth = inventory?.health || "Healthy";
+  const clusterHealth: ClusterHealth =
+    inventoryHealth === "Healthy" && replicationDegradedItems.length > 0
+      ? "Degraded"
+      : inventoryHealth;
 
   const nodesRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_NODES] as Route,
@@ -941,10 +1253,14 @@ const ProxmoxClusterOverview: FunctionComponent<
   const navigateToDetail: (item: DegradedItem) => void = (
     item: DegradedItem,
   ): void => {
+    // Replication rows link to the replicated guest when resolvable.
+    if (!item.externalId) {
+      return;
+    }
     const pageMap: PageMap =
       item.kind === "Node"
         ? PageMap.PROXMOX_CLUSTER_VIEW_NODE_DETAIL
-        : item.kind === "Guest"
+        : item.kind === "Guest" || item.kind === "Replication"
           ? PageMap.PROXMOX_CLUSTER_VIEW_GUEST_DETAIL
           : PageMap.PROXMOX_CLUSTER_VIEW_STORAGE_DETAIL;
     Navigation.navigate(
@@ -1268,8 +1584,8 @@ const ProxmoxClusterOverview: FunctionComponent<
   const renderGoldenMetrics: () => ReactElement = (): ReactElement => {
     if (isGoldenLoading && !goldenStats) {
       return (
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {Array.from({ length: 5 }, (_: unknown, idx: number) => {
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          {Array.from({ length: 6 }, (_: unknown, idx: number) => {
             return (
               <div
                 key={`golden-skeleton-${idx}`}
@@ -1307,8 +1623,32 @@ const ProxmoxClusterOverview: FunctionComponent<
     const guestsRunningPct: number | null =
       guestsTotal > 0 ? (guestsRunning / guestsTotal) * 100 : null;
 
+    /*
+     * WI-24 backup-JOB coverage. Tri-state by design: until the
+     * cluster reports pve_not_backed_up_* the tile reads "—", never
+     * "all covered". Inventory-derived counts win; the cluster
+     * snapshot column (guestsWithoutBackupCount, written by the same
+     * ingest scan) is the fallback while inventory is in flight.
+     * "Covered" means a backup job selects the guest — backup
+     * freshness/success is not expressible from pve-exporter (v4).
+     */
+    const backupInfoFromInventory: boolean =
+      (inventory?.guestsWithBackupInfo ?? 0) > 0;
+    const backupKnown: boolean =
+      backupInfoFromInventory ||
+      (cluster.guestsWithoutBackupCount !== null &&
+        cluster.guestsWithoutBackupCount !== undefined);
+    const guestsNotCovered: number = backupInfoFromInventory
+      ? inventory?.guestsNotBackedUp ?? 0
+      : Number(cluster.guestsWithoutBackupCount ?? 0);
+    const guestsCovered: number = Math.max(guestsTotal - guestsNotCovered, 0);
+    const backupCoveragePct: number | null =
+      backupKnown && guestsTotal > 0
+        ? (guestsCovered / guestsTotal) * 100
+        : null;
+
     return (
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <GoldenMetricTile
           title="Node Availability"
           icon={IconProp.Heartbeat}
@@ -1367,6 +1707,30 @@ const ProxmoxClusterOverview: FunctionComponent<
           }
           percent={guestsRunningPct}
           thresholds={{ warn: 99, danger: 50 }}
+          higherIsBetter={true}
+        />
+        <GoldenMetricTile
+          title="Backup Coverage"
+          icon={IconProp.Archive}
+          iconColor="emerald"
+          value={
+            backupKnown && guestsTotal > 0
+              ? `${guestsCovered}/${guestsTotal}`
+              : "—"
+          }
+          sublabel={
+            backupKnown && guestsTotal > 0
+              ? guestsNotCovered > 0
+                ? `${guestsNotCovered} guest${guestsNotCovered === 1 ? "" : "s"} not in any backup job`
+                : "guests in a backup job"
+              : "backup-info not reported yet"
+          }
+          percent={backupCoveragePct}
+          /*
+           * Red whenever any guest is uncovered (spec WI-24); green
+           * only at 100% coverage.
+           */
+          thresholds={{ warn: 100, danger: 100 }}
           higherIsBetter={true}
         />
       </div>
@@ -1539,27 +1903,25 @@ const ProxmoxClusterOverview: FunctionComponent<
   };
 
   const renderWhyDegraded: () => ReactElement = (): ReactElement => {
-    if (
-      clusterHealth === "Healthy" ||
-      !inventory ||
-      inventory.degradedItems.length === 0
-    ) {
+    if (clusterHealth === "Healthy" || allDegradedItems.length === 0) {
       return <Fragment />;
     }
 
     return (
       <Card
         title="Why is this cluster degraded?"
-        description="Specific nodes, guests, and storage volumes that are driving the current health status. Click through to investigate."
+        description="Specific nodes, guests, storage volumes, and replication jobs that are driving the current health status. Click through to investigate."
       >
         <div className="divide-y divide-gray-100">
-          {inventory.degradedItems.map((item: DegradedItem, index: number) => {
+          {allDegradedItems.map((item: DegradedItem, index: number) => {
             const icon: IconProp =
               item.kind === "Node"
                 ? IconProp.ServerStack
                 : item.kind === "Guest"
                   ? IconProp.Cube
-                  : IconProp.Database;
+                  : item.kind === "Replication"
+                    ? IconProp.ArrowPath
+                    : IconProp.Database;
             const iconBgClass: string = item.isCritical
               ? "bg-red-100"
               : "bg-amber-100";
@@ -1575,7 +1937,9 @@ const ProxmoxClusterOverview: FunctionComponent<
                 onClick={() => {
                   navigateToDetail(item);
                 }}
-                className="flex items-start gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors cursor-pointer"
+                className={`flex items-start gap-3 px-5 py-3.5 transition-colors ${
+                  item.externalId ? "hover:bg-gray-50 cursor-pointer" : ""
+                }`}
               >
                 <div
                   className={`flex-shrink-0 mt-0.5 w-6 h-6 rounded-full ${iconBgClass} flex items-center justify-center`}
@@ -1611,6 +1975,271 @@ const ProxmoxClusterOverview: FunctionComponent<
               </div>
             );
           })}
+        </div>
+      </Card>
+    );
+  };
+
+  /*
+   * WI-25: replication card. Rendered only when pve_replication_info
+   * series exist in the recent window — no SaaS competitor surfaces
+   * these (Datadog confirmed gap). Staleness is UI-only: a "last sync
+   * age" ALERT needs wall-clock math the criteria engine doesn't have
+   * (v4); the pve-replication-failing template covers failed syncs.
+   */
+  const renderReplication: () => ReactElement = (): ReactElement => {
+    if (!replicationJobs || replicationJobs.length === 0) {
+      return <Fragment />;
+    }
+
+    const nowSeconds: number = Date.now() / 1000;
+
+    const formatDuration: (seconds: number | null) => string = (
+      seconds: number | null,
+    ): string => {
+      if (seconds === null || !Number.isFinite(seconds) || seconds < 0) {
+        return "—";
+      }
+      if (seconds < 60) {
+        return `${seconds.toFixed(seconds < 10 ? 1 : 0)}s`;
+      }
+      const minutes: number = Math.floor(seconds / 60);
+      const rest: number = Math.round(seconds % 60);
+      return `${minutes}m ${rest}s`;
+    };
+
+    const formatAge: (ageSeconds: number) => string = (
+      ageSeconds: number,
+    ): string => {
+      if (ageSeconds < 60) {
+        return "just now";
+      }
+      if (ageSeconds < 60 * 60) {
+        return `${Math.floor(ageSeconds / 60)}m ago`;
+      }
+      if (ageSeconds < 24 * 60 * 60) {
+        return `${Math.floor(ageSeconds / (60 * 60))}h ago`;
+      }
+      return `${Math.floor(ageSeconds / (24 * 60 * 60))}d ago`;
+    };
+
+    return (
+      <Card
+        title="Replication"
+        description="Storage replication jobs (pvesr) reported by this cluster — last successful sync, duration, and failed sync count per job."
+      >
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-100">
+            <thead>
+              <tr>
+                {[
+                  "Job",
+                  "Guest",
+                  "Source → Target",
+                  "Last Sync",
+                  "Duration",
+                  "Failed Syncs",
+                ].map((heading: string): ReactElement => {
+                  return (
+                    <th
+                      key={heading}
+                      className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                    >
+                      {heading}
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {replicationJobs.map((job: ReplicationJob): ReactElement => {
+                const guest: { name: string; externalId: string } | undefined =
+                  inventory?.guestsByVmid[job.guestVmid];
+
+                const ageSeconds: number | null =
+                  job.lastSyncTimestampSeconds !== null &&
+                  job.lastSyncTimestampSeconds > 0
+                    ? Math.max(nowSeconds - job.lastSyncTimestampSeconds, 0)
+                    : null;
+                const ageClass: string =
+                  ageSeconds === null
+                    ? "text-gray-400"
+                    : ageSeconds > REPLICATION_SYNC_DANGER_SECONDS
+                      ? "text-red-700 font-medium"
+                      : ageSeconds > REPLICATION_SYNC_WARN_SECONDS
+                        ? "text-amber-700 font-medium"
+                        : "text-gray-700";
+
+                const failed: number | null = job.failedSyncs;
+                const failedClass: string =
+                  failed !== null && failed > 0
+                    ? "text-red-700 font-semibold"
+                    : "text-gray-700";
+
+                return (
+                  <tr key={job.jobId} className="hover:bg-gray-50">
+                    <td className="px-4 py-2.5 text-sm font-mono text-gray-700">
+                      {job.jobId}
+                    </td>
+                    <td className="px-4 py-2.5 text-sm">
+                      {guest ? (
+                        <span
+                          className="cursor-pointer font-medium text-gray-900 hover:text-indigo-700 hover:underline"
+                          onClick={() => {
+                            navigateToGuest(guest.externalId);
+                          }}
+                        >
+                          {guest.name}
+                        </span>
+                      ) : (
+                        <span className="text-gray-500">
+                          {job.guestVmid || "—"}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-sm text-gray-700">
+                      {job.source || "—"}
+                      <span className="text-gray-400"> → </span>
+                      {job.target || "—"}
+                    </td>
+                    <td className={`px-4 py-2.5 text-sm ${ageClass}`}>
+                      {ageSeconds === null ? "—" : formatAge(ageSeconds)}
+                    </td>
+                    <td className="px-4 py-2.5 text-sm text-gray-700">
+                      {formatDuration(job.durationSeconds)}
+                    </td>
+                    <td className={`px-4 py-2.5 text-sm ${failedClass}`}>
+                      {failed === null ? "—" : failed}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    );
+  };
+
+  /*
+   * WI-28: hyperconverged PVE ↔ Ceph cross-link. Health pill +
+   * capacity come straight from the linked CephCluster's Postgres
+   * snapshot columns (instant). A degraded Ceph cluster reddens THIS
+   * card only — it never feeds the Proxmox health badge (separate
+   * products, separate alerting — documented decision).
+   */
+  const renderCephStorage: () => ReactElement = (): ReactElement => {
+    if (!linkedCephCluster || !cluster.cephClusterId) {
+      return <Fragment />;
+    }
+
+    const healthStatus: number | undefined =
+      linkedCephCluster.healthStatus !== null &&
+      linkedCephCluster.healthStatus !== undefined
+        ? Number(linkedCephCluster.healthStatus)
+        : undefined;
+
+    // 0 = HEALTH_OK, 1 = HEALTH_WARN, 2 = HEALTH_ERR (ceph_health_status).
+    const pill: { label: string; badge: string; dot: string } =
+      healthStatus === undefined
+        ? {
+            label: "Unknown",
+            badge: "bg-gray-50 text-gray-600 ring-gray-200",
+            dot: "bg-gray-400",
+          }
+        : healthStatus >= 2
+          ? {
+              label: "ERR",
+              badge: "bg-red-50 text-red-700 ring-red-200",
+              dot: "bg-red-500",
+            }
+          : healthStatus >= 1
+            ? {
+                label: "WARN",
+                badge: "bg-amber-50 text-amber-700 ring-amber-200",
+                dot: "bg-amber-500",
+              }
+            : {
+                label: "OK",
+                badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+                dot: "bg-emerald-500",
+              };
+
+    const capacityPercent: number | null =
+      linkedCephCluster.capacityUsedPercent !== null &&
+      linkedCephCluster.capacityUsedPercent !== undefined &&
+      Number.isFinite(Number(linkedCephCluster.capacityUsedPercent))
+        ? Number(linkedCephCluster.capacityUsedPercent)
+        : null;
+    const capacityClamped: number =
+      capacityPercent === null
+        ? 0
+        : Math.min(100, Math.max(0, capacityPercent));
+    const capacityBarColor: string =
+      capacityPercent === null
+        ? "bg-gray-300"
+        : capacityPercent >= 90
+          ? "bg-red-500"
+          : capacityPercent >= 75
+            ? "bg-amber-500"
+            : "bg-emerald-500";
+
+    const cephRoute: Route = RouteUtil.populateRouteParams(
+      RouteMap[PageMap.CEPH_CLUSTER_VIEW] as Route,
+      { modelId: new ObjectID(cluster.cephClusterId.toString()) },
+    );
+
+    return (
+      <Card
+        title="Ceph Storage"
+        description="This Proxmox cluster is linked to a Ceph cluster monitored by OneUptime. Ceph health does not affect the Proxmox health badge — it alerts separately."
+      >
+        <div
+          onClick={() => {
+            Navigation.navigate(cephRoute);
+          }}
+          className="group flex cursor-pointer flex-col gap-4 rounded-xl border border-gray-200 p-4 transition-all duration-200 hover:border-indigo-300 hover:shadow-md sm:flex-row sm:items-center"
+        >
+          <div className="flex items-center gap-3 min-w-0 sm:w-1/3">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100">
+              <Icon
+                icon={IconProp.Database}
+                className="h-5 w-5 text-slate-600"
+              />
+            </div>
+            <div className="min-w-0">
+              <div className="truncate text-sm font-medium text-gray-900 group-hover:text-indigo-700">
+                {linkedCephCluster.name || "Ceph cluster"}
+              </div>
+              <div className="text-xs text-gray-500">
+                View Ceph cluster overview →
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 sm:w-1/6">
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${pill.badge}`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${pill.dot}`} />
+              {pill.label}
+            </span>
+          </div>
+          <div className="flex-1">
+            <div className="mb-1 flex items-center justify-between text-xs text-gray-500">
+              <span>Capacity used</span>
+              <span className="font-medium text-gray-700">
+                {capacityPercent === null
+                  ? "—"
+                  : `${capacityPercent.toFixed(1)}%`}
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-gray-200">
+              <div
+                className={`h-2 rounded-full ${capacityBarColor}`}
+                style={{ width: `${capacityClamped}%` }}
+              />
+            </div>
+          </div>
         </div>
       </Card>
     );
@@ -1887,6 +2516,12 @@ const ProxmoxClusterOverview: FunctionComponent<
 
       {/* Why is this cluster degraded? */}
       {renderWhyDegraded()}
+
+      {/* Storage replication health (WI-25) */}
+      {renderReplication()}
+
+      {/* Linked Ceph cluster (WI-28) */}
+      {renderCephStorage()}
 
       {/* Summary InfoCards */}
       {inventoryError && (

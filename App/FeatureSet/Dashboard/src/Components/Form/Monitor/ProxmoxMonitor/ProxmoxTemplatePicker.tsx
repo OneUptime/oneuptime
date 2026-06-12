@@ -50,6 +50,19 @@ const categories: Array<{
     icon: IconProp.Refresh,
     description: "Monitor HA-managed resources for error and fence states.",
   },
+  {
+    category: "Backup",
+    label: "Backup",
+    icon: IconProp.Archive,
+    description:
+      "Monitor backup-job coverage — alert when guests are not covered by any backup job.",
+  },
+  {
+    category: "Replication",
+    label: "Replication",
+    icon: IconProp.ArrowPath,
+    description: "Monitor storage replication jobs for failed syncs.",
+  },
 ];
 
 const ProxmoxTemplatePicker: FunctionComponent<ComponentProps> = (

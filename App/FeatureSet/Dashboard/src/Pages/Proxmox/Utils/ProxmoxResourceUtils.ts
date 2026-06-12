@@ -140,6 +140,7 @@ const INVENTORY_SELECT: Record<string, boolean> = {
   isUp: true,
   haState: true,
   onboot: true,
+  isBackedUp: true,
   uptimeSeconds: true,
   latestCpuPercent: true,
   latestMemoryBytes: true,
@@ -228,6 +229,15 @@ export function toInfrastructureResource(
   }
   if (row.haState) {
     additionalAttributes["haState"] = row.haState;
+  }
+  /*
+   * WI-24 backup-job coverage: tri-state on purpose — unset means the
+   * cluster has not reported the backup-info series yet (old exporter
+   * or collector disabled), which must render as "unknown", never as
+   * "covered".
+   */
+  if (row.isBackedUp !== null && row.isBackedUp !== undefined) {
+    additionalAttributes["backedUp"] = row.isBackedUp ? "true" : "false";
   }
   if (row.latestDiskBytes !== null && row.latestDiskBytes !== undefined) {
     additionalAttributes["diskBytes"] = String(row.latestDiskBytes);

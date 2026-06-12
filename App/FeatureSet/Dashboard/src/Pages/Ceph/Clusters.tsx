@@ -188,6 +188,39 @@ const CephClusters: FunctionComponent<
     });
   }, []);
 
+  /*
+   * Live first-data flip (WI-18): while the project has zero clusters the
+   * user is staring at the install guide after pasting the agent command —
+   * re-count every 10s so the page flips to the table on first data
+   * without a hard refresh. The effect re-runs when clusterCount changes,
+   * so the interval is cleared as soon as the count goes nonzero (and on
+   * unmount). Poll failures are swallowed — the next tick retries.
+   */
+  useEffect(() => {
+    if (clusterCount !== 0) {
+      return;
+    }
+
+    const timer: ReturnType<typeof setInterval> = setInterval(() => {
+      ModelAPI.count({
+        modelType: CephCluster,
+        query: {},
+      })
+        .then((count: number) => {
+          if (count > 0) {
+            setClusterCount(count);
+          }
+        })
+        .catch(() => {
+          // Best-effort poll — keep showing the install guide.
+        });
+    }, 10 * 1000);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, [clusterCount]);
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }

@@ -358,6 +358,25 @@ export default class ProxmoxResource extends BaseModel {
   })
   @TableColumn({
     required: false,
+    type: TableColumnType.Boolean,
+    canReadOnRelationQuery: true,
+    title: "Backed Up",
+    description:
+      "True when this guest is covered by at least one backup job. Derived from the cluster-level backup-info collector: a pve_not_backed_up_info series carrying this guest's id means NOT covered. NULL for non-Guest kinds and until the collector reports. Coverage by a job is NOT the same as recent/successful backups.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Boolean,
+  })
+  public isBackedUp?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
     title: "Uptime Seconds",

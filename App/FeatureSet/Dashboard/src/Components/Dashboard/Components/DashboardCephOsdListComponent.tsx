@@ -91,18 +91,29 @@ const BASE_SELECT: Select<CephResource> = {
 };
 
 /*
- * OSD rows link to the cluster's OSDs page — per-resource detail routes
- * are the WI-7 deliverable; tighten the link to the OSD detail page once
- * CEPH_CLUSTER_VIEW_OSD_DETAIL exists in PageMap.
+ * OSD rows and tiles deep-link to the OSD detail page; the route's
+ * SubModelID is the CephResource externalId (the `ceph_daemon` label,
+ * e.g. `osd.3`) — mirroring Pages/Ceph/View/Osds.tsx. Falls back to the
+ * cluster's OSDs list when the externalId hasn't been ingested yet.
  */
-function getClusterOsdsRoute(r: CephResource): Route | undefined {
+function getOsdRoute(r: CephResource): Route | undefined {
   const clusterId: string = (r.cephClusterId?.toString() as string) || "";
   if (!clusterId) {
     return undefined;
   }
+  const osdName: string = (r.externalId as string) || "";
+  if (!osdName) {
+    return RouteUtil.populateRouteParams(
+      RouteMap[PageMap.CEPH_CLUSTER_VIEW_OSDS] as Route,
+      { modelId: new ObjectID(clusterId) },
+    );
+  }
   return RouteUtil.populateRouteParams(
-    RouteMap[PageMap.CEPH_CLUSTER_VIEW_OSDS] as Route,
-    { modelId: new ObjectID(clusterId) },
+    RouteMap[PageMap.CEPH_CLUSTER_VIEW_OSD_DETAIL] as Route,
+    {
+      modelId: new ObjectID(clusterId),
+      subModelId: new ObjectID(osdName),
+    },
   );
 }
 
@@ -111,10 +122,20 @@ function getOsdState(r: CephResource): {
   color: string;
   textColor: string;
 } {
-  const isUp: boolean | undefined = r.isUp as boolean | undefined;
-  const isIn: boolean | undefined = r.isIn as boolean | undefined;
+  const isUp: boolean | null | undefined = r.isUp as boolean | null | undefined;
+  const isIn: boolean | null | undefined = r.isIn as boolean | null | undefined;
 
-  if (isUp === undefined || isIn === undefined) {
+  /*
+   * ModelAPI returns Postgres NULL columns as null (not undefined) — a
+   * metadata-only fold creates the row before any ceph_osd_up/in
+   * datapoint lands — so both must map to Unknown.
+   */
+  if (
+    isUp === null ||
+    isUp === undefined ||
+    isIn === null ||
+    isIn === undefined
+  ) {
     return { text: "Unknown", color: OSD_COLORS.unknown, textColor: "#9ca3af" };
   }
   if (isUp && isIn) {
@@ -187,7 +208,7 @@ function renderOsdRow(r: CephResource): ReactElement {
   const state: { text: string; color: string; textColor: string } =
     getOsdState(r);
   const clusterName: string = (r.cephCluster?.name as string) || "—";
-  const route: Route | undefined = getClusterOsdsRoute(r);
+  const route: Route | undefined = getOsdRoute(r);
 
   let detailLink: ReactElement = <span>{name}</span>;
   if (route) {
@@ -242,7 +263,7 @@ function buildOsdTile(r: CephResource): HoneycombTile {
     id: id || name,
     status: state.text,
     color: state.color,
-    route: getClusterOsdsRoute(r),
+    route: getOsdRoute(r),
     tooltip: {
       title: name,
       details: [

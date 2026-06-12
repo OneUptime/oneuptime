@@ -85,6 +85,18 @@ export function getProxmoxBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.PROXMOX_CLUSTER_VIEW_SCHEDULED_MAINTENANCE,
       ["Project", "Proxmox", "View Cluster", "Scheduled Maintenance"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PROXMOX_CLUSTER_VIEW_OWNERS, [
+      "Project",
+      "Proxmox",
+      "View Cluster",
+      "Owners",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PROXMOX_CLUSTER_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Proxmox",
+      "View Cluster",
+      "Audit Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.PROXMOX_CLUSTER_VIEW_SETTINGS, [
       "Project",
       "Proxmox",

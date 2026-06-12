@@ -15,9 +15,11 @@ receivers:
             # Proxmox VE API host (any cluster node) the exporter queries.
             target: ["${env:PVE_HOST}"]
             # Enable both the cluster collectors (guest up/cpu/memory,
-            # HA state — pve_up, pve_guest_info, pve_ha_state) and the
-            # node collectors (node cpu/memory/disk — pve_node_info,
-            # pve_cpu_usage_ratio on node ids).
+            # HA state, backup-job coverage — pve_up, pve_guest_info,
+            # pve_ha_state, pve_not_backed_up_total) and the node
+            # collectors (node cpu/memory/disk, replication —
+            # pve_node_info, pve_cpu_usage_ratio on node ids,
+            # pve_replication_* series).
             cluster: ["1"]
             node: ["1"]
           # pve-exporter answers each scrape with a live Proxmox VE API
@@ -25,6 +27,40 @@ receivers:
           scrape_interval: 30s
           static_configs:
             - targets: ["${env:PVE_EXPORTER_URL}"]
+
+  # Optional: ship Proxmox VE service logs from the systemd journal — this
+  # is what powers the Logs tab of the Proxmox dashboard. Off by default
+  # because it only works when the agent runs ON a PVE node (the journal
+  # is per-host) with the journal mounted into the container — uncomment
+  # the matching volumes in docker-compose.yml:
+  #   - /var/log/journal:/var/log/journal:ro
+  #   - /etc/machine-id:/etc/machine-id:ro
+  # IMPORTANT: the stock otel/opentelemetry-collector-contrib image is
+  # built FROM scratch — it has no `journalctl` binary (which this
+  # receiver shells out to) and runs as a non-root user that cannot read
+  # the journal. Swap `image:` in docker-compose.yml for the one-line
+  # custom image in README.md ("Shipping Proxmox service logs"), or run
+  # the collector directly on the node. If you would rather not change
+  # the image, the README documents a filelog-on-/var/log/syslog
+  # fallback instead. Then uncomment this receiver and the `logs`
+  # pipeline at the bottom of this file. The resource processor below
+  # stamps `proxmox.cluster.name` so the logs land on this cluster.
+  # journald:
+  #   directory: /var/log/journal
+  #   # Tail from the end so an agent restart does not re-ship history.
+  #   start_at: end
+  #   # The PVE control-plane services: API proxy, API daemon, firewall,
+  #   # HA manager + agent, job scheduler, metrics daemon, QEMU events.
+  #   units:
+  #     - pveproxy
+  #     - pvedaemon
+  #     - pve-firewall
+  #     - pve-ha-crm
+  #     - pve-ha-lrm
+  #     - pvescheduler
+  #     - pvestatd
+  #     - qmeventd
+  #   priority: info
 
 processors:
   # Split the pve-exporter identity label into equality-filterable parts.
@@ -99,3 +135,10 @@ service:
       receivers: [prometheus]
       processors: [memory_limiter, transform/pve-identity, resource, batch]
       exporters: [otlphttp]
+    # Uncomment together with the journald receiver above to ship PVE
+    # service logs (powers the Logs tab). transform/pve-identity is
+    # metrics-only — keep it out of this pipeline.
+    # logs:
+    #   receivers: [journald]
+    #   processors: [memory_limiter, resource, batch]
+    #   exporters: [otlphttp]

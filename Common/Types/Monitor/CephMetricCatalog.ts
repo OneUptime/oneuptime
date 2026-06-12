@@ -56,6 +56,17 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
     unit: "count",
   },
   {
+    id: "ceph-daemon-health-metrics",
+    friendlyName: "Daemon Health Metrics",
+    description:
+      "Per-daemon health metrics from the mgr, keyed by a type label (e.g. SLOW_OPS, PENDING_CREATING_PGS) and a ceph_daemon label. Filter type = SLOW_OPS and group by ceph_daemon to pinpoint the exact OSD or monitor reporting slow operations.",
+    metricName: "ceph_daemon_health_metrics",
+    category: "Cluster Health",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: CephResourceScope.Osd,
+    unit: "count",
+  },
+  {
     id: "ceph-mon-quorum-status",
     friendlyName: "Monitor Quorum Status",
     description:

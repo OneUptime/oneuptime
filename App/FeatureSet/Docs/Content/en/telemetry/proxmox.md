@@ -14,10 +14,27 @@ This page is the **installation guide**. For configuring Proxmox monitors and al
 
 ### Create the Proxmox API Token
 
+**Fastest path — run this on any PVE node** (shell as root):
+
+```bash
+pveum user token add monitoring@pam oneuptime --privsep 1
+pveum acl modify / --roles PVEAuditor --tokens 'monitoring@pam!oneuptime'
+```
+
+(If the `monitoring@pam` user does not exist yet, create it first with `pveum user add monitoring@pam` — API tokens carry their own secret, so the user needs no password or system account.)
+
+The ACL must sit at the root path `/` because **PVEAuditor** needs read access to every node, guest, and storage object the exporter walks — granting it on a narrower path hides the rest of the cluster and produces `401`/`403 Permission check failed (/, Sys.Audit)` errors. The first command prints the token secret once; in your `.env` that becomes `PVE_API_TOKEN_ID=monitoring@pam!oneuptime` and `PVE_API_TOKEN_SECRET=<the printed secret>`.
+
+**Or via the Proxmox web UI:**
+
 1. In the Proxmox web UI go to *Datacenter → Permissions → API Tokens* and click **Add**.
 2. Pick (or create) a user, give the token an ID like `oneuptime`, and **uncheck Privilege Separation** (or grant the token its own permissions in the next step).
 3. Under *Datacenter → Permissions* add a permission on path `/` for the token with the **PVEAuditor** role.
 4. Copy the token id (`user@realm!tokenname`) and the secret — the secret is shown only once.
+
+### Where to Run the Agent
+
+The agent queries the PVE API over the network, so it does not have to live on a cluster node — and ideally it should not: run it on a machine that survives a node failure (a small monitoring VM on separate hardware, a management host), or point `PVE_HOST` at a VIP / round-robin DNS name instead of a single node's address. If the agent's API target is the node that just died, your monitoring dies with it. (The one exception is the optional journald logs pipeline, which must run on a PVE node — see [Ship Proxmox Service Logs](#optional-ship-proxmox-service-logs).)
 
 ## Quick Start (Install Script)
 
@@ -90,15 +107,17 @@ Within a minute or so the cluster should appear in the OneUptime dashboard with 
 
 ## What Gets Collected
 
-The agent scrapes the exporter every 30 seconds with both the cluster and node collectors enabled. Every series carries an `id` label identifying the resource — `node/<name>`, `qemu/<vmid>`, `lxc/<vmid>`, or `storage/<node>/<storage>`:
+The agent scrapes the exporter every 30 seconds with both the cluster and node collectors enabled — which also covers the exporter's default-on `backup-info` (cluster-level) and `replication` (node-level) collectors. Every series carries an `id` label identifying the resource — `node/<name>`, `qemu/<vmid>`, `lxc/<vmid>`, or `storage/<node>/<storage>`:
 
 | Category | Metrics |
 |----------|---------|
 | **Availability** | `pve_up`, `pve_uptime_seconds` |
 | **Node** | `pve_node_info`, `pve_cpu_usage_ratio`, `pve_cpu_usage_limit`, `pve_memory_usage_bytes`, `pve_memory_size_bytes` |
 | **Guest (VM / LXC)** | `pve_guest_info`, CPU / memory / network series on `qemu/*` and `lxc/*` ids (`pve_network_receive_bytes`, `pve_network_transmit_bytes`) |
-| **Storage** | `pve_disk_usage_bytes`, `pve_disk_size_bytes` |
+| **Storage** | `pve_disk_usage_bytes`, `pve_disk_size_bytes`, `pve_storage_info` |
 | **HA** | `pve_ha_state` |
+| **Backup coverage** | `pve_not_backed_up_total` (count of guests not covered by any backup job; one cluster-level series, no `id` label), `pve_not_backed_up_info` (one series per uncovered guest, labeled with its `id`). Honest boundary: "covered by a backup job" means the guest is selected by at least one job — whether backups ran recently or succeeded is not exposed by pve-exporter |
+| **Replication** | `pve_replication_failed_syncs`, `pve_replication_duration_seconds`, `pve_replication_last_sync_timestamp_seconds`, `pve_replication_last_try_timestamp_seconds`, `pve_replication_next_sync_timestamp_seconds`, `pve_replication_info` — per storage replication job; their `id` label carries the replication **job** id (e.g. `100-0`), not a resource id |
 
 OneUptime monitor criteria and attribute filters match on equality, not prefix, so the shipped collector config also splits the `id` label into three extra datapoint attributes (the built-in Proxmox alert templates filter on them — keep the `transform/pve-identity` processor in place):
 
@@ -109,6 +128,52 @@ OneUptime monitor criteria and attribute filters match on equality, not prefix, 
 | `pve.id` | Everything after the first `/` of `id` (`pve1`, `100`, `pve1/local`) | `100` |
 
 The original `id` label is kept untouched.
+
+## Optional — Ship Proxmox Service Logs
+
+By default the agent ships **metrics only**, so the Logs tab of the Proxmox dashboard stays empty. The PVE control plane logs to the systemd journal under eight units: `pveproxy`, `pvedaemon`, `pve-firewall`, `pve-ha-crm`, `pve-ha-lrm`, `pvescheduler`, `pvestatd`, and `qmeventd`. The shipped `otel-collector-config.yaml` contains a commented-out `journald` receiver targeting exactly those units, wired to a commented `logs` pipeline that stamps `proxmox.cluster.name` so the logs land on your cluster.
+
+To enable it:
+
+1. **Run the agent on a PVE node.** The journal is per-host — a remote agent cannot read it. This is the one setup that conflicts with the placement advice above; if you want to keep the metrics agent off-cluster, run a second, log-only collector on the node instead (copy the config, delete the `prometheus` receiver and the `metrics` pipeline).
+2. **Uncomment the `journald` receiver and the `logs` pipeline** in `otel-collector-config.yaml`.
+3. **Uncomment the journal volume mounts** in `docker-compose.yml` so the container can read the host journal:
+
+   ```yaml
+   - /var/log/journal:/var/log/journal:ro
+   - /etc/machine-id:/etc/machine-id:ro
+   ```
+
+4. **Swap the collector image.** The stock `otel/opentelemetry-collector-contrib` image is built `FROM scratch`: it contains no `journalctl` binary (which the journald receiver shells out to) and runs as a non-root user that cannot read the journal. Build a thin wrapper and point `image:` in `docker-compose.yml` at it:
+
+   ```dockerfile
+   FROM otel/opentelemetry-collector-contrib:latest AS otelcol
+   FROM debian:stable-slim
+   RUN apt-get update \
+       && apt-get install -y --no-install-recommends systemd \
+       && rm -rf /var/lib/apt/lists/*
+   COPY --from=otelcol /otelcol-contrib /otelcol-contrib
+   ENTRYPOINT ["/otelcol-contrib"]
+   CMD ["--config", "/etc/otelcol-contrib/config.yaml"]
+   ```
+
+   The `systemd` package is installed only for the `journalctl` binary; this image runs as root, which is what grants journal read access. Alternatively, skip Docker for the logs path entirely and run the `otelcol-contrib` release `.deb` directly on the node — `journalctl` is already there.
+
+Logs are per node: the journald receiver ships the journal of the node the agent runs on. For service logs from every node, run the log-only collector from step 1 on each node.
+
+### Fallback Without a Custom Image — Filelog on /var/log/syslog
+
+If you would rather keep the stock image, tail syslog instead: install rsyslog on the node (`apt install rsyslog` — Debian 12 / PVE 8 and later no longer ship it by default), mount `/var/log` into the container (`- /var/log:/var/log:ro` — mount the directory, not the file, so log rotation does not pin a stale inode), and use a `filelog` receiver in place of the journald one:
+
+```yaml
+receivers:
+  filelog:
+    include:
+      - /var/log/syslog
+    start_at: end
+```
+
+You lose per-unit filtering (syslog carries everything, not just the eight PVE services) and the stock image's non-root user must be able to read the file, but no image swap is needed. Wire it into the same commented `logs` pipeline (`receivers: [filelog]`).
 
 ## Zero-install Alternative — Proxmox VE 9+ Native OpenTelemetry Push
 
@@ -197,6 +262,6 @@ OneUptime auto-registers Proxmox clusters by `proxmox.cluster.name`, taken from 
 
 ## Next steps
 
-- Configure **Proxmox Monitors** to alert on node, guest, storage, and HA conditions — see [Proxmox Monitor](/docs/monitor/proxmox-monitor).
+- Configure **Proxmox Monitors** to alert on node, guest, storage, HA, backup-coverage, and replication conditions — see [Proxmox Monitor](/docs/monitor/proxmox-monitor).
 - Monitoring Ceph as the storage backend of your Proxmox cluster? Pair this agent with the [OneUptime Ceph Agent](/docs/telemetry/ceph).
 - For the OS-level view of individual hosts, use the [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector).

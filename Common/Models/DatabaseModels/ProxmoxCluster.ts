@@ -1,3 +1,4 @@
+import CephCluster from "./CephCluster";
 import Label from "./Label";
 import Project from "./Project";
 import User from "./User";
@@ -540,6 +541,127 @@ export default class ProxmoxCluster extends BaseModel {
     default: 0,
   })
   public storageCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProxmoxCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProxmoxCluster,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Guests Without Backup",
+    description:
+      "Cached count of guests not covered by ANY backup job (pve_not_backed_up_total). NULL until the exporter's cluster-level backup-info collector reports. Coverage by a job is NOT the same as recent/successful backups — freshness needs the PVE task log or PBS API.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public guestsWithoutBackupCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateProxmoxCluster,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProxmoxCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditProxmoxCluster,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "cephClusterId",
+    type: TableColumnType.Entity,
+    modelType: CephCluster,
+    title: "Ceph Cluster",
+    description:
+      "Optional link to the CephCluster providing storage for this hyperconverged Proxmox cluster. Manual link only (set on the cluster's Settings page) — pve-exporter exposes no fsid, so there is no honest auto-link heuristic. Degraded Ceph health does not change this cluster's health badge; the link only powers the cross-product Overview cards.",
+  })
+  @ManyToOne(
+    () => {
+      return CephCluster;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "cephClusterId" })
+  public cephCluster?: CephCluster = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateProxmoxCluster,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProxmoxCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditProxmoxCluster,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Ceph Cluster ID",
+    description:
+      "Optional FK to the CephCluster providing storage for this hyperconverged Proxmox cluster (manually linked)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public cephClusterId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

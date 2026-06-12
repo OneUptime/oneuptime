@@ -35,6 +35,13 @@ import ProxmoxDocumentationCard from "../../Components/Proxmox/DocumentationCard
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 
+/*
+ * WI-18: while the project has no clusters yet, re-count on this
+ * cadence so the page flips from the install guide to the table the
+ * moment the first agent batch lands — no hard refresh.
+ */
+const FIRST_DATA_POLL_INTERVAL_MS: number = 10 * 1000;
+
 const ProxmoxClusters: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -107,6 +114,38 @@ const ProxmoxClusters: FunctionComponent<
       setError(API.getFriendlyMessage(err));
     });
   }, []);
+
+  /*
+   * Live first-data poll (WI-18): the one-shot count above paints the
+   * empty state; this effect keeps quietly re-counting every 10s while
+   * the count is zero and flips the page to the table on the first
+   * nonzero result. The interval is cleared on unmount and is not
+   * re-armed once a cluster exists (the effect re-runs with a nonzero
+   * count and bails). Background failures keep the empty state rather
+   * than replacing the install guide with an error.
+   */
+  useEffect(() => {
+    if (clusterCount !== 0) {
+      return undefined;
+    }
+    const timer: ReturnType<typeof setInterval> = setInterval(() => {
+      ModelAPI.count({
+        modelType: ProxmoxCluster,
+        query: {},
+      })
+        .then((count: number) => {
+          if (count > 0) {
+            setClusterCount(count);
+          }
+        })
+        .catch(() => {
+          // Transient background-poll failure — keep polling.
+        });
+    }, FIRST_DATA_POLL_INTERVAL_MS);
+    return () => {
+      clearInterval(timer);
+    };
+  }, [clusterCount]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;

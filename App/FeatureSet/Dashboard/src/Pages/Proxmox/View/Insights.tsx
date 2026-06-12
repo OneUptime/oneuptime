@@ -216,6 +216,44 @@ function getGuestQueries(cluster: string): Array<MetricQueryConfigData> {
   ];
 }
 
+/*
+ * WI-25: replication series come from pve-exporter's default-on
+ * node-level `replication` collector. They carry the job id ("<vmid>-N")
+ * in the `id` label — no slash, so no pve.scope attribute (the OTTL
+ * transform only stamps scope on slash-prefixed ids). Charts render
+ * empty when the cluster has no replication jobs configured.
+ */
+function getReplicationQueries(cluster: string): Array<MetricQueryConfigData> {
+  return [
+    buildQuery(
+      {
+        variable: "replication_duration",
+        title: "Replication Duration",
+        description:
+          "Seconds each storage replication run took, broken down per job.",
+        legend: "Duration",
+        legendUnit: "s",
+        metricName: "pve_replication_duration_seconds",
+        aggregation: AggregationType.Avg,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "replication_failed_syncs",
+        title: "Replication Failed Syncs",
+        description:
+          "Failed sync count per replication job — anything above zero means replication is not protecting that guest.",
+        legend: "Failed syncs",
+        legendUnit: "",
+        metricName: "pve_replication_failed_syncs",
+        aggregation: AggregationType.Max,
+      },
+      cluster,
+    ),
+  ];
+}
+
 function getStorageQueries(cluster: string): Array<MetricQueryConfigData> {
   return [
     buildQuery(
@@ -312,6 +350,10 @@ const ProxmoxClusterInsights: FunctionComponent<
     getStorageQueries(clusterName),
     startAndEndDate,
   );
+  const replicationData: MetricViewData = buildMetricViewData(
+    getReplicationQueries(clusterName),
+    startAndEndDate,
+  );
 
   return (
     <Fragment>
@@ -365,6 +407,15 @@ const ProxmoxClusterInsights: FunctionComponent<
           </div>
         </div>
       </InsightsSection>
+
+      <InsightsSection
+        title="Replication"
+        description="Storage replication job duration and failed sync counts (pvesr). Charts are empty when this cluster has no replication jobs configured."
+        icon={IconProp.ArrowPath}
+        data={replicationData}
+        timeRange={timeRange}
+        onTimeRangeChange={handleTimeRangeChange}
+      />
 
       <InsightsSection
         title="Network"

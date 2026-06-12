@@ -76,18 +76,30 @@ function formatPercent(value: number | undefined): string {
 }
 
 /*
- * Node rows link to the cluster's Nodes page — per-resource detail
- * routes are the WI-7 deliverable; tighten the link to the node detail
- * page once PROXMOX_CLUSTER_VIEW_NODE_DETAIL exists in PageMap.
+ * Node rows link straight to the node detail page. The detail-route
+ * param is the pve externalId ("node/pve1") percent-encoded as a
+ * single path segment (see Pages/Proxmox/Utils/ProxmoxResourceUtils
+ * routeParamFromExternalId). Rows without an externalId fall back to
+ * the cluster's Nodes list.
  */
-function getClusterNodesRoute(r: ProxmoxResource): Route | undefined {
+function getNodeRoute(r: ProxmoxResource): Route | undefined {
   const clusterId: string = (r.proxmoxClusterId?.toString() as string) || "";
   if (!clusterId) {
     return undefined;
   }
+  const externalId: string = (r.externalId as string) || "";
+  if (!externalId) {
+    return RouteUtil.populateRouteParams(
+      RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_NODES] as Route,
+      { modelId: new ObjectID(clusterId) },
+    );
+  }
   return RouteUtil.populateRouteParams(
-    RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_NODES] as Route,
-    { modelId: new ObjectID(clusterId) },
+    RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_NODE_DETAIL] as Route,
+    {
+      modelId: new ObjectID(clusterId),
+      subModelId: encodeURIComponent(externalId),
+    },
   );
 }
 
@@ -116,7 +128,7 @@ function renderNodeRow(r: ProxmoxResource): ReactElement {
   const status: { text: string; dot: string; textColor: string } =
     getNodeStatus(r);
   const clusterName: string = (r.proxmoxCluster?.name as string) || "—";
-  const route: Route | undefined = getClusterNodesRoute(r);
+  const route: Route | undefined = getNodeRoute(r);
 
   let detailLink: ReactElement = <span>{name}</span>;
   if (route) {
@@ -172,7 +184,7 @@ function buildNodeTile(r: ProxmoxResource): HoneycombTile {
     id: id || name,
     status: status.text,
     color: status.dot,
-    route: getClusterNodesRoute(r),
+    route: getNodeRoute(r),
     tooltip: {
       title: name,
       details: [

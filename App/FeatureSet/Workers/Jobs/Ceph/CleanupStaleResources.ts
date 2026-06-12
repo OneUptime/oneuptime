@@ -4,10 +4,8 @@ import logger from "Common/Server/Utils/Logger";
 import CephClusterService from "Common/Server/Services/CephClusterService";
 import CephResourceService from "Common/Server/Services/CephResourceService";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
-import OneUptimeDate from "Common/Types/Date";
 
 /*
  * ------------------------------------------------------------------
@@ -23,8 +21,11 @@ import OneUptimeDate from "Common/Types/Date";
  *      Disconnected ≤ ~10 minutes after the agent dies.
  *   2. For each CONNECTED cluster, hard-delete CephResource
  *      inventory rows whose last snapshot is older than the stale
- *      threshold (default 15 minutes = 3x the snapshot interval;
- *      override with CEPH_INVENTORY_STALE_MINUTES, minimum 5).
+ *      threshold. Threshold and delete both live in
+ *      CephResourceService (getStaleThresholdDate /
+ *      deleteStaleForCluster — default 15 minutes = 3x the snapshot
+ *      interval; override with CEPH_INVENTORY_STALE_MINUTES, minimum
+ *      5) so this cron carries no duplicate policy.
  *
  * Skipping disconnected clusters is deliberate: during a transient
  * agent outage we want to preserve the last-known inventory rather
@@ -32,23 +33,6 @@ import OneUptimeDate from "Common/Types/Date";
  * snapshot refreshes lastSeenAt and the rows become live again.
  * ------------------------------------------------------------------
  */
-
-function getStaleThresholdDate(): Date {
-  let minutes: number = 15;
-
-  const raw: string | undefined = process.env["CEPH_INVENTORY_STALE_MINUTES"];
-  if (raw) {
-    const parsed: number = parseInt(raw, 10);
-    if (!isNaN(parsed) && parsed >= 5) {
-      minutes = parsed;
-    }
-  }
-
-  return OneUptimeDate.addRemoveMinutes(
-    OneUptimeDate.getCurrentDate(),
-    -minutes,
-  );
-}
 
 RunCron(
   "Ceph:CleanupStaleResources",
@@ -88,7 +72,7 @@ RunCron(
         return;
       }
 
-      const cutoff: Date = getStaleThresholdDate();
+      const cutoff: Date = CephResourceService.getStaleThresholdDate();
 
       let totalDeleted: number = 0;
       for (const cluster of connectedClusters) {
@@ -96,23 +80,11 @@ RunCron(
           continue;
         }
 
-        const clusterId: ObjectID = new ObjectID(cluster._id.toString());
-
         try {
-          // Batched delete loop so a huge stale backlog never holds one giant transaction.
-          let deleted: number = 0;
-          do {
-            deleted = await CephResourceService.hardDeleteBy({
-              query: {
-                cephClusterId: clusterId,
-                lastSeenAt: QueryHelper.lessThan(cutoff),
-              },
-              limit: LIMIT_MAX,
-              skip: 0,
-              props: { isRoot: true },
-            });
-            totalDeleted += deleted;
-          } while (deleted > 0);
+          totalDeleted += await CephResourceService.deleteStaleForCluster({
+            cephClusterId: new ObjectID(cluster._id.toString()),
+            olderThan: cutoff,
+          });
         } catch (err) {
           logger.error(
             `Ceph:CleanupStaleResources: stale inventory delete failed for cluster ${cluster._id.toString()}: ${err instanceof Error ? err.message : String(err)}`,

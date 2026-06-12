@@ -69,18 +69,29 @@ const BASE_SELECT: Select<CephResource> = {
 };
 
 /*
- * Pool rows link to the cluster's Pools page — per-resource detail
- * routes are the WI-7 deliverable; tighten the link to the pool detail
- * page once CEPH_CLUSTER_VIEW_POOL_DETAIL exists in PageMap.
+ * Pool rows and tiles deep-link to the pool detail page; the route's
+ * SubModelID is the CephResource externalId (the `pool_id` datapoint
+ * label) — mirroring Pages/Ceph/View/Pools.tsx. Falls back to the
+ * cluster's Pools list when the externalId hasn't been ingested yet.
  */
-function getClusterPoolsRoute(r: CephResource): Route | undefined {
+function getPoolRoute(r: CephResource): Route | undefined {
   const clusterId: string = (r.cephClusterId?.toString() as string) || "";
   if (!clusterId) {
     return undefined;
   }
+  const poolId: string = (r.externalId as string) || "";
+  if (!poolId) {
+    return RouteUtil.populateRouteParams(
+      RouteMap[PageMap.CEPH_CLUSTER_VIEW_POOLS] as Route,
+      { modelId: new ObjectID(clusterId) },
+    );
+  }
   return RouteUtil.populateRouteParams(
-    RouteMap[PageMap.CEPH_CLUSTER_VIEW_POOLS] as Route,
-    { modelId: new ObjectID(clusterId) },
+    RouteMap[PageMap.CEPH_CLUSTER_VIEW_POOL_DETAIL] as Route,
+    {
+      modelId: new ObjectID(clusterId),
+      subModelId: new ObjectID(poolId),
+    },
   );
 }
 
@@ -171,7 +182,7 @@ function renderPoolRow(r: CephResource): ReactElement {
   const id: string = (r._id as string) || "";
   const name: string = getPoolDisplayName(r);
   const clusterName: string = (r.cephCluster?.name as string) || "—";
-  const route: Route | undefined = getClusterPoolsRoute(r);
+  const route: Route | undefined = getPoolRoute(r);
 
   let detailLink: ReactElement = <span>{name}</span>;
   if (route) {
@@ -216,7 +227,7 @@ function buildPoolTile(r: CephResource): HoneycombTile {
     status:
       usedPercent === null ? "Unknown" : `${usedPercent.toFixed(1)}% used`,
     color: getUsageColor(usedPercent),
-    route: getClusterPoolsRoute(r),
+    route: getPoolRoute(r),
     tooltip: {
       title: name,
       details: [

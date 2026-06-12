@@ -1,9 +1,21 @@
 services:
   oneuptime-proxmox-agent:
+    # For the optional journald logs pipeline (PVE service logs — see the
+    # commented receiver in otel-collector-config.yaml) this stock image
+    # is not enough: it is built FROM scratch with no `journalctl` and
+    # runs as a non-root user that cannot read the journal. Replace it
+    # with the one-line custom image from README.md ("Shipping Proxmox
+    # service logs") when you enable that pipeline.
     image: otel/opentelemetry-collector-contrib:latest
     container_name: oneuptime-proxmox-agent
     volumes:
       - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      # Uncomment (together with the journald receiver and logs pipeline
+      # in otel-collector-config.yaml) to give the collector read access
+      # to the systemd journal. Only meaningful when this compose file
+      # runs directly on a Proxmox VE node — the journal is per-host.
+      # - /var/log/journal:/var/log/journal:ro
+      # - /etc/machine-id:/etc/machine-id:ro
     environment:
       - ONEUPTIME_URL=${ONEUPTIME_URL}
       - ONEUPTIME_TELEMETRY_INGESTION_KEY=${ONEUPTIME_TELEMETRY_INGESTION_KEY}

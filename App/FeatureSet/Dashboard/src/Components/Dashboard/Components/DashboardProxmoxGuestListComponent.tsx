@@ -78,18 +78,30 @@ const BASE_SELECT: Select<ProxmoxResource> = {
 };
 
 /*
- * Guest rows link to the cluster's Guests page — per-resource detail
- * routes are the WI-7 deliverable; tighten the link to the guest detail
- * page once PROXMOX_CLUSTER_VIEW_GUEST_DETAIL exists in PageMap.
+ * Guest rows link straight to the guest detail page. The detail-route
+ * param is the pve externalId ("qemu/100", "lxc/101") percent-encoded
+ * as a single path segment (see Pages/Proxmox/Utils/
+ * ProxmoxResourceUtils routeParamFromExternalId). Rows without an
+ * externalId fall back to the cluster's Guests list.
  */
-function getClusterGuestsRoute(r: ProxmoxResource): Route | undefined {
+function getGuestRoute(r: ProxmoxResource): Route | undefined {
   const clusterId: string = (r.proxmoxClusterId?.toString() as string) || "";
   if (!clusterId) {
     return undefined;
   }
+  const externalId: string = (r.externalId as string) || "";
+  if (!externalId) {
+    return RouteUtil.populateRouteParams(
+      RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_GUESTS] as Route,
+      { modelId: new ObjectID(clusterId) },
+    );
+  }
   return RouteUtil.populateRouteParams(
-    RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_GUESTS] as Route,
-    { modelId: new ObjectID(clusterId) },
+    RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_GUEST_DETAIL] as Route,
+    {
+      modelId: new ObjectID(clusterId),
+      subModelId: encodeURIComponent(externalId),
+    },
   );
 }
 
@@ -126,7 +138,7 @@ function renderGuestRow(r: ProxmoxResource): ReactElement {
   const status: { text: string; dot: string; textColor: string } =
     getGuestStatus(r);
   const clusterName: string = (r.proxmoxCluster?.name as string) || "—";
-  const route: Route | undefined = getClusterGuestsRoute(r);
+  const route: Route | undefined = getGuestRoute(r);
 
   let detailLink: ReactElement = <span>{name}</span>;
   if (route) {
@@ -185,7 +197,7 @@ function buildGuestTile(r: ProxmoxResource): HoneycombTile {
     id: id || name,
     status: status.text,
     color: status.dot,
-    route: getClusterGuestsRoute(r),
+    route: getGuestRoute(r),
     tooltip: {
       title: name,
       details: [
