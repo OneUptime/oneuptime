@@ -9,7 +9,10 @@ export default class UUID {
    * `generate()` (random v4) — do not switch those.
    */
   public static generateTimeOrdered(): string {
-    const bytes: Uint8Array = new Uint8Array(16);
+    // Uint8Array<ArrayBuffer>: getRandomValues() requires an ArrayBuffer-backed
+    // view; the bare Uint8Array annotation widens to ArrayBufferLike, which
+    // TypeScript 6 rejects.
+    const bytes: Uint8Array<ArrayBuffer> = new Uint8Array(16);
 
     const cryptoObj: Crypto | undefined = globalThis.crypto;
     if (cryptoObj && typeof cryptoObj.getRandomValues === "function") {
@@ -70,7 +73,7 @@ export default class UUID {
      * it to build an RFC 4122 §4.4 v4 UUID.
      */
     if (cryptoObj && typeof cryptoObj.getRandomValues === "function") {
-      const bytes: Uint8Array = new Uint8Array(16);
+      const bytes: Uint8Array<ArrayBuffer> = new Uint8Array(16);
       cryptoObj.getRandomValues(bytes);
       bytes[6] = ((bytes[6] as number) & 0x0f) | 0x40;
       bytes[8] = ((bytes[8] as number) & 0x3f) | 0x80;
