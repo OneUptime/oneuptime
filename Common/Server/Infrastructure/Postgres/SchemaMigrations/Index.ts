@@ -773,5 +773,5 @@ export default [
   AddTelemetryEntityRelationshipTable1781200000001,
   AddTelemetryEntityLabels1781300000000,
   AddServiceTelemetrySdkLanguage1781400000000,
-  MigrationName1781250074195
+  MigrationName1781250074195,
 ];
