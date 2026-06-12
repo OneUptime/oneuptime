@@ -11,7 +11,7 @@
         "oneuptime-mcp": "./Index.ts"
     },
     "scripts": {
-        "start": "export NODE_OPTIONS='--max-old-space-size=8096' && node --require ts-node/register Index.ts",
+        "start": "export NODE_OPTIONS=\"--max-old-space-size=8096${NODE_OPTIONS:+ $NODE_OPTIONS}\" && node --require ts-node/register Index.ts",
         "build": "npm run compile",
         "compile": "tsc",
         "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
