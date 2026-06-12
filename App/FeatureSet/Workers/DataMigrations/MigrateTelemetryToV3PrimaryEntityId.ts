@@ -35,10 +35,10 @@ import logger from "Common/Server/Utils/Logger";
  *      the schema-sync helpers — creating the `…V3` signal tables and
  *      rebuilding the MVs (`FROM MetricItemV3`). Idempotent.
  *
- * The `…V2` tables are intentionally retained: they self-drain via their
- * `retentionDate` TTL, and they are the source for the optional manual
- * history copy in the upgrade guide (which also documents dropping them
- * early to reclaim disk).
+ * The `…V2` tables are not touched here — DropUnusedTelemetryTables (at
+ * the end of the migration chain) drops them in the same boot. Operators
+ * who want the optional manual history copy rename them to `…_backup`
+ * names BEFORE upgrading, as documented in the upgrade guide.
  *
  * All statements run through `MetricService` — every analytics service
  * shares one ClickHouse connection, and each statement names its own
@@ -61,10 +61,11 @@ export default class MigrateTelemetryToV3PrimaryEntityId extends DataMigrationBa
      * MetricItemAggMV1mByHost is deliberately VIEW-ONLY here (dropTable:
      * false): a manual V2 -> V3 raw-metric copy stamps hostEntityKey = ''
      * (V2 has no such column), so the ByHostV2 MV cannot rebuild per-host
-     * rollup history from copied rows — the frozen old table is the ONLY
-     * source for the optional per-host history backfill in the upgrade
-     * guide. It self-drains via TTL; the guide documents dropping it
-     * early. MV1m/Baseline targets ARE droppable: a manual raw-metric
+     * rollup history from copied rows — the frozen old table (renamed to
+     * `…_backup` before the upgrade) is the ONLY source for the optional
+     * per-host history backfill in the upgrade guide. The un-renamed
+     * leftover is dropped by DropUnusedTelemetryTables at the end of the
+     * chain. MV1m/Baseline targets ARE droppable: a manual raw-metric
      * copy re-fires their MVs via primaryEntityId, which copied rows do
      * carry.
      */

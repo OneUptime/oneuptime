@@ -84,6 +84,7 @@ import AddZstdCodecToTelemetryIdColumns from "./AddZstdCodecToTelemetryIdColumns
 import AddTelemetryV3ColumnCodecs from "./AddTelemetryV3ColumnCodecs";
 import RebuildMetricBaselineHourlyWithBFloat16Quantiles from "./RebuildMetricBaselineHourlyWithBFloat16Quantiles";
 import AddDedupWindowToTelemetryTables from "./AddDedupWindowToTelemetryTables";
+import DropUnusedTelemetryTables from "./DropUnusedTelemetryTables";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -185,6 +186,13 @@ const DataMigrations: Array<DataMigrationBase> = [
   new AddTelemetryV3ColumnCodecs(),
   new RebuildMetricBaselineHourlyWithBFloat16Quantiles(),
   new AddDedupWindowToTelemetryTables(),
+  /*
+   * Ordered after MigrateTelemetryToV3PrimaryEntityId: the pre-V3 tables
+   * must already be superseded (never the live generation) when they are
+   * dropped. Operators who want the optional V2 history copy rename the
+   * tables to `…_backup` BEFORE upgrading (see the v11 upgrade guide).
+   */
+  new DropUnusedTelemetryTables(),
 ];
 
 export default DataMigrations;

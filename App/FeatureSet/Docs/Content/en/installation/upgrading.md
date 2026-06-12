@@ -40,25 +40,29 @@ automatically.
 
 The cut is **forward-only**: the new tables start empty, all telemetry
 ingested after the upgrade lands in them immediately, and history fills
-back in naturally as time passes. The old tables are kept and delete
-themselves gradually via their retention TTL.
+back in naturally as time passes. The old tables are **dropped
+automatically** during the upgrade to reclaim their disk — if you want
+the option of carrying history forward, rename them **before**
+upgrading (Step 0 below).
 
 ### Who needs to do anything
 
 - **Fresh installations:** nothing to do.
 - **Upgrades that don't need pre-upgrade telemetry in the UI:** nothing to
   do. Telemetry pages simply show data from the upgrade moment onward;
-  older data ages out of the old tables unseen.
-- **Upgrades that want pre-upgrade telemetry visible:** run the manual
-  copy below, any time after the upgrade.
+  the old tables are dropped during the upgrade.
+- **Upgrades that want pre-upgrade telemetry visible:** rename the old
+  tables **before** the upgrade (Step 0 below), then run the manual copy
+  any time after it.
 
 As always: upgrade major versions step-by-step (10 → 11, do not skip),
 and take backups of Postgres and ClickHouse before upgrading.
 
 ### Optional: carry telemetry history forward
 
-Run these **after the upgrade has fully booted** (the new tables and
-their materialized views must exist). Connect directly on your ClickHouse
+Step 0 runs **before the upgrade**; everything from Step 1 on runs
+**after the upgrade has fully booted** (the new tables and their
+materialized views must exist). Connect directly on your ClickHouse
 host — the native protocol has no HTTP timeouts, so multi-hour statements
 are fine:
 
@@ -81,12 +85,36 @@ Good to know before starting:
   automatically (each copied row re-feeds the rollup materialized views)
   — this makes the metric copy slower than the others; run it last.
 
+#### Step 0 — before upgrading, rename the old tables
+
+The upgrade drops the old tables at boot, so move the ones you want to
+copy from out of its reach first. Stop OneUptime (scale the deployment
+down) so nothing is writing to or able to recreate them, then rename —
+`RENAME TABLE` is an instant metadata operation:
+
+```sql
+RENAME TABLE LogItemV2 TO LogItemV2_backup;
+RENAME TABLE MetricItemV2 TO MetricItemV2_backup;
+RENAME TABLE SpanItemV2 TO SpanItemV2_backup;
+RENAME TABLE ExceptionItemV2 TO ExceptionItemV2_backup;
+RENAME TABLE ProfileItemV2 TO ProfileItemV2_backup;
+RENAME TABLE ProfileSampleItemV2 TO ProfileSampleItemV2_backup;
+RENAME TABLE MonitorLogV2 TO MonitorLogV2_backup;
+RENAME TABLE AuditLogV1 TO AuditLogV1_backup;
+RENAME TABLE MetricItemAggMV1mByHost TO MetricItemAggMV1mByHost_backup;
+```
+
+Skip any table that does not exist on your installation (deployments
+older than mid-10.0.x may lack `AuditLogV1` or some `…V2` tables
+entirely — there is no history of that type to copy). Then upgrade and
+let OneUptime boot fully before continuing.
+
 #### Step 1 — list the source partitions
 
 Each old table has at most 16 partitions. For each source table:
 
 ```sql
-SELECT DISTINCT _partition_id FROM LogItemV2 ORDER BY _partition_id;
+SELECT DISTINCT _partition_id FROM LogItemV2_backup ORDER BY _partition_id;
 ```
 
 #### Step 2 — generate the copy statement
@@ -94,11 +122,11 @@ SELECT DISTINCT _partition_id FROM LogItemV2 ORDER BY _partition_id;
 Column sets can differ slightly between installations (older deployments
 may lack recently added columns), so generate the statement from your
 live schema rather than copy-pasting a fixed one. Set `src` and `dst` in
-the `WITH` clause to one of the table pairs from the table above, and
-run:
+the `WITH` clause to one of the table pairs from the table above (the
+source carries the `_backup` suffix from Step 0), and run:
 
 ```sql
-WITH 'LogItemV2' AS src, 'LogItemV3' AS dst
+WITH 'LogItemV2_backup' AS src, 'LogItemV3' AS dst
 SELECT concat(
   'INSERT INTO ', dst, ' (`', arrayStringConcat(groupArray(name), '`, `'), '`)',
   ' SELECT ', arrayStringConcat(groupArray(selectExpr), ', '),
@@ -132,11 +160,9 @@ twice — in the `WHERE` and in the token) with each partition id from
 Step 1. Run the statements one at a time, then repeat Steps 1–3 for each
 table pair.
 
-> Note: if a source table from the pair list does not exist on your
-> installation (deployments older than mid-10.0.x may lack `AuditLogV1`
-> or some `…V2` tables entirely), the generator returns an empty/NULL
-> result for that pair — simply skip it; there is no history of that
-> type to copy.
+> Note: if a source table was skipped in Step 0 because it did not exist
+> on your installation, the generator returns an empty/NULL result for
+> that pair — simply skip it; there is no history of that type to copy.
 
 If a statement fails partway, re-run the **same** statement promptly —
 already-committed blocks deduplicate. If re-running much later, compare
@@ -146,8 +172,8 @@ row counts first (Step 5).
 
 Copied raw metric rows rebuild the service-level rollups automatically,
 but not the **per-host** rollup (old rows have no host entity key). The
-upgrade intentionally leaves the old per-host rollup table in place so
-you can carry it forward, computing the new key from the hostname:
+renamed old rollup table from Step 0 is the only source for this
+history; carry it forward by computing the new key from the hostname:
 
 ```sql
 INSERT INTO MetricItemAggMV1mByHostV2 (projectId, name, hostEntityKey, bucketTime, valueSumState, valueCountState, valueMinState, valueMaxState, retentionDate)
@@ -161,7 +187,7 @@ SELECT
   valueMinState,
   valueMaxState,
   retentionDate
-FROM MetricItemAggMV1mByHost
+FROM MetricItemAggMV1mByHost_backup
 ORDER BY projectId, name, hostIdentifier, bucketTime, _id
 SETTINGS max_execution_time = 0, insert_deduplication_token = 'v3copy:MetricItemAggMV1mByHostV2:all';
 ```
@@ -180,26 +206,30 @@ rows, so it should be greater than or equal to the old one):
 
 ```sql
 SELECT
-  (SELECT count() FROM LogItemV2) AS old_rows,
+  (SELECT count() FROM LogItemV2_backup) AS old_rows,
   (SELECT count() FROM LogItemV3) AS new_rows;
 ```
 
-#### Step 6 (optional) — reclaim disk early
+#### Step 6 — drop the backups
 
-The old tables drain by themselves via TTL, but once you are satisfied
-with the copy you can drop them immediately:
+The renamed tables keep their retention TTL, so they drain and shrink by
+themselves — but once you are satisfied with the copy, drop them to
+reclaim the disk immediately:
 
 ```sql
-DROP TABLE IF EXISTS LogItemV2;
-DROP TABLE IF EXISTS MetricItemV2;
-DROP TABLE IF EXISTS SpanItemV2;
-DROP TABLE IF EXISTS ExceptionItemV2;
-DROP TABLE IF EXISTS ProfileItemV2;
-DROP TABLE IF EXISTS ProfileSampleItemV2;
-DROP TABLE IF EXISTS MonitorLogV2;
-DROP TABLE IF EXISTS AuditLogV1;
-DROP TABLE IF EXISTS MetricItemAggMV1mByHost;
+DROP TABLE IF EXISTS LogItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS MetricItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS SpanItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS ExceptionItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS ProfileItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS ProfileSampleItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS MonitorLogV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS AuditLogV1_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS MetricItemAggMV1mByHost_backup SETTINGS max_table_size_to_drop = 0;
 ```
+
+(`max_table_size_to_drop = 0` lifts the server's 50 GB drop protection
+for that one statement.)
 
 > Tip: as with every major upgrade, test in a staging environment first
 > and confirm telemetry is flowing into the new tables before relying on

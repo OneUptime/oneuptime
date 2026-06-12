@@ -1260,11 +1260,22 @@ export class BillingService extends BaseService {
 
   /*
    * Returns true if the error is attributable to the payment method itself
-   * (declined, expired, requires authentication), meaning paying with a
-   * different payment method may succeed. Invoice-state or connectivity
-   * errors return false: retrying those with another payment method would
-   * not help, and if the outcome of the attempt is unknown a retry could
-   * double-charge the customer.
+   * (declined, expired, unusable), meaning paying with a different payment
+   * method may succeed.
+   *
+   * Not retryable:
+   * - invoice_payment_intent_requires_action (3DS/SCA): the payment method
+   *   works but needs customer authentication — throw so the interactive
+   *   flow (BillingInvoiceAPI) surfaces the authentication prompt for the
+   *   default method instead of silently charging a backup method.
+   * - Invoice-state or connectivity errors: another payment method would
+   *   not help, and if the outcome of the attempt is unknown a retry could
+   *   double-charge the customer.
+   *
+   * Note: most bank debit (ACH/SEPA/BACS) failures are asynchronous — the
+   * pay call succeeds and the failure arrives days later via webhook — so
+   * failover only catches the synchronous ones (unverified/unusable
+   * accounts).
    */
   private canRetryWithDifferentPaymentMethod(err: unknown): boolean {
     const stripeError: { type?: string; code?: string } = err as {
@@ -1276,9 +1287,9 @@ export class BillingService extends BaseService {
       return true;
     }
 
-    return (
-      stripeError?.code === "invoice_payment_intent_requires_action" ||
-      Boolean(stripeError?.code?.startsWith("payment_method_"))
+    return Boolean(
+      stripeError?.code?.startsWith("payment_method_") ||
+        stripeError?.code?.startsWith("bank_account_"),
     );
   }
 
@@ -1298,11 +1309,17 @@ export class BillingService extends BaseService {
     /*
      * getPaymentMethods returns the default payment method first. If it is
      * declined, fall back to the customer's other payment methods before
-     * giving up.
+     * giving up. Attempts are capped to bound decline traffic on unattended
+     * retry paths (e.g. recharge-on-low-balance), which create a fresh
+     * invoice and retry on every cycle.
      */
+    const maxPaymentMethodsToTry: number = 3;
     let lastError: unknown = null;
 
-    for (const paymentMethod of paymentMethods) {
+    for (const paymentMethod of paymentMethods.slice(
+      0,
+      maxPaymentMethodsToTry,
+    )) {
       try {
         const invoice: Stripe.Invoice = await this.stripe.invoices.pay(
           invoiceId,
