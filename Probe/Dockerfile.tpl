@@ -4,12 +4,14 @@
 #
 
 # Pull base image nodejs image.
-# Floating on the 24.x patch + slim so each rebuild picks up the latest Node
-# and Debian security patches without manual bumps. Lockfiles still keep JS
-# deps reproducible. The slim variant drops the full image's preinstalled
-# toolchain (and its hundreds of OS-package CVEs); everything the probe needs
-# is installed explicitly below.
-FROM public.ecr.aws/docker/library/node:24-slim
+# Floating on the 24.x patch + bookworm-slim so each rebuild picks up the
+# latest Node and Debian security patches without manual bumps. Lockfiles
+# still keep JS deps reproducible. The slim variant drops the full image's
+# preinstalled toolchain (and its hundreds of OS-package CVEs); everything the
+# probe needs is installed explicitly below. The Debian release is pinned
+# (bookworm) because the apt package list below is release-specific (e.g.
+# libgdk-pixbuf2.0-0 has no install candidate on trixie).
+FROM public.ecr.aws/docker/library/node:24-bookworm-slim
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
 
 RUN npm config set fetch-retries 5
@@ -53,7 +55,8 @@ RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=1.0.0; fi
 
 # Upgrade OS packages and install everything the probe needs in one layer:
 #   - Runtime tools: bash, curl, iputils-ping, net-tools, dnsutils (dig is
-#     used in DNSSEC validation)
+#     used in DNSSEC validation), traceroute (NetworkPathMonitor execs it on
+#     Linux; it was missing from the old full image too)
 #   - tini: a tiny init for containers to properly reap zombie processes
 #   - ca-certificates: required by update-ca-certificates (intermediate certs
 #     copied above)
@@ -64,7 +67,7 @@ RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=1.0.0; fi
 RUN apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
-        bash curl iputils-ping net-tools dnsutils tini ca-certificates \
+        bash curl iputils-ping net-tools dnsutils traceroute tini ca-certificates \
         python3 make g++ \
         libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
         libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
