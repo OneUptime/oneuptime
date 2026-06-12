@@ -18,7 +18,7 @@
   "dependencies": {
     "@kubernetes/client-node": "^0.22.0",
     "ts-node": "^10.9.1",
-    "typescript": "^5.4.0"
+    "typescript": "^5.9.2"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

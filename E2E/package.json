@@ -26,6 +26,6 @@
     "Common": "file:../Common",
     
     "playwright": "^1.49.1",
-    "typescript": "^5.4.5"
+    "typescript": "^5.9.2"
   }
 }
