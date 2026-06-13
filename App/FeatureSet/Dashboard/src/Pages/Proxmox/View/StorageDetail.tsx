@@ -46,7 +46,7 @@ import OneUptimeDate from "Common/Types/Date";
 
 /*
  * WI-29: window for the client-side linear growth fit — same 24 h
- * window as the Ceph capacity forecast (Pages/Ceph/View/Overview.tsx).
+ * window as the Ceph capacity forecast (Pages/Ceph/View/Index.tsx).
  */
 const PROJECTION_WINDOW_HOURS: number = 24;
 

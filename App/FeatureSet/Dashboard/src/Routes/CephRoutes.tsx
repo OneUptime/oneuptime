@@ -12,7 +12,7 @@ import CephClusters from "../Pages/Ceph/Clusters";
 import CephDocumentation from "../Pages/Ceph/Documentation";
 import CephSettingsOwnerRules from "../Pages/Ceph/Settings/OwnerRules";
 import CephSettingsLabelRules from "../Pages/Ceph/Settings/LabelRules";
-import CephClusterOverview from "../Pages/Ceph/View/Overview";
+import CephClusterOverview from "../Pages/Ceph/View/Index";
 import CephClusterOsds from "../Pages/Ceph/View/Osds";
 import CephClusterOsdDetail from "../Pages/Ceph/View/OsdDetail";
 import CephClusterPools from "../Pages/Ceph/View/Pools";
