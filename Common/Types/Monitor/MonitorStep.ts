@@ -50,6 +50,12 @@ import MonitorStepKubernetesMonitor, {
 import MonitorStepDockerMonitor, {
   MonitorStepDockerMonitorUtil,
 } from "./MonitorStepDockerMonitor";
+import MonitorStepProxmoxMonitor, {
+  MonitorStepProxmoxMonitorUtil,
+} from "./MonitorStepProxmoxMonitor";
+import MonitorStepCephMonitor, {
+  MonitorStepCephMonitorUtil,
+} from "./MonitorStepCephMonitor";
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 
 /*
@@ -169,6 +175,12 @@ export interface MonitorStepType {
 
   // Docker monitor
   dockerMonitor?: MonitorStepDockerMonitor | undefined;
+
+  // Proxmox monitor
+  proxmoxMonitor?: MonitorStepProxmoxMonitor | undefined;
+
+  // Ceph monitor
+  cephMonitor?: MonitorStepCephMonitor | undefined;
 }
 
 export default class MonitorStep extends DatabaseProperty {
@@ -208,6 +220,8 @@ export default class MonitorStep extends DatabaseProperty {
       externalStatusPageMonitor: undefined,
       kubernetesMonitor: undefined,
       dockerMonitor: undefined,
+      proxmoxMonitor: undefined,
+      cephMonitor: undefined,
     };
   }
 
@@ -252,6 +266,8 @@ export default class MonitorStep extends DatabaseProperty {
       externalStatusPageMonitor: undefined,
       kubernetesMonitor: undefined,
       dockerMonitor: undefined,
+      proxmoxMonitor: undefined,
+      cephMonitor: undefined,
     };
 
     return monitorStep;
@@ -441,6 +457,18 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
+  public setProxmoxMonitor(
+    proxmoxMonitor: MonitorStepProxmoxMonitor,
+  ): MonitorStep {
+    this.data!.proxmoxMonitor = proxmoxMonitor;
+    return this;
+  }
+
+  public setCephMonitor(cephMonitor: MonitorStepCephMonitor): MonitorStep {
+    this.data!.cephMonitor = cephMonitor;
+    return this;
+  }
+
   public setCustomCode(customCode: string): MonitorStep {
     this.data!.customCode = customCode;
     return this;
@@ -477,6 +505,8 @@ export default class MonitorStep extends DatabaseProperty {
         exceptionMonitor: undefined,
         kubernetesMonitor: undefined,
         dockerMonitor: undefined,
+        proxmoxMonitor: undefined,
+        cephMonitor: undefined,
       },
     };
   }
@@ -643,6 +673,26 @@ export default class MonitorStep extends DatabaseProperty {
       }
     }
 
+    if (monitorType === MonitorType.Proxmox) {
+      if (!value.data.proxmoxMonitor) {
+        return "Proxmox monitor configuration is required";
+      }
+
+      if (!value.data.proxmoxMonitor.clusterIdentifier) {
+        return "Proxmox cluster is required";
+      }
+    }
+
+    if (monitorType === MonitorType.Ceph) {
+      if (!value.data.cephMonitor) {
+        return "Ceph monitor configuration is required";
+      }
+
+      if (!value.data.cephMonitor.clusterIdentifier) {
+        return "Ceph cluster is required";
+      }
+    }
+
     return null;
   }
 
@@ -725,6 +775,12 @@ export default class MonitorStep extends DatabaseProperty {
             : undefined,
           dockerMonitor: this.data.dockerMonitor
             ? MonitorStepDockerMonitorUtil.toJSON(this.data.dockerMonitor)
+            : undefined,
+          proxmoxMonitor: this.data.proxmoxMonitor
+            ? MonitorStepProxmoxMonitorUtil.toJSON(this.data.proxmoxMonitor)
+            : undefined,
+          cephMonitor: this.data.cephMonitor
+            ? MonitorStepCephMonitorUtil.toJSON(this.data.cephMonitor)
             : undefined,
         },
       });
@@ -864,6 +920,12 @@ export default class MonitorStep extends DatabaseProperty {
       dockerMonitor: json["dockerMonitor"]
         ? (json["dockerMonitor"] as JSONObject)
         : undefined,
+      proxmoxMonitor: json["proxmoxMonitor"]
+        ? (json["proxmoxMonitor"] as JSONObject)
+        : undefined,
+      cephMonitor: json["cephMonitor"]
+        ? (json["cephMonitor"] as JSONObject)
+        : undefined,
     }) as any;
 
     return monitorStep;
@@ -902,6 +964,8 @@ export default class MonitorStep extends DatabaseProperty {
         externalStatusPageMonitor: Zod.any().optional(),
         kubernetesMonitor: Zod.any().optional(),
         dockerMonitor: Zod.any().optional(),
+        proxmoxMonitor: Zod.any().optional(),
+        cephMonitor: Zod.any().optional(),
       }).openapi({
         type: "object",
         example: {

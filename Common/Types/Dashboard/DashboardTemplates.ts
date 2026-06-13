@@ -26,6 +26,8 @@ export enum DashboardTemplateType {
   Incident = "Incident",
   Kubernetes = "Kubernetes",
   Host = "Host",
+  Proxmox = "Proxmox",
+  Ceph = "Ceph",
   Metrics = "Metrics",
 }
 
@@ -70,6 +72,20 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
     description:
       "Per-host CPU, memory, disk and network charts, a live host inventory, CPU utilization gauge, process counts, and recent logs.",
     icon: IconProp.Server,
+  },
+  {
+    type: DashboardTemplateType.Proxmox,
+    name: "Proxmox Dashboard",
+    description:
+      "Live node and guest inventories with status, CPU/memory trends, network throughput, and cluster logs.",
+    icon: IconProp.ServerStack,
+  },
+  {
+    type: DashboardTemplateType.Ceph,
+    name: "Ceph Dashboard",
+    description:
+      "OSD wall and pool capacity lists, health and capacity stats, degraded-PG trends, client throughput, and cluster logs.",
+    icon: IconProp.Database,
   },
   {
     type: DashboardTemplateType.Metrics,
@@ -447,6 +463,117 @@ function createHostListComponent(data: {
       maxRows: data.maxRows ?? 25,
       statusFilter: data.statusFilter,
       osTypeFilter: data.osTypeFilter,
+    },
+  };
+}
+
+function createProxmoxNodeListComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+  statusFilter?: string;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.ProxmoxNodeList,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 4,
+    arguments: {
+      title: data.title,
+      maxRows: data.maxRows ?? 20,
+      statusFilter: data.statusFilter,
+    },
+  };
+}
+
+function createProxmoxGuestListComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+  guestTypeFilter?: string;
+  statusFilter?: string;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.ProxmoxGuestList,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 4,
+    arguments: {
+      title: data.title,
+      maxRows: data.maxRows ?? 20,
+      guestTypeFilter: data.guestTypeFilter,
+      statusFilter: data.statusFilter,
+    },
+  };
+}
+
+function createCephOsdListComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+  viewMode?: string;
+  stateFilter?: string;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.CephOsdList,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 4,
+    arguments: {
+      title: data.title,
+      maxRows: data.maxRows ?? 50,
+      // The OSD wall — honeycomb is the view operators expect.
+      viewMode: data.viewMode ?? "honeycomb",
+      stateFilter: data.stateFilter,
+    },
+  };
+}
+
+function createCephPoolListComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.CephPoolList,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 4,
+    arguments: {
+      title: data.title,
+      maxRows: data.maxRows ?? 20,
     },
   };
 }
@@ -1785,6 +1912,321 @@ function createHostDashboardConfig(): DashboardViewConfig {
   };
 }
 
+function createProxmoxDashboardConfig(): DashboardViewConfig {
+  /*
+   * Layout notes:
+   *
+   * - Node / guest counts come from the Postgres inventory list widgets,
+   *   never from Sum-of-gauge Value widgets — pve_up re-emits 1 on every
+   *   scrape, so summing it across the dashboard window multiplies
+   *   (resources x scrapes), the exact failure the Kubernetes template
+   *   documents. The list-widget headers show the true current counts.
+   *
+   * - Template metric widgets cannot filter on datapoint attributes, so
+   *   the CPU / memory charts average across every PVE object that
+   *   reports the metric (nodes AND guests — pve-exporter emits
+   *   pve_cpu_usage_ratio / pve_memory_usage_bytes for both scopes).
+   *   That is a useful temperature signal for a wall dashboard; the
+   *   per-scope, capacity-weighted versions live on the cluster
+   *   Overview page.
+   *
+   * - pve_network_*_bytes are cumulative counters, so the throughput
+   *   charts use transformAsRate.
+   */
+  const components: Array<DashboardBaseComponent> = [
+    // Row 0: Title
+    createTextComponent({
+      text: "Proxmox Dashboard",
+      top: 0,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Rows 1-4: Live inventory from the Postgres snapshot
+    createProxmoxNodeListComponent({
+      title: "Nodes",
+      top: 1,
+      left: 0,
+      width: 6,
+      height: 4,
+      maxRows: 25,
+    }),
+    createProxmoxGuestListComponent({
+      title: "Guests",
+      top: 1,
+      left: 6,
+      width: 6,
+      height: 4,
+      maxRows: 25,
+    }),
+
+    // Row 5: Section header
+    createTextComponent({
+      text: "Resource Usage",
+      top: 5,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Rows 6-8: CPU and memory trends
+    createChartComponent({
+      title: "CPU Usage Ratio (avg across nodes & guests)",
+      chartType: DashboardChartType.Line,
+      top: 6,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "pve_cpu_usage_ratio",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "CPU ratio",
+      },
+    }),
+    createChartComponent({
+      title: "Memory Usage (avg across nodes & guests)",
+      chartType: DashboardChartType.Area,
+      top: 6,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "pve_memory_usage_bytes",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Memory used",
+      },
+    }),
+
+    // Rows 9-11: Network throughput (cumulative counters -> rate)
+    createChartComponent({
+      title: "Network Receive Throughput",
+      chartType: DashboardChartType.Area,
+      top: 9,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "pve_network_receive_bytes",
+        aggregationType: MetricsAggregationType.Sum,
+        legend: "RX bytes/sec",
+        transformAsRate: true,
+      },
+    }),
+    createChartComponent({
+      title: "Network Transmit Throughput",
+      chartType: DashboardChartType.Area,
+      top: 9,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "pve_network_transmit_bytes",
+        aggregationType: MetricsAggregationType.Sum,
+        legend: "TX bytes/sec",
+        transformAsRate: true,
+      },
+    }),
+
+    // Rows 12-14: Logs
+    createLogStreamComponent({
+      title: "Cluster Logs",
+      top: 12,
+      left: 0,
+      width: 12,
+      height: 3,
+    }),
+  ];
+
+  const variables: Array<DashboardVariable> = [
+    createTelemetryAttributeVariable({
+      name: "cluster",
+      label: "Cluster",
+      attributeKey: "resource.proxmox.cluster.name",
+    }),
+  ];
+
+  return {
+    _type: ObjectType.DashboardViewConfig,
+    components,
+    variables,
+    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 15),
+  };
+}
+
+function createCephDashboardConfig(): DashboardViewConfig {
+  /*
+   * Layout notes:
+   *
+   * - The OSD wall (honeycomb) and pool capacity list read the Postgres
+   *   inventory, so their headers show true current counts — same
+   *   Sum-of-gauge reasoning as the Kubernetes / Proxmox templates.
+   *
+   * - ceph_health_status is a single per-cluster gauge (0 OK / 1 WARN /
+   *   2 ERR), so a Max Value widget renders it correctly.
+   *
+   * - ceph_pool_rd_bytes / ceph_pool_wr_bytes are cumulative counters,
+   *   so the client-throughput charts use transformAsRate.
+   */
+  const components: Array<DashboardBaseComponent> = [
+    // Row 0: Title
+    createTextComponent({
+      text: "Ceph Dashboard",
+      top: 0,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Rows 1-4: Live inventory from the Postgres snapshot
+    createCephOsdListComponent({
+      title: "OSDs",
+      top: 1,
+      left: 0,
+      width: 6,
+      height: 4,
+      maxRows: 100,
+    }),
+    createCephPoolListComponent({
+      title: "Pools",
+      top: 1,
+      left: 6,
+      width: 6,
+      height: 4,
+      maxRows: 25,
+    }),
+
+    // Row 5: Section header
+    createTextComponent({
+      text: "Health & Capacity",
+      top: 5,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Row 6: Health and capacity stats
+    createValueComponent({
+      title: "Health (0 OK / 1 WARN / 2 ERR)",
+      top: 6,
+      left: 0,
+      width: 4,
+      metricConfig: {
+        metricName: "ceph_health_status",
+        aggregationType: MetricsAggregationType.Max,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+    createValueComponent({
+      title: "Capacity Used",
+      top: 6,
+      left: 4,
+      width: 4,
+      metricConfig: {
+        metricName: "ceph_cluster_total_used_bytes",
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+    createValueComponent({
+      title: "Capacity Total",
+      top: 6,
+      left: 8,
+      width: 4,
+      metricConfig: {
+        metricName: "ceph_cluster_total_bytes",
+        aggregationType: MetricsAggregationType.Avg,
+      },
+    }),
+
+    // Rows 7-9: Capacity growth and PG health
+    createChartComponent({
+      title: "Capacity Used Over Time",
+      chartType: DashboardChartType.Area,
+      top: 7,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "ceph_cluster_total_used_bytes",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Used bytes",
+      },
+    }),
+    createChartComponent({
+      title: "Degraded PGs",
+      chartType: DashboardChartType.Line,
+      top: 7,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "ceph_pg_degraded",
+        aggregationType: MetricsAggregationType.Max,
+        legend: "Degraded PGs",
+      },
+    }),
+
+    // Rows 10-12: Client throughput (cumulative counters -> rate)
+    createChartComponent({
+      title: "Client Read Throughput",
+      chartType: DashboardChartType.Area,
+      top: 10,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "ceph_pool_rd_bytes",
+        aggregationType: MetricsAggregationType.Sum,
+        legend: "Read bytes/sec",
+        transformAsRate: true,
+      },
+    }),
+    createChartComponent({
+      title: "Client Write Throughput",
+      chartType: DashboardChartType.Area,
+      top: 10,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "ceph_pool_wr_bytes",
+        aggregationType: MetricsAggregationType.Sum,
+        legend: "Write bytes/sec",
+        transformAsRate: true,
+      },
+    }),
+
+    // Rows 13-15: Logs (the agent's filelog receiver ships ceph.log)
+    createLogStreamComponent({
+      title: "Cluster Logs",
+      top: 13,
+      left: 0,
+      width: 12,
+      height: 3,
+    }),
+  ];
+
+  const variables: Array<DashboardVariable> = [
+    createTelemetryAttributeVariable({
+      name: "cluster",
+      label: "Cluster",
+      attributeKey: "resource.ceph.cluster.name",
+    }),
+  ];
+
+  return {
+    _type: ObjectType.DashboardViewConfig,
+    components,
+    variables,
+    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 16),
+  };
+}
+
 export function getTemplateConfig(
   type: DashboardTemplateType,
 ): DashboardViewConfig | null {
@@ -1797,6 +2239,10 @@ export function getTemplateConfig(
       return createKubernetesDashboardConfig();
     case DashboardTemplateType.Host:
       return createHostDashboardConfig();
+    case DashboardTemplateType.Proxmox:
+      return createProxmoxDashboardConfig();
+    case DashboardTemplateType.Ceph:
+      return createCephDashboardConfig();
     case DashboardTemplateType.Metrics:
       return createMetricsDashboardConfig();
     case DashboardTemplateType.Blank:

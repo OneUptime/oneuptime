@@ -60,6 +60,10 @@ export const DEFAULT_ENTITY_BUDGET: ReadonlyMap<EntityType, number> = new Map<
   [EntityType.KubernetesNamespace, 1000],
   [EntityType.KubernetesPod, 5000],
   [EntityType.KubernetesDeployment, 5000],
+  [EntityType.ProxmoxCluster, 10000],
+  [EntityType.ProxmoxNode, 1000],
+  [EntityType.ProxmoxGuest, 5000],
+  [EntityType.CephCluster, 10000],
 ]);
 
 // For types not in the map (future promotions of high-churn types).

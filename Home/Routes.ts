@@ -1263,6 +1263,31 @@ const HomeFeatureSet: FeatureSet = {
     });
 
     app.get(
+      "/product/proxmox",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/proxmox",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/proxmox`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get("/product/ceph", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/product/ceph",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/ceph`, {
+        enableGoogleTagManager: IsBillingEnabled,
+        seo,
+      });
+    });
+
+    app.get(
       "/product/services",
       (_req: ExpressRequest, res: ExpressResponse) => {
         const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(

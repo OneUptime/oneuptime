@@ -533,6 +533,70 @@ export default class TelemetryEntity {
       return { entityType: EntityType.KubernetesDeployment, id };
     },
 
+    // proxmox.cluster — proxmox.cluster.name only (see proxmoxClusterIdentity).
+    (attrs: EntityAttributes) => {
+      const id: Dictionary<string> | null =
+        TelemetryEntity.proxmoxClusterIdentity(attrs);
+      return id ? { entityType: EntityType.ProxmoxCluster, id } : null;
+    },
+
+    // proxmox.node — cluster + proxmox.node.name.
+    (attrs: EntityAttributes) => {
+      const nodeName: string | null = TelemetryEntity.str(
+        attrs,
+        "proxmox.node.name",
+      );
+      if (!nodeName) {
+        return null;
+      }
+      const id: Dictionary<string> = {
+        ...(TelemetryEntity.proxmoxClusterIdentity(attrs) || {}),
+        "proxmox.node.name": nodeName,
+      };
+      return { entityType: EntityType.ProxmoxNode, id };
+    },
+
+    /*
+     * proxmox.guest — cluster + proxmox.guest.vmid. The node name is
+     * deliberately NOT part of guest identity: vmids are cluster-unique
+     * and a live migration moves a guest between nodes without changing
+     * what it is, so folding the node in would fork the key on every
+     * migration. Guest name/type are descriptive (a guest can be renamed).
+     */
+    (attrs: EntityAttributes) => {
+      const vmid: string | null = TelemetryEntity.str(
+        attrs,
+        "proxmox.guest.vmid",
+      );
+      if (!vmid) {
+        return null;
+      }
+      const id: Dictionary<string> = {
+        ...(TelemetryEntity.proxmoxClusterIdentity(attrs) || {}),
+        "proxmox.guest.vmid": vmid,
+      };
+      return { entityType: EntityType.ProxmoxGuest, id };
+    },
+
+    /*
+     * ceph.cluster — ceph.cluster.name only. `ceph.cluster.fsid` is
+     * descriptive, not identity: the typed Postgres row (CephCluster) and
+     * the read side (`EntityKey.keyForCephCluster`) are name-based, and
+     * the fsid is only optionally stamped by the agent.
+     */
+    (attrs: EntityAttributes) => {
+      const name: string | null = TelemetryEntity.str(
+        attrs,
+        "ceph.cluster.name",
+      );
+      return name
+        ? {
+            entityType: EntityType.CephCluster,
+            id: { "ceph.cluster.name": name },
+          }
+        : null;
+    },
+
     /*
      * container — container.id. High-churn: flows as a membership key but
      * is membership-only by default (not promoted to a registry row
@@ -652,6 +716,8 @@ export default class TelemetryEntity {
       "container.image.tag",
       "container.image.tags",
     ],
+    [EntityType.ProxmoxGuest]: ["proxmox.guest.name", "proxmox.guest.type"],
+    [EntityType.CephCluster]: ["ceph.cluster.fsid"],
   };
 
   private static descriptiveAttributesFor(
@@ -735,6 +801,25 @@ export default class TelemetryEntity {
     const name: string | null = this.str(attrs, "k8s.cluster.name");
     if (name) {
       return { "k8s.cluster.name": name };
+    }
+    return null;
+  }
+
+  /*
+   * Proxmox cluster identity — proxmox.cluster.name only, mirroring
+   * k8sClusterIdentity above: the typed Postgres row (ProxmoxCluster) and
+   * the read side (`EntityKey.keyForProxmoxCluster`) are name-based, and
+   * the attribute is the user-configured join key our agent stamps on
+   * every resource (see Internal/Roadmap/ProxmoxCephProducts.md §1). This
+   * identity is also folded into the composite proxmox node/guest
+   * identities, which must stay name-based with it.
+   */
+  private static proxmoxClusterIdentity(
+    attrs: EntityAttributes,
+  ): Dictionary<string> | null {
+    const name: string | null = this.str(attrs, "proxmox.cluster.name");
+    if (name) {
+      return { "proxmox.cluster.name": name };
     }
     return null;
   }

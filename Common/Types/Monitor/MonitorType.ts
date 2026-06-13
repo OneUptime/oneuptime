@@ -8,6 +8,8 @@ enum MonitorType {
   Ping = "Ping",
   Kubernetes = "Kubernetes",
   Docker = "Docker",
+  Proxmox = "Proxmox",
+  Ceph = "Ceph",
   IP = "IP",
   IncomingRequest = "Incoming Request",
   IncomingEmail = "Incoming Email",
@@ -100,6 +102,14 @@ export class MonitorTypeHelper {
         monitorTypes: [MonitorType.Docker],
       },
       {
+        label: "Proxmox",
+        monitorTypes: [MonitorType.Proxmox],
+      },
+      {
+        label: "Ceph",
+        monitorTypes: [MonitorType.Ceph],
+      },
+      {
         label: "Telemetry",
         monitorTypes: [
           MonitorType.Logs,
@@ -131,7 +141,9 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.Exceptions ||
       monitorType === MonitorType.Profiles ||
       monitorType === MonitorType.Kubernetes ||
-      monitorType === MonitorType.Docker
+      monitorType === MonitorType.Docker ||
+      monitorType === MonitorType.Proxmox ||
+      monitorType === MonitorType.Ceph
     );
   }
 
@@ -182,6 +194,20 @@ export class MonitorTypeHelper {
         description:
           "This monitor type lets you monitor Docker containers — CPU, memory, network, restarts, and lifecycle events.",
         icon: IconProp.Cube,
+      },
+      {
+        monitorType: MonitorType.Proxmox,
+        title: "Proxmox",
+        description:
+          "This monitor type lets you monitor Proxmox VE clusters — node availability, VM and container (guest) health, CPU, memory, storage, and HA state.",
+        icon: IconProp.ServerStack,
+      },
+      {
+        monitorType: MonitorType.Ceph,
+        title: "Ceph",
+        description:
+          "This monitor type lets you monitor Ceph storage clusters — cluster health, monitor quorum, OSD availability, pool capacity, and placement group states.",
+        icon: IconProp.Database,
       },
       {
         monitorType: MonitorType.IP,
@@ -385,6 +411,8 @@ export class MonitorTypeHelper {
       MonitorType.ExternalStatusPage,
       MonitorType.Kubernetes,
       MonitorType.Docker,
+      MonitorType.Proxmox,
+      MonitorType.Ceph,
     ];
   }
 

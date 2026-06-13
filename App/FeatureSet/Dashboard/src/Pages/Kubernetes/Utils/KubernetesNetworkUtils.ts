@@ -3,11 +3,11 @@ import Metric from "Common/Models/AnalyticsModels/Metric";
 import ProjectUtil from "Common/UI/Utils/Project";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
-import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import { computeCounterRate } from "../../../Utils/CounterRateUtils";
 
 /*
  * kubeletstats ships node network IO as a single cumulative
@@ -36,30 +36,14 @@ export interface FetchNetworkThroughputParams {
   endDate: Date;
 }
 
-type CounterSample = {
-  t: number;
-  v: number;
-};
-
-const getBucketTimestamp: (p: AggregatedModel) => number = (
-  p: AggregatedModel,
-): number => {
-  const raw: unknown =
-    p["timestamp"] !== undefined ? p["timestamp"] : p["time"];
-  if (raw instanceof Date) {
-    return raw.getTime();
-  }
-  if (typeof raw === "string" || typeof raw === "number") {
-    return new Date(raw).getTime();
-  }
-  return NaN;
-};
-
 /*
  * Convert the cumulative `k8s.node.network.io` counter into a
  * per-second rate: delta consecutive buckets per (node, interface)
  * series, clamp counter resets to 0, and sum rates across all
  * (node, interface) series per bucket for the requested direction.
+ * The counter math lives in the shared CounterRateUtils (also used by
+ * the Proxmox / Ceph pages); only the (node, interface, direction)
+ * series identity is Kubernetes-specific.
  */
 export const computeNetworkRate: (
   result: AggregatedResult,
@@ -68,64 +52,23 @@ export const computeNetworkRate: (
   result: AggregatedResult,
   direction: NetworkDirection,
 ): Array<NetworkThroughputPoint> => {
-  const perKey: Map<string, Array<CounterSample>> = new Map();
-  for (const p of (result.data || []) as Array<AggregatedModel>) {
-    const attrs: Record<string, unknown> =
-      (p["attributes"] as Record<string, unknown>) || {};
-    const pointDirection: string = (attrs["direction"] as string) || "";
-    if (pointDirection !== direction) {
-      continue;
-    }
-    const node: string = (attrs["resource.k8s.node.name"] as string) || "";
-    const interfaceName: string =
-      (attrs["interface"] as string) ||
-      (attrs["network.interface"] as string) ||
-      "";
-    if (!node) {
-      continue;
-    }
-    const key: string = `${node}|${interfaceName}`;
-    const t: number = getBucketTimestamp(p);
-    const v: number = Number(p["value"]);
-    if (!Number.isFinite(t) || !Number.isFinite(v)) {
-      continue;
-    }
-    let arr: Array<CounterSample> | undefined = perKey.get(key);
-    if (!arr) {
-      arr = [];
-      perKey.set(key, arr);
-    }
-    arr.push({ t, v });
-  }
-
-  const perBucket: Map<number, number> = new Map();
-  for (const arr of perKey.values()) {
-    arr.sort((a: CounterSample, b: CounterSample): number => {
-      return a.t - b.t;
-    });
-    for (let i: number = 1; i < arr.length; i++) {
-      const prev: CounterSample = arr[i - 1]!;
-      const cur: CounterSample = arr[i]!;
-      const dtSec: number = (cur.t - prev.t) / 1000;
-      if (dtSec <= 0) {
-        continue;
+  return computeCounterRate(result, {
+    getSeriesKey: (attrs: Record<string, unknown>): string | null => {
+      const pointDirection: string = (attrs["direction"] as string) || "";
+      if (pointDirection !== direction) {
+        return null;
       }
-      const dv: number = cur.v - prev.v;
-      if (!Number.isFinite(dv)) {
-        continue;
+      const node: string = (attrs["resource.k8s.node.name"] as string) || "";
+      if (!node) {
+        return null;
       }
-      const rate: number = Math.max(0, dv) / dtSec;
-      perBucket.set(cur.t, (perBucket.get(cur.t) || 0) + rate);
-    }
-  }
-
-  return Array.from(perBucket.entries())
-    .map(([t, y]: [number, number]): NetworkThroughputPoint => {
-      return { x: new Date(t), y: y };
-    })
-    .sort((a: NetworkThroughputPoint, b: NetworkThroughputPoint): number => {
-      return a.x.getTime() - b.x.getTime();
-    });
+      const interfaceName: string =
+        (attrs["interface"] as string) ||
+        (attrs["network.interface"] as string) ||
+        "";
+      return `${node}|${interfaceName}`;
+    },
+  });
 };
 
 /*

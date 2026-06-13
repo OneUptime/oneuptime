@@ -42,6 +42,10 @@ import DashboardDockerImageListComponentUtil from "Common/Utils/Dashboard/Compon
 import DashboardDockerNetworkListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerNetworkListComponent";
 import DashboardDockerVolumeListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerVolumeListComponent";
 import DashboardHostListComponentUtil from "Common/Utils/Dashboard/Components/DashboardHostListComponent";
+import DashboardProxmoxNodeListComponentUtil from "Common/Utils/Dashboard/Components/DashboardProxmoxNodeListComponent";
+import DashboardProxmoxGuestListComponentUtil from "Common/Utils/Dashboard/Components/DashboardProxmoxGuestListComponent";
+import DashboardCephOsdListComponentUtil from "Common/Utils/Dashboard/Components/DashboardCephOsdListComponent";
+import DashboardCephPoolListComponentUtil from "Common/Utils/Dashboard/Components/DashboardCephPoolListComponent";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
@@ -635,6 +639,26 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
           if (componentType === DashboardComponentType.HostList) {
             newComponent = DashboardHostListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.ProxmoxNodeList) {
+            newComponent =
+              DashboardProxmoxNodeListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.ProxmoxGuestList) {
+            newComponent =
+              DashboardProxmoxGuestListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.CephOsdList) {
+            newComponent =
+              DashboardCephOsdListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.CephPoolList) {
+            newComponent =
+              DashboardCephPoolListComponentUtil.getDefaultComponent();
           }
 
           if (!newComponent) {

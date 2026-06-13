@@ -52,13 +52,17 @@ import useTranslateValue from "Common/UI/Utils/Translation";
 // Entity type → vertical layer (0 = top). Unknowns fall to the bottom layer.
 const LAYER_BY_TYPE: Record<EntityType, number> = {
   [EntityType.KubernetesCluster]: 0,
+  [EntityType.ProxmoxCluster]: 0,
+  [EntityType.CephCluster]: 0,
   [EntityType.Host]: 1,
   [EntityType.KubernetesNamespace]: 1,
   [EntityType.Service]: 2,
   [EntityType.KubernetesNode]: 2,
   [EntityType.KubernetesDeployment]: 2,
+  [EntityType.ProxmoxNode]: 2,
   [EntityType.ServiceInstance]: 3,
   [EntityType.KubernetesPod]: 3,
+  [EntityType.ProxmoxGuest]: 3,
   [EntityType.Container]: 4,
   [EntityType.Process]: 4,
   [EntityType.TelemetrySdk]: 5,

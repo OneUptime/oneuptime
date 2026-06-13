@@ -30,6 +30,8 @@ export enum EntityFilterModelType {
   Label = "Label",
   KubernetesCluster = "KubernetesCluster",
   DockerHost = "DockerHost",
+  ProxmoxCluster = "ProxmoxCluster",
+  CephCluster = "CephCluster",
 }
 
 export interface ComponentArgumentSection {

@@ -73,6 +73,8 @@ export class ExceptionAggregationService {
       ["hostId", ServiceType.Host],
       ["dockerHostId", ServiceType.DockerHost],
       ["kubernetesClusterId", ServiceType.KubernetesCluster],
+      ["proxmoxClusterId", ServiceType.ProxmoxCluster],
+      ["cephClusterId", ServiceType.CephCluster],
       ["serverlessFunctionId", ServiceType.ServerlessFunction],
       ["cloudResourceId", ServiceType.CloudResource],
       ["rumApplicationId", ServiceType.RealUserMonitor],

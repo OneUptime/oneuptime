@@ -2,6 +2,7 @@ import DockerHost from "./DockerHost";
 import KubernetesCluster from "./KubernetesCluster";
 import Label from "./Label";
 import Project from "./Project";
+import ProxmoxCluster from "./ProxmoxCluster";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -894,6 +895,69 @@ export default class Host extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public kubernetesClusterId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "proxmoxClusterId",
+    type: TableColumnType.Entity,
+    modelType: ProxmoxCluster,
+    title: "Proxmox Cluster",
+    description:
+      "Optional link to the ProxmoxCluster this host runs inside (as a guest VM). Auto-linked at ingest when the host identifier matches a Proxmox guest name in the same project; best-effort and never overwrites a non-null value.",
+  })
+  @ManyToOne(
+    () => {
+      return ProxmoxCluster;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "proxmoxClusterId" })
+  public proxmoxCluster?: ProxmoxCluster = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Proxmox Cluster ID",
+    description:
+      "Optional FK to the ProxmoxCluster this host runs inside (as a guest VM)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public proxmoxClusterId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

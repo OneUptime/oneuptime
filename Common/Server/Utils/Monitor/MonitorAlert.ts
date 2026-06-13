@@ -1,10 +1,12 @@
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import AlertStateTimeline from "../../../Models/DatabaseModels/AlertStateTimeline";
+import CephCluster from "../../../Models/DatabaseModels/CephCluster";
 import Host from "../../../Models/DatabaseModels/Host";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
+import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import Service from "../../../Models/DatabaseModels/Service";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
@@ -24,6 +26,9 @@ import ServiceService from "../../Services/ServiceService";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
+import MonitorClusterContextUtil, {
+  MonitorClusterContext,
+} from "./MonitorClusterContext";
 import MonitorTemplateUtil from "./MonitorTemplateUtil";
 import { JSONObject } from "../../../Types/JSON";
 import OneUptimeDate from "../../../Types/Date";
@@ -158,6 +163,19 @@ export default class MonitorAlert {
     if (!input.criteriaInstance.data?.createAlerts) {
       return;
     }
+
+    /*
+     * Proxmox/Ceph monitors: resolve the monitored cluster once per
+     * evaluation (lookup-only, from the step config's clusterIdentifier)
+     * so every alert created below is attached to it. Series labels
+     * cannot supply this — they carry datapoint labels (`id`,
+     * `ceph_daemon`, `pool_id`), not cluster identity, and ungrouped
+     * templates have no series at all. No-op for other monitor types.
+     */
+    const clusterContext: MonitorClusterContext =
+      await MonitorClusterContextUtil.resolveClusterContextForMonitor({
+        monitor: input.monitor,
+      });
 
     const seriesToProcess: Array<PerSeriesCriteriaMatch | undefined> =
       input.matchesPerSeries && input.matchesPerSeries.length > 0
@@ -374,6 +392,33 @@ export default class MonitorAlert {
               alert.services = [service];
             }
           }
+        }
+
+        /*
+         * Deterministic Proxmox/Ceph cluster link from the monitor's
+         * step config (resolved once above). Series labels never carry
+         * cluster identity for these monitor types, so this — not the
+         * label path above — is what makes the per-cluster Activity
+         * tabs and badge counts see monitor-created alerts. Runs for
+         * both grouped and ungrouped alerts.
+         */
+        if (clusterContext.proxmoxClusterIds.length > 0) {
+          alert.proxmoxClusters = clusterContext.proxmoxClusterIds.map(
+            (id: string): ProxmoxCluster => {
+              const cluster: ProxmoxCluster = new ProxmoxCluster();
+              cluster._id = id;
+              return cluster;
+            },
+          );
+        }
+        if (clusterContext.cephClusterIds.length > 0) {
+          alert.cephClusters = clusterContext.cephClusterIds.map(
+            (id: string): CephCluster => {
+              const cluster: CephCluster = new CephCluster();
+              cluster._id = id;
+              return cluster;
+            },
+          );
         }
 
         alert.onCallDutyPolicies =

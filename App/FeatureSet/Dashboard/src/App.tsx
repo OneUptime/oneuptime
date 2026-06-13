@@ -236,6 +236,23 @@ const DockerRoutes: React.LazyExoticComponent<AllRoutesModule["DockerRoutes"]> =
       };
     });
   });
+const ProxmoxRoutes: React.LazyExoticComponent<
+  AllRoutesModule["ProxmoxRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+    return {
+      default: m.ProxmoxRoutes,
+    };
+  });
+});
+const CephRoutes: React.LazyExoticComponent<AllRoutesModule["CephRoutes"]> =
+  lazy(() => {
+    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+      return {
+        default: m.CephRoutes,
+      };
+    });
+  });
 const HostRoutes: React.LazyExoticComponent<AllRoutesModule["HostRoutes"]> =
   lazy(() => {
     return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
@@ -656,6 +673,18 @@ const App: () => JSX.Element = () => {
           <PageRoute
             path={RouteMap[PageMap.DOCKER_ROOT]?.toString() || ""}
             element={<DockerRoutes {...commonPageProps} />}
+          />
+
+          {/* Proxmox */}
+          <PageRoute
+            path={RouteMap[PageMap.PROXMOX_ROOT]?.toString() || ""}
+            element={<ProxmoxRoutes {...commonPageProps} />}
+          />
+
+          {/* Ceph */}
+          <PageRoute
+            path={RouteMap[PageMap.CEPH_ROOT]?.toString() || ""}
+            element={<CephRoutes {...commonPageProps} />}
           />
 
           {/* Hosts */}

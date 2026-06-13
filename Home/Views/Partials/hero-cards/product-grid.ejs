@@ -28,10 +28,12 @@
   <!-- Infrastructure -->
   <div>
     <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4 text-left">Infrastructure</h3>
-    <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5 auto-rows-fr">
+    <div class="grid grid-cols-2 gap-4 sm:grid-cols-5 sm:gap-5 auto-rows-fr">
       <%- include('./kubernetes') -%>
       <%- include('./docker') -%>
       <%- include('./host') -%>
+      <%- include('./proxmox') -%>
+      <%- include('./ceph') -%>
     </div>
   </div>
 

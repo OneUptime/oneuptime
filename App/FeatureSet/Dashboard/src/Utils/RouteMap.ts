@@ -140,6 +140,54 @@ export const DockerRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_SETTINGS_LABEL_RULES]: `settings/label-rules`,
 };
 
+export const ProxmoxRoutePath: Dictionary<string> = {
+  [PageMap.PROXMOX_CLUSTER_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_NODES]: `${RouteParams.ModelID}/nodes`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_NODE_DETAIL]: `${RouteParams.ModelID}/nodes/${RouteParams.SubModelID}`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_GUESTS]: `${RouteParams.ModelID}/guests`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_GUEST_DETAIL]: `${RouteParams.ModelID}/guests/${RouteParams.SubModelID}`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_STORAGE]: `${RouteParams.ModelID}/storage`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_STORAGE_DETAIL]: `${RouteParams.ModelID}/storage/${RouteParams.SubModelID}`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.PROXMOX_DOCUMENTATION]: `documentation`,
+  [PageMap.PROXMOX_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.PROXMOX_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+};
+
+export const CephRoutePath: Dictionary<string> = {
+  [PageMap.CEPH_CLUSTER_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.CEPH_CLUSTER_VIEW_OSDS]: `${RouteParams.ModelID}/osds`,
+  [PageMap.CEPH_CLUSTER_VIEW_OSD_DETAIL]: `${RouteParams.ModelID}/osds/${RouteParams.SubModelID}`,
+  [PageMap.CEPH_CLUSTER_VIEW_POOLS]: `${RouteParams.ModelID}/pools`,
+  [PageMap.CEPH_CLUSTER_VIEW_POOL_DETAIL]: `${RouteParams.ModelID}/pools/${RouteParams.SubModelID}`,
+  [PageMap.CEPH_CLUSTER_VIEW_DAEMONS]: `${RouteParams.ModelID}/daemons`,
+  [PageMap.CEPH_CLUSTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
+  [PageMap.CEPH_CLUSTER_VIEW_CLUSTER_LOG]: `${RouteParams.ModelID}/cluster-log`,
+  [PageMap.CEPH_CLUSTER_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.CEPH_CLUSTER_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.CEPH_CLUSTER_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.CEPH_CLUSTER_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.CEPH_CLUSTER_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.CEPH_CLUSTER_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.CEPH_CLUSTER_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
+  [PageMap.CEPH_CLUSTER_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.CEPH_CLUSTER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.CEPH_CLUSTER_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.CEPH_DOCUMENTATION]: `documentation`,
+  [PageMap.CEPH_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.CEPH_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+};
+
 export const HostRoutePath: Dictionary<string> = {
   [PageMap.HOST_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.HOST_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
@@ -2319,6 +2367,276 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DOCKER_SETTINGS_LABEL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/docker/${
       DockerRoutePath[PageMap.DOCKER_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  // Proxmox
+
+  [PageMap.PROXMOX_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/*`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_NODES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_NODES]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_NODE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_NODE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_GUESTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_GUESTS]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_GUEST_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_GUEST_DETAIL]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_STORAGE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_STORAGE]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_STORAGE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_STORAGE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  // Ceph
+
+  [PageMap.CEPH_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/ceph/*`),
+
+  [PageMap.CEPH_CLUSTERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_OSDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_OSDS]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_OSD_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_OSD_DETAIL]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_POOLS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_POOLS]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_POOL_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_POOL_DETAIL]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_DAEMONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_DAEMONS]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_CLUSTER_LOG]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_CLUSTER_LOG]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.CEPH_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.CEPH_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.CEPH_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_SETTINGS_LABEL_RULES]
     }`,
   ),
 

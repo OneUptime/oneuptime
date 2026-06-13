@@ -30,6 +30,10 @@ import DashboardDockerImageListComponentType from "Common/Types/Dashboard/Dashbo
 import DashboardDockerNetworkListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerNetworkListComponent";
 import DashboardDockerVolumeListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerVolumeListComponent";
 import DashboardHostListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardHostListComponent";
+import DashboardProxmoxNodeListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardProxmoxNodeListComponent";
+import DashboardProxmoxGuestListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardProxmoxGuestListComponent";
+import DashboardCephOsdListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardCephOsdListComponent";
+import DashboardCephPoolListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardCephPoolListComponent";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardChartComponent from "./DashboardChartComponent";
 import DashboardValueComponent from "./DashboardValueComponent";
@@ -56,6 +60,10 @@ import DashboardDockerImageListComponent from "./DashboardDockerImageListCompone
 import DashboardDockerNetworkListComponent from "./DashboardDockerNetworkListComponent";
 import DashboardDockerVolumeListComponent from "./DashboardDockerVolumeListComponent";
 import DashboardHostListComponent from "./DashboardHostListComponent";
+import DashboardProxmoxNodeListComponent from "./DashboardProxmoxNodeListComponent";
+import DashboardProxmoxGuestListComponent from "./DashboardProxmoxGuestListComponent";
+import DashboardCephOsdListComponent from "./DashboardCephOsdListComponent";
+import DashboardCephPoolListComponent from "./DashboardCephPoolListComponent";
 import DefaultDashboardSize, {
   GetDashboardComponentHeightInDashboardUnits,
   GetDashboardComponentWidthInDashboardUnits,
@@ -824,6 +832,39 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
             isEditMode={props.isEditMode}
             isSelected={props.isSelected}
             component={component as DashboardHostListComponentType}
+          />
+        )}
+        {component.componentType === DashboardComponentType.ProxmoxNodeList && (
+          <DashboardProxmoxNodeListComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardProxmoxNodeListComponentType}
+          />
+        )}
+        {component.componentType ===
+          DashboardComponentType.ProxmoxGuestList && (
+          <DashboardProxmoxGuestListComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardProxmoxGuestListComponentType}
+          />
+        )}
+        {component.componentType === DashboardComponentType.CephOsdList && (
+          <DashboardCephOsdListComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardCephOsdListComponentType}
+          />
+        )}
+        {component.componentType === DashboardComponentType.CephPoolList && (
+          <DashboardCephPoolListComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardCephPoolListComponentType}
           />
         )}
       </div>

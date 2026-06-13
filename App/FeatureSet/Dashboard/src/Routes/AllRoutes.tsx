@@ -26,6 +26,8 @@ export { default as ServiceRoutes } from "./ServiceRoutes";
 export { default as CodeRepositoryRoutes } from "./CodeRepositoryRoutes";
 export { default as KubernetesRoutes } from "./KubernetesRoutes";
 export { default as DockerRoutes } from "./DockerRoutes";
+export { default as ProxmoxRoutes } from "./ProxmoxRoutes";
+export { default as CephRoutes } from "./CephRoutes";
 export { default as HostRoutes } from "./HostRoutes";
 export { default as ServerlessRoutes } from "./ServerlessRoutes";
 export { default as CloudResourceRoutes } from "./CloudResourceRoutes";

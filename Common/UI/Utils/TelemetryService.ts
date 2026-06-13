@@ -23,7 +23,8 @@ export const UNKNOWN_SERVICE_NAME: string = "Unknown Service";
  * primaryEntityType) to something renderable. Either a Service (a real
  * OpenTelemetry service, or the synthetic "Unknown Service" for the
  * unattributed bucket) — or a plain `label` for infrastructure resource
- * types (Host / DockerHost / KubernetesCluster) that have no Service row.
+ * types (Host / DockerHost / KubernetesCluster / ProxmoxCluster /
+ * CephCluster) that have no Service row.
  */
 export interface ResolvedTelemetryResource {
   service?: Service;
@@ -66,8 +67,9 @@ export default class TelemetryServiceUtil {
    * old server-side `service` ORM relation on TelemetryException: a real
    * Service resolves from the loaded list, the unattributed bucket resolves
    * to the synthetic "Unknown Service", and Host / DockerHost /
-   * KubernetesCluster resolve to a type label (no Service row exists for
-   * them). Mirrors how the ClickHouse analytics rows are resolved.
+   * KubernetesCluster / ProxmoxCluster / CephCluster resolve to a type
+   * label (no Service row exists for them). Mirrors how the ClickHouse
+   * analytics rows are resolved.
    */
   public static resolveTelemetryResource(data: {
     primaryEntityId: ObjectID | string | null | undefined;
@@ -101,6 +103,8 @@ export default class TelemetryServiceUtil {
       [ServiceType.Host]: "Host telemetry",
       [ServiceType.DockerHost]: "Docker host telemetry",
       [ServiceType.KubernetesCluster]: "Kubernetes telemetry",
+      [ServiceType.ProxmoxCluster]: "Proxmox Cluster",
+      [ServiceType.CephCluster]: "Ceph Cluster",
     };
     const label: string | undefined = data.primaryEntityType
       ? typeLabels[data.primaryEntityType.toString()]

@@ -21,12 +21,16 @@ import ServiceType from "../../Types/Telemetry/ServiceType";
 import Host from "../../Models/DatabaseModels/Host";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
+import ProxmoxCluster from "../../Models/DatabaseModels/ProxmoxCluster";
+import CephCluster from "../../Models/DatabaseModels/CephCluster";
 import ServerlessFunction from "../../Models/DatabaseModels/ServerlessFunction";
 import CloudResource from "../../Models/DatabaseModels/CloudResource";
 import RumApplication from "../../Models/DatabaseModels/RumApplication";
 import HostService from "./HostService";
 import DockerHostService from "./DockerHostService";
 import KubernetesClusterService from "./KubernetesClusterService";
+import ProxmoxClusterService from "./ProxmoxClusterService";
+import CephClusterService from "./CephClusterService";
 import ServerlessFunctionService from "./ServerlessFunctionService";
 import CloudResourceService from "./CloudResourceService";
 import RumApplicationService from "./RumApplicationService";
@@ -674,6 +678,38 @@ export default class OTelIngestService {
       if (primaryEntityType === ServiceType.KubernetesCluster) {
         const cluster: KubernetesCluster | null =
           await KubernetesClusterService.findOneById({
+            id: resourceId,
+            select: {
+              retainTelemetryDataForDays: true,
+              telemetryRetentionConfig: true,
+            },
+            props: { isRoot: true },
+          });
+        return {
+          retainTelemetryDataForDays:
+            cluster?.retainTelemetryDataForDays ?? null,
+          telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
+        };
+      }
+      if (primaryEntityType === ServiceType.ProxmoxCluster) {
+        const cluster: ProxmoxCluster | null =
+          await ProxmoxClusterService.findOneById({
+            id: resourceId,
+            select: {
+              retainTelemetryDataForDays: true,
+              telemetryRetentionConfig: true,
+            },
+            props: { isRoot: true },
+          });
+        return {
+          retainTelemetryDataForDays:
+            cluster?.retainTelemetryDataForDays ?? null,
+          telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
+        };
+      }
+      if (primaryEntityType === ServiceType.CephCluster) {
+        const cluster: CephCluster | null =
+          await CephClusterService.findOneById({
             id: resourceId,
             select: {
               retainTelemetryDataForDays: true,

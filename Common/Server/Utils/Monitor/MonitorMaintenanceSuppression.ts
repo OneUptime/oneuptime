@@ -24,6 +24,12 @@ export interface MaintainedResourceKeys {
   hosts: ResourceKeySet;
   dockerHosts: ResourceKeySet;
   kubernetesClusters: ResourceKeySet;
+  /*
+   * Proxmox/Ceph clusters have no `oneuptime.*.id` label stamp, so only
+   * the name set is ever matched; the id set exists for shape parity.
+   */
+  proxmoxClusters: ResourceKeySet;
+  cephClusters: ResourceKeySet;
   services: ResourceKeySet;
 }
 
@@ -45,7 +51,8 @@ export interface MaintainedResourceKeys {
  * incident/alert creation loops can skip exactly those series while the
  * other 90 hosts keep alerting. It covers every resource type a
  * maintenance event can attach to AND a series can identify: Host,
- * DockerHost, KubernetesCluster, and Service.
+ * DockerHost, KubernetesCluster, ProxmoxCluster, CephCluster, and
+ * Service.
  */
 export default class MonitorMaintenanceSuppression {
   /*
@@ -113,6 +120,14 @@ export default class MonitorMaintenanceSuppression {
           refs.kubernetesClusterNames,
           input.maintained.kubernetesClusters.names,
         ) ||
+        this.intersects(
+          refs.proxmoxClusterNames,
+          input.maintained.proxmoxClusters.names,
+        ) ||
+        this.intersects(
+          refs.cephClusterNames,
+          input.maintained.cephClusters.names,
+        ) ||
         this.intersects(refs.serviceIds, input.maintained.services.ids) ||
         this.intersects(refs.serviceNames, input.maintained.services.names);
 
@@ -143,6 +158,10 @@ export default class MonitorMaintenanceSuppression {
       maintained.dockerHosts.names.size > 0 ||
       maintained.kubernetesClusters.ids.size > 0 ||
       maintained.kubernetesClusters.names.size > 0 ||
+      maintained.proxmoxClusters.ids.size > 0 ||
+      maintained.proxmoxClusters.names.size > 0 ||
+      maintained.cephClusters.ids.size > 0 ||
+      maintained.cephClusters.names.size > 0 ||
       maintained.services.ids.size > 0 ||
       maintained.services.names.size > 0
     );
@@ -150,11 +169,11 @@ export default class MonitorMaintenanceSuppression {
 
   /*
    * Collect the ids + identifiers of every Host / DockerHost /
-   * KubernetesCluster / Service attached to an ongoing maintenance event
-   * in this project. Monitors attached to the event are intentionally
-   * not collected here — those are already handled upstream by the
-   * whole-monitor disable flag, which short-circuits evaluation before
-   * we ever reach per-series creation.
+   * KubernetesCluster / ProxmoxCluster / CephCluster / Service attached
+   * to an ongoing maintenance event in this project. Monitors attached
+   * to the event are intentionally not collected here — those are
+   * already handled upstream by the whole-monitor disable flag, which
+   * short-circuits evaluation before we ever reach per-series creation.
    */
   private static async getResourcesUnderOngoingMaintenance(
     projectId: ObjectID,
@@ -163,6 +182,8 @@ export default class MonitorMaintenanceSuppression {
       hosts: { ids: new Set<string>(), names: new Set<string>() },
       dockerHosts: { ids: new Set<string>(), names: new Set<string>() },
       kubernetesClusters: { ids: new Set<string>(), names: new Set<string>() },
+      proxmoxClusters: { ids: new Set<string>(), names: new Set<string>() },
+      cephClusters: { ids: new Set<string>(), names: new Set<string>() },
       services: { ids: new Set<string>(), names: new Set<string>() },
     };
 
@@ -179,6 +200,8 @@ export default class MonitorMaintenanceSuppression {
           hosts: { _id: true, hostIdentifier: true },
           dockerHosts: { _id: true, hostIdentifier: true },
           kubernetesClusters: { _id: true, clusterIdentifier: true },
+          proxmoxClusters: { _id: true, name: true },
+          cephClusters: { _id: true, name: true },
           services: { _id: true, name: true },
         },
         skip: 0,
@@ -205,6 +228,16 @@ export default class MonitorMaintenanceSuppression {
           cluster._id,
           cluster.clusterIdentifier,
         );
+      }
+      for (const proxmoxCluster of event.proxmoxClusters || []) {
+        this.addKey(
+          maintained.proxmoxClusters,
+          proxmoxCluster._id,
+          proxmoxCluster.name,
+        );
+      }
+      for (const cephCluster of event.cephClusters || []) {
+        this.addKey(maintained.cephClusters, cephCluster._id, cephCluster.name);
       }
       for (const service of event.services || []) {
         this.addKey(maintained.services, service._id, service.name);

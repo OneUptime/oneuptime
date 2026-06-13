@@ -507,6 +507,75 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/product/proxmox": {
+    title: "Proxmox Monitoring | Nodes, VMs, Storage & Backups | OneUptime",
+    description:
+      "Monitor Proxmox VE clusters end to end: node and guest health, storage usage, backup coverage, and replication alerting. One agent per cluster, flat project pricing, 10-minute setup. Open source.",
+    canonicalPath: "/product/proxmox",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Proxmox", url: "/product/proxmox" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Proxmox Monitoring",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Monitor Proxmox VE clusters with one agent: node, VM, and container health, storage capacity, backup coverage, replication alerting, and on-call escalation in a single product.",
+      features: [
+        "Whole-cluster monitoring from one agent",
+        "Node, VM, and LXC inventory with status pills",
+        "Backup coverage: guests without a backup job",
+        "Storage replication failure alerting",
+        "Quorum-risk and HA resource state alerts",
+        "Storage usage and growth tracking",
+        "Guest-to-host agent cross-linking",
+        "Copy-paste onboarding with token validator",
+        "Flat project pricing, not per-host",
+        "OpenTelemetry native",
+        "Open source",
+      ],
+    },
+  },
+
+  "/product/ceph": {
+    title:
+      "Ceph Monitoring | Cluster Health, OSDs, Pools & Capacity | OneUptime",
+    description:
+      "Monitor Ceph clusters without bolting Grafana onto the dashboard: health drill-downs, OSD and PG state, pool capacity with growth forecasts, and alerting with on-call built in. Open source.",
+    canonicalPath: "/product/ceph",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Ceph", url: "/product/ceph" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Ceph Monitoring",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Monitor Ceph clusters from the mgr Prometheus module: health status with reason drill-downs, OSD up/in state, PG breakdown, pool capacity and forecasts, and alert templates with on-call escalation built in.",
+      features: [
+        "Cluster health pill with reason drill-down",
+        "Capacity gauge with nearfull/full thresholds",
+        "Capacity growth forecasting",
+        "OSD up/in matrix and honeycomb view",
+        "Placement group state breakdown",
+        "Pool usage, IOPS, and throughput",
+        "Monitor quorum tracking",
+        "Fleet view across every cluster",
+        "Alert templates with on-call built in",
+        "No Grafana or Alertmanager required",
+        "Open source",
+      ],
+    },
+  },
+
   "/product/services": {
     title: "Service Catalog | Map, Own & Monitor Every Service | OneUptime",
     description:

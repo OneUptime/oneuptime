@@ -21,6 +21,8 @@ export type DashboardResourceType =
   | "docker-image"
   | "docker-network"
   | "docker-volume"
+  | "proxmox-resource"
+  | "ceph-resource"
   | "span"
   | "log";
 

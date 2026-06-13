@@ -217,6 +217,47 @@ const WIDGET_CATALOG: ReadonlyArray<CatalogCategory> = [
       },
     ],
   },
+  {
+    name: "Proxmox",
+    description:
+      "Live inventory from any connected Proxmox VE cluster — populated by the OneUptime Proxmox Agent.",
+    items: [
+      {
+        type: DashboardComponentType.ProxmoxNodeList,
+        label: "Nodes",
+        icon: IconProp.ServerStack,
+        description: "PVE nodes with online status and CPU/memory.",
+      },
+      {
+        type: DashboardComponentType.ProxmoxGuestList,
+        label: "Guests",
+        icon: IconProp.Cube,
+        description:
+          "QEMU VMs and LXC containers with run state, HA state, and node.",
+      },
+    ],
+  },
+  {
+    name: "Ceph",
+    description:
+      "Live inventory from any connected Ceph cluster — populated by the OneUptime Ceph Agent.",
+    items: [
+      {
+        type: DashboardComponentType.CephOsdList,
+        label: "OSDs",
+        icon: IconProp.SquareStack,
+        description:
+          "The OSD wall — a honeycomb of OSDs colored by up/in state.",
+      },
+      {
+        type: DashboardComponentType.CephPoolList,
+        label: "Pools",
+        icon: IconProp.Database,
+        description:
+          "Pools with stored bytes, capacity-used bars, and object counts.",
+      },
+    ],
+  },
 ];
 
 export interface ComponentProps {

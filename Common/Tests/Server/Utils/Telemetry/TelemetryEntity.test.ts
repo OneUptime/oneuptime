@@ -8,6 +8,8 @@ import {
   keyForHost,
   keyForService,
   keyForKubernetesCluster,
+  keyForProxmoxCluster,
+  keyForCephCluster,
 } from "../../../../Utils/Telemetry/EntityKey";
 import logger from "../../../../Server/Utils/Logger";
 import { describe, expect, test } from "@jest/globals";
@@ -234,6 +236,86 @@ describe("TelemetryEntity.extractEntities — per type", () => {
     });
   });
 
+  test("proxmox.cluster: keyed on proxmox.cluster.name", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      { "proxmox.cluster.name": "pve-prod" },
+      EntityType.ProxmoxCluster,
+    );
+    expect(e!.identifyingAttributes).toEqual({
+      "proxmox.cluster.name": "pve-prod",
+    });
+    expect(e!.entityKey).toBe(
+      expectedKey(PROJECT, EntityType.ProxmoxCluster, {
+        "proxmox.cluster.name": "pve-prod",
+      }),
+    );
+  });
+
+  test("proxmox: no entities without identifying proxmox attributes", () => {
+    expect(typesFor({ "proxmox.guest.name": "web-vm" })).not.toContain(
+      EntityType.ProxmoxGuest,
+    );
+    expect(typesFor({ "proxmox.guest.type": "qemu" })).toEqual([]);
+  });
+
+  test("proxmox.node: composes cluster + node identity", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      { "proxmox.cluster.name": "pve-prod", "proxmox.node.name": "pve-1" },
+      EntityType.ProxmoxNode,
+    );
+    expect(e!.identifyingAttributes).toEqual({
+      "proxmox.cluster.name": "pve-prod",
+      "proxmox.node.name": "pve-1",
+    });
+  });
+
+  test("proxmox.guest: composes cluster + vmid; numeric vmid coerces to string identity", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      { "proxmox.cluster.name": "pve-prod", "proxmox.guest.vmid": 100 },
+      EntityType.ProxmoxGuest,
+    );
+    expect(e!.identifyingAttributes).toEqual({
+      "proxmox.cluster.name": "pve-prod",
+      "proxmox.guest.vmid": "100",
+    });
+  });
+
+  test("proxmox.guest: node name is not identity (live migration keeps the key)", () => {
+    const beforeMigration: ExtractedEntity | undefined = entityOfType(
+      {
+        "proxmox.cluster.name": "pve-prod",
+        "proxmox.node.name": "pve-1",
+        "proxmox.guest.vmid": "100",
+      },
+      EntityType.ProxmoxGuest,
+    );
+    const afterMigration: ExtractedEntity | undefined = entityOfType(
+      {
+        "proxmox.cluster.name": "pve-prod",
+        "proxmox.node.name": "pve-2",
+        "proxmox.guest.vmid": "100",
+      },
+      EntityType.ProxmoxGuest,
+    );
+    expect(afterMigration!.entityKey).toBe(beforeMigration!.entityKey);
+  });
+
+  test("ceph.cluster: keyed on name only, ignoring fsid (read side is name-based)", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      { "ceph.cluster.fsid": "f-1", "ceph.cluster.name": "ceph-prod" },
+      EntityType.CephCluster,
+    );
+    expect(e!.identifyingAttributes).toEqual({
+      "ceph.cluster.name": "ceph-prod",
+    });
+  });
+
+  test("ceph.cluster: no cluster entity from fsid alone", () => {
+    expect(typesFor({ "ceph.cluster.fsid": "f-1" })).not.toContain(
+      EntityType.CephCluster,
+    );
+  });
+
   test("container & process flow as membership keys", () => {
     const types: Array<EntityType> = typesFor({
       "container.id": "c-1",
@@ -308,6 +390,23 @@ describe("TelemetryEntity.extractEntities — composition & safety", () => {
     );
   });
 
+  test("a full proxmox resource yields the whole entity set", () => {
+    const types: Array<EntityType> = typesFor({
+      "proxmox.cluster.name": "pve-prod",
+      "proxmox.node.name": "pve-1",
+      "proxmox.guest.vmid": "100",
+      "proxmox.guest.name": "web-vm",
+      "proxmox.guest.type": "qemu",
+    });
+    expect(new Set(types)).toEqual(
+      new Set([
+        EntityType.ProxmoxCluster,
+        EntityType.ProxmoxNode,
+        EntityType.ProxmoxGuest,
+      ]),
+    );
+  });
+
   test("extractEntityKeys is sorted, deduped, and a superset of the primary", () => {
     const attrs: EntityAttributes = {
       "service.name": "checkout",
@@ -342,6 +441,26 @@ describe("TelemetryEntity.extractEntities — composition & safety", () => {
       identifyingAttributes: {
         "k8s.cluster.name": "prod-eu",
         "k8s.namespace.name": "default",
+      },
+    });
+    expect(clusterA).not.toBe(clusterB);
+  });
+
+  test("same vmid in two proxmox clusters does not collide", () => {
+    const clusterA: string = TelemetryEntity.computeEntityKey({
+      projectId: PROJECT,
+      entityType: EntityType.ProxmoxGuest,
+      identifyingAttributes: {
+        "proxmox.cluster.name": "pve-us",
+        "proxmox.guest.vmid": "100",
+      },
+    });
+    const clusterB: string = TelemetryEntity.computeEntityKey({
+      projectId: PROJECT,
+      entityType: EntityType.ProxmoxGuest,
+      identifyingAttributes: {
+        "proxmox.cluster.name": "pve-eu",
+        "proxmox.guest.vmid": "100",
       },
     });
     expect(clusterA).not.toBe(clusterB);
@@ -409,6 +528,41 @@ describe("read-side keyFor* helpers match ingest-side extraction", () => {
     expect(keyForKubernetesCluster(PROJECT, "prod-us")).toBe(
       stamped!.entityKey,
     );
+  });
+
+  test("keyForProxmoxCluster matches the cluster entity stamped from proxmox.cluster.name", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "proxmox.cluster.name": "pve-prod" },
+      EntityType.ProxmoxCluster,
+    );
+    expect(keyForProxmoxCluster(PROJECT, "pve-prod")).toBe(stamped!.entityKey);
+  });
+
+  test("keyForProxmoxCluster canonicalizes casing/whitespace like ingest", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "proxmox.cluster.name": "PVE-Prod" },
+      EntityType.ProxmoxCluster,
+    );
+    expect(keyForProxmoxCluster(PROJECT, "pve-prod")).toBe(stamped!.entityKey);
+    expect(keyForProxmoxCluster(PROJECT, "  PVE-PROD ")).toBe(
+      stamped!.entityKey,
+    );
+  });
+
+  test("keyForCephCluster matches the cluster entity stamped from ceph.cluster.name", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "ceph.cluster.name": "ceph-prod" },
+      EntityType.CephCluster,
+    );
+    expect(keyForCephCluster(PROJECT, "ceph-prod")).toBe(stamped!.entityKey);
+  });
+
+  test("keyForCephCluster still matches when the resource also carries a fsid", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "ceph.cluster.fsid": "f-1", "ceph.cluster.name": "ceph-prod" },
+      EntityType.CephCluster,
+    );
+    expect(keyForCephCluster(PROJECT, "ceph-prod")).toBe(stamped!.entityKey);
   });
 });
 
@@ -496,6 +650,48 @@ describe("descriptive attributes & labels (never identity-bearing)", () => {
     expect(e!.descriptiveAttributes).toEqual({
       "container.image.name": "redis",
       "container.image.tags": "7.2",
+    });
+  });
+
+  test("proxmox.guest: name/type descriptive attributes are emitted, key unchanged", () => {
+    const bare: ExtractedEntity | undefined = entityOfType(
+      { "proxmox.cluster.name": "pve-prod", "proxmox.guest.vmid": "100" },
+      EntityType.ProxmoxGuest,
+    );
+    const decorated: ExtractedEntity | undefined = entityOfType(
+      {
+        "proxmox.cluster.name": "pve-prod",
+        "proxmox.guest.vmid": "100",
+        "proxmox.guest.name": "web-vm",
+        "proxmox.guest.type": "qemu",
+      },
+      EntityType.ProxmoxGuest,
+    );
+
+    expect(decorated!.entityKey).toBe(bare!.entityKey);
+    expect(decorated!.identifyingAttributes).toEqual(
+      bare!.identifyingAttributes,
+    );
+    expect(decorated!.descriptiveAttributes).toEqual({
+      "proxmox.guest.name": "web-vm",
+      "proxmox.guest.type": "qemu",
+    });
+    expect(bare!.descriptiveAttributes).toBeUndefined();
+  });
+
+  test("ceph.cluster: fsid descriptive when present, key unchanged", () => {
+    const bare: ExtractedEntity | undefined = entityOfType(
+      { "ceph.cluster.name": "ceph-prod" },
+      EntityType.CephCluster,
+    );
+    const decorated: ExtractedEntity | undefined = entityOfType(
+      { "ceph.cluster.name": "ceph-prod", "ceph.cluster.fsid": "f-1" },
+      EntityType.CephCluster,
+    );
+
+    expect(decorated!.entityKey).toBe(bare!.entityKey);
+    expect(decorated!.descriptiveAttributes).toEqual({
+      "ceph.cluster.fsid": "f-1",
     });
   });
 

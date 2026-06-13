@@ -24,6 +24,10 @@ enum DashboardComponentType {
   DockerNetworkList = `DockerNetworkList`,
   DockerVolumeList = `DockerVolumeList`,
   HostList = `HostList`,
+  ProxmoxNodeList = `ProxmoxNodeList`,
+  ProxmoxGuestList = `ProxmoxGuestList`,
+  CephOsdList = `CephOsdList`,
+  CephPoolList = `CephPoolList`,
 }
 
 export default DashboardComponentType;

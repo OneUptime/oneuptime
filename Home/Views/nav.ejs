@@ -245,6 +245,28 @@
                             </div>
                           </a>
 
+                          <!-- Proxmox - Orange -->
+                          <a href="/product/proxmox" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-orange-50">
+                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200 group-hover:bg-orange-100 group-hover:ring-orange-300">
+                              <%- include('./Partials/icons/proxmox', {iconClass: 'h-4 w-4'}) %>
+                            </div>
+                            <div>
+                              <p class="text-sm font-medium text-gray-900">Proxmox</p>
+                              <p class="text-xs text-gray-500">VE clusters, VMs & backups</p>
+                            </div>
+                          </a>
+
+                          <!-- Ceph - Red -->
+                          <a href="/product/ceph" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-red-50">
+                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-red-50 ring-1 ring-red-200 group-hover:bg-red-100 group-hover:ring-red-300">
+                              <%- include('./Partials/icons/ceph', {iconClass: 'h-4 w-4'}) %>
+                            </div>
+                            <div>
+                              <p class="text-sm font-medium text-gray-900">Ceph</p>
+                              <p class="text-xs text-gray-500">Storage cluster health</p>
+                            </div>
+                          </a>
+
                           <!-- Serverless - Fuchsia -->
                           <a href="/product/serverless" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-fuchsia-50">
                             <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-fuchsia-50 ring-1 ring-fuchsia-200 group-hover:bg-fuchsia-100 group-hover:ring-fuchsia-300">
@@ -950,6 +972,22 @@
                 <%- include('./Partials/icons/host', {iconClass: 'h-4 w-4'}) %>
               </div>
               <span class="text-sm font-medium text-gray-900">Hosts</span>
+            </a>
+
+            <!-- Proxmox - Orange -->
+            <a href="/product/proxmox" class="flex items-center gap-3 rounded-xl p-3 hover:bg-orange-50 ring-1 ring-transparent hover:ring-orange-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200">
+                <%- include('./Partials/icons/proxmox', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Proxmox</span>
+            </a>
+
+            <!-- Ceph - Red -->
+            <a href="/product/ceph" class="flex items-center gap-3 rounded-xl p-3 hover:bg-red-50 ring-1 ring-transparent hover:ring-red-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-red-50 ring-1 ring-red-200">
+                <%- include('./Partials/icons/ceph', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Ceph</span>
             </a>
 
             <!-- Serverless - Fuchsia -->

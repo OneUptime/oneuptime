@@ -48,11 +48,36 @@ import DockerResourceService, {
   ParsedDockerContainer,
 } from "Common/Server/Services/DockerResourceService";
 import CloudResourceInstanceService from "Common/Server/Services/CloudResourceInstanceService";
+import ProxmoxResourceService, {
+  ParsedProxmoxResource,
+  ProxmoxResourceLatestMetric,
+} from "Common/Server/Services/ProxmoxResourceService";
+import CephResourceService, {
+  ParsedCephResource,
+  CephResourceLatestMetric,
+} from "Common/Server/Services/CephResourceService";
+import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
+import CephClusterService from "Common/Server/Services/CephClusterService";
 import HostService from "Common/Server/Services/HostService";
 import LabelService from "Common/Server/Services/LabelService";
 import Host from "Common/Models/DatabaseModels/Host";
 import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
 import { HEARTBEAT_MAX_BACKDATE_MS } from "Common/Utils/Telemetry/HeartbeatAvailability";
+import {
+  PVE_SNAPSHOT_METRIC_NAMES,
+  CEPH_SNAPSHOT_METRIC_NAMES,
+  ProxmoxResourceBufferEntry,
+  ProxmoxClusterSnapshotBufferEntry,
+  ProxmoxClusterSnapshotExtras,
+  CephResourceBufferEntry,
+  CephClusterSnapshotBufferEntry,
+  CephClusterSnapshotExtras,
+  bufferProxmoxSnapshotMetric,
+  bufferCephSnapshotMetric,
+  computeProxmoxGuestBackedUp,
+  deriveProxmoxClusterSnapshotExtras,
+  deriveCephClusterSnapshotExtras,
+} from "Common/Server/Utils/Telemetry/ProxmoxCephSnapshotScan";
 
 type MetricTimestamp = {
   nano: string;
@@ -130,6 +155,15 @@ const CLOUD_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "container.memory.usage",
   "container.memory.usage.total",
 ]);
+
+/*
+ * The Proxmox / Ceph snapshot scan (metric-name allow-lists, buffer
+ * entry shapes, per-datapoint fold and the cluster-extras derive) is
+ * the pure, unit-tested module
+ * Common/Server/Utils/Telemetry/ProxmoxCephSnapshotScan.ts — this
+ * service only walks the OTLP payload and flushes the folded buffers
+ * to the Proxmox/Ceph services below.
+ */
 
 interface ResourceMetricBufferEntry {
   kind: string;
@@ -549,6 +583,22 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         string,
         Map<string, CloudResourceInstanceMetricBufferEntry>
       > = new Map();
+      const proxmoxResourceMetricsBuffer: Map<
+        string,
+        Map<string, ProxmoxResourceBufferEntry>
+      > = new Map();
+      const proxmoxClusterSnapshotBuffer: Map<
+        string,
+        ProxmoxClusterSnapshotBufferEntry
+      > = new Map();
+      const cephResourceMetricsBuffer: Map<
+        string,
+        Map<string, CephResourceBufferEntry>
+      > = new Map();
+      const cephClusterSnapshotBuffer: Map<
+        string,
+        CephClusterSnapshotBufferEntry
+      > = new Map();
 
       // Load project + service-scoped pipeline rules once per batch (60s cached).
       let pipelineRules: MetricRulesForProject | null = null;
@@ -611,14 +661,21 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             );
 
           /*
-           * Auto-discover Kubernetes cluster and Docker host from
-           * resource attributes. The two lookups are independent —
-           * they read different attributes and don't share state —
-           * so issue them concurrently to collapse per-resource
-           * latency. autoDiscoverHost still has to wait below
-           * because it consumes both ids.
+           * Auto-discover Kubernetes cluster, Docker host, Proxmox
+           * cluster and Ceph cluster from resource attributes. The
+           * lookups are independent — they read different attributes
+           * and don't share state — so issue them concurrently to
+           * collapse per-resource latency. autoDiscoverHost still has
+           * to wait below because it consumes the first two ids.
            */
-          const [kubernetesClusterId, dockerHostId]: [
+          const [
+            kubernetesClusterId,
+            dockerHostId,
+            proxmoxClusterId,
+            cephClusterId,
+          ]: [
+            ObjectID | null,
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
           ] = await Promise.all([
@@ -627,6 +684,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               attributes: resourceAttributes_raw,
             }),
             this.autoDiscoverDockerHost({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverProxmoxCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverCephCluster({
               projectId,
               attributes: resourceAttributes_raw,
             }),
@@ -685,6 +750,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               hostId,
               dockerHostId,
               kubernetesClusterId,
+              proxmoxClusterId,
+              cephClusterId,
               serverlessFunctionId,
               cloudResourceId,
               rumApplicationId,
@@ -1047,6 +1114,38 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                           });
                         }
 
+                        /*
+                         * Proxmox / Ceph identity lives in datapoint
+                         * labels (prometheus receiver), not resource
+                         * attributes — the buffer functions read the
+                         * raw datapoint attribute array directly.
+                         */
+                        if (
+                          proxmoxClusterId &&
+                          PVE_SNAPSHOT_METRIC_NAMES.has(metricName)
+                        ) {
+                          bufferProxmoxSnapshotMetric({
+                            clusterIdStr: proxmoxClusterId.toString(),
+                            metricName,
+                            datapoint: datapoint as JSONObject,
+                            resourceBuffer: proxmoxResourceMetricsBuffer,
+                            clusterBuffer: proxmoxClusterSnapshotBuffer,
+                          });
+                        }
+
+                        if (
+                          cephClusterId &&
+                          CEPH_SNAPSHOT_METRIC_NAMES.has(metricName)
+                        ) {
+                          bufferCephSnapshotMetric({
+                            clusterIdStr: cephClusterId.toString(),
+                            metricName,
+                            datapoint: datapoint as JSONObject,
+                            resourceBuffer: cephResourceMetricsBuffer,
+                            clusterBuffer: cephClusterSnapshotBuffer,
+                          });
+                        }
+
                         const metricRow: JSONObject = this.buildMetricRow({
                           datapoint: datapoint as JSONObject,
                           baseAttributes: metricAttributes,
@@ -1140,6 +1239,18 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       await this.flushCloudResourceSnapshotBuffer({
         projectId,
         buffer: cloudResourceInstanceMetricsBuffer,
+      });
+
+      await this.flushProxmoxSnapshotBuffers({
+        projectId,
+        resourceBuffer: proxmoxResourceMetricsBuffer,
+        clusterBuffer: proxmoxClusterSnapshotBuffer,
+      });
+
+      await this.flushCephSnapshotBuffers({
+        projectId,
+        resourceBuffer: cephResourceMetricsBuffer,
+        clusterBuffer: cephClusterSnapshotBuffer,
       });
 
       if (totalMetricsProcessed === 0) {
@@ -2034,6 +2145,219 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       } catch (err) {
         logger.warn(
           `Cloud resource instance snapshot writeback failed for ${cloudResourceIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
+  /*
+   * Drain the Proxmox buffers: inventory upsert + latest-metric
+   * mirror, then the ProxmoxCluster snapshot columns. The count
+   * columns are computed from the SAME buffer the inventory rows were
+   * upserted from — single-source rule, so list-page counts and
+   * sidebar badges can never drift (K8s badge-drift lesson). Failures
+   * are logged and swallowed: snapshots are best-effort and must never
+   * affect ClickHouse ingest.
+   */
+  private static async flushProxmoxSnapshotBuffers(data: {
+    projectId: ObjectID;
+    resourceBuffer: Map<string, Map<string, ProxmoxResourceBufferEntry>>;
+    clusterBuffer: Map<string, ProxmoxClusterSnapshotBufferEntry>;
+  }): Promise<void> {
+    const clusterIdStrs: Set<string> = new Set<string>([
+      ...data.resourceBuffer.keys(),
+      ...data.clusterBuffer.keys(),
+    ]);
+
+    for (const clusterIdStr of clusterIdStrs) {
+      const byKey: Map<string, ProxmoxResourceBufferEntry> | undefined =
+        data.resourceBuffer.get(clusterIdStr);
+      const entries: Array<ProxmoxResourceBufferEntry> = byKey
+        ? Array.from(byKey.values())
+        : [];
+      const snap: ProxmoxClusterSnapshotBufferEntry | undefined =
+        data.clusterBuffer.get(clusterIdStr);
+
+      if (entries.length > 0) {
+        try {
+          const resources: Array<ParsedProxmoxResource> = entries.map(
+            (e: ProxmoxResourceBufferEntry) => {
+              return {
+                kind: e.kind,
+                externalId: e.externalId,
+                name: e.name,
+                vmid: e.vmid,
+                guestType: e.guestType,
+                parentNodeName: e.parentNodeName,
+                isUp: e.isUp,
+                haState: e.haState,
+                onboot: e.onboot,
+                isBackedUp: computeProxmoxGuestBackedUp(e, snap),
+                uptimeSeconds: e.uptimeSeconds,
+                lastSeenAt: e.observedAt,
+              };
+            },
+          );
+          await ProxmoxResourceService.bulkUpsert({
+            projectId: data.projectId,
+            proxmoxClusterId: new ObjectID(clusterIdStr),
+            resources,
+          });
+
+          const metrics: Array<ProxmoxResourceLatestMetric> = entries.map(
+            (e: ProxmoxResourceBufferEntry) => {
+              return {
+                kind: e.kind,
+                externalId: e.externalId,
+                cpuPercent: e.latestCpuPercent,
+                memoryBytes: e.latestMemoryBytes,
+                maxMemoryBytes: e.maxMemoryBytes,
+                memoryPercent:
+                  e.latestMemoryBytes !== null &&
+                  e.maxMemoryBytes !== null &&
+                  e.maxMemoryBytes > 0
+                    ? (e.latestMemoryBytes / e.maxMemoryBytes) * 100
+                    : null,
+                diskBytes: e.latestDiskBytes,
+                maxDiskBytes: e.maxDiskBytes,
+                observedAt: e.observedAt,
+              };
+            },
+          );
+          await ProxmoxResourceService.bulkUpdateLatestMetrics({
+            projectId: data.projectId,
+            proxmoxClusterId: new ObjectID(clusterIdStr),
+            metrics,
+          });
+        } catch (err) {
+          logger.warn(
+            `Proxmox snapshot writeback (inventory) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      try {
+        /*
+         * Counts are only written when the batch carried the matching
+         * identity series — never zero a count on a partial batch
+         * (deriveProxmoxClusterSnapshotExtras owns that contract).
+         */
+        const extras: ProxmoxClusterSnapshotExtras =
+          deriveProxmoxClusterSnapshotExtras(entries, snap);
+
+        if (Object.keys(extras).length > 0) {
+          await ProxmoxClusterService.updateLastSeen(
+            new ObjectID(clusterIdStr),
+            extras,
+          );
+        }
+      } catch (err) {
+        logger.warn(
+          `Proxmox snapshot writeback (cluster) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
+  /*
+   * Drain the Ceph buffers: inventory upsert + latest-metric mirror,
+   * then the CephCluster snapshot columns — computed from the SAME
+   * buffer the inventory rows were upserted from (single-source rule).
+   * Failures are logged and swallowed: snapshots are best-effort and
+   * must never affect ClickHouse ingest.
+   */
+  private static async flushCephSnapshotBuffers(data: {
+    projectId: ObjectID;
+    resourceBuffer: Map<string, Map<string, CephResourceBufferEntry>>;
+    clusterBuffer: Map<string, CephClusterSnapshotBufferEntry>;
+  }): Promise<void> {
+    const clusterIdStrs: Set<string> = new Set<string>([
+      ...data.resourceBuffer.keys(),
+      ...data.clusterBuffer.keys(),
+    ]);
+
+    for (const clusterIdStr of clusterIdStrs) {
+      const byKey: Map<string, CephResourceBufferEntry> | undefined =
+        data.resourceBuffer.get(clusterIdStr);
+      const entries: Array<CephResourceBufferEntry> = byKey
+        ? Array.from(byKey.values())
+        : [];
+
+      if (entries.length > 0) {
+        try {
+          const resources: Array<ParsedCephResource> = entries.map(
+            (e: CephResourceBufferEntry) => {
+              return {
+                kind: e.kind,
+                externalId: e.externalId,
+                name: e.name,
+                hostname: e.hostname,
+                daemonVersion: e.daemonVersion,
+                deviceClass: e.deviceClass,
+                isUp: e.isUp,
+                isIn: e.isIn,
+                inQuorum: e.inQuorum,
+                lastSeenAt: e.observedAt,
+              };
+            },
+          );
+          await CephResourceService.bulkUpsert({
+            projectId: data.projectId,
+            cephClusterId: new ObjectID(clusterIdStr),
+            resources,
+          });
+
+          const metrics: Array<CephResourceLatestMetric> = entries.map(
+            (e: CephResourceBufferEntry) => {
+              return {
+                kind: e.kind,
+                externalId: e.externalId,
+                statBytes: e.statBytes,
+                statBytesUsed: e.statBytesUsed,
+                applyLatencyMs: e.applyLatencyMs,
+                commitLatencyMs: e.commitLatencyMs,
+                pgCount: e.pgCount,
+                storedBytes: e.storedBytes,
+                maxAvailBytes: e.maxAvailBytes,
+                objects: e.objects,
+                readOpsCounter: e.readOpsCounter,
+                writeOpsCounter: e.writeOpsCounter,
+                observedAt: e.observedAt,
+              };
+            },
+          );
+          await CephResourceService.bulkUpdateLatestMetrics({
+            projectId: data.projectId,
+            cephClusterId: new ObjectID(clusterIdStr),
+            metrics,
+          });
+        } catch (err) {
+          logger.warn(
+            `Ceph snapshot writeback (inventory) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      try {
+        const snap: CephClusterSnapshotBufferEntry | undefined =
+          data.clusterBuffer.get(clusterIdStr);
+        /*
+         * Counts are only written when the batch carried the matching
+         * identity series — never zero a count on a partial batch
+         * (deriveCephClusterSnapshotExtras owns that contract).
+         */
+        const extras: CephClusterSnapshotExtras =
+          deriveCephClusterSnapshotExtras(entries, snap);
+
+        if (Object.keys(extras).length > 0) {
+          await CephClusterService.updateLastSeen(
+            new ObjectID(clusterIdStr),
+            extras,
+          );
+        }
+      } catch (err) {
+        logger.warn(
+          `Ceph snapshot writeback (cluster) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     }
