@@ -45,6 +45,21 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
 
           const projectId: ObjectID = new ObjectID(req.params["id"] as string);
 
+          /*
+           * The permission check below is bound to the authenticated tenant
+           * (resolved from the tenantid header), so the project being
+           * mutated must be that same tenant — otherwise permissions on one
+           * project would authorize changing the plan (and charging the
+           * payment method) of another.
+           */
+          const tenantId: ObjectID | null = this.getTenantId(req);
+
+          if (!tenantId || tenantId.toString() !== projectId.toString()) {
+            throw new BadDataException(
+              "Project ID in the URL does not match the project the request is authenticated for",
+            );
+          }
+
           const body: JSONObject = (req.body as JSONObject) || {};
           const data: JSONObject = (body["data"] as JSONObject) || {};
           const paymentProviderPlanId: string | undefined = data[

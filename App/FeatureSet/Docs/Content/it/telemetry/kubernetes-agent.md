@@ -286,7 +286,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 ### L'agent mostra "Disconnected"
 
-Lo stato di connessione di un cluster è determinato esclusivamente dall'arrivo di telemetria — se non arriva alcun dato, il cluster viene contrassegnato come disconnesso dopo circa 5 minuti. Quindi "disconnesso" e "nessuna metrica" hanno quasi sempre la **stessa** causa: la telemetria dell'agent non viene accettata.
+Lo stato di connessione di un cluster è determinato esclusivamente dall'arrivo di telemetria — se non arriva alcun dato, il cluster viene contrassegnato come disconnesso dopo circa 15 minuti. Quindi "disconnesso" e "nessuna metrica" hanno quasi sempre la **stessa** causa: la telemetria dell'agent non viene accettata.
 
 Il motivo più comune — specialmente dopo una reinstallazione — è una **chiave di ingestione errata o revocata**. È facile da non notare perché gli endpoint di ingestione OTLP restituiscono deliberatamente HTTP `200` anche per un token non valido (così un collector configurato male non può sommergere il server di tentativi). Il risultato: il collector segnala il successo, i suoi log non mostrano errori e i dati vengono scartati silenziosamente.
 

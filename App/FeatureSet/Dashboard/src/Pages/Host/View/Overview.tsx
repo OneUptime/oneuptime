@@ -55,6 +55,9 @@ import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
+import HeartbeatAvailabilityUtil, {
+  HeartbeatAvailabilityResult,
+} from "Common/Utils/Telemetry/HeartbeatAvailability";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import React, {
   Fragment,
@@ -454,9 +457,9 @@ const HostOverview: FunctionComponent<
       /*
        * `oneuptime.host.heartbeat` is the per-collector liveness
        * ping. Count per bucket lets us tell "alive at any point in
-       * this bucket" from "completely silent" — a missing row means
-       * the host emitted zero heartbeats during that bucket, which
-       * we render as a downtime gap on the availability chart.
+       * this bucket" from "completely silent". How missing rows are
+       * rendered (down, bridged jitter, or not-yet-evaluable) is
+       * decided by HeartbeatAvailabilityUtil below.
        */
       const heartbeatAggregate: AggregateBy<Metric> = buildAggregateBy(
         "oneuptime.host.heartbeat",
@@ -1036,83 +1039,26 @@ const HostOverview: FunctionComponent<
 
       /*
        * Availability is a step series at 100% when the bucket
-       * contains any heartbeat and 0% when it doesn't. ClickHouse
-       * returns rows only for buckets with data, so we have to
-       * synthesize the zero-buckets ourselves — infer the bucket
-       * size from the smallest gap between present buckets (defaults
-       * to 60s, matching the aggregator's <=3h grid), align the grid
-       * to a present bucket so the present points sit exactly on the
-       * grid, then walk start→end filling in 0 wherever the bucket
-       * is missing. The overall uptime % we surface in the card
-       * header is the fraction of grid buckets that had heartbeats.
+       * contains any heartbeat and 0% when it doesn't. The shared
+       * builder synthesizes the zero-buckets ClickHouse never returns
+       * rows for, excludes trailing buckets the ingest pipeline can't
+       * have filled yet (so the right edge doesn't flap down/up on
+       * every auto-refresh), and bridges single-bucket gaps caused by
+       * export jitter. See HeartbeatAvailabilityUtil for the rules.
        */
-      const heartbeatRows: Array<{ t: number; count: number }> = [];
-      for (const p of heartbeatResult.data || []) {
-        const t: number = getBucketTimestamp(p);
-        const c: number = Number(p["value"]);
-        if (Number.isFinite(t) && Number.isFinite(c) && c > 0) {
-          heartbeatRows.push({ t, count: c });
-        }
-      }
-      heartbeatRows.sort(
-        (
-          a: { t: number; count: number },
-          b: { t: number; count: number },
-        ): number => {
-          return a.t - b.t;
-        },
-      );
-
-      let bucketMs: number = 60_000;
-      if (heartbeatRows.length >= 2) {
-        let smallest: number = Number.POSITIVE_INFINITY;
-        for (let i: number = 1; i < heartbeatRows.length; i++) {
-          const d: number = heartbeatRows[i]!.t - heartbeatRows[i - 1]!.t;
-          if (d > 0 && d < smallest) {
-            smallest = d;
-          }
-        }
-        if (Number.isFinite(smallest)) {
-          bucketMs = smallest;
-        }
-      }
-
-      const presentBuckets: Set<number> = new Set<number>(
-        heartbeatRows.map((r: { t: number; count: number }): number => {
-          return r.t;
-        }),
-      );
-      const windowStartMs: number = startDate.getTime();
-      const windowEndMs: number = endDate.getTime();
-      const anchorMs: number =
-        heartbeatRows.length > 0 ? heartbeatRows[0]!.t : windowStartMs;
-      const stepsBack: number = Math.ceil(
-        (anchorMs - windowStartMs) / bucketMs,
-      );
-      const gridStartMs: number = anchorMs - stepsBack * bucketMs;
-
-      const availabilityPoints: Array<TimeValuePoint> = [];
-      let presentCount: number = 0;
-      let totalCount: number = 0;
-      for (let t: number = gridStartMs; t <= windowEndMs; t += bucketMs) {
-        if (t < windowStartMs) {
-          continue;
-        }
-        const up: boolean = presentBuckets.has(t);
-        availabilityPoints.push({ x: new Date(t), y: up ? 100 : 0 });
-        if (up) {
-          presentCount++;
-        }
-        totalCount++;
-      }
+      const availability: HeartbeatAvailabilityResult =
+        HeartbeatAvailabilityUtil.buildAvailabilitySeries({
+          heartbeatData: heartbeatResult.data || [],
+          windowStart: startDate,
+          windowEnd: endDate,
+          now: OneUptimeDate.getCurrentDate(),
+        });
       setAvailabilitySeries(
-        availabilityPoints.length > 0
-          ? [{ seriesName: "Up", data: availabilityPoints }]
+        availability.points.length > 0
+          ? [{ seriesName: "Up", data: availability.points }]
           : [],
       );
-      setAvailabilityPct(
-        totalCount > 0 ? (presentCount / totalCount) * 100 : null,
-      );
+      setAvailabilityPct(availability.uptimePercent);
 
       setChartWindow({ start: startDate, end: endDate });
       setLastRefreshedAt(OneUptimeDate.getCurrentDate());

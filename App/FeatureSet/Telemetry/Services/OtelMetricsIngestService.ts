@@ -52,6 +52,7 @@ import HostService from "Common/Server/Services/HostService";
 import LabelService from "Common/Server/Services/LabelService";
 import Host from "Common/Models/DatabaseModels/Host";
 import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
+import { HEARTBEAT_MAX_BACKDATE_MS } from "Common/Utils/Telemetry/HeartbeatAvailability";
 
 type MetricTimestamp = {
   nano: string;
@@ -476,6 +477,58 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       const hostHeartbeatHostNames: Set<string> = new Set<string>();
 
       /*
+       * Per-host newest datapoint timestamp across the WHOLE payload,
+       * collected up-front because the heartbeat for a host is emitted
+       * on the first resource that carries its host.name (see the
+       * dedup set above) — but the hostmetrics receiver spreads a
+       * host's datapoints across many resources, and a collector
+       * retry/backoff can even merge several scrape cycles into one
+       * export. Scanning only the first resource would stamp the
+       * heartbeat with whichever scraper iterates first instead of the
+       * newest scrape the payload proves.
+       */
+      const hostMaxDatapointTimeNano: Map<string, number> = new Map<
+        string,
+        number
+      >();
+      let heartbeatScanCounter: number = 0;
+      for (const rm of resourceMetrics) {
+        /*
+         * This scan runs OUTSIDE the per-resource try/catch of the
+         * main loop, so a malformed resource (null entry, non-array
+         * attributes / scopeMetrics — all reachable via the OTLP/JSON
+         * path) must be skipped here, not thrown: a throw would fail
+         * the whole batch instead of the one bad resource.
+         */
+        if (heartbeatScanCounter % 25 === 0) {
+          await Promise.resolve();
+        }
+        heartbeatScanCounter++;
+        const resourceForScan: JSONObject | undefined = (
+          rm as JSONObject | null
+        )?.["resource"] as JSONObject | undefined;
+        const attributesForScan: unknown = resourceForScan?.["attributes"];
+        const hostNameForScan: string | null = Array.isArray(attributesForScan)
+          ? OtelIngestBaseService.getHostNameFromAttributes(
+              attributesForScan as JSONArray,
+            )
+          : null;
+        if (!hostNameForScan) {
+          continue;
+        }
+        const scopeMetricsForMax: unknown = (rm as JSONObject)["scopeMetrics"];
+        const resourceMax: number | null = Array.isArray(scopeMetricsForMax)
+          ? this.getMaxDatapointTimeUnixNano(scopeMetricsForMax as JSONArray)
+          : null;
+        if (
+          resourceMax !== null &&
+          resourceMax > (hostMaxDatapointTimeNano.get(hostNameForScan) ?? 0)
+        ) {
+          hostMaxDatapointTimeNano.set(hostNameForScan, resourceMax);
+        }
+      }
+
+      /*
        * Snapshot buffers keyed by cluster ID. Inner maps key by the
        * unique tuple of the resource being tracked so multiple
        * datapoints across a batch collapse into a single UPDATE.
@@ -738,8 +791,47 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                 heartbeatService,
               );
             }
-            const heartbeatTimeNano: string =
-              OneUptimeDate.getCurrentDateAsUnixNano().toString();
+            /*
+             * Stamp the heartbeat with the host's newest datapoint
+             * timestamp in this payload, not the ingest wall clock.
+             * Ingestion is queued (HTTP -> Redis -> worker), so
+             * wall-clock stamping shifts heartbeats into whatever
+             * minute the worker happened to drain the job in — two
+             * batches draining in one minute leave the previous minute
+             * empty, which the availability charts render as phantom
+             * downtime while every real metric (which keeps its scrape
+             * timestamp) looks perfectly continuous. Using the scrape
+             * time keeps the heartbeat on the same timeline as the
+             * metrics it vouches for.
+             *
+             * Clamped on both sides by the ingest clock: a batch
+             * cannot have been scraped after it arrived (future-skewed
+             * host clocks, batches with no datapoints), and backdating
+             * is floored at HEARTBEAT_MAX_BACKDATE_MS — normal queue
+             * lag is seconds, so anything older means a behind-skewed
+             * host clock or a backlog replay, and an unbounded
+             * backdate would paint a permanent false "down" tail on
+             * the charts (the trailing buckets would never receive a
+             * heartbeat). A floored stamp lands in the newest
+             * evaluable Minute bucket, proving it up; the single
+             * bucket between it and the chart's unevaluable trailing
+             * shadow is rescued by the Minute-grid bridge — see the
+             * invariant documented on HEARTBEAT_MAX_BACKDATE_MS.
+             */
+            const nowUnixNano: number =
+              OneUptimeDate.getCurrentDateAsUnixNano();
+            const maxBackdateNano: number =
+              HEARTBEAT_MAX_BACKDATE_MS * 1_000_000;
+            const maxDatapointTimeUnixNano: number | null =
+              hostMaxDatapointTimeNano.get(heartbeatHostName) ?? null;
+            const heartbeatTimeNano: string = Math.trunc(
+              maxDatapointTimeUnixNano !== null
+                ? Math.max(
+                    Math.min(maxDatapointTimeUnixNano, nowUnixNano),
+                    nowUnixNano - maxBackdateNano,
+                  )
+                : nowUnixNano,
+            ).toString();
             const heartbeatRow: JSONObject = this.buildMetricRow({
               datapoint: {
                 timeUnixNano: heartbeatTimeNano,
@@ -2174,6 +2266,69 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     }
 
     return row;
+  }
+
+  /*
+   * Newest datapoint timestamp across a resource's scopeMetrics, used
+   * to stamp the synthetic host heartbeat with the batch's own scrape
+   * time instead of the ingest wall clock. Walks every OTLP data shape
+   * (the proto's `oneof data`) but reads only `timeUnixNano`, so the
+   * extra pass is cheap relative to the full ingest transform. Returns
+   * null when the batch carries no parseable datapoint timestamps.
+   */
+  private static getMaxDatapointTimeUnixNano(
+    scopeMetrics: JSONArray,
+  ): number | null {
+    if (!Array.isArray(scopeMetrics)) {
+      return null;
+    }
+    let max: number | null = null;
+    for (const scopeMetric of scopeMetrics) {
+      const metrics: JSONArray | undefined = (scopeMetric as JSONObject)?.[
+        "metrics"
+      ] as JSONArray | undefined;
+      if (!metrics || !Array.isArray(metrics)) {
+        continue;
+      }
+      for (const metric of metrics) {
+        const metricObject: JSONObject | null = metric as JSONObject | null;
+        if (!metricObject) {
+          continue;
+        }
+        const metricTypeWrapper: JSONObject | undefined =
+          (metricObject["sum"] as JSONObject | undefined) ||
+          (metricObject["gauge"] as JSONObject | undefined) ||
+          (metricObject["histogram"] as JSONObject | undefined) ||
+          (metricObject["exponentialHistogram"] as JSONObject | undefined) ||
+          (metricObject["summary"] as JSONObject | undefined);
+        const dataPoints: JSONArray | undefined = metricTypeWrapper?.[
+          "dataPoints"
+        ] as JSONArray | undefined;
+        if (!dataPoints || !Array.isArray(dataPoints)) {
+          continue;
+        }
+        for (const datapoint of dataPoints) {
+          const raw: string | number | undefined = (datapoint as JSONObject)?.[
+            "timeUnixNano"
+          ] as string | number | undefined;
+          let value: number | null = null;
+          if (typeof raw === "number") {
+            value = raw;
+          } else if (typeof raw === "string") {
+            value = Number.parseFloat(raw);
+          }
+          if (
+            value !== null &&
+            Number.isFinite(value) &&
+            value > 0 &&
+            (max === null || value > max)
+          ) {
+            max = value;
+          }
+        }
+      }
+    }
+    return max;
   }
 
   private static safeParseUnixNano(

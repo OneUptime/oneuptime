@@ -36,14 +36,14 @@ Der Umstieg erfolgt **ausschließlich vorwärtsgerichtet**: Die neuen Tabellen s
 ### Wer handeln muss
 
 - **Neuinstallationen:** keine Maßnahmen erforderlich.
-- **Upgrades, die keine Telemetriedaten aus der Zeit vor dem Upgrade in der Benutzeroberfläche benötigen:** keine Maßnahmen erforderlich. Die Telemetrie-Seiten zeigen einfach Daten ab dem Zeitpunkt des Upgrades; ältere Daten laufen ungesehen aus den alten Tabellen aus.
-- **Upgrades, bei denen Telemetriedaten aus der Zeit vor dem Upgrade sichtbar sein sollen:** Führen Sie die manuelle Kopie unten aus – jederzeit nach dem Upgrade.
+- **Upgrades, die keine Telemetriedaten aus der Zeit vor dem Upgrade in der Benutzeroberfläche benötigen:** keine Maßnahmen erforderlich. Die Telemetrie-Seiten zeigen einfach Daten ab dem Zeitpunkt des Upgrades; die alten Tabellen werden während des Upgrades gelöscht.
+- **Upgrades, bei denen Telemetriedaten aus der Zeit vor dem Upgrade sichtbar sein sollen:** Benennen Sie die alten Tabellen **vor** dem Upgrade um (Schritt 0 unten) und führen Sie die manuelle Kopie dann jederzeit nach dem Upgrade aus.
 
 Wie immer gilt: Führen Sie Upgrades über Hauptversionen schrittweise durch (10 → 11, nicht überspringen) und erstellen Sie vor dem Upgrade Backups von Postgres und ClickHouse.
 
 ### Optional: Telemetrie-Historie übernehmen
 
-Führen Sie die folgenden Schritte aus, **nachdem das Upgrade vollständig hochgefahren ist** (die neuen Tabellen und ihre Materialized Views müssen existieren). Verbinden Sie sich direkt auf Ihrem ClickHouse-Host – das native Protokoll kennt keine HTTP-Timeouts, daher sind mehrstündige Statements unproblematisch:
+Schritt 0 erfolgt **vor dem Upgrade**; alles ab Schritt 1 erfolgt, **nachdem das Upgrade vollständig hochgefahren ist** (die neuen Tabellen und ihre Materialized Views müssen existieren). Verbinden Sie sich direkt auf Ihrem ClickHouse-Host – das native Protokoll kennt keine HTTP-Timeouts, daher sind mehrstündige Statements unproblematisch:
 
 ```bash
 clickhouse-client --database oneuptime
@@ -56,20 +56,40 @@ Gut zu wissen, bevor Sie beginnen:
 - Jedes Statement unten trägt ein `insert_deduplication_token`, und die neuen Tabellen werden mit einem Deduplizierungsfenster ausgeliefert – daher ist es **sicher, ein teilweise fehlgeschlagenes Statement erneut auszuführen** (bereits eingefügte Blöcke werden übersprungen, auch in den Metrik-Rollups), sofern die Wiederholung zeitnah erfolgt. Bei starkem laufendem Ingest verdrängt das Fenster (die letzten 10.000 Insert-Blöcke pro Tabelle) irgendwann alte Tokens.
 - Das Kopieren der Metriken baut außerdem die voraggregierten Dashboard-Rollups automatisch neu auf (jede kopierte Zeile speist die Rollup-Materialized-Views erneut) – dadurch ist die Metrik-Kopie langsamer als die anderen; führen Sie sie zuletzt aus.
 
+#### Schritt 0 – Vor dem Upgrade: alte Tabellen umbenennen
+
+Das Upgrade löscht die alten Tabellen beim Start. Bringen Sie die Tabellen, aus denen Sie kopieren möchten, daher zuerst außer Reichweite. Stoppen Sie OneUptime (skalieren Sie das Deployment herunter), damit nichts mehr in die Tabellen schreibt oder sie neu anlegen kann, und benennen Sie sie dann um – `RENAME TABLE` ist eine sofortige Metadaten-Operation, und `IF EXISTS` lässt den Block Tabellen überspringen, die Ihre Installation nie hatte (Deployments älter als Mitte 10.0.x fehlen möglicherweise `AuditLogV1` oder einzelne `…V2`-Tabellen – es gibt dann keine Historie dieses Typs zu kopieren):
+
+```sql
+RENAME TABLE IF EXISTS LogItemV2 TO LogItemV2_backup;
+RENAME TABLE IF EXISTS MetricItemV2 TO MetricItemV2_backup;
+RENAME TABLE IF EXISTS SpanItemV2 TO SpanItemV2_backup;
+RENAME TABLE IF EXISTS ExceptionItemV2 TO ExceptionItemV2_backup;
+RENAME TABLE IF EXISTS ProfileItemV2 TO ProfileItemV2_backup;
+RENAME TABLE IF EXISTS ProfileSampleItemV2 TO ProfileSampleItemV2_backup;
+RENAME TABLE IF EXISTS MonitorLogV2 TO MonitorLogV2_backup;
+RENAME TABLE IF EXISTS AuditLogV1 TO AuditLogV1_backup;
+RENAME TABLE IF EXISTS MetricItemAggMV1mByHost TO MetricItemAggMV1mByHost_backup;
+```
+
+Führen Sie anschließend das Upgrade durch und lassen Sie OneUptime vollständig hochfahren, bevor Sie fortfahren.
+
+> Wenn Sie nach dem Umbenennen auf v10 zurückrollen (v10 legt beim Start leere Tabellen mit den alten Namen neu an), benennen Sie die `_backup`-Tabellen wieder auf ihre ursprünglichen Namen zurück, bevor Sie v10 neu starten – andernfalls landen während des Rollbacks eingelieferte Telemetriedaten in den neu angelegten Tabellen und werden beim späteren Upgrade gelöscht.
+
 #### Schritt 1 – Quellpartitionen auflisten
 
 Jede alte Tabelle hat höchstens 16 Partitionen. Für jede Quelltabelle:
 
 ```sql
-SELECT DISTINCT _partition_id FROM LogItemV2 ORDER BY _partition_id;
+SELECT DISTINCT _partition_id FROM LogItemV2_backup ORDER BY _partition_id;
 ```
 
 #### Schritt 2 – Kopier-Statement generieren
 
-Die Spaltensätze können sich zwischen Installationen leicht unterscheiden (älteren Deployments können kürzlich hinzugefügte Spalten fehlen). Generieren Sie das Statement daher aus Ihrem Live-Schema, statt ein festes Statement zu kopieren. Setzen Sie `src` und `dst` in der `WITH`-Klausel auf eines der Tabellenpaare aus der obigen Tabelle und führen Sie aus:
+Die Spaltensätze können sich zwischen Installationen leicht unterscheiden (älteren Deployments können kürzlich hinzugefügte Spalten fehlen). Generieren Sie das Statement daher aus Ihrem Live-Schema, statt ein festes Statement zu kopieren. Setzen Sie `src` und `dst` in der `WITH`-Klausel auf eines der Tabellenpaare aus der obigen Tabelle (die Quelle trägt das `_backup`-Suffix aus Schritt 0) und führen Sie aus:
 
 ```sql
-WITH 'LogItemV2' AS src, 'LogItemV3' AS dst
+WITH 'LogItemV2_backup' AS src, 'LogItemV3' AS dst
 SELECT concat(
   'INSERT INTO ', dst, ' (`', arrayStringConcat(groupArray(name), '`, `'), '`)',
   ' SELECT ', arrayStringConcat(groupArray(selectExpr), ', '),
@@ -96,11 +116,13 @@ Das generierte Statement kopiert nur die Spalten, die beide Tabellen gemeinsam h
 
 Nehmen Sie das generierte Statement und ersetzen Sie `{PARTITION}` (es kommt zweimal vor – im `WHERE` und im Token) durch jede Partitions-ID aus Schritt 1. Führen Sie die Statements nacheinander aus und wiederholen Sie dann die Schritte 1–3 für jedes Tabellenpaar.
 
+> Hinweis: Wurde eine Quelltabelle in Schritt 0 übersprungen, weil sie auf Ihrer Installation nicht existierte, schlägt Schritt 1 für dieses Paar mit `UNKNOWN_TABLE` fehl – überspringen Sie das Paar einfach; es gibt keine Historie dieses Typs zu kopieren.
+
 Wenn ein Statement teilweise fehlschlägt, führen Sie zeitnah **dasselbe** Statement erneut aus – bereits committete Blöcke werden dedupliziert. Wenn die Wiederholung deutlich später erfolgt, vergleichen Sie zuerst die Zeilenanzahlen (Schritt 5).
 
 #### Schritt 4 (optional) – Historie der Pro-Host-Metrik-Rollups
 
-Kopierte rohe Metrikzeilen bauen die Rollups auf Service-Ebene automatisch neu auf, nicht jedoch das **Pro-Host**-Rollup (alte Zeilen haben keinen Host-Entity-Key). Das Upgrade lässt die alte Pro-Host-Rollup-Tabelle absichtlich bestehen, damit Sie sie übernehmen können, wobei der neue Schlüssel aus dem Hostnamen berechnet wird:
+Kopierte rohe Metrikzeilen bauen die Rollups auf Service-Ebene automatisch neu auf, nicht jedoch das **Pro-Host**-Rollup (alte Zeilen haben keinen Host-Entity-Key). Die in Schritt 0 umbenannte alte Rollup-Tabelle ist die einzige Quelle für diese Historie; übernehmen Sie sie, indem der neue Schlüssel aus dem Hostnamen berechnet wird:
 
 ```sql
 INSERT INTO MetricItemAggMV1mByHostV2 (projectId, name, hostEntityKey, bucketTime, valueSumState, valueCountState, valueMinState, valueMaxState, retentionDate)
@@ -114,9 +136,12 @@ SELECT
   valueMinState,
   valueMaxState,
   retentionDate
-FROM MetricItemAggMV1mByHost
+FROM MetricItemAggMV1mByHost_backup
+ORDER BY projectId, name, hostIdentifier, bucketTime, _id
 SETTINGS max_execution_time = 0, insert_deduplication_token = 'v3copy:MetricItemAggMV1mByHostV2:all';
 ```
+
+Das `ORDER BY` ist wichtig: Es sorgt dafür, dass eine Wiederholung identische Insert-Blöcke erzeugt, die das Deduplizierungs-Token wiedererkennen kann. Ohne `ORDER BY` könnte eine Wiederholung stillschweigend übersprungen oder doppelt gezählt werden. (Randfall: Hostnamen mit `\`, `|` oder `=` – keine gültigen RFC-1123-Hostnamen-Zeichen – würden einen anderen Schlüssel berechnen als die Anwendung; ignorieren Sie dies, sofern Sie nicht wissen, dass Sie solche Hosts haben.)
 
 #### Schritt 5 – Überprüfen
 
@@ -124,28 +149,29 @@ Vergleichen Sie die Gesamtzahlen pro Tabellenpaar (die neue Tabelle enthält auc
 
 ```sql
 SELECT
-  (SELECT count() FROM LogItemV2) AS old_rows,
+  (SELECT count() FROM LogItemV2_backup) AS old_rows,
   (SELECT count() FROM LogItemV3) AS new_rows;
 ```
 
-#### Schritt 6 (optional) – Speicherplatz vorzeitig freigeben
+#### Schritt 6 – Backups löschen
 
-Die alten Tabellen leeren sich von selbst über die TTL, aber sobald Sie mit der Kopie zufrieden sind, können Sie sie sofort löschen:
+Die umbenannten Tabellen behalten ihre Aufbewahrungs-TTL, leeren sich also von selbst und schrumpfen – aber sobald Sie mit der Kopie zufrieden sind, löschen Sie sie, um den Speicherplatz sofort freizugeben:
 
 ```sql
-DROP TABLE IF EXISTS LogItemV2;
-DROP TABLE IF EXISTS MetricItemV2;
-DROP TABLE IF EXISTS SpanItemV2;
-DROP TABLE IF EXISTS ExceptionItemV2;
-DROP TABLE IF EXISTS ProfileItemV2;
-DROP TABLE IF EXISTS ProfileSampleItemV2;
-DROP TABLE IF EXISTS MonitorLogV2;
-DROP TABLE IF EXISTS AuditLogV1;
-DROP TABLE IF EXISTS MetricItemAggMV1mByHost;
+DROP TABLE IF EXISTS LogItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS MetricItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS SpanItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS ExceptionItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS ProfileItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS ProfileSampleItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS MonitorLogV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS AuditLogV1_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS MetricItemAggMV1mByHost_backup SETTINGS max_table_size_to_drop = 0;
 ```
 
-> Tipp: Testen Sie wie bei jedem Major-Upgrade zuerst in einer Staging-Umgebung und bestätigen Sie, dass Telemetriedaten in die neuen Tabellen fließen, bevor Sie sich in der Produktion auf die Kopie verlassen.
+(`max_table_size_to_drop = 0` hebt den 50-GB-Löschschutz des Servers für genau dieses Statement auf.)
 
+> Tipp: Testen Sie wie bei jedem Major-Upgrade zuerst in einer Staging-Umgebung und bestätigen Sie, dass Telemetriedaten in die neuen Tabellen fließen, bevor Sie sich in der Produktion auf die Kopie verlassen.
 
 
 ## Upgrade von OneUptime 9 → 10

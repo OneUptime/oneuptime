@@ -312,15 +312,23 @@ export class Service extends DatabaseService<Model> {
 
   @CaptureSpan()
   public async markDisconnectedHosts(): Promise<void> {
-    const fiveMinutesAgo: Date = OneUptimeDate.addRemoveMinutes(
+    /*
+     * Threshold must stay well above the 5-minute OTel ingest
+     * maintenance fence (MAINTENANCE_FENCE_TTL_SECONDS in
+     * OtelIngestBaseService) — lastSeenAt is legitimately up to
+     * ~5 minutes stale during continuous telemetry, so a threshold
+     * equal to the fence TTL flaps healthy resources. 15 minutes
+     * gives 3x headroom.
+     */
+    const fifteenMinutesAgo: Date = OneUptimeDate.addRemoveMinutes(
       OneUptimeDate.getCurrentDate(),
-      -5,
+      -15,
     );
 
     const connectedHosts: Array<Model> = await this.findBy({
       query: {
         otelCollectorStatus: "connected",
-        lastSeenAt: QueryHelper.lessThan(fiveMinutesAgo),
+        lastSeenAt: QueryHelper.lessThan(fifteenMinutesAgo),
       },
       select: {
         _id: true,

@@ -10,11 +10,11 @@ Denne veiledningen dekker hvordan du trygt oppgraderer din selvhostede OneUptime
 
 ## Oppgradering fra OneUptime 10 → 11
 
-OneUptime 11 bygger om telemetrilagringen i ClickHouse. Denne siden forklarer hva som endres, hvem som må gjøre noe, og — for installasjoner som vil ta med historisk telemetri videre — hver eneste spørring som trengs for å gjøre det.
+OneUptime 11 bygger ClickHouse-telemetrilagringen på nytt. Denne siden forklarer hva som endres, hvem som må gjøre noe, og — for installasjoner som vil ta med historisk telemetri videre — hver eneste spørring som trengs.
 
 ### Hva endres i v11
 
-Telemetri (logger, traces, metrikker, unntak, profiler, monitorlogger, revisjonslogger) flyttes til nye ClickHouse-tabeller med tidsbasert partisjonering, komprimeringskodeker per kolonne og de nye entitetsmodell-kolonnene:
+Telemetri (logger, traces, metrikker, exceptions, profiler, monitor-logger, audit-logger) flyttes til nye ClickHouse-tabeller med tidsbasert partisjonering, komprimeringskodeker per kolonne og de nye entitetsmodell-kolonnene:
 
 | Gammel tabell         | Ny tabell             |
 | --------------------- | --------------------- |
@@ -27,47 +27,69 @@ Telemetri (logger, traces, metrikker, unntak, profiler, monitorlogger, revisjons
 | `MonitorLogV2`        | `MonitorLogV3`        |
 | `AuditLogV1`          | `AuditLogV2`          |
 
-To kolonner får nytt navn på alle telemetritabeller: `serviceId` → `primaryEntityId` og `serviceType` → `primaryEntityType`. Dette er et hardt navnebytte — **hvis du spør OneUptime analytics-API-et direkte med `serviceId`-/`serviceType`-filtre, må du oppdatere dem til de nye navnene.** Dashbord, monitorer og varsler inne i OneUptime migreres automatisk.
+To kolonner får nytt navn i alle telemetritabeller: `serviceId` → `primaryEntityId` og `serviceType` → `primaryEntityType`. Dette er en hard navneendring — **hvis du spør OneUptimes analytics-API direkte med `serviceId`-/`serviceType`-filtre, må du oppdatere dem til de nye navnene.** Dashboards, monitorer og varsler inne i OneUptime migreres automatisk.
 
-Overgangen er **kun fremoverrettet**: de nye tabellene starter tomme, all telemetri som tas inn etter oppgraderingen havner i dem umiddelbart, og historikken fylles naturlig inn etter hvert som tiden går. De gamle tabellene beholdes og sletter seg selv gradvis via sin retention-TTL.
+Overgangen er **kun fremoverrettet**: de nye tabellene starter tomme, all telemetri som tas inn etter oppgraderingen lander umiddelbart i dem, og historikken fylles naturlig opp etter hvert som tiden går. De gamle tabellene **slettes automatisk** under oppgraderingen for å frigjøre diskplassen — vil du beholde muligheten til å ta historikken med, gi dem nytt navn **før** oppgraderingen (Trinn 0 nedenfor).
+
+> **Allerede på 11.0.0 eller 11.0.1?** Disse utgivelsene beholdt de gamle tabellene (de tømte seg via TTL, og kopien kunne kjøres «når som helst etter oppgraderingen»). Enhver senere oppdatering **sletter dem ved oppstart**. Hvis du fortsatt vil gjøre historikk-kopien og ikke har gjort det ennå, utfør Trinn 0 nedenfor før du tar i bruk oppdateringen.
 
 ### Hvem må gjøre noe
 
 - **Nyinstallasjoner:** ingenting å gjøre.
-- **Oppgraderinger som ikke trenger telemetri fra før oppgraderingen i brukergrensesnittet:** ingenting å gjøre. Telemetrisidene viser ganske enkelt data fra oppgraderingstidspunktet og fremover; eldre data eldes usett ut av de gamle tabellene.
-- **Oppgraderinger som vil ha telemetri fra før oppgraderingen synlig:** kjør den manuelle kopieringen nedenfor, når som helst etter oppgraderingen.
+- **Oppgraderinger som ikke trenger telemetri fra før oppgraderingen i grensesnittet:** ingenting å gjøre. Telemetrisidene viser ganske enkelt data fra oppgraderingstidspunktet og fremover; de gamle tabellene slettes under oppgraderingen.
+- **Oppgraderinger som vil se telemetri fra før oppgraderingen:** gi de gamle tabellene nytt navn **før** oppgraderingen (Trinn 0 nedenfor), og kjør deretter den manuelle kopien når som helst etterpå.
 
-Som alltid: oppgrader store versjoner trinn for trinn (10 → 11, ikke hopp over), og ta sikkerhetskopier av Postgres og ClickHouse før du oppgraderer.
+Som alltid: oppgrader hovedversjoner trinn for trinn (10 → 11, ikke hopp over), og ta sikkerhetskopier av Postgres og ClickHouse før oppgraderingen.
 
-### Valgfritt: ta med telemetrihistorikk videre
+### Valgfritt: ta telemetrihistorikken med videre
 
-Kjør disse **etter at oppgraderingen har startet helt opp** (de nye tabellene og deres materialiserte visninger må eksistere). Koble til direkte på ClickHouse-verten — den native protokollen har ingen HTTP-tidsavbrudd, så setninger som tar flere timer går fint:
+Trinn 0 utføres **før oppgraderingen**; alt fra Trinn 1 og utover utføres **etter at oppgraderingen har startet helt opp** (de nye tabellene og deres materialized views må eksistere). Koble til direkte på ClickHouse-verten — den native protokollen har ingen HTTP-tidsavbrudd, så setninger som tar flere timer er uproblematiske:
 
 ```bash
 clickhouse-client --database oneuptime
 ```
 
-Greit å vite før du starter:
+Godt å vite før du begynner:
 
-- Kopieringen er trygg å kjøre mens OneUptime er i drift. Ny telemetri skrives uavhengig til de nye tabellene; kopiert historikk fylles inn bak den.
-- Forvent at det tar timer ved stor skala (hundrevis av GB).
-- Hver setning nedenfor har en `insert_deduplication_token`, og de nye tabellene leveres med et dedupliseringsvindu — så **det er trygt å kjøre en setning som feilet underveis på nytt** (blokker som allerede er satt inn hoppes over, også i metrikk-rollupene), forutsatt at du kjører den på nytt innen rimelig tid. Under tung live-inntak vil vinduet (de siste 10 000 insert-blokkene per tabell) etter hvert kaste ut gamle tokener.
-- Kopiering av metrikker gjenoppbygger også de forhåndsaggregerte dashbord-rollupene automatisk (hver kopierte rad mates på nytt inn i rollupenes materialiserte visninger) — dette gjør metrikk-kopieringen tregere enn de andre; kjør den sist.
+- Kopien kan trygt kjøres mens OneUptime er live. Ny telemetri skrives uavhengig til de nye tabellene; den kopierte historikken fyller seg opp bak.
+- Forvent timer i stor skala (hundrevis av GB).
+- Hver setning nedenfor bærer et `insert_deduplication_token`, og de nye tabellene leveres med et dedupliseringsvindu — så **det er trygt å kjøre en setning som feilet underveis på nytt** (allerede innsatte blokker hoppes over, også i metrikk-rollups), forutsatt at du kjører den på nytt rimelig raskt. Under tung live-inntak fortrenger vinduet (de siste 10 000 insert-blokkene per tabell) til slutt gamle tokens.
+- Kopiering av metrikker bygger også automatisk de forhåndsaggregerte dashboard-rollupene på nytt (hver kopierte rad mater rollup-materialized-views på nytt) — det gjør metrikk-kopien tregere enn de andre; kjør den sist.
 
-#### Trinn 1 — list opp kildepartisjonene
+#### Trinn 0 — gi de gamle tabellene nytt navn før oppgraderingen
 
-Hver gammel tabell har maksimalt 16 partisjoner. For hver kildetabell:
+Oppgraderingen sletter de gamle tabellene ved oppstart, så flytt først dem du vil kopiere fra utenfor dens rekkevidde. Stopp OneUptime (skaler deploymentet ned) slik at ingenting skriver til dem eller kan gjenskape dem, og gi dem deretter nytt navn — `RENAME TABLE` er en øyeblikkelig metadata-operasjon, og `IF EXISTS` lar blokken hoppe over tabeller installasjonen din aldri har hatt (deployments eldre enn midten av 10.0.x kan mangle `AuditLogV1` eller noen `…V2`-tabeller — da finnes det ingen historikk av den typen å kopiere):
 
 ```sql
-SELECT DISTINCT _partition_id FROM LogItemV2 ORDER BY _partition_id;
+RENAME TABLE IF EXISTS LogItemV2 TO LogItemV2_backup;
+RENAME TABLE IF EXISTS MetricItemV2 TO MetricItemV2_backup;
+RENAME TABLE IF EXISTS SpanItemV2 TO SpanItemV2_backup;
+RENAME TABLE IF EXISTS ExceptionItemV2 TO ExceptionItemV2_backup;
+RENAME TABLE IF EXISTS ProfileItemV2 TO ProfileItemV2_backup;
+RENAME TABLE IF EXISTS ProfileSampleItemV2 TO ProfileSampleItemV2_backup;
+RENAME TABLE IF EXISTS MonitorLogV2 TO MonitorLogV2_backup;
+RENAME TABLE IF EXISTS AuditLogV1 TO AuditLogV1_backup;
+RENAME TABLE IF EXISTS MetricItemAggMV1mByHost TO MetricItemAggMV1mByHost_backup;
+```
+
+Oppgrader deretter og la OneUptime starte helt opp før du fortsetter.
+
+> Ruller du tilbake til v10 etter navneendringen (v10 gjenskaper tomme tabeller med de gamle navnene ved oppstart), gi `_backup`-tabellene tilbake de opprinnelige navnene før du starter v10 på nytt — ellers lander telemetri som tas inn under tilbakerullingen i de gjenskapte tabellene og slettes ved den senere oppgraderingen.
+
+#### Trinn 1 — list kildepartisjonene
+
+Hver gamle tabell har høyst 16 partisjoner. For hver kildetabell:
+
+```sql
+SELECT DISTINCT _partition_id FROM LogItemV2_backup ORDER BY _partition_id;
 ```
 
 #### Trinn 2 — generer kopisetningen
 
-Kolonnesettene kan variere litt mellom installasjoner (eldre utrullinger kan mangle nylig tilføyde kolonner), så generer setningen fra ditt live skjema i stedet for å kopiere en ferdigskrevet en. Sett `src` og `dst` i `WITH`-klausulen til ett av tabellparene fra tabellen ovenfor, og kjør:
+Kolonnesettene kan variere litt mellom installasjoner (eldre deployments kan mangle nylig tilførte kolonner), så generer setningen fra ditt live skjema i stedet for å lime inn en fast. Sett `src` og `dst` i `WITH`-klausulen til ett av tabellparene fra tabellen ovenfor (kilden bærer `_backup`-suffikset fra Trinn 0), og kjør:
 
 ```sql
-WITH 'LogItemV2' AS src, 'LogItemV3' AS dst
+WITH 'LogItemV2_backup' AS src, 'LogItemV3' AS dst
 SELECT concat(
   'INSERT INTO ', dst, ' (`', arrayStringConcat(groupArray(name), '`, `'), '`)',
   ' SELECT ', arrayStringConcat(groupArray(selectExpr), ', '),
@@ -88,17 +110,19 @@ FROM (
 );
 ```
 
-Den genererte setningen kopierer bare kolonnene begge tabellene har felles (nye kolonner får standardverdiene sine), bytter navn på `serviceId`/`serviceType` underveis, sorterer radene deterministisk slik at en ny kjøring produserer identiske, dedupliserbare blokker, og opphever grensene for kjøretid og partisjonsantall som en setning av denne størrelsen trenger.
+Den genererte setningen kopierer bare kolonnene begge tabellene deler (nye kolonner får standardverdiene sine), endrer navn på `serviceId`/`serviceType` underveis, sorterer radene deterministisk slik at en ny kjøring produserer identiske, dedupliserbare blokker, og opphever grensene for kjøretid og partisjonsantall som en setning av denne størrelsen trenger.
 
 #### Trinn 3 — kjør den, én partisjon om gangen
 
-Ta den genererte setningen og erstatt `{PARTITION}` (den forekommer to ganger — i `WHERE` og i tokenet) med hver partisjons-id fra trinn 1. Kjør setningene én om gangen, og gjenta deretter trinn 1–3 for hvert tabellpar.
+Ta den genererte setningen og erstatt `{PARTITION}` (den forekommer to ganger — i `WHERE` og i tokenet) med hver partisjons-id fra Trinn 1. Kjør setningene én om gangen, og gjenta deretter Trinn 1–3 for hvert tabellpar.
 
-Hvis en setning feiler underveis, kjør den **samme** setningen på nytt raskt — blokker som allerede er committet dedupliseres. Hvis du kjører på nytt mye senere, sammenlign radantall først (trinn 5).
+> Merk: ble en kildetabell hoppet over i Trinn 0 fordi den ikke fantes på installasjonen din, feiler Trinn 1 med `UNKNOWN_TABLE` for det paret — hopp ganske enkelt over paret; det finnes ingen historikk av den typen å kopiere.
 
-#### Trinn 4 (valgfritt) — rollup-historikk for metrikker per vert
+Feiler en setning underveis, kjør raskt **den samme** setningen på nytt — allerede committede blokker dedupliseres. Kjører du på nytt mye senere, sammenlign radantallene først (Trinn 5).
 
-Kopierte rå metrikkrader gjenoppbygger rollupene på tjenestenivå automatisk, men ikke rollupen **per vert** (gamle rader har ingen vertsentitetsnøkkel). Oppgraderingen lar med vilje den gamle per-vert-rollup-tabellen stå, slik at du kan ta den med videre ved å beregne den nye nøkkelen fra vertsnavnet:
+#### Trinn 4 (valgfritt) — historikk for metrikk-rollup per vert
+
+Kopierte rå metrikkrader bygger automatisk rollupene på tjenestenivå på nytt, men ikke **per-vert**-rollupen (gamle rader har ingen vert-entitetsnøkkel). Den gamle rollup-tabellen som fikk nytt navn i Trinn 0 er den eneste kilden til denne historikken; ta den med ved å beregne den nye nøkkelen fra vertsnavnet:
 
 ```sql
 INSERT INTO MetricItemAggMV1mByHostV2 (projectId, name, hostEntityKey, bucketTime, valueSumState, valueCountState, valueMinState, valueMaxState, retentionDate)
@@ -112,9 +136,12 @@ SELECT
   valueMinState,
   valueMaxState,
   retentionDate
-FROM MetricItemAggMV1mByHost
+FROM MetricItemAggMV1mByHost_backup
+ORDER BY projectId, name, hostIdentifier, bucketTime, _id
 SETTINGS max_execution_time = 0, insert_deduplication_token = 'v3copy:MetricItemAggMV1mByHostV2:all';
 ```
+
+`ORDER BY` betyr noe: den gjør at en ny kjøring produserer identiske insert-blokker som dedupliseringstokenet kan gjenkjenne. Uten den kunne en ny kjøring blitt hoppet stille over eller telt dobbelt. (Kanttilfelle: vertsnavn som inneholder `\`, `|` eller `=` — ikke gyldige RFC-1123-vertsnavntegn — ville beregnet en annen nøkkel enn applikasjonen; ignorer dette med mindre du vet at du har slike verter.)
 
 #### Trinn 5 — verifiser
 
@@ -122,28 +149,29 @@ Sammenlign totalene per tabellpar (den nye tabellen inneholder også rader fra e
 
 ```sql
 SELECT
-  (SELECT count() FROM LogItemV2) AS old_rows,
+  (SELECT count() FROM LogItemV2_backup) AS old_rows,
   (SELECT count() FROM LogItemV3) AS new_rows;
 ```
 
-#### Trinn 6 (valgfritt) — frigjør diskplass tidlig
+#### Trinn 6 — slett sikkerhetskopiene
 
-De gamle tabellene tømmes av seg selv via TTL, men når du er fornøyd med kopien, kan du droppe dem umiddelbart:
+Tabellene med nytt navn beholder retensjons-TTL-en sin, så de tømmes og krymper av seg selv — men så snart du er fornøyd med kopien, slett dem for å frigjøre disken umiddelbart:
 
 ```sql
-DROP TABLE IF EXISTS LogItemV2;
-DROP TABLE IF EXISTS MetricItemV2;
-DROP TABLE IF EXISTS SpanItemV2;
-DROP TABLE IF EXISTS ExceptionItemV2;
-DROP TABLE IF EXISTS ProfileItemV2;
-DROP TABLE IF EXISTS ProfileSampleItemV2;
-DROP TABLE IF EXISTS MonitorLogV2;
-DROP TABLE IF EXISTS AuditLogV1;
-DROP TABLE IF EXISTS MetricItemAggMV1mByHost;
+DROP TABLE IF EXISTS LogItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS MetricItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS SpanItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS ExceptionItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS ProfileItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS ProfileSampleItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS MonitorLogV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS AuditLogV1_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS MetricItemAggMV1mByHost_backup SETTINGS max_table_size_to_drop = 0;
 ```
 
-> Tips: som ved enhver stor oppgradering, test i et stagingmiljø først og bekreft at telemetri flyter inn i de nye tabellene før du stoler på kopien i produksjon.
+(`max_table_size_to_drop = 0` opphever serverens 50 GB-slettebeskyttelse for akkurat den setningen.)
 
+> Tips: som ved enhver større oppgradering, test først i et staging-miljø og bekreft at telemetri strømmer inn i de nye tabellene før du stoler på kopien i produksjon.
 
 
 ## Oppgradering fra OneUptime 9 → 10

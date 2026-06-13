@@ -8,21 +8,15 @@
 - आप minor/patch versions को leapfrog कर सकते हैं (उदाहरण के लिए, 8.1 → 8.4) जब तक आप release notes का पालन करते हैं।
 - Upgrade से पहले हमेशा backups लें और सत्यापित करें कि आप उन्हें restore कर सकते हैं।
 
-## OneUptime 10 → 11 से Upgrade करना
+## OneUptime 10 → 11 अपग्रेड
 
-OneUptime 11 ClickHouse telemetry storage को फिर से बनाता है। यह पृष्ठ
-बताता है कि क्या बदलता है, किसे कार्रवाई करने की आवश्यकता है, और — उन
-installations के लिए जो historical telemetry को आगे ले जाना चाहते हैं —
-इसके लिए आवश्यक हर query।
+OneUptime 11 ClickHouse टेलीमेट्री स्टोरेज को नए सिरे से बनाता है। यह पेज बताता है कि क्या बदलता है, किसे कुछ करना है, और — उन इंस्टॉलेशन के लिए जो ऐतिहासिक टेलीमेट्री आगे ले जाना चाहते हैं — इसके लिए ज़रूरी हर क्वेरी।
 
 ### v11 में क्या बदलता है
 
-Telemetry (logs, traces, metrics, exceptions, profiles, monitor logs,
-audit logs) नई ClickHouse tables में move होती है, जिनमें time-based
-partitioning, per-column compression codecs, और नए entity-model columns
-हैं:
+टेलीमेट्री (logs, traces, metrics, exceptions, profiles, monitor logs, audit logs) समय-आधारित पार्टिशनिंग, प्रति-कॉलम कम्प्रेशन कोडेक और नए entity-model कॉलम वाली नई ClickHouse टेबलों में स्थानांतरित होती है:
 
-| पुरानी table          | नई table              |
+| पुरानी टेबल           | नई टेबल               |
 | --------------------- | --------------------- |
 | `LogItemV2`           | `LogItemV3`           |
 | `MetricItemV2`        | `MetricItemV3`        |
@@ -33,45 +27,23 @@ partitioning, per-column compression codecs, और नए entity-model columns
 | `MonitorLogV2`        | `MonitorLogV3`        |
 | `AuditLogV1`          | `AuditLogV2`          |
 
-हर telemetry table पर दो columns rename किए गए हैं: `serviceId` →
-`primaryEntityId` और `serviceType` → `primaryEntityType`। यह एक hard
-rename है — **यदि आप `serviceId`/`serviceType` filters के साथ OneUptime
-analytics API को सीधे query करते हैं, तो उन्हें नए नामों में update करें।**
-OneUptime के अंदर के dashboards, monitors और alerts अपने आप migrate हो
-जाते हैं।
+हर टेलीमेट्री टेबल में दो कॉलम का नाम बदला गया है: `serviceId` → `primaryEntityId` और `serviceType` → `primaryEntityType`। यह एक सख्त नाम-परिवर्तन है — **यदि आप OneUptime analytics API को सीधे `serviceId`/`serviceType` फ़िल्टर के साथ क्वेरी करते हैं, तो उन्हें नए नामों पर अपडेट करें।** OneUptime के अंदर के डैशबोर्ड, मॉनिटर और अलर्ट अपने आप माइग्रेट हो जाते हैं।
 
-यह cut **forward-only** है: नई tables खाली शुरू होती हैं, upgrade के बाद
-ingest होने वाली सारी telemetry तुरंत उनमें जाती है, और समय बीतने के साथ
-history स्वाभाविक रूप से वापस भर जाती है। पुरानी tables upgrade के दौरान
-उनकी disk reclaim करने के लिए **अपने आप drop कर दी जाती हैं** — यदि आप
-history को आगे ले जाने का विकल्प चाहते हैं, तो upgrade करने **से पहले**
-उन्हें rename करें (नीचे Step 0)।
+यह बदलाव **केवल आगे की ओर** है: नई टेबलें खाली शुरू होती हैं, अपग्रेड के बाद आने वाली सारी टेलीमेट्री तुरंत उनमें जाती है, और इतिहास समय के साथ स्वाभाविक रूप से भरता जाता है। पुरानी टेबलें अपग्रेड के दौरान डिस्क खाली करने के लिए **अपने आप हटा दी जाती हैं** — यदि आप इतिहास आगे ले जाने का विकल्प खुला रखना चाहते हैं, तो अपग्रेड से **पहले** उनका नाम बदल दें (नीचे Step 0)।
 
-> **पहले से 11.0.0 या 11.0.1 पर हैं?** उन releases में पुरानी tables रखी
-> जाती थीं (वे TTL के माध्यम से drain होती थीं, और copy "upgrade के बाद
-> किसी भी समय" चलाई जा सकती थी)। उसके बाद का कोई भी update उन्हें **boot
-> पर drop कर देता है**। यदि आप अभी भी history copy चाहते हैं और अभी तक
-> नहीं की है, तो update apply करने से पहले नीचे दिया गया Step 0 चलाएं।
+> **पहले से 11.0.0 या 11.0.1 पर हैं?** उन रिलीज़ों में पुरानी टेबलें रखी जाती थीं (वे TTL के ज़रिए खाली होती थीं, और कॉपी "अपग्रेड के बाद कभी भी" चलाई जा सकती थी)। कोई भी बाद का अपडेट **स्टार्टअप पर उन्हें हटा देता है**। यदि आप अब भी इतिहास की कॉपी करना चाहते हैं और अभी तक नहीं की है, तो अपडेट लगाने से पहले नीचे दिया Step 0 करें।
 
-### किसे कुछ करने की आवश्यकता है
+### किसे कुछ करना है
 
-- **Fresh installations:** कुछ करने की आवश्यकता नहीं।
-- **ऐसे upgrades जिन्हें UI में pre-upgrade telemetry की आवश्यकता नहीं:**
-  कुछ करने की आवश्यकता नहीं। Telemetry pages बस upgrade के क्षण से आगे का
-  डेटा दिखाते हैं; पुराना डेटा बिना दिखे पुरानी tables से age out हो जाता
-  है।
-- **ऐसे upgrades जो pre-upgrade telemetry दिखाना चाहते हैं:** upgrade के
-  बाद किसी भी समय, नीचे दी गई manual copy चलाएं।
+- **नए इंस्टॉलेशन:** कुछ नहीं करना।
+- **ऐसे अपग्रेड जिन्हें UI में अपग्रेड-पूर्व टेलीमेट्री नहीं चाहिए:** कुछ नहीं करना। टेलीमेट्री पेज बस अपग्रेड के क्षण से आगे का डेटा दिखाते हैं; पुरानी टेबलें अपग्रेड के दौरान हटा दी जाती हैं।
+- **ऐसे अपग्रेड जिन्हें अपग्रेड-पूर्व टेलीमेट्री दिखनी चाहिए:** अपग्रेड से **पहले** पुरानी टेबलों का नाम बदलें (नीचे Step 0), फिर उसके बाद कभी भी मैनुअल कॉपी चलाएँ।
 
-हमेशा की तरह: major versions को step-by-step upgrade करें (10 → 11, skip
-न करें), और upgrade से पहले Postgres और ClickHouse के backups लें।
+हमेशा की तरह: मेजर वर्शन एक-एक करके अपग्रेड करें (10 → 11, छोड़ें नहीं), और अपग्रेड से पहले Postgres और ClickHouse का बैकअप लें।
 
-### वैकल्पिक: telemetry history को आगे ले जाना
+### वैकल्पिक: टेलीमेट्री इतिहास आगे ले जाएँ
 
-इन्हें **upgrade के पूरी तरह boot हो जाने के बाद** चलाएं (नई tables और
-उनके materialized views मौजूद होने चाहिए)। अपने ClickHouse host पर सीधे
-connect करें — native protocol में कोई HTTP timeouts नहीं होते, इसलिए कई
-घंटों तक चलने वाले statements ठीक हैं:
+Step 0 **अपग्रेड से पहले** चलता है; Step 1 से आगे का सब कुछ **अपग्रेड के पूरी तरह बूट होने के बाद** चलता है (नई टेबलें और उनके materialized views मौजूद होने चाहिए)। अपने ClickHouse होस्ट पर सीधे कनेक्ट करें — native प्रोटोकॉल में HTTP timeout नहीं होते, इसलिए कई घंटों के स्टेटमेंट कोई समस्या नहीं हैं:
 
 ```bash
 clickhouse-client --database oneuptime
@@ -79,40 +51,45 @@ clickhouse-client --database oneuptime
 
 शुरू करने से पहले जानने योग्य बातें:
 
-- OneUptime के live रहते copy चलाना सुरक्षित है। नई telemetry स्वतंत्र रूप
-  से नई tables में लिखी जाती है; copy की गई history उसके पीछे भरती जाती
-  है।
-- बड़े पैमाने पर (सैकड़ों GB) घंटों की अपेक्षा करें।
-- नीचे दिए गए हर statement में एक `insert_deduplication_token` है, और नई
-  tables एक deduplication window के साथ आती हैं — इसलिए **बीच में fail हुए
-  statement को फिर से चलाना सुरक्षित है** (पहले से insert हो चुके blocks
-  skip हो जाते हैं, metric rollups सहित), बशर्ते आप उसे उचित समय के भीतर
-  फिर से चलाएं। भारी live ingest के दौरान window (प्रति table अंतिम
-  10,000 insert blocks) अंततः पुराने tokens को evict कर देती है।
-- Metrics copy करने से pre-aggregated dashboard rollups भी अपने आप फिर से
-  बन जाते हैं (हर copy की गई row rollup materialized views को फिर से feed
-  करती है) — इससे metric copy बाकियों की तुलना में धीमी हो जाती है; इसे
-  सबसे अंत में चलाएं।
+- OneUptime के लाइव रहते हुए कॉपी चलाना सुरक्षित है। नई टेलीमेट्री स्वतंत्र रूप से नई टेबलों में लिखी जाती है; कॉपी किया इतिहास उसके पीछे भरता जाता है।
+- बड़े पैमाने (सैकड़ों GB) पर घंटों की उम्मीद रखें।
+- नीचे का हर स्टेटमेंट एक `insert_deduplication_token` रखता है, और नई टेबलों में एक deduplication विंडो होती है — इसलिए **बीच में विफल हुए स्टेटमेंट को फिर से चलाना सुरक्षित है** (पहले से डाले गए ब्लॉक छोड़ दिए जाते हैं, मेट्रिक रोलअप में भी), बशर्ते आप उसे उचित समय में फिर से चलाएँ। भारी लाइव इन्जेस्ट के दौरान विंडो (प्रति टेबल अंतिम 10,000 insert ब्लॉक) आख़िरकार पुराने टोकन हटा देती है।
+- मेट्रिक्स कॉपी करने से पहले से एग्रीगेट किए गए डैशबोर्ड रोलअप भी अपने आप फिर से बन जाते हैं (हर कॉपी की गई पंक्ति रोलअप materialized views को फिर से भरती है) — इसलिए मेट्रिक कॉपी बाकियों से धीमी है; इसे सबसे अंत में चलाएँ।
 
-#### Step 1 — source partitions की सूची बनाएं
+#### Step 0 — अपग्रेड से पहले, पुरानी टेबलों का नाम बदलें
 
-हर पुरानी table में अधिकतम 16 partitions होते हैं। हर source table के
-लिए:
+अपग्रेड स्टार्टअप पर पुरानी टेबलें हटा देता है, इसलिए जिनसे आप कॉपी करना चाहते हैं उन्हें पहले उसकी पहुँच से बाहर कर दें। OneUptime रोकें (deployment को शून्य पर स्केल करें) ताकि कोई उनमें न लिखे और न ही उन्हें दोबारा बना सके, फिर नाम बदलें — `RENAME TABLE` एक त्वरित metadata ऑपरेशन है, और `IF EXISTS` से ब्लॉक उन टेबलों को छोड़ देता है जो आपके इंस्टॉलेशन में कभी थीं ही नहीं (10.0.x के मध्य से पुराने deployment में `AuditLogV1` या कुछ `…V2` टेबलें नहीं हो सकतीं — तब उस प्रकार का कोई इतिहास कॉपी करने को नहीं है):
 
 ```sql
-SELECT DISTINCT _partition_id FROM LogItemV2 ORDER BY _partition_id;
+RENAME TABLE IF EXISTS LogItemV2 TO LogItemV2_backup;
+RENAME TABLE IF EXISTS MetricItemV2 TO MetricItemV2_backup;
+RENAME TABLE IF EXISTS SpanItemV2 TO SpanItemV2_backup;
+RENAME TABLE IF EXISTS ExceptionItemV2 TO ExceptionItemV2_backup;
+RENAME TABLE IF EXISTS ProfileItemV2 TO ProfileItemV2_backup;
+RENAME TABLE IF EXISTS ProfileSampleItemV2 TO ProfileSampleItemV2_backup;
+RENAME TABLE IF EXISTS MonitorLogV2 TO MonitorLogV2_backup;
+RENAME TABLE IF EXISTS AuditLogV1 TO AuditLogV1_backup;
+RENAME TABLE IF EXISTS MetricItemAggMV1mByHost TO MetricItemAggMV1mByHost_backup;
 ```
 
-#### Step 2 — copy statement generate करें
+फिर अपग्रेड करें और आगे बढ़ने से पहले OneUptime को पूरी तरह बूट होने दें।
 
-Installations के बीच column sets थोड़े अलग हो सकते हैं (पुराने deployments
-में हाल ही में जोड़े गए columns नहीं हो सकते), इसलिए किसी fixed statement
-को copy-paste करने की बजाय अपने live schema से statement generate करें।
-`WITH` clause में `src` और `dst` को ऊपर दी गई table के किसी एक table pair
-पर set करें, और चलाएं:
+> यदि नाम बदलने के बाद आप v10 पर वापस लौटते हैं (v10 स्टार्टअप पर पुराने नामों वाली खाली टेबलें फिर से बना देता है), तो v10 को दोबारा शुरू करने से पहले `_backup` टेबलों के नाम वापस मूल नामों पर कर दें — वरना रोलबैक के दौरान आई टेलीमेट्री दोबारा बनी टेबलों में जाएगी और बाद के अपग्रेड में हटा दी जाएगी।
+
+#### Step 1 — सोर्स पार्टिशन सूचीबद्ध करें
+
+हर पुरानी टेबल में अधिकतम 16 पार्टिशन होते हैं। हर सोर्स टेबल के लिए:
 
 ```sql
-WITH 'LogItemV2' AS src, 'LogItemV3' AS dst
+SELECT DISTINCT _partition_id FROM LogItemV2_backup ORDER BY _partition_id;
+```
+
+#### Step 2 — कॉपी स्टेटमेंट जनरेट करें
+
+कॉलम सेट इंस्टॉलेशन के बीच थोड़े भिन्न हो सकते हैं (पुराने deployment में हाल में जोड़े गए कॉलम नहीं हो सकते), इसलिए कोई बना-बनाया स्टेटमेंट चिपकाने के बजाय अपने लाइव स्कीमा से स्टेटमेंट जनरेट करें। `WITH` क्लॉज़ में `src` और `dst` को ऊपर दी गई तालिका के किसी टेबल-जोड़े पर सेट करें (सोर्स पर Step 0 का `_backup` प्रत्यय लगा है) और चलाएँ:
+
+```sql
+WITH 'LogItemV2_backup' AS src, 'LogItemV3' AS dst
 SELECT concat(
   'INSERT INTO ', dst, ' (`', arrayStringConcat(groupArray(name), '`, `'), '`)',
   ' SELECT ', arrayStringConcat(groupArray(selectExpr), ', '),
@@ -133,31 +110,19 @@ FROM (
 );
 ```
 
-Generate किया गया statement केवल वही columns copy करता है जो दोनों tables
-में साझा हैं (नए columns अपने defaults लेते हैं), `serviceId`/`serviceType`
-को on the fly rename करता है, rows को deterministic क्रम में रखता है ताकि
-retry करने पर समान, deduplicate होने योग्य blocks बनें, और execution-time
-तथा partition-count की वे सीमाएं हटाता है जिनकी इस आकार के statement को
-आवश्यकता होती है।
+जनरेट हुआ स्टेटमेंट केवल वही कॉलम कॉपी करता है जो दोनों टेबलों में साझा हैं (नए कॉलम अपने डिफ़ॉल्ट मान लेते हैं), `serviceId`/`serviceType` का नाम चलते-चलते बदलता है, पंक्तियों को निर्धारक रूप से क्रमबद्ध करता है ताकि दोबारा चलाने पर एक जैसे, deduplicate होने योग्य ब्लॉक बनें, और execution-time तथा partition-count की वे सीमाएँ हटाता है जो इतने बड़े स्टेटमेंट को चाहिए।
 
-#### Step 3 — इसे चलाएं, एक बार में एक partition
+#### Step 3 — चलाएँ, एक बार में एक पार्टिशन
 
-Generate किए गए statement में `{PARTITION}` (यह दो बार आता है — `WHERE`
-में और token में) को Step 1 के हर partition id से substitute करें।
-Statements को एक-एक करके चलाएं, फिर हर table pair के लिए Steps 1–3
-दोहराएं।
+जनरेट हुआ स्टेटमेंट लें और `{PARTITION}` (यह दो बार आता है — `WHERE` में और टोकन में) की जगह Step 1 की हर partition id रखें। स्टेटमेंट एक-एक करके चलाएँ, फिर हर टेबल-जोड़े के लिए Step 1–3 दोहराएँ।
 
-यदि कोई statement बीच में fail हो जाए, तो तुरंत **वही** statement फिर से
-चलाएं — पहले से commit हो चुके blocks deduplicate हो जाते हैं। यदि बहुत
-बाद में फिर से चला रहे हों, तो पहले row counts की तुलना करें (Step 5)।
+> नोट: यदि कोई सोर्स टेबल Step 0 में इसलिए छोड़ी गई क्योंकि वह आपके इंस्टॉलेशन में मौजूद नहीं थी, तो उस जोड़े के लिए Step 1 `UNKNOWN_TABLE` के साथ विफल होगा — बस उस जोड़े को छोड़ दें; उस प्रकार का कोई इतिहास कॉपी करने को नहीं है।
 
-#### Step 4 (वैकल्पिक) — per-host metric rollup history
+यदि कोई स्टेटमेंट बीच में विफल हो जाए, तो जल्द ही **वही** स्टेटमेंट फिर से चलाएँ — पहले से commit हुए ब्लॉक deduplicate हो जाते हैं। बहुत बाद में दोबारा चला रहे हों, तो पहले पंक्ति-गणना की तुलना करें (Step 5)।
 
-Copy की गई raw metric rows service-level rollups को अपने आप फिर से बना
-देती हैं, लेकिन **per-host** rollup को नहीं (पुरानी rows में host entity
-key नहीं होती)। Upgrade जानबूझकर पुरानी per-host rollup table को अपनी जगह
-छोड़ देता है ताकि आप hostname से नई key compute करते हुए उसे आगे ले जा
-सकें:
+#### Step 4 (वैकल्पिक) — प्रति-होस्ट मेट्रिक रोलअप इतिहास
+
+कॉपी की गई कच्ची मेट्रिक पंक्तियाँ सेवा-स्तर के रोलअप अपने आप फिर से बना देती हैं, लेकिन **प्रति-होस्ट** रोलअप नहीं (पुरानी पंक्तियों में host entity key नहीं होती)। Step 0 में नाम बदली गई पुरानी रोलअप टेबल ही इस इतिहास का एकमात्र स्रोत है; होस्टनेम से नई key निकालकर इसे आगे ले जाएँ:
 
 ```sql
 INSERT INTO MetricItemAggMV1mByHostV2 (projectId, name, hostEntityKey, bucketTime, valueSumState, valueCountState, valueMinState, valueMaxState, retentionDate)
@@ -171,42 +136,42 @@ SELECT
   valueMinState,
   valueMaxState,
   retentionDate
-FROM MetricItemAggMV1mByHost
+FROM MetricItemAggMV1mByHost_backup
+ORDER BY projectId, name, hostIdentifier, bucketTime, _id
 SETTINGS max_execution_time = 0, insert_deduplication_token = 'v3copy:MetricItemAggMV1mByHostV2:all';
 ```
 
+`ORDER BY` महत्वपूर्ण है: इससे दोबारा चलाने पर एक जैसे insert ब्लॉक बनते हैं जिन्हें deduplication टोकन पहचान सकता है। इसके बिना दोबारा चलाना चुपचाप छूट सकता है या दो बार गिना जा सकता है। (किनारे का मामला: `\`, `|` या `=` वाले होस्टनेम — जो वैध RFC-1123 होस्टनेम वर्ण नहीं हैं — एप्लिकेशन से अलग key निकालेंगे; जब तक आपको पता न हो कि ऐसे होस्ट हैं, इसे अनदेखा करें।)
+
 #### Step 5 — सत्यापित करें
 
-हर table pair के totals की तुलना करें (नई table में post-upgrade rows भी
-होती हैं, इसलिए वह पुरानी table से अधिक या उसके बराबर होनी चाहिए):
+हर टेबल-जोड़े के योग की तुलना करें (नई टेबल में अपग्रेड के बाद की पंक्तियाँ भी हैं, इसलिए वह पुरानी से बड़ी या बराबर होनी चाहिए):
 
 ```sql
 SELECT
-  (SELECT count() FROM LogItemV2) AS old_rows,
+  (SELECT count() FROM LogItemV2_backup) AS old_rows,
   (SELECT count() FROM LogItemV3) AS new_rows;
 ```
 
-#### Step 6 (वैकल्पिक) — disk जल्दी reclaim करें
+#### Step 6 — बैकअप हटाएँ
 
-पुरानी tables TTL के माध्यम से अपने आप खाली हो जाती हैं, लेकिन एक बार जब
-आप copy से संतुष्ट हो जाएं तो आप उन्हें तुरंत drop कर सकते हैं:
+नाम बदली गई टेबलें अपनी retention TTL बनाए रखती हैं, इसलिए वे अपने आप खाली होकर सिकुड़ती जाती हैं — लेकिन कॉपी से संतुष्ट होते ही उन्हें हटा दें ताकि डिस्क तुरंत खाली हो जाए:
 
 ```sql
-DROP TABLE IF EXISTS LogItemV2;
-DROP TABLE IF EXISTS MetricItemV2;
-DROP TABLE IF EXISTS SpanItemV2;
-DROP TABLE IF EXISTS ExceptionItemV2;
-DROP TABLE IF EXISTS ProfileItemV2;
-DROP TABLE IF EXISTS ProfileSampleItemV2;
-DROP TABLE IF EXISTS MonitorLogV2;
-DROP TABLE IF EXISTS AuditLogV1;
-DROP TABLE IF EXISTS MetricItemAggMV1mByHost;
+DROP TABLE IF EXISTS LogItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS MetricItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS SpanItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS ExceptionItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS ProfileItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS ProfileSampleItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS MonitorLogV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS AuditLogV1_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS MetricItemAggMV1mByHost_backup SETTINGS max_table_size_to_drop = 0;
 ```
 
-> सुझाव: हर major upgrade की तरह, पहले staging environment में test करें
-> और production में copy पर निर्भर होने से पहले confirm करें कि telemetry
-> नई tables में flow कर रही है।
+(`max_table_size_to_drop = 0` केवल उसी स्टेटमेंट के लिए सर्वर की 50 GB ड्रॉप-सुरक्षा हटाता है।)
 
+> सुझाव: हर मेजर अपग्रेड की तरह, पहले staging परिवेश में परीक्षण करें और प्रोडक्शन में कॉपी पर भरोसा करने से पहले पुष्टि करें कि टेलीमेट्री नई टेबलों में आ रही है।
 
 
 ## OneUptime 9 → 10 से Upgrade करना

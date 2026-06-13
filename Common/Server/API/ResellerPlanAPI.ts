@@ -77,6 +77,7 @@ export default class ResellerPlanAPI extends BaseAPI<
                 _id: true,
                 planId: true,
                 reseller: {
+                  _id: true,
                   resellerId: true,
                 },
                 teamMemberLimit: true,
@@ -96,6 +97,13 @@ export default class ResellerPlanAPI extends BaseAPI<
             throw new BadDataException(
               "This plan does not belong to reseller: " + resellerId,
             );
+          }
+
+          const resellerObjectId: ObjectID | undefined =
+            resellerPlan.reseller?.id || undefined;
+
+          if (!resellerObjectId) {
+            throw new BadDataException("Invalid reseller plan id.");
           }
 
           const licenseKey: string | undefined = req.body.uuid;
@@ -166,6 +174,12 @@ export default class ResellerPlanAPI extends BaseAPI<
             const project: Project | null = await ProjectService.findOneBy({
               query: {
                 resellerLicenseId: licenseKey,
+                /*
+                 * license keys are not globally unique — scope to the
+                 * authenticated reseller so one reseller cannot modify
+                 * another reseller's customer project.
+                 */
+                resellerId: resellerObjectId,
               },
               select: {
                 _id: true,
@@ -207,6 +221,8 @@ export default class ResellerPlanAPI extends BaseAPI<
             const project: Project | null = await ProjectService.findOneBy({
               query: {
                 resellerLicenseId: licenseKey,
+                // scope to the authenticated reseller — see enhance_tier.
+                resellerId: resellerObjectId,
               },
               select: {
                 _id: true,
@@ -226,6 +242,7 @@ export default class ResellerPlanAPI extends BaseAPI<
             await ProjectService.deleteOneBy({
               query: {
                 resellerLicenseId: licenseKey,
+                resellerId: resellerObjectId,
                 _id: project.id?.toString() as string,
               },
               props: {

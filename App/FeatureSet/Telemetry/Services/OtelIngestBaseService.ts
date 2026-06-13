@@ -54,6 +54,12 @@ export default abstract class OtelIngestBaseService {
    * we only re-run the maintenance work once per window. Race-safe is
    * not required — two workers re-running updateLastSeen at the same
    * instant is harmless; we just want to drop the steady-state cost.
+   *
+   * lastSeenAt staleness is bounded by this TTL, so every
+   * markDisconnected* threshold in the *Service classes must stay
+   * well above it (they use 15 minutes, 3x). A threshold at or near
+   * the TTL flaps healthy resources between connected and
+   * disconnected.
    */
   private static readonly MAINTENANCE_FENCE_NAMESPACE: string =
     "otel-maintenance-fence";

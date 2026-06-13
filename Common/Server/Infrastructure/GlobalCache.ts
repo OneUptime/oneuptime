@@ -164,9 +164,15 @@ export default abstract class GlobalCache {
       throw new DatabaseNotConnectedException("Cache is not connected");
     }
 
-    await client.set(`${namespace}-${key}`, value);
     const expiresInSeconds: number =
       options?.expiresInSeconds ?? OneUptimeDate.getSecondsInDays(30);
-    await client.expire(`${namespace}-${key}`, expiresInSeconds);
+
+    /*
+     * Atomic SET ... EX — a separate SET followed by EXPIRE can crash
+     * in between and leave the key with no TTL. For fence / throttle
+     * keys (e.g. otel-maintenance-fence) a TTL-less key never expires
+     * and permanently suppresses the work it gates.
+     */
+    await client.set(`${namespace}-${key}`, value, "EX", expiresInSeconds);
   }
 }

@@ -286,7 +286,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 ### Agenten visar "Disconnected"
 
-Ett klusters anslutningsstatus drivs uteslutande av telemetri som anländer — om ingen data landar markeras klustret som frånkopplat efter ~5 minuter. Så "disconnected" och "inga mått" har nästan alltid **samma** orsak: agentens telemetri accepteras inte.
+Ett klusters anslutningsstatus drivs uteslutande av telemetri som anländer — om ingen data landar markeras klustret som frånkopplat efter ~15 minuter. Så "disconnected" och "inga mått" har nästan alltid **samma** orsak: agentens telemetri accepteras inte.
 
 Den vanligaste anledningen — särskilt efter en ominstallation — är en **felaktig eller återkallad ingestnyckel**. Detta är lätt att missa eftersom OTLP-ingestslutpunkterna avsiktligt returnerar HTTP `200` även för en felaktig token (så att en felkonfigurerad insamlare inte kan översvämma servern med återförsök). Resultatet: insamlaren rapporterar framgång, dess loggar visar inga fel, och datan kastas tyst.
 

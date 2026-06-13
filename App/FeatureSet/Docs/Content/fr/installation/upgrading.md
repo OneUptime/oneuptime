@@ -10,16 +10,11 @@ Ce guide explique comment mettre à niveau en toute sécurité votre installatio
 
 ## Mise à niveau de OneUptime 10 → 11
 
-OneUptime 11 reconstruit le stockage de télémétrie ClickHouse. Cette page explique
-ce qui change, qui doit agir et — pour les installations qui souhaitent conserver
-leur historique de télémétrie — chaque requête nécessaire pour y parvenir.
+OneUptime 11 reconstruit le stockage de télémétrie ClickHouse. Cette page explique ce qui change, qui doit agir et — pour les installations qui souhaitent conserver la télémétrie historique — chaque requête nécessaire pour le faire.
 
 ### Ce qui change dans la v11
 
-La télémétrie (journaux, traces, métriques, exceptions, profils, journaux de
-moniteurs, journaux d'audit) est déplacée vers de nouvelles tables ClickHouse
-avec un partitionnement temporel, des codecs de compression par colonne et les
-nouvelles colonnes du modèle d'entités :
+La télémétrie (logs, traces, métriques, exceptions, profils, logs de monitors, logs d'audit) est déplacée vers de nouvelles tables ClickHouse avec un partitionnement temporel, des codecs de compression par colonne et les nouvelles colonnes du modèle d'entités :
 
 | Ancienne table        | Nouvelle table        |
 | --------------------- | --------------------- |
@@ -32,52 +27,23 @@ nouvelles colonnes du modèle d'entités :
 | `MonitorLogV2`        | `MonitorLogV3`        |
 | `AuditLogV1`          | `AuditLogV2`          |
 
-Deux colonnes sont renommées sur chaque table de télémétrie : `serviceId` →
-`primaryEntityId` et `serviceType` → `primaryEntityType`. Il s'agit d'un
-renommage strict — **si vous interrogez directement l'API d'analytique de
-OneUptime avec des filtres `serviceId`/`serviceType`, mettez-les à jour avec
-les nouveaux noms.** Les tableaux de bord, les moniteurs et les alertes au
-sein de OneUptime sont migrés automatiquement.
+Deux colonnes sont renommées dans chaque table de télémétrie : `serviceId` → `primaryEntityId` et `serviceType` → `primaryEntityType`. C'est un renommage strict — **si vous interrogez directement l'API analytics de OneUptime avec des filtres `serviceId`/`serviceType`, mettez-les à jour vers les nouveaux noms.** Les tableaux de bord, monitors et alertes au sein de OneUptime sont migrés automatiquement.
 
-La bascule est **uniquement vers l'avant** : les nouvelles tables démarrent
-vides, toute la télémétrie ingérée après la mise à niveau y atterrit
-immédiatement, et l'historique se reconstitue naturellement au fil du temps.
-Les anciennes tables sont **supprimées automatiquement** pendant la mise à
-niveau afin de récupérer leur espace disque — si vous voulez garder la
-possibilité de conserver l'historique, renommez-les **avant** la mise à
-niveau (étape 0 ci-dessous).
+La bascule est **uniquement vers l'avant** : les nouvelles tables démarrent vides, toute la télémétrie ingérée après la mise à niveau y atterrit immédiatement, et l'historique se reconstitue naturellement avec le temps. Les anciennes tables sont **supprimées automatiquement** pendant la mise à niveau afin de récupérer leur espace disque — si vous voulez garder la possibilité de reprendre l'historique, renommez-les **avant** la mise à niveau (étape 0 ci-dessous).
 
-> **Déjà en 11.0.0 ou 11.0.1 ?** Ces versions conservaient les anciennes
-> tables (elles se vidaient via le TTL, et la copie pouvait être exécutée
-> « à n'importe quel moment après la mise à niveau »). Toute mise à jour
-> ultérieure **les supprime au démarrage**. Si vous souhaitez encore copier
-> l'historique et ne l'avez pas encore fait, exécutez l'étape 0 ci-dessous
-> avant d'appliquer la mise à jour.
+> **Déjà en 11.0.0 ou 11.0.1 ?** Ces versions conservaient les anciennes tables (elles se vidaient via la TTL, et la copie pouvait être lancée « à tout moment après la mise à niveau »). Toute mise à jour ultérieure **les supprime au démarrage**. Si vous souhaitez encore effectuer la copie de l'historique et ne l'avez pas encore faite, exécutez l'étape 0 ci-dessous avant d'appliquer la mise à jour.
 
 ### Qui doit agir
 
 - **Nouvelles installations :** rien à faire.
-- **Mises à niveau qui n'ont pas besoin de la télémétrie antérieure à la mise
-  à niveau dans l'interface :** rien à faire. Les pages de télémétrie
-  affichent simplement les données à partir du moment de la mise à niveau ;
-  les anciennes tables sont supprimées pendant la mise à niveau.
-- **Mises à niveau qui souhaitent rendre visible la télémétrie antérieure à la
-  mise à niveau :** renommez les anciennes tables **avant** la mise à niveau
-  (étape 0 ci-dessous), puis exécutez la copie manuelle à n'importe quel
-  moment après celle-ci.
+- **Mises à niveau qui n'ont pas besoin de la télémétrie antérieure dans l'interface :** rien à faire. Les pages de télémétrie affichent simplement les données à partir du moment de la mise à niveau ; les anciennes tables sont supprimées pendant la mise à niveau.
+- **Mises à niveau qui veulent voir la télémétrie antérieure :** renommez les anciennes tables **avant** la mise à niveau (étape 0 ci-dessous), puis lancez la copie manuelle à tout moment après celle-ci.
 
-Comme toujours : mettez à niveau les versions majeures étape par étape
-(10 → 11, sans sauter de version) et effectuez des sauvegardes de Postgres et
-de ClickHouse avant la mise à niveau.
+Comme toujours : montez les versions majeures une par une (10 → 11, sans en sauter) et faites des sauvegardes de Postgres et de ClickHouse avant la mise à niveau.
 
-### Optionnel : conserver l'historique de télémétrie
+### Optionnel : reprendre l'historique de télémétrie
 
-L'étape 0 s'exécute **avant la mise à niveau** ; tout ce qui suit à partir de
-l'étape 1 s'exécute **après le démarrage complet de la mise à niveau** (les
-nouvelles tables et leurs vues matérialisées doivent exister). Connectez-vous
-directement sur votre hôte ClickHouse — le protocole natif n'a pas de délais
-d'expiration HTTP, donc des instructions de plusieurs heures ne posent aucun
-problème :
+L'étape 0 s'exécute **avant la mise à niveau** ; tout ce qui suit à partir de l'étape 1 s'exécute **après que la mise à niveau a complètement démarré** (les nouvelles tables et leurs vues matérialisées doivent exister). Connectez-vous directement sur votre hôte ClickHouse — le protocole natif n'a pas de timeouts HTTP, donc des requêtes de plusieurs heures ne posent pas de problème :
 
 ```bash
 clickhouse-client --database oneuptime
@@ -85,32 +51,14 @@ clickhouse-client --database oneuptime
 
 Bon à savoir avant de commencer :
 
-- La copie peut être exécutée en toute sécurité pendant que OneUptime est en
-  service. La nouvelle télémétrie s'écrit dans les nouvelles tables de manière
-  indépendante ; l'historique copié se remplit en arrière-plan.
-- Prévoyez plusieurs heures à grande échelle (centaines de Go).
-- Chaque instruction ci-dessous porte un `insert_deduplication_token`, et les
-  nouvelles tables sont livrées avec une fenêtre de déduplication — donc
-  **réexécuter une instruction qui a échoué en cours de route est sans
-  danger** (les blocs déjà insérés sont ignorés, y compris dans les agrégats
-  de métriques), à condition de la réexécuter assez rapidement. Sous une forte
-  ingestion en direct, la fenêtre (les 10 000 derniers blocs d'insertion par
-  table) finit par évincer les anciens jetons.
-- La copie des métriques reconstruit aussi automatiquement les agrégats
-  pré-calculés des tableaux de bord (chaque ligne copiée réalimente les vues
-  matérialisées d'agrégation) — cela rend la copie des métriques plus lente
-  que les autres ; exécutez-la en dernier.
+- La copie peut être lancée en toute sécurité pendant que OneUptime est en production. La nouvelle télémétrie s'écrit indépendamment dans les nouvelles tables ; l'historique copié se remplit derrière.
+- Comptez plusieurs heures à grande échelle (centaines de Go).
+- Chaque requête ci-dessous porte un `insert_deduplication_token`, et les nouvelles tables sont livrées avec une fenêtre de déduplication — **relancer une requête qui a échoué en cours de route est donc sûr** (les blocs déjà insérés sont ignorés, y compris dans les rollups de métriques), à condition de la relancer rapidement. Sous forte ingestion en continu, la fenêtre (les 10 000 derniers blocs d'insertion par table) finit par évincer les anciens tokens.
+- La copie des métriques reconstruit aussi automatiquement les rollups pré-agrégés des tableaux de bord (chaque ligne copiée réalimente les vues matérialisées de rollup) — la copie des métriques est donc plus lente que les autres ; lancez-la en dernier.
 
 #### Étape 0 — avant la mise à niveau, renommer les anciennes tables
 
-La mise à niveau supprime les anciennes tables au démarrage ; mettez donc
-d'abord hors de sa portée celles depuis lesquelles vous voulez copier.
-Arrêtez OneUptime (réduisez le déploiement à zéro) afin que rien n'y écrive
-ni ne puisse les recréer, puis renommez-les — `RENAME TABLE` est une
-opération de métadonnées instantanée, et `IF EXISTS` permet au lot d'ignorer
-les tables que votre installation n'a jamais eues (les déploiements
-antérieurs à la mi-10.0.x peuvent ne pas avoir `AuditLogV1` ou certaines
-tables `…V2` du tout — il n'y a alors pas d'historique de ce type à copier) :
+La mise à niveau supprime les anciennes tables au démarrage : mettez d'abord hors de sa portée celles depuis lesquelles vous voulez copier. Arrêtez OneUptime (réduisez le déploiement à zéro) pour que plus rien n'y écrive ni ne puisse les recréer, puis renommez — `RENAME TABLE` est une opération de métadonnées instantanée, et `IF EXISTS` permet au bloc d'ignorer les tables que votre installation n'a jamais eues (les déploiements antérieurs à la mi-10.0.x peuvent ne pas avoir `AuditLogV1` ou certaines tables `…V2` — il n'y a alors pas d'historique de ce type à copier) :
 
 ```sql
 RENAME TABLE IF EXISTS LogItemV2 TO LogItemV2_backup;
@@ -124,14 +72,9 @@ RENAME TABLE IF EXISTS AuditLogV1 TO AuditLogV1_backup;
 RENAME TABLE IF EXISTS MetricItemAggMV1mByHost TO MetricItemAggMV1mByHost_backup;
 ```
 
-Ensuite, mettez à niveau et laissez OneUptime démarrer complètement avant de
-continuer.
+Effectuez ensuite la mise à niveau et laissez OneUptime démarrer complètement avant de continuer.
 
-> Si vous revenez à la v10 après le renommage (la v10 recrée au démarrage des
-> tables vides portant les anciens noms), renommez les tables `_backup` vers
-> leurs noms d'origine avant de redémarrer la v10 — sinon la télémétrie
-> ingérée pendant le retour en arrière atterrit dans les tables recréées et
-> sera supprimée lors de la mise à niveau finale.
+> Si vous revenez à la v10 après le renommage (la v10 recrée au démarrage des tables vides avec les anciens noms), renommez les tables `_backup` vers leurs noms d'origine avant de redémarrer la v10 — sinon la télémétrie ingérée pendant le retour arrière atterrit dans les tables recréées et sera supprimée lors de la future mise à niveau.
 
 #### Étape 1 — lister les partitions sources
 
@@ -141,17 +84,12 @@ Chaque ancienne table compte au plus 16 partitions. Pour chaque table source :
 SELECT DISTINCT _partition_id FROM LogItemV2_backup ORDER BY _partition_id;
 ```
 
-#### Étape 2 — générer l'instruction de copie
+#### Étape 2 — générer la requête de copie
 
-Les jeux de colonnes peuvent différer légèrement d'une installation à l'autre
-(les déploiements plus anciens peuvent ne pas avoir les colonnes ajoutées
-récemment) ; générez donc l'instruction à partir de votre schéma réel plutôt
-que de copier-coller une instruction figée. Définissez `src` et `dst` dans la
-clause `WITH` avec l'une des paires de tables du tableau ci-dessus, puis
-exécutez :
+Les jeux de colonnes peuvent légèrement différer entre installations (les déploiements plus anciens peuvent ne pas avoir les colonnes ajoutées récemment) : générez donc la requête depuis votre schéma réel plutôt que de copier-coller une requête figée. Renseignez `src` et `dst` dans la clause `WITH` avec l'une des paires de tables du tableau ci-dessus (la source porte le suffixe `_backup` de l'étape 0), puis exécutez :
 
 ```sql
-WITH 'LogItemV2' AS src, 'LogItemV3' AS dst
+WITH 'LogItemV2_backup' AS src, 'LogItemV3' AS dst
 SELECT concat(
   'INSERT INTO ', dst, ' (`', arrayStringConcat(groupArray(name), '`, `'), '`)',
   ' SELECT ', arrayStringConcat(groupArray(selectExpr), ', '),
@@ -172,32 +110,19 @@ FROM (
 );
 ```
 
-L'instruction générée copie uniquement les colonnes communes aux deux tables
-(les nouvelles colonnes prennent leurs valeurs par défaut), renomme
-`serviceId`/`serviceType` à la volée, ordonne les lignes de manière
-déterministe afin qu'une nouvelle tentative produise des blocs identiques et
-dédupliquables, et lève les limites de temps d'exécution et de nombre de
-partitions qu'une instruction de cette taille nécessite.
+La requête générée ne copie que les colonnes communes aux deux tables (les nouvelles colonnes prennent leurs valeurs par défaut), renomme `serviceId`/`serviceType` à la volée, ordonne les lignes de manière déterministe pour qu'une relance produise des blocs identiques et dédupliquables, et lève les limites de temps d'exécution et de nombre de partitions dont une requête de cette taille a besoin.
 
 #### Étape 3 — exécuter, une partition à la fois
 
-Prenez l'instruction générée et remplacez `{PARTITION}` (il apparaît deux
-fois — dans le `WHERE` et dans le jeton) par chaque identifiant de partition
-de l'étape 1. Exécutez les instructions une par une, puis répétez les
-étapes 1 à 3 pour chaque paire de tables.
+Prenez la requête générée et remplacez `{PARTITION}` (présent deux fois — dans le `WHERE` et dans le token) par chaque identifiant de partition de l'étape 1. Exécutez les requêtes une par une, puis répétez les étapes 1 à 3 pour chaque paire de tables.
 
-Si une instruction échoue en cours de route, réexécutez rapidement la
-**même** instruction — les blocs déjà validés sont dédupliqués. Si la
-réexécution intervient beaucoup plus tard, comparez d'abord les nombres de
-lignes (étape 5).
+> Remarque : si une table source a été ignorée à l'étape 0 parce qu'elle n'existait pas sur votre installation, l'étape 1 échoue avec `UNKNOWN_TABLE` pour cette paire — ignorez simplement la paire ; il n'y a pas d'historique de ce type à copier.
 
-#### Étape 4 (optionnelle) — historique des agrégats de métriques par hôte
+Si une requête échoue en cours de route, relancez rapidement **la même** requête — les blocs déjà validés sont dédupliqués. Si la relance intervient bien plus tard, comparez d'abord les nombres de lignes (étape 5).
 
-Les lignes brutes de métriques copiées reconstruisent automatiquement les
-agrégats au niveau service, mais pas l'agrégat **par hôte** (les anciennes
-lignes n'ont pas de clé d'entité hôte). La mise à niveau laisse
-volontairement l'ancienne table d'agrégats par hôte en place afin que vous
-puissiez la reprendre, en calculant la nouvelle clé à partir du nom d'hôte :
+#### Étape 4 (optionnelle) — historique du rollup de métriques par hôte
+
+Les lignes de métriques brutes copiées reconstruisent automatiquement les rollups au niveau service, mais pas le rollup **par hôte** (les anciennes lignes n'ont pas de clé d'entité hôte). L'ancienne table de rollup renommée à l'étape 0 est la seule source pour cet historique ; reprenez-le en calculant la nouvelle clé à partir du nom d'hôte :
 
 ```sql
 INSERT INTO MetricItemAggMV1mByHostV2 (projectId, name, hostEntityKey, bucketTime, valueSumState, valueCountState, valueMinState, valueMaxState, retentionDate)
@@ -211,43 +136,42 @@ SELECT
   valueMinState,
   valueMaxState,
   retentionDate
-FROM MetricItemAggMV1mByHost
+FROM MetricItemAggMV1mByHost_backup
+ORDER BY projectId, name, hostIdentifier, bucketTime, _id
 SETTINGS max_execution_time = 0, insert_deduplication_token = 'v3copy:MetricItemAggMV1mByHostV2:all';
 ```
 
+Le `ORDER BY` est important : il fait qu'une relance produit des blocs d'insertion identiques que le token de déduplication peut reconnaître. Sans lui, une relance pourrait être silencieusement ignorée ou comptée deux fois. (Cas limite : des noms d'hôte contenant `\`, `|` ou `=` — caractères non autorisés par la RFC 1123 — calculeraient une clé différente de celle de l'application ; ignorez ce point sauf si vous savez que vous avez de tels hôtes.)
+
 #### Étape 5 — vérifier
 
-Comparez les totaux pour chaque paire de tables (la nouvelle table contient
-aussi les lignes postérieures à la mise à niveau, elle doit donc être
-supérieure ou égale à l'ancienne) :
+Comparez les totaux par paire de tables (la nouvelle table contient aussi les lignes postérieures à la mise à niveau, elle doit donc être supérieure ou égale à l'ancienne) :
 
 ```sql
 SELECT
-  (SELECT count() FROM LogItemV2) AS old_rows,
+  (SELECT count() FROM LogItemV2_backup) AS old_rows,
   (SELECT count() FROM LogItemV3) AS new_rows;
 ```
 
-#### Étape 6 (optionnelle) — récupérer l'espace disque plus tôt
+#### Étape 6 — supprimer les sauvegardes
 
-Les anciennes tables se vident d'elles-mêmes via le TTL, mais une fois que
-vous êtes satisfait de la copie, vous pouvez les supprimer immédiatement :
+Les tables renommées conservent leur TTL de rétention : elles se vident et rétrécissent donc d'elles-mêmes — mais une fois satisfait de la copie, supprimez-les pour récupérer l'espace disque immédiatement :
 
 ```sql
-DROP TABLE IF EXISTS LogItemV2;
-DROP TABLE IF EXISTS MetricItemV2;
-DROP TABLE IF EXISTS SpanItemV2;
-DROP TABLE IF EXISTS ExceptionItemV2;
-DROP TABLE IF EXISTS ProfileItemV2;
-DROP TABLE IF EXISTS ProfileSampleItemV2;
-DROP TABLE IF EXISTS MonitorLogV2;
-DROP TABLE IF EXISTS AuditLogV1;
-DROP TABLE IF EXISTS MetricItemAggMV1mByHost;
+DROP TABLE IF EXISTS LogItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS MetricItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS SpanItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS ExceptionItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS ProfileItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS ProfileSampleItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS MonitorLogV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS AuditLogV1_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS MetricItemAggMV1mByHost_backup SETTINGS max_table_size_to_drop = 0;
 ```
 
-> Conseil : comme pour toute mise à niveau majeure, testez d'abord dans un
-> environnement de staging et confirmez que la télémétrie arrive bien dans
-> les nouvelles tables avant de vous fier à la copie en production.
+(`max_table_size_to_drop = 0` lève la protection de suppression de 50 Go du serveur pour cette seule requête.)
 
+> Astuce : comme pour toute mise à niveau majeure, testez d'abord dans un environnement de staging et confirmez que la télémétrie arrive bien dans les nouvelles tables avant de vous appuyer sur la copie en production.
 
 
 ## Mise à niveau de OneUptime 9 → 10
