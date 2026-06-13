@@ -13,19 +13,26 @@ import ObjectID from "Common/Types/ObjectID";
  *
  * Runs every 5 minutes. Two steps:
  *   1. Mark clusters as disconnected if they have not been seen for
- *      5 minutes (ProxmoxClusterService.markDisconnectedClusters —
- *      this cron is its only scheduled caller). Net SLA: ingest bumps
- *      lastSeenAt at most ~5 minutes behind real traffic (Redis
- *      maintenance fence) + the 5-minute disconnect threshold inside
- *      markDisconnectedClusters ⇒ the list-page status pill flips to
- *      Disconnected ≤ ~10 minutes after the agent dies.
+ *      15 minutes (ProxmoxClusterService.markDisconnectedClusters —
+ *      this cron is its only scheduled caller). The threshold is 3x
+ *      the ingest maintenance fence TTL: lastSeenAt is legitimately up
+ *      to ~5 minutes stale during continuous telemetry (Redis fence),
+ *      so a threshold equal to the fence flaps healthy clusters
+ *      between connected and disconnected. Net SLA: the list-page
+ *      status pill flips to Disconnected ≤ ~20 minutes after the agent
+ *      dies.
  *   2. For each CONNECTED cluster, hard-delete ProxmoxResource
  *      inventory rows whose last snapshot is older than the stale
  *      threshold. Threshold and delete both live in
  *      ProxmoxResourceService (getStaleThresholdDate /
  *      deleteStaleForCluster — default 15 minutes = 3x the snapshot
  *      interval; override with PVE_INVENTORY_STALE_MINUTES, minimum
- *      5) so this cron carries no duplicate policy.
+ *      5) so this cron carries no duplicate policy. The cutoff is
+ *      anchored to each cluster's own lastSeenAt rather than wall-clock
+ *      now: inventory rows ride the slower snapshot clock, so with the
+ *      disconnect and prune thresholds both at 15 minutes a wall-clock
+ *      cutoff could wipe the last-known inventory of a still-connected
+ *      cluster late in an outage. Anchoring freezes the prune clock.
  *
  * Skipping disconnected clusters is deliberate: during a transient
  * agent outage we want to preserve the last-known inventory rather
@@ -62,6 +69,7 @@ RunCron(
           },
           select: {
             _id: true,
+            lastSeenAt: true,
           },
           skip: 0,
           limit: LIMIT_MAX,
@@ -72,13 +80,16 @@ RunCron(
         return;
       }
 
-      const cutoff: Date = ProxmoxResourceService.getStaleThresholdDate();
-
       let totalDeleted: number = 0;
       for (const cluster of connectedClusters) {
         if (!cluster._id) {
           continue;
         }
+
+        // Anchor the cutoff to this cluster's lastSeenAt (see header).
+        const cutoff: Date = ProxmoxResourceService.getStaleThresholdDate(
+          cluster.lastSeenAt || undefined,
+        );
 
         try {
           totalDeleted += await ProxmoxResourceService.deleteStaleForCluster({
@@ -94,7 +105,7 @@ RunCron(
 
       if (totalDeleted > 0) {
         logger.debug(
-          `Proxmox:CleanupStaleResources: pruned ${totalDeleted} stale ProxmoxResource row(s) across ${connectedClusters.length} cluster(s) (cutoff ${cutoff.toISOString()})`,
+          `Proxmox:CleanupStaleResources: pruned ${totalDeleted} stale ProxmoxResource row(s) across ${connectedClusters.length} cluster(s)`,
         );
       }
     } catch (err) {
