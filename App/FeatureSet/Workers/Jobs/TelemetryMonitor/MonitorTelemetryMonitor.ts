@@ -74,6 +74,9 @@ import MonitorStepKubernetesMonitor, {
 import MonitorStepDockerMonitor, {
   DockerContainerFilters,
 } from "Common/Types/Monitor/MonitorStepDockerMonitor";
+import MonitorStepPodmanMonitor, {
+  PodmanContainerFilters,
+} from "Common/Types/Monitor/MonitorStepPodmanMonitor";
 import MonitorStepProxmoxMonitor, {
   ProxmoxResourceFilters,
   ProxmoxResourceScope,
@@ -125,6 +128,7 @@ RunCron(
           MonitorType.Profiles,
           MonitorType.Kubernetes,
           MonitorType.Docker,
+          MonitorType.Podman,
           MonitorType.DockerSwarm,
           MonitorType.Proxmox,
           MonitorType.Ceph,
@@ -753,6 +757,14 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
 
   if (monitorType === MonitorType.Docker) {
     return monitorDocker({
+      monitorStep,
+      monitorId,
+      projectId,
+    });
+  }
+
+  if (monitorType === MonitorType.Podman) {
+    return monitorPodman({
       monitorStep,
       monitorId,
       projectId,
@@ -1585,6 +1597,186 @@ const monitorDocker: MonitorDockerFunction = async (data: {
   return {
     projectId: data.projectId,
     metricViewConfig: dockerMonitorConfig.metricViewConfig,
+    startAndEndDate: startAndEndDate,
+    metricResult: resultsWithFormulas,
+    seriesBreakdown: seriesBreakdown,
+    monitorId: data.monitorId,
+  };
+};
+
+type MonitorPodmanFunction = (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}) => Promise<MetricMonitorResponse>;
+
+const monitorPodman: MonitorPodmanFunction = async (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}): Promise<MetricMonitorResponse> => {
+  const podmanMonitorConfig: MonitorStepPodmanMonitor | undefined =
+    data.monitorStep.data?.podmanMonitor;
+
+  if (!podmanMonitorConfig) {
+    throw new BadDataException("Podman monitor config is missing");
+  }
+
+  const startAndEndDate: InBetween<Date> =
+    RollingTimeUtil.convertToStartAndEndDate(
+      podmanMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    );
+
+  const finalResult: Array<AggregatedResult> = [];
+
+  const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
+    podmanMonitorConfig.metricViewConfig.queryConfigs,
+  );
+
+  for (const queryConfig of podmanMonitorConfig.metricViewConfig.queryConfigs) {
+    const metricName: string =
+      (queryConfig.metricQueryData.filterData.metricName as string) || "";
+
+    const query: Query<Metric> = {
+      projectId: data.projectId,
+      time: startAndEndDate,
+      name: metricName,
+    };
+
+    // Start with any user-defined attribute filters
+    const attributes: Dictionary<string> = {};
+
+    if (
+      queryConfig.metricQueryData &&
+      queryConfig.metricQueryData.filterData &&
+      queryConfig.metricQueryData.filterData.attributes &&
+      Object.keys(queryConfig.metricQueryData.filterData.attributes).length > 0
+    ) {
+      Object.assign(
+        attributes,
+        queryConfig.metricQueryData.filterData.attributes,
+      );
+    }
+
+    // Add Podman-specific attribute filters
+    if (podmanMonitorConfig.hostIdentifier) {
+      attributes["resource.host.name"] = podmanMonitorConfig.hostIdentifier;
+    }
+
+    // Always filter by Podman runtime
+    attributes["resource.container.runtime"] = "podman";
+
+    if (podmanMonitorConfig.containerFilters) {
+      const containerFilters: PodmanContainerFilters =
+        podmanMonitorConfig.containerFilters;
+
+      if (containerFilters.containerName) {
+        attributes["resource.container.name"] = containerFilters.containerName;
+      }
+
+      if (containerFilters.containerImage) {
+        attributes["resource.container.image.name"] =
+          containerFilters.containerImage;
+      }
+    }
+
+    if (Object.keys(attributes).length > 0) {
+      query.attributes = attributes;
+    }
+
+    const aggregationType: MetricsAggregationType =
+      (queryConfig.metricQueryData.filterData
+        .aggegationType as MetricsAggregationType) ||
+      MetricsAggregationType.Avg;
+
+    let aggregatedResults: AggregatedResult;
+
+    if (groupByAttributeKeys.length > 0) {
+      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
+        query: query,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      aggregatedResults = aggregatePerSeriesFromRawMetrics({
+        rawMetrics: rawMetricsForAgg,
+        attributeKeys: groupByAttributeKeys,
+        aggregationType,
+      });
+    } else {
+      aggregatedResults = await MetricService.aggregateBy({
+        query: query,
+        aggregationType,
+        aggregateColumnName: "value",
+        aggregationTimestampColumnName: "time",
+        startTimestamp:
+          (startAndEndDate?.startValue as Date) ||
+          OneUptimeDate.getCurrentDate(),
+        endTimestamp:
+          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        groupBy: queryConfig.metricQueryData.groupBy,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    logger.debug("Podman monitor aggregated results", {
+      service: "workers",
+      projectId: data.projectId.toString(),
+    });
+
+    finalResult.push(aggregatedResults);
+  }
+
+  const nativeUnitsByMetricName: Map<string, string> =
+    await loadNativeUnitsByMetricName({
+      queryConfigs: podmanMonitorConfig.metricViewConfig.queryConfigs,
+      projectId: data.projectId,
+    });
+
+  const resultsInDisplayUnit: Array<AggregatedResult> =
+    MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
+      queryConfigs: podmanMonitorConfig.metricViewConfig.queryConfigs,
+      results: finalResult,
+      nativeUnitByMetricName: nativeUnitsByMetricName,
+    });
+
+  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
+    queryConfigs: podmanMonitorConfig.metricViewConfig.queryConfigs,
+    formulaConfigs: podmanMonitorConfig.metricViewConfig.formulaConfigs || [],
+    aggregatedResults: resultsInDisplayUnit,
+    projectId: data.projectId,
+  });
+
+  const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+    groupByAttributeKeys.length > 0
+      ? buildSeriesBreakdown({
+          queryConfigs: podmanMonitorConfig.metricViewConfig.queryConfigs,
+          formulaConfigs:
+            podmanMonitorConfig.metricViewConfig.formulaConfigs || [],
+          perQueryResults: resultsInDisplayUnit,
+          attributeKeys: groupByAttributeKeys,
+          projectId: data.projectId,
+        })
+      : undefined;
+
+  return {
+    projectId: data.projectId,
+    metricViewConfig: podmanMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
     metricResult: resultsWithFormulas,
     seriesBreakdown: seriesBreakdown,

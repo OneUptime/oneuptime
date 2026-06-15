@@ -53,6 +53,7 @@ export default class TemplateVariablesCatalog {
       input.monitorType === MonitorType.Metrics ||
       input.monitorType === MonitorType.Kubernetes ||
       input.monitorType === MonitorType.Docker ||
+      input.monitorType === MonitorType.Podman ||
       input.monitorType === MonitorType.DockerSwarm ||
       input.monitorType === MonitorType.Proxmox ||
       input.monitorType === MonitorType.Ceph
@@ -488,6 +489,7 @@ export default class TemplateVariablesCatalog {
       case MonitorType.Metrics:
       case MonitorType.Kubernetes:
       case MonitorType.Docker:
+      case MonitorType.Podman:
       case MonitorType.DockerSwarm:
       case MonitorType.Proxmox:
       case MonitorType.Ceph:

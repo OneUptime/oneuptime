@@ -8,6 +8,7 @@ enum MonitorType {
   Ping = "Ping",
   Kubernetes = "Kubernetes",
   Docker = "Docker",
+  Podman = "Podman",
   DockerSwarm = "Docker Swarm",
   Proxmox = "Proxmox",
   Ceph = "Ceph",
@@ -103,6 +104,10 @@ export class MonitorTypeHelper {
         monitorTypes: [MonitorType.Docker],
       },
       {
+        label: "Podman",
+        monitorTypes: [MonitorType.Podman],
+      },
+      {
         label: "Docker Swarm",
         monitorTypes: [MonitorType.DockerSwarm],
       },
@@ -147,6 +152,7 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.Profiles ||
       monitorType === MonitorType.Kubernetes ||
       monitorType === MonitorType.Docker ||
+      monitorType === MonitorType.Podman ||
       monitorType === MonitorType.DockerSwarm ||
       monitorType === MonitorType.Proxmox ||
       monitorType === MonitorType.Ceph
@@ -199,6 +205,13 @@ export class MonitorTypeHelper {
         title: "Docker Container",
         description:
           "This monitor type lets you monitor Docker containers — CPU, memory, network, restarts, and lifecycle events.",
+        icon: IconProp.Cube,
+      },
+      {
+        monitorType: MonitorType.Podman,
+        title: "Podman Container",
+        description:
+          "This monitor type lets you monitor Podman containers — CPU, memory, network, restarts, and lifecycle events.",
         icon: IconProp.Cube,
       },
       {
@@ -424,6 +437,7 @@ export class MonitorTypeHelper {
       MonitorType.ExternalStatusPage,
       MonitorType.Kubernetes,
       MonitorType.Docker,
+      MonitorType.Podman,
       MonitorType.DockerSwarm,
       MonitorType.Proxmox,
       MonitorType.Ceph,

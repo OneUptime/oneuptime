@@ -68,6 +68,7 @@ import MetricCriteriaContext, {
   MetricComponentValue,
 } from "../../../Types/Monitor/MetricMonitor/MetricCriteriaContext";
 import MonitorStepDockerMonitor from "../../../Types/Monitor/MonitorStepDockerMonitor";
+import MonitorStepPodmanMonitor from "../../../Types/Monitor/MonitorStepPodmanMonitor";
 import MonitorStepProxmoxMonitor from "../../../Types/Monitor/MonitorStepProxmoxMonitor";
 import MonitorStepCephMonitor from "../../../Types/Monitor/MonitorStepCephMonitor";
 import MonitorStepDockerSwarmMonitor from "../../../Types/Monitor/MonitorStepDockerSwarmMonitor";
@@ -240,6 +241,7 @@ ${contextBlock}
       input.monitor.monitorType !== MonitorType.Metrics &&
       input.monitor.monitorType !== MonitorType.Kubernetes &&
       input.monitor.monitorType !== MonitorType.Docker &&
+      input.monitor.monitorType !== MonitorType.Podman &&
       input.monitor.monitorType !== MonitorType.DockerSwarm &&
       input.monitor.monitorType !== MonitorType.Proxmox &&
       input.monitor.monitorType !== MonitorType.Ceph
@@ -689,6 +691,7 @@ ${contextBlock}
       input.monitor.monitorType === MonitorType.Metrics ||
       input.monitor.monitorType === MonitorType.Kubernetes ||
       input.monitor.monitorType === MonitorType.Docker ||
+      input.monitor.monitorType === MonitorType.Podman ||
       input.monitor.monitorType === MonitorType.DockerSwarm ||
       input.monitor.monitorType === MonitorType.Proxmox ||
       input.monitor.monitorType === MonitorType.Ceph
@@ -822,6 +825,11 @@ ${contextBlock}
     // Handle Docker monitors with resource context
     if (input.monitor.monitorType === MonitorType.Docker) {
       return MonitorCriteriaEvaluator.buildDockerRootCauseContext(input);
+    }
+
+    // Handle Podman monitors with resource context
+    if (input.monitor.monitorType === MonitorType.Podman) {
+      return MonitorCriteriaEvaluator.buildPodmanRootCauseContext(input);
     }
 
     // Handle Proxmox monitors with resource context
@@ -1581,6 +1589,71 @@ ${contextBlock}
       }
 
       sections.push(`**Docker Host Details**\n${hostDetails.join("\n")}`);
+    }
+
+    // Metric results summary
+    if (metricResponse.metricResult && metricResponse.metricResult.length > 0) {
+      const resultDetails: Array<string> = [];
+
+      for (const result of metricResponse.metricResult) {
+        if (result.data && result.data.length > 0) {
+          resultDetails.push(
+            `- ${result.data.length} metric data point(s) returned`,
+          );
+        }
+      }
+
+      if (resultDetails.length > 0) {
+        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
+      }
+    }
+
+    return sections.length > 0 ? sections.join("\n") : null;
+  }
+
+  private static buildPodmanRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+  }): string | null {
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    const sections: Array<string> = [];
+
+    // Podman host context
+    const podmanMonitor: MonitorStepPodmanMonitor | undefined =
+      input.monitorStep.data?.podmanMonitor;
+
+    if (podmanMonitor) {
+      const hostDetails: Array<string> = [];
+      hostDetails.push(`- Host: ${podmanMonitor.hostIdentifier || "Unknown"}`);
+
+      if (podmanMonitor.containerFilters?.containerName) {
+        hostDetails.push(
+          `- Container Name Filter: ${podmanMonitor.containerFilters.containerName}`,
+        );
+      }
+
+      if (podmanMonitor.containerFilters?.containerImage) {
+        hostDetails.push(
+          `- Container Image Filter: ${podmanMonitor.containerFilters.containerImage}`,
+        );
+      }
+
+      // Add metric name from the query config
+      if (
+        podmanMonitor.metricViewConfig?.queryConfigs?.length > 0 &&
+        podmanMonitor.metricViewConfig.queryConfigs[0]
+      ) {
+        const metricName: string = podmanMonitor.metricViewConfig
+          .queryConfigs[0].metricQueryData?.filterData?.metricName as string;
+        if (metricName) {
+          hostDetails.push(`- Metric: \`${metricName}\``);
+        }
+      }
+
+      sections.push(`**Podman Host Details**\n${hostDetails.join("\n")}`);
     }
 
     // Metric results summary
