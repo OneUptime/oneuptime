@@ -368,10 +368,7 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass {
         }
       }
 
-      if (
-        inheritFromPodmanHosts &&
-        scheduledMaintenance.podmanHosts?.length
-      ) {
+      if (inheritFromPodmanHosts && scheduledMaintenance.podmanHosts?.length) {
         const podmanHostIds: Array<ObjectID> = scheduledMaintenance.podmanHosts
           .map((p: PodmanHost) => {
             return p.id;

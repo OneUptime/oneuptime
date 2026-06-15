@@ -16,8 +16,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class AttachPodmanToIncidentAlertScheduledMaintenance1781800000001
   implements MigrationInterface
 {
-  public name =
-    "AttachPodmanToIncidentAlertScheduledMaintenance1781800000001";
+  public name = "AttachPodmanToIncidentAlertScheduledMaintenance1781800000001";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // IncidentPodmanHost
