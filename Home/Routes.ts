@@ -1251,6 +1251,17 @@ const HomeFeatureSet: FeatureSet = {
       });
     });
 
+    app.get("/product/podman", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/product/podman",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/podman`, {
+        enableGoogleTagManager: IsBillingEnabled,
+        seo,
+      });
+    });
+
     app.get("/product/host", (_req: ExpressRequest, res: ExpressResponse) => {
       const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
         "/product/host",

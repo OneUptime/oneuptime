@@ -234,6 +234,17 @@
                             </div>
                           </a>
 
+                          <!-- Podman - Blue -->
+                          <a href="/product/podman" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-blue-50">
+                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200 group-hover:bg-blue-100 group-hover:ring-blue-300">
+                              <%- include('./Partials/icons/podman', {iconClass: 'h-4 w-4'}) %>
+                            </div>
+                            <div>
+                              <p class="text-sm font-medium text-gray-900">Podman</p>
+                              <p class="text-xs text-gray-500">Host & container observability</p>
+                            </div>
+                          </a>
+
                           <!-- Hosts - Slate -->
                           <a href="/product/host" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-slate-50">
                             <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-slate-50 ring-1 ring-slate-200 group-hover:bg-slate-100 group-hover:ring-slate-300">
@@ -964,6 +975,14 @@
                 <%- include('./Partials/icons/docker', {iconClass: 'h-4 w-4'}) %>
               </div>
               <span class="text-sm font-medium text-gray-900">Docker</span>
+            </a>
+
+            <!-- Podman - Blue -->
+            <a href="/product/podman" class="flex items-center gap-3 rounded-xl p-3 hover:bg-blue-50 ring-1 ring-transparent hover:ring-blue-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200">
+                <%- include('./Partials/icons/podman', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Podman</span>
             </a>
 
             <!-- Hosts - Slate -->

@@ -473,6 +473,41 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/product/podman": {
+    title:
+      "Podman Observability | Monitor Hosts, Containers & Images | OneUptime",
+    description:
+      "Complete Podman observability with real-time host monitoring, container health tracking, image insights, and automated alerting. Daemonless and rootless-capable. OpenTelemetry native. Open source.",
+    canonicalPath: "/product/podman",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Podman", url: "/product/podman" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Podman Observability",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Monitor Podman hosts, containers, and images with real-time metrics, intelligent alerting, and pre-built dashboards. Daemonless and rootless-capable via Podman's Docker-compatible API socket.",
+      features: [
+        "Multi-host fleet monitoring",
+        "Container health and metrics",
+        "Image and volume insights",
+        "OOM kill detection",
+        "Restart loop alerting",
+        "CPU and memory tracking",
+        "Network and block I/O metrics",
+        "OpenTelemetry native",
+        "Podman Compose deployment",
+        "docker_stats receiver",
+        "Container logs correlation",
+      ],
+    },
+  },
+
   "/product/host": {
     title: "Host Observability | Server Metrics, Processes & Logs | OneUptime",
     description:
