@@ -276,6 +276,27 @@ const WIDGET_CATALOG: ReadonlyArray<CatalogCategory> = [
     ],
   },
   {
+    name: "Docker Swarm",
+    description:
+      "Live inventory from any connected Docker Swarm cluster — populated by the OneUptime Docker Swarm Agent.",
+    items: [
+      {
+        type: DashboardComponentType.DockerSwarmNodeList,
+        label: "Nodes",
+        icon: IconProp.ServerStack,
+        description:
+          "Swarm nodes with manager/worker role, ready state, and CPU/memory.",
+      },
+      {
+        type: DashboardComponentType.DockerSwarmServiceList,
+        label: "Services",
+        icon: IconProp.Cube,
+        description:
+          "Replicated and global services with replicas, image, and converge state.",
+      },
+    ],
+  },
+  {
     name: "Ceph",
     description:
       "Live inventory from any connected Ceph cluster — populated by the OneUptime Ceph Agent.",

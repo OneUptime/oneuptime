@@ -31,6 +31,8 @@ import DashboardPodmanNetworkListComponentUtil from "./DashboardPodmanNetworkLis
 import DashboardPodmanVolumeListComponentUtil from "./DashboardPodmanVolumeListComponent";
 import DashboardProxmoxGuestListComponentUtil from "./DashboardProxmoxGuestListComponent";
 import DashboardProxmoxNodeListComponentUtil from "./DashboardProxmoxNodeListComponent";
+import DashboardDockerSwarmNodeListComponentUtil from "./DashboardDockerSwarmNodeListComponent";
+import DashboardDockerSwarmServiceListComponentUtil from "./DashboardDockerSwarmServiceListComponent";
 import DashboardTableComponentUtil from "./DashboardTableComponent";
 import DashboardTextComponentUtil from "./DashboardTextComponent";
 import DashboardTraceChartComponentUtil from "./DashboardTraceChartComponent";
@@ -240,6 +242,20 @@ export default class DashboardComponentsUtil {
 
     if (dashboardComponentType === DashboardComponentType.ProxmoxGuestList) {
       return DashboardProxmoxGuestListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.DockerSwarmNodeList) {
+      return DashboardDockerSwarmNodeListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (
+      dashboardComponentType === DashboardComponentType.DockerSwarmServiceList
+    ) {
+      return DashboardDockerSwarmServiceListComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }

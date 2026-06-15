@@ -49,6 +49,7 @@ import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import PodmanResource from "../../Models/DatabaseModels/PodmanResource";
 import ProxmoxResource from "../../Models/DatabaseModels/ProxmoxResource";
 import CephResource from "../../Models/DatabaseModels/CephResource";
+import DockerSwarmResource from "../../Models/DatabaseModels/DockerSwarmResource";
 import Span from "../../Models/AnalyticsModels/Span";
 import Log from "../../Models/AnalyticsModels/Log";
 import IncidentService from "../Services/IncidentService";
@@ -62,6 +63,7 @@ import PodmanHostService from "../Services/PodmanHostService";
 import PodmanResourceService from "../Services/PodmanResourceService";
 import ProxmoxResourceService from "../Services/ProxmoxResourceService";
 import CephResourceService from "../Services/CephResourceService";
+import DockerSwarmResourceService from "../Services/DockerSwarmResourceService";
 import SpanService from "../Services/SpanService";
 import LogService from "../Services/LogService";
 
@@ -320,6 +322,28 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
       lastSeenAt: true,
       cephClusterId: true,
       cephCluster: { name: true },
+    },
+  },
+  "docker-swarm-resource": {
+    modelType: DockerSwarmResource,
+    service: DockerSwarmResourceService,
+    select: {
+      _id: true,
+      name: true,
+      externalId: true,
+      kind: true,
+      role: true,
+      state: true,
+      serviceMode: true,
+      desiredReplicas: true,
+      runningReplicas: true,
+      image: true,
+      isReady: true,
+      latestCpuPercent: true,
+      latestMemoryPercent: true,
+      lastSeenAt: true,
+      dockerSwarmClusterId: true,
+      dockerSwarmCluster: { name: true },
     },
   },
   span: {

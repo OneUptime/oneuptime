@@ -33,6 +33,7 @@ export enum EntityFilterModelType {
   PodmanHost = "PodmanHost",
   ProxmoxCluster = "ProxmoxCluster",
   CephCluster = "CephCluster",
+  DockerSwarmCluster = "DockerSwarmCluster",
 }
 
 export interface ComponentArgumentSection {

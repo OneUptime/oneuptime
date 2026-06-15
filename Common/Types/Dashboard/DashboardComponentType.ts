@@ -31,6 +31,8 @@ enum DashboardComponentType {
   HostList = `HostList`,
   ProxmoxNodeList = `ProxmoxNodeList`,
   ProxmoxGuestList = `ProxmoxGuestList`,
+  DockerSwarmNodeList = `DockerSwarmNodeList`,
+  DockerSwarmServiceList = `DockerSwarmServiceList`,
   CephOsdList = `CephOsdList`,
   CephPoolList = `CephPoolList`,
 }

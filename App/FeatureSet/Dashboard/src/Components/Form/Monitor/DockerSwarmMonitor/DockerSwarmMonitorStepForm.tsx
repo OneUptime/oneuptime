@@ -195,8 +195,7 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
         metricName: metric.metricName,
         metricAlias: metric.id.replace(/-/g, "_"),
         rollingTime:
-          monitorStepDockerSwarmMonitor.rollingTime ||
-          RollingTime.Past5Minutes,
+          monitorStepDockerSwarmMonitor.rollingTime || RollingTime.Past5Minutes,
         aggregationType: metric.defaultAggregation,
         /*
          * Group by container.name so each Swarm task is evaluated
@@ -221,8 +220,7 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
           options={clusterOptions}
           value={clusterOptions.find((option: DropdownOption) => {
             return (
-              option.value ===
-              monitorStepDockerSwarmMonitor.clusterIdentifier
+              option.value === monitorStepDockerSwarmMonitor.clusterIdentifier
             );
           })}
           onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
@@ -250,9 +248,7 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
         <div className="mt-3">
           <FieldLabelElement
             title="Service Name"
-            description={
-              "Filter to a single Swarm service's tasks (optional)."
-            }
+            description={"Filter to a single Swarm service's tasks (optional)."}
             required={false}
           />
           <Input
@@ -281,9 +277,7 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
             required={false}
           />
           <Input
-            value={
-              monitorStepDockerSwarmMonitor.resourceFilters.nodeName || ""
-            }
+            value={monitorStepDockerSwarmMonitor.resourceFilters.nodeName || ""}
             onChange={(value: string) => {
               props.onChange({
                 ...monitorStepDockerSwarmMonitor,

@@ -37,6 +37,8 @@ import DashboardPodmanVolumeListComponentType from "Common/Types/Dashboard/Dashb
 import DashboardHostListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardHostListComponent";
 import DashboardProxmoxNodeListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardProxmoxNodeListComponent";
 import DashboardProxmoxGuestListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardProxmoxGuestListComponent";
+import DashboardDockerSwarmNodeListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerSwarmNodeListComponent";
+import DashboardDockerSwarmServiceListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerSwarmServiceListComponent";
 import DashboardCephOsdListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardCephOsdListComponent";
 import DashboardCephPoolListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardCephPoolListComponent";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
@@ -72,6 +74,8 @@ import DashboardPodmanVolumeListComponent from "./DashboardPodmanVolumeListCompo
 import DashboardHostListComponent from "./DashboardHostListComponent";
 import DashboardProxmoxNodeListComponent from "./DashboardProxmoxNodeListComponent";
 import DashboardProxmoxGuestListComponent from "./DashboardProxmoxGuestListComponent";
+import DashboardDockerSwarmNodeListComponent from "./DashboardDockerSwarmNodeListComponent";
+import DashboardDockerSwarmServiceListComponent from "./DashboardDockerSwarmServiceListComponent";
 import DashboardCephOsdListComponent from "./DashboardCephOsdListComponent";
 import DashboardCephPoolListComponent from "./DashboardCephPoolListComponent";
 import DefaultDashboardSize, {
@@ -902,6 +906,26 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
             isEditMode={props.isEditMode}
             isSelected={props.isSelected}
             component={component as DashboardProxmoxGuestListComponentType}
+          />
+        )}
+        {component.componentType ===
+          DashboardComponentType.DockerSwarmNodeList && (
+          <DashboardDockerSwarmNodeListComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardDockerSwarmNodeListComponentType}
+          />
+        )}
+        {component.componentType ===
+          DashboardComponentType.DockerSwarmServiceList && (
+          <DashboardDockerSwarmServiceListComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={
+              component as DashboardDockerSwarmServiceListComponentType
+            }
           />
         )}
         {component.componentType === DashboardComponentType.CephOsdList && (

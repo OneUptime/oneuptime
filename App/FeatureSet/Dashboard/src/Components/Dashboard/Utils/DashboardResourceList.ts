@@ -28,6 +28,7 @@ export type DashboardResourceType =
   | "podman-volume"
   | "proxmox-resource"
   | "ceph-resource"
+  | "docker-swarm-resource"
   | "span"
   | "log";
 

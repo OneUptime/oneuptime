@@ -28,6 +28,7 @@ export enum DashboardTemplateType {
   Host = "Host",
   Proxmox = "Proxmox",
   Ceph = "Ceph",
+  DockerSwarm = "DockerSwarm",
   Metrics = "Metrics",
 }
 
@@ -86,6 +87,13 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
     description:
       "OSD wall and pool capacity lists, health and capacity stats, degraded-PG trends, client throughput, and cluster logs.",
     icon: IconProp.Database,
+  },
+  {
+    type: DashboardTemplateType.DockerSwarm,
+    name: "Docker Swarm Dashboard",
+    description:
+      "Live node and service inventories with role/status, container CPU and memory trends, PID counts, and cluster logs.",
+    icon: IconProp.Cube,
   },
   {
     type: DashboardTemplateType.Metrics,
@@ -518,6 +526,64 @@ function createProxmoxGuestListComponent(data: {
       title: data.title,
       maxRows: data.maxRows ?? 20,
       guestTypeFilter: data.guestTypeFilter,
+      statusFilter: data.statusFilter,
+    },
+  };
+}
+
+function createDockerSwarmNodeListComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+  roleFilter?: string;
+  statusFilter?: string;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.DockerSwarmNodeList,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 4,
+    arguments: {
+      title: data.title,
+      maxRows: data.maxRows ?? 20,
+      roleFilter: data.roleFilter,
+      statusFilter: data.statusFilter,
+    },
+  };
+}
+
+function createDockerSwarmServiceListComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+  serviceModeFilter?: string;
+  statusFilter?: string;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.DockerSwarmServiceList,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 4,
+    arguments: {
+      title: data.title,
+      maxRows: data.maxRows ?? 20,
+      serviceModeFilter: data.serviceModeFilter,
       statusFilter: data.statusFilter,
     },
   };
@@ -2056,6 +2122,132 @@ function createProxmoxDashboardConfig(): DashboardViewConfig {
   };
 }
 
+function createDockerSwarmDashboardConfig(): DashboardViewConfig {
+  /*
+   * Layout notes:
+   *
+   * - Node / service counts come from the Postgres inventory list widgets
+   *   (DockerSwarmResource), never from Sum-of-gauge Value widgets — the
+   *   same multiply-by-scrapes failure the Kubernetes/Proxmox templates
+   *   document. The list-widget headers show the true current counts.
+   *
+   * - The only metrics that actually arrive are the docker_stats
+   *   receiver's per-container metrics (container.cpu.utilization,
+   *   container.memory.usage.total, container.pids.count, …). There are
+   *   NO docker_swarm_* / pve_* metrics, so the charts average those
+   *   per-container metrics across every task that reports them — a
+   *   useful temperature signal for a wall dashboard. container.cpu
+   *   .utilization is a ratio (0..1 per core); the chart leaves it raw.
+   *
+   * - The cluster variable scopes telemetry by the only resource
+   *   attribute the agent stamps: resource.docker.swarm.cluster.name.
+   */
+  const components: Array<DashboardBaseComponent> = [
+    // Row 0: Title
+    createTextComponent({
+      text: "Docker Swarm Dashboard",
+      top: 0,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Rows 1-4: Live inventory from the Postgres snapshot
+    createDockerSwarmNodeListComponent({
+      title: "Nodes",
+      top: 1,
+      left: 0,
+      width: 6,
+      height: 4,
+      maxRows: 25,
+    }),
+    createDockerSwarmServiceListComponent({
+      title: "Services",
+      top: 1,
+      left: 6,
+      width: 6,
+      height: 4,
+      maxRows: 25,
+    }),
+
+    // Row 5: Section header
+    createTextComponent({
+      text: "Container Resource Usage",
+      top: 5,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Rows 6-8: CPU and memory trends (docker_stats per-container metrics)
+    createChartComponent({
+      title: "CPU Utilization (avg across containers)",
+      chartType: DashboardChartType.Line,
+      top: 6,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "container.cpu.utilization",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "CPU utilization",
+      },
+    }),
+    createChartComponent({
+      title: "Memory Usage (avg across containers)",
+      chartType: DashboardChartType.Area,
+      top: 6,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "container.memory.usage.total",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Memory used",
+      },
+    }),
+
+    // Rows 9-11: PID counts + logs
+    createChartComponent({
+      title: "Process Count (sum across containers)",
+      chartType: DashboardChartType.Line,
+      top: 9,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "container.pids.count",
+        aggregationType: MetricsAggregationType.Sum,
+        legend: "PIDs",
+      },
+    }),
+    createLogStreamComponent({
+      title: "Cluster Logs",
+      top: 9,
+      left: 6,
+      width: 6,
+      height: 3,
+    }),
+  ];
+
+  const variables: Array<DashboardVariable> = [
+    createTelemetryAttributeVariable({
+      name: "cluster",
+      label: "Cluster",
+      attributeKey: "resource.docker.swarm.cluster.name",
+    }),
+  ];
+
+  return {
+    _type: ObjectType.DashboardViewConfig,
+    components,
+    variables,
+    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 12),
+  };
+}
+
 function createCephDashboardConfig(): DashboardViewConfig {
   /*
    * Layout notes:
@@ -2243,6 +2435,8 @@ export function getTemplateConfig(
       return createProxmoxDashboardConfig();
     case DashboardTemplateType.Ceph:
       return createCephDashboardConfig();
+    case DashboardTemplateType.DockerSwarm:
+      return createDockerSwarmDashboardConfig();
     case DashboardTemplateType.Metrics:
       return createMetricsDashboardConfig();
     case DashboardTemplateType.Blank:

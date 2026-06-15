@@ -49,6 +49,8 @@ import DashboardPodmanVolumeListComponentUtil from "Common/Utils/Dashboard/Compo
 import DashboardHostListComponentUtil from "Common/Utils/Dashboard/Components/DashboardHostListComponent";
 import DashboardProxmoxNodeListComponentUtil from "Common/Utils/Dashboard/Components/DashboardProxmoxNodeListComponent";
 import DashboardProxmoxGuestListComponentUtil from "Common/Utils/Dashboard/Components/DashboardProxmoxGuestListComponent";
+import DashboardDockerSwarmNodeListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerSwarmNodeListComponent";
+import DashboardDockerSwarmServiceListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerSwarmServiceListComponent";
 import DashboardCephOsdListComponentUtil from "Common/Utils/Dashboard/Components/DashboardCephOsdListComponent";
 import DashboardCephPoolListComponentUtil from "Common/Utils/Dashboard/Components/DashboardCephPoolListComponent";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -679,6 +681,16 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           if (componentType === DashboardComponentType.ProxmoxGuestList) {
             newComponent =
               DashboardProxmoxGuestListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.DockerSwarmNodeList) {
+            newComponent =
+              DashboardDockerSwarmNodeListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.DockerSwarmServiceList) {
+            newComponent =
+              DashboardDockerSwarmServiceListComponentUtil.getDefaultComponent();
           }
 
           if (componentType === DashboardComponentType.CephOsdList) {
