@@ -789,5 +789,5 @@ export default [
   AddPodmanHostTables1781800000000,
   AttachPodmanToIncidentAlertScheduledMaintenance1781800000001,
   AddDockerSwarmTables1781900000000,
-  MigrationName1781545058502
+  MigrationName1781545058502,
 ];
