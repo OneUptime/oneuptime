@@ -81,6 +81,10 @@ import ProxmoxMonitorStepForm from "./ProxmoxMonitor/ProxmoxMonitorStepForm";
 import MonitorStepProxmoxMonitor, {
   MonitorStepProxmoxMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepProxmoxMonitor";
+import DockerSwarmMonitorStepForm from "./DockerSwarmMonitor/DockerSwarmMonitorStepForm";
+import MonitorStepDockerSwarmMonitor, {
+  MonitorStepDockerSwarmMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepDockerSwarmMonitor";
 import CephMonitorStepForm from "./CephMonitor/CephMonitorStepForm";
 import MonitorStepCephMonitor, {
   MonitorStepCephMonitorUtil,
@@ -1282,6 +1286,33 @@ return {
             }
             onChange={(value: MonitorStepProxmoxMonitor) => {
               monitorStep.setProxmoxMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onMonitorCriteriaChange={(criteria: MonitorCriteria) => {
+              monitorStep.setMonitorCriteria(criteria);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onlineMonitorStatusId={props.onlineMonitorStatusId}
+            offlineMonitorStatusId={props.offlineMonitorStatusId}
+            defaultIncidentSeverityId={props.defaultIncidentSeverityId}
+            defaultAlertSeverityId={props.defaultAlertSeverityId}
+            monitorName={props.monitorName}
+          />
+        </Card>
+      )}
+
+      {props.monitorType === MonitorType.DockerSwarm && (
+        <Card
+          title="Docker Swarm Monitor Configuration"
+          description="Configure your Docker Swarm cluster monitoring using templates, curated metrics, or the advanced query builder."
+        >
+          <DockerSwarmMonitorStepForm
+            monitorStepDockerSwarmMonitor={
+              monitorStep.data?.dockerSwarmMonitor ||
+              MonitorStepDockerSwarmMonitorUtil.getDefault()
+            }
+            onChange={(value: MonitorStepDockerSwarmMonitor) => {
+              monitorStep.setDockerSwarmMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
             onMonitorCriteriaChange={(criteria: MonitorCriteria) => {

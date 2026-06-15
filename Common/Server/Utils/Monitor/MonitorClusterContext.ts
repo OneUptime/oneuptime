@@ -1,9 +1,11 @@
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
+import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import CephClusterService from "../../Services/CephClusterService";
+import DockerSwarmClusterService from "../../Services/DockerSwarmClusterService";
 import ProxmoxClusterService from "../../Services/ProxmoxClusterService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
@@ -23,6 +25,7 @@ import logger from "../Logger";
 export interface MonitorClusterContext {
   proxmoxClusterIds: Array<string>;
   cephClusterIds: Array<string>;
+  dockerSwarmClusterIds: Array<string>;
 }
 
 export default class MonitorClusterContextUtil {
@@ -42,13 +45,15 @@ export default class MonitorClusterContextUtil {
     const context: MonitorClusterContext = {
       proxmoxClusterIds: [],
       cephClusterIds: [],
+      dockerSwarmClusterIds: [],
     };
 
     const monitorType: MonitorType | undefined = input.monitor.monitorType;
 
     if (
       monitorType !== MonitorType.Proxmox &&
-      monitorType !== MonitorType.Ceph
+      monitorType !== MonitorType.Ceph &&
+      monitorType !== MonitorType.DockerSwarm
     ) {
       return context;
     }
@@ -63,10 +68,16 @@ export default class MonitorClusterContextUtil {
     const clusterIdentifiers: Set<string> = new Set<string>();
 
     for (const monitorStep of monitorSteps) {
-      const clusterIdentifier: string | undefined =
-        monitorType === MonitorType.Proxmox
-          ? monitorStep.data?.proxmoxMonitor?.clusterIdentifier
-          : monitorStep.data?.cephMonitor?.clusterIdentifier;
+      let clusterIdentifier: string | undefined = undefined;
+
+      if (monitorType === MonitorType.Proxmox) {
+        clusterIdentifier = monitorStep.data?.proxmoxMonitor?.clusterIdentifier;
+      } else if (monitorType === MonitorType.Ceph) {
+        clusterIdentifier = monitorStep.data?.cephMonitor?.clusterIdentifier;
+      } else if (monitorType === MonitorType.DockerSwarm) {
+        clusterIdentifier =
+          monitorStep.data?.dockerSwarmMonitor?.clusterIdentifier;
+      }
 
       if (clusterIdentifier && clusterIdentifier.trim().length > 0) {
         clusterIdentifiers.add(clusterIdentifier.trim());
@@ -98,7 +109,7 @@ export default class MonitorClusterContextUtil {
           if (proxmoxCluster?._id) {
             context.proxmoxClusterIds.push(String(proxmoxCluster._id));
           }
-        } else {
+        } else if (monitorType === MonitorType.Ceph) {
           const cephCluster: CephCluster | null =
             await CephClusterService.findOneBy({
               query: {
@@ -115,6 +126,24 @@ export default class MonitorClusterContextUtil {
 
           if (cephCluster?._id) {
             context.cephClusterIds.push(String(cephCluster._id));
+          }
+        } else {
+          const dockerSwarmCluster: DockerSwarmCluster | null =
+            await DockerSwarmClusterService.findOneBy({
+              query: {
+                projectId: input.monitor.projectId,
+                name: QueryHelper.findWithSameText(clusterIdentifier),
+              },
+              select: {
+                _id: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (dockerSwarmCluster?._id) {
+            context.dockerSwarmClusterIds.push(String(dockerSwarmCluster._id));
           }
         }
       } catch (err) {

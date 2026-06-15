@@ -33,6 +33,8 @@ import MetricMonitorResponse, {
   ProxmoxAffectedResource,
   CephResourceBreakdown,
   CephAffectedResource,
+  DockerSwarmResourceBreakdown,
+  DockerSwarmAffectedResource,
 } from "Common/Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import MonitorStepMetricMonitor, {
   MonitorStepMetricMonitorUtil,
@@ -79,6 +81,9 @@ import MonitorStepProxmoxMonitor, {
 import MonitorStepCephMonitor, {
   CephResourceFilters,
 } from "Common/Types/Monitor/MonitorStepCephMonitor";
+import MonitorStepDockerSwarmMonitor, {
+  DockerSwarmResourceFilters,
+} from "Common/Types/Monitor/MonitorStepDockerSwarmMonitor";
 import {
   getKubernetesMetricByMetricName,
   KubernetesMetricDefinition,
@@ -91,6 +96,10 @@ import {
   getCephMetricByMetricName,
   CephMetricDefinition,
 } from "Common/Types/Monitor/CephMetricCatalog";
+import {
+  getDockerSwarmMetricByMetricName,
+  DockerSwarmMetricDefinition,
+} from "Common/Types/Monitor/DockerSwarmMetricCatalog";
 import { JSONObject } from "Common/Types/JSON";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
@@ -116,6 +125,7 @@ RunCron(
           MonitorType.Profiles,
           MonitorType.Kubernetes,
           MonitorType.Docker,
+          MonitorType.DockerSwarm,
           MonitorType.Proxmox,
           MonitorType.Ceph,
         ]),
@@ -751,6 +761,14 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
 
   if (monitorType === MonitorType.Proxmox) {
     return monitorProxmox({
+      monitorStep,
+      monitorId,
+      projectId,
+    });
+  }
+
+  if (monitorType === MonitorType.DockerSwarm) {
+    return monitorDockerSwarm({
       monitorStep,
       monitorId,
       projectId,
@@ -1863,6 +1881,300 @@ const monitorProxmox: MonitorProxmoxFunction = async (data: {
     startAndEndDate: startAndEndDate,
     metricResult: resultsWithFormulas,
     proxmoxResourceBreakdown: proxmoxResourceBreakdown,
+    seriesBreakdown: seriesBreakdown,
+    monitorId: data.monitorId,
+  };
+};
+
+type MonitorDockerSwarmFunction = (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}) => Promise<MetricMonitorResponse>;
+
+const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}): Promise<MetricMonitorResponse> => {
+  const dockerSwarmMonitorConfig: MonitorStepDockerSwarmMonitor | undefined =
+    data.monitorStep.data?.dockerSwarmMonitor;
+
+  if (!dockerSwarmMonitorConfig) {
+    throw new BadDataException("Docker Swarm monitor config is missing");
+  }
+
+  const startAndEndDate: InBetween<Date> =
+    RollingTimeUtil.convertToStartAndEndDate(
+      dockerSwarmMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    );
+
+  const finalResult: Array<AggregatedResult> = [];
+  let dockerSwarmResourceBreakdown: DockerSwarmResourceBreakdown | undefined =
+    undefined;
+
+  const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
+    dockerSwarmMonitorConfig.metricViewConfig.queryConfigs,
+  );
+
+  for (const queryConfig of dockerSwarmMonitorConfig.metricViewConfig
+    .queryConfigs) {
+    const metricName: string =
+      (queryConfig.metricQueryData.filterData.metricName as string) || "";
+
+    const query: Query<Metric> = {
+      projectId: data.projectId,
+      time: startAndEndDate,
+      name: metricName,
+    };
+
+    // Start with any user-defined attribute filters
+    const attributes: Dictionary<string> = {};
+
+    if (
+      queryConfig.metricQueryData &&
+      queryConfig.metricQueryData.filterData &&
+      queryConfig.metricQueryData.filterData.attributes &&
+      Object.keys(queryConfig.metricQueryData.filterData.attributes).length > 0
+    ) {
+      Object.assign(
+        attributes,
+        queryConfig.metricQueryData.filterData.attributes,
+      );
+    }
+
+    /*
+     * Always scope to the cluster via the `docker.swarm.cluster.name`
+     * RESOURCE attribute the OneUptime Docker Swarm Agent stamps on every
+     * batch (stored `resource.`-prefixed in ClickHouse). This is the ONLY
+     * resource attribute the agent stamps — there is intentionally no
+     * `container.runtime` filter here (the Docker Swarm agent does not
+     * stamp it; adding one would match zero rows).
+     */
+    if (dockerSwarmMonitorConfig.clusterIdentifier) {
+      attributes["resource.docker.swarm.cluster.name"] =
+        dockerSwarmMonitorConfig.clusterIdentifier;
+    }
+
+    /*
+     * Docker Swarm resource filters. The docker_stats receiver keeps
+     * container identity in datapoint labels (stored unprefixed):
+     * `container.name` (a Swarm task's container is
+     * `<service>.<slot>.<taskid>`) and `container.image.name`. The
+     * node/service hints map to the `docker.swarm.node.name` /
+     * `docker.swarm.service.name` datapoint attributes when the agent
+     * stamps them.
+     */
+    if (dockerSwarmMonitorConfig.resourceFilters) {
+      const resourceFilters: DockerSwarmResourceFilters =
+        dockerSwarmMonitorConfig.resourceFilters;
+
+      if (resourceFilters.containerName) {
+        attributes["container.name"] = resourceFilters.containerName;
+      }
+
+      if (resourceFilters.containerImage) {
+        attributes["container.image.name"] = resourceFilters.containerImage;
+      }
+
+      if (resourceFilters.nodeName) {
+        attributes["docker.swarm.node.name"] = resourceFilters.nodeName;
+      }
+
+      if (resourceFilters.serviceName) {
+        attributes["docker.swarm.service.name"] = resourceFilters.serviceName;
+      }
+    }
+
+    if (Object.keys(attributes).length > 0) {
+      query.attributes = attributes;
+    }
+
+    const aggregationType: MetricsAggregationType =
+      (queryConfig.metricQueryData.filterData
+        .aggegationType as MetricsAggregationType) ||
+      MetricsAggregationType.Avg;
+
+    let aggregatedResults: AggregatedResult;
+
+    if (groupByAttributeKeys.length > 0) {
+      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
+        query: query,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      aggregatedResults = aggregatePerSeriesFromRawMetrics({
+        rawMetrics: rawMetricsForAgg,
+        attributeKeys: groupByAttributeKeys,
+        aggregationType,
+      });
+    } else {
+      aggregatedResults = await MetricService.aggregateBy({
+        query: query,
+        aggregationType,
+        aggregateColumnName: "value",
+        aggregationTimestampColumnName: "time",
+        startTimestamp:
+          (startAndEndDate?.startValue as Date) ||
+          OneUptimeDate.getCurrentDate(),
+        endTimestamp:
+          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        groupBy: queryConfig.metricQueryData.groupBy,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    logger.debug("Docker Swarm monitor aggregated results", {
+      service: "workers",
+      projectId: data.projectId.toString(),
+    });
+
+    finalResult.push(aggregatedResults);
+
+    // Fetch raw metrics to extract per-resource Docker Swarm context
+    try {
+      const rawMetrics: Array<Metric> = await MetricService.findBy({
+        query: query,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: 100,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (rawMetrics.length > 0) {
+        const affectedResourcesMap: Map<string, DockerSwarmAffectedResource> =
+          new Map();
+
+        for (const metric of rawMetrics) {
+          const metricAttrs: JSONObject =
+            (metric.attributes as JSONObject) || {};
+          const containerName: string | undefined = metricAttrs[
+            "container.name"
+          ] as string | undefined;
+          const containerImage: string | undefined = metricAttrs[
+            "container.image.name"
+          ] as string | undefined;
+          const nodeName: string | undefined = metricAttrs[
+            "docker.swarm.node.name"
+          ] as string | undefined;
+          const serviceName: string | undefined = metricAttrs[
+            "docker.swarm.service.name"
+          ] as string | undefined;
+
+          // Build unique key for deduplication
+          const resourceKey: string = [
+            containerName || "",
+            containerImage || "",
+            nodeName || "",
+            serviceName || "",
+          ].join("|");
+
+          const metricValue: number =
+            typeof metric.value === "number"
+              ? metric.value
+              : Number(metric.value) || 0;
+
+          // Keep the highest value per resource
+          const existing: DockerSwarmAffectedResource | undefined =
+            affectedResourcesMap.get(resourceKey);
+          if (!existing || metricValue > existing.metricValue) {
+            affectedResourcesMap.set(resourceKey, {
+              containerName: containerName || undefined,
+              containerImage: containerImage || undefined,
+              nodeName: nodeName || undefined,
+              serviceName: serviceName || undefined,
+              metricValue: metricValue,
+            });
+          }
+        }
+
+        const metricDef: DockerSwarmMetricDefinition | undefined =
+          getDockerSwarmMetricByMetricName(metricName);
+
+        dockerSwarmResourceBreakdown = {
+          clusterName: dockerSwarmMonitorConfig.clusterIdentifier,
+          metricName: metricName,
+          metricFriendlyName: metricDef?.friendlyName || metricName,
+          affectedResources: Array.from(affectedResourcesMap.values()),
+          attributes: attributes,
+        };
+      }
+    } catch (err) {
+      logger.error("Failed to fetch Docker Swarm resource breakdown", {
+        service: "workers",
+        projectId: data.projectId.toString(),
+      });
+      logger.error(err, {
+        service: "workers",
+        projectId: data.projectId.toString(),
+      });
+    }
+  }
+
+  const nativeUnitsByMetricName: Map<string, string> =
+    await loadNativeUnitsByMetricName({
+      queryConfigs: dockerSwarmMonitorConfig.metricViewConfig.queryConfigs,
+      projectId: data.projectId,
+    });
+
+  const resultsInDisplayUnit: Array<AggregatedResult> =
+    MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
+      queryConfigs: dockerSwarmMonitorConfig.metricViewConfig.queryConfigs,
+      results: finalResult,
+      nativeUnitByMetricName: nativeUnitsByMetricName,
+    });
+
+  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
+    queryConfigs: dockerSwarmMonitorConfig.metricViewConfig.queryConfigs,
+    formulaConfigs:
+      dockerSwarmMonitorConfig.metricViewConfig.formulaConfigs || [],
+    aggregatedResults: resultsInDisplayUnit,
+    projectId: data.projectId,
+  });
+
+  const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+    groupByAttributeKeys.length > 0
+      ? buildSeriesBreakdown({
+          queryConfigs: dockerSwarmMonitorConfig.metricViewConfig.queryConfigs,
+          formulaConfigs:
+            dockerSwarmMonitorConfig.metricViewConfig.formulaConfigs || [],
+          perQueryResults: resultsInDisplayUnit,
+          attributeKeys: groupByAttributeKeys,
+          projectId: data.projectId,
+        })
+      : undefined;
+
+  return {
+    projectId: data.projectId,
+    metricViewConfig: dockerSwarmMonitorConfig.metricViewConfig,
+    startAndEndDate: startAndEndDate,
+    metricResult: resultsWithFormulas,
+    dockerSwarmResourceBreakdown: dockerSwarmResourceBreakdown,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
   };

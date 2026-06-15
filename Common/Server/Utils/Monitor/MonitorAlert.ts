@@ -2,6 +2,7 @@ import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import AlertStateTimeline from "../../../Models/DatabaseModels/AlertStateTimeline";
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
+import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
 import Host from "../../../Models/DatabaseModels/Host";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -415,6 +416,15 @@ export default class MonitorAlert {
           alert.cephClusters = clusterContext.cephClusterIds.map(
             (id: string): CephCluster => {
               const cluster: CephCluster = new CephCluster();
+              cluster._id = id;
+              return cluster;
+            },
+          );
+        }
+        if (clusterContext.dockerSwarmClusterIds.length > 0) {
+          alert.dockerSwarmClusters = clusterContext.dockerSwarmClusterIds.map(
+            (id: string): DockerSwarmCluster => {
+              const cluster: DockerSwarmCluster = new DockerSwarmCluster();
               cluster._id = id;
               return cluster;
             },

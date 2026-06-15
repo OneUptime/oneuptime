@@ -53,6 +53,9 @@ import MonitorStepDockerMonitor, {
 import MonitorStepProxmoxMonitor, {
   MonitorStepProxmoxMonitorUtil,
 } from "./MonitorStepProxmoxMonitor";
+import MonitorStepDockerSwarmMonitor, {
+  MonitorStepDockerSwarmMonitorUtil,
+} from "./MonitorStepDockerSwarmMonitor";
 import MonitorStepCephMonitor, {
   MonitorStepCephMonitorUtil,
 } from "./MonitorStepCephMonitor";
@@ -179,6 +182,9 @@ export interface MonitorStepType {
   // Proxmox monitor
   proxmoxMonitor?: MonitorStepProxmoxMonitor | undefined;
 
+  // Docker Swarm monitor
+  dockerSwarmMonitor?: MonitorStepDockerSwarmMonitor | undefined;
+
   // Ceph monitor
   cephMonitor?: MonitorStepCephMonitor | undefined;
 }
@@ -221,6 +227,7 @@ export default class MonitorStep extends DatabaseProperty {
       kubernetesMonitor: undefined,
       dockerMonitor: undefined,
       proxmoxMonitor: undefined,
+      dockerSwarmMonitor: undefined,
       cephMonitor: undefined,
     };
   }
@@ -267,6 +274,7 @@ export default class MonitorStep extends DatabaseProperty {
       kubernetesMonitor: undefined,
       dockerMonitor: undefined,
       proxmoxMonitor: undefined,
+      dockerSwarmMonitor: undefined,
       cephMonitor: undefined,
     };
 
@@ -464,6 +472,13 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
+  public setDockerSwarmMonitor(
+    dockerSwarmMonitor: MonitorStepDockerSwarmMonitor,
+  ): MonitorStep {
+    this.data!.dockerSwarmMonitor = dockerSwarmMonitor;
+    return this;
+  }
+
   public setCephMonitor(cephMonitor: MonitorStepCephMonitor): MonitorStep {
     this.data!.cephMonitor = cephMonitor;
     return this;
@@ -506,6 +521,7 @@ export default class MonitorStep extends DatabaseProperty {
         kubernetesMonitor: undefined,
         dockerMonitor: undefined,
         proxmoxMonitor: undefined,
+        dockerSwarmMonitor: undefined,
         cephMonitor: undefined,
       },
     };
@@ -683,6 +699,16 @@ export default class MonitorStep extends DatabaseProperty {
       }
     }
 
+    if (monitorType === MonitorType.DockerSwarm) {
+      if (!value.data.dockerSwarmMonitor) {
+        return "Docker Swarm monitor configuration is required";
+      }
+
+      if (!value.data.dockerSwarmMonitor.clusterIdentifier) {
+        return "Docker Swarm cluster is required";
+      }
+    }
+
     if (monitorType === MonitorType.Ceph) {
       if (!value.data.cephMonitor) {
         return "Ceph monitor configuration is required";
@@ -778,6 +804,11 @@ export default class MonitorStep extends DatabaseProperty {
             : undefined,
           proxmoxMonitor: this.data.proxmoxMonitor
             ? MonitorStepProxmoxMonitorUtil.toJSON(this.data.proxmoxMonitor)
+            : undefined,
+          dockerSwarmMonitor: this.data.dockerSwarmMonitor
+            ? MonitorStepDockerSwarmMonitorUtil.toJSON(
+                this.data.dockerSwarmMonitor,
+              )
             : undefined,
           cephMonitor: this.data.cephMonitor
             ? MonitorStepCephMonitorUtil.toJSON(this.data.cephMonitor)
@@ -923,6 +954,9 @@ export default class MonitorStep extends DatabaseProperty {
       proxmoxMonitor: json["proxmoxMonitor"]
         ? (json["proxmoxMonitor"] as JSONObject)
         : undefined,
+      dockerSwarmMonitor: json["dockerSwarmMonitor"]
+        ? (json["dockerSwarmMonitor"] as JSONObject)
+        : undefined,
       cephMonitor: json["cephMonitor"]
         ? (json["cephMonitor"] as JSONObject)
         : undefined,
@@ -965,6 +999,7 @@ export default class MonitorStep extends DatabaseProperty {
         kubernetesMonitor: Zod.any().optional(),
         dockerMonitor: Zod.any().optional(),
         proxmoxMonitor: Zod.any().optional(),
+        dockerSwarmMonitor: Zod.any().optional(),
         cephMonitor: Zod.any().optional(),
       }).openapi({
         type: "object",

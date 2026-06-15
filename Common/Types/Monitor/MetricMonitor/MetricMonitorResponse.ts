@@ -66,6 +66,26 @@ export interface CephResourceBreakdown {
   attributes: Dictionary<string>;
 }
 
+export interface DockerSwarmAffectedResource {
+  /** `container.name` datapoint label — a Swarm task's container is `<service>.<slot>.<taskid>`. */
+  containerName?: string | undefined;
+  /** `container.image.name` datapoint label, when present. */
+  containerImage?: string | undefined;
+  /** `docker.swarm.node.name` datapoint label, when the agent stamps it. */
+  nodeName?: string | undefined;
+  /** `docker.swarm.service.name` datapoint label, when the agent stamps it. */
+  serviceName?: string | undefined;
+  metricValue: number;
+}
+
+export interface DockerSwarmResourceBreakdown {
+  clusterName: string;
+  metricName: string;
+  metricFriendlyName: string;
+  affectedResources: Array<DockerSwarmAffectedResource>;
+  attributes: Dictionary<string>;
+}
+
 export default interface MetricMonitorResponse {
   projectId: ObjectID;
   startAndEndDate?: InBetween<Date>;
@@ -76,6 +96,7 @@ export default interface MetricMonitorResponse {
   kubernetesResourceBreakdown?: KubernetesResourceBreakdown | undefined;
   proxmoxResourceBreakdown?: ProxmoxResourceBreakdown | undefined;
   cephResourceBreakdown?: CephResourceBreakdown | undefined;
+  dockerSwarmResourceBreakdown?: DockerSwarmResourceBreakdown | undefined;
   /**
    * Per-series breakdown when any queryConfig sets groupByAttributeKeys.
    * Each entry carries a fingerprint, the label values identifying that

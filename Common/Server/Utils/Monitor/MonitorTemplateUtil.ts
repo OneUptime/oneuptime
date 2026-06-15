@@ -361,6 +361,7 @@ export default class MonitorTemplateUtil {
         data.monitorType === MonitorType.Metrics ||
         data.monitorType === MonitorType.Kubernetes ||
         data.monitorType === MonitorType.Docker ||
+        data.monitorType === MonitorType.DockerSwarm ||
         data.monitorType === MonitorType.Proxmox ||
         data.monitorType === MonitorType.Ceph
       ) {

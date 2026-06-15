@@ -1,4 +1,5 @@
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
+import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import Host from "../../../Models/DatabaseModels/Host";
 import Incident from "../../../Models/DatabaseModels/Incident";
@@ -753,6 +754,31 @@ export default class MonitorIncident {
       }
 
       input.incident.cephClusters = merged;
+    }
+
+    if (input.clusterContext.dockerSwarmClusterIds.length > 0) {
+      const existingIds: Set<string> = new Set<string>(
+        (input.incident.dockerSwarmClusters || []).map(
+          (cluster: DockerSwarmCluster) => {
+            return String(cluster._id);
+          },
+        ),
+      );
+
+      const merged: Array<DockerSwarmCluster> = [
+        ...(input.incident.dockerSwarmClusters || []),
+      ];
+
+      for (const id of input.clusterContext.dockerSwarmClusterIds) {
+        if (existingIds.has(id)) {
+          continue;
+        }
+        const cluster: DockerSwarmCluster = new DockerSwarmCluster();
+        cluster._id = id;
+        merged.push(cluster);
+      }
+
+      input.incident.dockerSwarmClusters = merged;
     }
   }
 

@@ -58,6 +58,8 @@ import MetricMonitorResponse, {
   ProxmoxResourceBreakdown,
   CephAffectedResource,
   CephResourceBreakdown,
+  DockerSwarmAffectedResource,
+  DockerSwarmResourceBreakdown,
 } from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import MetricSeriesResult from "../../../Types/Monitor/MetricMonitor/MetricSeriesResult";
 import MetricCriteriaContext, {
@@ -68,6 +70,7 @@ import MetricCriteriaContext, {
 import MonitorStepDockerMonitor from "../../../Types/Monitor/MonitorStepDockerMonitor";
 import MonitorStepProxmoxMonitor from "../../../Types/Monitor/MonitorStepProxmoxMonitor";
 import MonitorStepCephMonitor from "../../../Types/Monitor/MonitorStepCephMonitor";
+import MonitorStepDockerSwarmMonitor from "../../../Types/Monitor/MonitorStepDockerSwarmMonitor";
 
 export default class MonitorCriteriaEvaluator {
   public static async processMonitorStep(input: {
@@ -237,6 +240,7 @@ ${contextBlock}
       input.monitor.monitorType !== MonitorType.Metrics &&
       input.monitor.monitorType !== MonitorType.Kubernetes &&
       input.monitor.monitorType !== MonitorType.Docker &&
+      input.monitor.monitorType !== MonitorType.DockerSwarm &&
       input.monitor.monitorType !== MonitorType.Proxmox &&
       input.monitor.monitorType !== MonitorType.Ceph
     ) {
@@ -685,6 +689,7 @@ ${contextBlock}
       input.monitor.monitorType === MonitorType.Metrics ||
       input.monitor.monitorType === MonitorType.Kubernetes ||
       input.monitor.monitorType === MonitorType.Docker ||
+      input.monitor.monitorType === MonitorType.DockerSwarm ||
       input.monitor.monitorType === MonitorType.Proxmox ||
       input.monitor.monitorType === MonitorType.Ceph
     ) {
@@ -822,6 +827,11 @@ ${contextBlock}
     // Handle Proxmox monitors with resource context
     if (input.monitor.monitorType === MonitorType.Proxmox) {
       return MonitorCriteriaEvaluator.buildProxmoxRootCauseContext(input);
+    }
+
+    // Handle Docker Swarm monitors with resource context
+    if (input.monitor.monitorType === MonitorType.DockerSwarm) {
+      return MonitorCriteriaEvaluator.buildDockerSwarmRootCauseContext(input);
     }
 
     // Handle Ceph monitors with resource context
@@ -1729,6 +1739,168 @@ ${contextBlock}
 
         sections.push(
           `\n\n**Affected Resources** (${sortedResources.length} total)\n\n${resourceLines.join("\n")}`,
+        );
+        renderedBreakdownTable = true;
+      }
+    }
+
+    // Metric results summary (fallback context when no table rendered)
+    if (
+      !renderedBreakdownTable &&
+      metricResponse.metricResult &&
+      metricResponse.metricResult.length > 0
+    ) {
+      const resultDetails: Array<string> = [];
+
+      for (const result of metricResponse.metricResult) {
+        if (result.data && result.data.length > 0) {
+          resultDetails.push(
+            `- ${result.data.length} metric data point(s) returned`,
+          );
+        }
+      }
+
+      if (resultDetails.length > 0) {
+        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
+      }
+    }
+
+    return sections.length > 0 ? sections.join("\n") : null;
+  }
+
+  private static buildDockerSwarmRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+  }): string | null {
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    const breakdown: DockerSwarmResourceBreakdown | undefined =
+      metricResponse.dockerSwarmResourceBreakdown;
+
+    const sections: Array<string> = [];
+
+    // Docker Swarm cluster context
+    const dockerSwarmMonitor: MonitorStepDockerSwarmMonitor | undefined =
+      input.monitorStep.data?.dockerSwarmMonitor;
+
+    if (dockerSwarmMonitor || breakdown) {
+      const clusterDetails: Array<string> = [];
+      clusterDetails.push(
+        `- Cluster: ${breakdown?.clusterName || dockerSwarmMonitor?.clusterIdentifier || "Unknown"}`,
+      );
+
+      if (breakdown) {
+        clusterDetails.push(
+          `- Metric: ${breakdown.metricFriendlyName} (\`${breakdown.metricName}\`)`,
+        );
+      } else if (
+        dockerSwarmMonitor &&
+        dockerSwarmMonitor.metricViewConfig?.queryConfigs?.length > 0 &&
+        dockerSwarmMonitor.metricViewConfig.queryConfigs[0]
+      ) {
+        const metricName: string = dockerSwarmMonitor.metricViewConfig
+          .queryConfigs[0].metricQueryData?.filterData?.metricName as string;
+        if (metricName) {
+          clusterDetails.push(`- Metric: \`${metricName}\``);
+        }
+      }
+
+      if (dockerSwarmMonitor?.resourceFilters?.serviceName) {
+        clusterDetails.push(
+          `- Service Filter: ${dockerSwarmMonitor.resourceFilters.serviceName}`,
+        );
+      }
+
+      if (dockerSwarmMonitor?.resourceFilters?.nodeName) {
+        clusterDetails.push(
+          `- Node Filter: ${dockerSwarmMonitor.resourceFilters.nodeName}`,
+        );
+      }
+
+      if (dockerSwarmMonitor?.resourceFilters?.containerName) {
+        clusterDetails.push(
+          `- Container Name Filter: ${dockerSwarmMonitor.resourceFilters.containerName}`,
+        );
+      }
+
+      if (dockerSwarmMonitor?.resourceFilters?.containerImage) {
+        clusterDetails.push(
+          `- Container Image Filter: ${dockerSwarmMonitor.resourceFilters.containerImage}`,
+        );
+      }
+
+      sections.push(
+        `**Docker Swarm Cluster Details**\n${clusterDetails.join("\n")}`,
+      );
+    }
+
+    // Affected resources (Task / Service / Node / Value)
+    let renderedBreakdownTable: boolean = false;
+
+    if (breakdown && breakdown.affectedResources.length > 0) {
+      /*
+       * K8s/Proxmox-parity render: drop zero-value rows, worst (highest)
+       * first, top 10. For the task-down template the breaching rows ARE
+       * the zero-uptime ones — those still drive alerting through the
+       * per-series criteria evaluation; this table is supplementary
+       * context only.
+       */
+      const sortedResources: Array<DockerSwarmAffectedResource> = [
+        ...breakdown.affectedResources,
+      ]
+        .filter((r: DockerSwarmAffectedResource) => {
+          return r.metricValue > 0;
+        })
+        .sort(
+          (a: DockerSwarmAffectedResource, b: DockerSwarmAffectedResource) => {
+            return b.metricValue - a.metricValue;
+          },
+        );
+
+      /*
+       * Skip the table when no row carries any identity label
+       * (cluster-wide series) — it would add nothing.
+       */
+      const hasIdentity: boolean = sortedResources.some(
+        (r: DockerSwarmAffectedResource) => {
+          return r.containerName || r.serviceName || r.nodeName;
+        },
+      );
+
+      if (sortedResources.length > 0 && hasIdentity) {
+        const resourcesToShow: Array<DockerSwarmAffectedResource> =
+          sortedResources.slice(0, 10);
+
+        const resourceLines: Array<string> = [];
+        resourceLines.push(`| Task / Container | Service | Node | Value |`);
+        resourceLines.push(`| --- | --- | --- | --- |`);
+
+        for (const resource of resourcesToShow) {
+          const taskCell: string = resource.containerName
+            ? `\`${resource.containerName}\``
+            : "-";
+          const serviceCell: string = resource.serviceName
+            ? `\`${resource.serviceName}\``
+            : "-";
+          const nodeCell: string = resource.nodeName
+            ? `\`${resource.nodeName}\``
+            : "-";
+
+          resourceLines.push(
+            `| ${taskCell} | ${serviceCell} | ${nodeCell} | **${resource.metricValue}** |`,
+          );
+        }
+
+        if (sortedResources.length > 10) {
+          resourceLines.push(
+            `\n*... and ${sortedResources.length - 10} more affected tasks*`,
+          );
+        }
+
+        sections.push(
+          `\n\n**Affected Tasks** (${sortedResources.length} total)\n\n${resourceLines.join("\n")}`,
         );
         renderedBreakdownTable = true;
       }
