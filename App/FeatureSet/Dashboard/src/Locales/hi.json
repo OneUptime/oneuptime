@@ -70,6 +70,8 @@
       "kubernetesDescription": "Kubernetes क्लस्टर्स की निगरानी करें।",
       "dockerTitle": "Docker",
       "dockerDescription": "Docker होस्ट और कंटेनर्स की निगरानी करें।",
+      "podmanTitle": "Podman",
+      "podmanDescription": "Monitor Podman hosts and containers.",
       "proxmoxTitle": "Proxmox",
       "proxmoxDescription": "Proxmox क्लस्टर्स, नोड्स और गेस्ट्स की निगरानी करें।",
       "cephTitle": "Ceph",

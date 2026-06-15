@@ -70,6 +70,8 @@
       "kubernetesDescription": "Surveillez les clusters Kubernetes.",
       "dockerTitle": "Docker",
       "dockerDescription": "Surveillez les hôtes et conteneurs Docker.",
+      "podmanTitle": "Podman",
+      "podmanDescription": "Monitor Podman hosts and containers.",
       "proxmoxTitle": "Proxmox",
       "proxmoxDescription": "Surveillez les clusters, nœuds et invités Proxmox.",
       "cephTitle": "Ceph",

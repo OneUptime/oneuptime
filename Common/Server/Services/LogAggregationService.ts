@@ -109,6 +109,7 @@ export class LogAggregationService {
     new Map([
       ["hostId", ServiceType.Host],
       ["dockerHostId", ServiceType.DockerHost],
+      ["podmanHostId", ServiceType.PodmanHost],
       ["kubernetesClusterId", ServiceType.KubernetesCluster],
       ["proxmoxClusterId", ServiceType.ProxmoxCluster],
       ["cephClusterId", ServiceType.CephCluster],

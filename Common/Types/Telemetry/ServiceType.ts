@@ -13,6 +13,7 @@ enum ServiceType {
   Incident = "Incident",
   Host = "Host",
   DockerHost = "DockerHost",
+  PodmanHost = "PodmanHost",
   KubernetesCluster = "KubernetesCluster",
   ProxmoxCluster = "ProxmoxCluster",
   CephCluster = "CephCluster",

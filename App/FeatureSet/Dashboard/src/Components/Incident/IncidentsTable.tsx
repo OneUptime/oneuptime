@@ -563,6 +563,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             _id: true,
             projectId: true,
           },
+          podmanHosts: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
           services: {
             name: true,
             _id: true,
@@ -704,6 +709,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 _id: true,
                 projectId: true,
               },
+              podmanHosts: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
               services: {
                 name: true,
                 _id: true,
@@ -721,6 +731,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                   hosts={item.hosts || []}
                   kubernetesClusters={item.kubernetesClusters || []}
                   dockerHosts={item.dockerHosts || []}
+                  podmanHosts={item.podmanHosts || []}
                   services={item.services || []}
                 />
               );

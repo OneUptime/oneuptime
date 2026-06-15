@@ -70,6 +70,8 @@
       "kubernetesDescription": "监控 Kubernetes 集群。",
       "dockerTitle": "Docker",
       "dockerDescription": "监控 Docker 主机和容器。",
+      "podmanTitle": "Podman",
+      "podmanDescription": "Monitor Podman hosts and containers.",
       "proxmoxTitle": "Proxmox",
       "proxmoxDescription": "监控 Proxmox 集群、节点和客户机。",
       "cephTitle": "Ceph",

@@ -16,6 +16,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Card from "Common/UI/Components/Card/Card";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -267,11 +268,13 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         values.kubernetesClusters as Array<KubernetesCluster>
                       }
                       dockerHosts={values.dockerHosts as Array<DockerHost>}
+                      podmanHosts={values.podmanHosts as Array<PodmanHost>}
                       services={values.services as Array<Service>}
                       resourceTypes={[
                         "Host",
                         "KubernetesCluster",
                         "DockerHost",
+                        "PodmanHost",
                         "Service",
                       ]}
                       onChange={(payload: unknown) => {
@@ -293,6 +296,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         hosts: payload.hosts,
                         kubernetesClusters: payload.kubernetesClusters,
                         dockerHosts: payload.dockerHosts,
+                        podmanHosts: payload.podmanHosts,
                         services: payload.services,
                       } as FormValues<Alert>);
                     });
@@ -317,6 +321,16 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               {
                 field: { dockerHosts: true },
+                stepId: "on-call",
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { podmanHosts: true },
                 stepId: "on-call",
                 title: "",
                 fieldType: FormFieldSchemaType.Text,

@@ -2894,6 +2894,63 @@ const Icon: FunctionComponent<ComponentProps> = ({
         />
       </>,
     );
+  } else if (icon === IconProp.Podman) {
+    /*
+     * Podman glyph — a pod (rounded enclosure) grouping containers, with a
+     * small seal-head nod to Podman's mascot. Intentionally a hand-drawn
+     * generic mark (not the official Podman seal logo / trademark), matching
+     * the generic-glyph convention used for Kubernetes/Docker above and
+     * deliberately distinct from the Docker whale.
+     */
+    return getSvgWrapper(
+      <>
+        {/* Pod enclosure */}
+        <rect
+          x="3"
+          y="8"
+          width="18"
+          height="11"
+          rx="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {/* Grouped containers inside the pod */}
+        <rect
+          x="6"
+          y="12"
+          width="3.5"
+          height="4"
+          rx="0.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <rect
+          x="10.25"
+          y="12"
+          width="3.5"
+          height="4"
+          rx="0.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <rect
+          x="14.5"
+          y="12"
+          width="3.5"
+          height="4"
+          rx="0.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {/* Seal head peeking over the pod */}
+        <circle cx="17" cy="5.5" r="2" />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M19 6.2c1 0.1 1.8-0.2 2.4-0.9"
+        />
+      </>,
+    );
   } else if (icon === IconProp.Proxmox) {
     /*
      * Generic hypervisor glyph — VM tiles running on a server base.

@@ -11,6 +11,7 @@ function emptyMaintained(): MaintainedResourceKeys {
   return {
     hosts: { ids: new Set<string>(), names: new Set<string>() },
     dockerHosts: { ids: new Set<string>(), names: new Set<string>() },
+    podmanHosts: { ids: new Set<string>(), names: new Set<string>() },
     kubernetesClusters: { ids: new Set<string>(), names: new Set<string>() },
     proxmoxClusters: { ids: new Set<string>(), names: new Set<string>() },
     cephClusters: { ids: new Set<string>(), names: new Set<string>() },

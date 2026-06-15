@@ -70,6 +70,8 @@
       "kubernetesDescription": "Bewaak Kubernetes-clusters.",
       "dockerTitle": "Docker",
       "dockerDescription": "Bewaak Docker-hosts en -containers.",
+      "podmanTitle": "Podman",
+      "podmanDescription": "Monitor Podman hosts and containers.",
       "proxmoxTitle": "Proxmox",
       "proxmoxDescription": "Bewaak Proxmox-clusters, -nodes en -gasten.",
       "cephTitle": "Ceph",

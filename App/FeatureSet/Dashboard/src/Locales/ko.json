@@ -70,6 +70,8 @@
       "kubernetesDescription": "Kubernetes 클러스터를 모니터링하세요.",
       "dockerTitle": "Docker",
       "dockerDescription": "Docker 호스트와 컨테이너를 모니터링하세요.",
+      "podmanTitle": "Podman",
+      "podmanDescription": "Monitor Podman hosts and containers.",
       "proxmoxTitle": "Proxmox",
       "proxmoxDescription": "Proxmox 클러스터, 노드, 게스트를 모니터링하세요.",
       "cephTitle": "Ceph",

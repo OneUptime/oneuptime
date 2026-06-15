@@ -70,6 +70,8 @@
       "kubernetesDescription": "Övervaka Kubernetes-kluster.",
       "dockerTitle": "Docker",
       "dockerDescription": "Övervaka Docker-värdar och -containrar.",
+      "podmanTitle": "Podman",
+      "podmanDescription": "Monitor Podman hosts and containers.",
       "proxmoxTitle": "Proxmox",
       "proxmoxDescription": "Övervaka Proxmox-kluster, -noder och -gäster.",
       "cephTitle": "Ceph",

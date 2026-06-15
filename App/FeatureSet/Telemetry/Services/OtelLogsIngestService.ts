@@ -52,6 +52,9 @@ import KubernetesContainerService from "Common/Server/Services/KubernetesContain
 import DockerResourceService, {
   ParsedDockerResource,
 } from "Common/Server/Services/DockerResourceService";
+import PodmanResourceService, {
+  ParsedPodmanResource,
+} from "Common/Server/Services/PodmanResourceService";
 import {
   extractInventoryResource,
   ExtractedInventoryRecord,
@@ -65,6 +68,12 @@ import {
   INVENTORY_KIND_ATTRIBUTE as DOCKER_INVENTORY_KIND_ATTRIBUTE,
   isInventoriedDockerKind,
 } from "Common/Types/Docker/DockerInventoryExtractor";
+import {
+  extractPodmanInventoryResource,
+  ExtractedPodmanInventoryRecord,
+  INVENTORY_KIND_ATTRIBUTE as PODMAN_INVENTORY_KIND_ATTRIBUTE,
+  isInventoriedPodmanKind,
+} from "Common/Types/Podman/PodmanInventoryExtractor";
 
 const INVENTORIED_TYPE_SET: Set<string> = new Set(
   INVENTORIED_RESOURCE_TYPES.map((t: string) => {
@@ -219,6 +228,16 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         Array<ParsedDockerResource>
       > = new Map();
 
+      /*
+       * Podman inventory buffer keyed by podman host ID. Populated only
+       * when a log record carries the Podman agent's snapshot envelope
+       * attribute (oneuptime.podman.kind).
+       */
+      const podmanInventoryBuffer: Map<
+        string,
+        Array<ParsedPodmanResource>
+      > = new Map();
+
       // Load pipelines, drop filters, and scrub rules once per batch
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
       let loadedPipelines: Array<LoadedPipeline> = [];
@@ -265,9 +284,11 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           const [
             kubernetesClusterId,
             dockerHostId,
+            podmanHostId,
             proxmoxClusterId,
             cephClusterId,
           ]: [
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
             ObjectID | null,
@@ -278,6 +299,10 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               attributes: resourceAttributes_raw,
             }),
             this.autoDiscoverDockerHost({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverPodmanHost({
               projectId,
               attributes: resourceAttributes_raw,
             }),
@@ -308,6 +333,13 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           const isDockerInventoryEligible: boolean = Boolean(dockerHostId);
 
           /*
+           * Podman inventory eligibility — same shape as the Docker gate.
+           * Per-record check happens inside the loop below since the
+           * agent tags each line individually.
+           */
+          const isPodmanInventoryEligible: boolean = Boolean(podmanHostId);
+
+          /*
            * Generic Host auto-discovery. Logs don't carry infra metrics,
            * so we rely on resource attribute signals (host.id, host.arch,
            * os.type, container.runtime, k8s.cluster.name) to gate row
@@ -318,6 +350,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             attributes: resourceAttributes_raw,
             hasInfraSignal: false,
             dockerHostId,
+            podmanHostId,
             kubernetesClusterId,
           });
 
@@ -345,6 +378,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               projectId,
               hostId,
               dockerHostId,
+              podmanHostId,
               kubernetesClusterId,
               proxmoxClusterId,
               cephClusterId,
@@ -385,6 +419,12 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             ...(dockerHostId && stampHostName
               ? TelemetryUtil.getAttributesForDockerHostIdAndHostName({
                   dockerHostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(podmanHostId && stampHostName
+              ? TelemetryUtil.getAttributesForPodmanHostIdAndHostName({
+                  podmanHostId,
                   hostName: stampHostName,
                 })
               : {}),
@@ -633,6 +673,45 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                       } catch (invErr) {
                         logger.warn(
                           `Docker inventory parse failed for kind=${recordDockerKind}: ${invErr instanceof Error ? invErr.message : String(invErr)}`,
+                        );
+                      }
+                    }
+                  }
+
+                  /*
+                   * Podman inventory hook: the agent's snapshot script
+                   * emits each container/image/network/volume as a JSON
+                   * envelope tagged with `oneuptime.podman.kind`. We
+                   * route these into the PodmanResource inventory table
+                   * exactly like the K8s flow above.
+                   */
+                  if (isPodmanInventoryEligible && podmanHostId && body) {
+                    const recordPodmanKind: unknown =
+                      attributesObject[PODMAN_INVENTORY_KIND_ATTRIBUTE];
+                    if (
+                      typeof recordPodmanKind === "string" &&
+                      isInventoriedPodmanKind(recordPodmanKind)
+                    ) {
+                      try {
+                        const parsed: ExtractedPodmanInventoryRecord | null =
+                          extractPodmanInventoryResource({
+                            kind: recordPodmanKind,
+                            logBody: body,
+                            lastSeenAt: timeDate,
+                          });
+                        if (parsed) {
+                          const key: string = podmanHostId.toString();
+                          let bucket: Array<ParsedPodmanResource> | undefined =
+                            podmanInventoryBuffer.get(key);
+                          if (!bucket) {
+                            bucket = [];
+                            podmanInventoryBuffer.set(key, bucket);
+                          }
+                          bucket.push(parsed.resource);
+                        }
+                      } catch (invErr) {
+                        logger.warn(
+                          `Podman inventory parse failed for kind=${recordPodmanKind}: ${invErr instanceof Error ? invErr.message : String(invErr)}`,
                         );
                       }
                     }
@@ -905,6 +984,25 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           } catch (invErr) {
             logger.error(
               `Error upserting DockerResource inventory for host ${hostIdStr}: ${invErr instanceof Error ? invErr.message : String(invErr)}`,
+            );
+          }
+        }
+      }
+
+      if (podmanInventoryBuffer.size > 0) {
+        for (const [hostIdStr, resources] of podmanInventoryBuffer.entries()) {
+          if (resources.length === 0) {
+            continue;
+          }
+          try {
+            await PodmanResourceService.bulkUpsert({
+              projectId,
+              podmanHostId: new ObjectID(hostIdStr),
+              resources,
+            });
+          } catch (invErr) {
+            logger.error(
+              `Error upserting PodmanResource inventory for host ${hostIdStr}: ${invErr instanceof Error ? invErr.message : String(invErr)}`,
             );
           }
         }

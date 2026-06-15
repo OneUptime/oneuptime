@@ -910,6 +910,44 @@ export default class AlertOwnerRule extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.Boolean,
+    title: "Inherit Owners From Podman Hosts",
+    description:
+      "When this rule matches, also assign every owner of the alert's affected Podman hosts to the alert.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public inheritOwnersFromPodmanHosts?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAlertOwnerRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlertOwnerRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAlertOwnerRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
     title: "Inherit Owners From Services",
     description:
       "When this rule matches, also assign every owner of the alert's affected services to the alert.",

@@ -70,6 +70,8 @@
       "kubernetesDescription": "Overvåk Kubernetes-klynger.",
       "dockerTitle": "Docker",
       "dockerDescription": "Overvåk Docker-verter og -containere.",
+      "podmanTitle": "Podman",
+      "podmanDescription": "Monitor Podman hosts and containers.",
       "proxmoxTitle": "Proxmox",
       "proxmoxDescription": "Overvåk Proxmox-klynger, -noder og -gjester.",
       "cephTitle": "Ceph",

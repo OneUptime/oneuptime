@@ -18,6 +18,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Card from "Common/UI/Components/Card/Card";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -153,6 +154,7 @@ const IncidentCreate: FunctionComponent<
             hosts: { _id: true, name: true },
             kubernetesClusters: { _id: true, name: true },
             dockerHosts: { _id: true, name: true },
+            podmanHosts: { _id: true, name: true },
             services: { _id: true, name: true },
             onCallDutyPolicies: true,
             labels: true,
@@ -226,6 +228,14 @@ const IncidentCreate: FunctionComponent<
               return {
                 _id: dockerHost.id!.toString(),
                 name: dockerHost.name || "",
+              };
+            },
+          ),
+          podmanHosts: incidentTemplate.podmanHosts?.map(
+            (podmanHost: PodmanHost) => {
+              return {
+                _id: podmanHost.id!.toString(),
+                name: podmanHost.name || "",
               };
             },
           ),
@@ -441,6 +451,7 @@ const IncidentCreate: FunctionComponent<
                           values.kubernetesClusters as Array<KubernetesCluster>
                         }
                         dockerHosts={values.dockerHosts as Array<DockerHost>}
+                        podmanHosts={values.podmanHosts as Array<PodmanHost>}
                         services={values.services as Array<Service>}
                         onChange={(payload: unknown) => {
                           elementProps.onChange?.(payload);
@@ -466,6 +477,7 @@ const IncidentCreate: FunctionComponent<
                           hosts: payload.hosts,
                           kubernetesClusters: payload.kubernetesClusters,
                           dockerHosts: payload.dockerHosts,
+                          podmanHosts: payload.podmanHosts,
                           services: payload.services,
                         } as FormValues<Incident>);
                       });
@@ -586,6 +598,16 @@ const IncidentCreate: FunctionComponent<
                 },
                 {
                   field: { dockerHosts: true },
+                  stepId: "resources-affected",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { podmanHosts: true },
                   stepId: "resources-affected",
                   title: "",
                   fieldType: FormFieldSchemaType.Text,

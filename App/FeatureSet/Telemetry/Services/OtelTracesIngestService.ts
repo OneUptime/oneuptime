@@ -290,7 +290,8 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
            * `autoDiscoverHost` still has to wait because it consumes
            * the two ids above.
            */
-          const [kubernetesClusterId, dockerHostId]: [
+          const [kubernetesClusterId, dockerHostId, podmanHostId]: [
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
           ] = await Promise.all([
@@ -299,6 +300,10 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
               attributes: resourceAttributes_raw,
             }),
             this.autoDiscoverDockerHost({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverPodmanHost({
               projectId,
               attributes: resourceAttributes_raw,
             }),
@@ -316,6 +321,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
             attributes: resourceAttributes_raw,
             hasInfraSignal: false,
             dockerHostId,
+            podmanHostId,
             kubernetesClusterId,
           });
 
@@ -343,6 +349,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
               projectId,
               hostId,
               dockerHostId,
+              podmanHostId,
               kubernetesClusterId,
               serverlessFunctionId,
               cloudResourceId,
@@ -381,6 +388,12 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
             ...(dockerHostId && stampHostName
               ? TelemetryUtil.getAttributesForDockerHostIdAndHostName({
                   dockerHostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(podmanHostId && stampHostName
+              ? TelemetryUtil.getAttributesForPodmanHostIdAndHostName({
+                  podmanHostId,
                   hostName: stampHostName,
                 })
               : {}),

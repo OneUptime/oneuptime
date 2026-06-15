@@ -9,6 +9,7 @@ import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster"
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
+import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import Service from "../../../Models/DatabaseModels/Service";
 import Includes from "../../../Types/BaseDatabase/Includes";
@@ -27,6 +28,7 @@ import DockerHostService from "../../Services/DockerHostService";
 import HostService from "../../Services/HostService";
 import IncidentService from "../../Services/IncidentService";
 import KubernetesClusterService from "../../Services/KubernetesClusterService";
+import PodmanHostService from "../../Services/PodmanHostService";
 import ProxmoxClusterService from "../../Services/ProxmoxClusterService";
 import ServiceService from "../../Services/ServiceService";
 import IncidentSeverityService from "../../Services/IncidentSeverityService";
@@ -577,6 +579,7 @@ export default class MonitorIncident {
     const [
       resolvedHosts,
       resolvedDockerHosts,
+      resolvedPodmanHosts,
       resolvedClusters,
       resolvedServices,
       resolvedProxmoxClusters,
@@ -595,6 +598,13 @@ export default class MonitorIncident {
         nameColumn: "hostIdentifier",
         projectId: input.projectId,
         findBy: DockerHostService.findBy.bind(DockerHostService),
+      }),
+      this.resolveResourceIds({
+        ids: refs.podmanHostIds,
+        names: refs.podmanHostNames,
+        nameColumn: "hostIdentifier",
+        projectId: input.projectId,
+        findBy: PodmanHostService.findBy.bind(PodmanHostService),
       }),
       this.resolveResourceIds({
         ids: refs.kubernetesClusterIds,
@@ -639,6 +649,15 @@ export default class MonitorIncident {
           const dockerHost: DockerHost = new DockerHost();
           dockerHost._id = id;
           return dockerHost;
+        },
+      );
+    }
+    if (resolvedPodmanHosts.length > 0) {
+      input.incident.podmanHosts = resolvedPodmanHosts.map(
+        (id: string): PodmanHost => {
+          const podmanHost: PodmanHost = new PodmanHost();
+          podmanHost._id = id;
+          return podmanHost;
         },
       );
     }

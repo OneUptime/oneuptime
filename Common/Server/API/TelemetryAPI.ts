@@ -1201,6 +1201,7 @@ router.post(
             "primaryEntityId",
             "hostId",
             "dockerHostId",
+            "podmanHostId",
             "kubernetesClusterId",
             "exceptionType",
             "environment",
@@ -1365,7 +1366,13 @@ router.post(
 
       const facetKeys: Array<string> = body["facetKeys"]
         ? (body["facetKeys"] as Array<string>)
-        : ["primaryEntityId", "hostId", "dockerHostId", "kubernetesClusterId"];
+        : [
+            "primaryEntityId",
+            "hostId",
+            "dockerHostId",
+            "podmanHostId",
+            "kubernetesClusterId",
+          ];
 
       const startTime: Date = body["startTime"]
         ? OneUptimeDate.fromString(body["startTime"] as string)

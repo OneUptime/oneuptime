@@ -25,11 +25,13 @@ import logger from "../Utils/Logger";
 import ServiceModel from "../../Models/DatabaseModels/Service";
 import HostService from "./HostService";
 import DockerHostService from "./DockerHostService";
+import PodmanHostService from "./PodmanHostService";
 import KubernetesClusterService from "./KubernetesClusterService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
 import CephClusterService from "./CephClusterService";
 import Host from "../../Models/DatabaseModels/Host";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
+import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import ProxmoxCluster from "../../Models/DatabaseModels/ProxmoxCluster";
 import CephCluster from "../../Models/DatabaseModels/CephCluster";
@@ -406,6 +408,22 @@ export class Service extends DatabaseService<Model> {
         retentionByServiceId.set(
           dockerHost.id.toString(),
           dockerHost.retainTelemetryDataForDays,
+        );
+      }
+    }
+
+    const podmanHosts: Array<PodmanHost> = await PodmanHostService.findBy({
+      query: { projectId: projectId },
+      select: { _id: true, retainTelemetryDataForDays: true },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: { isRoot: true },
+    });
+    for (const podmanHost of podmanHosts) {
+      if (podmanHost.id && podmanHost.retainTelemetryDataForDays) {
+        retentionByServiceId.set(
+          podmanHost.id.toString(),
+          podmanHost.retainTelemetryDataForDays,
         );
       }
     }

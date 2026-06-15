@@ -29,6 +29,11 @@ import DashboardDockerContainerListComponentType from "Common/Types/Dashboard/Da
 import DashboardDockerImageListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerImageListComponent";
 import DashboardDockerNetworkListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerNetworkListComponent";
 import DashboardDockerVolumeListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerVolumeListComponent";
+import DashboardPodmanHostListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardPodmanHostListComponent";
+import DashboardPodmanContainerListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardPodmanContainerListComponent";
+import DashboardPodmanImageListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardPodmanImageListComponent";
+import DashboardPodmanNetworkListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardPodmanNetworkListComponent";
+import DashboardPodmanVolumeListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardPodmanVolumeListComponent";
 import DashboardHostListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardHostListComponent";
 import DashboardProxmoxNodeListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardProxmoxNodeListComponent";
 import DashboardProxmoxGuestListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardProxmoxGuestListComponent";
@@ -59,6 +64,11 @@ import DashboardDockerContainerListComponent from "./DashboardDockerContainerLis
 import DashboardDockerImageListComponent from "./DashboardDockerImageListComponent";
 import DashboardDockerNetworkListComponent from "./DashboardDockerNetworkListComponent";
 import DashboardDockerVolumeListComponent from "./DashboardDockerVolumeListComponent";
+import DashboardPodmanHostListComponent from "./DashboardPodmanHostListComponent";
+import DashboardPodmanContainerListComponent from "./DashboardPodmanContainerListComponent";
+import DashboardPodmanImageListComponent from "./DashboardPodmanImageListComponent";
+import DashboardPodmanNetworkListComponent from "./DashboardPodmanNetworkListComponent";
+import DashboardPodmanVolumeListComponent from "./DashboardPodmanVolumeListComponent";
 import DashboardHostListComponent from "./DashboardHostListComponent";
 import DashboardProxmoxNodeListComponent from "./DashboardProxmoxNodeListComponent";
 import DashboardProxmoxGuestListComponent from "./DashboardProxmoxGuestListComponent";
@@ -824,6 +834,49 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
             isEditMode={props.isEditMode}
             isSelected={props.isSelected}
             component={component as DashboardDockerVolumeListComponentType}
+          />
+        )}
+        {component.componentType === DashboardComponentType.PodmanHostList && (
+          <DashboardPodmanHostListComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardPodmanHostListComponentType}
+          />
+        )}
+        {component.componentType ===
+          DashboardComponentType.PodmanContainerList && (
+          <DashboardPodmanContainerListComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardPodmanContainerListComponentType}
+          />
+        )}
+        {component.componentType === DashboardComponentType.PodmanImageList && (
+          <DashboardPodmanImageListComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardPodmanImageListComponentType}
+          />
+        )}
+        {component.componentType ===
+          DashboardComponentType.PodmanNetworkList && (
+          <DashboardPodmanNetworkListComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardPodmanNetworkListComponentType}
+          />
+        )}
+        {component.componentType ===
+          DashboardComponentType.PodmanVolumeList && (
+          <DashboardPodmanVolumeListComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardPodmanVolumeListComponentType}
           />
         )}
         {component.componentType === DashboardComponentType.HostList && (

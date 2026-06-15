@@ -218,6 +218,44 @@ const WIDGET_CATALOG: ReadonlyArray<CatalogCategory> = [
     ],
   },
   {
+    name: "Podman",
+    description:
+      "Live inventory from any connected Podman host — populated by the OneUptime Podman Agent.",
+    items: [
+      {
+        type: DashboardComponentType.PodmanHostList,
+        label: "Hosts",
+        icon: IconProp.Server,
+        description:
+          "Podman hosts with connection status and container counts.",
+      },
+      {
+        type: DashboardComponentType.PodmanContainerList,
+        label: "Containers",
+        icon: IconProp.Cube,
+        description: "Containers with state, image, and CPU/memory.",
+      },
+      {
+        type: DashboardComponentType.PodmanImageList,
+        label: "Images",
+        icon: IconProp.Cube,
+        description: "Images present on selected hosts.",
+      },
+      {
+        type: DashboardComponentType.PodmanNetworkList,
+        label: "Networks",
+        icon: IconProp.Globe,
+        description: "Networks defined on selected hosts.",
+      },
+      {
+        type: DashboardComponentType.PodmanVolumeList,
+        label: "Volumes",
+        icon: IconProp.Database,
+        description: "Volumes defined on selected hosts.",
+      },
+    ],
+  },
+  {
     name: "Proxmox",
     description:
       "Live inventory from any connected Proxmox VE cluster — populated by the OneUptime Proxmox Agent.",

@@ -1,4 +1,5 @@
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -33,6 +34,7 @@ export type AffectedResourceType =
   | "Host"
   | "KubernetesCluster"
   | "DockerHost"
+  | "PodmanHost"
   | "Service";
 
 export interface AffectedResourceItem {
@@ -52,6 +54,7 @@ export interface AffectedResourcesPayload {
   hosts: Array<string>;
   kubernetesClusters: Array<string>;
   dockerHosts: Array<string>;
+  podmanHosts: Array<string>;
   services: Array<string>;
 }
 
@@ -60,6 +63,7 @@ export interface ComponentProps {
   hosts?: Array<Host> | undefined;
   kubernetesClusters?: Array<KubernetesCluster> | undefined;
   dockerHosts?: Array<DockerHost> | undefined;
+  podmanHosts?: Array<PodmanHost> | undefined;
   services?: Array<Service> | undefined;
   resourceTypes?: Array<AffectedResourceType> | undefined;
   onChange: (payload: AffectedResourcesPayload) => void;
@@ -94,6 +98,11 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
     icon: IconProp.Docker,
     modelType: DockerHost,
   },
+  PodmanHost: {
+    label: "Podman Host",
+    icon: IconProp.Podman,
+    modelType: PodmanHost,
+  },
   Service: {
     label: "Service",
     icon: IconProp.SquareStack,
@@ -106,6 +115,7 @@ const ALL_TYPES: Array<AffectedResourceType> = [
   "Host",
   "KubernetesCluster",
   "DockerHost",
+  "PodmanHost",
   "Service",
 ];
 
@@ -284,6 +294,9 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     if (resourceTypes.includes("DockerHost")) {
       items.push(...toItems(props.dockerHosts, "DockerHost", cache));
     }
+    if (resourceTypes.includes("PodmanHost")) {
+      items.push(...toItems(props.podmanHosts, "PodmanHost", cache));
+    }
     if (resourceTypes.includes("Service")) {
       items.push(...toItems(props.services, "Service", cache));
     }
@@ -293,6 +306,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     props.hosts,
     props.kubernetesClusters,
     props.dockerHosts,
+    props.podmanHosts,
     props.services,
     resourceTypes,
   ]);
@@ -612,6 +626,13 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
         .map((i: AffectedResourceItem): string => {
           return i._id;
         }),
+      podmanHosts: next
+        .filter((i: AffectedResourceItem): boolean => {
+          return i.type === "PodmanHost";
+        })
+        .map((i: AffectedResourceItem): string => {
+          return i._id;
+        }),
       services: next
         .filter((i: AffectedResourceItem): boolean => {
           return i.type === "Service";
@@ -902,7 +923,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
   const resourcesPlaceholder: string =
     props.placeholder ||
     (resourceTypes.length === ALL_TYPES.length
-      ? "Search monitors, hosts, Kubernetes clusters, Docker hosts, or services..."
+      ? "Search monitors, hosts, Kubernetes clusters, Docker hosts, Podman hosts, or services..."
       : `Search ${resourceTypes
           .map((t: AffectedResourceType): string => {
             return RESOURCE_CONFIG[t].label.toLowerCase();

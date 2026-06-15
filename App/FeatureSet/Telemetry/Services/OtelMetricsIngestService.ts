@@ -47,6 +47,9 @@ import KubernetesContainerService, {
 import DockerResourceService, {
   ParsedDockerContainer,
 } from "Common/Server/Services/DockerResourceService";
+import PodmanResourceService, {
+  ParsedPodmanContainer,
+} from "Common/Server/Services/PodmanResourceService";
 import CloudResourceInstanceService from "Common/Server/Services/CloudResourceInstanceService";
 import ProxmoxResourceService, {
   ParsedProxmoxResource,
@@ -145,6 +148,18 @@ const DOCKER_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
 ]);
 
 /*
+ * Podman snapshot metrics — emitted by the docker_stats receiver
+ * against the Podman socket (Podman exposes a Docker-compatible API)
+ * with container.id / container.name / container.image.name as
+ * resource attributes. Container row inventory is upserted from
+ * these in the same pass as the ClickHouse insert.
+ */
+const PODMAN_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
+  "container.cpu.utilization",
+  "container.memory.usage.total",
+]);
+
+/*
  * Cloud managed-compute snapshot metrics — ECS/Fargate, Cloud Run, etc.
  * emit container.cpu.utilization / container.memory.usage with
  * service.instance.id identifying the running task / instance. The latest
@@ -187,6 +202,15 @@ interface ContainerMetricBufferEntry {
 }
 
 interface DockerContainerMetricBufferEntry {
+  containerName: string;
+  containerId: string | null;
+  imageName: string | null;
+  cpuPercent: number | null;
+  memoryBytes: number | null;
+  observedAt: Date;
+}
+
+interface PodmanContainerMetricBufferEntry {
   containerName: string;
   containerId: string | null;
   imageName: string | null;
@@ -327,6 +351,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       }
 
       if (OtelIngestBaseService.isDockerRuntime(ras)) {
+        continue;
+      }
+
+      if (OtelIngestBaseService.isPodmanRuntime(ras)) {
         continue;
       }
 
@@ -579,6 +607,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         string,
         Map<string, DockerContainerMetricBufferEntry>
       > = new Map();
+      const podmanContainerMetricsBuffer: Map<
+        string,
+        Map<string, PodmanContainerMetricBufferEntry>
+      > = new Map();
       const cloudResourceInstanceMetricsBuffer: Map<
         string,
         Map<string, CloudResourceInstanceMetricBufferEntry>
@@ -671,9 +703,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           const [
             kubernetesClusterId,
             dockerHostId,
+            podmanHostId,
             proxmoxClusterId,
             cephClusterId,
           ]: [
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
             ObjectID | null,
@@ -684,6 +718,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               attributes: resourceAttributes_raw,
             }),
             this.autoDiscoverDockerHost({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverPodmanHost({
               projectId,
               attributes: resourceAttributes_raw,
             }),
@@ -719,6 +757,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             attributes: resourceAttributes_raw,
             hasInfraSignal: hostInfraStats.hasInfraSignal,
             dockerHostId,
+            podmanHostId,
             kubernetesClusterId,
             cpuCores: hostInfraStats.cpuCores,
             totalMemoryBytes: hostInfraStats.totalMemoryBytes,
@@ -749,6 +788,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               projectId,
               hostId,
               dockerHostId,
+              podmanHostId,
               kubernetesClusterId,
               proxmoxClusterId,
               cephClusterId,
@@ -789,6 +829,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             ...(dockerHostId && stampHostName
               ? TelemetryUtil.getAttributesForDockerHostIdAndHostName({
                   dockerHostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(podmanHostId && stampHostName
+              ? TelemetryUtil.getAttributesForPodmanHostIdAndHostName({
+                  podmanHostId,
                   hostName: stampHostName,
                 })
               : {}),
@@ -1101,6 +1147,20 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                         }
 
                         if (
+                          podmanHostId &&
+                          PODMAN_SNAPSHOT_METRIC_NAMES.has(metricName)
+                        ) {
+                          this.bufferPodmanSnapshotMetric({
+                            hostIdStr: podmanHostId.toString(),
+                            metricName,
+                            metricUnit,
+                            datapoint: datapoint as JSONObject,
+                            metricAttributes,
+                            buffer: podmanContainerMetricsBuffer,
+                          });
+                        }
+
+                        if (
                           cloudResourceId &&
                           CLOUD_SNAPSHOT_METRIC_NAMES.has(metricName)
                         ) {
@@ -1234,6 +1294,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       await this.flushDockerSnapshotBuffer({
         projectId,
         buffer: dockerContainerMetricsBuffer,
+      });
+
+      await this.flushPodmanSnapshotBuffer({
+        projectId,
+        buffer: podmanContainerMetricsBuffer,
       });
 
       await this.flushCloudResourceSnapshotBuffer({
@@ -2035,6 +2100,159 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       } catch (err) {
         logger.warn(
           `Docker snapshot writeback failed for host ${hostIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
+  /*
+   * Match a Podman container metric to its row, fold the latest CPU
+   * or memory point into the per-host buffer. Identical pattern to
+   * the K8s buffering, but Podman has no separate inventory snapshot
+   * stream — every metric flush both creates and updates rows in
+   * one ON-CONFLICT statement.
+   */
+  private static bufferPodmanSnapshotMetric(data: {
+    hostIdStr: string;
+    metricName: string;
+    metricUnit: string | undefined;
+    datapoint: JSONObject;
+    metricAttributes: Dictionary<AttributeType | Array<AttributeType>>;
+    buffer: Map<string, Map<string, PodmanContainerMetricBufferEntry>>;
+  }): void {
+    const valueFromInt: number | null = this.toNumberOrNull(
+      data.datapoint["asInt"],
+    );
+    const valueFromDouble: number | null = this.toNumberOrNull(
+      data.datapoint["asDouble"],
+    );
+    const rawValue: number | null = valueFromDouble ?? valueFromInt;
+    if (rawValue === null) {
+      return;
+    }
+
+    const ts: MetricTimestamp = this.safeParseUnixNano(
+      data.datapoint["timeUnixNano"] as string | number | undefined,
+      "podman snapshot timeUnixNano",
+    );
+
+    const attrs: Dictionary<AttributeType | Array<AttributeType>> =
+      data.metricAttributes;
+    const containerName: string = this.readSnapshotAttr(
+      attrs,
+      "resource.container.name",
+    );
+    if (!containerName) {
+      return;
+    }
+    const containerId: string =
+      this.readSnapshotAttr(attrs, "resource.container.id") ||
+      this.readSnapshotAttr(attrs, "container.id");
+    const imageName: string =
+      this.readSnapshotAttr(attrs, "resource.container.image.name") ||
+      this.readSnapshotAttr(attrs, "container.image.name");
+
+    const isCpu: boolean = data.metricName === "container.cpu.utilization";
+    const isMem: boolean = data.metricName === "container.memory.usage.total";
+
+    this.foldPodmanContainerSnapshot({
+      buffer: data.buffer,
+      hostIdStr: data.hostIdStr,
+      containerName,
+      containerId: containerId || null,
+      imageName: imageName || null,
+      cpuPercent: isCpu
+        ? this.cpuValueToPercent(rawValue, data.metricUnit)
+        : null,
+      memoryBytes: isMem ? Math.max(0, Math.trunc(rawValue)) : null,
+      observedAt: ts.date,
+    });
+  }
+
+  private static foldPodmanContainerSnapshot(data: {
+    buffer: Map<string, Map<string, PodmanContainerMetricBufferEntry>>;
+    hostIdStr: string;
+    containerName: string;
+    containerId: string | null;
+    imageName: string | null;
+    cpuPercent: number | null;
+    memoryBytes: number | null;
+    observedAt: Date;
+  }): void {
+    let perHost: Map<string, PodmanContainerMetricBufferEntry> | undefined =
+      data.buffer.get(data.hostIdStr);
+    if (!perHost) {
+      perHost = new Map();
+      data.buffer.set(data.hostIdStr, perHost);
+    }
+    const key: string = data.containerName;
+    const existing: PodmanContainerMetricBufferEntry | undefined =
+      perHost.get(key);
+    if (!existing) {
+      perHost.set(key, {
+        containerName: data.containerName,
+        containerId: data.containerId,
+        imageName: data.imageName,
+        cpuPercent: data.cpuPercent,
+        memoryBytes: data.memoryBytes,
+        observedAt: data.observedAt,
+      });
+      return;
+    }
+    if (data.cpuPercent !== null && data.observedAt >= existing.observedAt) {
+      existing.cpuPercent = data.cpuPercent;
+    }
+    if (data.memoryBytes !== null && data.observedAt >= existing.observedAt) {
+      existing.memoryBytes = data.memoryBytes;
+    }
+    if (data.observedAt > existing.observedAt) {
+      existing.observedAt = data.observedAt;
+    }
+    /*
+     * Container ID and image name don't change for the lifetime of a
+     * container; first-non-null wins so later metrics missing the
+     * attribute don't blank the row.
+     */
+    if (data.containerId && !existing.containerId) {
+      existing.containerId = data.containerId;
+    }
+    if (data.imageName && !existing.imageName) {
+      existing.imageName = data.imageName;
+    }
+  }
+
+  private static async flushPodmanSnapshotBuffer(data: {
+    projectId: ObjectID;
+    buffer: Map<string, Map<string, PodmanContainerMetricBufferEntry>>;
+  }): Promise<void> {
+    if (data.buffer.size === 0) {
+      return;
+    }
+    for (const [hostIdStr, byKey] of data.buffer.entries()) {
+      if (byKey.size === 0) {
+        continue;
+      }
+      try {
+        const containers: Array<ParsedPodmanContainer> = [];
+        for (const e of byKey.values()) {
+          containers.push({
+            containerName: e.containerName,
+            containerId: e.containerId,
+            imageName: e.imageName,
+            state: "running",
+            cpuPercent: e.cpuPercent,
+            memoryBytes: e.memoryBytes,
+            observedAt: e.observedAt,
+          });
+        }
+        await PodmanResourceService.bulkUpsertContainers({
+          projectId: data.projectId,
+          podmanHostId: new ObjectID(hostIdStr),
+          containers,
+        });
+      } catch (err) {
+        logger.warn(
+          `Podman snapshot writeback failed for host ${hostIdStr}: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     }

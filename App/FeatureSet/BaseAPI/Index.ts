@@ -276,6 +276,14 @@ import DockerHostLabelRuleService, {
   Service as DockerHostLabelRuleServiceType,
 } from "Common/Server/Services/DockerHostLabelRuleService";
 
+import PodmanHostOwnerRuleService, {
+  Service as PodmanHostOwnerRuleServiceType,
+} from "Common/Server/Services/PodmanHostOwnerRuleService";
+
+import PodmanHostLabelRuleService, {
+  Service as PodmanHostLabelRuleServiceType,
+} from "Common/Server/Services/PodmanHostLabelRuleService";
+
 import KubernetesClusterOwnerRuleService, {
   Service as KubernetesClusterOwnerRuleServiceType,
 } from "Common/Server/Services/KubernetesClusterOwnerRuleService";
@@ -502,6 +510,18 @@ import DockerHostOwnerUserService, {
 import DockerResourceService, {
   Service as DockerResourceServiceType,
 } from "Common/Server/Services/DockerResourceService";
+import PodmanHostService, {
+  Service as PodmanHostServiceType,
+} from "Common/Server/Services/PodmanHostService";
+import PodmanHostOwnerTeamService, {
+  Service as PodmanHostOwnerTeamServiceType,
+} from "Common/Server/Services/PodmanHostOwnerTeamService";
+import PodmanHostOwnerUserService, {
+  Service as PodmanHostOwnerUserServiceType,
+} from "Common/Server/Services/PodmanHostOwnerUserService";
+import PodmanResourceService, {
+  Service as PodmanResourceServiceType,
+} from "Common/Server/Services/PodmanResourceService";
 import ProxmoxClusterService, {
   Service as ProxmoxClusterServiceType,
 } from "Common/Server/Services/ProxmoxClusterService";
@@ -882,6 +902,8 @@ import ServiceOwnerRule from "Common/Models/DatabaseModels/ServiceOwnerRule";
 import ServiceLabelRule from "Common/Models/DatabaseModels/ServiceLabelRule";
 import DockerHostOwnerRule from "Common/Models/DatabaseModels/DockerHostOwnerRule";
 import DockerHostLabelRule from "Common/Models/DatabaseModels/DockerHostLabelRule";
+import PodmanHostOwnerRule from "Common/Models/DatabaseModels/PodmanHostOwnerRule";
+import PodmanHostLabelRule from "Common/Models/DatabaseModels/PodmanHostLabelRule";
 import KubernetesClusterOwnerRule from "Common/Models/DatabaseModels/KubernetesClusterOwnerRule";
 import KubernetesClusterLabelRule from "Common/Models/DatabaseModels/KubernetesClusterLabelRule";
 import ProxmoxClusterOwnerRule from "Common/Models/DatabaseModels/ProxmoxClusterOwnerRule";
@@ -947,6 +969,10 @@ import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerHostOwnerTeam from "Common/Models/DatabaseModels/DockerHostOwnerTeam";
 import DockerHostOwnerUser from "Common/Models/DatabaseModels/DockerHostOwnerUser";
 import DockerResource from "Common/Models/DatabaseModels/DockerResource";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
+import PodmanHostOwnerTeam from "Common/Models/DatabaseModels/PodmanHostOwnerTeam";
+import PodmanHostOwnerUser from "Common/Models/DatabaseModels/PodmanHostOwnerUser";
+import PodmanResource from "Common/Models/DatabaseModels/PodmanResource";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import ProxmoxClusterOwnerTeam from "Common/Models/DatabaseModels/ProxmoxClusterOwnerTeam";
 import ProxmoxClusterOwnerUser from "Common/Models/DatabaseModels/ProxmoxClusterOwnerUser";
@@ -1985,6 +2011,22 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DockerHostLabelRule, DockerHostLabelRuleServiceType>(
         DockerHostLabelRule,
         DockerHostLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<PodmanHostOwnerRule, PodmanHostOwnerRuleServiceType>(
+        PodmanHostOwnerRule,
+        PodmanHostOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<PodmanHostLabelRule, PodmanHostLabelRuleServiceType>(
+        PodmanHostLabelRule,
+        PodmanHostLabelRuleService,
       ).getRouter(),
     );
 
@@ -3178,6 +3220,38 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DockerResource, DockerResourceServiceType>(
         DockerResource,
         DockerResourceService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<PodmanHost, PodmanHostServiceType>(
+        PodmanHost,
+        PodmanHostService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<PodmanHostOwnerTeam, PodmanHostOwnerTeamServiceType>(
+        PodmanHostOwnerTeam,
+        PodmanHostOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<PodmanHostOwnerUser, PodmanHostOwnerUserServiceType>(
+        PodmanHostOwnerUser,
+        PodmanHostOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<PodmanResource, PodmanResourceServiceType>(
+        PodmanResource,
+        PodmanResourceService,
       ).getRouter(),
     );
 

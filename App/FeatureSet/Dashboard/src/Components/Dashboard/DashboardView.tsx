@@ -41,6 +41,11 @@ import DashboardDockerContainerListComponentUtil from "Common/Utils/Dashboard/Co
 import DashboardDockerImageListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerImageListComponent";
 import DashboardDockerNetworkListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerNetworkListComponent";
 import DashboardDockerVolumeListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerVolumeListComponent";
+import DashboardPodmanHostListComponentUtil from "Common/Utils/Dashboard/Components/DashboardPodmanHostListComponent";
+import DashboardPodmanContainerListComponentUtil from "Common/Utils/Dashboard/Components/DashboardPodmanContainerListComponent";
+import DashboardPodmanImageListComponentUtil from "Common/Utils/Dashboard/Components/DashboardPodmanImageListComponent";
+import DashboardPodmanNetworkListComponentUtil from "Common/Utils/Dashboard/Components/DashboardPodmanNetworkListComponent";
+import DashboardPodmanVolumeListComponentUtil from "Common/Utils/Dashboard/Components/DashboardPodmanVolumeListComponent";
 import DashboardHostListComponentUtil from "Common/Utils/Dashboard/Components/DashboardHostListComponent";
 import DashboardProxmoxNodeListComponentUtil from "Common/Utils/Dashboard/Components/DashboardProxmoxNodeListComponent";
 import DashboardProxmoxGuestListComponentUtil from "Common/Utils/Dashboard/Components/DashboardProxmoxGuestListComponent";
@@ -635,6 +640,31 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           if (componentType === DashboardComponentType.DockerVolumeList) {
             newComponent =
               DashboardDockerVolumeListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.PodmanHostList) {
+            newComponent =
+              DashboardPodmanHostListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.PodmanContainerList) {
+            newComponent =
+              DashboardPodmanContainerListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.PodmanImageList) {
+            newComponent =
+              DashboardPodmanImageListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.PodmanNetworkList) {
+            newComponent =
+              DashboardPodmanNetworkListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.PodmanVolumeList) {
+            newComponent =
+              DashboardPodmanVolumeListComponentUtil.getDefaultComponent();
           }
 
           if (componentType === DashboardComponentType.HostList) {

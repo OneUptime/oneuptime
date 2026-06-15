@@ -23,6 +23,7 @@ import DatabaseBaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Service from "./Service";
 import Host from "./Host";
 import DockerHost from "./DockerHost";
+import PodmanHost from "./PodmanHost";
 import KubernetesCluster from "./KubernetesCluster";
 import ServerlessFunction from "./ServerlessFunction";
 import CloudResource from "./CloudResource";
@@ -80,6 +81,7 @@ import RumApplication from "./RumApplication";
     Service,
     Host,
     DockerHost,
+    PodmanHost,
     KubernetesCluster,
     ServerlessFunction,
     CloudResource,

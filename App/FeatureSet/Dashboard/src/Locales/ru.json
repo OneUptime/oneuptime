@@ -70,6 +70,8 @@
       "kubernetesDescription": "Мониторинг кластеров Kubernetes.",
       "dockerTitle": "Docker",
       "dockerDescription": "Мониторинг хостов и контейнеров Docker.",
+      "podmanTitle": "Podman",
+      "podmanDescription": "Monitor Podman hosts and containers.",
       "proxmoxTitle": "Proxmox",
       "proxmoxDescription": "Мониторинг кластеров, узлов и гостевых систем Proxmox.",
       "cephTitle": "Ceph",

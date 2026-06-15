@@ -6,6 +6,8 @@ import KubernetesClusterService from "Common/Server/Services/KubernetesClusterSe
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import DockerHostService from "Common/Server/Services/DockerHostService";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import PodmanHostService from "Common/Server/Services/PodmanHostService";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import CephClusterService from "Common/Server/Services/CephClusterService";
@@ -48,6 +50,11 @@ export default abstract class OtelIngestBaseService {
   private static readonly DOCKER_CONTAINER_NAME_CACHE_NAMESPACE: string =
     "docker-container-name";
   private static readonly DOCKER_CONTAINER_NAME_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  private static readonly PODMAN_CONTAINER_NAME_CACHE_NAMESPACE: string =
+    "podman-container-name";
+  private static readonly PODMAN_CONTAINER_NAME_CACHE_EXPIRY_SECONDS: number =
     24 * 60 * 60; // 1 day
 
   /*
@@ -170,6 +177,27 @@ export default abstract class OtelIngestBaseService {
     }
 
     /*
+     * Podman-aware fallback: when telemetry arrives from a OneUptime Podman
+     * Agent (container.runtime == "podman"), there is no explicit
+     * service.name. Synthesize a per-container service name so each
+     * container shows up as its own service in the OneUptime UI instead of
+     * every Podman log collapsing into "Unknown Service". A container
+     * name is a meaningful logical service (e.g. "oneuptime-postgres")
+     * and is intentionally still backed by a Service row. Batches that
+     * only carry container.id with no resolvable name fall through to
+     * null and get routed to the PodmanHost record instead.
+     */
+    if (this.isPodmanRuntime(attributes)) {
+      const podmanServiceName: string | null = await this.getPodmanServiceName(
+        req,
+        attributes,
+      );
+      if (podmanServiceName) {
+        return podmanServiceName;
+      }
+    }
+
+    /*
      * Host-level telemetry (OTel hostmetrics receiver, infrastructure
      * agent over OTLP, eBPF profiler) without an explicit service.name
      * used to be folded into a synthetic `host/<name>` Service row,
@@ -248,6 +276,7 @@ export default abstract class OtelIngestBaseService {
     projectId: ObjectID;
     hostId?: ObjectID | null;
     dockerHostId?: ObjectID | null;
+    podmanHostId?: ObjectID | null;
     kubernetesClusterId?: ObjectID | null;
     proxmoxClusterId?: ObjectID | null;
     cephClusterId?: ObjectID | null;
@@ -365,6 +394,7 @@ export default abstract class OtelIngestBaseService {
     projectId: ObjectID;
     hostId?: ObjectID | null;
     dockerHostId?: ObjectID | null;
+    podmanHostId?: ObjectID | null;
     kubernetesClusterId?: ObjectID | null;
     proxmoxClusterId?: ObjectID | null;
     cephClusterId?: ObjectID | null;
@@ -403,6 +433,15 @@ export default abstract class OtelIngestBaseService {
         serviceName: hostName ? `docker-host/${hostName}` : "Docker Host",
         resourceId: data.dockerHostId,
         primaryEntityType: ServiceType.DockerHost,
+        projectId: data.projectId,
+      });
+    }
+
+    if (data.podmanHostId) {
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: hostName ? `podman-host/${hostName}` : "Podman Host",
+        resourceId: data.podmanHostId,
+        primaryEntityType: ServiceType.PodmanHost,
         projectId: data.projectId,
       });
     }
@@ -582,6 +621,88 @@ export default abstract class OtelIngestBaseService {
     return null;
   }
 
+  @CaptureSpan()
+  private static async getPodmanServiceName(
+    req: ExpressRequest,
+    attributes: JSONArray,
+  ): Promise<string | null> {
+    const containerName: string | null = this.getStringAttribute(
+      attributes,
+      "container.name",
+    );
+    const containerId: string | null = this.getStringAttribute(
+      attributes,
+      "container.id",
+    );
+
+    /*
+     * docker_stats metric batches carry both container.id and
+     * container.name as resource attributes, while filelog-originated log
+     * batches only carry container.id (the filelog receiver has no way to
+     * query the Podman API for names). Cache the id -> name mapping off
+     * the metrics path so later log batches for the same container can
+     * resolve to a proper service name.
+     */
+    if (containerId && containerName) {
+      try {
+        const projectId: ObjectID | undefined = (
+          req as ExpressRequest & { projectId?: ObjectID }
+        ).projectId;
+        if (projectId) {
+          await GlobalCache.setString(
+            this.PODMAN_CONTAINER_NAME_CACHE_NAMESPACE,
+            `${projectId.toString()}:${containerId}`,
+            containerName,
+            {
+              expiresInSeconds: this.PODMAN_CONTAINER_NAME_CACHE_EXPIRY_SECONDS,
+            },
+          );
+        }
+      } catch (err) {
+        logger.error(
+          "Error caching Podman container name: " + (err as Error).message,
+        );
+      }
+    }
+
+    if (containerName) {
+      return this.normalizePodmanContainerName(containerName);
+    }
+
+    // Logs path: try the id -> name cache populated by the metrics path.
+    if (containerId) {
+      try {
+        const projectId: ObjectID | undefined = (
+          req as ExpressRequest & { projectId?: ObjectID }
+        ).projectId;
+        if (projectId) {
+          const cached: string | null = await GlobalCache.getString(
+            this.PODMAN_CONTAINER_NAME_CACHE_NAMESPACE,
+            `${projectId.toString()}:${containerId}`,
+          );
+          if (cached) {
+            return this.normalizePodmanContainerName(cached);
+          }
+        }
+      } catch (err) {
+        logger.error(
+          "Error reading Podman container name cache: " +
+            (err as Error).message,
+        );
+      }
+    }
+
+    /*
+     * No resolvable container identity. Used to synthesise
+     * `podman/<hostName>/<shortId>` / `podman/<hostName>` / `podman/<shortId>`
+     * service rows, which created a duplicate alongside the PodmanHost
+     * record `autoDiscoverPodmanHost` had just upserted from the same
+     * batch. The caller now routes the batch through the PodmanHost id
+     * with ServiceType.PodmanHost.
+     */
+    return null;
+  }
+
   /**
    * Strip Docker Compose's replica index suffix (e.g. "-1", "-2") from a
    * container name so that multiple replicas of the same service — and the
@@ -608,6 +729,48 @@ export default abstract class OtelIngestBaseService {
 
     /*
      * Docker Compose's "/" prefix on the raw inspect output (e.g. "/oneuptime-app-1")
+     * is already stripped by the docker_stats receiver, but handle it defensively.
+     */
+    const withoutSlash: string = trimmed.startsWith("/")
+      ? trimmed.substring(1)
+      : trimmed;
+
+    const match: RegExpMatchArray | null =
+      withoutSlash.match(/^(.+)[-_](\d+)$/);
+
+    if (!match || !match[1]) {
+      return withoutSlash;
+    }
+
+    return match[1];
+  }
+
+  /**
+   * Strip Compose's replica index suffix (e.g. "-1", "-2") from a Podman
+   * container name so that multiple replicas of the same service — and the
+   * same service running on different hosts — roll up into a single
+   * OneUptime telemetry service.
+   *
+   * Podman Compose names containers as "{project}-{service}-{index}" (or
+   * "{project}_{service}_{index}" with the legacy separator), so the
+   * trailing "-N" or "_N" is the replica index. We only strip it
+   * when the prefix still looks like a valid service identifier, to avoid
+   * mangling container names that legitimately end in a digit.
+   *
+   * Examples:
+   *   oneuptime-postgres-1   -> oneuptime-postgres
+   *   oneuptime-probe-1-2    -> oneuptime-probe-1   (only the last "-2")
+   *   my-app_3               -> my-app
+   *   redis                  -> redis               (unchanged)
+   */
+  private static normalizePodmanContainerName(name: string): string {
+    const trimmed: string = name.trim();
+    if (!trimmed) {
+      return trimmed;
+    }
+
+    /*
+     * Compose's "/" prefix on the raw inspect output (e.g. "/oneuptime-app-1")
      * is already stripped by the docker_stats receiver, but handle it defensively.
      */
     const withoutSlash: string = trimmed.startsWith("/")
@@ -1746,6 +1909,20 @@ export default abstract class OtelIngestBaseService {
     return false;
   }
 
+  @CaptureSpan()
+  protected static isPodmanRuntime(attributes: JSONArray): boolean {
+    for (const attribute of attributes) {
+      if (
+        attribute["key"] === "container.runtime" &&
+        attribute["value"] &&
+        (attribute["value"] as JSONObject)["stringValue"] === "podman"
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /*
    * True when resource attributes carry a strong "this is a real host"
    * signal — os.type (set by the OTel system resourcedetector via
@@ -1767,6 +1944,11 @@ export default abstract class OtelIngestBaseService {
   private static readonly DOCKER_HOST_ID_CACHE_NAMESPACE: string =
     "docker-host-id";
   private static readonly DOCKER_HOST_ID_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  private static readonly PODMAN_HOST_ID_CACHE_NAMESPACE: string =
+    "podman-host-id";
+  private static readonly PODMAN_HOST_ID_CACHE_EXPIRY_SECONDS: number =
     24 * 60 * 60; // 1 day
 
   @CaptureSpan()
@@ -1895,6 +2077,132 @@ export default abstract class OtelIngestBaseService {
     }
   }
 
+  @CaptureSpan()
+  protected static async autoDiscoverPodmanHost(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    try {
+      if (!this.isPodmanRuntime(data.attributes)) {
+        return null;
+      }
+
+      const hostName: string | null = this.getHostNameFromAttributes(
+        data.attributes,
+      );
+
+      if (!hostName) {
+        return null;
+      }
+
+      const osType: string | null = this.getStringAttribute(
+        data.attributes,
+        "os.type",
+      );
+      const osVersion: string | null =
+        this.getStringAttribute(data.attributes, "os.description") ||
+        this.getStringAttribute(data.attributes, "os.version");
+
+      const cacheKey: string = `${data.projectId.toString()}:${hostName}`;
+      let hostIdStr: string | null = await GlobalCache.getString(
+        this.PODMAN_HOST_ID_CACHE_NAMESPACE,
+        cacheKey,
+      );
+
+      if (!hostIdStr) {
+        const host: PodmanHost =
+          await PodmanHostService.findOrCreateByHostIdentifier({
+            projectId: data.projectId,
+            hostIdentifier: hostName,
+          });
+
+        if (host._id) {
+          hostIdStr = host._id.toString();
+          await GlobalCache.setString(
+            this.PODMAN_HOST_ID_CACHE_NAMESPACE,
+            cacheKey,
+            hostIdStr,
+            { expiresInSeconds: this.PODMAN_HOST_ID_CACHE_EXPIRY_SECONDS },
+          );
+        }
+      }
+
+      if (hostIdStr) {
+        const podmanHostId: ObjectID = new ObjectID(hostIdStr);
+        /*
+         * Same fence rationale as the Kubernetes path — skip the
+         * per-batch maintenance UPDATE + label upsert when we
+         * already ran it within the fence window.
+         */
+        if (await this.shouldRunMaintenance("podman-host", hostIdStr)) {
+          const agentVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "oneuptime.agent.version",
+          );
+          await PodmanHostService.updateLastSeen(podmanHostId, {
+            osType: osType || undefined,
+            osVersion: osVersion || undefined,
+            agentVersion: agentVersion || undefined,
+          });
+          await this.promoteOneuptimeLabelsToPodmanHost({
+            projectId: data.projectId,
+            podmanHostId,
+            attributes: data.attributes,
+          });
+        }
+        return podmanHostId;
+      }
+
+      return null;
+    } catch (err) {
+      logger.error(
+        "Error auto-discovering Podman host: " + (err as Error).message,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * Promote `oneuptime.label.<dim>=<val>` resource attributes into
+   * project labels and attach them to the discovered Podman host.
+   * Mirrors the host/service label promotion. Throttled per-host
+   * inside `attachLabels` so steady-state ingest with unchanged
+   * labels costs one in-memory cache lookup.
+   */
+  @CaptureSpan()
+  protected static async promoteOneuptimeLabelsToPodmanHost(data: {
+    projectId: ObjectID;
+    podmanHostId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      const labelNames: Array<string> = extractOneuptimeLabelNames(
+        data.attributes,
+      );
+      if (labelNames.length === 0) {
+        return;
+      }
+      const labelIds: Array<ObjectID> =
+        await LabelService.findOrCreateLabelsByNames({
+          projectId: data.projectId,
+          labelNames,
+        });
+      if (labelIds.length === 0) {
+        return;
+      }
+      await PodmanHostService.attachLabels({
+        podmanHostId: data.podmanHostId,
+        labelIds,
+      });
+    } catch (err) {
+      logger.warn(
+        `Podman host label promotion failed for ${data.podmanHostId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
   private static readonly HOST_ID_CACHE_NAMESPACE: string = "host-id";
   private static readonly HOST_ID_CACHE_EXPIRY_SECONDS: number = 24 * 60 * 60; // 1 day
 
@@ -1941,6 +2249,7 @@ export default abstract class OtelIngestBaseService {
     attributes: JSONArray;
     hasInfraSignal?: boolean;
     dockerHostId?: ObjectID | null;
+    podmanHostId?: ObjectID | null;
     kubernetesClusterId?: ObjectID | null;
     cpuCores?: number | undefined;
     totalMemoryBytes?: number | undefined;
@@ -1948,10 +2257,11 @@ export default abstract class OtelIngestBaseService {
   }): Promise<ObjectID | null> {
     try {
       /*
-       * Docker hosts and Kubernetes clusters/nodes live in their own tables.
-       * If this batch already resolved to one, do not also create a Host row.
+       * Docker hosts, Podman hosts and Kubernetes clusters/nodes live in
+       * their own tables. If this batch already resolved to one, do not
+       * also create a Host row.
        */
-      if (data.dockerHostId || data.kubernetesClusterId) {
+      if (data.dockerHostId || data.podmanHostId || data.kubernetesClusterId) {
         return null;
       }
 

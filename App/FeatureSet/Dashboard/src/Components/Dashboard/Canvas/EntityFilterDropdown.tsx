@@ -24,6 +24,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Label from "Common/Models/DatabaseModels/Label";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import { EntityFilterModelType } from "Common/Types/Dashboard/DashboardComponents/ComponentArgument";
@@ -91,6 +92,12 @@ function getEntityModelDef(
     case EntityFilterModelType.DockerHost:
       return {
         modelType: DockerHost as unknown as ModelTypeOf<BaseModel>,
+        sortField: "name" as keyof BaseModel,
+        sortOrder: SortOrder.Ascending,
+      };
+    case EntityFilterModelType.PodmanHost:
+      return {
+        modelType: PodmanHost as unknown as ModelTypeOf<BaseModel>,
         sortField: "name" as keyof BaseModel,
         sortOrder: SortOrder.Ascending,
       };

@@ -13,6 +13,7 @@ export * from "./ServiceBreadcrumbs";
 export * from "./CodeRepositoryBreadcrumbs";
 export * from "./KubernetesBreadcrumbs";
 export * from "./DockerBreadcrumbs";
+export * from "./PodmanBreadcrumbs";
 export * from "./ProxmoxBreadcrumbs";
 export * from "./CephBreadcrumbs";
 export * from "./HostBreadcrumbs";

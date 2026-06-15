@@ -389,6 +389,8 @@ import { AddProxmoxAndCephClusterTables1781500000000 } from "./1781500000000-Add
 import { AddProxmoxCephV2Columns1781600000000 } from "./1781600000000-AddProxmoxCephV2Columns";
 import { AddProxmoxCephActivityAndRules1781600000001 } from "./1781600000001-AddProxmoxCephActivityAndRules";
 import { AddProxmoxCephV3Columns1781700000000 } from "./1781700000000-AddProxmoxCephV3Columns";
+import { AddPodmanHostTables1781800000000 } from "./1781800000000-AddPodmanHostTables";
+import { AttachPodmanToIncidentAlertScheduledMaintenance1781800000001 } from "./1781800000001-AttachPodmanToIncidentAlertScheduledMaintenance";
 
 export default [
   InitialMigration,
@@ -782,4 +784,6 @@ export default [
   AddProxmoxCephV2Columns1781600000000,
   AddProxmoxCephActivityAndRules1781600000001,
   AddProxmoxCephV3Columns1781700000000,
+  AddPodmanHostTables1781800000000,
+  AttachPodmanToIncidentAlertScheduledMaintenance1781800000001,
 ];

@@ -207,6 +207,17 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       category: resourcesCategory,
     },
     {
+      title: t("navbar.items.podmanTitle"),
+      description: t("navbar.items.podmanDescription"),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.PODMAN_HOSTS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.PODMAN_HOSTS],
+      icon: IconProp.Podman,
+      iconColor: "blue",
+      category: resourcesCategory,
+    },
+    {
       title: t("navbar.items.proxmoxTitle", "Proxmox"),
       description: t(
         "navbar.items.proxmoxDescription",

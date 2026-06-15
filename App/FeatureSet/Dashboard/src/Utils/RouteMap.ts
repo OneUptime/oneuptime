@@ -140,6 +140,27 @@ export const DockerRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_SETTINGS_LABEL_RULES]: `settings/label-rules`,
 };
 
+export const PodmanRoutePath: Dictionary<string> = {
+  [PageMap.PODMAN_HOST_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.PODMAN_HOST_VIEW_CONTAINERS]: `${RouteParams.ModelID}/containers`,
+  [PageMap.PODMAN_HOST_VIEW_CONTAINER_DETAIL]: `${RouteParams.ModelID}/containers/${RouteParams.SubModelID}`,
+  [PageMap.PODMAN_HOST_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.PODMAN_HOST_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.PODMAN_HOST_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+  [PageMap.PODMAN_HOST_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
+  [PageMap.PODMAN_HOST_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.PODMAN_HOST_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.PODMAN_HOST_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.PODMAN_HOST_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.PODMAN_HOST_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
+  [PageMap.PODMAN_HOST_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.PODMAN_HOST_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.PODMAN_HOST_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.PODMAN_DOCUMENTATION]: `documentation`,
+  [PageMap.PODMAN_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.PODMAN_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+};
+
 export const ProxmoxRoutePath: Dictionary<string> = {
   [PageMap.PROXMOX_CLUSTER_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.PROXMOX_CLUSTER_VIEW_NODES]: `${RouteParams.ModelID}/nodes`,
@@ -2367,6 +2388,124 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DOCKER_SETTINGS_LABEL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/docker/${
       DockerRoutePath[PageMap.DOCKER_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  // Podman
+
+  [PageMap.PODMAN_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/*`,
+  ),
+
+  [PageMap.PODMAN_HOSTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_CONTAINERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_CONTAINERS]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_CONTAINER_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_CONTAINER_DETAIL]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_TRACES]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_PROFILES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_PROFILES]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
+  [PageMap.PODMAN_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_DOCUMENTATION]
+    }`,
+  ),
+
+  // Podman Settings Routes
+  [PageMap.PODMAN_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+  [PageMap.PODMAN_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_SETTINGS_LABEL_RULES]
     }`,
   ),
 

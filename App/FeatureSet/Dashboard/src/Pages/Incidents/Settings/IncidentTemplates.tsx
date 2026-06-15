@@ -13,6 +13,7 @@ import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Service from "Common/Models/DatabaseModels/Service";
@@ -273,6 +274,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
                     values.kubernetesClusters as Array<KubernetesCluster>
                   }
                   dockerHosts={values.dockerHosts as Array<DockerHost>}
+                  podmanHosts={values.podmanHosts as Array<PodmanHost>}
                   services={values.services as Array<Service>}
                   onChange={(payload: unknown) => {
                     elementProps.onChange?.(payload);
@@ -294,6 +296,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
                     hosts: payload.hosts,
                     kubernetesClusters: payload.kubernetesClusters,
                     dockerHosts: payload.dockerHosts,
+                    podmanHosts: payload.podmanHosts,
                     services: payload.services,
                   } as FormValues<IncidentTemplate>);
                 });
@@ -326,6 +329,16 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
           },
           {
             field: { dockerHosts: true },
+            stepId: "resources-affected",
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { podmanHosts: true },
             stepId: "resources-affected",
             title: "",
             fieldType: FormFieldSchemaType.Text,

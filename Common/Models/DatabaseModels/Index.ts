@@ -9,6 +9,10 @@ import DockerHost from "./DockerHost";
 import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
 import DockerHostOwnerUser from "./DockerHostOwnerUser";
 import DockerResource from "./DockerResource";
+import PodmanHost from "./PodmanHost";
+import PodmanHostOwnerTeam from "./PodmanHostOwnerTeam";
+import PodmanHostOwnerUser from "./PodmanHostOwnerUser";
+import PodmanResource from "./PodmanResource";
 import ProxmoxCluster from "./ProxmoxCluster";
 import ProxmoxClusterOwnerTeam from "./ProxmoxClusterOwnerTeam";
 import ProxmoxClusterOwnerUser from "./ProxmoxClusterOwnerUser";
@@ -330,6 +334,8 @@ import ServiceOwnerRule from "./ServiceOwnerRule";
 import ServiceLabelRule from "./ServiceLabelRule";
 import DockerHostOwnerRule from "./DockerHostOwnerRule";
 import DockerHostLabelRule from "./DockerHostLabelRule";
+import PodmanHostOwnerRule from "./PodmanHostOwnerRule";
+import PodmanHostLabelRule from "./PodmanHostLabelRule";
 import KubernetesClusterOwnerRule from "./KubernetesClusterOwnerRule";
 import KubernetesClusterLabelRule from "./KubernetesClusterLabelRule";
 import ProxmoxClusterOwnerRule from "./ProxmoxClusterOwnerRule";
@@ -500,6 +506,8 @@ const AllModelTypes: Array<{
   ServiceLabelRule,
   DockerHostOwnerRule,
   DockerHostLabelRule,
+  PodmanHostOwnerRule,
+  PodmanHostLabelRule,
   KubernetesClusterOwnerRule,
   KubernetesClusterLabelRule,
   ProxmoxClusterOwnerRule,
@@ -720,6 +728,10 @@ const AllModelTypes: Array<{
   DockerHostOwnerTeam,
   DockerHostOwnerUser,
   DockerResource,
+  PodmanHost,
+  PodmanHostOwnerTeam,
+  PodmanHostOwnerUser,
+  PodmanResource,
   ProxmoxCluster,
   ProxmoxClusterOwnerTeam,
   ProxmoxClusterOwnerUser,

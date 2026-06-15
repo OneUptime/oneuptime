@@ -70,6 +70,8 @@
       "kubernetesDescription": "Kubernetesクラスターを監視。",
       "dockerTitle": "Docker",
       "dockerDescription": "Dockerホストとコンテナを監視。",
+      "podmanTitle": "Podman",
+      "podmanDescription": "Monitor Podman hosts and containers.",
       "proxmoxTitle": "Proxmox",
       "proxmoxDescription": "Proxmoxクラスター、ノード、ゲストを監視。",
       "cephTitle": "Ceph",

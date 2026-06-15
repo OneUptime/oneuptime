@@ -144,6 +144,9 @@ import "./Jobs/Kubernetes/CleanupStaleResources";
 // Docker inventory cleanup + cached count refresh.
 import "./Jobs/Docker/CleanupStaleResources";
 
+// Podman inventory cleanup + cached count refresh.
+import "./Jobs/Podman/CleanupStaleResources";
+
 // Host disconnection sweeper.
 import "./Jobs/Host/CleanupStaleHosts";
 

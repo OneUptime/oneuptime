@@ -1,5 +1,6 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -36,7 +37,8 @@ type AffectedResourceType =
   | "service"
   | "host"
   | "kubernetesCluster"
-  | "dockerHost";
+  | "dockerHost"
+  | "podmanHost";
 
 interface ResourceTypeConfig {
   label: string;
@@ -76,6 +78,12 @@ const RESOURCE_TYPES: Record<AffectedResourceType, ResourceTypeConfig> = {
     icon: IconProp.Docker,
     modelType: DockerHost,
   },
+  podmanHost: {
+    label: "Podman Host",
+    pluralLabel: "Podman Hosts",
+    icon: IconProp.Podman,
+    modelType: PodmanHost,
+  },
 };
 
 const RESOURCE_ORDER: Array<AffectedResourceType> = [
@@ -84,6 +92,7 @@ const RESOURCE_ORDER: Array<AffectedResourceType> = [
   "host",
   "kubernetesCluster",
   "dockerHost",
+  "podmanHost",
 ];
 
 /*
@@ -115,7 +124,8 @@ const parseKey: (
     type !== "service" &&
     type !== "host" &&
     type !== "kubernetesCluster" &&
-    type !== "dockerHost"
+    type !== "dockerHost" &&
+    type !== "podmanHost"
   ) {
     return null;
   }
@@ -414,8 +424,10 @@ const buildAffectedResourcesFacet: <T extends BaseModel>(
           field = "hosts";
         } else if (type === "kubernetesCluster") {
           field = "kubernetesClusters";
-        } else {
+        } else if (type === "dockerHost") {
           field = "dockerHosts";
+        } else {
+          field = "podmanHosts";
         }
 
         const objectIds: Array<ObjectID> = ids.map((id: string) => {

@@ -6,8 +6,10 @@ import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
+import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import Service from "../../Models/DatabaseModels/Service";
 import DockerHostService from "./DockerHostService";
+import PodmanHostService from "./PodmanHostService";
 import HostService from "./HostService";
 import IncidentFeedService from "./IncidentFeedService";
 import IncidentLabelRuleService from "./IncidentLabelRuleService";
@@ -33,6 +35,7 @@ class IncidentLabelRuleEngineServiceClass {
    *   - all labels of the incident's hosts when `inheritLabelsFromHosts`
    *   - all labels of the incident's Kubernetes clusters when `inheritLabelsFromKubernetesClusters`
    *   - all labels of the incident's Docker hosts when `inheritLabelsFromDockerHosts`
+   *   - all labels of the incident's Podman hosts when `inheritLabelsFromPodmanHosts`
    *   - all labels of the incident's services when `inheritLabelsFromServices`
    * The union is deduped against labels already on the incident before insert
    * to avoid PK conflicts on the IncidentLabel join table.
@@ -67,6 +70,7 @@ class IncidentLabelRuleEngineServiceClass {
             inheritLabelsFromHosts: true,
             inheritLabelsFromKubernetesClusters: true,
             inheritLabelsFromDockerHosts: true,
+            inheritLabelsFromPodmanHosts: true,
             inheritLabelsFromServices: true,
           },
           limit: 100,
@@ -82,6 +86,7 @@ class IncidentLabelRuleEngineServiceClass {
       let inheritFromHosts: boolean = false;
       let inheritFromKubernetesClusters: boolean = false;
       let inheritFromDockerHosts: boolean = false;
+      let inheritFromPodmanHosts: boolean = false;
       let inheritFromServices: boolean = false;
       const matchedRules: Array<IncidentLabelRule> = [];
 
@@ -110,6 +115,9 @@ class IncidentLabelRuleEngineServiceClass {
         }
         if (rule.inheritLabelsFromDockerHosts) {
           inheritFromDockerHosts = true;
+        }
+        if (rule.inheritLabelsFromPodmanHosts) {
+          inheritFromPodmanHosts = true;
         }
         if (rule.inheritLabelsFromServices) {
           inheritFromServices = true;
@@ -186,6 +194,25 @@ class IncidentLabelRuleEngineServiceClass {
               props: { isRoot: true },
             });
           for (const label of dockerHost?.labels || []) {
+            if (label.id) {
+              labelIdsToAdd.add(label.id.toString());
+            }
+          }
+        }
+      }
+
+      if (inheritFromPodmanHosts && incident.podmanHosts?.length) {
+        for (const incidentPodmanHost of incident.podmanHosts) {
+          if (!incidentPodmanHost.id) {
+            continue;
+          }
+          const podmanHost: PodmanHost | null =
+            await PodmanHostService.findOneById({
+              id: incidentPodmanHost.id,
+              select: { labels: { _id: true } },
+              props: { isRoot: true },
+            });
+          for (const label of podmanHost?.labels || []) {
             if (label.id) {
               labelIdsToAdd.add(label.id.toString());
             }

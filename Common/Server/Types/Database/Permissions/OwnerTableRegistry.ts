@@ -18,6 +18,8 @@ import HostOwnerTeamService from "../../../Services/HostOwnerTeamService";
 import HostOwnerUserService from "../../../Services/HostOwnerUserService";
 import DockerHostOwnerTeamService from "../../../Services/DockerHostOwnerTeamService";
 import DockerHostOwnerUserService from "../../../Services/DockerHostOwnerUserService";
+import PodmanHostOwnerTeamService from "../../../Services/PodmanHostOwnerTeamService";
+import PodmanHostOwnerUserService from "../../../Services/PodmanHostOwnerUserService";
 import KubernetesClusterOwnerTeamService from "../../../Services/KubernetesClusterOwnerTeamService";
 import KubernetesClusterOwnerUserService from "../../../Services/KubernetesClusterOwnerUserService";
 import ServerlessFunctionOwnerTeamService from "../../../Services/ServerlessFunctionOwnerTeamService";
@@ -40,6 +42,7 @@ import ServiceService from "../../../Services/ServiceService";
 import MonitorService from "../../../Services/MonitorService";
 import HostService from "../../../Services/HostService";
 import DockerHostService from "../../../Services/DockerHostService";
+import PodmanHostService from "../../../Services/PodmanHostService";
 import KubernetesClusterService from "../../../Services/KubernetesClusterService";
 import ServerlessFunctionService from "../../../Services/ServerlessFunctionService";
 import CloudResourceService from "../../../Services/CloudResourceService";
@@ -178,6 +181,16 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
       fkColumn: "dockerHostId",
       canOwnTelemetry: true,
       modelService: DockerHostService,
+    },
+  ],
+  [
+    "PodmanHost",
+    {
+      ownerUserService: PodmanHostOwnerUserService,
+      ownerTeamService: PodmanHostOwnerTeamService,
+      fkColumn: "podmanHostId",
+      canOwnTelemetry: true,
+      modelService: PodmanHostService,
     },
   ],
   [

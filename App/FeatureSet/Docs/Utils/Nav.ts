@@ -524,6 +524,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/docker-host",
       },
       {
+        title: "Podman Agent",
+        url: "/docs/telemetry/podman-host",
+      },
+      {
         title: "Proxmox Agent",
         url: "/docs/telemetry/proxmox",
       },

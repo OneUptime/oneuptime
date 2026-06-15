@@ -39,6 +39,7 @@ When a rule matches:
 - If \`Inherit Owners From Hosts\` is on, every owner of the incident's affected hosts is also added.
 - If \`Inherit Owners From Kubernetes Clusters\` is on, every owner of the incident's affected Kubernetes clusters is also added.
 - If \`Inherit Owners From Docker Hosts\` is on, every owner of the incident's affected Docker hosts is also added.
+- If \`Inherit Owners From Podman Hosts\` is on, every owner of the incident's affected Podman hosts is also added.
 - If \`Inherit Owners From Services\` is on, every owner of the incident's affected services is also added.
 
 Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified. Multiple matching rules all fire — the union of their owners ends up assigned.
@@ -306,6 +307,15 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
           required: false,
           description:
             "Assign every owner of the incident's affected Docker hosts as an owner of the incident.",
+        },
+        {
+          field: { inheritOwnersFromPodmanHosts: true },
+          title: "Inherit Owners From Podman Hosts",
+          stepId: "owners",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          description:
+            "Assign every owner of the incident's affected Podman hosts as an owner of the incident.",
         },
         {
           field: { inheritOwnersFromServices: true },

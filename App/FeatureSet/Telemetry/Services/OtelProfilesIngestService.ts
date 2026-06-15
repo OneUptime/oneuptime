@@ -244,11 +244,18 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
               attributes: resourceAttributes_raw,
             });
 
+          const podmanHostId: ObjectID | null =
+            await this.autoDiscoverPodmanHost({
+              projectId: (req as TelemetryRequest).projectId,
+              attributes: resourceAttributes_raw,
+            });
+
           const hostId: ObjectID | null = await this.autoDiscoverHost({
             projectId: (req as TelemetryRequest).projectId,
             attributes: resourceAttributes_raw,
             hasInfraSignal: false,
             dockerHostId,
+            podmanHostId,
             kubernetesClusterId,
           });
 
@@ -276,6 +283,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
               projectId: (req as TelemetryRequest).projectId,
               hostId,
               dockerHostId,
+              podmanHostId,
               kubernetesClusterId,
               serverlessFunctionId,
               cloudResourceId,
@@ -315,6 +323,12 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
             ...(dockerHostId && stampHostName
               ? TelemetryUtil.getAttributesForDockerHostIdAndHostName({
                   dockerHostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(podmanHostId && stampHostName
+              ? TelemetryUtil.getAttributesForPodmanHostIdAndHostName({
+                  podmanHostId,
                   hostName: stampHostName,
                 })
               : {}),

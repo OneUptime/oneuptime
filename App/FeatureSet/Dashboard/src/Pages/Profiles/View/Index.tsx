@@ -289,6 +289,8 @@ function getEntityTypeLabel(entityType: ServiceType | undefined): string {
       return "Host";
     case ServiceType.DockerHost:
       return "Docker host";
+    case ServiceType.PodmanHost:
+      return "Podman host";
     case ServiceType.KubernetesCluster:
       return "Kubernetes cluster";
     case ServiceType.Monitor:

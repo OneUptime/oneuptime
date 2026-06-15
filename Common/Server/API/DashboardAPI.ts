@@ -45,6 +45,8 @@ import Host from "../../Models/DatabaseModels/Host";
 import KubernetesResource from "../../Models/DatabaseModels/KubernetesResource";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import DockerResource from "../../Models/DatabaseModels/DockerResource";
+import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
+import PodmanResource from "../../Models/DatabaseModels/PodmanResource";
 import ProxmoxResource from "../../Models/DatabaseModels/ProxmoxResource";
 import CephResource from "../../Models/DatabaseModels/CephResource";
 import Span from "../../Models/AnalyticsModels/Span";
@@ -56,6 +58,8 @@ import HostService from "../Services/HostService";
 import KubernetesResourceService from "../Services/KubernetesResourceService";
 import DockerHostService from "../Services/DockerHostService";
 import DockerResourceService from "../Services/DockerResourceService";
+import PodmanHostService from "../Services/PodmanHostService";
+import PodmanResourceService from "../Services/PodmanResourceService";
 import ProxmoxResourceService from "../Services/ProxmoxResourceService";
 import CephResourceService from "../Services/CephResourceService";
 import SpanService from "../Services/SpanService";
@@ -213,6 +217,67 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
       state: true,
       dockerHostId: true,
       dockerHost: { name: true },
+    },
+  },
+  "podman-host": {
+    modelType: PodmanHost,
+    service: PodmanHostService,
+    select: {
+      _id: true,
+      name: true,
+      otelCollectorStatus: true,
+      containersRunning: true,
+      containersStopped: true,
+      containersPaused: true,
+      osType: true,
+      osVersion: true,
+    },
+  },
+  "podman-container": {
+    modelType: PodmanResource,
+    service: PodmanResourceService,
+    select: {
+      _id: true,
+      name: true,
+      imageName: true,
+      state: true,
+      latestCpuPercent: true,
+      latestMemoryBytes: true,
+      podmanHostId: true,
+      podmanHost: { name: true },
+    },
+  },
+  "podman-image": {
+    modelType: PodmanResource,
+    service: PodmanResourceService,
+    select: {
+      _id: true,
+      name: true,
+      containerId: true,
+      podmanHostId: true,
+      podmanHost: { name: true },
+    },
+  },
+  "podman-network": {
+    modelType: PodmanResource,
+    service: PodmanResourceService,
+    select: {
+      _id: true,
+      name: true,
+      state: true,
+      podmanHostId: true,
+      podmanHost: { name: true },
+    },
+  },
+  "podman-volume": {
+    modelType: PodmanResource,
+    service: PodmanResourceService,
+    select: {
+      _id: true,
+      name: true,
+      state: true,
+      podmanHostId: true,
+      podmanHost: { name: true },
     },
   },
   "proxmox-resource": {

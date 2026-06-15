@@ -70,6 +70,8 @@
       "kubernetesDescription": "Monitore clusters Kubernetes.",
       "dockerTitle": "Docker",
       "dockerDescription": "Monitore hosts e containers Docker.",
+      "podmanTitle": "Podman",
+      "podmanDescription": "Monitor Podman hosts and containers.",
       "proxmoxTitle": "Proxmox",
       "proxmoxDescription": "Monitore clusters, nós e convidados do Proxmox.",
       "cephTitle": "Ceph",

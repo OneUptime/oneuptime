@@ -70,6 +70,8 @@
       "kubernetesDescription": "Supervise clústeres de Kubernetes.",
       "dockerTitle": "Docker",
       "dockerDescription": "Supervise hosts y contenedores Docker.",
+      "podmanTitle": "Podman",
+      "podmanDescription": "Monitor Podman hosts and containers.",
       "proxmoxTitle": "Proxmox",
       "proxmoxDescription": "Supervise clústeres, nodos e invitados de Proxmox.",
       "cephTitle": "Ceph",

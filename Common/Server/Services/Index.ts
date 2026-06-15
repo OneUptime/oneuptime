@@ -35,6 +35,7 @@ import IncidentStateTimelineService from "./IncidentStateTimelineService";
 import LabelService from "./LabelService";
 import KubernetesClusterService from "./KubernetesClusterService";
 import DockerHostService from "./DockerHostService";
+import PodmanHostService from "./PodmanHostService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
 import CephClusterService from "./CephClusterService";
 import ProxmoxResourceService from "./ProxmoxResourceService";
@@ -282,6 +283,7 @@ const services: Array<BaseService> = [
   LabelService,
   KubernetesClusterService,
   DockerHostService,
+  PodmanHostService,
   ProxmoxClusterService,
   CephClusterService,
   ProxmoxResourceService,

@@ -505,11 +505,23 @@ enum Permission {
   EditDockerHostOwnerRule = "EditDockerHostOwnerRule",
   ReadDockerHostOwnerRule = "ReadDockerHostOwnerRule",
 
+  // Podman Host Owner Rule Permissions
+  CreatePodmanHostOwnerRule = "CreatePodmanHostOwnerRule",
+  DeletePodmanHostOwnerRule = "DeletePodmanHostOwnerRule",
+  EditPodmanHostOwnerRule = "EditPodmanHostOwnerRule",
+  ReadPodmanHostOwnerRule = "ReadPodmanHostOwnerRule",
+
   // Docker Host Label Rule Permissions
   CreateDockerHostLabelRule = "CreateDockerHostLabelRule",
   DeleteDockerHostLabelRule = "DeleteDockerHostLabelRule",
   EditDockerHostLabelRule = "EditDockerHostLabelRule",
   ReadDockerHostLabelRule = "ReadDockerHostLabelRule",
+
+  // Podman Host Label Rule Permissions
+  CreatePodmanHostLabelRule = "CreatePodmanHostLabelRule",
+  DeletePodmanHostLabelRule = "DeletePodmanHostLabelRule",
+  EditPodmanHostLabelRule = "EditPodmanHostLabelRule",
+  ReadPodmanHostLabelRule = "ReadPodmanHostLabelRule",
 
   // Kubernetes Cluster Owner Rule Permissions
   CreateKubernetesClusterOwnerRule = "CreateKubernetesClusterOwnerRule",
@@ -1123,15 +1135,30 @@ enum Permission {
   EditDockerHost = "EditDockerHost",
   ReadDockerHost = "ReadDockerHost",
 
+  CreatePodmanHost = "CreatePodmanHost",
+  DeletePodmanHost = "DeletePodmanHost",
+  EditPodmanHost = "EditPodmanHost",
+  ReadPodmanHost = "ReadPodmanHost",
+
   CreateDockerHostOwnerTeam = "CreateDockerHostOwnerTeam",
   DeleteDockerHostOwnerTeam = "DeleteDockerHostOwnerTeam",
   EditDockerHostOwnerTeam = "EditDockerHostOwnerTeam",
   ReadDockerHostOwnerTeam = "ReadDockerHostOwnerTeam",
 
+  CreatePodmanHostOwnerTeam = "CreatePodmanHostOwnerTeam",
+  DeletePodmanHostOwnerTeam = "DeletePodmanHostOwnerTeam",
+  EditPodmanHostOwnerTeam = "EditPodmanHostOwnerTeam",
+  ReadPodmanHostOwnerTeam = "ReadPodmanHostOwnerTeam",
+
   CreateDockerHostOwnerUser = "CreateDockerHostOwnerUser",
   DeleteDockerHostOwnerUser = "DeleteDockerHostOwnerUser",
   EditDockerHostOwnerUser = "EditDockerHostOwnerUser",
   ReadDockerHostOwnerUser = "ReadDockerHostOwnerUser",
+
+  CreatePodmanHostOwnerUser = "CreatePodmanHostOwnerUser",
+  DeletePodmanHostOwnerUser = "DeletePodmanHostOwnerUser",
+  EditPodmanHostOwnerUser = "EditPodmanHostOwnerUser",
+  ReadPodmanHostOwnerUser = "ReadPodmanHostOwnerUser",
 
   CreateProxmoxCluster = "CreateProxmoxCluster",
   DeleteProxmoxCluster = "DeleteProxmoxCluster",
@@ -7405,6 +7432,42 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },
+      {
+        permission: Permission.CreatePodmanHost,
+        title: "Create Podman Host",
+        description: "This permission can create Podman Host in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeletePodmanHost,
+        title: "Delete Podman Host",
+        description: "This permission can delete Podman Host of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditPodmanHost,
+        title: "Edit Podman Host",
+        description: "This permission can edit Podman Host of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadPodmanHost,
+        title: "Read Podman Host",
+        description: "This permission can read Podman Host of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
 
       {
         permission: Permission.CreateProxmoxCluster,
@@ -8390,6 +8453,47 @@ export class PermissionHelper {
       },
 
       {
+        permission: Permission.CreatePodmanHostOwnerTeam,
+        title: "Create Podman Host Team Owner",
+        description:
+          "This permission can create Podman Host Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeletePodmanHostOwnerTeam,
+        title: "Delete Podman Host Team Owner",
+        description:
+          "This permission can delete Podman Host Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditPodmanHostOwnerTeam,
+        title: "Edit Podman Host Team Owner",
+        description:
+          "This permission can edit Podman Host Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadPodmanHostOwnerTeam,
+        title: "Read Podman Host Team Owner",
+        description:
+          "This permission can read Podman Host Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
         permission: Permission.CreateDockerHostOwnerUser,
         title: "Create Docker Host User Owner",
         description:
@@ -8424,6 +8528,47 @@ export class PermissionHelper {
         title: "Read Docker Host User Owner",
         description:
           "This permission can read Docker Host User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreatePodmanHostOwnerUser,
+        title: "Create Podman Host User Owner",
+        description:
+          "This permission can create Podman Host User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeletePodmanHostOwnerUser,
+        title: "Delete Podman Host User Owner",
+        description:
+          "This permission can delete Podman Host User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditPodmanHostOwnerUser,
+        title: "Edit Podman Host User Owner",
+        description:
+          "This permission can edit Podman Host User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadPodmanHostOwnerUser,
+        title: "Read Podman Host User Owner",
+        description:
+          "This permission can read Podman Host User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -10193,6 +10338,48 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
 
+      // Podman Host Owner Rule Permissions
+      {
+        permission: Permission.CreatePodmanHostOwnerRule,
+        title: "Create Podman Host Owner Rule",
+        description:
+          "This permission can create Podman Host Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeletePodmanHostOwnerRule,
+        title: "Delete Podman Host Owner Rule",
+        description:
+          "This permission can delete Podman Host Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditPodmanHostOwnerRule,
+        title: "Edit Podman Host Owner Rule",
+        description:
+          "This permission can edit Podman Host Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadPodmanHostOwnerRule,
+        title: "Read Podman Host Owner Rule",
+        description:
+          "This permission can read Podman Host Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
       // Docker Host Label Rule Permissions
       {
         permission: Permission.CreateDockerHostLabelRule,
@@ -10229,6 +10416,48 @@ export class PermissionHelper {
         title: "Read Docker Host Label Rule",
         description:
           "This permission can read Docker Host Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Podman Host Label Rule Permissions
+      {
+        permission: Permission.CreatePodmanHostLabelRule,
+        title: "Create Podman Host Label Rule",
+        description:
+          "This permission can create Podman Host Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeletePodmanHostLabelRule,
+        title: "Delete Podman Host Label Rule",
+        description:
+          "This permission can delete Podman Host Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditPodmanHostLabelRule,
+        title: "Edit Podman Host Label Rule",
+        description:
+          "This permission can edit Podman Host Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadPodmanHostLabelRule,
+        title: "Read Podman Host Label Rule",
+        description:
+          "This permission can read Podman Host Label Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

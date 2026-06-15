@@ -23,6 +23,7 @@ export interface ResourceKeySet {
 export interface MaintainedResourceKeys {
   hosts: ResourceKeySet;
   dockerHosts: ResourceKeySet;
+  podmanHosts: ResourceKeySet;
   kubernetesClusters: ResourceKeySet;
   /*
    * Proxmox/Ceph clusters have no `oneuptime.*.id` label stamp, so only
@@ -112,6 +113,11 @@ export default class MonitorMaintenanceSuppression {
           refs.dockerHostNames,
           input.maintained.dockerHosts.names,
         ) ||
+        this.intersects(refs.podmanHostIds, input.maintained.podmanHosts.ids) ||
+        this.intersects(
+          refs.podmanHostNames,
+          input.maintained.podmanHosts.names,
+        ) ||
         this.intersects(
           refs.kubernetesClusterIds,
           input.maintained.kubernetesClusters.ids,
@@ -156,6 +162,8 @@ export default class MonitorMaintenanceSuppression {
       maintained.hosts.names.size > 0 ||
       maintained.dockerHosts.ids.size > 0 ||
       maintained.dockerHosts.names.size > 0 ||
+      maintained.podmanHosts.ids.size > 0 ||
+      maintained.podmanHosts.names.size > 0 ||
       maintained.kubernetesClusters.ids.size > 0 ||
       maintained.kubernetesClusters.names.size > 0 ||
       maintained.proxmoxClusters.ids.size > 0 ||
@@ -181,6 +189,7 @@ export default class MonitorMaintenanceSuppression {
     const maintained: MaintainedResourceKeys = {
       hosts: { ids: new Set<string>(), names: new Set<string>() },
       dockerHosts: { ids: new Set<string>(), names: new Set<string>() },
+      podmanHosts: { ids: new Set<string>(), names: new Set<string>() },
       kubernetesClusters: { ids: new Set<string>(), names: new Set<string>() },
       proxmoxClusters: { ids: new Set<string>(), names: new Set<string>() },
       cephClusters: { ids: new Set<string>(), names: new Set<string>() },
@@ -199,6 +208,7 @@ export default class MonitorMaintenanceSuppression {
           _id: true,
           hosts: { _id: true, hostIdentifier: true },
           dockerHosts: { _id: true, hostIdentifier: true },
+          podmanHosts: { _id: true, hostIdentifier: true },
           kubernetesClusters: { _id: true, clusterIdentifier: true },
           proxmoxClusters: { _id: true, name: true },
           cephClusters: { _id: true, name: true },
@@ -220,6 +230,13 @@ export default class MonitorMaintenanceSuppression {
           maintained.dockerHosts,
           dockerHost._id,
           dockerHost.hostIdentifier,
+        );
+      }
+      for (const podmanHost of event.podmanHosts || []) {
+        this.addKey(
+          maintained.podmanHosts,
+          podmanHost._id,
+          podmanHost.hostIdentifier,
         );
       }
       for (const cluster of event.kubernetesClusters || []) {

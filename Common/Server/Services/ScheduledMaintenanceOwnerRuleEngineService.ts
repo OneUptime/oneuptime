@@ -11,6 +11,9 @@ import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorOwnerTeam from "../../Models/DatabaseModels/MonitorOwnerTeam";
 import MonitorOwnerUser from "../../Models/DatabaseModels/MonitorOwnerUser";
+import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
+import PodmanHostOwnerTeam from "../../Models/DatabaseModels/PodmanHostOwnerTeam";
+import PodmanHostOwnerUser from "../../Models/DatabaseModels/PodmanHostOwnerUser";
 import ScheduledMaintenance from "../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceOwnerRule from "../../Models/DatabaseModels/ScheduledMaintenanceOwnerRule";
 import Service from "../../Models/DatabaseModels/Service";
@@ -27,6 +30,8 @@ import KubernetesClusterOwnerUserService from "./KubernetesClusterOwnerUserServi
 import MonitorOwnerTeamService from "./MonitorOwnerTeamService";
 import MonitorOwnerUserService from "./MonitorOwnerUserService";
 import MonitorService from "./MonitorService";
+import PodmanHostOwnerTeamService from "./PodmanHostOwnerTeamService";
+import PodmanHostOwnerUserService from "./PodmanHostOwnerUserService";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import ScheduledMaintenanceOwnerRuleService from "./ScheduledMaintenanceOwnerRuleService";
 import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
@@ -82,6 +87,7 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass {
             inheritOwnersFromHosts: true,
             inheritOwnersFromKubernetesClusters: true,
             inheritOwnersFromDockerHosts: true,
+            inheritOwnersFromPodmanHosts: true,
             inheritOwnersFromServices: true,
           },
           limit: 100,
@@ -108,6 +114,7 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass {
       let inheritFromHosts: boolean = false;
       let inheritFromKubernetesClusters: boolean = false;
       let inheritFromDockerHosts: boolean = false;
+      let inheritFromPodmanHosts: boolean = false;
       let inheritFromServices: boolean = false;
       const inheritNotifyMode: { value: boolean | null } = { value: null };
 
@@ -159,6 +166,12 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass {
           inheritNotifyMode.value =
             inheritNotifyMode.value === true ? true : notify;
         }
+        if (rule.inheritOwnersFromPodmanHosts) {
+          inheritFromPodmanHosts = true;
+          ruleAddedAny = true;
+          inheritNotifyMode.value =
+            inheritNotifyMode.value === true ? true : notify;
+        }
         if (rule.inheritOwnersFromServices) {
           inheritFromServices = true;
           ruleAddedAny = true;
@@ -178,6 +191,8 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass {
       const inheritedFromKubernetesClusterTeamIds: Set<string> = new Set();
       const inheritedFromDockerHostUserIds: Set<string> = new Set();
       const inheritedFromDockerHostTeamIds: Set<string> = new Set();
+      const inheritedFromPodmanHostUserIds: Set<string> = new Set();
+      const inheritedFromPodmanHostTeamIds: Set<string> = new Set();
       const inheritedFromServiceUserIds: Set<string> = new Set();
       const inheritedFromServiceTeamIds: Set<string> = new Set();
 
@@ -353,6 +368,50 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass {
         }
       }
 
+      if (
+        inheritFromPodmanHosts &&
+        scheduledMaintenance.podmanHosts?.length
+      ) {
+        const podmanHostIds: Array<ObjectID> = scheduledMaintenance.podmanHosts
+          .map((p: PodmanHost) => {
+            return p.id;
+          })
+          .filter((id: ObjectID | null | undefined): id is ObjectID => {
+            return Boolean(id);
+          });
+        if (podmanHostIds.length > 0) {
+          const [podmanHostOwnerUsers, podmanHostOwnerTeams]: [
+            Array<PodmanHostOwnerUser>,
+            Array<PodmanHostOwnerTeam>,
+          ] = await Promise.all([
+            PodmanHostOwnerUserService.findBy({
+              query: { podmanHostId: QueryHelper.any(podmanHostIds) },
+              select: { userId: true },
+              props: { isRoot: true },
+              limit: LIMIT_MAX,
+              skip: 0,
+            }),
+            PodmanHostOwnerTeamService.findBy({
+              query: { podmanHostId: QueryHelper.any(podmanHostIds) },
+              select: { teamId: true },
+              props: { isRoot: true },
+              limit: LIMIT_MAX,
+              skip: 0,
+            }),
+          ]);
+          for (const ownerUser of podmanHostOwnerUsers) {
+            if (ownerUser.userId) {
+              inheritedFromPodmanHostUserIds.add(ownerUser.userId.toString());
+            }
+          }
+          for (const ownerTeam of podmanHostOwnerTeams) {
+            if (ownerTeam.teamId) {
+              inheritedFromPodmanHostTeamIds.add(ownerTeam.teamId.toString());
+            }
+          }
+        }
+      }
+
       if (inheritFromServices && scheduledMaintenance.services?.length) {
         const serviceIds: Array<ObjectID> = scheduledMaintenance.services
           .map((s: Service) => {
@@ -399,6 +458,7 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass {
         ...inheritedFromHostUserIds,
         ...inheritedFromKubernetesClusterUserIds,
         ...inheritedFromDockerHostUserIds,
+        ...inheritedFromPodmanHostUserIds,
         ...inheritedFromServiceUserIds,
       ]);
       const inheritedTeamIds: Set<string> = new Set([
@@ -406,6 +466,7 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass {
         ...inheritedFromHostTeamIds,
         ...inheritedFromKubernetesClusterTeamIds,
         ...inheritedFromDockerHostTeamIds,
+        ...inheritedFromPodmanHostTeamIds,
         ...inheritedFromServiceTeamIds,
       ]);
 
@@ -480,6 +541,10 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass {
           inheritedFromDockerHostUserIds.size +
             inheritedFromDockerHostTeamIds.size >
           0,
+        inheritedFromPodmanHosts:
+          inheritedFromPodmanHostUserIds.size +
+            inheritedFromPodmanHostTeamIds.size >
+          0,
         inheritedFromServices:
           inheritedFromServiceUserIds.size + inheritedFromServiceTeamIds.size >
           0,
@@ -505,6 +570,7 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass {
     inheritedFromHosts: boolean;
     inheritedFromKubernetesClusters: boolean;
     inheritedFromDockerHosts: boolean;
+    inheritedFromPodmanHosts: boolean;
     inheritedFromServices: boolean;
   }): Promise<void> {
     const {
@@ -516,6 +582,7 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass {
       inheritedFromHosts,
       inheritedFromKubernetesClusters,
       inheritedFromDockerHosts,
+      inheritedFromPodmanHosts,
       inheritedFromServices,
     } = data;
     if (
@@ -599,6 +666,9 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass {
       }
       if (inheritedFromDockerHosts) {
         inheritedSources.push("Docker hosts");
+      }
+      if (inheritedFromPodmanHosts) {
+        inheritedSources.push("Podman hosts");
       }
       if (inheritedFromServices) {
         inheritedSources.push("services");

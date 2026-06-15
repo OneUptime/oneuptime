@@ -1,4 +1,5 @@
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -7,6 +8,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import DockerHostElement from "../DockerHost/DockerHost";
+import PodmanHostElement from "../PodmanHost/PodmanHost";
 import HostElement from "../Host/Host";
 import KubernetesClusterElement from "../KubernetesCluster/KubernetesCluster";
 import MonitorElement from "../Monitor/Monitor";
@@ -17,6 +19,7 @@ export interface ComponentProps {
   hosts?: Array<Host> | undefined;
   kubernetesClusters?: Array<KubernetesCluster> | undefined;
   dockerHosts?: Array<DockerHost> | undefined;
+  podmanHosts?: Array<PodmanHost> | undefined;
   services?: Array<Service> | undefined;
   /*
    * Caller can hide categories that don't apply (e.g. Alert lists its monitor
@@ -26,6 +29,7 @@ export interface ComponentProps {
   hideHosts?: boolean | undefined;
   hideKubernetesClusters?: boolean | undefined;
   hideDockerHosts?: boolean | undefined;
+  hidePodmanHosts?: boolean | undefined;
   hideServices?: boolean | undefined;
   emptyMessage?: string | undefined;
 }
@@ -170,6 +174,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   const kubernetesClusters: Array<KubernetesCluster> =
     props.kubernetesClusters || [];
   const dockerHosts: Array<DockerHost> = props.dockerHosts || [];
+  const podmanHosts: Array<PodmanHost> = props.podmanHosts || [];
   const services: Array<Service> = props.services || [];
 
   const showMonitors: boolean = !props.hideMonitors && monitors.length > 0;
@@ -177,6 +182,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   const showClusters: boolean =
     !props.hideKubernetesClusters && kubernetesClusters.length > 0;
   const showDocker: boolean = !props.hideDockerHosts && dockerHosts.length > 0;
+  const showPodman: boolean = !props.hidePodmanHosts && podmanHosts.length > 0;
   const showServices: boolean = !props.hideServices && services.length > 0;
 
   if (
@@ -184,6 +190,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     !showHosts &&
     !showClusters &&
     !showDocker &&
+    !showPodman &&
     !showServices
   ) {
     return (
@@ -207,12 +214,14 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     (showHosts ? hosts.length : 0) +
     (showClusters ? kubernetesClusters.length : 0) +
     (showDocker ? dockerHosts.length : 0) +
+    (showPodman ? podmanHosts.length : 0) +
     (showServices ? services.length : 0);
   const categoryCount: number =
     (showMonitors ? 1 : 0) +
     (showHosts ? 1 : 0) +
     (showClusters ? 1 : 0) +
     (showDocker ? 1 : 0) +
+    (showPodman ? 1 : 0) +
     (showServices ? 1 : 0);
   const resourceWord: string = totalCount === 1 ? "resource" : "resources";
   const categoryWord: string = categoryCount === 1 ? "category" : "categories";
@@ -287,6 +296,21 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
             items={dockerHosts}
             renderItem={(dockerHost: DockerHost) => {
               return <DockerHostElement dockerHost={dockerHost} />;
+            }}
+          />
+        )}
+        {showPodman && (
+          <CategoryCard<PodmanHost>
+            icon={IconProp.Podman}
+            label="Podman Hosts"
+            iconBgClass="bg-violet-50"
+            iconColorClass="text-violet-600"
+            accentBarClass="bg-violet-500"
+            countBgClass="bg-violet-50"
+            countTextClass="text-violet-700"
+            items={podmanHosts}
+            renderItem={(podmanHost: PodmanHost) => {
+              return <PodmanHostElement podmanHost={podmanHost} />;
             }}
           />
         )}

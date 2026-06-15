@@ -20,6 +20,7 @@ import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionCo
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import Host from "../../Models/DatabaseModels/Host";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
+import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import ProxmoxCluster from "../../Models/DatabaseModels/ProxmoxCluster";
 import CephCluster from "../../Models/DatabaseModels/CephCluster";
@@ -28,6 +29,7 @@ import CloudResource from "../../Models/DatabaseModels/CloudResource";
 import RumApplication from "../../Models/DatabaseModels/RumApplication";
 import HostService from "./HostService";
 import DockerHostService from "./DockerHostService";
+import PodmanHostService from "./PodmanHostService";
 import KubernetesClusterService from "./KubernetesClusterService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
 import CephClusterService from "./CephClusterService";
@@ -673,6 +675,23 @@ export default class OTelIngestService {
             dockerHost?.retainTelemetryDataForDays ?? null,
           telemetryRetentionConfig:
             dockerHost?.telemetryRetentionConfig ?? null,
+        };
+      }
+      if (primaryEntityType === ServiceType.PodmanHost) {
+        const podmanHost: PodmanHost | null =
+          await PodmanHostService.findOneById({
+            id: resourceId,
+            select: {
+              retainTelemetryDataForDays: true,
+              telemetryRetentionConfig: true,
+            },
+            props: { isRoot: true },
+          });
+        return {
+          retainTelemetryDataForDays:
+            podmanHost?.retainTelemetryDataForDays ?? null,
+          telemetryRetentionConfig:
+            podmanHost?.telemetryRetentionConfig ?? null,
         };
       }
       if (primaryEntityType === ServiceType.KubernetesCluster) {

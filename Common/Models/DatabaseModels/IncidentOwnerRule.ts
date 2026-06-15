@@ -917,6 +917,44 @@ export default class IncidentOwnerRule extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.Boolean,
+    title: "Inherit Owners From Podman Hosts",
+    description:
+      "When this rule matches, also assign every owner of the incident's affected Podman hosts to the incident.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public inheritOwnersFromPodmanHosts?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateIncidentOwnerRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentOwnerRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditIncidentOwnerRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
     title: "Inherit Owners From Services",
     description:
       "When this rule matches, also assign every owner of the incident's affected services to the incident.",

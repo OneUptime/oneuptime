@@ -1,4 +1,5 @@
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -6,6 +7,7 @@ import Service from "Common/Models/DatabaseModels/Service";
 import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
 import React, { FunctionComponent, ReactElement } from "react";
 import DockerHostElement from "../DockerHost/DockerHost";
+import PodmanHostElement from "../PodmanHost/PodmanHost";
 import HostElement from "../Host/Host";
 import KubernetesClusterElement from "../KubernetesCluster/KubernetesCluster";
 import MonitorElement from "../Monitor/Monitor";
@@ -29,6 +31,7 @@ type ResourceItem =
   | { _key: string; type: "Host"; model: Host }
   | { _key: string; type: "KubernetesCluster"; model: KubernetesCluster }
   | { _key: string; type: "DockerHost"; model: DockerHost }
+  | { _key: string; type: "PodmanHost"; model: PodmanHost }
   | { _key: string; type: "Service"; model: Service };
 
 export interface ComponentProps {
@@ -36,6 +39,7 @@ export interface ComponentProps {
   hosts?: Array<Host> | undefined;
   kubernetesClusters?: Array<KubernetesCluster> | undefined;
   dockerHosts?: Array<DockerHost> | undefined;
+  podmanHosts?: Array<PodmanHost> | undefined;
   services?: Array<Service> | undefined;
   noItemsMessage?: string | undefined;
   onNavigateComplete?: (() => void) | undefined;
@@ -76,6 +80,15 @@ const AffectedResourcesCell: FunctionComponent<ComponentProps> = (
       }`,
       type: "DockerHost",
       model: dockerHost,
+    });
+  }
+  for (const podmanHost of props.podmanHosts || []) {
+    items.push({
+      _key: `PodmanHost:${
+        podmanHost._id ? String(podmanHost._id) : Math.random()
+      }`,
+      type: "PodmanHost",
+      model: podmanHost,
     });
   }
   for (const service of props.services || []) {
@@ -123,6 +136,15 @@ const AffectedResourcesCell: FunctionComponent<ComponentProps> = (
           return (
             <DockerHostElement
               dockerHost={item.model}
+              showIcon={true}
+              onNavigateComplete={props.onNavigateComplete}
+            />
+          );
+        }
+        if (item.type === "PodmanHost") {
+          return (
+            <PodmanHostElement
+              podmanHost={item.model}
               showIcon={true}
               onNavigateComplete={props.onNavigateComplete}
             />
