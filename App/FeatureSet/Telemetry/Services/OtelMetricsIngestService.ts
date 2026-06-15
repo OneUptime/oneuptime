@@ -50,6 +50,9 @@ import DockerResourceService, {
 import PodmanResourceService, {
   ParsedPodmanContainer,
 } from "Common/Server/Services/PodmanResourceService";
+import DockerSwarmResourceService, {
+  DockerSwarmResourceLatestMetric,
+} from "Common/Server/Services/DockerSwarmResourceService";
 import CloudResourceInstanceService from "Common/Server/Services/CloudResourceInstanceService";
 import ProxmoxResourceService, {
   ParsedProxmoxResource,
@@ -160,6 +163,21 @@ const PODMAN_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
 ]);
 
 /*
+ * Docker Swarm task metrics — emitted by the same docker_stats receiver
+ * the swarm agent runs on each node. Swarm task containers are named
+ * `<service>.<slot|nodeId>.<taskId>`, so the task id (the DockerSwarmResource
+ * Task externalId `task/<taskId>`) is the last dot-segment of
+ * resource.container.name. The latest CPU/memory point is mirrored onto the
+ * matching Task row (created by the inventory poller); a metric for a task
+ * not yet inventoried is a no-op that the next snapshot reconciles.
+ */
+const DOCKER_SWARM_TASK_METRIC_NAMES: ReadonlySet<string> = new Set([
+  "container.cpu.utilization",
+  "container.memory.usage.total",
+  "container.memory.percent",
+]);
+
+/*
  * Cloud managed-compute snapshot metrics — ECS/Fargate, Cloud Run, etc.
  * emit container.cpu.utilization / container.memory.usage with
  * service.instance.id identifying the running task / instance. The latest
@@ -207,6 +225,14 @@ interface DockerContainerMetricBufferEntry {
   imageName: string | null;
   cpuPercent: number | null;
   memoryBytes: number | null;
+  observedAt: Date;
+}
+
+interface DockerSwarmTaskMetricBufferEntry {
+  taskExternalId: string; // task/<taskId>
+  cpuPercent: number | null;
+  memoryBytes: number | null;
+  memoryPercent: number | null;
   observedAt: Date;
 }
 
@@ -610,6 +636,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       const podmanContainerMetricsBuffer: Map<
         string,
         Map<string, PodmanContainerMetricBufferEntry>
+      > = new Map();
+      const dockerSwarmTaskMetricsBuffer: Map<
+        string,
+        Map<string, DockerSwarmTaskMetricBufferEntry>
       > = new Map();
       const cloudResourceInstanceMetricsBuffer: Map<
         string,
@@ -1154,6 +1184,20 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                         }
 
                         if (
+                          dockerSwarmClusterId &&
+                          DOCKER_SWARM_TASK_METRIC_NAMES.has(metricName)
+                        ) {
+                          this.bufferDockerSwarmTaskMetric({
+                            clusterIdStr: dockerSwarmClusterId.toString(),
+                            metricName,
+                            metricUnit,
+                            datapoint: datapoint as JSONObject,
+                            metricAttributes,
+                            buffer: dockerSwarmTaskMetricsBuffer,
+                          });
+                        }
+
+                        if (
                           podmanHostId &&
                           PODMAN_SNAPSHOT_METRIC_NAMES.has(metricName)
                         ) {
@@ -1306,6 +1350,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       await this.flushPodmanSnapshotBuffer({
         projectId,
         buffer: podmanContainerMetricsBuffer,
+      });
+
+      await this.flushDockerSwarmTaskMetrics({
+        projectId,
+        buffer: dockerSwarmTaskMetricsBuffer,
       });
 
       await this.flushCloudResourceSnapshotBuffer({
@@ -1966,6 +2015,160 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
    * stream — every metric flush both creates and updates rows in
    * one ON-CONFLICT statement.
    */
+  /*
+   * Mirror the latest CPU/memory of a Docker Swarm task's container onto
+   * its DockerSwarmResource Task row. Swarm task containers are named
+   * `<service>.<slot|nodeId>.<taskId>` by Docker, so the task id (the Task
+   * externalId `task/<taskId>`) is the last dot-segment of
+   * resource.container.name. A metric whose task is not yet inventoried is a
+   * harmless no-op (bulkUpdateLatestMetrics only UPDATEs existing rows; the
+   * next inventory snapshot reconciles).
+   */
+  private static bufferDockerSwarmTaskMetric(data: {
+    clusterIdStr: string;
+    metricName: string;
+    metricUnit: string | undefined;
+    datapoint: JSONObject;
+    metricAttributes: Dictionary<AttributeType | Array<AttributeType>>;
+    buffer: Map<string, Map<string, DockerSwarmTaskMetricBufferEntry>>;
+  }): void {
+    const valueFromInt: number | null = this.toNumberOrNull(
+      data.datapoint["asInt"],
+    );
+    const valueFromDouble: number | null = this.toNumberOrNull(
+      data.datapoint["asDouble"],
+    );
+    const rawValue: number | null = valueFromDouble ?? valueFromInt;
+    if (rawValue === null) {
+      return;
+    }
+
+    const ts: MetricTimestamp = this.safeParseUnixNano(
+      data.datapoint["timeUnixNano"] as string | number | undefined,
+      "docker swarm task timeUnixNano",
+    );
+
+    const attrs: Dictionary<AttributeType | Array<AttributeType>> =
+      data.metricAttributes;
+    const containerName: string = this.readSnapshotAttr(
+      attrs,
+      "resource.container.name",
+    );
+    if (!containerName) {
+      return;
+    }
+
+    /*
+     * `<service>.<slot|nodeId>.<taskId>` — need at least 3 segments to be a
+     * swarm task container; the last segment is the task id.
+     */
+    const segments: Array<string> = containerName.split(".");
+    if (segments.length < 3) {
+      return;
+    }
+    const taskId: string = segments[segments.length - 1] || "";
+    if (!taskId) {
+      return;
+    }
+    const taskExternalId: string = `task/${taskId}`;
+
+    const isCpu: boolean = data.metricName === "container.cpu.utilization";
+    const isMemBytes: boolean =
+      data.metricName === "container.memory.usage.total";
+    const isMemPct: boolean = data.metricName === "container.memory.percent";
+
+    this.foldDockerSwarmTaskSnapshot({
+      buffer: data.buffer,
+      clusterIdStr: data.clusterIdStr,
+      taskExternalId,
+      cpuPercent: isCpu
+        ? this.cpuValueToPercent(rawValue, data.metricUnit)
+        : null,
+      memoryBytes: isMemBytes ? Math.max(0, Math.trunc(rawValue)) : null,
+      memoryPercent: isMemPct ? rawValue : null,
+      observedAt: ts.date,
+    });
+  }
+
+  private static foldDockerSwarmTaskSnapshot(data: {
+    buffer: Map<string, Map<string, DockerSwarmTaskMetricBufferEntry>>;
+    clusterIdStr: string;
+    taskExternalId: string;
+    cpuPercent: number | null;
+    memoryBytes: number | null;
+    memoryPercent: number | null;
+    observedAt: Date;
+  }): void {
+    let perCluster: Map<string, DockerSwarmTaskMetricBufferEntry> | undefined =
+      data.buffer.get(data.clusterIdStr);
+    if (!perCluster) {
+      perCluster = new Map();
+      data.buffer.set(data.clusterIdStr, perCluster);
+    }
+    const existing: DockerSwarmTaskMetricBufferEntry | undefined =
+      perCluster.get(data.taskExternalId);
+    if (!existing) {
+      perCluster.set(data.taskExternalId, {
+        taskExternalId: data.taskExternalId,
+        cpuPercent: data.cpuPercent,
+        memoryBytes: data.memoryBytes,
+        memoryPercent: data.memoryPercent,
+        observedAt: data.observedAt,
+      });
+      return;
+    }
+    const newer: boolean = data.observedAt >= existing.observedAt;
+    if (data.cpuPercent !== null && newer) {
+      existing.cpuPercent = data.cpuPercent;
+    }
+    if (data.memoryBytes !== null && newer) {
+      existing.memoryBytes = data.memoryBytes;
+    }
+    if (data.memoryPercent !== null && newer) {
+      existing.memoryPercent = data.memoryPercent;
+    }
+    if (data.observedAt > existing.observedAt) {
+      existing.observedAt = data.observedAt;
+    }
+  }
+
+  private static async flushDockerSwarmTaskMetrics(data: {
+    projectId: ObjectID;
+    buffer: Map<string, Map<string, DockerSwarmTaskMetricBufferEntry>>;
+  }): Promise<void> {
+    if (data.buffer.size === 0) {
+      return;
+    }
+    for (const [clusterIdStr, byKey] of data.buffer.entries()) {
+      if (byKey.size === 0) {
+        continue;
+      }
+      try {
+        const metrics: Array<DockerSwarmResourceLatestMetric> = [];
+        for (const e of byKey.values()) {
+          metrics.push({
+            kind: "Task",
+            externalId: e.taskExternalId,
+            cpuPercent: e.cpuPercent,
+            memoryBytes: e.memoryBytes,
+            maxMemoryBytes: null,
+            memoryPercent: e.memoryPercent,
+            observedAt: e.observedAt,
+          });
+        }
+        await DockerSwarmResourceService.bulkUpdateLatestMetrics({
+          projectId: data.projectId,
+          dockerSwarmClusterId: new ObjectID(clusterIdStr),
+          metrics,
+        });
+      } catch (err) {
+        logger.warn(
+          `Docker Swarm task metric writeback failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
   private static bufferDockerSnapshotMetric(data: {
     hostIdStr: string;
     metricName: string;
