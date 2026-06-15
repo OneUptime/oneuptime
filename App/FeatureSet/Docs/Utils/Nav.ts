@@ -261,6 +261,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/docker-monitor",
       },
       {
+        title: "Host Monitor",
+        url: "/docs/monitor/host-monitor",
+      },
+      {
         title: "Podman Monitor",
         url: "/docs/monitor/podman-monitor",
       },

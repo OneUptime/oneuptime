@@ -50,6 +50,9 @@ import MonitorStepKubernetesMonitor, {
 import MonitorStepDockerMonitor, {
   MonitorStepDockerMonitorUtil,
 } from "./MonitorStepDockerMonitor";
+import MonitorStepHostMonitor, {
+  MonitorStepHostMonitorUtil,
+} from "./MonitorStepHostMonitor";
 import MonitorStepPodmanMonitor, {
   MonitorStepPodmanMonitorUtil,
 } from "./MonitorStepPodmanMonitor";
@@ -182,6 +185,9 @@ export interface MonitorStepType {
   // Docker monitor
   dockerMonitor?: MonitorStepDockerMonitor | undefined;
 
+  // Host monitor
+  hostMonitor?: MonitorStepHostMonitor | undefined;
+
   // Podman monitor
   podmanMonitor?: MonitorStepPodmanMonitor | undefined;
 
@@ -232,6 +238,7 @@ export default class MonitorStep extends DatabaseProperty {
       externalStatusPageMonitor: undefined,
       kubernetesMonitor: undefined,
       dockerMonitor: undefined,
+      hostMonitor: undefined,
       podmanMonitor: undefined,
       proxmoxMonitor: undefined,
       dockerSwarmMonitor: undefined,
@@ -280,6 +287,7 @@ export default class MonitorStep extends DatabaseProperty {
       externalStatusPageMonitor: undefined,
       kubernetesMonitor: undefined,
       dockerMonitor: undefined,
+      hostMonitor: undefined,
       podmanMonitor: undefined,
       proxmoxMonitor: undefined,
       dockerSwarmMonitor: undefined,
@@ -473,6 +481,11 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
+  public setHostMonitor(hostMonitor: MonitorStepHostMonitor): MonitorStep {
+    this.data!.hostMonitor = hostMonitor;
+    return this;
+  }
+
   public setPodmanMonitor(
     podmanMonitor: MonitorStepPodmanMonitor,
   ): MonitorStep {
@@ -535,6 +548,7 @@ export default class MonitorStep extends DatabaseProperty {
         exceptionMonitor: undefined,
         kubernetesMonitor: undefined,
         dockerMonitor: undefined,
+        hostMonitor: undefined,
         podmanMonitor: undefined,
         proxmoxMonitor: undefined,
         dockerSwarmMonitor: undefined,
@@ -705,6 +719,16 @@ export default class MonitorStep extends DatabaseProperty {
       }
     }
 
+    if (monitorType === MonitorType.Host) {
+      if (!value.data.hostMonitor) {
+        return "Host monitor configuration is required";
+      }
+
+      if (!value.data.hostMonitor.hostIdentifier) {
+        return "Host is required";
+      }
+    }
+
     if (monitorType === MonitorType.Podman) {
       if (!value.data.podmanMonitor) {
         return "Podman monitor configuration is required";
@@ -827,6 +851,9 @@ export default class MonitorStep extends DatabaseProperty {
             : undefined,
           dockerMonitor: this.data.dockerMonitor
             ? MonitorStepDockerMonitorUtil.toJSON(this.data.dockerMonitor)
+            : undefined,
+          hostMonitor: this.data.hostMonitor
+            ? MonitorStepHostMonitorUtil.toJSON(this.data.hostMonitor)
             : undefined,
           podmanMonitor: this.data.podmanMonitor
             ? MonitorStepPodmanMonitorUtil.toJSON(this.data.podmanMonitor)
@@ -980,6 +1007,9 @@ export default class MonitorStep extends DatabaseProperty {
       dockerMonitor: json["dockerMonitor"]
         ? (json["dockerMonitor"] as JSONObject)
         : undefined,
+      hostMonitor: json["hostMonitor"]
+        ? (json["hostMonitor"] as JSONObject)
+        : undefined,
       podmanMonitor: json["podmanMonitor"]
         ? (json["podmanMonitor"] as JSONObject)
         : undefined,
@@ -1030,6 +1060,7 @@ export default class MonitorStep extends DatabaseProperty {
         externalStatusPageMonitor: Zod.any().optional(),
         kubernetesMonitor: Zod.any().optional(),
         dockerMonitor: Zod.any().optional(),
+        hostMonitor: Zod.any().optional(),
         podmanMonitor: Zod.any().optional(),
         proxmoxMonitor: Zod.any().optional(),
         dockerSwarmMonitor: Zod.any().optional(),

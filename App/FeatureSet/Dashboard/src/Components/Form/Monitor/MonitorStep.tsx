@@ -77,6 +77,10 @@ import DockerMonitorStepForm from "./DockerMonitor/DockerMonitorStepForm";
 import MonitorStepDockerMonitor, {
   MonitorStepDockerMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepDockerMonitor";
+import HostMonitorStepForm from "./HostMonitor/HostMonitorStepForm";
+import MonitorStepHostMonitor, {
+  MonitorStepHostMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepHostMonitor";
 import PodmanMonitorStepForm from "./PodmanMonitor/PodmanMonitorStepForm";
 import MonitorStepPodmanMonitor, {
   MonitorStepPodmanMonitorUtil,
@@ -1263,6 +1267,33 @@ return {
             }
             onChange={(value: MonitorStepDockerMonitor) => {
               monitorStep.setDockerMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onMonitorCriteriaChange={(criteria: MonitorCriteria) => {
+              monitorStep.setMonitorCriteria(criteria);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onlineMonitorStatusId={props.onlineMonitorStatusId}
+            offlineMonitorStatusId={props.offlineMonitorStatusId}
+            defaultIncidentSeverityId={props.defaultIncidentSeverityId}
+            defaultAlertSeverityId={props.defaultAlertSeverityId}
+            monitorName={props.monitorName}
+          />
+        </Card>
+      )}
+
+      {props.monitorType === MonitorType.Host && (
+        <Card
+          title="Host Monitor Configuration"
+          description="Configure your host monitoring using templates, curated metrics, or the advanced query builder."
+        >
+          <HostMonitorStepForm
+            monitorStepHostMonitor={
+              monitorStep.data?.hostMonitor ||
+              MonitorStepHostMonitorUtil.getDefault()
+            }
+            onChange={(value: MonitorStepHostMonitor) => {
+              monitorStep.setHostMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
             onMonitorCriteriaChange={(criteria: MonitorCriteria) => {

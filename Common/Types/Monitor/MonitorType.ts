@@ -8,6 +8,7 @@ enum MonitorType {
   Ping = "Ping",
   Kubernetes = "Kubernetes",
   Docker = "Docker",
+  Host = "Host",
   Podman = "Podman",
   DockerSwarm = "Docker Swarm",
   Proxmox = "Proxmox",
@@ -104,6 +105,10 @@ export class MonitorTypeHelper {
         monitorTypes: [MonitorType.Docker],
       },
       {
+        label: "Host",
+        monitorTypes: [MonitorType.Host],
+      },
+      {
         label: "Podman",
         monitorTypes: [MonitorType.Podman],
       },
@@ -152,6 +157,7 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.Profiles ||
       monitorType === MonitorType.Kubernetes ||
       monitorType === MonitorType.Docker ||
+      monitorType === MonitorType.Host ||
       monitorType === MonitorType.Podman ||
       monitorType === MonitorType.DockerSwarm ||
       monitorType === MonitorType.Proxmox ||
@@ -206,6 +212,13 @@ export class MonitorTypeHelper {
         description:
           "This monitor type lets you monitor Docker containers — CPU, memory, network, restarts, and lifecycle events.",
         icon: IconProp.Cube,
+      },
+      {
+        monitorType: MonitorType.Host,
+        title: "Host",
+        description:
+          "This monitor type lets you monitor OpenTelemetry-instrumented hosts and servers (the Hosts product) — CPU, memory, disk, network, load average, and process count via the OneUptime Infrastructure Agent. It is the telemetry-metric counterpart to the agent-push Server / VM Monitor.",
+        icon: IconProp.Server,
       },
       {
         monitorType: MonitorType.Podman,
@@ -437,6 +450,7 @@ export class MonitorTypeHelper {
       MonitorType.ExternalStatusPage,
       MonitorType.Kubernetes,
       MonitorType.Docker,
+      MonitorType.Host,
       MonitorType.Podman,
       MonitorType.DockerSwarm,
       MonitorType.Proxmox,

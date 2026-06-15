@@ -74,6 +74,7 @@ import MonitorStepKubernetesMonitor, {
 import MonitorStepDockerMonitor, {
   DockerContainerFilters,
 } from "Common/Types/Monitor/MonitorStepDockerMonitor";
+import MonitorStepHostMonitor from "Common/Types/Monitor/MonitorStepHostMonitor";
 import MonitorStepPodmanMonitor, {
   PodmanContainerFilters,
 } from "Common/Types/Monitor/MonitorStepPodmanMonitor";
@@ -128,6 +129,7 @@ RunCron(
           MonitorType.Profiles,
           MonitorType.Kubernetes,
           MonitorType.Docker,
+          MonitorType.Host,
           MonitorType.Podman,
           MonitorType.DockerSwarm,
           MonitorType.Proxmox,
@@ -757,6 +759,14 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
 
   if (monitorType === MonitorType.Docker) {
     return monitorDocker({
+      monitorStep,
+      monitorId,
+      projectId,
+    });
+  }
+
+  if (monitorType === MonitorType.Host) {
+    return monitorHost({
       monitorStep,
       monitorId,
       projectId,
@@ -1597,6 +1607,173 @@ const monitorDocker: MonitorDockerFunction = async (data: {
   return {
     projectId: data.projectId,
     metricViewConfig: dockerMonitorConfig.metricViewConfig,
+    startAndEndDate: startAndEndDate,
+    metricResult: resultsWithFormulas,
+    seriesBreakdown: seriesBreakdown,
+    monitorId: data.monitorId,
+  };
+};
+
+type MonitorHostFunction = (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}) => Promise<MetricMonitorResponse>;
+
+const monitorHost: MonitorHostFunction = async (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}): Promise<MetricMonitorResponse> => {
+  const hostMonitorConfig: MonitorStepHostMonitor | undefined =
+    data.monitorStep.data?.hostMonitor;
+
+  if (!hostMonitorConfig) {
+    throw new BadDataException("Host monitor config is missing");
+  }
+
+  const startAndEndDate: InBetween<Date> =
+    RollingTimeUtil.convertToStartAndEndDate(
+      hostMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    );
+
+  const finalResult: Array<AggregatedResult> = [];
+
+  const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
+    hostMonitorConfig.metricViewConfig.queryConfigs,
+  );
+
+  for (const queryConfig of hostMonitorConfig.metricViewConfig.queryConfigs) {
+    const metricName: string =
+      (queryConfig.metricQueryData.filterData.metricName as string) || "";
+
+    const query: Query<Metric> = {
+      projectId: data.projectId,
+      time: startAndEndDate,
+      name: metricName,
+    };
+
+    // Start with any user-defined attribute filters
+    const attributes: Dictionary<string> = {};
+
+    if (
+      queryConfig.metricQueryData &&
+      queryConfig.metricQueryData.filterData &&
+      queryConfig.metricQueryData.filterData.attributes &&
+      Object.keys(queryConfig.metricQueryData.filterData.attributes).length > 0
+    ) {
+      Object.assign(
+        attributes,
+        queryConfig.metricQueryData.filterData.attributes,
+      );
+    }
+
+    /*
+     * Scope by host only. Host system.* metrics are host-level, so there is
+     * no container.runtime / container.name / container.image filter — unlike
+     * the Docker monitor which scopes containers on the host.
+     */
+    if (hostMonitorConfig.hostIdentifier) {
+      attributes["resource.host.name"] = hostMonitorConfig.hostIdentifier;
+    }
+
+    if (Object.keys(attributes).length > 0) {
+      query.attributes = attributes;
+    }
+
+    const aggregationType: MetricsAggregationType =
+      (queryConfig.metricQueryData.filterData
+        .aggegationType as MetricsAggregationType) ||
+      MetricsAggregationType.Avg;
+
+    let aggregatedResults: AggregatedResult;
+
+    if (groupByAttributeKeys.length > 0) {
+      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
+        query: query,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      aggregatedResults = aggregatePerSeriesFromRawMetrics({
+        rawMetrics: rawMetricsForAgg,
+        attributeKeys: groupByAttributeKeys,
+        aggregationType,
+      });
+    } else {
+      aggregatedResults = await MetricService.aggregateBy({
+        query: query,
+        aggregationType,
+        aggregateColumnName: "value",
+        aggregationTimestampColumnName: "time",
+        startTimestamp:
+          (startAndEndDate?.startValue as Date) ||
+          OneUptimeDate.getCurrentDate(),
+        endTimestamp:
+          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        groupBy: queryConfig.metricQueryData.groupBy,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    logger.debug("Host monitor aggregated results", {
+      service: "workers",
+      projectId: data.projectId.toString(),
+    });
+
+    finalResult.push(aggregatedResults);
+  }
+
+  const nativeUnitsByMetricName: Map<string, string> =
+    await loadNativeUnitsByMetricName({
+      queryConfigs: hostMonitorConfig.metricViewConfig.queryConfigs,
+      projectId: data.projectId,
+    });
+
+  const resultsInDisplayUnit: Array<AggregatedResult> =
+    MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
+      queryConfigs: hostMonitorConfig.metricViewConfig.queryConfigs,
+      results: finalResult,
+      nativeUnitByMetricName: nativeUnitsByMetricName,
+    });
+
+  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
+    queryConfigs: hostMonitorConfig.metricViewConfig.queryConfigs,
+    formulaConfigs: hostMonitorConfig.metricViewConfig.formulaConfigs || [],
+    aggregatedResults: resultsInDisplayUnit,
+    projectId: data.projectId,
+  });
+
+  const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+    groupByAttributeKeys.length > 0
+      ? buildSeriesBreakdown({
+          queryConfigs: hostMonitorConfig.metricViewConfig.queryConfigs,
+          formulaConfigs:
+            hostMonitorConfig.metricViewConfig.formulaConfigs || [],
+          perQueryResults: resultsInDisplayUnit,
+          attributeKeys: groupByAttributeKeys,
+          projectId: data.projectId,
+        })
+      : undefined;
+
+  return {
+    projectId: data.projectId,
+    metricViewConfig: hostMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
     metricResult: resultsWithFormulas,
     seriesBreakdown: seriesBreakdown,

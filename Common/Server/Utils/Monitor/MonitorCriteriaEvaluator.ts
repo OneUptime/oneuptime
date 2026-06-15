@@ -68,6 +68,7 @@ import MetricCriteriaContext, {
   MetricComponentValue,
 } from "../../../Types/Monitor/MetricMonitor/MetricCriteriaContext";
 import MonitorStepDockerMonitor from "../../../Types/Monitor/MonitorStepDockerMonitor";
+import MonitorStepHostMonitor from "../../../Types/Monitor/MonitorStepHostMonitor";
 import MonitorStepPodmanMonitor from "../../../Types/Monitor/MonitorStepPodmanMonitor";
 import MonitorStepProxmoxMonitor from "../../../Types/Monitor/MonitorStepProxmoxMonitor";
 import MonitorStepCephMonitor from "../../../Types/Monitor/MonitorStepCephMonitor";
@@ -241,6 +242,7 @@ ${contextBlock}
       input.monitor.monitorType !== MonitorType.Metrics &&
       input.monitor.monitorType !== MonitorType.Kubernetes &&
       input.monitor.monitorType !== MonitorType.Docker &&
+      input.monitor.monitorType !== MonitorType.Host &&
       input.monitor.monitorType !== MonitorType.Podman &&
       input.monitor.monitorType !== MonitorType.DockerSwarm &&
       input.monitor.monitorType !== MonitorType.Proxmox &&
@@ -691,6 +693,7 @@ ${contextBlock}
       input.monitor.monitorType === MonitorType.Metrics ||
       input.monitor.monitorType === MonitorType.Kubernetes ||
       input.monitor.monitorType === MonitorType.Docker ||
+      input.monitor.monitorType === MonitorType.Host ||
       input.monitor.monitorType === MonitorType.Podman ||
       input.monitor.monitorType === MonitorType.DockerSwarm ||
       input.monitor.monitorType === MonitorType.Proxmox ||
@@ -825,6 +828,11 @@ ${contextBlock}
     // Handle Docker monitors with resource context
     if (input.monitor.monitorType === MonitorType.Docker) {
       return MonitorCriteriaEvaluator.buildDockerRootCauseContext(input);
+    }
+
+    // Handle Host monitors with resource context
+    if (input.monitor.monitorType === MonitorType.Host) {
+      return MonitorCriteriaEvaluator.buildHostRootCauseContext(input);
     }
 
     // Handle Podman monitors with resource context
@@ -1589,6 +1597,59 @@ ${contextBlock}
       }
 
       sections.push(`**Docker Host Details**\n${hostDetails.join("\n")}`);
+    }
+
+    // Metric results summary
+    if (metricResponse.metricResult && metricResponse.metricResult.length > 0) {
+      const resultDetails: Array<string> = [];
+
+      for (const result of metricResponse.metricResult) {
+        if (result.data && result.data.length > 0) {
+          resultDetails.push(
+            `- ${result.data.length} metric data point(s) returned`,
+          );
+        }
+      }
+
+      if (resultDetails.length > 0) {
+        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
+      }
+    }
+
+    return sections.length > 0 ? sections.join("\n") : null;
+  }
+
+  private static buildHostRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+  }): string | null {
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    const sections: Array<string> = [];
+
+    // Host context
+    const hostMonitor: MonitorStepHostMonitor | undefined =
+      input.monitorStep.data?.hostMonitor;
+
+    if (hostMonitor) {
+      const hostDetails: Array<string> = [];
+      hostDetails.push(`- Host: ${hostMonitor.hostIdentifier || "Unknown"}`);
+
+      // Add metric name from the query config
+      if (
+        hostMonitor.metricViewConfig?.queryConfigs?.length > 0 &&
+        hostMonitor.metricViewConfig.queryConfigs[0]
+      ) {
+        const metricName: string = hostMonitor.metricViewConfig.queryConfigs[0]
+          .metricQueryData?.filterData?.metricName as string;
+        if (metricName) {
+          hostDetails.push(`- Metric: \`${metricName}\``);
+        }
+      }
+
+      sections.push(`**Host Details**\n${hostDetails.join("\n")}`);
     }
 
     // Metric results summary

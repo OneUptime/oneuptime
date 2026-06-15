@@ -47,6 +47,7 @@ const isMetricOnlyMonitorType: (monitorType: MonitorType) => boolean = (
   return (
     monitorType === MonitorType.Kubernetes ||
     monitorType === MonitorType.Docker ||
+    monitorType === MonitorType.Host ||
     monitorType === MonitorType.Podman ||
     monitorType === MonitorType.DockerSwarm ||
     monitorType === MonitorType.Proxmox ||
