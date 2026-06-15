@@ -14,9 +14,13 @@ import PodmanHostOwnerTeam from "./PodmanHostOwnerTeam";
 import PodmanHostOwnerUser from "./PodmanHostOwnerUser";
 import PodmanResource from "./PodmanResource";
 import ProxmoxCluster from "./ProxmoxCluster";
+import DockerSwarmCluster from "./DockerSwarmCluster";
 import ProxmoxClusterOwnerTeam from "./ProxmoxClusterOwnerTeam";
+import DockerSwarmClusterOwnerTeam from "./DockerSwarmClusterOwnerTeam";
 import ProxmoxClusterOwnerUser from "./ProxmoxClusterOwnerUser";
+import DockerSwarmClusterOwnerUser from "./DockerSwarmClusterOwnerUser";
 import ProxmoxResource from "./ProxmoxResource";
+import DockerSwarmResource from "./DockerSwarmResource";
 import CephCluster from "./CephCluster";
 import CephClusterOwnerTeam from "./CephClusterOwnerTeam";
 import CephClusterOwnerUser from "./CephClusterOwnerUser";
@@ -339,7 +343,9 @@ import PodmanHostLabelRule from "./PodmanHostLabelRule";
 import KubernetesClusterOwnerRule from "./KubernetesClusterOwnerRule";
 import KubernetesClusterLabelRule from "./KubernetesClusterLabelRule";
 import ProxmoxClusterOwnerRule from "./ProxmoxClusterOwnerRule";
+import DockerSwarmClusterOwnerRule from "./DockerSwarmClusterOwnerRule";
 import ProxmoxClusterLabelRule from "./ProxmoxClusterLabelRule";
+import DockerSwarmClusterLabelRule from "./DockerSwarmClusterLabelRule";
 import CephClusterOwnerRule from "./CephClusterOwnerRule";
 import CephClusterLabelRule from "./CephClusterLabelRule";
 import RunbookOwnerRule from "./RunbookOwnerRule";
@@ -511,7 +517,9 @@ const AllModelTypes: Array<{
   KubernetesClusterOwnerRule,
   KubernetesClusterLabelRule,
   ProxmoxClusterOwnerRule,
+  DockerSwarmClusterOwnerRule,
   ProxmoxClusterLabelRule,
+  DockerSwarmClusterLabelRule,
   CephClusterOwnerRule,
   CephClusterLabelRule,
   RunbookOwnerRule,
@@ -733,9 +741,13 @@ const AllModelTypes: Array<{
   PodmanHostOwnerUser,
   PodmanResource,
   ProxmoxCluster,
+  DockerSwarmCluster,
   ProxmoxClusterOwnerTeam,
+  DockerSwarmClusterOwnerTeam,
   ProxmoxClusterOwnerUser,
+  DockerSwarmClusterOwnerUser,
   ProxmoxResource,
+  DockerSwarmResource,
   CephCluster,
   CephClusterOwnerTeam,
   CephClusterOwnerUser,

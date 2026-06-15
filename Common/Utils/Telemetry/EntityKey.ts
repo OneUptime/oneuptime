@@ -184,3 +184,21 @@ export function keyForCephCluster(
     identifyingAttributes: { "ceph.cluster.name": clusterName },
   });
 }
+
+/**
+ * `docker.swarm.cluster.name` is the cluster identity (matches the
+ * DockerSwarmCluster row's `name`, the project-unique join key written by
+ * `findOrCreateByName`; the ingest resolver is name-only — see
+ * `TelemetryEntity` docker.swarm.cluster resolver). Pass
+ * `DockerSwarmCluster.name`.
+ */
+export function keyForDockerSwarmCluster(
+  projectId: string,
+  clusterName: string,
+): string {
+  return computeEntityKey({
+    projectId,
+    entityType: EntityType.DockerSwarmCluster,
+    identifyingAttributes: { "docker.swarm.cluster.name": clusterName },
+  });
+}

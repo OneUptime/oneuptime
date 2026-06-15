@@ -598,6 +598,28 @@ export default class TelemetryEntity {
     },
 
     /*
+     * docker.swarm.cluster — docker.swarm.cluster.name only, mirroring the
+     * proxmox/ceph cluster identity: the typed Postgres row
+     * (DockerSwarmCluster) and the read side
+     * (`EntityKey.keyForDockerSwarmCluster`) are name-based, and the agent
+     * stamps `docker.swarm.cluster.name` on every signal. Node/Service/Task
+     * identity is NOT derived from resource attributes (inventory arrives as
+     * separate JSON-line log records), so only the cluster entity flows here.
+     */
+    (attrs: EntityAttributes) => {
+      const name: string | null = TelemetryEntity.str(
+        attrs,
+        "docker.swarm.cluster.name",
+      );
+      return name
+        ? {
+            entityType: EntityType.DockerSwarmCluster,
+            id: { "docker.swarm.cluster.name": name },
+          }
+        : null;
+    },
+
+    /*
      * container — container.id. High-churn: flows as a membership key but
      * is membership-only by default (not promoted to a registry row
      * unless a project opts in — see OpenTelemetryEntities.md Edge Cases).

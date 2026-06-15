@@ -38,6 +38,18 @@ enum EntityType {
   ProxmoxNode = "proxmox.node",
   ProxmoxGuest = "proxmox.guest",
   CephCluster = "ceph.cluster",
+  /*
+   * Docker Swarm types are OneUptime-defined (no upstream semconv
+   * exists) but follow the same dotted naming convention. The
+   * identifying attributes (`docker.swarm.cluster.name`,
+   * `docker.swarm.node.id`, `docker.swarm.service.id`) are stamped by
+   * the OneUptime Docker Swarm agent's collector config / inventory
+   * poller.
+   */
+  DockerSwarmCluster = "docker.swarm.cluster",
+  DockerSwarmNode = "docker.swarm.node",
+  DockerSwarmService = "docker.swarm.service",
+  DockerSwarmTask = "docker.swarm.task",
   TelemetrySdk = "telemetry.sdk",
 }
 

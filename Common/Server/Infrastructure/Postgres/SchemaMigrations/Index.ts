@@ -391,6 +391,7 @@ import { AddProxmoxCephActivityAndRules1781600000001 } from "./1781600000001-Add
 import { AddProxmoxCephV3Columns1781700000000 } from "./1781700000000-AddProxmoxCephV3Columns";
 import { AddPodmanHostTables1781800000000 } from "./1781800000000-AddPodmanHostTables";
 import { AttachPodmanToIncidentAlertScheduledMaintenance1781800000001 } from "./1781800000001-AttachPodmanToIncidentAlertScheduledMaintenance";
+import { AddDockerSwarmTables1781900000000 } from "./1781900000000-AddDockerSwarmTables";
 
 export default [
   InitialMigration,
@@ -786,4 +787,5 @@ export default [
   AddProxmoxCephV3Columns1781700000000,
   AddPodmanHostTables1781800000000,
   AttachPodmanToIncidentAlertScheduledMaintenance1781800000001,
+  AddDockerSwarmTables1781900000000,
 ];

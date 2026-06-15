@@ -258,7 +258,7 @@
                                     <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">HTTP, TCP, UDP, DNS, ICMP</span></li>
                                     <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Multi-step API monitoring</span></li>
                                     <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">User journey monitoring</span></li>
-                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Container, VM, Kubernetes, Proxmox & Ceph</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Container, VM, Kubernetes, Proxmox, Ceph & Docker Swarm</span></li>
                                     <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">SSL certificate monitoring</span></li>
                                 </ul>
                                 <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
@@ -643,6 +643,39 @@
                                 </ul>
                                 <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
                                     <p class="text-xs text-red-600 font-medium">Replaces Grafana + ceph-mixin</p>
+                                    <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                                </div>
+                            </a>
+                        </div>
+
+                        <!-- Docker Swarm - Blue -->
+                        <div class="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] flex-shrink-0 feature-card-wrapper feature-glow-blue-wrapper">
+                            <a href="/product/docker-swarm" class="feature-card feature-glow-blue group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-blue-300 h-full">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 ring-1 ring-blue-200">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6 text-blue-600">
+                                            <circle cx="12" cy="5" r="2.25" stroke-linecap="round" stroke-linejoin="round"></circle>
+                                            <circle cx="5.5" cy="17" r="2.25" stroke-linecap="round" stroke-linejoin="round"></circle>
+                                            <circle cx="18.5" cy="17" r="2.25" stroke-linecap="round" stroke-linejoin="round"></circle>
+                                            <line x1="10.8" y1="6.9" x2="6.7" y2="15.1" stroke-linecap="round"></line>
+                                            <line x1="13.2" y1="6.9" x2="17.3" y2="15.1" stroke-linecap="round"></line>
+                                            <line x1="7.75" y1="17" x2="16.25" y2="17" stroke-linecap="round"></line>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <h3 class="text-lg font-semibold text-gray-900">Docker Swarm</h3>
+                                    <p class="mt-2 text-sm text-gray-600 leading-relaxed">Monitor Swarm clusters with one agent: nodes, services, tasks, stacks, networks, secrets, configs, and volumes.</p>
+                                </div>
+                                <ul class="mt-5 space-y-3 flex-1">
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Manager & worker node health</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Running vs desired replicas</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Service convergence alerts</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Raft manager quorum state</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Per-task CPU, memory & logs</span></li>
+                                </ul>
+                                <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                                    <p class="text-xs text-blue-600 font-medium">Replaces Datadog, Portainer</p>
                                     <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                                 </div>
                             </a>

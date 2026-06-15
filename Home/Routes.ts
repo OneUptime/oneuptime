@@ -1299,6 +1299,20 @@ const HomeFeatureSet: FeatureSet = {
     });
 
     app.get(
+      "/product/docker-swarm",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/docker-swarm",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/docker-swarm`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
       "/product/services",
       (_req: ExpressRequest, res: ExpressResponse) => {
         const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(

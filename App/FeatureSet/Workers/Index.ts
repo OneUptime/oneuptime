@@ -156,6 +156,9 @@ import "./Jobs/Proxmox/CleanupStaleResources";
 // Ceph cluster disconnection sweeper + inventory cleanup.
 import "./Jobs/Ceph/CleanupStaleResources";
 
+// Docker Swarm cluster disconnection sweeper + inventory cleanup.
+import "./Jobs/DockerSwarm/CleanupStaleResources";
+
 // Telemetry entity registry: TTL prune + span-derived service map edges.
 import "./Jobs/TelemetryEntity/PruneStaleEntities";
 import "./Jobs/TelemetryEntity/ComputeServiceDependencies";

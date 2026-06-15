@@ -37,13 +37,19 @@ import KubernetesClusterService from "./KubernetesClusterService";
 import DockerHostService from "./DockerHostService";
 import PodmanHostService from "./PodmanHostService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
+import DockerSwarmClusterService from "./DockerSwarmClusterService";
 import CephClusterService from "./CephClusterService";
 import ProxmoxResourceService from "./ProxmoxResourceService";
+import DockerSwarmResourceService from "./DockerSwarmResourceService";
 import CephResourceService from "./CephResourceService";
 import ProxmoxClusterLabelRuleService from "./ProxmoxClusterLabelRuleService";
+import DockerSwarmClusterLabelRuleService from "./DockerSwarmClusterLabelRuleService";
 import ProxmoxClusterOwnerRuleService from "./ProxmoxClusterOwnerRuleService";
+import DockerSwarmClusterOwnerRuleService from "./DockerSwarmClusterOwnerRuleService";
 import ProxmoxClusterOwnerTeamService from "./ProxmoxClusterOwnerTeamService";
+import DockerSwarmClusterOwnerTeamService from "./DockerSwarmClusterOwnerTeamService";
 import ProxmoxClusterOwnerUserService from "./ProxmoxClusterOwnerUserService";
+import DockerSwarmClusterOwnerUserService from "./DockerSwarmClusterOwnerUserService";
 import CephClusterLabelRuleService from "./CephClusterLabelRuleService";
 import CephClusterOwnerRuleService from "./CephClusterOwnerRuleService";
 import CephClusterOwnerTeamService from "./CephClusterOwnerTeamService";
@@ -285,13 +291,19 @@ const services: Array<BaseService> = [
   DockerHostService,
   PodmanHostService,
   ProxmoxClusterService,
+  DockerSwarmClusterService,
   CephClusterService,
   ProxmoxResourceService,
+  DockerSwarmResourceService,
   CephResourceService,
   ProxmoxClusterLabelRuleService,
+  DockerSwarmClusterLabelRuleService,
   ProxmoxClusterOwnerRuleService,
+  DockerSwarmClusterOwnerRuleService,
   ProxmoxClusterOwnerTeamService,
+  DockerSwarmClusterOwnerTeamService,
   ProxmoxClusterOwnerUserService,
+  DockerSwarmClusterOwnerUserService,
   CephClusterLabelRuleService,
   CephClusterOwnerRuleService,
   CephClusterOwnerTeamService,

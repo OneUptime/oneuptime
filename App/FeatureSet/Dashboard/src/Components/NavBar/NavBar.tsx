@@ -246,6 +246,20 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       category: resourcesCategory,
     },
     {
+      title: t("navbar.items.dockerSwarmTitle", "Docker Swarm"),
+      description: t(
+        "navbar.items.dockerSwarmDescription",
+        "Monitor Docker Swarm clusters, nodes, services and tasks.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.DOCKER_SWARM_CLUSTERS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.DOCKER_SWARM_CLUSTERS],
+      icon: IconProp.ServerStack,
+      iconColor: "blue",
+      category: resourcesCategory,
+    },
+    {
       title: t("navbar.items.hostsTitle"),
       description: t("navbar.items.hostsDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.HOSTS] as Route),

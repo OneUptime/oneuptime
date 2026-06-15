@@ -8,6 +8,7 @@ import Monitor from "./Monitor";
 import MonitorStatus from "./MonitorStatus";
 import Project from "./Project";
 import ProxmoxCluster from "./ProxmoxCluster";
+import DockerSwarmCluster from "./DockerSwarmCluster";
 import ScheduledMaintenanceState from "./ScheduledMaintenanceState";
 import Service from "./Service";
 import StatusPage from "./StatusPage";
@@ -762,6 +763,60 @@ export default class ScheduledMaintenance extends BaseModel {
     },
   })
   public proxmoxClusters?: Array<ProxmoxCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.CreateProjectScheduledMaintenance,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadProjectScheduledMaintenance,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditProjectScheduledMaintenance,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: DockerSwarmCluster,
+    title: "Docker Swarm Clusters",
+    description: "List of Docker Swarm clusters affected by this event.",
+  })
+  @ManyToMany(
+    () => {
+      return DockerSwarmCluster;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ScheduledMaintenanceDockerSwarmCluster",
+    inverseJoinColumn: {
+      name: "dockerSwarmClusterId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "scheduledMaintenanceId",
+      referencedColumnName: "_id",
+    },
+  })
+  public dockerSwarmClusters?: Array<DockerSwarmCluster> = undefined;
 
   @ColumnAccessControl({
     create: [

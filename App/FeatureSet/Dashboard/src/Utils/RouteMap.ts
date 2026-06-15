@@ -185,6 +185,35 @@ export const ProxmoxRoutePath: Dictionary<string> = {
   [PageMap.PROXMOX_SETTINGS_LABEL_RULES]: `settings/label-rules`,
 };
 
+export const DockerSwarmRoutePath: Dictionary<string> = {
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODES]: `${RouteParams.ModelID}/nodes`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODE_DETAIL]: `${RouteParams.ModelID}/nodes/${RouteParams.SubModelID}`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_SERVICES]: `${RouteParams.ModelID}/services`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_SERVICE_DETAIL]: `${RouteParams.ModelID}/services/${RouteParams.SubModelID}`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_TASKS]: `${RouteParams.ModelID}/tasks`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_TASK_DETAIL]: `${RouteParams.ModelID}/tasks/${RouteParams.SubModelID}`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_STACKS]: `${RouteParams.ModelID}/stacks`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_NETWORKS]: `${RouteParams.ModelID}/networks`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_SECRETS]: `${RouteParams.ModelID}/secrets`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_CONFIGS]: `${RouteParams.ModelID}/configs`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_VOLUMES]: `${RouteParams.ModelID}/volumes`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.DOCKER_SWARM_DOCUMENTATION]: `documentation`,
+  [PageMap.DOCKER_SWARM_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+};
+
 export const CephRoutePath: Dictionary<string> = {
   [PageMap.CEPH_CLUSTER_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.CEPH_CLUSTER_VIEW_OSDS]: `${RouteParams.ModelID}/osds`,
@@ -2642,6 +2671,174 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.PROXMOX_SETTINGS_LABEL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/proxmox/${
       ProxmoxRoutePath[PageMap.PROXMOX_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  // Docker Swarm
+
+  [PageMap.DOCKER_SWARM_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/*`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODES]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_SERVICES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_SERVICES]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_SERVICE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_SERVICE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_TASKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_TASKS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_TASK_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_TASK_DETAIL]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_STACKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_STACKS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_NETWORKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_NETWORKS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_SECRETS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_SECRETS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_CONFIGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_CONFIGS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_VOLUMES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_VOLUMES]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[
+        PageMap.DOCKER_SWARM_CLUSTER_VIEW_SCHEDULED_MAINTENANCE
+      ]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULES]
     }`,
   ),
 

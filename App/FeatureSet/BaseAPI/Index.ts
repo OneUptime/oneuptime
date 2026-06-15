@@ -94,6 +94,7 @@ import AlertInternalNoteAPI from "Common/Server/API/AlertInternalNoteAPI";
 import TelemetryExceptionAPI from "Common/Server/API/TelemetryExceptionAPI";
 import KubernetesResourceAPI from "Common/Server/API/KubernetesResourceAPI";
 import ProxmoxResourceAPI from "Common/Server/API/ProxmoxResourceAPI";
+import DockerSwarmResourceAPI from "Common/Server/API/DockerSwarmResourceAPI";
 import CephResourceAPI from "Common/Server/API/CephResourceAPI";
 import KubernetesContainer from "Common/Models/DatabaseModels/KubernetesContainer";
 import KubernetesContainerService, {
@@ -295,10 +296,16 @@ import KubernetesClusterLabelRuleService, {
 import ProxmoxClusterOwnerRuleService, {
   Service as ProxmoxClusterOwnerRuleServiceType,
 } from "Common/Server/Services/ProxmoxClusterOwnerRuleService";
+import DockerSwarmClusterOwnerRuleService, {
+  Service as DockerSwarmClusterOwnerRuleServiceType,
+} from "Common/Server/Services/DockerSwarmClusterOwnerRuleService";
 
 import ProxmoxClusterLabelRuleService, {
   Service as ProxmoxClusterLabelRuleServiceType,
 } from "Common/Server/Services/ProxmoxClusterLabelRuleService";
+import DockerSwarmClusterLabelRuleService, {
+  Service as DockerSwarmClusterLabelRuleServiceType,
+} from "Common/Server/Services/DockerSwarmClusterLabelRuleService";
 
 import CephClusterOwnerRuleService, {
   Service as CephClusterOwnerRuleServiceType,
@@ -525,15 +532,24 @@ import PodmanResourceService, {
 import ProxmoxClusterService, {
   Service as ProxmoxClusterServiceType,
 } from "Common/Server/Services/ProxmoxClusterService";
+import DockerSwarmClusterService, {
+  Service as DockerSwarmClusterServiceType,
+} from "Common/Server/Services/DockerSwarmClusterService";
 import CephClusterService, {
   Service as CephClusterServiceType,
 } from "Common/Server/Services/CephClusterService";
 import ProxmoxClusterOwnerTeamService, {
   Service as ProxmoxClusterOwnerTeamServiceType,
 } from "Common/Server/Services/ProxmoxClusterOwnerTeamService";
+import DockerSwarmClusterOwnerTeamService, {
+  Service as DockerSwarmClusterOwnerTeamServiceType,
+} from "Common/Server/Services/DockerSwarmClusterOwnerTeamService";
 import ProxmoxClusterOwnerUserService, {
   Service as ProxmoxClusterOwnerUserServiceType,
 } from "Common/Server/Services/ProxmoxClusterOwnerUserService";
+import DockerSwarmClusterOwnerUserService, {
+  Service as DockerSwarmClusterOwnerUserServiceType,
+} from "Common/Server/Services/DockerSwarmClusterOwnerUserService";
 import CephClusterOwnerTeamService, {
   Service as CephClusterOwnerTeamServiceType,
 } from "Common/Server/Services/CephClusterOwnerTeamService";
@@ -907,7 +923,9 @@ import PodmanHostLabelRule from "Common/Models/DatabaseModels/PodmanHostLabelRul
 import KubernetesClusterOwnerRule from "Common/Models/DatabaseModels/KubernetesClusterOwnerRule";
 import KubernetesClusterLabelRule from "Common/Models/DatabaseModels/KubernetesClusterLabelRule";
 import ProxmoxClusterOwnerRule from "Common/Models/DatabaseModels/ProxmoxClusterOwnerRule";
+import DockerSwarmClusterOwnerRule from "Common/Models/DatabaseModels/DockerSwarmClusterOwnerRule";
 import ProxmoxClusterLabelRule from "Common/Models/DatabaseModels/ProxmoxClusterLabelRule";
+import DockerSwarmClusterLabelRule from "Common/Models/DatabaseModels/DockerSwarmClusterLabelRule";
 import CephClusterOwnerRule from "Common/Models/DatabaseModels/CephClusterOwnerRule";
 import CephClusterLabelRule from "Common/Models/DatabaseModels/CephClusterLabelRule";
 import RunbookOwnerRule from "Common/Models/DatabaseModels/RunbookOwnerRule";
@@ -974,8 +992,11 @@ import PodmanHostOwnerTeam from "Common/Models/DatabaseModels/PodmanHostOwnerTea
 import PodmanHostOwnerUser from "Common/Models/DatabaseModels/PodmanHostOwnerUser";
 import PodmanResource from "Common/Models/DatabaseModels/PodmanResource";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import ProxmoxClusterOwnerTeam from "Common/Models/DatabaseModels/ProxmoxClusterOwnerTeam";
+import DockerSwarmClusterOwnerTeam from "Common/Models/DatabaseModels/DockerSwarmClusterOwnerTeam";
 import ProxmoxClusterOwnerUser from "Common/Models/DatabaseModels/ProxmoxClusterOwnerUser";
+import DockerSwarmClusterOwnerUser from "Common/Models/DatabaseModels/DockerSwarmClusterOwnerUser";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import CephClusterOwnerTeam from "Common/Models/DatabaseModels/CephClusterOwnerTeam";
 import CephClusterOwnerUser from "Common/Models/DatabaseModels/CephClusterOwnerUser";
@@ -2062,9 +2083,31 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        DockerSwarmClusterOwnerRule,
+        DockerSwarmClusterOwnerRuleServiceType
+      >(
+        DockerSwarmClusterOwnerRule,
+        DockerSwarmClusterOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<ProxmoxClusterLabelRule, ProxmoxClusterLabelRuleServiceType>(
         ProxmoxClusterLabelRule,
         ProxmoxClusterLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        DockerSwarmClusterLabelRule,
+        DockerSwarmClusterLabelRuleServiceType
+      >(
+        DockerSwarmClusterLabelRule,
+        DockerSwarmClusterLabelRuleService,
       ).getRouter(),
     );
 
@@ -2177,6 +2220,11 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ProxmoxResourceAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new DockerSwarmResourceAPI().getRouter(),
     );
 
     app.use(
@@ -3265,6 +3313,14 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DockerSwarmCluster, DockerSwarmClusterServiceType>(
+        DockerSwarmCluster,
+        DockerSwarmClusterService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<ProxmoxClusterOwnerTeam, ProxmoxClusterOwnerTeamServiceType>(
         ProxmoxClusterOwnerTeam,
         ProxmoxClusterOwnerTeamService,
@@ -3273,9 +3329,31 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        DockerSwarmClusterOwnerTeam,
+        DockerSwarmClusterOwnerTeamServiceType
+      >(
+        DockerSwarmClusterOwnerTeam,
+        DockerSwarmClusterOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<ProxmoxClusterOwnerUser, ProxmoxClusterOwnerUserServiceType>(
         ProxmoxClusterOwnerUser,
         ProxmoxClusterOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        DockerSwarmClusterOwnerUser,
+        DockerSwarmClusterOwnerUserServiceType
+      >(
+        DockerSwarmClusterOwnerUser,
+        DockerSwarmClusterOwnerUserService,
       ).getRouter(),
     );
 

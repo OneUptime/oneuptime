@@ -1,0 +1,134 @@
+receivers:
+  # Per-container resource metrics from the local Docker daemon. On a
+  # swarm manager this includes the manager's own task containers; for
+  # full per-node container metrics, run the agent on every node (all
+  # pointed at the same DOCKER_SWARM_CLUSTER_NAME) or accept
+  # manager-local stats. These power the cluster Metrics tab.
+  docker_stats:
+    endpoint: unix:///var/run/docker.sock
+    api_version: "1.44"
+    collection_interval: 30s
+    metrics:
+      container.cpu.utilization:
+        enabled: true
+      container.memory.percent:
+        enabled: true
+      container.pids.count:
+        enabled: true
+      container.uptime:
+        enabled: true
+
+  # Container stdout/stderr logs (powers the cluster Logs tab).
+  filelog:
+    include:
+      - /var/lib/docker/containers/*/*-json.log
+    exclude:
+      - /var/lib/docker/containers/${env:HOSTNAME}*/*-json.log
+    start_at: end
+    include_file_path: true
+    include_file_name: false
+    operators:
+      - type: json_parser
+        id: parser-docker
+        timestamp:
+          parse_from: attributes.time
+          layout: "%Y-%m-%dT%H:%M:%S.%LZ"
+      - type: regex_parser
+        id: extract-container-id
+        regex: "^/var/lib/docker/containers/(?P<container_id>[^/]+)/.+$"
+        parse_from: attributes["log.file.path"]
+      - type: move
+        from: attributes.container_id
+        to: resource["container.id"]
+      - type: move
+        from: attributes.log
+        to: body
+      - type: move
+        from: attributes.stream
+        to: attributes["log.iostream"]
+      - type: recombine
+        id: recombine-multiline
+        combine_field: body
+        combine_with: "\n"
+        is_first_entry: 'body matches "^[^\\s\\}\\)\\]]"'
+        source_identifier: attributes["log.file.path"]
+        force_flush_period: 5s
+        max_log_size: 1048576
+      - type: add
+        id: add-severity-text
+        field: attributes.severity_text
+        value: 'EXPR(attributes["log.iostream"] == "stderr" ? "ERROR" : "INFO")'
+      - type: severity_parser
+        id: severity-parser
+        parse_from: attributes.severity_text
+        mapping:
+          error: ERROR
+          info: INFO
+      - type: remove
+        id: remove-severity-attr
+        field: attributes.severity_text
+
+  # Inventory snapshots produced by inventory-snapshot.sh (which runs on
+  # a manager node and walks the Swarm API). Each line is a JSON
+  # envelope: {"oneuptime.dockerswarm.kind":"Node","data":{...}}
+  filelog/inventory:
+    include:
+      - /var/log/oneuptime-docker-swarm-inventory.log
+    start_at: beginning
+    include_file_path: false
+    include_file_name: false
+    poll_interval: 30s
+    operators:
+      - type: json_parser
+        id: parser-inventory
+      - type: move
+        from: attributes.data
+        to: body
+
+processors:
+  # IMPORTANT: we stamp ONLY docker.swarm.cluster.name (the join key)
+  # and the agent version. We deliberately do NOT stamp host.name or
+  # container.runtime, and do NOT run resourcedetection — that would
+  # make OneUptime auto-discover this node as a generic Host / Docker
+  # Host in addition to the swarm cluster.
+  resource:
+    attributes:
+      - key: docker.swarm.cluster.name
+        value: "${env:DOCKER_SWARM_CLUSTER_NAME}"
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "${env:APP_VERSION}"
+        action: upsert
+  batch:
+    timeout: 10s
+    send_batch_size: 1024
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 512
+    spike_limit_mib: 128
+  filter/drop_self_logs:
+    error_mode: ignore
+    logs:
+      log_record:
+        - 'IsMatch(body, ".*(otelcol|exporterhelper|scraperhelper|opentelemetry\\.io/collector|opentelemetry-collector-contrib|dockerstatsreceiver|Error scraping metrics).*")'
+
+exporters:
+  otlphttp:
+    endpoint: "${env:ONEUPTIME_URL}/otlp"
+    headers:
+      x-oneuptime-service-token: "${env:ONEUPTIME_SERVICE_TOKEN}"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [docker_stats]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp]
+    logs:
+      receivers: [filelog]
+      processors: [memory_limiter, filter/drop_self_logs, resource, batch]
+      exporters: [otlphttp]
+    logs/inventory:
+      receivers: [filelog/inventory]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp]

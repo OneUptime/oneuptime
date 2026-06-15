@@ -24,6 +24,7 @@ import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import ProxmoxCluster from "../../Models/DatabaseModels/ProxmoxCluster";
 import CephCluster from "../../Models/DatabaseModels/CephCluster";
+import DockerSwarmCluster from "../../Models/DatabaseModels/DockerSwarmCluster";
 import ServerlessFunction from "../../Models/DatabaseModels/ServerlessFunction";
 import CloudResource from "../../Models/DatabaseModels/CloudResource";
 import RumApplication from "../../Models/DatabaseModels/RumApplication";
@@ -33,6 +34,7 @@ import PodmanHostService from "./PodmanHostService";
 import KubernetesClusterService from "./KubernetesClusterService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
 import CephClusterService from "./CephClusterService";
+import DockerSwarmClusterService from "./DockerSwarmClusterService";
 import ServerlessFunctionService from "./ServerlessFunctionService";
 import CloudResourceService from "./CloudResourceService";
 import RumApplicationService from "./RumApplicationService";
@@ -729,6 +731,22 @@ export default class OTelIngestService {
       if (primaryEntityType === ServiceType.CephCluster) {
         const cluster: CephCluster | null =
           await CephClusterService.findOneById({
+            id: resourceId,
+            select: {
+              retainTelemetryDataForDays: true,
+              telemetryRetentionConfig: true,
+            },
+            props: { isRoot: true },
+          });
+        return {
+          retainTelemetryDataForDays:
+            cluster?.retainTelemetryDataForDays ?? null,
+          telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
+        };
+      }
+      if (primaryEntityType === ServiceType.DockerSwarmCluster) {
+        const cluster: DockerSwarmCluster | null =
+          await DockerSwarmClusterService.findOneById({
             id: resourceId,
             select: {
               retainTelemetryDataForDays: true,

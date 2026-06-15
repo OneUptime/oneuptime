@@ -536,6 +536,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/ceph",
       },
       {
+        title: "Docker Swarm Agent",
+        url: "/docs/telemetry/docker-swarm",
+      },
+      {
         title: "Serverless Functions",
         url: "/docs/telemetry/serverless-functions",
       },

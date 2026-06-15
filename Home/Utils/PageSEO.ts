@@ -611,6 +611,42 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/product/docker-swarm": {
+    title:
+      "Docker Swarm Monitoring | Nodes, Services, Tasks & Stacks | OneUptime",
+    description:
+      "Monitor Docker Swarm clusters end to end: manager and worker node health, services and their task replicas, stacks, overlay networks, secrets, configs, and volumes. One agent on a manager node, flat project pricing, 10-minute setup. Open source.",
+    canonicalPath: "/product/docker-swarm",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Docker Swarm", url: "/product/docker-swarm" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Docker Swarm Monitoring",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Monitor an entire Docker Swarm cluster from one OpenTelemetry collector and inventory poller on a manager node: node, service, task, stack, overlay network, secret, config, and volume inventory, running-vs-desired replica convergence alerting, per-container CPU and memory, and logs.",
+      features: [
+        "Whole-cluster visibility from one manager-node agent",
+        "Manager & worker node health and roles",
+        "Service inventory with running vs desired replicas",
+        "Task-level (container instance) tracking",
+        "Stack, overlay network, secret & config inventory",
+        "Volume usage and growth",
+        "Raft manager quorum & service convergence alerting",
+        "Per-container CPU and memory metrics",
+        "Container and service logs",
+        "Flat project pricing",
+        "OpenTelemetry native",
+        "Open source",
+      ],
+    },
+  },
+
   "/product/services": {
     title: "Service Catalog | Map, Own & Monitor Every Service | OneUptime",
     description:

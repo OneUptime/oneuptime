@@ -253,6 +253,15 @@ const ProxmoxRoutes: React.LazyExoticComponent<
     };
   });
 });
+const DockerSwarmRoutes: React.LazyExoticComponent<
+  AllRoutesModule["DockerSwarmRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+    return {
+      default: m.DockerSwarmRoutes,
+    };
+  });
+});
 const CephRoutes: React.LazyExoticComponent<AllRoutesModule["CephRoutes"]> =
   lazy(() => {
     return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
@@ -693,6 +702,12 @@ const App: () => JSX.Element = () => {
           <PageRoute
             path={RouteMap[PageMap.PROXMOX_ROOT]?.toString() || ""}
             element={<ProxmoxRoutes {...commonPageProps} />}
+          />
+
+          {/* Docker Swarm */}
+          <PageRoute
+            path={RouteMap[PageMap.DOCKER_SWARM_ROOT]?.toString() || ""}
+            element={<DockerSwarmRoutes {...commonPageProps} />}
           />
 
           {/* Ceph */}

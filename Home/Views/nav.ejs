@@ -278,6 +278,17 @@
                             </div>
                           </a>
 
+                          <!-- Docker Swarm - Blue -->
+                          <a href="/product/docker-swarm" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-blue-50">
+                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200 group-hover:bg-blue-100 group-hover:ring-blue-300">
+                              <%- include('./Partials/icons/docker-swarm', {iconClass: 'h-4 w-4'}) %>
+                            </div>
+                            <div>
+                              <p class="text-sm font-medium text-gray-900">Docker Swarm</p>
+                              <p class="text-xs text-gray-500">Nodes, services, tasks & stacks</p>
+                            </div>
+                          </a>
+
                           <!-- Serverless - Fuchsia -->
                           <a href="/product/serverless" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-fuchsia-50">
                             <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-fuchsia-50 ring-1 ring-fuchsia-200 group-hover:bg-fuchsia-100 group-hover:ring-fuchsia-300">
@@ -1007,6 +1018,14 @@
                 <%- include('./Partials/icons/ceph', {iconClass: 'h-4 w-4'}) %>
               </div>
               <span class="text-sm font-medium text-gray-900">Ceph</span>
+            </a>
+
+            <!-- Docker Swarm - Blue -->
+            <a href="/product/docker-swarm" class="flex items-center gap-3 rounded-xl p-3 hover:bg-blue-50 ring-1 ring-transparent hover:ring-blue-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200">
+                <%- include('./Partials/icons/docker-swarm', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Docker Swarm</span>
             </a>
 
             <!-- Serverless - Fuchsia -->

@@ -706,7 +706,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             podmanHostId,
             proxmoxClusterId,
             cephClusterId,
+            dockerSwarmClusterId,
           ]: [
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
             ObjectID | null,
@@ -730,6 +732,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               attributes: resourceAttributes_raw,
             }),
             this.autoDiscoverCephCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverDockerSwarmCluster({
               projectId,
               attributes: resourceAttributes_raw,
             }),
@@ -792,6 +798,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               kubernetesClusterId,
               proxmoxClusterId,
               cephClusterId,
+              dockerSwarmClusterId,
               serverlessFunctionId,
               cloudResourceId,
               rumApplicationId,

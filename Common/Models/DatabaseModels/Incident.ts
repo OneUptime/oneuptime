@@ -17,6 +17,7 @@ import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import Probe from "./Probe";
 import Project from "./Project";
 import ProxmoxCluster from "./ProxmoxCluster";
+import DockerSwarmCluster from "./DockerSwarmCluster";
 import Service from "./Service";
 import User from "./User";
 import File from "./File";
@@ -923,6 +924,60 @@ export default class Incident extends BaseModel {
     },
   })
   public proxmoxClusters?: Array<ProxmoxCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: DockerSwarmCluster,
+    title: "Docker Swarm Clusters",
+    description: "List of Docker Swarm clusters affected by this incident.",
+  })
+  @ManyToMany(
+    () => {
+      return DockerSwarmCluster;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "IncidentDockerSwarmCluster",
+    inverseJoinColumn: {
+      name: "dockerSwarmClusterId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "incidentId",
+      referencedColumnName: "_id",
+    },
+  })
+  public dockerSwarmClusters?: Array<DockerSwarmCluster> = undefined;
 
   @ColumnAccessControl({
     create: [

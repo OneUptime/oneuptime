@@ -12,6 +12,8 @@ import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService"
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import CephClusterService from "Common/Server/Services/CephClusterService";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import DockerSwarmClusterService from "Common/Server/Services/DockerSwarmClusterService";
+import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import ProxmoxResourceService from "Common/Server/Services/ProxmoxResourceService";
 import HostService from "Common/Server/Services/HostService";
 import Host from "Common/Models/DatabaseModels/Host";
@@ -280,6 +282,7 @@ export default abstract class OtelIngestBaseService {
     kubernetesClusterId?: ObjectID | null;
     proxmoxClusterId?: ObjectID | null;
     cephClusterId?: ObjectID | null;
+    dockerSwarmClusterId?: ObjectID | null;
     serverlessFunctionId?: ObjectID | null;
     cloudResourceId?: ObjectID | null;
     rumApplicationId?: ObjectID | null;
@@ -398,6 +401,7 @@ export default abstract class OtelIngestBaseService {
     kubernetesClusterId?: ObjectID | null;
     proxmoxClusterId?: ObjectID | null;
     cephClusterId?: ObjectID | null;
+    dockerSwarmClusterId?: ObjectID | null;
     serverlessFunctionId?: ObjectID | null;
     cloudResourceId?: ObjectID | null;
     rumApplicationId?: ObjectID | null;
@@ -477,6 +481,19 @@ export default abstract class OtelIngestBaseService {
         serviceName: clusterName ? `ceph/${clusterName}` : "Ceph Cluster",
         resourceId: data.cephClusterId,
         primaryEntityType: ServiceType.CephCluster,
+        projectId: data.projectId,
+      });
+    }
+
+    if (data.dockerSwarmClusterId) {
+      const clusterName: string | null =
+        this.getDockerSwarmClusterNameFromAttributes(data.attributes);
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: clusterName
+          ? `docker-swarm/${clusterName}`
+          : "Docker Swarm Cluster",
+        resourceId: data.dockerSwarmClusterId,
+        primaryEntityType: ServiceType.DockerSwarmCluster,
         projectId: data.projectId,
       });
     }
@@ -1049,6 +1066,134 @@ export default abstract class OtelIngestBaseService {
     } catch (err) {
       logger.warn(
         `Proxmox cluster label promotion failed for ${data.proxmoxClusterId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  /*
+   * `docker.swarm.cluster.name` is the Docker Swarm join key — a
+   * OneUptime-defined resource attribute (no upstream semconv exists)
+   * stamped by the Docker Swarm Agent collector config from the
+   * DOCKER_SWARM_CLUSTER_NAME env.
+   */
+  @CaptureSpan()
+  protected static getDockerSwarmClusterNameFromAttributes(
+    attributes: JSONArray,
+  ): string | null {
+    return this.getStringAttribute(attributes, "docker.swarm.cluster.name");
+  }
+
+  private static readonly DOCKER_SWARM_CLUSTER_ID_CACHE_NAMESPACE: string =
+    "docker-swarm-cluster-id";
+  private static readonly DOCKER_SWARM_CLUSTER_ID_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  @CaptureSpan()
+  protected static async autoDiscoverDockerSwarmCluster(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    try {
+      const clusterName: string | null =
+        this.getDockerSwarmClusterNameFromAttributes(data.attributes);
+
+      if (!clusterName) {
+        return null;
+      }
+
+      const cacheKey: string = `${data.projectId.toString()}:${clusterName}`;
+      let clusterIdStr: string | null = await GlobalCache.getString(
+        this.DOCKER_SWARM_CLUSTER_ID_CACHE_NAMESPACE,
+        cacheKey,
+      );
+
+      if (!clusterIdStr) {
+        const cluster: DockerSwarmCluster =
+          await DockerSwarmClusterService.findOrCreateByName({
+            projectId: data.projectId,
+            name: clusterName,
+          });
+
+        if (cluster._id) {
+          clusterIdStr = cluster._id.toString();
+          await GlobalCache.setString(
+            this.DOCKER_SWARM_CLUSTER_ID_CACHE_NAMESPACE,
+            cacheKey,
+            clusterIdStr,
+            {
+              expiresInSeconds:
+                this.DOCKER_SWARM_CLUSTER_ID_CACHE_EXPIRY_SECONDS,
+            },
+          );
+        }
+      }
+
+      if (clusterIdStr) {
+        const clusterId: ObjectID = new ObjectID(clusterIdStr);
+        if (
+          await this.shouldRunMaintenance("docker-swarm-cluster", clusterIdStr)
+        ) {
+          const agentVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "oneuptime.agent.version",
+          );
+          await DockerSwarmClusterService.updateLastSeen(clusterId, {
+            agentVersion: agentVersion || undefined,
+          });
+          await this.promoteOneuptimeLabelsToDockerSwarmCluster({
+            projectId: data.projectId,
+            dockerSwarmClusterId: clusterId,
+            attributes: data.attributes,
+          });
+        }
+        return clusterId;
+      }
+
+      return null;
+    } catch (err) {
+      logger.error(
+        "Error auto-discovering Docker Swarm cluster: " +
+          (err as Error).message,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * Promote `oneuptime.label.<dim>=<val>` resource attributes into
+   * project labels and attach them to the discovered Docker Swarm
+   * cluster. Mirrors the Proxmox cluster label promotion.
+   */
+  @CaptureSpan()
+  protected static async promoteOneuptimeLabelsToDockerSwarmCluster(data: {
+    projectId: ObjectID;
+    dockerSwarmClusterId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      const labelNames: Array<string> = extractOneuptimeLabelNames(
+        data.attributes,
+      );
+      if (labelNames.length === 0) {
+        return;
+      }
+      const labelIds: Array<ObjectID> =
+        await LabelService.findOrCreateLabelsByNames({
+          projectId: data.projectId,
+          labelNames,
+        });
+      if (labelIds.length === 0) {
+        return;
+      }
+      await DockerSwarmClusterService.attachLabels({
+        dockerSwarmClusterId: data.dockerSwarmClusterId,
+        labelIds,
+      });
+    } catch (err) {
+      logger.warn(
+        `Docker Swarm cluster label promotion failed for ${data.dockerSwarmClusterId.toString()}: ${
           err instanceof Error ? err.message : String(err)
         }`,
       );
