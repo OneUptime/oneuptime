@@ -16,16 +16,12 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
-  useMemo,
   useState,
 } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import StatusPageSCIMLogsTable from "../../../Components/SCIMLogs/StatusPageSCIMLogsTable";
-import EnterpriseFeatureUpgrade, {
-  isEnterpriseFeatureEligible,
-} from "../../../Components/EnterpriseEdition/EnterpriseFeatureUpgrade";
 
 const SCIMPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -44,46 +40,6 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
   const [showResetSuccessModal, setShowResetSuccessModal] =
     useState<boolean>(false);
   const [newBearerToken, setNewBearerToken] = useState<string>("");
-
-  const isEnterpriseEligible: boolean = useMemo(() => {
-    return isEnterpriseFeatureEligible();
-  }, []);
-
-  if (!isEnterpriseEligible) {
-    return (
-      <EnterpriseFeatureUpgrade
-        title="Status Page SCIM"
-        description="Automate user provisioning for this status page."
-        featureName="Status Page SCIM Provisioning"
-        featureDescription="Provision and deprovision viewers of this status page directly from your identity provider — Okta, Azure AD and any SCIM 2.0 system."
-        benefits={[
-          {
-            icon: IconProp.User,
-            title: "Automatic provisioning",
-            subtitle: "Status page viewers are added when granted in your IdP.",
-          },
-          {
-            icon: IconProp.Lock,
-            title: "Automatic deprovisioning",
-            subtitle:
-              "Disable access in your IdP and they lose access here in sync.",
-          },
-          {
-            icon: IconProp.ShieldCheck,
-            title: "Group sync",
-            subtitle:
-              "Map IdP groups to status page viewers without manual upkeep.",
-          },
-          {
-            icon: IconProp.ClipboardDocumentList,
-            title: "SCIM activity logs",
-            subtitle:
-              "Every provisioning event is recorded for troubleshooting.",
-          },
-        ]}
-      />
-    );
-  }
 
   const resetBearerToken: () => Promise<void> = async (): Promise<void> => {
     setIsResetLoading(true);

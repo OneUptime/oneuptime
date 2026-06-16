@@ -4,7 +4,6 @@ import PageComponentProps from "../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import DigestMethod from "Common/Types/SSO/DigestMethod";
 import SignatureMethod from "Common/Types/SSO/SignatureMethod";
-import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -23,14 +22,10 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Project from "Common/Models/DatabaseModels/Project";
 import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
 import Team from "Common/Models/DatabaseModels/Team";
-import EnterpriseFeatureUpgrade, {
-  isEnterpriseFeatureEligible,
-} from "../../Components/EnterpriseEdition/EnterpriseFeatureUpgrade";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
-  useMemo,
   useState,
 } from "react";
 import Link from "Common/UI/Components/Link/Link";
@@ -40,47 +35,6 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
   const [showSingleSignOnUrlId, setShowSingleSignOnUrlId] =
     useState<string>("");
-
-  const isEnterpriseEligible: boolean = useMemo(() => {
-    return isEnterpriseFeatureEligible();
-  }, []);
-
-  if (!isEnterpriseEligible) {
-    return (
-      <EnterpriseFeatureUpgrade
-        title="Single Sign On (SSO)"
-        description="Configure SAML SSO for your project."
-        featureName="SAML Single Sign On"
-        featureDescription="Let team members authenticate into this project using your SAML identity provider (Okta, Azure AD, OneLogin, JumpCloud and more)."
-        benefits={[
-          {
-            icon: IconProp.Lock,
-            title: "Centralized auth",
-            subtitle:
-              "Federate sign-in to your IdP and revoke access from one place.",
-          },
-          {
-            icon: IconProp.ShieldCheck,
-            title: "Enforce SSO",
-            subtitle:
-              "Require SSO for everyone in the project — no shared passwords.",
-          },
-          {
-            icon: IconProp.User,
-            title: "Auto team assignment",
-            subtitle:
-              "Map signed-in users into the right teams the moment they log in.",
-          },
-          {
-            icon: IconProp.ClipboardDocumentList,
-            title: "Audit trail",
-            subtitle:
-              "Every SSO sign-in is recorded alongside the rest of your audit events.",
-          },
-        ]}
-      />
-    );
-  }
 
   return (
     <Fragment>
