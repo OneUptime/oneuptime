@@ -783,5 +783,5 @@ export default [
   AddProxmoxCephV2Columns1781600000000,
   AddProxmoxCephActivityAndRules1781600000001,
   AddProxmoxCephV3Columns1781700000000,
-  MigrationName1781587937032
+  MigrationName1781587937032,
 ];
