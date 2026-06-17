@@ -390,6 +390,7 @@ import { AddProxmoxCephV2Columns1781600000000 } from "./1781600000000-AddProxmox
 import { AddProxmoxCephActivityAndRules1781600000001 } from "./1781600000001-AddProxmoxCephActivityAndRules";
 import { AddProxmoxCephV3Columns1781700000000 } from "./1781700000000-AddProxmoxCephV3Columns";
 import { MigrationName1781750000000 } from "./1781750000000-MigrationName";
+import { AddGlobalSsoAndOidc1782000000000 } from "./1782000000000-AddGlobalSsoAndOidc";
 
 export default [
   InitialMigration,
@@ -784,4 +785,5 @@ export default [
   AddProxmoxCephActivityAndRules1781600000001,
   AddProxmoxCephV3Columns1781700000000,
   MigrationName1781750000000,
+  AddGlobalSsoAndOidc1782000000000,
 ];

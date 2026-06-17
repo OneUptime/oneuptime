@@ -24,6 +24,27 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         />
       </SideMenuSection>
 
+      <SideMenuSection title={t("sideMenu.settingsAuthentication")}>
+        <SideMenuItem
+          link={{
+            title: "Global SSO",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_GLOBAL_SSO] as Route,
+            ),
+          }}
+          icon={IconProp.Lock}
+        />
+        <SideMenuItem
+          link={{
+            title: "Global OIDC",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_GLOBAL_OIDC] as Route,
+            ),
+          }}
+          icon={IconProp.Lock}
+        />
+      </SideMenuSection>
+
       <SideMenuSection title={t("sideMenu.settingsNotifications")}>
         <SideMenuItem
           link={{

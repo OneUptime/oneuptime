@@ -19,6 +19,22 @@ import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
 import ProjectAPI from "Common/Server/API/ProjectAPI";
 import ProjectSsoAPI from "Common/Server/API/ProjectSSO";
 import ProjectOidcAPI from "Common/Server/API/ProjectOIDC";
+import GlobalSso from "Common/Models/DatabaseModels/GlobalSso";
+import GlobalOidc from "Common/Models/DatabaseModels/GlobalOidc";
+import GlobalSsoProject from "Common/Models/DatabaseModels/GlobalSsoProject";
+import GlobalOidcProject from "Common/Models/DatabaseModels/GlobalOidcProject";
+import GlobalSsoService, {
+  Service as GlobalSsoServiceType,
+} from "Common/Server/Services/GlobalSsoService";
+import GlobalOidcService, {
+  Service as GlobalOidcServiceType,
+} from "Common/Server/Services/GlobalOidcService";
+import GlobalSsoProjectService, {
+  Service as GlobalSsoProjectServiceType,
+} from "Common/Server/Services/GlobalSsoProjectService";
+import GlobalOidcProjectService, {
+  Service as GlobalOidcProjectServiceType,
+} from "Common/Server/Services/GlobalOidcProjectService";
 import WhatsAppLogAPI from "./WhatsAppLogAPI";
 import TelegramLogAPI from "./TelegramLogAPI";
 
@@ -3630,6 +3646,34 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ProjectOidcAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<GlobalSso, GlobalSsoServiceType>(
+        GlobalSso,
+        GlobalSsoService,
+      ).getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<GlobalOidc, GlobalOidcServiceType>(
+        GlobalOidc,
+        GlobalOidcService,
+      ).getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<GlobalSsoProject, GlobalSsoProjectServiceType>(
+        GlobalSsoProject,
+        GlobalSsoProjectService,
+      ).getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<GlobalOidcProject, GlobalOidcProjectServiceType>(
+        GlobalOidcProject,
+        GlobalOidcProjectService,
+      ).getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

@@ -2,6 +2,8 @@ import AuthenticationAPI from "./API/Authentication";
 import ResellerAPI from "./API/Reseller";
 import SsoAPI from "./API/SSO";
 import OidcAPI from "./API/OIDC";
+import GlobalSsoAPI from "./API/GlobalSSO";
+import GlobalOidcAPI from "./API/GlobalOIDC";
 import SCIMAPI from "./API/SCIM";
 import StatusPageAuthenticationAPI from "./API/StatusPageAuthentication";
 import StatusPageSsoAPI from "./API/StatusPageSSO";
@@ -24,6 +26,10 @@ const IdentityFeatureSet: FeatureSet = {
     app.use([`/${APP_NAME}`, "/"], SsoAPI);
 
     app.use([`/${APP_NAME}`, "/"], OidcAPI);
+
+    app.use([`/${APP_NAME}`, "/"], GlobalSsoAPI);
+
+    app.use([`/${APP_NAME}`, "/"], GlobalOidcAPI);
 
     app.use([`/${APP_NAME}`, "/"], SCIMAPI);
 

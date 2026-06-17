@@ -170,6 +170,7 @@ export default class UserMiddleware {
     req: ExpressRequest,
     projectId: ObjectID,
     userId: ObjectID,
+    requiredSsoProviderId?: ObjectID | undefined,
   ): boolean {
     const ssoTokens: Dictionary<string> = this.getSsoTokens(req);
 
@@ -181,6 +182,25 @@ export default class UserMiddleware {
         decodedData.projectId?.toString() === projectId.toString() &&
         decodedData.userId.toString() === userId.toString()
       ) {
+        /*
+         * Specific-IdP enforcement: when the project requires a specific SSO
+         * provider, the token must carry a matching `ssoProviderId`
+         * discriminator. Tokens issued before this field existed (no
+         * discriminator) do not satisfy a specific-provider requirement.
+         */
+        if (requiredSsoProviderId) {
+          const tokenProviderId: string | undefined = decodedData.ssoProviderId
+            ? decodedData.ssoProviderId.toString()
+            : undefined;
+
+          if (
+            !tokenProviderId ||
+            tokenProviderId !== requiredSsoProviderId.toString()
+          ) {
+            return false;
+          }
+        }
+
         return true;
       }
     }
@@ -515,11 +535,28 @@ export default class UserMiddleware {
       AccessTokenService.getUserTenantAccessPermission(userId, tenantId),
     ]);
 
-    if (
-      requireSsoForLogin &&
-      !UserMiddleware.doesSsoTokenForProjectExist(req, tenantId, userId)
-    ) {
-      throw new SsoAuthorizationException();
+    if (requireSsoForLogin) {
+      /*
+       * Only resolve the specific-provider requirement when SSO is enforced.
+       * The provider-id cache is already warm from getRequireSsoForLogin above.
+       */
+      const requiredSsoProviderId: ObjectID | null =
+        await ProjectService.getRequireSsoWithSsoProviderId(tenantId).catch(
+          () => {
+            return null;
+          },
+        );
+
+      if (
+        !UserMiddleware.doesSsoTokenForProjectExist(
+          req,
+          tenantId,
+          userId,
+          requiredSsoProviderId ?? undefined,
+        )
+      ) {
+        throw new SsoAuthorizationException();
+      }
     }
 
     return tenantPermission;
@@ -545,6 +582,7 @@ export default class UserMiddleware {
       },
       select: {
         requireSsoForLogin: true,
+        requireSsoWithSsoProviderId: true,
       },
       limit: LIMIT_PER_PROJECT,
       skip: 0,
@@ -563,11 +601,20 @@ export default class UserMiddleware {
       permission: UserTenantAccessPermission | null;
     }> = await Promise.all(
       projectIds.map(async (projectId: ObjectID) => {
-        if (
-          projects.find((p: Project) => {
+        const enforcedProject: Project | undefined = projects.find(
+          (p: Project) => {
             return p._id === projectId.toString() && p.requireSsoForLogin;
-          }) &&
-          !UserMiddleware.doesSsoTokenForProjectExist(req, projectId, userId)
+          },
+        );
+
+        if (
+          enforcedProject &&
+          !UserMiddleware.doesSsoTokenForProjectExist(
+            req,
+            projectId,
+            userId,
+            enforcedProject.requireSsoWithSsoProviderId ?? undefined,
+          )
         ) {
           return {
             projectId,
