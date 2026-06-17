@@ -386,10 +386,10 @@ import { MigrationName1781250074195 } from "./1781250074195-MigrationName";
 import { AddTelemetryEntityLabels1781300000000 } from "./1781300000000-AddTelemetryEntityLabels";
 import { AddServiceTelemetrySdkLanguage1781400000000 } from "./1781400000000-AddServiceTelemetrySdkLanguage";
 import { AddProxmoxAndCephClusterTables1781500000000 } from "./1781500000000-AddProxmoxAndCephClusterTables";
-import { MigrationName1781587937032 } from "./1781587937032-MigrationName";
 import { AddProxmoxCephV2Columns1781600000000 } from "./1781600000000-AddProxmoxCephV2Columns";
 import { AddProxmoxCephActivityAndRules1781600000001 } from "./1781600000001-AddProxmoxCephActivityAndRules";
 import { AddProxmoxCephV3Columns1781700000000 } from "./1781700000000-AddProxmoxCephV3Columns";
+import { MigrationName1781750000000 } from "./1781750000000-MigrationName";
 
 export default [
   InitialMigration,
@@ -783,5 +783,5 @@ export default [
   AddProxmoxCephV2Columns1781600000000,
   AddProxmoxCephActivityAndRules1781600000001,
   AddProxmoxCephV3Columns1781700000000,
-  MigrationName1781587937032,
+  MigrationName1781750000000,
 ];
