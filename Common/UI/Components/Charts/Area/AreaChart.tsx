@@ -37,7 +37,6 @@ export interface ComponentProps {
   yAxis: YAxis;
   curve: ChartCurve;
   sync: boolean;
-  heightInPx?: number | undefined;
   referenceLines?: Array<ChartReferenceLineProps> | undefined;
   exemplarPoints?: Array<ExemplarPoint> | undefined;
   onExemplarClick?: ((exemplar: ExemplarPoint) => void) | undefined;
@@ -108,11 +107,6 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
     });
   }, [props.exemplarPoints, props.xAxis]);
 
-  const className: string = props.heightInPx ? `` : "h-80";
-  const style: React.CSSProperties = props.heightInPx
-    ? { height: `${props.heightInPx}px` }
-    : {};
-
   const hasNoData: boolean =
     !props.data ||
     props.data.length === 0 ||
@@ -134,10 +128,8 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
     typeof yAxisMaxOption === "number" ? { maxValue: yAxisMaxOption } : {};
 
   return (
-    <div className="relative">
+    <div className="relative flex flex-1">
       <AreaChart
-        className={className}
-        style={style}
         data={records}
         tickGap={1}
         index={"Time"}
