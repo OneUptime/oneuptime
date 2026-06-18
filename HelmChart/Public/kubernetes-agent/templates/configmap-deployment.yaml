@@ -103,42 +103,58 @@ data:
             {{- if .Values.controlPlane.enabled }}
             - job_name: etcd
               scheme: https
+              metrics_path: /metrics
               tls_config:
                 insecure_skip_verify: {{ .Values.controlPlane.etcd.insecureSkipVerify }}
               static_configs:
                 {{- range .Values.controlPlane.etcd.endpoints }}
                 - targets:
-                    - {{ . | quote }}
+                    # Prometheus targets must be bare host:port — strip any
+                    # scheme/path the endpoint was written with (scheme is set
+                    # above, metrics_path defaults to /metrics).
+                    - {{ . | trimPrefix "https://" | trimPrefix "http://" | trimSuffix "/metrics" | quote }}
                 {{- end }}
             - job_name: kube-apiserver
               scheme: https
+              metrics_path: /metrics
               tls_config:
                 insecure_skip_verify: {{ .Values.controlPlane.apiServer.insecureSkipVerify }}
               bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
               static_configs:
                 {{- range .Values.controlPlane.apiServer.endpoints }}
                 - targets:
-                    - {{ . | quote }}
+                    # Prometheus targets must be bare host:port — strip any
+                    # scheme/path the endpoint was written with (scheme is set
+                    # above, metrics_path defaults to /metrics).
+                    - {{ . | trimPrefix "https://" | trimPrefix "http://" | trimSuffix "/metrics" | quote }}
                 {{- end }}
             - job_name: kube-scheduler
               scheme: https
+              metrics_path: /metrics
               tls_config:
                 insecure_skip_verify: {{ .Values.controlPlane.scheduler.insecureSkipVerify }}
               bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
               static_configs:
                 {{- range .Values.controlPlane.scheduler.endpoints }}
                 - targets:
-                    - {{ . | quote }}
+                    # Prometheus targets must be bare host:port — strip any
+                    # scheme/path the endpoint was written with (scheme is set
+                    # above, metrics_path defaults to /metrics).
+                    - {{ . | trimPrefix "https://" | trimPrefix "http://" | trimSuffix "/metrics" | quote }}
                 {{- end }}
             - job_name: kube-controller-manager
               scheme: https
+              metrics_path: /metrics
               tls_config:
                 insecure_skip_verify: {{ .Values.controlPlane.controllerManager.insecureSkipVerify }}
               bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
               static_configs:
                 {{- range .Values.controlPlane.controllerManager.endpoints }}
                 - targets:
-                    - {{ . | quote }}
+                    # Prometheus targets must be bare host:port — strip any
+                    # scheme/path the endpoint was written with (scheme is set
+                    # above, metrics_path defaults to /metrics).
+                    - {{ . | trimPrefix "https://" | trimPrefix "http://" | trimSuffix "/metrics" | quote }}
                 {{- end }}
             {{- end }}
             {{- if and .Values.serviceMesh.enabled (eq .Values.serviceMesh.provider "istio") }}
