@@ -1,4 +1,5 @@
 import AccessTokenService from "../Services/AccessTokenService";
+import GlobalConfigService from "../Services/GlobalConfigService";
 import ProjectService from "../Services/ProjectService";
 import TeamMemberService from "../Services/TeamMemberService";
 import UserService from "../Services/UserService";
@@ -510,12 +511,15 @@ export default class UserMiddleware {
   }): Promise<UserTenantAccessPermission | null> {
     const { req, tenantId, userId } = data;
 
+    const isMasterAdmin: boolean =
+      (req as OneUptimeRequest).userAuthorization?.isMasterAdmin === true;
+
     /*
      * Resolve the SSO requirement and the tenant permission in parallel.
      * `getRequireSsoForLogin` is cached in-process for 60s, so this is
      * usually free; the tenant permission lookup is the expensive call.
      */
-    const [requireSsoForLogin, tenantPermission]: [
+    const [projectRequireSsoForLogin, tenantPermission]: [
       boolean,
       UserTenantAccessPermission | null,
     ] = await Promise.all([
@@ -531,6 +535,20 @@ export default class UserMiddleware {
       }),
       AccessTokenService.getUserTenantAccessPermission(userId, tenantId),
     ]);
+
+    /*
+     * The instance-wide "Require SSO for Login" flag (GlobalConfig) forces SSO
+     * on every project. Master admins are exempt so a misconfigured global SSO
+     * can't lock them out — a project's own requireSsoForLogin still applies to
+     * them. Only checked when the project doesn't already enforce SSO.
+     */
+    let requireSsoForLogin: boolean = projectRequireSsoForLogin;
+    if (!requireSsoForLogin && !isMasterAdmin) {
+      requireSsoForLogin =
+        await GlobalConfigService.getRequireSsoForLogin().catch(() => {
+          return false;
+        });
+    }
 
     if (requireSsoForLogin) {
       /*
@@ -569,19 +587,30 @@ export default class UserMiddleware {
       return null;
     }
 
+    const isMasterAdmin: boolean =
+      (req as OneUptimeRequest).userAuthorization?.isMasterAdmin === true;
+
     /*
-     * Resolve permissions for every project in parallel. SSO enforcement is
-     * read through the cached, dynamic getters (getRequireSsoForLogin /
-     * getRequireSsoWithSsoProviderId) so that a project forced via an attached
-     * Global SSO/OIDC provider — which is never written onto the project row —
-     * is honored here exactly as in the single-tenant path.
+     * Instance-wide "Require SSO for Login" forces SSO on every project. Master
+     * admins are exempt. Resolved once (cached) rather than per project.
+     */
+    const globalRequireSsoForLogin: boolean = isMasterAdmin
+      ? false
+      : await GlobalConfigService.getRequireSsoForLogin().catch(() => {
+          return false;
+        });
+
+    /*
+     * Resolve permissions for every project in parallel. A project's own
+     * requireSsoForLogin is read through the cached getter; the global flag is
+     * OR'd in so enforcement matches the single-tenant path.
      */
     const resolved: Array<{
       projectId: ObjectID;
       permission: UserTenantAccessPermission | null;
     }> = await Promise.all(
       projectIds.map(async (projectId: ObjectID) => {
-        const requireSsoForLogin: boolean =
+        const projectRequireSsoForLogin: boolean =
           await ProjectService.getRequireSsoForLogin(projectId).catch(() => {
             /*
              * Unknown/inaccessible project: do not enforce SSO here. Actual
@@ -589,6 +618,9 @@ export default class UserMiddleware {
              */
             return false;
           });
+
+        const requireSsoForLogin: boolean =
+          projectRequireSsoForLogin || globalRequireSsoForLogin;
 
         if (requireSsoForLogin) {
           const requiredSsoProviderId: ObjectID | null =

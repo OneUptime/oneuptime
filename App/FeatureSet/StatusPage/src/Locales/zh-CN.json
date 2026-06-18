@@ -1,5 +1,4 @@
 {
-  "is required": "为必填项",
   "a11y": {
     "skipToMainContent": "跳到主要内容"
   },
@@ -258,5 +257,17 @@
     "completed": "已完成"
   },
   "Subscriber ID is required": "订阅者 ID 为必填项",
-  "Token is required": "令牌为必填项"
+  "Token is required": "令牌为必填项",
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}}不能少于 {{minLength}} 个字符。",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}}不能超过 {{maxLength}} 个字符。",
+  "{{field}} should not have spaces.": "{{field}}不能包含空格。",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}}只能包含字母、数字、连字符 (-) 和下划线 (_)。",
+  "{{field}} should not have numbers.": "{{field}}不能包含数字。",
+  "{{field}} should be a future date.": "{{field}}必须是将来的日期。",
+  "{{field}} should be a number.": "{{field}}必须是数字。",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}}不能大于 {{maxValue}}。",
+  "{{field}} should not be less than {{minValue}}.": "{{field}}不能小于 {{minValue}}。",
+  "{{field}} is required.": "{{field}}为必填项。",
+  "{{field}} should match {{matchField}}": "{{field}}必须与 {{matchField}} 匹配",
+  "Email is not valid.": "电子邮件无效。"
 }

@@ -19,25 +19,48 @@ import Port from "../../../Types/Port";
 import Typeof from "../../../Types/Typeof";
 import i18next from "i18next";
 
+type InterpolationValues = Record<string, string | number>;
+
+const interpolateTemplate: (
+  template: string,
+  values: InterpolationValues,
+) => string = (template: string, values: InterpolationValues): string => {
+  return template.replace(
+    /\{\{(\w+)\}\}/g,
+    (match: string, key: string): string => {
+      return key in values ? String(values[key]) : match;
+    },
+  );
+};
+
 /*
- * Translate a fixed English phrase using the active i18next instance so
- * validation messages are localized (WCAG 3.1.2 Language of Parts). Uses
- * flat-key lookup (matching Common/UI/Utils/Translation) and falls back to the
- * English phrase when no translation — or no initialized i18n instance — is
- * available (e.g. apps that don't set up i18n), so behavior is unchanged there.
+ * Localize a validation message (WCAG 3.1.2 Language of Parts). The English
+ * template — including any {{placeholders}} — doubles as the i18next flat key,
+ * so a locale file maps it to a translated template that keeps correct word
+ * order. When an i18next instance is initialized (e.g. the status page) the
+ * lookup + interpolation run through it; otherwise (apps that don't set up i18n)
+ * we fall back to JS-interpolating the English template, so placeholders are
+ * never shown literally and behavior is unchanged where i18n isn't set up.
  */
-const translateValidationPhrase: (phrase: string) => string = (
-  phrase: string,
-): string => {
+const translateValidationMessage: (
+  template: string,
+  values?: InterpolationValues,
+) => string = (template: string, values: InterpolationValues = {}): string => {
+  const englishFallback: string = interpolateTemplate(template, values);
   try {
-    const translated: unknown = i18next.t(phrase, {
-      defaultValue: phrase,
+    if (!i18next.isInitialized) {
+      return englishFallback;
+    }
+    const translated: unknown = i18next.t(template, {
+      defaultValue: template,
       keySeparator: false,
       nsSeparator: false,
+      interpolation: { escapeValue: false },
+      ...values,
     });
-    return typeof translated === "string" ? translated : phrase;
+    return typeof translated === "string" ? translated : englishFallback;
   } catch {
-    return phrase;
+    return englishFallback;
   }
 };
 
@@ -49,35 +72,52 @@ export default class Validation {
     if (content && field.validation) {
       if (field.validation.minLength) {
         if (content.trim().length < field.validation?.minLength) {
-          return `${field.title || name} cannot be less than ${
-            field.validation.minLength
-          } characters.`;
+          return translateValidationMessage(
+            "{{field}} cannot be less than {{minLength}} characters.",
+            {
+              field: field.title || field.name || "",
+              minLength: field.validation.minLength,
+            },
+          );
         }
       }
 
       if (field.validation.maxLength) {
         if (content.trim().length > field.validation?.maxLength) {
-          return `${field.title || name} cannot be more than ${
-            field.validation.maxLength
-          } characters.`;
+          return translateValidationMessage(
+            "{{field}} cannot be more than {{maxLength}} characters.",
+            {
+              field: field.title || field.name || "",
+              maxLength: field.validation.maxLength,
+            },
+          );
         }
       }
 
       if (field.validation.noSpaces) {
         if (content.trim().includes(" ")) {
-          return `${field.title || name} should not have spaces.`;
+          return translateValidationMessage(
+            "{{field}} should not have spaces.",
+            { field: field.title || field.name || "" },
+          );
         }
       }
 
       if (field.validation.noSpecialCharacters) {
         if (!content.match(/^[A-Za-z0-9_-]*$/)) {
-          return `${field.title || name} can only contain letters, numbers, hyphens (-), and underscores (_).`;
+          return translateValidationMessage(
+            "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).",
+            { field: field.title || field.name || "" },
+          );
         }
       }
 
       if (field.validation.noNumbers) {
         if (!content.match(/^[A-Za-z]*$/)) {
-          return `${field.title || name} should not have numbers.`;
+          return translateValidationMessage(
+            "{{field}} should not have numbers.",
+            { field: field.title || field.name || "" },
+          );
         }
       }
     }
@@ -91,7 +131,10 @@ export default class Validation {
     if (content && field.validation) {
       if (field.validation.dateShouldBeInTheFuture) {
         if (OneUptimeDate.isInThePast(content.trim())) {
-          return `${field.title || name} should be a future date.`;
+          return translateValidationMessage(
+            "{{field}} should be a future date.",
+            { field: field.title || field.name || "" },
+          );
         }
       }
     }
@@ -108,23 +151,33 @@ export default class Validation {
           content = parseInt(content);
         } catch (e) {
           Logger.error(e as string);
-          return `${field.title || name} should be a number.`;
+          return translateValidationMessage("{{field}} should be a number.", {
+            field: field.title || field.name || "",
+          });
         }
       }
 
       if (field.validation.maxValue) {
         if (content > field.validation?.maxValue) {
-          return `${field.title || name} should not be more than ${
-            field.validation?.maxValue
-          }.`;
+          return translateValidationMessage(
+            "{{field}} should not be more than {{maxValue}}.",
+            {
+              field: field.title || field.name || "",
+              maxValue: field.validation.maxValue,
+            },
+          );
         }
       }
 
       if (field.validation.minValue) {
         if (content < field.validation?.minValue) {
-          return `${field.title || name} should not be less than ${
-            field.validation?.minValue
-          }.`;
+          return translateValidationMessage(
+            "{{field}} should not be less than {{minValue}}.",
+            {
+              field: field.title || field.name || "",
+              minValue: field.validation.minValue,
+            },
+          );
         }
       }
     }
@@ -149,7 +202,9 @@ export default class Validation {
     }
 
     if (required && (!content || content.length === 0)) {
-      return `${field.title} ${translateValidationPhrase("is required")}.`;
+      return translateValidationMessage("{{field}} is required.", {
+        field: field.title || field.name || "",
+      });
     }
     return null;
   }
@@ -166,9 +221,13 @@ export default class Validation {
       (entity[field.validation?.toMatchField] as string).toString().trim() !==
         content.trim()
     ) {
-      return `${field.title} should match ${
-        field.validation?.toMatchField as string
-      }`;
+      return translateValidationMessage(
+        "{{field}} should match {{matchField}}",
+        {
+          field: field.title || field.name || "",
+          matchField: field.validation?.toMatchField as string,
+        },
+      );
     }
     return null;
   }
@@ -179,7 +238,7 @@ export default class Validation {
   ): string | null {
     if (content && field.fieldType === FormFieldSchemaType.Email) {
       if (!Email.isValid(content!)) {
-        return "Email is not valid.";
+        return translateValidationMessage("Email is not valid.");
       }
     }
 
@@ -352,9 +411,9 @@ export default class Validation {
           }
         }
       } else if (field.required) {
-        errors[name] = `${field.title || name} ${translateValidationPhrase(
-          "is required",
-        )}.`;
+        errors[name] = translateValidationMessage("{{field}} is required.", {
+          field: field.title || field.name || "",
+        });
       }
     }
 

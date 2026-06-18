@@ -1,5 +1,4 @@
 {
-  "is required": "är obligatoriskt",
   "a11y": {
     "skipToMainContent": "Hoppa till huvudinnehåll"
   },
@@ -258,5 +257,17 @@
     "completed": "Slutförd"
   },
   "Subscriber ID is required": "Prenumerant-ID krävs",
-  "Token is required": "Token krävs"
+  "Token is required": "Token krävs",
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}} får inte vara mindre än {{minLength}} tecken.",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} får inte vara mer än {{maxLength}} tecken.",
+  "{{field}} should not have spaces.": "{{field}} får inte innehålla mellanslag.",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}} får endast innehålla bokstäver, siffror, bindestreck (-) och understreck (_).",
+  "{{field}} should not have numbers.": "{{field}} får inte innehålla siffror.",
+  "{{field}} should be a future date.": "{{field}} måste vara ett framtida datum.",
+  "{{field}} should be a number.": "{{field}} måste vara ett tal.",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}} får inte vara större än {{maxValue}}.",
+  "{{field}} should not be less than {{minValue}}.": "{{field}} får inte vara mindre än {{minValue}}.",
+  "{{field}} is required.": "{{field}} är obligatoriskt.",
+  "{{field}} should match {{matchField}}": "{{field}} måste matcha {{matchField}}",
+  "Email is not valid.": "E-postadressen är ogiltig."
 }

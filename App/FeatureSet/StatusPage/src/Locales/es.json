@@ -1,5 +1,4 @@
 {
-  "is required": "es obligatorio",
   "a11y": {
     "skipToMainContent": "Saltar al contenido principal"
   },
@@ -258,5 +257,17 @@
     "completed": "Completado"
   },
   "Subscriber ID is required": "El ID del suscriptor es obligatorio",
-  "Token is required": "El token es obligatorio"
+  "Token is required": "El token es obligatorio",
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}} no puede tener menos de {{minLength}} caracteres.",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} no puede tener más de {{maxLength}} caracteres.",
+  "{{field}} should not have spaces.": "{{field}} no debe contener espacios.",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}} solo puede contener letras, números, guiones (-) y guiones bajos (_).",
+  "{{field}} should not have numbers.": "{{field}} no debe contener números.",
+  "{{field}} should be a future date.": "{{field}} debe ser una fecha futura.",
+  "{{field}} should be a number.": "{{field}} debe ser un número.",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}} no debe ser mayor que {{maxValue}}.",
+  "{{field}} should not be less than {{minValue}}.": "{{field}} no debe ser menor que {{minValue}}.",
+  "{{field}} is required.": "{{field}} es obligatorio.",
+  "{{field}} should match {{matchField}}": "{{field}} debe coincidir con {{matchField}}",
+  "Email is not valid.": "El correo electrónico no es válido."
 }

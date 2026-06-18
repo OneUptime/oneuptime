@@ -1,5 +1,4 @@
 {
-  "is required": "は必須です",
   "a11y": {
     "skipToMainContent": "メインコンテンツにスキップ"
   },
@@ -258,5 +257,17 @@
     "completed": "完了"
   },
   "Subscriber ID is required": "購読者 ID は必須です",
-  "Token is required": "トークンは必須です"
+  "Token is required": "トークンは必須です",
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}}は{{minLength}}文字以上で入力してください。",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}}は{{maxLength}}文字以下で入力してください。",
+  "{{field}} should not have spaces.": "{{field}}にスペースを含めることはできません。",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}}には英字、数字、ハイフン (-)、アンダースコア (_) のみ使用できます。",
+  "{{field}} should not have numbers.": "{{field}}に数字を含めることはできません。",
+  "{{field}} should be a future date.": "{{field}}は未来の日付を指定してください。",
+  "{{field}} should be a number.": "{{field}}は数値を入力してください。",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}}は{{maxValue}}以下で入力してください。",
+  "{{field}} should not be less than {{minValue}}.": "{{field}}は{{minValue}}以上で入力してください。",
+  "{{field}} is required.": "{{field}}は必須です。",
+  "{{field}} should match {{matchField}}": "{{field}}は{{matchField}}と一致する必要があります",
+  "Email is not valid.": "メールアドレスが無効です。"
 }

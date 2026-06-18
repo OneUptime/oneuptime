@@ -1,5 +1,4 @@
 {
-  "is required": "er påkrevd",
   "a11y": {
     "skipToMainContent": "Hopp til hovedinnhold"
   },
@@ -258,5 +257,17 @@
     "completed": "Fullført"
   },
   "Subscriber ID is required": "Abonnent-ID er påkrevd",
-  "Token is required": "Token er påkrevd"
+  "Token is required": "Token er påkrevd",
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}} kan ikke være mindre enn {{minLength}} tegn.",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} kan ikke være mer enn {{maxLength}} tegn.",
+  "{{field}} should not have spaces.": "{{field}} kan ikke inneholde mellomrom.",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}} kan bare inneholde bokstaver, tall, bindestreker (-) og understreker (_).",
+  "{{field}} should not have numbers.": "{{field}} kan ikke inneholde tall.",
+  "{{field}} should be a future date.": "{{field}} må være en fremtidig dato.",
+  "{{field}} should be a number.": "{{field}} må være et tall.",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}} kan ikke være større enn {{maxValue}}.",
+  "{{field}} should not be less than {{minValue}}.": "{{field}} kan ikke være mindre enn {{minValue}}.",
+  "{{field}} is required.": "{{field}} er påkrevd.",
+  "{{field}} should match {{matchField}}": "{{field}} må samsvare med {{matchField}}",
+  "Email is not valid.": "E-posten er ugyldig."
 }

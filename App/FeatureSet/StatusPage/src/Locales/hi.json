@@ -1,5 +1,4 @@
 {
-  "is required": "आवश्यक है",
   "a11y": {
     "skipToMainContent": "मुख्य सामग्री पर जाएं"
   },
@@ -258,5 +257,17 @@
     "completed": "पूर्ण"
   },
   "Subscriber ID is required": "सब्सक्राइबर ID आवश्यक है",
-  "Token is required": "टोकन आवश्यक है"
+  "Token is required": "टोकन आवश्यक है",
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}} {{minLength}} वर्णों से कम नहीं हो सकता।",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} {{maxLength}} वर्णों से अधिक नहीं हो सकता।",
+  "{{field}} should not have spaces.": "{{field}} में रिक्त स्थान नहीं होने चाहिए।",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}} में केवल अक्षर, संख्याएँ, हाइफ़न (-) और अंडरस्कोर (_) हो सकते हैं।",
+  "{{field}} should not have numbers.": "{{field}} में संख्याएँ नहीं होनी चाहिए।",
+  "{{field}} should be a future date.": "{{field}} भविष्य की तारीख होनी चाहिए।",
+  "{{field}} should be a number.": "{{field}} एक संख्या होनी चाहिए।",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}} {{maxValue}} से अधिक नहीं होना चाहिए।",
+  "{{field}} should not be less than {{minValue}}.": "{{field}} {{minValue}} से कम नहीं होना चाहिए।",
+  "{{field}} is required.": "{{field}} आवश्यक है।",
+  "{{field}} should match {{matchField}}": "{{field}} को {{matchField}} से मेल खाना चाहिए",
+  "Email is not valid.": "ईमेल मान्य नहीं है।"
 }

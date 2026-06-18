@@ -1,11 +1,10 @@
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/GlobalOidcProject";
-import ProjectService from "./ProjectService";
 import Team from "../../Models/DatabaseModels/Team";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import validateGlobalProviderProjectTeams from "../Utils/ValidateGlobalProviderProjectTeams";
@@ -65,38 +64,6 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { updateBy, carryForward: null };
-  }
-
-  /*
-   * Attaching / detaching / enabling / disabling a project changes whether the
-   * provider's "Force SSO for Login" applies to it. SSO enforcement is resolved
-   * dynamically in ProjectService, so just drop its enforcement cache.
-   */
-  @CaptureSpan()
-  protected override async onCreateSuccess(
-    _onCreate: OnCreate<Model>,
-    createdItem: Model,
-  ): Promise<Model> {
-    ProjectService.clearSsoEnforcementCache();
-    return createdItem;
-  }
-
-  @CaptureSpan()
-  protected override async onUpdateSuccess(
-    onUpdate: OnUpdate<Model>,
-    _updatedItemIds: Array<ObjectID>,
-  ): Promise<OnUpdate<Model>> {
-    ProjectService.clearSsoEnforcementCache();
-    return onUpdate;
-  }
-
-  @CaptureSpan()
-  protected override async onDeleteSuccess(
-    onDelete: OnDelete<Model>,
-    _deletedItemIds: Array<ObjectID>,
-  ): Promise<OnDelete<Model>> {
-    ProjectService.clearSsoEnforcementCache();
-    return onDelete;
   }
 }
 

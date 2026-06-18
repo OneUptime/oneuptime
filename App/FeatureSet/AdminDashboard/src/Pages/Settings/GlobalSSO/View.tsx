@@ -213,15 +213,6 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
             },
             {
               field: {
-                requireSsoForLogin: true,
-              },
-              title: "Force SSO for Login on Attached Projects",
-              description:
-                "When on, every project this provider is attached to requires SSO for login. Warning: if SSO is misconfigured or this provider is disabled, members of those projects can be locked out. Test the provider first and keep it enabled. Has no effect until at least one project is attached below.",
-              fieldType: FormFieldSchemaType.Toggle,
-            },
-            {
-              field: {
                 isEnabled: true,
               },
               title: "Enabled",
@@ -279,14 +270,6 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
                   disableSignUpWithSso: true,
                 },
                 title: "Disable Sign Up with SSO",
-                fieldType: FieldType.Boolean,
-                placeholder: t("common.no"),
-              },
-              {
-                field: {
-                  requireSsoForLogin: true,
-                },
-                title: "Force SSO for Login on Attached Projects",
                 fieldType: FieldType.Boolean,
                 placeholder: t("common.no"),
               },

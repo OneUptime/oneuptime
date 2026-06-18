@@ -1,5 +1,4 @@
 {
-  "is required": "is verplicht",
   "a11y": {
     "skipToMainContent": "Naar hoofdinhoud springen"
   },
@@ -258,5 +257,17 @@
     "completed": "Voltooid"
   },
   "Subscriber ID is required": "Abonnee-ID is vereist",
-  "Token is required": "Token is vereist"
+  "Token is required": "Token is vereist",
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}} mag niet minder dan {{minLength}} tekens bevatten.",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} mag niet meer dan {{maxLength}} tekens bevatten.",
+  "{{field}} should not have spaces.": "{{field}} mag geen spaties bevatten.",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}} mag alleen letters, cijfers, koppeltekens (-) en onderstrepingstekens (_) bevatten.",
+  "{{field}} should not have numbers.": "{{field}} mag geen cijfers bevatten.",
+  "{{field}} should be a future date.": "{{field}} moet een datum in de toekomst zijn.",
+  "{{field}} should be a number.": "{{field}} moet een getal zijn.",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}} mag niet groter zijn dan {{maxValue}}.",
+  "{{field}} should not be less than {{minValue}}.": "{{field}} mag niet kleiner zijn dan {{minValue}}.",
+  "{{field}} is required.": "{{field}} is verplicht.",
+  "{{field}} should match {{matchField}}": "{{field}} moet overeenkomen met {{matchField}}",
+  "Email is not valid.": "E-mailadres is ongeldig."
 }
