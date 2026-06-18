@@ -395,6 +395,7 @@ import { AddStatusPageImageAltText1782100000000 } from "./1782100000000-AddStatu
 import { AddRequireSsoForLoginToGlobalProviders1782200000000 } from "./1782200000000-AddRequireSsoForLoginToGlobalProviders";
 import { MoveRequireSsoForLoginToGlobalConfig1782300000000 } from "./1782300000000-MoveRequireSsoForLoginToGlobalConfig";
 import { MigrationName1782310000000 } from "./1782310000000-MigrationName";
+import { RemoveIsTestedFromGlobalSsoAndOidc1782400000000 } from "./1782400000000-RemoveIsTestedFromGlobalSsoAndOidc";
 
 export default [
   InitialMigration,
@@ -794,4 +795,5 @@ export default [
   AddRequireSsoForLoginToGlobalProviders1782200000000,
   MoveRequireSsoForLoginToGlobalConfig1782300000000,
   MigrationName1782310000000,
+  RemoveIsTestedFromGlobalSsoAndOidc1782400000000,
 ];

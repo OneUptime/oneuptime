@@ -5,7 +5,14 @@ import DashboardSideMenu from "../SideMenu";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
-import { HOST, HTTP_PROTOCOL, IDENTITY_URL } from "Common/UI/Config";
+import {
+  HOST,
+  HTTP_PROTOCOL,
+  IDENTITY_URL,
+  IS_ENTERPRISE_EDITION,
+} from "Common/UI/Config";
+import IconProp from "Common/Types/Icon/IconProp";
+import EnterpriseFeatureUpgrade from "../../../Components/EnterpriseEdition/EnterpriseFeatureUpgrade";
 import Card from "Common/UI/Components/Card/Card";
 import Link from "Common/UI/Components/Link/Link";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -13,6 +20,7 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
+import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -91,6 +99,67 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
   const testLoginURL: URL = URL.fromURL(IDENTITY_URL).addRoute(
     new Route(`/global-sso/${modelId.toString()}`),
   );
+
+  // Global SSO is a OneUptime Enterprise Edition feature, just like project SSO.
+  if (!IS_ENTERPRISE_EDITION) {
+    return (
+      <Page
+        title={t("pages.settings.title")}
+        breadcrumbLinks={[
+          {
+            title: t("breadcrumbs.adminDashboard"),
+            to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
+          },
+          {
+            title: t("breadcrumbs.settings"),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS] as Route,
+            ),
+          },
+          {
+            title: "Global SSO",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_GLOBAL_SSO] as Route,
+            ),
+          },
+        ]}
+        sideMenu={<DashboardSideMenu />}
+      >
+        <EnterpriseFeatureUpgrade
+          title="Global SSO"
+          description="Instance-wide SAML 2.0 identity providers that can be connected to any project on this OneUptime server."
+          featureName="Global SSO"
+          featureDescription="Configure a SAML identity provider once at the instance level and connect it to any project on this OneUptime server."
+          benefits={[
+            {
+              icon: IconProp.Lock,
+              title: "Instance-wide auth",
+              subtitle:
+                "Configure one identity provider and connect it to any project on the server.",
+            },
+            {
+              icon: IconProp.ShieldCheck,
+              title: "Enforce SSO",
+              subtitle:
+                "Require SSO across the whole instance — no shared passwords.",
+            },
+            {
+              icon: IconProp.User,
+              title: "Auto provisioning",
+              subtitle:
+                "Attach projects and place signed-in users into the right teams automatically.",
+            },
+            {
+              icon: IconProp.ClipboardDocumentList,
+              title: "Audit trail",
+              subtitle:
+                "Every SSO sign-in is recorded alongside the rest of your audit events.",
+            },
+          ]}
+        />
+      </Page>
+    );
+  }
 
   return (
     <ModelPage
@@ -281,14 +350,6 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
                   isEnabled: true,
                 },
                 title: "Enabled",
-                fieldType: FieldType.Boolean,
-                placeholder: t("common.no"),
-              },
-              {
-                field: {
-                  isTested: true,
-                },
-                title: "Tested",
                 fieldType: FieldType.Boolean,
                 placeholder: t("common.no"),
               },

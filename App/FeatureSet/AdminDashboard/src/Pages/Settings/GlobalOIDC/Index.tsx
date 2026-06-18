@@ -10,39 +10,87 @@ import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import GlobalOIDC from "Common/Models/DatabaseModels/GlobalOidc";
+import EnterpriseFeatureUpgrade from "../../../Components/EnterpriseEdition/EnterpriseFeatureUpgrade";
+import { IS_ENTERPRISE_EDITION } from "Common/UI/Config";
+import IconProp from "Common/Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
 
+  const breadcrumbLinks: Array<{ title: string; to: Route }> = [
+    {
+      title: t("breadcrumbs.adminDashboard"),
+      to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
+    },
+    {
+      title: t("breadcrumbs.settings"),
+      to: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS] as Route),
+    },
+    {
+      title: "Global OIDC",
+      to: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SETTINGS_GLOBAL_OIDC] as Route,
+      ),
+    },
+  ];
+
+  // Global OIDC is a OneUptime Enterprise Edition feature, just like project SSO.
+  if (!IS_ENTERPRISE_EDITION) {
+    return (
+      <Page
+        title={t("pages.settings.title")}
+        breadcrumbLinks={breadcrumbLinks}
+        sideMenu={<DashboardSideMenu />}
+      >
+        <EnterpriseFeatureUpgrade
+          title="Global OIDC"
+          description="Instance-wide OpenID Connect identity providers that can be connected to any project on this OneUptime server."
+          featureName="Global OIDC"
+          featureDescription="Configure an OpenID Connect identity provider once at the instance level and connect it to any project on this OneUptime server."
+          benefits={[
+            {
+              icon: IconProp.Lock,
+              title: "Instance-wide auth",
+              subtitle:
+                "Configure one identity provider and connect it to any project on the server.",
+            },
+            {
+              icon: IconProp.ShieldCheck,
+              title: "Enforce SSO",
+              subtitle:
+                "Require SSO across the whole instance — no shared passwords.",
+            },
+            {
+              icon: IconProp.User,
+              title: "Auto provisioning",
+              subtitle:
+                "Attach projects and place signed-in users into the right teams automatically.",
+            },
+            {
+              icon: IconProp.ClipboardDocumentList,
+              title: "Audit trail",
+              subtitle:
+                "Every SSO sign-in is recorded alongside the rest of your audit events.",
+            },
+          ]}
+        />
+      </Page>
+    );
+  }
+
   return (
     <Page
       title={t("pages.settings.title")}
-      breadcrumbLinks={[
-        {
-          title: t("breadcrumbs.adminDashboard"),
-          to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
-        },
-        {
-          title: t("breadcrumbs.settings"),
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.SETTINGS] as Route,
-          ),
-        },
-        {
-          title: "Global OIDC",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.SETTINGS_GLOBAL_OIDC] as Route,
-          ),
-        },
-      ]}
+      breadcrumbLinks={breadcrumbLinks}
       sideMenu={<DashboardSideMenu />}
     >
       <Banner
         openInNewTab={true}
         title="Instance-wide OpenID Connect (OIDC) SSO"
         description="If no projects are attached to a provider, it works for ALL projects a user is already a member of (users must be invited first — they cannot sign up). Open a provider to attach projects and auto-provision users into specific teams."
+        link={Route.fromString("/docs/identity/global-sso")}
         hideOnMobile={true}
       />
 
@@ -259,14 +307,6 @@ const Settings: FunctionComponent = (): ReactElement => {
             },
             title: "Enabled",
             type: FieldType.Boolean,
-          },
-          {
-            field: {
-              isTested: true,
-            },
-            title: "Tested",
-            type: FieldType.Boolean,
-            hideOnMobile: true,
           },
         ]}
       />

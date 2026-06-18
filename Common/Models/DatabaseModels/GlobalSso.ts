@@ -221,26 +221,6 @@ export default class GlobalSSO extends BaseModel {
     update: [],
   })
   @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    title: "Tested",
-    description:
-      "Has a successful test login been completed with this provider?",
-    defaultValue: false,
-    example: true,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public isTested?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
     manyToOneRelationColumn: "createdByUserId",
     type: TableColumnType.Entity,
     modelType: User,
