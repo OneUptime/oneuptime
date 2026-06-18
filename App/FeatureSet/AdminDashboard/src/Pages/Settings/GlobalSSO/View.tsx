@@ -37,7 +37,9 @@ import { useTranslation } from "react-i18next";
  * is the UI half of the cross-project guard; the server-side backstop lives in
  * GlobalSsoProjectService.onBeforeCreate.
  */
-const fetchTeamsForSelectedProject = async (
+const fetchTeamsForSelectedProject: (
+  item: FormValues<GlobalSSOProject>,
+) => Promise<Array<DropdownOption>> = async (
   item: FormValues<GlobalSSOProject>,
 ): Promise<Array<DropdownOption>> => {
   const projectValue: unknown = (item as { project?: unknown }).project;

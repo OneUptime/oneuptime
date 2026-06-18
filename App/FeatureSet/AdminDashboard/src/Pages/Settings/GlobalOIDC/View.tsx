@@ -34,7 +34,9 @@ import { useTranslation } from "react-i18next";
  * is the UI half of the cross-project guard; the server-side backstop lives in
  * GlobalOidcProjectService.onBeforeCreate.
  */
-const fetchTeamsForSelectedProject = async (
+const fetchTeamsForSelectedProject: (
+  item: FormValues<GlobalOIDCProject>,
+) => Promise<Array<DropdownOption>> = async (
   item: FormValues<GlobalOIDCProject>,
 ): Promise<Array<DropdownOption>> => {
   const projectValue: unknown = (item as { project?: unknown }).project;
