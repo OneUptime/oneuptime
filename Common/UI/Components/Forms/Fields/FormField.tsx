@@ -647,6 +647,7 @@ const FormField: <T extends GenericObject>(
 
           {props.field.fieldType === FormFieldSchemaType.JSON && (
             <CodeEditor
+              ariaLabelledby={fieldLabelId}
               error={props.touched && props.error ? props.error : undefined}
               type={CodeType.JSON}
               tabIndex={0}
@@ -676,6 +677,7 @@ const FormField: <T extends GenericObject>(
 
           {props.field.fieldType === FormFieldSchemaType.Markdown && (
             <MarkdownEditor
+              ariaLabelledby={fieldLabelId}
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}
               tabIndex={0}
@@ -723,6 +725,7 @@ const FormField: <T extends GenericObject>(
             props.field.fieldType === FormFieldSchemaType.CSS ||
             props.field.fieldType === FormFieldSchemaType.JavaScript) && (
             <CodeEditor
+              ariaLabelledby={fieldLabelId}
               error={props.touched && props.error ? props.error : undefined}
               tabIndex={0}
               onChange={async (value: string) => {
@@ -746,6 +749,7 @@ const FormField: <T extends GenericObject>(
 
           {isFileField && (
             <FilePicker
+              ariaLabelledby={fieldLabelId}
               error={props.touched && props.error ? props.error : undefined}
               tabIndex={0}
               onChange={async (files: Array<FileModel>) => {
@@ -803,6 +807,7 @@ const FormField: <T extends GenericObject>(
 
           {props.field.fieldType === FormFieldSchemaType.Toggle && (
             <Toggle
+              ariaLabelledby={fieldLabelId}
               error={props.touched && props.error ? props.error : undefined}
               onChange={async (value: boolean) => {
                 onChange(value);
@@ -844,6 +849,7 @@ const FormField: <T extends GenericObject>(
 
           {props.field.fieldType === FormFieldSchemaType.CategoryCheckbox && (
             <CategoryCheckbox
+              ariaLabelledby={fieldLabelId}
               categories={props.field.categoryCheckboxProps?.categories || []}
               options={props.field.categoryCheckboxProps?.options || []}
               error={props.touched && props.error ? props.error : undefined}

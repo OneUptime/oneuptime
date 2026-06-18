@@ -1,4 +1,8 @@
 {
+  "is required": "er påkrevd",
+  "a11y": {
+    "skipToMainContent": "Hopp til hovedinnhold"
+  },
   "common": {
     "save": "Lagre",
     "cancel": "Avbryt",

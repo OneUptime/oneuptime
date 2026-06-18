@@ -17,6 +17,29 @@ import Phone from "../../../Types/Phone";
 import { Logger } from "../../Utils/Logger";
 import Port from "../../../Types/Port";
 import Typeof from "../../../Types/Typeof";
+import i18next from "i18next";
+
+/*
+ * Translate a fixed English phrase using the active i18next instance so
+ * validation messages are localized (WCAG 3.1.2 Language of Parts). Uses
+ * flat-key lookup (matching Common/UI/Utils/Translation) and falls back to the
+ * English phrase when no translation — or no initialized i18n instance — is
+ * available (e.g. apps that don't set up i18n), so behavior is unchanged there.
+ */
+const translateValidationPhrase: (phrase: string) => string = (
+  phrase: string,
+): string => {
+  try {
+    const translated: unknown = i18next.t(phrase, {
+      defaultValue: phrase,
+      keySeparator: false,
+      nsSeparator: false,
+    });
+    return typeof translated === "string" ? translated : phrase;
+  } catch {
+    return phrase;
+  }
+};
 
 export default class Validation {
   public static validateLength<T extends GenericObject>(
@@ -126,7 +149,7 @@ export default class Validation {
     }
 
     if (required && (!content || content.length === 0)) {
-      return `${field.title} is required.`;
+      return `${field.title} ${translateValidationPhrase("is required")}.`;
     }
     return null;
   }
@@ -329,7 +352,9 @@ export default class Validation {
           }
         }
       } else if (field.required) {
-        errors[name] = `${field.title || name} is required.`;
+        errors[name] = `${field.title || name} ${translateValidationPhrase(
+          "is required",
+        )}.`;
       }
     }
 

@@ -1,4 +1,8 @@
 {
+  "is required": "is verplicht",
+  "a11y": {
+    "skipToMainContent": "Naar hoofdinhoud springen"
+  },
   "common": {
     "save": "Opslaan",
     "cancel": "Annuleren",

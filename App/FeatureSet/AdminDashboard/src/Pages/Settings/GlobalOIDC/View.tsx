@@ -229,7 +229,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
               },
               title: "Force SSO for Login on Attached Projects",
               description:
-                "When on, every project this provider is attached to is forced to require login through this provider. Warning: if this provider is misconfigured or disabled, members of those projects can be locked out. Test the provider first, and make sure it is enabled. Has no effect until at least one project is attached below.",
+                "When on, every project this provider is attached to requires SSO for login. Warning: if SSO is misconfigured or this provider is disabled, members of those projects can be locked out. Test the provider first and keep it enabled. Has no effect until at least one project is attached below.",
               fieldType: FormFieldSchemaType.Toggle,
             },
             {

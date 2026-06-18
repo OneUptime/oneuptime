@@ -2,7 +2,6 @@ import AccessTokenService from "../Services/AccessTokenService";
 import ProjectService from "../Services/ProjectService";
 import TeamMemberService from "../Services/TeamMemberService";
 import UserService from "../Services/UserService";
-import QueryHelper from "../Types/Database/QueryHelper";
 import CookieUtil from "../Utils/Cookie";
 import {
   ExpressRequest,
@@ -16,7 +15,6 @@ import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import Response from "../Utils/Response";
 import ProjectMiddleware from "./ProjectAuthorization";
 import SpanUtil from "../Utils/Telemetry/SpanUtil";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Dictionary from "../../Types/Dictionary";
 import Exception from "../../Types/Exception/Exception";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
@@ -35,7 +33,6 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../Types/Permission";
 import UserType from "../../Types/UserType";
-import Project from "../../Models/DatabaseModels/Project";
 import UserPermissionUtil from "../Utils/UserPermission/UserPermission";
 
 export default class UserMiddleware {
@@ -572,58 +569,53 @@ export default class UserMiddleware {
       return null;
     }
 
-    const projects: Array<Project> = await ProjectService.findBy({
-      query: {
-        _id: QueryHelper.any(
-          projectIds.map((i: ObjectID) => {
-            return i.toString();
-          }) || [],
-        ),
-      },
-      select: {
-        requireSsoForLogin: true,
-        requireSsoWithSsoProviderId: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
     /*
-     * Resolve permissions for every project in parallel. With the previous
-     * for-await loop this scaled linearly with project count, adding one
-     * round-trip per project even on cache hits.
+     * Resolve permissions for every project in parallel. SSO enforcement is
+     * read through the cached, dynamic getters (getRequireSsoForLogin /
+     * getRequireSsoWithSsoProviderId) so that a project forced via an attached
+     * Global SSO/OIDC provider — which is never written onto the project row —
+     * is honored here exactly as in the single-tenant path.
      */
     const resolved: Array<{
       projectId: ObjectID;
       permission: UserTenantAccessPermission | null;
     }> = await Promise.all(
       projectIds.map(async (projectId: ObjectID) => {
-        const enforcedProject: Project | undefined = projects.find(
-          (p: Project) => {
-            return p._id === projectId.toString() && p.requireSsoForLogin;
-          },
-        );
+        const requireSsoForLogin: boolean =
+          await ProjectService.getRequireSsoForLogin(projectId).catch(() => {
+            /*
+             * Unknown/inaccessible project: do not enforce SSO here. Actual
+             * access is still gated by AccessTokenService below.
+             */
+            return false;
+          });
 
-        if (
-          enforcedProject &&
-          !UserMiddleware.doesSsoTokenForProjectExist(
-            req,
-            projectId,
-            userId,
-            enforcedProject.requireSsoWithSsoProviderId ?? undefined,
-          )
-        ) {
-          return {
-            projectId,
-            permission:
-              UserPermissionUtil.getDefaultUserTenantAccessPermission(
-                projectId,
-              ),
-          };
+        if (requireSsoForLogin) {
+          const requiredSsoProviderId: ObjectID | null =
+            await ProjectService.getRequireSsoWithSsoProviderId(
+              projectId,
+            ).catch(() => {
+              return null;
+            });
+
+          if (
+            !UserMiddleware.doesSsoTokenForProjectExist(
+              req,
+              projectId,
+              userId,
+              requiredSsoProviderId ?? undefined,
+            )
+          ) {
+            return {
+              projectId,
+              permission:
+                UserPermissionUtil.getDefaultUserTenantAccessPermission(
+                  projectId,
+                ),
+            };
+          }
         }
+
         return {
           projectId,
           permission: await AccessTokenService.getUserTenantAccessPermission(

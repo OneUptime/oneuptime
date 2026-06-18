@@ -49,7 +49,7 @@ import {
   Yellow500,
 } from "../../Types/BrandColors";
 import Color from "../../Types/Color";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -110,6 +110,14 @@ export class ProjectService extends DatabaseService<Model> {
    * alongside `getRequireSsoForLogin` so the common path stays a single query.
    */
   private requireSsoWithSsoProviderIdCache: InMemoryTTLCache<string | null> =
+    new InMemoryTTLCache(10_000);
+  /*
+   * Caches, instance-wide, whether ANY enabled Global SSO/OIDC provider has
+   * "Force SSO for Login" turned on. When false (the common case), the
+   * per-project global-force lookup short-circuits without touching the
+   * attachment tables, keeping the auth hot path cheap.
+   */
+  private anyForcingGlobalProviderCache: InMemoryTTLCache<boolean> =
     new InMemoryTTLCache(10_000);
   /*
    * Caches the current billing plan per project. `getCurrentPlan` is hit
@@ -1389,6 +1397,43 @@ export class ProjectService extends DatabaseService<Model> {
    * not pin a specific provider (a project's own `requireSsoWithSsoProviderId`
    * still applies independently).
    */
+  /*
+   * Instance-wide: does any enabled Global SSO or Global OIDC provider have
+   * "Force SSO for Login" turned on? Cached so the common "no global force
+   * configured anywhere" case costs at most one count per 60s.
+   */
+  @CaptureSpan()
+  private async hasAnyForcingGlobalProvider(): Promise<boolean> {
+    const cached: boolean | undefined =
+      this.anyForcingGlobalProviderCache.get("any");
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any */
+    const globalSsoService: any = require("./GlobalSsoService").default;
+    const globalOidcService: any = require("./GlobalOidcService").default;
+    /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any */
+
+    const ssoCount: PositiveNumber = await globalSsoService.countBy({
+      query: { isEnabled: true, requireSsoForLogin: true },
+      props: { isRoot: true },
+    });
+
+    let result: boolean = ssoCount.toNumber() > 0;
+
+    if (!result) {
+      const oidcCount: PositiveNumber = await globalOidcService.countBy({
+        query: { isEnabled: true, requireSsoForLogin: true },
+        props: { isRoot: true },
+      });
+      result = oidcCount.toNumber() > 0;
+    }
+
+    this.anyForcingGlobalProviderCache.set("any", result, 60_000);
+    return result;
+  }
+
   @CaptureSpan()
   private async isProjectForcedByGlobalProvider(
     projectId: ObjectID,
@@ -1406,6 +1451,14 @@ export class ProjectService extends DatabaseService<Model> {
       require("./GlobalOidcProjectService").default;
     const globalOidcService: any = require("./GlobalOidcService").default;
     /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any */
+
+    /*
+     * Instance-wide short-circuit: if no provider forces SSO at all, there is
+     * nothing to enforce for this (or any) project — skip the attachment reads.
+     */
+    if (!(await this.hasAnyForcingGlobalProvider())) {
+      return false;
+    }
 
     // Global SAML SSO providers attached to this project.
     const ssoAttachments: Array<{ globalSsoId?: ObjectID }> =
@@ -1486,6 +1539,7 @@ export class ProjectService extends DatabaseService<Model> {
   public clearSsoEnforcementCache(): void {
     this.requireSsoForLoginCache.clear();
     this.requireSsoWithSsoProviderIdCache.clear();
+    this.anyForcingGlobalProviderCache.clear();
   }
 
   /**

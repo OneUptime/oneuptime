@@ -1,4 +1,8 @@
 {
+  "is required": "är obligatoriskt",
+  "a11y": {
+    "skipToMainContent": "Hoppa till huvudinnehåll"
+  },
   "common": {
     "save": "Spara",
     "cancel": "Avbryt",

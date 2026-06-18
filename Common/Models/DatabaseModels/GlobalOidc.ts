@@ -245,7 +245,7 @@ export default class GlobalOIDC extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Force SSO for Login on Attached Projects",
     description:
-      "When enabled, every project this provider is attached to is forced to require login through THIS provider (it sets requireSsoForLogin and pins requireSsoWithSsoProviderId to this provider on each attached project). Warning: if this provider is misconfigured or disabled, members of those projects can be locked out. Has no effect until at least one project is attached.",
+      "When enabled, every project this provider is attached to requires SSO for login — members must sign in with SSO. Enforcement is evaluated live from this flag (project rows are never modified). Warning: if SSO is misconfigured or this provider is disabled, members of those projects can be locked out — test the provider and keep it enabled. Has no effect until at least one project is attached.",
     defaultValue: false,
     example: true,
   })

@@ -1,4 +1,8 @@
 {
+  "is required": "é obrigatório",
+  "a11y": {
+    "skipToMainContent": "Saltar para o conteúdo principal"
+  },
   "common": {
     "save": "Salvar",
     "cancel": "Cancelar",

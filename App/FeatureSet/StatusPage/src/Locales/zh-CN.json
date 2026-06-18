@@ -1,4 +1,8 @@
 {
+  "is required": "为必填项",
+  "a11y": {
+    "skipToMainContent": "跳到主要内容"
+  },
   "common": {
     "save": "保存",
     "cancel": "取消",

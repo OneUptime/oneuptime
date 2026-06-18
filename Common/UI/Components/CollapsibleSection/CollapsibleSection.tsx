@@ -46,6 +46,9 @@ const CollapsibleSection: FunctionComponent<ComponentProps> = (
 
   const variant: CollapsibleSectionVariant = props.variant || "default";
 
+  // Associate the role="button" header with its visible title text (WCAG 4.1.2).
+  const collapsibleTitleId: string = `collapsible-title-${React.useId()}`;
+
   const getContainerClassName: () => string = (): string => {
     const baseClassName: string = props.className || "";
 
@@ -97,6 +100,7 @@ const CollapsibleSection: FunctionComponent<ComponentProps> = (
           }
         }}
         aria-expanded={!isCollapsed}
+        aria-labelledby={collapsibleTitleId}
       >
         <div className="flex items-center flex-1 min-w-0">
           <Icon
@@ -105,7 +109,10 @@ const CollapsibleSection: FunctionComponent<ComponentProps> = (
           />
           <div className="flex-1 min-w-0">
             <div className="flex items-center">
-              <span className="text-sm font-medium text-gray-900 truncate">
+              <span
+                id={collapsibleTitleId}
+                className="text-sm font-medium text-gray-900 truncate"
+              >
                 {props.title}
               </span>
               {isCollapsed && props.badge && (
