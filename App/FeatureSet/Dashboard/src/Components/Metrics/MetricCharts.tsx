@@ -57,6 +57,7 @@ export interface ComponentProps {
   metricResults: Array<AggregatedResult>;
   metricTypes: Array<MetricType>;
   hideCard?: boolean | undefined;
+  heightInPx?: number | undefined;
   chartCssClass?: string | undefined;
 }
 
@@ -1109,6 +1110,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     <ChartGroup
       charts={getCharts()}
       hideCard={props.hideCard}
+      heightInPx={props.heightInPx}
       chartCssClass={props.chartCssClass}
     />
   );

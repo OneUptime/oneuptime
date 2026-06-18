@@ -36,6 +36,7 @@ export interface ComponentProps {
   yAxis: YAxis;
   curve: ChartCurve;
   sync: boolean;
+  heightInPx?: number | undefined;
   referenceLines?: Array<ChartReferenceLineProps> | undefined;
   exemplarPoints?: Array<ExemplarPoint> | undefined;
   onExemplarClick?: ((exemplar: ExemplarPoint) => void) | undefined;
@@ -108,7 +109,10 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
     typeof yAxisMaxOption === "number" ? { maxValue: yAxisMaxOption } : {};
 
   return (
-    <div className="relative flex flex-1">
+    <div
+      className="relative flex flex-1"
+      style={props.heightInPx ? { height: `${props.heightInPx}px` } : undefined}
+    >
       <LineChart
         data={records}
         tickGap={1}
