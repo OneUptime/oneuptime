@@ -10,6 +10,7 @@ import Card from "Common/UI/Components/Card/Card";
 import Link from "Common/UI/Components/Link/Link";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -466,6 +467,17 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
               type: FieldType.Boolean,
             },
           ]}
+        />
+
+        <ModelDelete
+          modelType={GlobalOIDC}
+          modelId={modelId}
+          modelAPI={AdminModelAPI}
+          onDeleteSuccess={() => {
+            Navigation.navigate(
+              RouteMap[PageMap.SETTINGS_GLOBAL_OIDC] as Route,
+            );
+          }}
         />
       </Fragment>
     </ModelPage>

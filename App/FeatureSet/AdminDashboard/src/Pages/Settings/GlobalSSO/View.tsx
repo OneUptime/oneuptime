@@ -10,6 +10,7 @@ import Card from "Common/UI/Components/Card/Card";
 import Link from "Common/UI/Components/Link/Link";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -444,6 +445,15 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
               type: FieldType.Boolean,
             },
           ]}
+        />
+
+        <ModelDelete
+          modelType={GlobalSSO}
+          modelId={modelId}
+          modelAPI={AdminModelAPI}
+          onDeleteSuccess={() => {
+            Navigation.navigate(RouteMap[PageMap.SETTINGS_GLOBAL_SSO] as Route);
+          }}
         />
       </Fragment>
     </ModelPage>

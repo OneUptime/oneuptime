@@ -51,8 +51,9 @@ const Settings: FunctionComponent = (): ReactElement => {
         modelType={GlobalOIDC}
         id="global-oidc-table"
         name="Settings > Global OIDC"
-        isDeleteable={true}
-        isEditable={true}
+        isDeleteable={false}
+        isEditable={false}
+        isViewable={true}
         isCreateable={true}
         cardProps={{
           title: "Global OIDC SSO",

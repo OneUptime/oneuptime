@@ -54,8 +54,9 @@ const Settings: FunctionComponent = (): ReactElement => {
         modelType={GlobalSSO}
         id="global-sso-table"
         name="Settings > Global SSO"
-        isDeleteable={true}
-        isEditable={true}
+        isDeleteable={false}
+        isEditable={false}
+        isViewable={true}
         isCreateable={true}
         cardProps={{
           title: "Global SAML SSO",
