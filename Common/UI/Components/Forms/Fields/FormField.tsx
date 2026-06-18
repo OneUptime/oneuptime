@@ -35,7 +35,7 @@ import GenericObject from "../../../../Types/GenericObject";
 import { JSONValue } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Typeof from "../../../../Types/Typeof";
-import React, { ReactElement, useEffect } from "react";
+import React, { ReactElement, useEffect, useId } from "react";
 import Radio, { RadioValue } from "../../Radio/Radio";
 import { BasicRadioButtonOption } from "../../RadioButtons/BasicRadioButtons";
 import HorizontalRule from "../../HorizontalRule/HorizontalRule";
@@ -66,6 +66,21 @@ const FormField: <T extends GenericObject>(
   const translatedPlaceholder: string | undefined = translateString(
     props.field.placeholder,
   );
+
+  /*
+   * Unique, stable id used to programmatically associate the field's <label>
+   * (htmlFor) with its input control (id) for screen readers (WCAG 1.3.1).
+   * useId guarantees uniqueness even when the same field renders twice on a
+   * page (e.g. two subscribe forms inside tabs).
+   */
+  const fieldId: string = useId();
+
+  /*
+   * Id of the field's <label> element. Composite widgets (dropdowns, pickers,
+   * toggles, radio/checkbox groups) that cannot use htmlFor instead point at
+   * this via aria-labelledby so the control still has an accessible name.
+   */
+  const fieldLabelId: string = `${fieldId}-label`;
 
   type onChangeFunction = (value: JSONValue) => void;
 
@@ -196,6 +211,30 @@ const FormField: <T extends GenericObject>(
 
     const index: number = props.index + 1;
 
+    /*
+     * Only native text-like controls (rendered via <Input> / <TextArea>) receive
+     * the generated id, so the label's htmlFor must only point at those to avoid
+     * a dangling association on composite widgets (dropdowns, pickers, etc.).
+     */
+    const fieldRendersLabelableInput: boolean = [
+      FormFieldSchemaType.Name,
+      FormFieldSchemaType.Email,
+      FormFieldSchemaType.Hostname,
+      FormFieldSchemaType.URL,
+      FormFieldSchemaType.Route,
+      FormFieldSchemaType.Text,
+      FormFieldSchemaType.Number,
+      FormFieldSchemaType.Password,
+      FormFieldSchemaType.EncryptedText,
+      FormFieldSchemaType.Date,
+      FormFieldSchemaType.DateTime,
+      FormFieldSchemaType.Port,
+      FormFieldSchemaType.Phone,
+      FormFieldSchemaType.Domain,
+      FormFieldSchemaType.PositiveNumber,
+      FormFieldSchemaType.LongText,
+    ].includes(props.field.fieldType as FormFieldSchemaType);
+
     const fieldType: string = props.field.fieldType
       ? getFieldType(props.field.fieldType)
       : "text";
@@ -313,6 +352,8 @@ const FormField: <T extends GenericObject>(
         {props.field.fieldType !== FormFieldSchemaType.Checkbox && (
           <FieldLabelElement
             title={props.field.title || ""}
+            id={fieldLabelId}
+            htmlFor={fieldRendersLabelableInput ? fieldId : undefined}
             description={getFieldDescription()}
             sideLink={props.field.sideLink}
             required={required}
@@ -325,8 +366,9 @@ const FormField: <T extends GenericObject>(
           {/* Time Picker */}
           {props.field.fieldType === FormFieldSchemaType.Time && (
             <TimePicker
+              ariaLabelledby={fieldLabelId}
               autoFocus={!props.disableAutofocus && index === 1}
-              tabIndex={index}
+              tabIndex={0}
               disabled={props.isDisabled || props.field.disabled}
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}
@@ -349,6 +391,7 @@ const FormField: <T extends GenericObject>(
 
           {props.field.fieldType === FormFieldSchemaType.Color && (
             <ColorPicker
+              ariaLabelledby={fieldLabelId}
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}
               onChange={async (value: Color | null) => {
@@ -356,7 +399,7 @@ const FormField: <T extends GenericObject>(
                 props.setFieldValue(props.fieldName, value);
                 props.setFieldTouched(props.fieldName, true);
               }}
-              tabIndex={index}
+              tabIndex={0}
               placeholder={translatedPlaceholder || ""}
               initialValue={
                 props.currentValues &&
@@ -369,6 +412,7 @@ const FormField: <T extends GenericObject>(
 
           {props.field.fieldType === FormFieldSchemaType.Icon && (
             <IconPicker
+              ariaLabelledby={fieldLabelId}
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}
               onChange={async (value: IconProp | null) => {
@@ -376,7 +420,7 @@ const FormField: <T extends GenericObject>(
                 props.setFieldValue(props.fieldName, value);
                 props.setFieldTouched(props.fieldName, true);
               }}
-              tabIndex={index}
+              tabIndex={0}
               placeholder={translatedPlaceholder || ""}
               initialValue={
                 props.currentValues &&
@@ -399,9 +443,10 @@ const FormField: <T extends GenericObject>(
              */
             (props.field.dropdownModal && props.field.dropdownModal.type ? (
               <EntityDropdown
+                ariaLabelledby={fieldLabelId}
                 error={props.touched && props.error ? props.error : undefined}
                 id={props.field.id}
-                tabIndex={index}
+                tabIndex={0}
                 dataTestId={props.field.dataTestId}
                 onChange={(
                   value: DropdownValue | Array<DropdownValue> | null,
@@ -430,9 +475,10 @@ const FormField: <T extends GenericObject>(
               />
             ) : (
               <Dropdown
+                ariaLabelledby={fieldLabelId}
                 error={props.touched && props.error ? props.error : undefined}
                 id={props.field.id}
-                tabIndex={index}
+                tabIndex={0}
                 dataTestId={props.field.dataTestId}
                 onChange={async (
                   value: DropdownValue | Array<DropdownValue> | null,
@@ -460,8 +506,9 @@ const FormField: <T extends GenericObject>(
 
           {props.field.fieldType === FormFieldSchemaType.CardSelect && (
             <CardSelect
+              ariaLabelledby={fieldLabelId}
               error={props.touched && props.error ? props.error : undefined}
-              tabIndex={index}
+              tabIndex={0}
               dataTestId={props.field.dataTestId}
               singleColumn={props.field.cardSelectSingleColumn}
               onChange={(value: string) => {
@@ -480,7 +527,7 @@ const FormField: <T extends GenericObject>(
 
           {props.field.fieldType === FormFieldSchemaType.ObjectID && (
             <IDGenerator
-              tabIndex={index}
+              tabIndex={0}
               dataTestId={props.field.dataTestId}
               disabled={props.isDisabled || props.field.disabled}
               error={props.touched && props.error ? props.error : undefined}
@@ -528,6 +575,7 @@ const FormField: <T extends GenericObject>(
           {props.field.fieldType ===
             FormFieldSchemaType.OptionChooserButton && (
             <RadioButtons
+              ariaLabelledby={fieldLabelId}
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}
               onChange={async (value: string) => {
@@ -546,6 +594,7 @@ const FormField: <T extends GenericObject>(
 
           {props.field.fieldType === FormFieldSchemaType.RadioButton && (
             <Radio
+              ariaLabelledby={fieldLabelId}
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}
               onChange={async (value: RadioValue | null) => {
@@ -574,8 +623,9 @@ const FormField: <T extends GenericObject>(
           {props.field.fieldType === FormFieldSchemaType.LongText && (
             <TextArea
               autoFocus={!props.disableAutofocus && index === 1}
+              id={fieldId}
               error={props.touched && props.error ? props.error : undefined}
-              tabIndex={index}
+              tabIndex={0}
               dataTestId={props.field.dataTestId}
               disableSpellCheck={props.field.disableSpellCheck}
               onChange={async (value: string) => {
@@ -597,9 +647,10 @@ const FormField: <T extends GenericObject>(
 
           {props.field.fieldType === FormFieldSchemaType.JSON && (
             <CodeEditor
+              ariaLabelledby={fieldLabelId}
               error={props.touched && props.error ? props.error : undefined}
               type={CodeType.JSON}
-              tabIndex={index}
+              tabIndex={0}
               dataTestId={props.field.dataTestId}
               onChange={async (value: string) => {
                 onChange(value);
@@ -626,9 +677,10 @@ const FormField: <T extends GenericObject>(
 
           {props.field.fieldType === FormFieldSchemaType.Markdown && (
             <MarkdownEditor
+              ariaLabelledby={fieldLabelId}
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}
-              tabIndex={index}
+              tabIndex={0}
               disableSpellCheck={props.field.disableSpellCheck}
               onChange={async (value: string) => {
                 onChange(value);
@@ -651,7 +703,7 @@ const FormField: <T extends GenericObject>(
             props.field.getCustomElement &&
             props.field.getCustomElement(props.currentValues, {
               error: props.touched && props.error ? props.error : undefined,
-              tabIndex: index,
+              tabIndex: 0,
               onChange: async (value: string) => {
                 onChange(value);
                 props.setFieldValue(props.fieldName, value);
@@ -673,8 +725,9 @@ const FormField: <T extends GenericObject>(
             props.field.fieldType === FormFieldSchemaType.CSS ||
             props.field.fieldType === FormFieldSchemaType.JavaScript) && (
             <CodeEditor
+              ariaLabelledby={fieldLabelId}
               error={props.touched && props.error ? props.error : undefined}
-              tabIndex={index}
+              tabIndex={0}
               onChange={async (value: string) => {
                 onChange(value);
                 props.setFieldValue(props.fieldName, value);
@@ -696,8 +749,9 @@ const FormField: <T extends GenericObject>(
 
           {isFileField && (
             <FilePicker
+              ariaLabelledby={fieldLabelId}
               error={props.touched && props.error ? props.error : undefined}
-              tabIndex={index}
+              tabIndex={0}
               onChange={async (files: Array<FileModel>) => {
                 const strippedFiles: Array<FileModel> = files.map(
                   (i: FileModel) => {
@@ -753,6 +807,7 @@ const FormField: <T extends GenericObject>(
 
           {props.field.fieldType === FormFieldSchemaType.Toggle && (
             <Toggle
+              ariaLabelledby={fieldLabelId}
               error={props.touched && props.error ? props.error : undefined}
               onChange={async (value: boolean) => {
                 onChange(value);
@@ -794,6 +849,7 @@ const FormField: <T extends GenericObject>(
 
           {props.field.fieldType === FormFieldSchemaType.CategoryCheckbox && (
             <CategoryCheckbox
+              ariaLabelledby={fieldLabelId}
               categories={props.field.categoryCheckboxProps?.categories || []}
               options={props.field.categoryCheckboxProps?.options || []}
               error={props.touched && props.error ? props.error : undefined}
@@ -829,7 +885,8 @@ const FormField: <T extends GenericObject>(
             props.field.fieldType === FormFieldSchemaType.PositiveNumber) && (
             <Input
               autoFocus={!props.disableAutofocus && index === 1}
-              tabIndex={index}
+              id={fieldId}
+              tabIndex={0}
               disabled={props.isDisabled || props.field.disabled}
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}

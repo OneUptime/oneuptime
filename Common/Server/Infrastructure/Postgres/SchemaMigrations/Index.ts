@@ -390,6 +390,10 @@ import { AddProxmoxCephV2Columns1781600000000 } from "./1781600000000-AddProxmox
 import { AddProxmoxCephActivityAndRules1781600000001 } from "./1781600000001-AddProxmoxCephActivityAndRules";
 import { AddProxmoxCephV3Columns1781700000000 } from "./1781700000000-AddProxmoxCephV3Columns";
 import { MigrationName1781750000000 } from "./1781750000000-MigrationName";
+import { AddGlobalSsoAndOidc1782000000000 } from "./1782000000000-AddGlobalSsoAndOidc";
+import { AddStatusPageImageAltText1782100000000 } from "./1782100000000-AddStatusPageImageAltText";
+import { AddRequireSsoForLoginToGlobalProviders1782200000000 } from "./1782200000000-AddRequireSsoForLoginToGlobalProviders";
+import { MoveRequireSsoForLoginToGlobalConfig1782300000000 } from "./1782300000000-MoveRequireSsoForLoginToGlobalConfig";
 
 export default [
   InitialMigration,
@@ -784,4 +788,8 @@ export default [
   AddProxmoxCephActivityAndRules1781600000001,
   AddProxmoxCephV3Columns1781700000000,
   MigrationName1781750000000,
+  AddGlobalSsoAndOidc1782000000000,
+  AddStatusPageImageAltText1782100000000,
+  AddRequireSsoForLoginToGlobalProviders1782200000000,
+  MoveRequireSsoForLoginToGlobalConfig1782300000000,
 ];

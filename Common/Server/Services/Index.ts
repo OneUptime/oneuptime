@@ -106,6 +106,10 @@ import ProfileSampleService from "./ProfileSampleService";
 import ProjectSmtpConfigService from "./ProjectSmtpConfigService";
 import ProjectSsoService from "./ProjectSsoService";
 import ProjectOidcService from "./ProjectOidcService";
+import GlobalSsoService from "./GlobalSsoService";
+import GlobalOidcService from "./GlobalOidcService";
+import GlobalSsoProjectService from "./GlobalSsoProjectService";
+import GlobalOidcProjectService from "./GlobalOidcProjectService";
 import PromoCodeService from "./PromoCodeService";
 import EnterpriseLicenseService from "./EnterpriseLicenseService";
 import OpenSourceDeploymentService from "./OpenSourceDeploymentService";
@@ -343,6 +347,10 @@ const services: Array<BaseService> = [
   AIAgentTaskPullRequestService,
   ProjectSsoService,
   ProjectOidcService,
+  GlobalSsoService,
+  GlobalOidcService,
+  GlobalSsoProjectService,
+  GlobalOidcProjectService,
 
   ScheduledMaintenanceCustomFieldService,
   ScheduledMaintenanceInternalNoteService,

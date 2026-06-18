@@ -19,6 +19,27 @@ export async function storeSsoToken(
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(tokens));
 }
 
+/**
+ * Merge and persist a map of per-project SSO tokens ({ projectId: token }).
+ * Used by global SSO/OIDC login, where the server returns tokens for every
+ * project the user can access in one go.
+ */
+export async function storeSsoTokens(
+  newTokens: Record<string, string>,
+): Promise<void> {
+  const tokens: Record<string, string> = await getSsoTokens();
+
+  for (const projectId of Object.keys(newTokens)) {
+    const token: string | undefined = newTokens[projectId];
+    if (token) {
+      tokens[projectId] = token;
+    }
+  }
+
+  cachedSsoTokens = tokens;
+  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(tokens));
+}
+
 export async function getSsoTokens(): Promise<Record<string, string>> {
   const value: string | null = await AsyncStorage.getItem(STORAGE_KEY);
 

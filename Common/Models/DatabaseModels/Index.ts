@@ -172,6 +172,10 @@ import ProjectSmtpConfig from "./ProjectSmtpConfig";
 //SSO
 import ProjectSSO from "./ProjectSso";
 import ProjectOIDC from "./ProjectOidc";
+import GlobalSSO from "./GlobalSso";
+import GlobalOIDC from "./GlobalOidc";
+import GlobalSSOProject from "./GlobalSsoProject";
+import GlobalOIDCProject from "./GlobalOidcProject";
 import PromoCode from "./PromoCode";
 import EnterpriseLicense from "./EnterpriseLicense";
 import OpenSourceDeployment from "./OpenSourceDeployment";
@@ -583,6 +587,10 @@ const AllModelTypes: Array<{
 
   ProjectSSO,
   ProjectOIDC,
+  GlobalSSO,
+  GlobalOIDC,
+  GlobalSSOProject,
+  GlobalOIDCProject,
   StatusPageSSO,
   StatusPageOIDC,
   StatusPageSCIM,

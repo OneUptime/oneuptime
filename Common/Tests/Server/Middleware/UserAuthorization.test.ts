@@ -590,6 +590,10 @@ describe("UserMiddleware", () => {
       ProjectService,
       "getRequireSsoForLogin",
     );
+    const spyGetRequireSsoWithSsoProviderId: jest.SpyInstance = getJestSpyOn(
+      ProjectService,
+      "getRequireSsoWithSsoProviderId",
+    );
     const spyDoesSsoTokenForProjectExist: jest.SpyInstance = getJestSpyOn(
       UserMiddleware,
       "doesSsoTokenForProjectExist",
@@ -597,6 +601,11 @@ describe("UserMiddleware", () => {
 
     afterEach(() => {
       jest.clearAllMocks();
+    });
+
+    // By default no project requires a specific SSO provider (discriminator).
+    beforeEach(() => {
+      spyGetRequireSsoWithSsoProviderId.mockResolvedValue(null);
     });
 
     test("should throw 'Invalid tenantId' error, when project is not found for the tenantId", async () => {
@@ -630,6 +639,7 @@ describe("UserMiddleware", () => {
         req,
         projectId,
         userId,
+        undefined,
       );
     });
 
@@ -736,6 +746,7 @@ describe("UserMiddleware", () => {
         req,
         projectId,
         userId,
+        undefined,
       );
       expect(spyGetDefaultUserTenantAccessPermission).toHaveBeenCalledWith(
         projectId,

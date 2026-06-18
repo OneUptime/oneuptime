@@ -41,6 +41,14 @@ const Link: FunctionComponent<ComponentProps> = (
    */
   if (props.to) {
     linkProps["href"] = props.to.toString();
+  } else if (props.onClick) {
+    /*
+     * An anchor with an onClick but no href is not reachable or operable via the
+     * keyboard. Expose it as a button so it is focusable and activatable with
+     * Enter/Space (WCAG 2.1.1). Purely visual — no appearance change.
+     */
+    linkProps["role"] = "button";
+    linkProps["tabIndex"] = 0;
   }
 
   if (props.openInNewTab) {
@@ -61,6 +69,21 @@ const Link: FunctionComponent<ComponentProps> = (
       style={props.style}
       title={props.title}
       aria-label={props.title}
+      onKeyDown={(event: React.KeyboardEvent<HTMLAnchorElement>) => {
+        /*
+         * For onClick-only links (no href) we render role="button"; activate them
+         * with Enter/Space like a native button. Links with an href are activated
+         * natively by the browser, so we leave those alone.
+         */
+        if (
+          !props.to &&
+          props.onClick &&
+          (event.key === "Enter" || event.key === " ")
+        ) {
+          event.preventDefault();
+          props.onClick();
+        }
+      }}
       onAuxClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
         // middle click
         if (event.button === 1) {

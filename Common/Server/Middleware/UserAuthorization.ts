@@ -1,8 +1,8 @@
 import AccessTokenService from "../Services/AccessTokenService";
+import GlobalConfigService from "../Services/GlobalConfigService";
 import ProjectService from "../Services/ProjectService";
 import TeamMemberService from "../Services/TeamMemberService";
 import UserService from "../Services/UserService";
-import QueryHelper from "../Types/Database/QueryHelper";
 import CookieUtil from "../Utils/Cookie";
 import {
   ExpressRequest,
@@ -16,7 +16,6 @@ import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import Response from "../Utils/Response";
 import ProjectMiddleware from "./ProjectAuthorization";
 import SpanUtil from "../Utils/Telemetry/SpanUtil";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Dictionary from "../../Types/Dictionary";
 import Exception from "../../Types/Exception/Exception";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
@@ -35,7 +34,6 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../Types/Permission";
 import UserType from "../../Types/UserType";
-import Project from "../../Models/DatabaseModels/Project";
 import UserPermissionUtil from "../Utils/UserPermission/UserPermission";
 
 export default class UserMiddleware {
@@ -170,6 +168,7 @@ export default class UserMiddleware {
     req: ExpressRequest,
     projectId: ObjectID,
     userId: ObjectID,
+    requiredSsoProviderId?: ObjectID | undefined,
   ): boolean {
     const ssoTokens: Dictionary<string> = this.getSsoTokens(req);
 
@@ -181,6 +180,25 @@ export default class UserMiddleware {
         decodedData.projectId?.toString() === projectId.toString() &&
         decodedData.userId.toString() === userId.toString()
       ) {
+        /*
+         * Specific-IdP enforcement: when the project requires a specific SSO
+         * provider, the token must carry a matching `ssoProviderId`
+         * discriminator. Tokens issued before this field existed (no
+         * discriminator) do not satisfy a specific-provider requirement.
+         */
+        if (requiredSsoProviderId) {
+          const tokenProviderId: string | undefined = decodedData.ssoProviderId
+            ? decodedData.ssoProviderId.toString()
+            : undefined;
+
+          if (
+            !tokenProviderId ||
+            tokenProviderId !== requiredSsoProviderId.toString()
+          ) {
+            return false;
+          }
+        }
+
         return true;
       }
     }
@@ -493,12 +511,15 @@ export default class UserMiddleware {
   }): Promise<UserTenantAccessPermission | null> {
     const { req, tenantId, userId } = data;
 
+    const isMasterAdmin: boolean =
+      (req as OneUptimeRequest).userAuthorization?.isMasterAdmin === true;
+
     /*
      * Resolve the SSO requirement and the tenant permission in parallel.
      * `getRequireSsoForLogin` is cached in-process for 60s, so this is
      * usually free; the tenant permission lookup is the expensive call.
      */
-    const [requireSsoForLogin, tenantPermission]: [
+    const [projectRequireSsoForLogin, tenantPermission]: [
       boolean,
       UserTenantAccessPermission | null,
     ] = await Promise.all([
@@ -515,11 +536,42 @@ export default class UserMiddleware {
       AccessTokenService.getUserTenantAccessPermission(userId, tenantId),
     ]);
 
-    if (
-      requireSsoForLogin &&
-      !UserMiddleware.doesSsoTokenForProjectExist(req, tenantId, userId)
-    ) {
-      throw new SsoAuthorizationException();
+    /*
+     * The instance-wide "Require SSO for Login" flag (GlobalConfig) forces SSO
+     * on every project. Master admins are exempt so a misconfigured global SSO
+     * can't lock them out — a project's own requireSsoForLogin still applies to
+     * them. Only checked when the project doesn't already enforce SSO.
+     */
+    let requireSsoForLogin: boolean = projectRequireSsoForLogin;
+    if (!requireSsoForLogin && !isMasterAdmin) {
+      requireSsoForLogin =
+        await GlobalConfigService.getRequireSsoForLogin().catch(() => {
+          return false;
+        });
+    }
+
+    if (requireSsoForLogin) {
+      /*
+       * Only resolve the specific-provider requirement when SSO is enforced.
+       * The provider-id cache is already warm from getRequireSsoForLogin above.
+       */
+      const requiredSsoProviderId: ObjectID | null =
+        await ProjectService.getRequireSsoWithSsoProviderId(tenantId).catch(
+          () => {
+            return null;
+          },
+        );
+
+      if (
+        !UserMiddleware.doesSsoTokenForProjectExist(
+          req,
+          tenantId,
+          userId,
+          requiredSsoProviderId ?? undefined,
+        )
+      ) {
+        throw new SsoAuthorizationException();
+      }
     }
 
     return tenantPermission;
@@ -535,48 +587,67 @@ export default class UserMiddleware {
       return null;
     }
 
-    const projects: Array<Project> = await ProjectService.findBy({
-      query: {
-        _id: QueryHelper.any(
-          projectIds.map((i: ObjectID) => {
-            return i.toString();
-          }) || [],
-        ),
-      },
-      select: {
-        requireSsoForLogin: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    const isMasterAdmin: boolean =
+      (req as OneUptimeRequest).userAuthorization?.isMasterAdmin === true;
 
     /*
-     * Resolve permissions for every project in parallel. With the previous
-     * for-await loop this scaled linearly with project count, adding one
-     * round-trip per project even on cache hits.
+     * Instance-wide "Require SSO for Login" forces SSO on every project. Master
+     * admins are exempt. Resolved once (cached) rather than per project.
+     */
+    const globalRequireSsoForLogin: boolean = isMasterAdmin
+      ? false
+      : await GlobalConfigService.getRequireSsoForLogin().catch(() => {
+          return false;
+        });
+
+    /*
+     * Resolve permissions for every project in parallel. A project's own
+     * requireSsoForLogin is read through the cached getter; the global flag is
+     * OR'd in so enforcement matches the single-tenant path.
      */
     const resolved: Array<{
       projectId: ObjectID;
       permission: UserTenantAccessPermission | null;
     }> = await Promise.all(
       projectIds.map(async (projectId: ObjectID) => {
-        if (
-          projects.find((p: Project) => {
-            return p._id === projectId.toString() && p.requireSsoForLogin;
-          }) &&
-          !UserMiddleware.doesSsoTokenForProjectExist(req, projectId, userId)
-        ) {
-          return {
-            projectId,
-            permission:
-              UserPermissionUtil.getDefaultUserTenantAccessPermission(
-                projectId,
-              ),
-          };
+        const projectRequireSsoForLogin: boolean =
+          await ProjectService.getRequireSsoForLogin(projectId).catch(() => {
+            /*
+             * Unknown/inaccessible project: do not enforce SSO here. Actual
+             * access is still gated by AccessTokenService below.
+             */
+            return false;
+          });
+
+        const requireSsoForLogin: boolean =
+          projectRequireSsoForLogin || globalRequireSsoForLogin;
+
+        if (requireSsoForLogin) {
+          const requiredSsoProviderId: ObjectID | null =
+            await ProjectService.getRequireSsoWithSsoProviderId(
+              projectId,
+            ).catch(() => {
+              return null;
+            });
+
+          if (
+            !UserMiddleware.doesSsoTokenForProjectExist(
+              req,
+              projectId,
+              userId,
+              requiredSsoProviderId ?? undefined,
+            )
+          ) {
+            return {
+              projectId,
+              permission:
+                UserPermissionUtil.getDefaultUserTenantAccessPermission(
+                  projectId,
+                ),
+            };
+          }
         }
+
         return {
           projectId,
           permission: await AccessTokenService.getUserTenantAccessPermission(
