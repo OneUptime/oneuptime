@@ -1,4 +1,7 @@
 {
+  "a11y": {
+    "skipToMainContent": "メインコンテンツにスキップ"
+  },
   "common": {
     "save": "保存",
     "cancel": "キャンセル",

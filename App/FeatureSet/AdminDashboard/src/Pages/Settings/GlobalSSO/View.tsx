@@ -3,9 +3,11 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import DashboardSideMenu from "../SideMenu";
 import Route from "Common/Types/API/Route";
+import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
-import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
+import { HOST, HTTP_PROTOCOL, IDENTITY_URL } from "Common/UI/Config";
 import Card from "Common/UI/Components/Card/Card";
+import Link from "Common/UI/Components/Link/Link";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -75,6 +77,17 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
 
   const acsURL: string = `${HTTP_PROTOCOL}${HOST}/identity/global-idp-login/${modelId.toString()}`;
   const issuerURL: string = `${HTTP_PROTOCOL}${HOST}/global-sso/${modelId.toString()}`;
+
+  /*
+   * Service-provider initiated login endpoint (same base the Accounts login
+   * page uses). Visiting it redirects the browser to the configured IdP and
+   * runs the full Global SSO login, so it doubles as the end-to-end "test"
+   * link. It does not depend on any attached project (in default-all mode the
+   * tester is signed into the projects they already belong to).
+   */
+  const testLoginURL: URL = URL.fromURL(IDENTITY_URL).addRoute(
+    new Route(`/global-sso/${modelId.toString()}`),
+  );
 
   return (
     <ModelPage
@@ -300,6 +313,24 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
                 <div className="break-all">{issuerURL}</div>
               </div>
             </div>
+          }
+        />
+
+        <Card
+          title={"Test this SSO provider"}
+          description={
+            <span>
+              Use this link to test the SAML login end-to-end. You do not need
+              to attach any projects first — it signs you in through the
+              identity provider and into the projects you already belong to. The
+              provider must be enabled for the link to work; enabling a global
+              provider only adds a &quot;Sign in with SSO&quot; option and never
+              forces SSO or locks anyone out, so it is safe to enable, test, and
+              disable again if needed.{" "}
+              <Link openInNewTab={true} to={testLoginURL}>
+                <span>{testLoginURL.toString()}</span>
+              </Link>
+            </span>
           }
         />
 

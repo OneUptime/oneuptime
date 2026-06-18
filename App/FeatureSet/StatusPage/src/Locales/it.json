@@ -1,4 +1,7 @@
 {
+  "a11y": {
+    "skipToMainContent": "Vai al contenuto principale"
+  },
   "common": {
     "save": "Salva",
     "cancel": "Annulla",

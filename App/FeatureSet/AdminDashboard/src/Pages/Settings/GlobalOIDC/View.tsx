@@ -3,9 +3,11 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import DashboardSideMenu from "../SideMenu";
 import Route from "Common/Types/API/Route";
+import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
-import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
+import { HOST, HTTP_PROTOCOL, IDENTITY_URL } from "Common/UI/Config";
 import Card from "Common/UI/Components/Card/Card";
+import Link from "Common/UI/Components/Link/Link";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -71,6 +73,18 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const redirectURI: string = `${HTTP_PROTOCOL}${HOST}/identity/global-oidc-callback/${modelId.toString()}`;
+
+  /*
+   * Service-provider initiated login endpoint (same base the Accounts login
+   * page uses). Visiting it redirects the browser to the configured OIDC
+   * provider and runs the full Global OIDC login, so it doubles as the
+   * end-to-end "test" link. It does not depend on any attached project (in
+   * default-all mode the tester is signed into the projects they already
+   * belong to).
+   */
+  const testLoginURL: URL = URL.fromURL(IDENTITY_URL).addRoute(
+    new Route(`/global-oidc/${modelId.toString()}`),
+  );
 
   return (
     <ModelPage
@@ -321,6 +335,24 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
                 <div className="break-all">{redirectURI}</div>
               </div>
             </div>
+          }
+        />
+
+        <Card
+          title={"Test this OIDC provider"}
+          description={
+            <span>
+              Use this link to test the OIDC login end-to-end. You do not need
+              to attach any projects first — it signs you in through the
+              identity provider and into the projects you already belong to. The
+              provider must be enabled for the link to work; enabling a global
+              provider only adds a &quot;Sign in with SSO&quot; option and never
+              forces SSO or locks anyone out, so it is safe to enable, test, and
+              disable again if needed.{" "}
+              <Link openInNewTab={true} to={testLoginURL}>
+                <span>{testLoginURL.toString()}</span>
+              </Link>
+            </span>
           }
         />
 

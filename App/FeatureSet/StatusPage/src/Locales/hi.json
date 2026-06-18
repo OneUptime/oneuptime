@@ -1,4 +1,7 @@
 {
+  "a11y": {
+    "skipToMainContent": "मुख्य सामग्री पर जाएं"
+  },
   "common": {
     "save": "सहेजें",
     "cancel": "रद्द करें",

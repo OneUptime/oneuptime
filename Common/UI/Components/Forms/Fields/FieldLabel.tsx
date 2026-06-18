@@ -5,6 +5,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   title: string;
+  htmlFor?: string | undefined;
   required?: boolean | undefined;
   sideLink?: FormFieldSideLink | undefined;
   description?: string | ReactElement | undefined;
@@ -26,6 +27,7 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
   return (
     <>
       <label
+        htmlFor={props.htmlFor}
         className={
           props.className ||
           `block ${

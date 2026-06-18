@@ -204,6 +204,26 @@ export default class GlobalSSO extends BaseModel {
   @TableColumn({
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
+    title: "Force SSO for Login on Attached Projects",
+    description:
+      "When enabled, every project this provider is attached to is forced to require login through THIS provider (it sets requireSsoForLogin and pins requireSsoWithSsoProviderId to this provider on each attached project). Warning: if this provider is misconfigured or disabled, members of those projects can be locked out. Has no effect until at least one project is attached.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public requireSsoForLogin?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
     title: "Enabled",
     description: "Is this SSO provider enabled?",
     defaultValue: false,

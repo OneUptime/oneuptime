@@ -23,6 +23,7 @@ export enum InputType {
 
 export interface ComponentProps {
   initialValue?: undefined | string | Date;
+  id?: string | undefined;
   onClick?: undefined | (() => void);
   placeholder?: undefined | string;
   className?: undefined | string;
@@ -155,6 +156,7 @@ const Input: FunctionComponent<ComponentProps> = (
         <input
           autoFocus={props.autoFocus}
           ref={ref}
+          id={props.id}
           onFocus={props.onFocus}
           onClick={props.onClick}
           data-testid={props.dataTestId}

@@ -1,4 +1,7 @@
 {
+  "a11y": {
+    "skipToMainContent": "Spring til hovedindhold"
+  },
   "common": {
     "save": "Gem",
     "cancel": "Annuller",

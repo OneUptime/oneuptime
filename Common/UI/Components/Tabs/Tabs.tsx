@@ -19,6 +19,67 @@ const Tabs: FunctionComponent<ComponentProps> = (
   const hasInitialized: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
+  /*
+   * When the active tab changes as a result of keyboard arrow navigation we move
+   * DOM focus onto the newly active tab (roving tabindex pattern). This ref keeps
+   * us from stealing focus when the tab changes for any other reason (e.g. click).
+   */
+  const moveFocusToActiveTab: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  useEffect(() => {
+    if (moveFocusToActiveTab.current && currentTabName) {
+      document.getElementById(`tab-${currentTabName}`)?.focus();
+      moveFocusToActiveTab.current = false;
+    }
+  }, [currentTabName]);
+
+  type ActivateTabByOffsetFunction = (offset: number) => void;
+
+  const activateTabByOffset: ActivateTabByOffsetFunction = (
+    offset: number,
+  ): void => {
+    if (props.tabs.length === 0) {
+      return;
+    }
+    const currentIndex: number = props.tabs.findIndex((t: Tab) => {
+      return t.name === currentTabName;
+    });
+    const fromIndex: number = currentIndex < 0 ? 0 : currentIndex;
+    const nextIndex: number =
+      (fromIndex + offset + props.tabs.length) % props.tabs.length;
+    moveFocusToActiveTab.current = true;
+    setCurrentTabName(props.tabs[nextIndex]!.name);
+  };
+
+  type HandleTabListKeyDownFunction = (
+    event: React.KeyboardEvent<HTMLElement>,
+  ) => void;
+
+  const handleTabListKeyDown: HandleTabListKeyDownFunction = (
+    event: React.KeyboardEvent<HTMLElement>,
+  ): void => {
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+      event.preventDefault();
+      activateTabByOffset(1);
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      event.preventDefault();
+      activateTabByOffset(-1);
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      if (props.tabs.length > 0) {
+        moveFocusToActiveTab.current = true;
+        setCurrentTabName(props.tabs[0]!.name);
+      }
+    } else if (event.key === "End") {
+      event.preventDefault();
+      if (props.tabs.length > 0) {
+        moveFocusToActiveTab.current = true;
+        setCurrentTabName(props.tabs[props.tabs.length - 1]!.name);
+      }
+    }
+  };
+
   // Initialize current tab only once, or when the tab list names change
   useEffect(() => {
     const tabNames: Array<string> = props.tabs.map((t: Tab) => {
@@ -60,8 +121,10 @@ const Tabs: FunctionComponent<ComponentProps> = (
     <div>
       <nav
         role="tablist"
+        aria-orientation="horizontal"
         className="flex space-x-2 overflow-x-auto md:overflow-visible md:space-x-4"
         aria-label="Tabs"
+        onKeyDown={handleTabListKeyDown}
       >
         {props.tabs.map((tab: Tab) => {
           return (
