@@ -86,7 +86,9 @@
     "selectProjectSubtitle": "Выберите проект, в который вы хотите войти.",
     "noConfigForEmail": "Конфигурация SSO для электронной почты не найдена: {{email}}",
     "emailRequired": "Электронная почта требуется для выполнения этого действия",
-    "defaultProjectName": "Проект"
+    "defaultProjectName": "Проект",
+    "globalProvidersTitle": "Войдите через вашу организацию",
+    "globalProvidersDivider": "Или продолжите по электронной почте"
   },
   "verifyEmail": {
     "successTitle": "Ваша электронная почта подтверждена.",
