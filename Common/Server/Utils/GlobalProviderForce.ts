@@ -68,7 +68,8 @@ const syncGlobalProviderForce: SyncGlobalProviderForceFunction = async (data: {
         data: {
           requireSsoForLogin: false,
           requireSsoWithSsoProviderId: null,
-        } as Partial<Project>,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any,
         props: { isRoot: true },
       });
     }
@@ -82,7 +83,8 @@ const syncGlobalProviderForce: SyncGlobalProviderForceFunction = async (data: {
         data: {
           requireSsoForLogin: true,
           requireSsoWithSsoProviderId: providerId,
-        } as Partial<Project>,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any,
         props: { isRoot: true },
       });
     }

@@ -24,6 +24,7 @@ export enum InputType {
 export interface ComponentProps {
   initialValue?: undefined | string | Date;
   id?: string | undefined;
+  ariaLabelledby?: string | undefined;
   onClick?: undefined | (() => void);
   placeholder?: undefined | string;
   className?: undefined | string;
@@ -162,6 +163,7 @@ const Input: FunctionComponent<ComponentProps> = (
           data-testid={props.dataTestId}
           spellCheck={!props.disableSpellCheck}
           autoComplete={props.autoComplete}
+          aria-labelledby={props.ariaLabelledby}
           aria-invalid={props.error ? "true" : undefined}
           aria-describedby={props.error ? "input-error-message" : undefined}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {

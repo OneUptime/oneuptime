@@ -75,6 +75,13 @@ const FormField: <T extends GenericObject>(
    */
   const fieldId: string = useId();
 
+  /*
+   * Id of the field's <label> element. Composite widgets (dropdowns, pickers,
+   * toggles, radio/checkbox groups) that cannot use htmlFor instead point at
+   * this via aria-labelledby so the control still has an accessible name.
+   */
+  const fieldLabelId: string = `${fieldId}-label`;
+
   type onChangeFunction = (value: JSONValue) => void;
 
   const onChange: onChangeFunction = (value: JSONValue): void => {
@@ -345,6 +352,7 @@ const FormField: <T extends GenericObject>(
         {props.field.fieldType !== FormFieldSchemaType.Checkbox && (
           <FieldLabelElement
             title={props.field.title || ""}
+            id={fieldLabelId}
             htmlFor={fieldRendersLabelableInput ? fieldId : undefined}
             description={getFieldDescription()}
             sideLink={props.field.sideLink}
@@ -358,6 +366,7 @@ const FormField: <T extends GenericObject>(
           {/* Time Picker */}
           {props.field.fieldType === FormFieldSchemaType.Time && (
             <TimePicker
+              ariaLabelledby={fieldLabelId}
               autoFocus={!props.disableAutofocus && index === 1}
               tabIndex={0}
               disabled={props.isDisabled || props.field.disabled}
@@ -382,6 +391,7 @@ const FormField: <T extends GenericObject>(
 
           {props.field.fieldType === FormFieldSchemaType.Color && (
             <ColorPicker
+              ariaLabelledby={fieldLabelId}
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}
               onChange={async (value: Color | null) => {
@@ -402,6 +412,7 @@ const FormField: <T extends GenericObject>(
 
           {props.field.fieldType === FormFieldSchemaType.Icon && (
             <IconPicker
+              ariaLabelledby={fieldLabelId}
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}
               onChange={async (value: IconProp | null) => {
@@ -432,6 +443,7 @@ const FormField: <T extends GenericObject>(
              */
             (props.field.dropdownModal && props.field.dropdownModal.type ? (
               <EntityDropdown
+                ariaLabelledby={fieldLabelId}
                 error={props.touched && props.error ? props.error : undefined}
                 id={props.field.id}
                 tabIndex={0}
@@ -463,6 +475,7 @@ const FormField: <T extends GenericObject>(
               />
             ) : (
               <Dropdown
+                ariaLabelledby={fieldLabelId}
                 error={props.touched && props.error ? props.error : undefined}
                 id={props.field.id}
                 tabIndex={0}
@@ -493,6 +506,7 @@ const FormField: <T extends GenericObject>(
 
           {props.field.fieldType === FormFieldSchemaType.CardSelect && (
             <CardSelect
+              ariaLabelledby={fieldLabelId}
               error={props.touched && props.error ? props.error : undefined}
               tabIndex={0}
               dataTestId={props.field.dataTestId}
@@ -561,6 +575,7 @@ const FormField: <T extends GenericObject>(
           {props.field.fieldType ===
             FormFieldSchemaType.OptionChooserButton && (
             <RadioButtons
+              ariaLabelledby={fieldLabelId}
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}
               onChange={async (value: string) => {
@@ -579,6 +594,7 @@ const FormField: <T extends GenericObject>(
 
           {props.field.fieldType === FormFieldSchemaType.RadioButton && (
             <Radio
+              ariaLabelledby={fieldLabelId}
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}
               onChange={async (value: RadioValue | null) => {

@@ -24,6 +24,7 @@ export interface ComponentProps {
   tabIndex?: number | undefined;
   autoFocus?: boolean | undefined;
   error?: string | undefined;
+  ariaLabelledby?: string | undefined;
 }
 
 const pad2: (n: number) => string = (n: number): string => {
@@ -161,6 +162,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
         }
         role="group"
         aria-label="Time input"
+        aria-labelledby={props.ariaLabelledby}
         aria-disabled={props.disabled ? true : undefined}
         aria-describedby={props.error ? "timepicker-error" : undefined}
         onClick={openModal}

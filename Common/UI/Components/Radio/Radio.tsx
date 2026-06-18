@@ -24,6 +24,7 @@ export interface ComponentProps {
   error?: string | undefined;
   dataTestId?: string | undefined;
   ariaLabel?: string | undefined;
+  ariaLabelledby?: string | undefined;
 }
 
 const Radio: FunctionComponent<ComponentProps> = (
@@ -47,6 +48,7 @@ const Radio: FunctionComponent<ComponentProps> = (
       data-testid={props.dataTestId}
       role="radiogroup"
       aria-label={props.ariaLabel}
+      aria-labelledby={props.ariaLabelledby}
       aria-invalid={props.error ? "true" : undefined}
       aria-describedby={props.error ? errorId : undefined}
     >

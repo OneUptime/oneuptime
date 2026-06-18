@@ -1359,7 +1359,18 @@ export class ProjectService extends DatabaseService<Model> {
       throw new BadDataException("Project not found");
     }
 
-    const value: boolean = Boolean(project.requireSsoForLogin);
+    let value: boolean = Boolean(project.requireSsoForLogin);
+
+    /*
+     * A Global SSO/OIDC provider with "Force SSO for Login" enabled — attached
+     * and enabled on this project — also forces SSO, without ever writing to
+     * the project row (single source of truth lives on the provider). Only look
+     * this up when the project does not already enforce SSO on its own.
+     */
+    if (!value) {
+      value = await this.isProjectForcedByGlobalProvider(projectId);
+    }
+
     this.requireSsoForLoginCache.set(key, value, 60_000);
     this.requireSsoWithSsoProviderIdCache.set(
       key,
@@ -1369,6 +1380,112 @@ export class ProjectService extends DatabaseService<Model> {
       60_000,
     );
     return value;
+  }
+
+  /*
+   * True when at least one Global SSO or Global OIDC provider that is enabled
+   * and has "Force SSO for Login" turned on is attached (and enabled) to this
+   * project. Global force is generic — it requires SSO for the project but does
+   * not pin a specific provider (a project's own `requireSsoWithSsoProviderId`
+   * still applies independently).
+   */
+  @CaptureSpan()
+  private async isProjectForcedByGlobalProvider(
+    projectId: ObjectID,
+  ): Promise<boolean> {
+    /*
+     * Lazy require to avoid an import cycle: these services depend on Project /
+     * ProjectService, so resolve them at call-time. Mirrors the require-based
+     * cycle break used elsewhere (e.g. AuditLogService in DatabaseService).
+     */
+    /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any */
+    const globalSsoProjectService: any =
+      require("./GlobalSsoProjectService").default;
+    const globalSsoService: any = require("./GlobalSsoService").default;
+    const globalOidcProjectService: any =
+      require("./GlobalOidcProjectService").default;
+    const globalOidcService: any = require("./GlobalOidcService").default;
+    /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any */
+
+    // Global SAML SSO providers attached to this project.
+    const ssoAttachments: Array<{ globalSsoId?: ObjectID }> =
+      await globalSsoProjectService.findBy({
+        query: { projectId: projectId, isEnabled: true },
+        select: { globalSsoId: true },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    const ssoProviderIds: Array<string> = ssoAttachments
+      .map((attachment: { globalSsoId?: ObjectID }) => {
+        return attachment.globalSsoId?.toString();
+      })
+      .filter((id: string | undefined): id is string => {
+        return Boolean(id);
+      });
+
+    if (ssoProviderIds.length > 0) {
+      const forcingSsoCount: PositiveNumber = await globalSsoService.countBy({
+        query: {
+          _id: QueryHelper.any(ssoProviderIds),
+          isEnabled: true,
+          requireSsoForLogin: true,
+        },
+        props: { isRoot: true },
+      });
+
+      if (forcingSsoCount.toNumber() > 0) {
+        return true;
+      }
+    }
+
+    // Global OIDC providers attached to this project.
+    const oidcAttachments: Array<{ globalOidcId?: ObjectID }> =
+      await globalOidcProjectService.findBy({
+        query: { projectId: projectId, isEnabled: true },
+        select: { globalOidcId: true },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    const oidcProviderIds: Array<string> = oidcAttachments
+      .map((attachment: { globalOidcId?: ObjectID }) => {
+        return attachment.globalOidcId?.toString();
+      })
+      .filter((id: string | undefined): id is string => {
+        return Boolean(id);
+      });
+
+    if (oidcProviderIds.length > 0) {
+      const forcingOidcCount: PositiveNumber = await globalOidcService.countBy({
+        query: {
+          _id: QueryHelper.any(oidcProviderIds),
+          isEnabled: true,
+          requireSsoForLogin: true,
+        },
+        props: { isRoot: true },
+      });
+
+      if (forcingOidcCount.toNumber() > 0) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /*
+   * Drops the in-process SSO-enforcement caches. Called by the Global
+   * SSO/OIDC services when a provider's force flag or its project attachments
+   * change, so dynamic enforcement reflects the change without waiting for the
+   * 60s TTL to lapse.
+   */
+  @CaptureSpan()
+  public clearSsoEnforcementCache(): void {
+    this.requireSsoForLoginCache.clear();
+    this.requireSsoWithSsoProviderIdCache.clear();
   }
 
   /**

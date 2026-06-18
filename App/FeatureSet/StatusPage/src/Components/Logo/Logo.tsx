@@ -13,7 +13,18 @@ const Logo: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
-    <div className="flex items-center">
+    <div
+      className="flex items-center rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+      role="button"
+      tabIndex={0}
+      onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
+        // The logo navigates home; make it operable with the keyboard (WCAG 2.1.1).
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          props.onClick();
+        }
+      }}
+    >
       <Image
         file={props.file}
         onClick={props.onClick}
