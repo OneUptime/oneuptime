@@ -19,8 +19,55 @@ import GlobalSSO from "Common/Models/DatabaseModels/GlobalSso";
 import GlobalSSOProject from "Common/Models/DatabaseModels/GlobalSsoProject";
 import Project from "Common/Models/DatabaseModels/Project";
 import Team from "Common/Models/DatabaseModels/Team";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
+
+/*
+ * Loads the teams that belong to the project chosen in step 1 of the attach
+ * form, so the team picker in step 2 can only offer teams from that project.
+ * `fetchDropdownOptions` re-runs whenever the form step changes, so by the time
+ * the user reaches the Teams step the selected project is available here. This
+ * is the UI half of the cross-project guard; the server-side backstop lives in
+ * GlobalSsoProjectService.onBeforeCreate.
+ */
+const fetchTeamsForSelectedProject = async (
+  item: FormValues<GlobalSSOProject>,
+): Promise<Array<DropdownOption>> => {
+  const projectValue: unknown = (item as { project?: unknown }).project;
+
+  const projectId: string | undefined =
+    typeof projectValue === "string"
+      ? projectValue
+      : (
+          projectValue as { value?: string; _id?: string } | undefined
+        )?.value?.toString() ||
+        (projectValue as { _id?: string } | undefined)?._id?.toString();
+
+  if (!projectId) {
+    return [];
+  }
+
+  const teams: { data: Array<Team> } = await AdminModelAPI.getList<Team>({
+    modelType: Team,
+    query: { projectId: new ObjectID(projectId) },
+    limit: LIMIT_PER_PROJECT,
+    skip: 0,
+    select: { _id: true, name: true },
+    sort: { name: SortOrder.Ascending },
+  });
+
+  return teams.data.map((team: Team): DropdownOption => {
+    return {
+      label: team.name?.toString() || "",
+      value: team.id?.toString() || "",
+    };
+  });
+};
 
 const GlobalSSOView: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -271,21 +318,35 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
           id="global-sso-project-table"
           name="Settings > Global SSO > Attached Projects"
           isDeleteable={true}
-          isEditable={true}
+          isEditable={false}
           isCreateable={true}
           modelAPI={AdminModelAPI}
           cardProps={{
             title: "Attached Projects",
             description:
-              "Attach this provider to specific projects to auto-provision federated users into the selected teams. If no projects are attached, the provider works for all projects a user is already a member of (invite-first).",
+              "Attach this provider to a project and pick that project's default teams. Add one project + teams at a time to build the list. If no projects are attached, the provider works for all projects a user is already a member of (invite-first). To change an attachment, delete it and add it again.",
           }}
           noItemsMessage={"No projects attached to this provider."}
           showRefreshButton={true}
+          filters={[]}
+          formSteps={
+            [
+              {
+                id: "project",
+                title: "Select Project",
+              },
+              {
+                id: "teams",
+                title: "Select Teams",
+              },
+            ] as Array<FormStep<GlobalSSOProject>>
+          }
           formFields={[
             {
               field: {
                 project: true,
               },
+              stepId: "project",
               title: "Project",
               description:
                 "The project federated users are provisioned into for this provider.",
@@ -302,23 +363,14 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
               field: {
                 teams: true,
               },
+              stepId: "teams",
               title: "Teams",
-              description: "Add users to these teams when they sign in.",
+              description:
+                "Users are added to these teams (from the project selected above) when they sign in.",
               fieldType: FormFieldSchemaType.MultiSelectDropdown,
-              dropdownModal: {
-                type: Team,
-                labelField: "name",
-                valueField: "_id",
-              },
+              fetchDropdownOptions: fetchTeamsForSelectedProject,
               required: false,
               placeholder: "Select Teams",
-            },
-            {
-              field: {
-                isEnabled: true,
-              },
-              title: "Enabled",
-              fieldType: FormFieldSchemaType.Toggle,
             },
           ]}
           columns={[
