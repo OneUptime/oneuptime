@@ -1,9 +1,42 @@
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import Project from "../../Models/DatabaseModels/Project";
 import Team from "../../Models/DatabaseModels/Team";
 import QueryHelper from "../Types/Database/QueryHelper";
 import TeamService from "../Services/TeamService";
+
+/*
+ * The Admin Dashboard attach form submits the chosen project via the `project`
+ * relation, not the `projectId` FK: the entity dropdown sets the related
+ * Project (as a model with only `_id`), so `createBy.data.projectId` is
+ * undefined at create-hook time. Resolve the FK from either shape so the hook
+ * can populate the NOT NULL `projectId` column and validate teams against it.
+ */
+export const resolveAttachmentProjectId: (data: {
+  projectId?: ObjectID | undefined;
+  project?: Project | undefined;
+}) => ObjectID | undefined = (data: {
+  projectId?: ObjectID | undefined;
+  project?: Project | undefined;
+}): ObjectID | undefined => {
+  if (data.projectId) {
+    return data.projectId;
+  }
+
+  const project: (Project & { _id?: string }) | undefined = data.project as
+    | (Project & { _id?: string })
+    | undefined;
+
+  if (!project) {
+    return undefined;
+  }
+
+  const idString: string | undefined =
+    project._id?.toString() || (project.id ? project.id.toString() : undefined);
+
+  return idString ? new ObjectID(idString) : undefined;
+};
 
 /*
  * Guards a Global SSO / Global OIDC project-attachment: every default team

@@ -7,7 +7,9 @@ import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import validateGlobalProviderProjectTeams from "../Utils/ValidateGlobalProviderProjectTeams";
+import validateGlobalProviderProjectTeams, {
+  resolveAttachmentProjectId,
+} from "../Utils/ValidateGlobalProviderProjectTeams";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -18,9 +20,22 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    /*
+     * The attach form submits the project via the `project` relation, so the
+     * `projectId` FK is not set yet. Resolve it and persist it (the column is
+     * required / NOT NULL) before validating the default teams against it.
+     */
+    const projectId: ObjectID | undefined = resolveAttachmentProjectId(
+      createBy.data,
+    );
+
+    if (projectId) {
+      createBy.data.projectId = projectId;
+    }
+
     await validateGlobalProviderProjectTeams({
       teams: createBy.data.teams,
-      projectId: createBy.data.projectId,
+      projectId,
     });
 
     return { createBy, carryForward: null };
