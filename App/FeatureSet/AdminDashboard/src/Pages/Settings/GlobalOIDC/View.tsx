@@ -27,57 +27,15 @@ import GlobalOIDC from "Common/Models/DatabaseModels/GlobalOidc";
 import GlobalOIDCProject from "Common/Models/DatabaseModels/GlobalOidcProject";
 import Project from "Common/Models/DatabaseModels/Project";
 import Team from "Common/Models/DatabaseModels/Team";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import ProjectScopedTeamsPicker, {
+  resolveProjectIdFromFormValue,
+  selectedTeamIdsFromFormValue,
+} from "../../../Components/GlobalProvider/ProjectScopedTeamsPicker";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-
-/*
- * Loads the teams that belong to the project chosen in step 1 of the attach
- * form, so the team picker in step 2 can only offer teams from that project.
- * `fetchDropdownOptions` re-runs whenever the form step changes, so by the time
- * the user reaches the Teams step the selected project is available here. This
- * is the UI half of the cross-project guard; the server-side backstop lives in
- * GlobalOidcProjectService.onBeforeCreate.
- */
-const fetchTeamsForSelectedProject: (
-  item: FormValues<GlobalOIDCProject>,
-) => Promise<Array<DropdownOption>> = async (
-  item: FormValues<GlobalOIDCProject>,
-): Promise<Array<DropdownOption>> => {
-  const projectValue: unknown = (item as { project?: unknown }).project;
-
-  const projectId: string | undefined =
-    typeof projectValue === "string"
-      ? projectValue
-      : (
-          projectValue as { value?: string; _id?: string } | undefined
-        )?.value?.toString() ||
-        (projectValue as { _id?: string } | undefined)?._id?.toString();
-
-  if (!projectId) {
-    return [];
-  }
-
-  const teams: { data: Array<Team> } = await AdminModelAPI.getList<Team>({
-    modelType: Team,
-    query: { projectId: new ObjectID(projectId) },
-    limit: LIMIT_PER_PROJECT,
-    skip: 0,
-    select: { _id: true, name: true },
-    sort: { name: SortOrder.Ascending },
-  });
-
-  return teams.data.map((team: Team): DropdownOption => {
-    return {
-      label: team.name?.toString() || "",
-      value: team.id?.toString() || "",
-    };
-  });
-};
 
 const GlobalOIDCView: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -484,10 +442,26 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
               title: "Teams",
               description:
                 "Users are added to these teams (from the project selected above) when they sign in.",
-              fieldType: FormFieldSchemaType.MultiSelectDropdown,
-              fetchDropdownOptions: fetchTeamsForSelectedProject,
+              fieldType: FormFieldSchemaType.CustomComponent,
+              getCustomElement: (
+                values: FormValues<GlobalOIDCProject>,
+                elementProps: CustomElementProps,
+              ): ReactElement => {
+                return (
+                  <ProjectScopedTeamsPicker
+                    projectId={resolveProjectIdFromFormValue(
+                      (values as { project?: unknown }).project,
+                    )}
+                    selectedTeamIds={selectedTeamIdsFromFormValue(
+                      (values as { teams?: unknown }).teams,
+                    )}
+                    onChange={(teamIds: Array<string>) => {
+                      elementProps.onChange?.(teamIds);
+                    }}
+                  />
+                );
+              },
               required: false,
-              placeholder: "Select Teams",
             },
           ]}
           columns={[
