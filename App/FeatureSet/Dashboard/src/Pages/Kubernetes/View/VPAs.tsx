@@ -52,6 +52,7 @@ const KubernetesClusterVPAs: FunctionComponent<
         await KubernetesResourceUtils.fetchInventoryResources({
           kubernetesClusterId: modelId,
           kind: "VerticalPodAutoscaler",
+          selectFullSpec: true,
           transform: (
             resource: KubernetesResource,
             row: KubernetesResourceModel,
