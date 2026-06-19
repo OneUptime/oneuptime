@@ -854,6 +854,8 @@ export default class StatusPageAPI extends BaseAPI<
             slug: true,
             coverImageFileId: true,
             logoFileId: true,
+            logoAltText: true,
+            coverImageAltText: true,
             pageTitle: true,
             pageDescription: true,
             copyrightText: true,

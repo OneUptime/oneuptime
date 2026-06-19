@@ -47,6 +47,7 @@ import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import xml2js from "xml2js";
 import Name from "Common/Types/Name";
+import SsoProviderType from "Common/Types/SSO/SsoProviderType";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -585,18 +586,11 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
       });
 
       // Generate SSO token for per-project authentication (same as setSSOCookie)
-      const ssoToken: string = JSONWebToken.sign({
-        data: {
-          userId: alreadySavedUser.id!,
-          projectId: projectId,
-          name: alreadySavedUser.name!,
-          email: alreadySavedUser.email,
-          isMasterAdmin: false,
-          isGeneralLogin: false,
-        },
-        expiresInSeconds: OneUptimeDate.getSecondsInDays(
-          new PositiveNumber(30),
-        ),
+      const ssoToken: string = CookieUtil.getSSOToken({
+        user: alreadySavedUser,
+        projectId: projectId,
+        ssoProviderId: new ObjectID(req.params["projectSsoId"] as string),
+        ssoProviderType: SsoProviderType.ProjectSSO,
       });
 
       const params: URLSearchParams = new URLSearchParams();
@@ -630,6 +624,8 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
       user: alreadySavedUser,
       projectId: projectId,
       expressResponse: res,
+      ssoProviderId: new ObjectID(req.params["projectSsoId"] as string),
+      ssoProviderType: SsoProviderType.ProjectSSO,
     });
 
     CookieUtil.setUserCookie({

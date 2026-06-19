@@ -1,4 +1,7 @@
 {
+  "a11y": {
+    "skipToMainContent": "跳至主要內容"
+  },
   "common": {
     "save": "儲存",
     "cancel": "取消",
@@ -254,5 +257,17 @@
     "completed": "已完成"
   },
   "Subscriber ID is required": "訂閱者 ID 為必填",
-  "Token is required": "權杖為必填"
+  "Token is required": "權杖為必填",
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}}不能少於 {{minLength}} 個字元。",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}}不能超過 {{maxLength}} 個字元。",
+  "{{field}} should not have spaces.": "{{field}}不能包含空格。",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}}只能包含字母、數字、連字號 (-) 和底線 (_)。",
+  "{{field}} should not have numbers.": "{{field}}不能包含數字。",
+  "{{field}} should be a future date.": "{{field}}必須是未來的日期。",
+  "{{field}} should be a number.": "{{field}}必須是數字。",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}}不能大於 {{maxValue}}。",
+  "{{field}} should not be less than {{minValue}}.": "{{field}}不能小於 {{minValue}}。",
+  "{{field}} is required.": "{{field}}為必填項。",
+  "{{field}} should match {{matchField}}": "{{field}}必須與 {{matchField}} 相符",
+  "Email is not valid.": "電子郵件無效。"
 }

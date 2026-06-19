@@ -13,10 +13,16 @@ import { Ionicons } from "@expo/vector-icons";
 import * as WebBrowser from "expo-web-browser";
 import { useTheme } from "../../theme";
 import { useAuth } from "../../hooks/useAuth";
-import { fetchSSOProviders, SSOProvider } from "../../api/sso";
+import {
+  fetchSSOProviders,
+  fetchGlobalSSOProviders,
+  fetchGlobalOIDCProviders,
+  SSOProvider,
+  GlobalSSOProvider,
+} from "../../api/sso";
 import { getServerUrl } from "../../storage/serverUrl";
 import { storeTokens } from "../../storage/keychain";
-import { storeSsoToken } from "../../storage/ssoTokens";
+import { storeSsoToken, storeSsoTokens } from "../../storage/ssoTokens";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { AuthStackParamList } from "../../navigation/types";
@@ -39,6 +45,9 @@ export default function SSOLoginScreen(): React.JSX.Element {
   const [isSSOLoading, setIsSSOLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [providers, setProviders] = useState<Array<SSOProvider> | null>(null);
+  const [globalProviders, setGlobalProviders] = useState<
+    Array<GlobalSSOProvider>
+  >([]);
 
   useEffect(() => {
     return () => {
@@ -56,14 +65,39 @@ export default function SSOLoginScreen(): React.JSX.Element {
     setIsLoadingProviders(true);
 
     try {
-      const result: Array<SSOProvider> = await fetchSSOProviders(email.trim());
+      /*
+       * Project SSO providers are scoped to the email; global SSO/OIDC
+       * providers are instance-wide and discovered independently. Fetch all
+       * in parallel and let any individual source fail gracefully.
+       */
+      const [projectResult, globalSSOResult, globalOIDCResult]: [
+        Array<SSOProvider>,
+        Array<GlobalSSOProvider>,
+        Array<GlobalSSOProvider>,
+      ] = await Promise.all([
+        fetchSSOProviders(email.trim()).catch(() => {
+          return [] as Array<SSOProvider>;
+        }),
+        fetchGlobalSSOProviders().catch(() => {
+          return [] as Array<GlobalSSOProvider>;
+        }),
+        fetchGlobalOIDCProviders().catch(() => {
+          return [] as Array<GlobalSSOProvider>;
+        }),
+      ]);
 
-      if (result.length === 0) {
+      const global: Array<GlobalSSOProvider> = [
+        ...globalSSOResult,
+        ...globalOIDCResult,
+      ];
+
+      if (projectResult.length === 0 && global.length === 0) {
         setError("No SSO providers found for this email.");
         return;
       }
 
-      setProviders(result);
+      setGlobalProviders(global);
+      setProviders(projectResult);
     } catch {
       setError(
         "Could not find SSO providers. Please check your email and try again.",
@@ -73,16 +107,77 @@ export default function SSOLoginScreen(): React.JSX.Element {
     }
   };
 
-  const handleSSOLogin: (provider: SSOProvider) => Promise<void> = async (
-    provider: SSOProvider,
+  /**
+   * Parses the `oneuptime://sso-callback` deep-link params, persists the auth
+   * tokens and every per-project SSO token, then marks the user authenticated.
+   * Returns true on success.
+   */
+  const handleSSOCallback: (callbackUrl: string) => Promise<boolean> = async (
+    callbackUrl: string,
+  ): Promise<boolean> => {
+    const url: URL = new URL(callbackUrl);
+    const params: URLSearchParams = url.searchParams;
+
+    const accessToken: string | null = params.get("accessToken");
+    const refreshToken: string | null = params.get("refreshToken");
+    const refreshTokenExpiresAt: string | null = params.get(
+      "refreshTokenExpiresAt",
+    );
+
+    if (!accessToken || !refreshToken || !refreshTokenExpiresAt) {
+      setError("Authentication failed. Missing token data.");
+      return false;
+    }
+
+    await storeTokens({
+      accessToken,
+      refreshToken,
+      refreshTokenExpiresAt,
+    });
+
+    /*
+     * Global login returns a JSON map of every project the user can access to
+     * its per-project SSO token. Store all of them so the API client can send
+     * the full `x-sso-tokens` header.
+     */
+    const ssoTokensRaw: string | null = params.get("ssoTokens");
+    if (ssoTokensRaw) {
+      try {
+        const parsed: Record<string, string> = JSON.parse(ssoTokensRaw);
+        if (parsed && typeof parsed === "object") {
+          await storeSsoTokens(parsed);
+        }
+      } catch {
+        // Ignore malformed maps; fall back to the single-token params below.
+      }
+    }
+
+    /*
+     * Back-compat: project SSO (and global, for redundancy) also returns a
+     * single ssoToken/projectId pair.
+     */
+    const ssoToken: string | null = params.get("ssoToken");
+    const projectId: string | null = params.get("projectId");
+
+    if (ssoToken && projectId) {
+      await storeSsoToken(projectId, ssoToken);
+    }
+
+    setIsAuthenticated(true);
+    return true;
+  };
+
+  /**
+   * Opens an IdP login URL in the auth session browser and handles the result
+   * via the shared `sso-callback` handler.
+   */
+  const startSSOFlow: (ssoUrl: string) => Promise<void> = async (
+    ssoUrl: string,
   ): Promise<void> => {
     setError(null);
     setIsSSOLoading(true);
 
     try {
-      const serverUrl: string = await getServerUrl();
-      const ssoUrl: string = `${serverUrl}/identity/sso/${provider.projectId}/${provider._id}?mobile=true`;
-
       await WebBrowser.warmUpAsync();
 
       const result: WebBrowser.WebBrowserAuthSessionResult =
@@ -97,35 +192,7 @@ export default function SSOLoginScreen(): React.JSX.Element {
       }
 
       if (result.type === "success" && result.url) {
-        const url: URL = new URL(result.url);
-        const params: URLSearchParams = url.searchParams;
-
-        const accessToken: string | null = params.get("accessToken");
-        const refreshToken: string | null = params.get("refreshToken");
-        const refreshTokenExpiresAt: string | null = params.get(
-          "refreshTokenExpiresAt",
-        );
-
-        if (!accessToken || !refreshToken || !refreshTokenExpiresAt) {
-          setError("Authentication failed. Missing token data.");
-          return;
-        }
-
-        await storeTokens({
-          accessToken,
-          refreshToken,
-          refreshTokenExpiresAt,
-        });
-
-        // Store per-project SSO token if provided
-        const ssoToken: string | null = params.get("ssoToken");
-        const projectId: string | null = params.get("projectId");
-
-        if (ssoToken && projectId) {
-          await storeSsoToken(projectId, ssoToken);
-        }
-
-        setIsAuthenticated(true);
+        await handleSSOCallback(result.url);
       }
     } catch {
       setError("SSO authentication failed. Please try again.");
@@ -135,9 +202,28 @@ export default function SSOLoginScreen(): React.JSX.Element {
     }
   };
 
+  const handleSSOLogin: (provider: SSOProvider) => Promise<void> = async (
+    provider: SSOProvider,
+  ): Promise<void> => {
+    const serverUrl: string = await getServerUrl();
+    const ssoUrl: string = `${serverUrl}/identity/sso/${provider.projectId}/${provider._id}?mobile=true`;
+    await startSSOFlow(ssoUrl);
+  };
+
+  const handleGlobalSSOLogin: (
+    provider: GlobalSSOProvider,
+  ) => Promise<void> = async (provider: GlobalSSOProvider): Promise<void> => {
+    const serverUrl: string = await getServerUrl();
+    const path: string =
+      provider.type === "oidc" ? "global-oidc" : "global-sso";
+    const ssoUrl: string = `${serverUrl}/identity/${path}/${provider._id}?mobile=true`;
+    await startSSOFlow(ssoUrl);
+  };
+
   const handleBack: () => void = (): void => {
     if (providers) {
       setProviders(null);
+      setGlobalProviders([]);
       setError(null);
     } else {
       navigation.navigate("Login");
@@ -440,6 +526,109 @@ export default function SSOLoginScreen(): React.JSX.Element {
                       },
                     );
                   })()}
+
+                  {globalProviders.length > 0 ? (
+                    <View style={{ marginBottom: 20 }}>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          marginBottom: 10,
+                          paddingHorizontal: 4,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 17,
+                            fontWeight: "700",
+                            color: theme.colors.textPrimary,
+                            flex: 1,
+                            letterSpacing: -0.3,
+                          }}
+                        >
+                          Global SSO
+                        </Text>
+                      </View>
+
+                      {globalProviders.map(
+                        (provider: GlobalSSOProvider, index: number) => {
+                          return (
+                            <Pressable
+                              key={provider._id}
+                              onPress={() => {
+                                return handleGlobalSSOLogin(provider);
+                              }}
+                              style={{
+                                marginBottom:
+                                  index < globalProviders.length - 1 ? 10 : 0,
+                                borderRadius: 14,
+                                backgroundColor:
+                                  theme.colors.backgroundSecondary,
+                                borderWidth: 1,
+                                borderColor: theme.colors.borderDefault,
+                                overflow: "hidden",
+                              }}
+                            >
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  paddingHorizontal: 16,
+                                  paddingVertical: 14,
+                                }}
+                              >
+                                <View
+                                  style={{
+                                    width: 36,
+                                    height: 36,
+                                    borderRadius: 10,
+                                    backgroundColor:
+                                      theme.colors.iconBackground,
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    marginRight: 12,
+                                  }}
+                                >
+                                  <Ionicons
+                                    name="globe-outline"
+                                    size={18}
+                                    color={theme.colors.actionPrimary}
+                                  />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                  <Text
+                                    style={{
+                                      fontSize: 15,
+                                      fontWeight: "600",
+                                      color: theme.colors.textPrimary,
+                                    }}
+                                  >
+                                    {provider.name}
+                                  </Text>
+                                  {provider.description ? (
+                                    <Text
+                                      style={{
+                                        fontSize: 13,
+                                        marginTop: 2,
+                                        color: theme.colors.textSecondary,
+                                      }}
+                                    >
+                                      {provider.description}
+                                    </Text>
+                                  ) : null}
+                                </View>
+                                <Ionicons
+                                  name="chevron-forward"
+                                  size={18}
+                                  color={theme.colors.textTertiary}
+                                />
+                              </View>
+                            </Pressable>
+                          );
+                        },
+                      )}
+                    </View>
+                  ) : null}
                 </>
               )}
 

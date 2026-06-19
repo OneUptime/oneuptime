@@ -118,6 +118,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/identity/sso",
       },
       {
+        title: "Global SSO",
+        url: "/docs/identity/global-sso",
+      },
+      {
         title: "SCIM",
         url: "/docs/identity/scim",
       },

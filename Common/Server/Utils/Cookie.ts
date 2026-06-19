@@ -8,6 +8,7 @@ import StatusPagePrivateUser from "../../Models/DatabaseModels/StatusPagePrivate
 import OneUptimeDate from "../../Types/Date";
 import PositiveNumber from "../../Types/PositiveNumber";
 import CookieName from "../../Types/CookieName";
+import SsoProviderType from "../../Types/SSO/SsoProviderType";
 import {
   MASTER_PASSWORD_COOKIE_IDENTIFIER,
   MASTER_PASSWORD_COOKIE_MAX_AGE_IN_DAYS,
@@ -38,15 +39,24 @@ export default class CookieUtil {
     return cookies;
   }
 
+  /*
+   * Builds a per-project SSO token. The optional `ssoProviderId` /
+   * `ssoProviderType` discriminator records WHICH identity provider issued the
+   * token, so a project that enforces SSO can require a specific provider
+   * (e.g. its own Project SSO, or an instance-wide Global SSO). Used by both
+   * the cookie flow (web) and the deep-link flow (mobile) so the token shape
+   * stays identical.
+   */
   @CaptureSpan()
-  public static setSSOCookie(data: {
+  public static getSSOToken(data: {
     user: User;
     projectId: ObjectID;
-    expressResponse: ExpressResponse;
-  }): void {
-    const { user, projectId, expressResponse: res } = data;
+    ssoProviderId?: ObjectID | undefined;
+    ssoProviderType?: SsoProviderType | undefined;
+  }): string {
+    const { user, projectId } = data;
 
-    const ssoToken: string = JSONWebToken.sign({
+    return JSONWebToken.sign({
       data: {
         userId: user.id!,
         projectId: projectId,
@@ -54,8 +64,32 @@ export default class CookieUtil {
         email: user.email,
         isMasterAdmin: false,
         isGeneralLogin: false,
+        ssoProviderId: data.ssoProviderId
+          ? data.ssoProviderId.toString()
+          : undefined,
+        ssoProviderType: data.ssoProviderType
+          ? data.ssoProviderType.toString()
+          : undefined,
       },
       expiresInSeconds: OneUptimeDate.getSecondsInDays(new PositiveNumber(30)),
+    });
+  }
+
+  @CaptureSpan()
+  public static setSSOCookie(data: {
+    user: User;
+    projectId: ObjectID;
+    expressResponse: ExpressResponse;
+    ssoProviderId?: ObjectID | undefined;
+    ssoProviderType?: SsoProviderType | undefined;
+  }): void {
+    const { projectId, expressResponse: res } = data;
+
+    const ssoToken: string = CookieUtil.getSSOToken({
+      user: data.user,
+      projectId: projectId,
+      ssoProviderId: data.ssoProviderId,
+      ssoProviderType: data.ssoProviderType,
     });
 
     CookieUtil.setCookie(res, CookieUtil.getUserSSOKey(projectId), ssoToken, {

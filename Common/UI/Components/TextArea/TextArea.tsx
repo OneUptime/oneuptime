@@ -11,6 +11,7 @@ import React, {
 export interface ComponentProps {
   onChange?: undefined | ((value: string) => void);
   initialValue?: string | undefined;
+  id?: string | undefined;
   value?: string | undefined;
   placeholder?: undefined | string;
   onFocus?: () => void;
@@ -63,6 +64,7 @@ const TextArea: FunctionComponent<ComponentProps> = (
       <div className="relative mt-2 mb-1 rounded-md shadow-sm">
         <textarea
           autoFocus={props.autoFocus}
+          id={props.id}
           placeholder={translateString(props.placeholder)}
           data-testid={props.dataTestId}
           className={`${className || ""}`}

@@ -1,4 +1,6 @@
 import {
+  GLOBAL_OIDC_SERVICE_PROVIDER_LOGIN_URL,
+  GLOBAL_SSO_SERVICE_PROVIDER_LOGIN_URL,
   SERVICE_PROVIDER_LOGIN_OIDC_URL,
   SERVICE_PROVIDER_LOGIN_URL,
 } from "../Utils/ApiPaths";
@@ -12,10 +14,12 @@ import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg
 import Navigation from "Common/UI/Utils/Navigation";
 import UserUtil from "Common/UI/Utils/User";
 import User from "Common/Models/DatabaseModels/User";
-import React, { ReactElement, useState } from "react";
+import React, { ReactElement, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
 import ProjectOIDC from "Common/Models/DatabaseModels/ProjectOidc";
+import GlobalSSO from "Common/Models/DatabaseModels/GlobalSso";
+import GlobalOIDC from "Common/Models/DatabaseModels/GlobalOidc";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import API from "Common/UI/Utils/API/API";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
@@ -35,6 +39,68 @@ const LoginPage: () => JSX.Element = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [samlConfigs, setSamlConfigs] = useState<Array<ProjectSSO>>([]);
   const [oidcConfigs, setOidcConfigs] = useState<Array<ProjectOIDC>>([]);
+  const [globalSamlConfigs, setGlobalSamlConfigs] = useState<Array<GlobalSSO>>(
+    [],
+  );
+  const [globalOidcConfigs, setGlobalOidcConfigs] = useState<Array<GlobalOIDC>>(
+    [],
+  );
+
+  /*
+   * Global SSO / OIDC providers are NOT email-bound, so they are discovered up
+   * front (on mount) and shown directly on the email-entry screen. This lets a
+   * user with an organization-wide IdP sign in without having to type an email.
+   */
+  const fetchGlobalSsoConfigs: () => Promise<void> =
+    async (): Promise<void> => {
+      const [samlResult, oidcResult] = await Promise.all([
+        API.get({
+          url: URL.fromString(GLOBAL_SSO_SERVICE_PROVIDER_LOGIN_URL.toString()),
+        }).catch((e: HTTPErrorResponse): HTTPErrorResponse => {
+          return e;
+        }),
+        API.get({
+          url: URL.fromString(
+            GLOBAL_OIDC_SERVICE_PROVIDER_LOGIN_URL.toString(),
+          ),
+        }).catch((e: HTTPErrorResponse): HTTPErrorResponse => {
+          return e;
+        }),
+      ]);
+
+      if (
+        !(samlResult instanceof HTTPErrorResponse) &&
+        (samlResult as HTTPResponse<JSONArray>).data
+      ) {
+        setGlobalSamlConfigs(
+          GlobalSSO.fromJSONArray(
+            (samlResult as HTTPResponse<JSONArray>).data,
+            GlobalSSO,
+          ),
+        );
+      }
+
+      if (
+        !(oidcResult instanceof HTTPErrorResponse) &&
+        (oidcResult as HTTPResponse<JSONArray>).data
+      ) {
+        setGlobalOidcConfigs(
+          GlobalOIDC.fromJSONArray(
+            (oidcResult as HTTPResponse<JSONArray>).data,
+            GlobalOIDC,
+          ),
+        );
+      }
+    };
+
+  useEffect(() => {
+    fetchGlobalSsoConfigs().catch(() => {
+      /*
+       * Global providers are optional; silently ignore discovery failures so
+       * the email-based project SSO flow remains usable.
+       */
+    });
+  }, []);
 
   type FetchSSOConfigsFunction = (email: Email) => Promise<void>;
 
@@ -147,6 +213,48 @@ const LoginPage: () => JSX.Element = () => {
     );
   };
 
+  const renderGlobalSamlList: (configs: Array<GlobalSSO>) => ReactElement = (
+    configs: Array<GlobalSSO>,
+  ): ReactElement => {
+    return (
+      <StaticModelList<GlobalSSO>
+        list={configs}
+        titleField="name"
+        selectedItems={[]}
+        descriptionField="description"
+        onClick={(item: GlobalSSO) => {
+          setIsLoading(true);
+          Navigation.navigate(
+            URL.fromURL(IDENTITY_URL).addRoute(
+              new Route(`/global-sso/${item.id?.toString()}`),
+            ),
+          );
+        }}
+      />
+    );
+  };
+
+  const renderGlobalOidcList: (configs: Array<GlobalOIDC>) => ReactElement = (
+    configs: Array<GlobalOIDC>,
+  ): ReactElement => {
+    return (
+      <StaticModelList<GlobalOIDC>
+        list={configs}
+        titleField="name"
+        selectedItems={[]}
+        descriptionField="description"
+        onClick={(item: GlobalOIDC) => {
+          setIsLoading(true);
+          Navigation.navigate(
+            URL.fromURL(IDENTITY_URL).addRoute(
+              new Route(`/global-oidc/${item.id?.toString()}`),
+            ),
+          );
+        }}
+      />
+    );
+  };
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -252,6 +360,27 @@ const LoginPage: () => JSX.Element = () => {
 
       <div className="mt-6 sm:mt-8 w-full max-w-md mx-auto">
         <div className="bg-white py-6 px-4 shadow-sm sm:shadow rounded-lg sm:py-8 sm:px-10">
+          {(globalSamlConfigs.length > 0 || globalOidcConfigs.length > 0) && (
+            <div className="mb-6">
+              <h3 className="text-center text-sm font-medium tracking-tight text-gray-900">
+                {t("sso.globalProvidersTitle")}
+              </h3>
+              {globalSamlConfigs.length > 0 &&
+                renderGlobalSamlList(globalSamlConfigs)}
+              {globalOidcConfigs.length > 0 &&
+                renderGlobalOidcList(globalOidcConfigs)}
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="bg-white px-2 text-gray-500">
+                    {t("sso.globalProvidersDivider")}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
           <BasicForm
             modelType={User}
             id="login-form"

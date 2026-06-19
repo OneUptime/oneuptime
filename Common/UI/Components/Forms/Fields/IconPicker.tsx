@@ -22,6 +22,7 @@ export interface ComponentProps {
   dataTestId?: string | undefined;
   onEnterPress?: (() => void) | undefined;
   error?: string | undefined;
+  ariaLabelledby?: string | undefined;
 }
 
 const IconPicker: FunctionComponent<ComponentProps> = (
@@ -93,6 +94,7 @@ const IconPicker: FunctionComponent<ComponentProps> = (
           readOnly={true}
           type={InputType.TEXT}
           tabIndex={props.tabIndex}
+          ariaLabelledby={props.ariaLabelledby}
           onChange={() => {}}
           onFocus={props.onFocus || undefined}
         />

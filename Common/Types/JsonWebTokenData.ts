@@ -2,6 +2,7 @@ import Email from "./Email";
 import { JSONObject } from "./JSON";
 import Name from "./Name";
 import ObjectID from "./ObjectID";
+import SsoProviderType from "./SSO/SsoProviderType";
 
 export default interface JSONWebTokenData extends JSONObject {
   userId: ObjectID;
@@ -12,4 +13,6 @@ export default interface JSONWebTokenData extends JSONObject {
   projectId?: ObjectID | undefined; // for SSO logins.
   isGlobalLogin: boolean; // If this is OneUptime username and password login. This is true, if this is SSO login. Then, this is false.
   sessionId?: ObjectID | undefined;
+  ssoProviderId?: ObjectID | undefined; // which SSO provider (Project or Global SSO/OIDC) issued this per-project SSO token.
+  ssoProviderType?: SsoProviderType | undefined;
 }

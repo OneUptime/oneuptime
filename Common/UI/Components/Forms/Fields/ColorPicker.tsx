@@ -24,6 +24,7 @@ export interface ComponentProps {
   dataTestId?: string | undefined;
   onEnterPress?: (() => void) | undefined;
   error?: string | undefined;
+  ariaLabelledby?: string | undefined;
 }
 
 const ColorPicker: FunctionComponent<ComponentProps> = (
@@ -83,6 +84,7 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
           readOnly={true}
           type={InputType.TEXT}
           tabIndex={props.tabIndex}
+          ariaLabelledby={props.ariaLabelledby}
           onChange={(value: string) => {
             if (!value) {
               return handleChange("");
