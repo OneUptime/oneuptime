@@ -49,7 +49,6 @@ export interface Chart {
 export interface ComponentProps {
   charts: Array<Chart>;
   hideCard?: boolean | undefined;
-  heightInPx?: number | undefined;
   chartCssClass?: string | undefined;
 }
 

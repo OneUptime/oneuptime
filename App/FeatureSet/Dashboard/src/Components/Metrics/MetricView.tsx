@@ -907,7 +907,10 @@ const MetricView: FunctionComponent<ComponentProps> = (
                 : "grid grid-cols-1 gap-4"
             }
             style={{
-              // set height to the number of metric results * h-20
+              /*
+               * Give each metric result ~20rem of height (matching the
+               * chart's previous fixed h-80 / 320px height).
+               */
               height: metricResults.length * 20 + "rem",
             }}
           >
