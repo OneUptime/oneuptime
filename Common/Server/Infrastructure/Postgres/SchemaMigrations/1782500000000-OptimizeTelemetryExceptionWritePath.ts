@@ -33,45 +33,9 @@ export class OptimizeTelemetryExceptionWritePath1782500000000
       `DROP INDEX IF EXISTS "public"."IDX_fa102ae5073b428e514cc2ceea"`,
     );
 
-    /*
-     * Leave free space on each heap page (target 85% fill) so the
-     * high-churn upsert has room to write the new tuple version in place as
-     * a HOT update instead of overflowing to a new page. Applies to pages
-     * written from now on; existing bloat is reclaimed by autovacuum (and
-     * optionally a one-time VACUUM / pg_repack run out of band).
-     */
-    await queryRunner.query(
-      `ALTER TABLE "TelemetryException" SET (fillfactor = 85)`,
-    );
-
-    /*
-     * This table sustains a very high update rate. Make autovacuum trigger
-     * far more eagerly and run faster on it so dead tuples from the upsert
-     * churn are reclaimed before they bloat the heap and slow every update.
-     */
-    await queryRunner.query(
-      `ALTER TABLE "TelemetryException" SET (` +
-        `autovacuum_vacuum_scale_factor = 0.02, ` +
-        `autovacuum_analyze_scale_factor = 0.02, ` +
-        `autovacuum_vacuum_cost_limit = 2000, ` +
-        `autovacuum_vacuum_cost_delay = 2` +
-        `)`,
-    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      `ALTER TABLE "TelemetryException" RESET (` +
-        `autovacuum_vacuum_scale_factor, ` +
-        `autovacuum_analyze_scale_factor, ` +
-        `autovacuum_vacuum_cost_limit, ` +
-        `autovacuum_vacuum_cost_delay` +
-        `)`,
-    );
-
-    await queryRunner.query(
-      `ALTER TABLE "TelemetryException" RESET (fillfactor)`,
-    );
 
     await queryRunner.query(
       `CREATE INDEX "IDX_fa102ae5073b428e514cc2ceea" ON "public"."TelemetryException" ("occuranceCount")`,
