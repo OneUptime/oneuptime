@@ -396,6 +396,7 @@ import { AddRequireSsoForLoginToGlobalProviders1782200000000 } from "./178220000
 import { MoveRequireSsoForLoginToGlobalConfig1782300000000 } from "./1782300000000-MoveRequireSsoForLoginToGlobalConfig";
 import { MigrationName1782310000000 } from "./1782310000000-MigrationName";
 import { RemoveIsTestedFromGlobalSsoAndOidc1782400000000 } from "./1782400000000-RemoveIsTestedFromGlobalSsoAndOidc";
+import { OptimizeTelemetryExceptionWritePath1782500000000 } from "./1782500000000-OptimizeTelemetryExceptionWritePath";
 
 export default [
   InitialMigration,
@@ -796,4 +797,5 @@ export default [
   MoveRequireSsoForLoginToGlobalConfig1782300000000,
   MigrationName1782310000000,
   RemoveIsTestedFromGlobalSsoAndOidc1782400000000,
+  OptimizeTelemetryExceptionWritePath1782500000000,
 ];
