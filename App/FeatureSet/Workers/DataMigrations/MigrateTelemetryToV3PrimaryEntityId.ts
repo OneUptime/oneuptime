@@ -29,8 +29,11 @@ import logger from "Common/Server/Utils/Logger";
  *
  * Steps:
  *   1. Drop the 3 stale metric MVs (old `serviceId` column + sipHash
- *      partition, reading `FROM MetricItemV2`). Skipped on a retry once
- *      the views already read `FROM MetricItemV3`.
+ *      partition, reading `FROM MetricItemV2`) and any pre-V3 target
+ *      table still missing `primaryEntityId`. The view drop is skipped on
+ *      a retry once the views already read `FROM MetricItemV3`; the table
+ *      drop is keyed off the column, so a rebuilt V3 table survives a
+ *      retry while a drifted old-schema table is still repaired.
  *   2. Recreate every analytics table + MV from the updated models via
  *      the schema-sync helpers — creating the `…V3` signal tables and
  *      rebuilding the MVs (`FROM MetricItemV3`). Idempotent.
@@ -51,11 +54,15 @@ export default class MigrateTelemetryToV3PrimaryEntityId extends DataMigrationBa
 
   public override async migrate(): Promise<void> {
     /*
-     * 1. Drop the stale MV triggers + target tables — but only while the
-     *    view does not yet read `FROM MetricItemV3`: the rebuilt
-     *    views/tables must survive a retry, and dropping the rebuilt
-     *    target tables would silently discard the aggregates the MVs
-     *    already produced.
+     * 1. Drop the stale MV triggers and the pre-V3 target tables. The
+     *    view drop is gated on the view still reading `FROM MetricItemV2`
+     *    (a retry that already re-pointed it to MetricItemV3 leaves it
+     *    alone); the table drop is gated on the table still lacking
+     *    `primaryEntityId` (see the per-table comment below). Keying the
+     *    table drop off the column — not the view's source string — means
+     *    a rebuilt V3 table survives a retry (its aggregates are
+     *    preserved) while a table that drifted to a V3-pointed MV but kept
+     *    the old `serviceId` schema is still repaired.
      */
     /*
      * MetricItemAggMV1mByHost is deliberately VIEW-ONLY here (dropTable:
@@ -85,13 +92,28 @@ export default class MigrateTelemetryToV3PrimaryEntityId extends DataMigrationBa
       if (viewIsStale) {
         await this.safeExec(`DROP VIEW IF EXISTS ${view}`);
       }
-      /*
-       * No view (never created, or a prior run crashed between the two
-       * drops) means the target table cannot be receiving rows — it is
-       * either the stale one or new-but-empty, so dropping is safe.
-       */
-      if (dropTable && (viewIsStale || viewCreateQuery === null)) {
-        await this.safeExec(`DROP TABLE IF EXISTS ${table}`);
+
+      if (dropTable) {
+        /*
+         * Drop the target table only while it is still the pre-V3 schema,
+         * detected by the actual column set (the renamed `serviceId` →
+         * `primaryEntityId`) rather than the MV's source string. The view
+         * and the target table schema are independent — keying the table
+         * drop off the column means a retry that has already rebuilt the
+         * V3 table is correctly left alone (preserving the aggregates its
+         * MV produced), while a table that drifted to a V3-pointed MV but
+         * kept the old `serviceId` schema is still repaired here instead
+         * of silently surviving. A genuinely-absent table reports no
+         * columns and is left for createTables() below to create.
+         */
+        const tableColumns: Array<string> =
+          await ClickHouseMigrationUtil.getColumns(table);
+        const tableIsPreV3: boolean =
+          tableColumns.length > 0 && !tableColumns.includes("primaryEntityId");
+
+        if (tableIsPreV3) {
+          await this.safeExec(`DROP TABLE IF EXISTS ${table}`);
+        }
       }
     }
 

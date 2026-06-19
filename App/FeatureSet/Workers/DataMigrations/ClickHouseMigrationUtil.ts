@@ -63,6 +63,30 @@ export default class ClickHouseMigrationUtil {
     });
   }
 
+  /**
+   * Whether `column` is part of `table`'s ORDER BY (sorting key). False if
+   * the column or the table does not exist. Distinguishes a column that was
+   * merely ADDed (e.g. by the boot-time reconcileColumns self-heal, which
+   * cannot touch ORDER BY) from one that is genuinely in the sort key, so a
+   * migration can rebuild a table whose key is wrong even though the column
+   * is already present.
+   */
+  public static async isColumnInSortingKey(
+    table: string,
+    column: string,
+  ): Promise<boolean> {
+    const escapedTable: string = table.replace(/'/g, "''");
+    const escapedColumn: string = column.replace(/'/g, "''");
+    const result: { json: () => Promise<unknown> } =
+      await MetricService.executeQuery(
+        `SELECT is_in_sorting_key FROM system.columns WHERE database = currentDatabase() AND table = '${escapedTable}' AND name = '${escapedColumn}' LIMIT 1`,
+      );
+    const json: ClickHouseJsonResult =
+      (await result.json()) as ClickHouseJsonResult;
+    const row: Record<string, unknown> | undefined = json.data?.[0];
+    return row ? Number(row["is_in_sorting_key"]) === 1 : false;
+  }
+
   /** Stored CREATE statement of a table/view, or null if it does not exist. */
   public static async getCreateQuery(name: string): Promise<string | null> {
     const result: { json: () => Promise<unknown> } =

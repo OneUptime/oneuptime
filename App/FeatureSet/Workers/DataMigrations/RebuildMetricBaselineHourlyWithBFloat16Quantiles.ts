@@ -41,6 +41,15 @@ export default class RebuildMetricBaselineHourlyWithBFloat16Quantiles extends Da
      * If the live medianState is already quantileBFloat16 (fresh install
      * where boot-time createTables built the table from the updated
      * model), skip the rebuild so accumulated baselines survive.
+     *
+     * This guard intentionally checks only the aggregate type, not
+     * `primaryEntityId`: the column/sort-key drift across the V3 cut is
+     * owned by RebuildMetricAggTablesMissingPrimaryEntityId (which rebuilds
+     * MetricBaselineHourly key-correctly when primaryEntityId is missing
+     * from the sort key) and by createTables' reconcileColumns net. Adding
+     * a primaryEntityId check here would be dead — reconcileColumns runs
+     * earlier every boot and would already have added the column — so it
+     * is left to the migration that can actually fix the key.
      */
     const medianStateType: string =
       await MetricBaselineService.getColumnDatabaseType("medianState");

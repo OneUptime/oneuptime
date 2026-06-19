@@ -85,6 +85,7 @@ import AddTelemetryV3ColumnCodecs from "./AddTelemetryV3ColumnCodecs";
 import RebuildMetricBaselineHourlyWithBFloat16Quantiles from "./RebuildMetricBaselineHourlyWithBFloat16Quantiles";
 import AddDedupWindowToTelemetryTables from "./AddDedupWindowToTelemetryTables";
 import DropUnusedTelemetryTables from "./DropUnusedTelemetryTables";
+import RebuildMetricAggTablesMissingPrimaryEntityId from "./RebuildMetricAggTablesMissingPrimaryEntityId";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -193,6 +194,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * tables to `…_backup` BEFORE upgrading (see the v11 upgrade guide).
    */
   new DropUnusedTelemetryTables(),
+  /*
+   * Repairs MetricItemAggMV1m / MetricBaselineHourly on installs that
+   * drifted across the V3 cut and never gained `primaryEntityId` (the
+   * earlier rebuild guards key off proxy signals, not the column itself).
+   * Gated on the real column, so it is a clean no-op on healthy installs.
+   * Ordered last: it depends only on the current models, and the targets
+   * must already be the live V3 generation by the time it runs.
+   */
+  new RebuildMetricAggTablesMissingPrimaryEntityId(),
 ];
 
 export default DataMigrations;
