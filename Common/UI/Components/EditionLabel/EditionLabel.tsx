@@ -388,6 +388,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         licenseInputEditedRef.current = false;
         setLicenseKeyInput((payload["licenseKey"] as string) || trimmedKey);
         setSuccessMessage("License validated successfully.");
+        setIsChangingLicense(false);
 
         await fetchGlobalConfig();
       } catch (err) {
