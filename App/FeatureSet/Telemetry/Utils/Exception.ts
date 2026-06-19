@@ -284,7 +284,26 @@ export default class ExceptionUtil {
       return;
     }
 
-    const rows: Array<AggregatedException> = Array.from(aggregated.values());
+    /*
+     * Emit rows in a deterministic order keyed on the ON CONFLICT
+     * tuple (projectId, primaryEntityId, fingerprint) — the exact
+     * composite aggregateExceptions() keys the Map on. A multi-row
+     * `INSERT … ON CONFLICT DO UPDATE` takes row locks in VALUES
+     * order, so two concurrent worker batches that touch the same
+     * hot fingerprints in different orders deadlock (AB-BA): Postgres
+     * aborts a victim, the telemetry job fails and re-queues, the
+     * queue backs up, and KEDA scales workers up — adding yet more
+     * contending writers. Sorting by the conflict key makes every
+     * worker acquire those locks in one global order, which removes
+     * the deadlock cycle. (Map.keys() preserves insertion order, i.e.
+     * event-arrival order, which is arbitrary across workers — hence
+     * the explicit sort.)
+     */
+    const rows: Array<AggregatedException> = Array.from(aggregated.keys())
+      .sort()
+      .map((key: string): AggregatedException => {
+        return aggregated.get(key) as AggregatedException;
+      });
 
     for (
       let i: number = 0;
