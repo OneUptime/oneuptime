@@ -80,7 +80,6 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
             key={index}
             {...(chart.props as LineChartProps)}
             syncid={syncId}
-            heightInPx={props.heightInPx}
             exemplarPoints={chart.exemplarPoints}
             onExemplarClick={chart.onExemplarClick}
             showLegend={showLegend}
@@ -92,7 +91,6 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
             key={index}
             {...(chart.props as BarChartProps)}
             syncid={syncId}
-            heightInPx={props.heightInPx}
             showLegend={showLegend}
           />
         );
@@ -102,7 +100,6 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
             key={index}
             {...(chart.props as AreaChartProps)}
             syncid={syncId}
-            heightInPx={props.heightInPx}
             exemplarPoints={chart.exemplarPoints}
             onExemplarClick={chart.onExemplarClick}
             showLegend={showLegend}
@@ -244,14 +241,14 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
     return (
       <>
         {renderMetricInfoModal()}
-        <div className="space-y-3">
+        <div className="space-y-3 flex-col flex flex-1 w-full">
           {props.charts.map((chart: Chart, index: number) => {
             return (
               <div
                 key={index}
-                className={`bg-white ${props.chartCssClass || ""}`}
+                className={`bg-white ${props.chartCssClass || ""} flex-1 flex-col flex w-full`}
               >
-                <div className="px-5 pt-4 pb-4">
+                <div className="px-5 pt-4 pb-4 flex flex-col flex-1">
                   <div className="mb-3 pb-3 border-b border-gray-100">
                     <div className="flex items-center">
                       <h3 className="text-sm font-semibold text-gray-800 tracking-tight">
@@ -265,10 +262,10 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                       </p>
                     )}
                   </div>
+                  {getChartContent(chart, index)}
                   {chart.seriesControls ? (
                     <div className="mb-3">{chart.seriesControls}</div>
                   ) : null}
-                  {getChartContent(chart, index)}
                 </div>
               </div>
             );

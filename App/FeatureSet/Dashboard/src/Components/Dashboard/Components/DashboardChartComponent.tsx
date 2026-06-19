@@ -157,26 +157,6 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     fetchAggregatedResults,
   ]);
 
-  const numberOfCharts: number =
-    queryConfigs.length + formulaConfigs.length || 1;
-  // Account for widget-level header and per-chart overhead (title + legend + padding)
-  const hasWidgetHeader: boolean = Boolean(
-    props.component.arguments.chartTitle ||
-      props.component.arguments.chartDescription,
-  );
-  const widgetHeaderHeight: number = hasWidgetHeader ? 50 : 0;
-  // Each chart section: pt-5(20) + title(20) + legend(24) + pb-4(16) = ~80px overhead
-  const perChartOverhead: number = 80;
-  let heightOfChart: number | undefined =
-    ((props.dashboardComponentHeightInPx || 0) -
-      widgetHeaderHeight -
-      numberOfCharts * perChartOverhead) /
-    numberOfCharts;
-
-  if (heightOfChart < 50) {
-    heightOfChart = undefined;
-  }
-
   const getMetricChartType: () => MetricChartType = useCallback(() => {
     if (props.component.arguments.chartType === DashboardChartType.Bar) {
       return MetricChartType.BAR;
@@ -274,13 +254,12 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
           )}
         </div>
       )}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
         <MetricCharts
           metricResults={metricResults}
           metricTypes={props.metricTypes}
           metricViewData={chartMetricViewData}
           hideCard={true}
-          heightInPx={heightOfChart}
         />
       </div>
     </div>
