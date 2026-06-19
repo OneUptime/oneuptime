@@ -377,8 +377,10 @@ export default class CookieUtil {
     req: ExpressRequest,
     name: string,
   ): string | undefined {
-    // req.cookies is only populated when the cookie-parser middleware has run.
-    // Guard against requests where it is absent (mirrors getAllCookies above).
+    /*
+     * req.cookies is only populated when the cookie-parser middleware has run.
+     * Guard against requests where it is absent (mirrors getAllCookies above).
+     */
     return req.cookies?.[name];
   }
 

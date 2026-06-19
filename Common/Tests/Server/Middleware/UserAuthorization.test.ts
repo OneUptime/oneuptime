@@ -164,8 +164,10 @@ describe("UserMiddleware", () => {
   });
 
   describe("doesSsoTokenForProjectExist", () => {
-    // getGlobalSsoTokenData reads req.cookies and req.headers, so the request
-    // mock must carry both (matching the other blocks in this file).
+    /*
+     * getGlobalSsoTokenData reads req.cookies and req.headers, so the request
+     * mock must carry both (matching the other blocks in this file).
+     */
     const req: ExpressRequest = { cookies: {}, headers: {} } as ExpressRequest;
 
     beforeAll(() => {
