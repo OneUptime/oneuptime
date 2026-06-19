@@ -164,7 +164,9 @@ describe("UserMiddleware", () => {
   });
 
   describe("doesSsoTokenForProjectExist", () => {
-    const req: ExpressRequest = {} as ExpressRequest;
+    // getGlobalSsoTokenData reads req.cookies and req.headers, so the request
+    // mock must carry both (matching the other blocks in this file).
+    const req: ExpressRequest = { cookies: {}, headers: {} } as ExpressRequest;
 
     beforeAll(() => {
       getJestSpyOn(UserMiddleware, "getSsoTokens").mockReturnValue({
