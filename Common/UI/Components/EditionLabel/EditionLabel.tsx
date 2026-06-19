@@ -414,8 +414,10 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const shouldShowEnterpriseValidationButton: boolean =
-    IS_ENTERPRISE_EDITION && !licenseValid;
+  const showLicenseKeyInput: boolean =
+    IS_ENTERPRISE_EDITION && (!licenseValid || isChangingLicense);
+
+  const shouldShowEnterpriseValidationButton: boolean = showLicenseKeyInput;
 
   const modalSubmitButtonText: string | undefined = IS_ENTERPRISE_EDITION
     ? shouldShowEnterpriseValidationButton
@@ -508,9 +510,12 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                   </div>
                 )}
 
-                {!configError && !isConfigLoading && licenseValid && (
-                  <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
-                    <p className="font-semibold">License verified</p>
+                {!configError &&
+                  !isConfigLoading &&
+                  licenseValid &&
+                  !isChangingLicense && (
+                    <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+                      <p className="font-semibold">License verified</p>
                     <p className="mt-1">
                       <span className="font-medium">Company:</span>{" "}
                       {globalConfig?.enterpriseCompanyName || "Not specified"}
