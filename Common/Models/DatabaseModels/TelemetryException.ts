@@ -1138,7 +1138,19 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.EditTelemetryException,
     ],
   })
-  @Index()
+  /*
+   * Intentionally NOT indexed. occuranceCount is incremented on every
+   * exception event by the ingest `ON CONFLICT … DO UPDATE` upsert. Indexing
+   * a column that changes on every update disqualifies Postgres HOT updates
+   * (n_tup_hot_upd stayed 0 across millions of updates), so each increment
+   * rewrites every index entry while holding the row lock — under concurrent
+   * workers hammering the same hot fingerprints this becomes a lock convoy
+   * and statement-timeout (57014) failures that back the telemetry queue up.
+   * The exceptions dashboard sorts by occuranceCount only after filtering on
+   * (projectId, isResolved, isArchived) — served by that composite index —
+   * so the small filtered set sorts cheaply without a dedicated index here.
+   * See migration 1782500000000-OptimizeTelemetryExceptionWritePath.
+   */
   @TableColumn({
     title: "Occurances",
     description: "Number of times this exception has occurred",
