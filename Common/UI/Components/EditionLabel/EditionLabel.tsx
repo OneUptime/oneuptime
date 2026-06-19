@@ -45,6 +45,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   const [validationError, setValidationError] = useState<string>("");
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [isValidating, setIsValidating] = useState<boolean>(false);
+  const [isChangingLicense, setIsChangingLicense] = useState<boolean>(false);
   const licenseInputEditedRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
@@ -318,6 +319,22 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     setIsDialogOpen(false);
     setValidationError("");
     setSuccessMessage("");
+    setIsChangingLicense(false);
+  };
+
+  const handleStartChangingLicense: () => void = () => {
+    setIsChangingLicense(true);
+    setValidationError("");
+    setSuccessMessage("");
+    setLicenseKeyInput("");
+    licenseInputEditedRef.current = true;
+  };
+
+  const handleCancelChangingLicense: () => void = () => {
+    setIsChangingLicense(false);
+    setValidationError("");
+    licenseInputEditedRef.current = false;
+    setLicenseKeyInput(globalConfig?.enterpriseLicenseKey || "");
   };
 
   const handlePrimaryAction: () => void = () => {
@@ -371,6 +388,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         licenseInputEditedRef.current = false;
         setLicenseKeyInput((payload["licenseKey"] as string) || trimmedKey);
         setSuccessMessage("License validated successfully.");
+        setIsChangingLicense(false);
 
         await fetchGlobalConfig();
       } catch (err) {
@@ -396,8 +414,10 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const shouldShowEnterpriseValidationButton: boolean =
-    IS_ENTERPRISE_EDITION && !licenseValid;
+  const showLicenseKeyInput: boolean =
+    IS_ENTERPRISE_EDITION && (!licenseValid || isChangingLicense);
+
+  const shouldShowEnterpriseValidationButton: boolean = showLicenseKeyInput;
 
   const modalSubmitButtonText: string | undefined = IS_ENTERPRISE_EDITION
     ? shouldShowEnterpriseValidationButton
@@ -490,9 +510,12 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                   </div>
                 )}
 
-                {!configError && !isConfigLoading && licenseValid && (
-                  <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
-                    <p className="font-semibold">License verified</p>
+                {!configError &&
+                  !isConfigLoading &&
+                  licenseValid &&
+                  !isChangingLicense && (
+                    <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+                      <p className="font-semibold">License verified</p>
                     <p className="mt-1">
                       <span className="font-medium">Company:</span>{" "}
                       {globalConfig?.enterpriseCompanyName || "Not specified"}
