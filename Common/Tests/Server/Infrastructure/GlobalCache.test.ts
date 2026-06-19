@@ -17,6 +17,7 @@ type MockClient = {
   set: jest.Mock;
   expire: jest.Mock;
   get: jest.Mock;
+  del: jest.Mock;
 };
 
 describe("GlobalCache.setString", () => {
@@ -27,6 +28,7 @@ describe("GlobalCache.setString", () => {
       set: jest.fn().mockResolvedValue("OK"),
       expire: jest.fn().mockResolvedValue(1),
       get: jest.fn(),
+      del: jest.fn().mockResolvedValue(1),
     };
     (Redis.getClient as jest.Mock).mockReturnValue(client);
     (Redis.isConnected as jest.Mock).mockReturnValue(true);
@@ -96,5 +98,46 @@ describe("GlobalCache.setString", () => {
       180,
     );
     expect(client.expire).not.toHaveBeenCalled();
+  });
+});
+
+describe("GlobalCache.deleteKey", () => {
+  let client: MockClient;
+
+  beforeEach(() => {
+    client = {
+      set: jest.fn().mockResolvedValue("OK"),
+      expire: jest.fn().mockResolvedValue(1),
+      get: jest.fn(),
+      del: jest.fn().mockResolvedValue(1),
+    };
+    (Redis.getClient as jest.Mock).mockReturnValue(client);
+    (Redis.isConnected as jest.Mock).mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  /*
+   * deleteKey backs clearMaintenanceFence (OtelIngestBaseService): when
+   * the fenced maintenance work (updateLastSeen) fails, the fence is
+   * released so the next ingest batch retries instead of leaving the
+   * resource stranded as "disconnected" for the whole TTL window.
+   */
+  test("deletes the namespaced key", async () => {
+    await GlobalCache.deleteKey("ns", "key");
+
+    expect(client.del).toHaveBeenCalledTimes(1);
+    expect(client.del).toHaveBeenCalledWith("ns-key");
+  });
+
+  test("throws when the cache is not connected", async () => {
+    (Redis.isConnected as jest.Mock).mockReturnValue(false);
+
+    await expect(GlobalCache.deleteKey("ns", "key")).rejects.toThrow(
+      DatabaseNotConnectedException,
+    );
+    expect(client.del).not.toHaveBeenCalled();
   });
 });

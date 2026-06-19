@@ -103,6 +103,32 @@ export default abstract class OtelIngestBaseService {
   }
 
   /*
+   * Release the maintenance fence for a (scope, id) pair after the
+   * gated work (updateLastSeen + label promotion) failed. The fence is
+   * armed on *attempt* — inside shouldRunMaintenance, before the work
+   * runs — to collapse the steady-state write storm from many workers.
+   * If the work then throws, the fence would otherwise suppress every
+   * retry for the full TTL window, leaving lastSeenAt stale and
+   * stranding the resource as "disconnected" even while telemetry keeps
+   * flowing. Clearing it lets the next ingest batch retry immediately.
+   * Best-effort: if the cache is unavailable the fence just expires on
+   * its own TTL.
+   */
+  protected static async clearMaintenanceFence(
+    scope: string,
+    id: string,
+  ): Promise<void> {
+    try {
+      await GlobalCache.deleteKey(
+        this.MAINTENANCE_FENCE_NAMESPACE,
+        `${scope}:${id}`,
+      );
+    } catch {
+      // best-effort — the fence TTL will expire the key regardless.
+    }
+  }
+
+  /*
    * Resolves a real (user-facing) service name from OTel resource
    * attributes. Returns null when the batch is host- / docker-host-
    * level telemetry that should be routed to the matching Host or
@@ -834,6 +860,7 @@ export default abstract class OtelIngestBaseService {
     projectId: ObjectID;
     attributes: JSONArray;
   }): Promise<ObjectID | null> {
+    let clusterIdStr: string | null = null;
     try {
       const clusterName: string | null = this.getClusterNameFromAttributes(
         data.attributes,
@@ -844,7 +871,7 @@ export default abstract class OtelIngestBaseService {
       }
 
       const cacheKey: string = `${data.projectId.toString()}:${clusterName}`;
-      let clusterIdStr: string | null = await GlobalCache.getString(
+      clusterIdStr = await GlobalCache.getString(
         this.CLUSTER_ID_CACHE_NAMESPACE,
         cacheKey,
       );
@@ -896,6 +923,16 @@ export default abstract class OtelIngestBaseService {
 
       return null;
     } catch (err) {
+      /*
+       * The fence for this cluster is armed before updateLastSeen runs,
+       * so a failure here (e.g. Postgres contention on the shared hot
+       * cluster row) would otherwise suppress the next ~5 minutes of
+       * lastSeenAt refreshes. Release it so the next batch retries and
+       * the cluster does not drift to "disconnected" while data flows.
+       */
+      if (clusterIdStr) {
+        await this.clearMaintenanceFence("k8s-cluster", clusterIdStr);
+      }
       logger.error(
         "Error auto-discovering Kubernetes cluster: " + (err as Error).message,
       );

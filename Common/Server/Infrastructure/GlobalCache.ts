@@ -175,4 +175,15 @@ export default abstract class GlobalCache {
      */
     await client.set(`${namespace}-${key}`, value, "EX", expiresInSeconds);
   }
+
+  @CaptureSpan()
+  public static async deleteKey(namespace: string, key: string): Promise<void> {
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      throw new DatabaseNotConnectedException("Cache is not connected");
+    }
+
+    await client.del(`${namespace}-${key}`);
+  }
 }
