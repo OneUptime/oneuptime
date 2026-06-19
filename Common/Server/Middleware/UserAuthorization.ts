@@ -26,6 +26,7 @@ import { JSONObject } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
 import JSONWebTokenData from "../../Types/JsonWebTokenData";
 import ObjectID from "../../Types/ObjectID";
+import SsoProviderType from "../../Types/SSO/SsoProviderType";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import Permission, {
   PermissionHelper,
@@ -163,6 +164,76 @@ export default class UserMiddleware {
     return ssoTokens;
   }
 
+  /*
+   * Specific-IdP enforcement: when the project requires a specific SSO provider,
+   * the token must carry a matching `ssoProviderId` discriminator. Tokens issued
+   * before this field existed (no discriminator) do not satisfy a
+   * specific-provider requirement. When no specific provider is required, any
+   * trusted SSO token satisfies enforcement.
+   */
+  private static isSsoProviderSatisfied(
+    decodedData: JSONWebTokenData,
+    requiredSsoProviderId?: ObjectID | undefined,
+  ): boolean {
+    if (!requiredSsoProviderId) {
+      return true;
+    }
+
+    const tokenProviderId: string | undefined = decodedData.ssoProviderId
+      ? decodedData.ssoProviderId.toString()
+      : undefined;
+
+    return Boolean(
+      tokenProviderId && tokenProviderId === requiredSsoProviderId.toString(),
+    );
+  }
+
+  /*
+   * Reads the single Global SSO token, if present. It is minted by a Global
+   * SSO/OIDC login and is NOT bound to a project, so it satisfies SSO
+   * enforcement for any project the user belongs to. Sourced from the
+   * `global-sso-token` cookie (web) or the `x-global-sso-token` header (mobile).
+   * Only tokens carrying a Global provider type are accepted here.
+   */
+  @CaptureSpan()
+  public static getGlobalSsoTokenData(
+    req: ExpressRequest,
+  ): JSONWebTokenData | null {
+    let rawToken: string | undefined = CookieUtil.getCookieFromExpressRequest(
+      req,
+      CookieUtil.getGlobalSSOKey(),
+    );
+
+    if (!rawToken) {
+      const headerToken: string | undefined = req.headers[
+        "x-global-sso-token"
+      ] as string | undefined;
+      if (headerToken && typeof headerToken === "string") {
+        rawToken = headerToken;
+      }
+    }
+
+    if (!rawToken) {
+      return null;
+    }
+
+    try {
+      const decodedData: JSONWebTokenData = JSONWebToken.decode(rawToken);
+
+      if (
+        decodedData.ssoProviderType === SsoProviderType.GlobalSSO ||
+        decodedData.ssoProviderType === SsoProviderType.GlobalOIDC
+      ) {
+        return decodedData;
+      }
+
+      return null;
+    } catch (err) {
+      logger.error(err, getLogAttributesFromRequest(req as OneUptimeRequest));
+      return null;
+    }
+  }
+
   @CaptureSpan()
   public static doesSsoTokenForProjectExist(
     req: ExpressRequest,
@@ -172,35 +243,38 @@ export default class UserMiddleware {
   ): boolean {
     const ssoTokens: Dictionary<string> = this.getSsoTokens(req);
 
+    /*
+     * 1) Per-project SSO token (Project SSO/OIDC login). Bound to one project.
+     */
     if (ssoTokens && ssoTokens[projectId.toString()]) {
       const decodedData: JSONWebTokenData = JSONWebToken.decode(
         ssoTokens[projectId.toString()] as string,
       );
       if (
         decodedData.projectId?.toString() === projectId.toString() &&
-        decodedData.userId.toString() === userId.toString()
+        decodedData.userId.toString() === userId.toString() &&
+        this.isSsoProviderSatisfied(decodedData, requiredSsoProviderId)
       ) {
-        /*
-         * Specific-IdP enforcement: when the project requires a specific SSO
-         * provider, the token must carry a matching `ssoProviderId`
-         * discriminator. Tokens issued before this field existed (no
-         * discriminator) do not satisfy a specific-provider requirement.
-         */
-        if (requiredSsoProviderId) {
-          const tokenProviderId: string | undefined = decodedData.ssoProviderId
-            ? decodedData.ssoProviderId.toString()
-            : undefined;
-
-          if (
-            !tokenProviderId ||
-            tokenProviderId !== requiredSsoProviderId.toString()
-          ) {
-            return false;
-          }
-        }
-
         return true;
       }
+    }
+
+    /*
+     * 2) Global SSO token (Global SSO/OIDC login). Not bound to a project, so a
+     * single token satisfies enforcement for every project this user belongs to
+     * — including projects created after the login. The specific-provider
+     * discriminator still applies (a project pinned to a different provider is
+     * not satisfied by this token).
+     */
+    const globalSsoTokenData: JSONWebTokenData | null =
+      this.getGlobalSsoTokenData(req);
+
+    if (
+      globalSsoTokenData &&
+      globalSsoTokenData.userId.toString() === userId.toString() &&
+      this.isSsoProviderSatisfied(globalSsoTokenData, requiredSsoProviderId)
+    ) {
+      return true;
     }
 
     return false;

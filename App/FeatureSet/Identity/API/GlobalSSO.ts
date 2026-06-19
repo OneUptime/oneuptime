@@ -52,50 +52,8 @@ const router: ExpressRouter = Express.getRouter();
 
 const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
 
-/*
- * Cap the number of per-project SSO cookies we mint in a single login so the
- * subsequent requests do not blow past typical proxy header size limits. A
- * user resolving into more enforce-SSO projects than this should use the
- * x-sso-tokens header path (mobile) or re-authenticate per project.
- */
-const MAX_SSO_COOKIES: number = 25;
-
 const MESSAGE_VIEW: string =
   "/usr/src/app/FeatureSet/Identity/Views/Message.ejs";
-
-/*
- * Returns the distinct list of project ids the user is currently a member of.
- * Global SSO mints one per-project SSO token for each of these so that
- * enforce-SSO projects are satisfied in a single login.
- */
-type GetMemberProjectIdsFunction = (
-  userId: ObjectID,
-) => Promise<Array<ObjectID>>;
-
-const getMemberProjectIds: GetMemberProjectIdsFunction = async (
-  userId: ObjectID,
-): Promise<Array<ObjectID>> => {
-  const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
-    query: { userId: userId },
-    select: { projectId: true },
-    limit: LIMIT_PER_PROJECT,
-    skip: 0,
-    props: { isRoot: true },
-  });
-
-  const seen: Set<string> = new Set<string>();
-  const projectIds: Array<ObjectID> = [];
-
-  for (const teamMember of teamMembers) {
-    const id: string | undefined = teamMember.projectId?.toString();
-    if (id && !seen.has(id)) {
-      seen.add(id);
-      projectIds.push(teamMember.projectId!);
-    }
-  }
-
-  return projectIds;
-};
 
 /*
  * Service-provider initiated discovery for the login page. Returns the list of
@@ -482,28 +440,23 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
     // Refresh permissions across all of the user's projects in one shot.
     await AccessTokenService.refreshUserAllPermissions(alreadySavedUser.id!);
 
-    // Projects the user can now reach. We mint one SSO token per project.
-    const memberProjectIds: Array<ObjectID> = await getMemberProjectIds(
-      alreadySavedUser.id!,
-    );
+    /*
+     * A Global SSO session is only useful if the user belongs to at least one
+     * project (access is still gated per-project by team membership). In
+     * default-all mode there is no JIT provisioning, so a brand-new member of
+     * nothing is sent back with a clear message instead of an empty session.
+     */
+    const memberProjectCount: PositiveNumber = await TeamMemberService.countBy({
+      query: { userId: alreadySavedUser.id! },
+      props: { isRoot: true },
+    });
 
-    if (memberProjectIds.length === 0) {
+    if (memberProjectCount.toNumber() === 0) {
       return Response.render(req, res, MESSAGE_VIEW, {
         title: "No project access.",
         message:
           "You are not a member of any project on this OneUptime instance. Please contact your administrator to be invited.",
       });
-    }
-
-    const cappedProjectIds: Array<ObjectID> = memberProjectIds.slice(
-      0,
-      MAX_SSO_COOKIES,
-    );
-
-    if (memberProjectIds.length > MAX_SSO_COOKIES) {
-      logger.warn(
-        `Global SSO login for ${email.toString()} resolved into ${memberProjectIds.length} projects; capping per-project SSO cookies at ${MAX_SSO_COOKIES}.`,
-      );
     }
 
     const isMobileRequest: boolean =
@@ -521,6 +474,18 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
         },
       });
 
+    /*
+     * One Global SSO token (not bound to a project) satisfies SSO enforcement
+     * for every project this user belongs to, now and in the future. This
+     * replaces the previous per-project cookie fan-out (and its header-size
+     * cap), and means projects created after login no longer require re-login.
+     */
+    const globalSsoToken: string = CookieUtil.getGlobalSSOToken({
+      user: alreadySavedUser,
+      ssoProviderId: globalSsoId,
+      ssoProviderType: SsoProviderType.GlobalSSO,
+    });
+
     if (isMobileRequest) {
       const accessToken: string = JSONWebToken.signUserLoginToken({
         tokenData: {
@@ -534,17 +499,6 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
         },
         expiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
       });
-
-      // Build a { projectId: ssoToken } map for every reachable project.
-      const ssoTokens: Record<string, string> = {};
-      for (const projectId of cappedProjectIds) {
-        ssoTokens[projectId.toString()] = CookieUtil.getSSOToken({
-          user: alreadySavedUser,
-          projectId: projectId,
-          ssoProviderId: globalSsoId,
-          ssoProviderType: SsoProviderType.GlobalSSO,
-        });
-      }
 
       const params: URLSearchParams = new URLSearchParams();
       params.set("accessToken", accessToken);
@@ -560,14 +514,8 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
         "isMasterAdmin",
         String(alreadySavedUser.isMasterAdmin || false),
       );
-      // Multi-project token map for global SSO (mobile reads this).
-      params.set("ssoTokens", JSON.stringify(ssoTokens));
-      // Backward-compatible single token for older app builds.
-      const firstProjectId: ObjectID | undefined = cappedProjectIds[0];
-      if (firstProjectId) {
-        params.set("ssoToken", ssoTokens[firstProjectId.toString()] as string);
-        params.set("projectId", firstProjectId.toString());
-      }
+      // Single global SSO token (mobile sends it via the x-global-sso-token header).
+      params.set("globalSsoToken", globalSsoToken);
 
       const deepLinkUrl: string = `oneuptime://sso-callback?${params.toString()}`;
 
@@ -579,16 +527,13 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
       return res.redirect(deepLinkUrl);
     }
 
-    // Web: mint the standard user cookie + one SSO cookie per project.
-    for (const projectId of cappedProjectIds) {
-      CookieUtil.setSSOCookie({
-        user: alreadySavedUser,
-        projectId: projectId,
-        expressResponse: res,
-        ssoProviderId: globalSsoId,
-        ssoProviderType: SsoProviderType.GlobalSSO,
-      });
-    }
+    // Web: mint the standard user cookie + the single global SSO cookie.
+    CookieUtil.setGlobalSSOCookie({
+      user: alreadySavedUser,
+      expressResponse: res,
+      ssoProviderId: globalSsoId,
+      ssoProviderType: SsoProviderType.GlobalSSO,
+    });
 
     CookieUtil.setUserCookie({
       expressResponse: res,

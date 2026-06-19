@@ -22,7 +22,7 @@ import {
 } from "../../api/sso";
 import { getServerUrl } from "../../storage/serverUrl";
 import { storeTokens } from "../../storage/keychain";
-import { storeSsoToken, storeSsoTokens } from "../../storage/ssoTokens";
+import { storeSsoToken, storeGlobalSsoToken } from "../../storage/ssoTokens";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { AuthStackParamList } from "../../navigation/types";
@@ -136,25 +136,18 @@ export default function SSOLoginScreen(): React.JSX.Element {
     });
 
     /*
-     * Global login returns a JSON map of every project the user can access to
-     * its per-project SSO token. Store all of them so the API client can send
-     * the full `x-sso-tokens` header.
+     * Global SSO/OIDC login returns a single global token (not bound to a
+     * project). Store it so the API client can send the `x-global-sso-token`
+     * header; it satisfies SSO enforcement for every project the user belongs
+     * to.
      */
-    const ssoTokensRaw: string | null = params.get("ssoTokens");
-    if (ssoTokensRaw) {
-      try {
-        const parsed: Record<string, string> = JSON.parse(ssoTokensRaw);
-        if (parsed && typeof parsed === "object") {
-          await storeSsoTokens(parsed);
-        }
-      } catch {
-        // Ignore malformed maps; fall back to the single-token params below.
-      }
+    const globalSsoToken: string | null = params.get("globalSsoToken");
+    if (globalSsoToken) {
+      await storeGlobalSsoToken(globalSsoToken);
     }
 
     /*
-     * Back-compat: project SSO (and global, for redundancy) also returns a
-     * single ssoToken/projectId pair.
+     * Project SSO login returns a single per-project ssoToken/projectId pair.
      */
     const ssoToken: string | null = params.get("ssoToken");
     const projectId: string | null = params.get("projectId");

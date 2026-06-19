@@ -98,6 +98,57 @@ export default class CookieUtil {
     });
   }
 
+  /*
+   * Builds a Global SSO token. Unlike the per-project token, this is NOT bound
+   * to a single project — a Global SSO/OIDC login proves the user authenticated
+   * against the instance-wide IdP, so one token satisfies SSO enforcement for
+   * every project the user belongs to (including projects created after login).
+   * It carries the `ssoProviderId` / `ssoProviderType` discriminator so a
+   * project that pins a specific provider can still be enforced.
+   */
+  @CaptureSpan()
+  public static getGlobalSSOToken(data: {
+    user: User;
+    ssoProviderId: ObjectID;
+    ssoProviderType: SsoProviderType;
+  }): string {
+    const { user } = data;
+
+    return JSONWebToken.sign({
+      data: {
+        userId: user.id!,
+        name: user.name!,
+        email: user.email,
+        isMasterAdmin: false,
+        isGeneralLogin: false,
+        ssoProviderId: data.ssoProviderId.toString(),
+        ssoProviderType: data.ssoProviderType.toString(),
+      },
+      expiresInSeconds: OneUptimeDate.getSecondsInDays(new PositiveNumber(30)),
+    });
+  }
+
+  @CaptureSpan()
+  public static setGlobalSSOCookie(data: {
+    user: User;
+    expressResponse: ExpressResponse;
+    ssoProviderId: ObjectID;
+    ssoProviderType: SsoProviderType;
+  }): void {
+    const { expressResponse: res } = data;
+
+    const globalSsoToken: string = CookieUtil.getGlobalSSOToken({
+      user: data.user,
+      ssoProviderId: data.ssoProviderId,
+      ssoProviderType: data.ssoProviderType,
+    });
+
+    CookieUtil.setCookie(res, CookieUtil.getGlobalSSOKey(), globalSsoToken, {
+      maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
+      httpOnly: true,
+    });
+  }
+
   @CaptureSpan()
   public static setUserCookie(data: {
     expressResponse: ExpressResponse;
@@ -442,6 +493,16 @@ export default class CookieUtil {
   @CaptureSpan()
   public static getSSOKey(): string {
     return `sso-`;
+  }
+
+  /*
+   * Fixed cookie name for the single Global SSO token. Deliberately does NOT
+   * start with the per-project `sso-` prefix so the project-scoped cookie
+   * parser in UserMiddleware.getSsoTokens never mis-keys it.
+   */
+  @CaptureSpan()
+  public static getGlobalSSOKey(): string {
+    return CookieName.GlobalSSOToken;
   }
 
   // delete all cookies.

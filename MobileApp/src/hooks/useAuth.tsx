@@ -15,7 +15,11 @@ import {
 } from "../api/auth";
 import { setOnAuthFailure } from "../api/client";
 import { unregisterPushToken } from "./pushTokenUtils";
-import { clearAllSsoTokens, getSsoTokens } from "../storage/ssoTokens";
+import {
+  clearAllSsoTokens,
+  getGlobalSsoToken,
+  getSsoTokens,
+} from "../storage/ssoTokens";
 
 interface AuthContextValue {
   isAuthenticated: boolean;
@@ -60,8 +64,9 @@ export function AuthProvider({
           setIsAuthenticated(true);
         }
 
-        // Initialize SSO token cache for the API client interceptor
+        // Initialize SSO token caches for the API client interceptor
         await getSsoTokens();
+        await getGlobalSsoToken();
       } catch {
         // If anything fails, user needs to re-authenticate
       } finally {

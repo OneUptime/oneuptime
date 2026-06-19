@@ -49,7 +49,6 @@ const router: ExpressRouter = Express.getRouter();
 
 const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
 const OIDC_STATE_COOKIE_TTL_SECONDS: number = 10 * 60;
-const MAX_SSO_COOKIES: number = 25;
 
 const MESSAGE_VIEW: string =
   "/usr/src/app/FeatureSet/Identity/Views/Message.ejs";
@@ -58,35 +57,6 @@ const getGlobalOidcStateCookieName: (globalOidcId: ObjectID) => string = (
   globalOidcId: ObjectID,
 ): string => {
   return `global-oidc-state-${globalOidcId.toString()}`;
-};
-
-type GetMemberProjectIdsFunction = (
-  userId: ObjectID,
-) => Promise<Array<ObjectID>>;
-
-const getMemberProjectIds: GetMemberProjectIdsFunction = async (
-  userId: ObjectID,
-): Promise<Array<ObjectID>> => {
-  const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
-    query: { userId: userId },
-    select: { projectId: true },
-    limit: LIMIT_PER_PROJECT,
-    skip: 0,
-    props: { isRoot: true },
-  });
-
-  const seen: Set<string> = new Set<string>();
-  const projectIds: Array<ObjectID> = [];
-
-  for (const teamMember of teamMembers) {
-    const id: string | undefined = teamMember.projectId?.toString();
-    if (id && !seen.has(id)) {
-      seen.add(id);
-      projectIds.push(teamMember.projectId!);
-    }
-  }
-
-  return projectIds;
 };
 
 /*
@@ -503,27 +473,23 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
 
     await AccessTokenService.refreshUserAllPermissions(alreadySavedUser.id!);
 
-    const memberProjectIds: Array<ObjectID> = await getMemberProjectIds(
-      alreadySavedUser.id!,
-    );
+    /*
+     * A Global OIDC session is only useful if the user belongs to at least one
+     * project (access is still gated per-project by team membership). In
+     * default-all mode there is no JIT provisioning, so a brand-new member of
+     * nothing is sent back with a clear message instead of an empty session.
+     */
+    const memberProjectCount: PositiveNumber = await TeamMemberService.countBy({
+      query: { userId: alreadySavedUser.id! },
+      props: { isRoot: true },
+    });
 
-    if (memberProjectIds.length === 0) {
+    if (memberProjectCount.toNumber() === 0) {
       return Response.render(req, res, MESSAGE_VIEW, {
         title: "No project access.",
         message:
           "You are not a member of any project on this OneUptime instance. Please contact your administrator to be invited.",
       });
-    }
-
-    const cappedProjectIds: Array<ObjectID> = memberProjectIds.slice(
-      0,
-      MAX_SSO_COOKIES,
-    );
-
-    if (memberProjectIds.length > MAX_SSO_COOKIES) {
-      logger.warn(
-        `Global OIDC login for ${result.email.toString()} resolved into ${memberProjectIds.length} projects; capping per-project SSO cookies at ${MAX_SSO_COOKIES}.`,
-      );
     }
 
     const sessionMetadata: SessionMetadata =
@@ -535,6 +501,18 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
         ...extractDeviceInfo(req),
         additionalInfo: { globalOidcId: globalOidcId.toString() },
       });
+
+    /*
+     * One Global OIDC token (not bound to a project) satisfies SSO enforcement
+     * for every project this user belongs to, now and in the future. This
+     * replaces the previous per-project cookie fan-out (and its header-size
+     * cap), and means projects created after login no longer require re-login.
+     */
+    const globalSsoToken: string = CookieUtil.getGlobalSSOToken({
+      user: alreadySavedUser,
+      ssoProviderId: globalOidcId,
+      ssoProviderType: SsoProviderType.GlobalOIDC,
+    });
 
     if (isMobileRequest) {
       const accessToken: string = JSONWebToken.signUserLoginToken({
@@ -550,16 +528,6 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
         expiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
       });
 
-      const ssoTokens: Record<string, string> = {};
-      for (const projectId of cappedProjectIds) {
-        ssoTokens[projectId.toString()] = CookieUtil.getSSOToken({
-          user: alreadySavedUser,
-          projectId: projectId,
-          ssoProviderId: globalOidcId,
-          ssoProviderType: SsoProviderType.GlobalOIDC,
-        });
-      }
-
       const params: URLSearchParams = new URLSearchParams();
       params.set("accessToken", accessToken);
       params.set("refreshToken", sessionMetadata.refreshToken);
@@ -574,12 +542,8 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
         "isMasterAdmin",
         String(alreadySavedUser.isMasterAdmin || false),
       );
-      params.set("ssoTokens", JSON.stringify(ssoTokens));
-      const firstProjectId: ObjectID | undefined = cappedProjectIds[0];
-      if (firstProjectId) {
-        params.set("ssoToken", ssoTokens[firstProjectId.toString()] as string);
-        params.set("projectId", firstProjectId.toString());
-      }
+      // Single global SSO token (mobile sends it via the x-global-sso-token header).
+      params.set("globalSsoToken", globalSsoToken);
 
       const deepLinkUrl: string = `oneuptime://sso-callback?${params.toString()}`;
 
@@ -591,15 +555,13 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
       return res.redirect(deepLinkUrl);
     }
 
-    for (const projectId of cappedProjectIds) {
-      CookieUtil.setSSOCookie({
-        user: alreadySavedUser,
-        projectId: projectId,
-        expressResponse: res,
-        ssoProviderId: globalOidcId,
-        ssoProviderType: SsoProviderType.GlobalOIDC,
-      });
-    }
+    // Web: mint the standard user cookie + the single global SSO cookie.
+    CookieUtil.setGlobalSSOCookie({
+      user: alreadySavedUser,
+      expressResponse: res,
+      ssoProviderId: globalOidcId,
+      ssoProviderType: SsoProviderType.GlobalOIDC,
+    });
 
     CookieUtil.setUserCookie({
       expressResponse: res,

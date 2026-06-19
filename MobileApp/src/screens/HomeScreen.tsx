@@ -21,7 +21,7 @@ import type { ProjectItem } from "../api/types";
 import Logo from "../components/Logo";
 import GradientButton from "../components/GradientButton";
 import { useAllProjectOnCallPolicies } from "../hooks/useAllProjectOnCallPolicies";
-import { getSsoTokens } from "../storage/ssoTokens";
+import { getGlobalSsoToken, getSsoTokens } from "../storage/ssoTokens";
 
 type HomeNavProp = BottomTabNavigationProp<MainTabParamList, "Home">;
 
@@ -189,9 +189,11 @@ export default function HomeScreen(): React.JSX.Element {
   const checkSsoStatus: () => Promise<void> =
     useCallback(async (): Promise<void> => {
       const ssoTokens: Record<string, string> = await getSsoTokens();
+      // A global SSO token satisfies enforcement for every project.
+      const globalSsoToken: string | null = await getGlobalSsoToken();
       const unauthenticated: ProjectItem[] = projectList.filter(
         (p: ProjectItem) => {
-          return p.requireSsoForLogin && !ssoTokens[p._id];
+          return p.requireSsoForLogin && !ssoTokens[p._id] && !globalSsoToken;
         },
       );
       setUnauthenticatedSsoProjects(unauthenticated);
