@@ -510,12 +510,9 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                   </div>
                 )}
 
-                {!configError &&
-                  !isConfigLoading &&
-                  licenseValid &&
-                  !isChangingLicense && (
-                    <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
-                      <p className="font-semibold">License verified</p>
+                {!configError && !isConfigLoading && licenseValid && (
+                  <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+                    <p className="font-semibold">License verified</p>
                     <p className="mt-1">
                       <span className="font-medium">Company:</span>{" "}
                       {globalConfig?.enterpriseCompanyName || "Not specified"}
@@ -636,6 +633,20 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
                 {!configError &&
                   !isConfigLoading &&
+                  licenseValid &&
+                  !isChangingLicense && (
+                    <div className="-ml-3">
+                      <Button
+                        title="Change license key"
+                        icon={IconProp.Edit}
+                        buttonStyle={ButtonStyleType.NORMAL}
+                        onClick={handleStartChangingLicense}
+                      />
+                    </div>
+                  )}
+
+                {!configError &&
+                  !isConfigLoading &&
                   !licenseValid &&
                   globalConfig?.enterpriseLicenseKey && (
                     <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
@@ -655,11 +666,13 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                       <Alert type={AlertType.SUCCESS} title={successMessage} />
                     )}
 
-                    {!licenseValid && (
+                    {showLicenseKeyInput && (
                       <>
                         <div>
                           <label className="text-sm font-medium text-gray-700">
-                            License Key
+                            {isChangingLicense
+                              ? "New License Key"
+                              : "License Key"}
                           </label>
                           <Input
                             value={licenseKeyInput}
@@ -679,18 +692,34 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                           />
                         )}
 
-                        <p className="text-xs text-gray-500">
-                          You have installed Enterprise Edition of OneUptime.
-                          You need to validate your license key. Need a license
-                          key? Contact our sales team at{" "}
-                          <a
-                            href="mailto:sales@oneuptime.com"
-                            className="font-medium text-indigo-600 hover:text-indigo-700"
-                          >
-                            sales@oneuptime.com
-                          </a>
-                          .
-                        </p>
+                        {isChangingLicense ? (
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-xs text-gray-500">
+                              Enter the new enterprise license key and validate
+                              it to replace the current one. Your existing
+                              license stays active until the new key is
+                              validated.
+                            </p>
+                            <Button
+                              title="Cancel"
+                              buttonStyle={ButtonStyleType.NORMAL}
+                              onClick={handleCancelChangingLicense}
+                            />
+                          </div>
+                        ) : (
+                          <p className="text-xs text-gray-500">
+                            You have installed Enterprise Edition of OneUptime.
+                            You need to validate your license key. Need a
+                            license key? Contact our sales team at{" "}
+                            <a
+                              href="mailto:sales@oneuptime.com"
+                              className="font-medium text-indigo-600 hover:text-indigo-700"
+                            >
+                              sales@oneuptime.com
+                            </a>
+                            .
+                          </p>
+                        )}
                       </>
                     )}
                   </>
