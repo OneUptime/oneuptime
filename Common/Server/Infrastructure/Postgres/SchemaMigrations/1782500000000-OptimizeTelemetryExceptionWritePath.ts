@@ -32,11 +32,9 @@ export class OptimizeTelemetryExceptionWritePath1782500000000
     await queryRunner.query(
       `DROP INDEX IF EXISTS "public"."IDX_fa102ae5073b428e514cc2ceea"`,
     );
-
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-
     await queryRunner.query(
       `CREATE INDEX "IDX_fa102ae5073b428e514cc2ceea" ON "public"."TelemetryException" ("occuranceCount")`,
     );
