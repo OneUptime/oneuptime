@@ -45,6 +45,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   const [validationError, setValidationError] = useState<string>("");
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [isValidating, setIsValidating] = useState<boolean>(false);
+  const [isChangingLicense, setIsChangingLicense] = useState<boolean>(false);
   const licenseInputEditedRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
@@ -318,6 +319,22 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     setIsDialogOpen(false);
     setValidationError("");
     setSuccessMessage("");
+    setIsChangingLicense(false);
+  };
+
+  const handleStartChangingLicense: () => void = () => {
+    setIsChangingLicense(true);
+    setValidationError("");
+    setSuccessMessage("");
+    setLicenseKeyInput("");
+    licenseInputEditedRef.current = true;
+  };
+
+  const handleCancelChangingLicense: () => void = () => {
+    setIsChangingLicense(false);
+    setValidationError("");
+    licenseInputEditedRef.current = false;
+    setLicenseKeyInput(globalConfig?.enterpriseLicenseKey || "");
   };
 
   const handlePrimaryAction: () => void = () => {
