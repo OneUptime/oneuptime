@@ -65,6 +65,13 @@ deployment:
   disableDeployments: false
   # Default replica count for all deployments
   replicaCount: 1
+  # Global default for the per-pod Postgres connection-pool ceiling
+  # (DATABASE_MAX_OPEN_CONNECTIONS) on the Postgres-connecting deployments
+  # (app, worker, nginx). Empty = use the app's built-in default (50). Each
+  # service can override via <service>.databaseMaxOpenConnections. Lower this
+  # when fronting Postgres with pgbouncer (session mode) or a connection-capped
+  # managed DB, so pods don't each hold 50 server connections.
+  databaseMaxOpenConnections:
   # Update strategy type for all deployments
   updateStrategy:
     type: RollingUpdate
@@ -82,6 +89,10 @@ nginx:
   # OneUptime ships with its own ingress gateway container, so Kubernetes Ingress resources are not required.
   enabled: true
   replicaCount: 1
+  # Override the per-pod Postgres pool ceiling (DATABASE_MAX_OPEN_CONNECTIONS)
+  # for the ingress gateway. It only reads cert/domain rows, so a small value
+  # is plenty. Empty = inherit deployment.databaseMaxOpenConnections.
+  databaseMaxOpenConnections:
   disableTelemetryCollection: false
   disableAutoscaler: false
   listenAddress: ""
@@ -436,6 +447,73 @@ clickhouseOperator:
     #       port: 2181
     zookeeper:
       nodes: []
+
+# =============================================================================
+# PgBouncer connection pooler (opt-in). Orthogonal to the Postgres backend:
+# when enabled it fronts WHICHEVER of the three is active — the built-in
+# postgresql StatefulSet, the postgresOperator CNPG cluster, or externalPostgres
+# (managed RDS / Cloud SQL / Neon / Azure). The app/worker/ingress pods then
+# point DATABASE_HOST/DATABASE_PORT at this pooler instead of directly at the DB.
+#
+# Most valuable in front of a managed/external Postgres, whose max_connections
+# is capped by instance size and usually cannot be raised cheaply.
+#
+# Pool mode is SESSION by default: safe for everything OneUptime does, INCLUDING
+# the boot-time schema migrations and the session-level advisory lock used by
+# the data-migration runner. Transaction mode reduces connections further but
+# breaks that advisory lock unless the migration path is moved off the pooler —
+# see HelmChart/Docs/Postgres.md before changing poolMode.
+pgbouncer:
+  enabled: false
+  image:
+    repository: edoburu/pgbouncer
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  # session | transaction | statement. Keep "session" unless you have moved the
+  # migration path off the pooler (see docs). transaction/statement break the
+  # data-migration advisory lock and the boot-time migration session state.
+  poolMode: session
+  # Max client (app-side) connections pgbouncer accepts. Set comfortably above
+  # the sum of every app/worker/ingress pool (DATABASE_MAX_OPEN_CONNECTIONS,
+  # default 50 each).
+  maxClientConn: 10000
+  # Server connections pgbouncer opens to the backend per (user,db). In session
+  # mode this caps concurrent in-use sessions, so size it to your real
+  # concurrency and keep it under the backend's max_connections. To benefit on a
+  # connection-capped managed DB, also lower DATABASE_MAX_OPEN_CONNECTIONS so app
+  # pods release client connections back to the pooler.
+  defaultPoolSize: 50
+  # Server connections kept warm even when idle (faster first query; useful for
+  # remote managed DBs). 0 = open lazily.
+  minPoolSize: 0
+  # Hard ceiling on total server connections to the backend across all pools.
+  # 0 = unlimited (bounded only by defaultPoolSize per pool). Set this at or
+  # below the managed DB's max_connections to make the pooler a safe chokepoint.
+  maxDbConnections: 0
+  # Close server connections idle longer than this (seconds).
+  serverIdleTimeoutSeconds: 600
+  # Startup parameters the app sends that pgbouncer should accept and ignore.
+  # "options" carries the app's idle_session_timeout GUC (not applied through
+  # the pooler — pgbouncer manages server idle via serverIdleTimeoutSeconds).
+  ignoreStartupParameters: "extra_float_digits,options"
+  # TLS from pgbouncer to the Postgres backend. When fronting an externalPostgres
+  # with ssl.enabled, this auto-defaults to "require" and verifies against
+  # externalPostgres.ssl.ca (if provided). Override the mode here: disable |
+  # allow | prefer | require | verify-ca | verify-full. Leave blank to
+  # auto-derive (no TLS for in-cluster backends, require for external+ssl).
+  serverTls:
+    sslmode: ""
+  service:
+    type: ClusterIP
+    port: 6432
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  # Optional: override global security contexts just for the pgbouncer pod/container
+  podSecurityContext: {}
+  containerSecurityContext: {}
 
 redis:
   enabled: true
@@ -850,6 +928,9 @@ home:
 app:
   enabled: true
   replicaCount: 1
+  # Override the per-pod Postgres pool ceiling (DATABASE_MAX_OPEN_CONNECTIONS)
+  # for this service. Empty = inherit deployment.databaseMaxOpenConnections.
+  databaseMaxOpenConnections:
   workerConcurrency: 100
   # Max concurrent telemetry ingestion jobs processed by each pod
   telemetryConcurrency: 100
@@ -904,6 +985,11 @@ app:
 worker:
   enabled: false
   replicaCount: 1
+  # Override the per-pod Postgres pool ceiling (DATABASE_MAX_OPEN_CONNECTIONS)
+  # for this service. Empty = inherit deployment.databaseMaxOpenConnections.
+  # The worker fans out widely under KEDA, so this is the most impactful one
+  # to lower when pooling — N worker pods each open up to this many connections.
+  databaseMaxOpenConnections:
   workerConcurrency: 100
   # Max concurrent telemetry ingestion jobs processed by each worker pod.
   # This is the telemetry hot path; tune it together with pod CPU/memory.
