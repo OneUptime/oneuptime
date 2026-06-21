@@ -317,6 +317,17 @@ worker:
   databaseMaxOpenConnections: 10   # worker fans out widest — keep its pool small
 ```
 
+**Troubleshooting — "unsupported startup parameter".** If the app logs
+`Postgres Database Connection Failed` / `error: unsupported startup parameter:
+statement_timeout` and PgBouncer logs `closing because: unsupported startup
+parameter`, the driver is sending a libpq startup parameter PgBouncer isn't
+told to accept. node-postgres sends `statement_timeout` and
+`idle_in_transaction_session_timeout`; both must be in
+`pgbouncer.ignoreStartupParameters` (they are by default). PgBouncer accepts and
+*ignores* them (does not forward them to the backend), so set
+`statement_timeout` on the backend if you need server-side enforcement — the
+app's client-side `query_timeout` still aborts slow queries.
+
 **Why session mode is the default — the migration caveat.** OneUptime runs both
 its schema migrations (`migrationsRun`) **and** a data-migration runner on boot.
 The data-migration runner serializes across pods with a **session-level

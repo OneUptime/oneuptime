@@ -493,10 +493,17 @@ pgbouncer:
   maxDbConnections: 0
   # Close server connections idle longer than this (seconds).
   serverIdleTimeoutSeconds: 600
-  # Startup parameters the app sends that pgbouncer should accept and ignore.
-  # "options" carries the app's idle_session_timeout GUC (not applied through
-  # the pooler — pgbouncer manages server idle via serverIdleTimeoutSeconds).
-  ignoreStartupParameters: "extra_float_digits,options"
+  # Startup parameters the app sends that pgbouncer must accept (otherwise it
+  # rejects the connection with a FATAL "unsupported startup parameter"). The
+  # node-postgres driver sends statement_timeout and idle_in_transaction_session_timeout
+  # as protocol-level startup parameters (from DATABASE_STATEMENT_TIMEOUT_MS /
+  # DATABASE_IDLE_IN_TRANSACTION_TIMEOUT_MS), and idle_session_timeout via "options".
+  # pgbouncer ACCEPTS and IGNORES these — it does NOT forward them to the backend,
+  # so those server-side GUCs are not applied through the pooler. The app's
+  # client-side query_timeout (DATABASE_QUERY_TIMEOUT_MS) still aborts slow queries.
+  # For server-side statement_timeout enforcement, set it on the backend (e.g.
+  # CNPG parameters, or `ALTER DATABASE oneuptimedb SET statement_timeout=...`).
+  ignoreStartupParameters: "extra_float_digits,options,statement_timeout,idle_in_transaction_session_timeout,lock_timeout,idle_session_timeout"
   # TLS from pgbouncer to the Postgres backend. When fronting an externalPostgres
   # with ssl.enabled, this auto-defaults to "require" and verifies against
   # externalPostgres.ssl.ca (if provided). Override the mode here: disable |
