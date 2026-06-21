@@ -16,7 +16,7 @@ OneUptime requires three datastores in production. They scale on completely diff
 | **PostgreSQL** | Configuration and state — monitors, incidents, alerts, users, teams, projects, workflows, status pages, dashboards | **Entity count and history**, not telemetry volume. Grows slowly. |
 | **Redis** | Cache, work queues, and sessions | **Queue depth and active sessions**. Memory-bound and modest. Not a source of truth. |
 
-Object storage (S3/MinIO) is **not** required for OneUptime to run. It is only used optionally for database **backups** (via the CloudNativePG Barman plugin for PostgreSQL, or `clickhouse-backup` for ClickHouse). OneUptime does not tier telemetry to object storage — see [Retention](#retention-and-how-it-affects-storage).
+Object storage (S3/MinIO) is **not** required for OneUptime to run. It is only used optionally for database **backups** (via the CloudNativePG Barman plugin for PostgreSQL, or `clickhouse-backup` for ClickHouse). OneUptime does not tier telemetry to object storage — see the "Retention and how it affects storage" section below.
 
 ## ClickHouse — the dominant driver
 
