@@ -57,6 +57,10 @@ const DocsNav: NavGroup[] = [
         title: "Kubernetes and Helm",
         url: "https://artifacthub.io/packages/helm/oneuptime/oneuptime",
       },
+      {
+        title: "Sizing & Capacity Planning",
+        url: "/docs/installation/sizing",
+      },
     ],
   },
   {
