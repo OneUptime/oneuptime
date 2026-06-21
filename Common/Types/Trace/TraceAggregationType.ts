@@ -8,6 +8,7 @@ enum TraceAggregationType {
   ErrorCount = "ErrorCount",
   AvgDurationSeconds = "AvgDurationSeconds",
   P50DurationSeconds = "P50DurationSeconds",
+  P90DurationSeconds = "P90DurationSeconds",
   P95DurationSeconds = "P95DurationSeconds",
   P99DurationSeconds = "P99DurationSeconds",
   MaxDurationSeconds = "MaxDurationSeconds",

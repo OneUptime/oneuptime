@@ -127,6 +127,7 @@ export class Service extends DatabaseService<Model> {
       serviceNamespace?: string | undefined;
       runtimeName?: string | undefined;
       runtimeVersion?: string | undefined;
+      telemetrySdkLanguage?: string | undefined;
       cloudProvider?: string | undefined;
       cloudPlatform?: string | undefined;
       cloudRegion?: string | undefined;
@@ -181,6 +182,9 @@ export class Service extends DatabaseService<Model> {
     if (extra?.runtimeVersion) {
       data.runtimeVersion = extra.runtimeVersion;
     }
+    if (extra?.telemetrySdkLanguage) {
+      data.telemetrySdkLanguage = extra.telemetrySdkLanguage;
+    }
     if (extra?.cloudProvider) {
       data.cloudProvider = extra.cloudProvider;
     }
@@ -209,6 +213,7 @@ export class Service extends DatabaseService<Model> {
     serviceNamespace?: string | undefined;
     runtimeName?: string | undefined;
     runtimeVersion?: string | undefined;
+    telemetrySdkLanguage?: string | undefined;
     cloudProvider?: string | undefined;
     cloudPlatform?: string | undefined;
     cloudRegion?: string | undefined;
@@ -220,6 +225,7 @@ export class Service extends DatabaseService<Model> {
       serviceNamespace: extra?.serviceNamespace ?? null,
       runtimeName: extra?.runtimeName ?? null,
       runtimeVersion: extra?.runtimeVersion ?? null,
+      telemetrySdkLanguage: extra?.telemetrySdkLanguage ?? null,
       cloudProvider: extra?.cloudProvider ?? null,
       cloudPlatform: extra?.cloudPlatform ?? null,
       cloudRegion: extra?.cloudRegion ?? null,

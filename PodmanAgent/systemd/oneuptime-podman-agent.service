@@ -1,0 +1,20 @@
+[Unit]
+Description=OneUptime Podman Agent (OpenTelemetry Collector)
+Documentation=https://oneuptime.com/docs/podman-monitoring
+After=network-online.target podman.service
+Wants=network-online.target
+Requires=podman.socket
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/oneuptime-podman-agent
+ExecStartPre=/usr/bin/podman compose pull
+ExecStart=/usr/bin/podman compose up --remove-orphans
+ExecStop=/usr/bin/podman compose down
+Restart=on-failure
+RestartSec=30
+TimeoutStartSec=120
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

@@ -592,6 +592,11 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             _id: true,
             projectId: true,
           },
+          podmanHosts: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
           services: {
             name: true,
             _id: true,
@@ -739,6 +744,11 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 _id: true,
                 projectId: true,
               },
+              podmanHosts: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
               services: {
                 name: true,
                 _id: true,
@@ -755,6 +765,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                   hosts={item.hosts || []}
                   kubernetesClusters={item.kubernetesClusters || []}
                   dockerHosts={item.dockerHosts || []}
+                  podmanHosts={item.podmanHosts || []}
                   services={item.services || []}
                 />
               );

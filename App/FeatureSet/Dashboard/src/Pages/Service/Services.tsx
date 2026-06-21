@@ -1,6 +1,13 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ServiceElement from "../../Components/Service/ServiceElement";
 import PageComponentProps from "../PageComponentProps";
+import IconProp from "Common/Types/Icon/IconProp";
+import Icon from "Common/UI/Components/Icon/Icon";
+import {
+  detectServiceLanguage,
+  SERVICE_LANGUAGE_DISPLAY_NAMES,
+  ServiceLanguage,
+} from "../../Components/TelemetryResource/serviceGoldenMetrics";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
@@ -76,6 +83,10 @@ const ServicesPage: FunctionComponent<
         noItemsMessage={"No services found."}
         selectMoreFields={{
           serviceColor: true,
+          // Inputs for the auto-detected Technology column.
+          telemetrySdkLanguage: true,
+          runtimeName: true,
+          techStack: true,
         }}
         formFields={[
           {
@@ -164,6 +175,32 @@ const ServicesPage: FunctionComponent<
             noValueMessage: "-",
             title: "Description",
             type: FieldType.LongText,
+          },
+          {
+            field: {
+              telemetrySdkLanguage: true,
+            },
+            title: "Technology",
+            type: FieldType.Element,
+            getElement: (item: Service): ReactElement => {
+              const language: ServiceLanguage | null = detectServiceLanguage({
+                telemetrySdkLanguage: item.telemetrySdkLanguage,
+                runtimeName: item.runtimeName,
+                techStack: item.techStack,
+              });
+              if (!language) {
+                return <span className="text-gray-400">—</span>;
+              }
+              return (
+                <span className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700">
+                  <Icon
+                    icon={IconProp.Code}
+                    className="h-3 w-3 text-gray-500"
+                  />
+                  {SERVICE_LANGUAGE_DISPLAY_NAMES[language]}
+                </span>
+              );
+            },
           },
           {
             field: {

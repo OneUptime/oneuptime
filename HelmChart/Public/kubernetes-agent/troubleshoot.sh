@@ -14,7 +14,7 @@
 # server). The collector therefore reports success, logs nothing, and the
 # cluster never flips to "connected" because connection status is driven purely
 # by telemetry actually arriving (a cron marks a cluster disconnected after
-# ~5 min without data).
+# ~15 min without data).
 #
 # How it gets a definitive answer: from inside the cluster it calls
 # `GET <url>/otlp/v1/validate`, a validation endpoint that returns a REAL status

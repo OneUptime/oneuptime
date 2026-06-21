@@ -57,6 +57,10 @@ const DocsNav: NavGroup[] = [
         title: "Kubernetes and Helm",
         url: "https://artifacthub.io/packages/helm/oneuptime/oneuptime",
       },
+      {
+        title: "Sizing & Capacity Planning",
+        url: "/docs/installation/sizing",
+      },
     ],
   },
   {
@@ -116,6 +120,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "SSO",
         url: "/docs/identity/sso",
+      },
+      {
+        title: "Global SSO",
+        url: "/docs/identity/global-sso",
       },
       {
         title: "SCIM",
@@ -259,6 +267,26 @@ const DocsNav: NavGroup[] = [
       {
         title: "Docker Monitor",
         url: "/docs/monitor/docker-monitor",
+      },
+      {
+        title: "Host Monitor",
+        url: "/docs/monitor/host-monitor",
+      },
+      {
+        title: "Podman Monitor",
+        url: "/docs/monitor/podman-monitor",
+      },
+      {
+        title: "Proxmox Monitor",
+        url: "/docs/monitor/proxmox-monitor",
+      },
+      {
+        title: "Docker Swarm Monitor",
+        url: "/docs/monitor/docker-swarm-monitor",
+      },
+      {
+        title: "Ceph Monitor",
+        url: "/docs/monitor/ceph-monitor",
       },
       {
         title: "Logs Monitor",
@@ -495,6 +523,10 @@ const DocsNav: NavGroup[] = [
     title: "Telemetry",
     links: [
       { title: "OpenTelemetry", url: "/docs/telemetry/open-telemetry" },
+      {
+        title: "Continuous Profiling",
+        url: "/docs/telemetry/profiles",
+      },
       { title: "Serilog (.NET)", url: "/docs/telemetry/serilog" },
       { title: "FluentBit", url: "/docs/telemetry/fluentbit" },
       { title: "Fluentd", url: "/docs/telemetry/fluentd" },
@@ -510,6 +542,22 @@ const DocsNav: NavGroup[] = [
       {
         title: "Docker Agent",
         url: "/docs/telemetry/docker-host",
+      },
+      {
+        title: "Podman Agent",
+        url: "/docs/telemetry/podman-host",
+      },
+      {
+        title: "Proxmox Agent",
+        url: "/docs/telemetry/proxmox",
+      },
+      {
+        title: "Ceph Agent",
+        url: "/docs/telemetry/ceph",
+      },
+      {
+        title: "Docker Swarm Agent",
+        url: "/docs/telemetry/docker-swarm",
       },
       {
         title: "Serverless Functions",

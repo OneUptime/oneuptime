@@ -86,7 +86,9 @@
     "selectProjectSubtitle": "उस प्रोजेक्ट का चयन करें जिसमें आप लॉगिन करना चाहते हैं।",
     "noConfigForEmail": "ईमेल के लिए कोई SSO कॉन्फ़िगरेशन नहीं मिला: {{email}}",
     "emailRequired": "इस क्रिया को करने के लिए ईमेल आवश्यक है",
-    "defaultProjectName": "प्रोजेक्ट"
+    "defaultProjectName": "प्रोजेक्ट",
+    "globalProvidersTitle": "अपने संगठन से साइन इन करें",
+    "globalProvidersDivider": "या ईमेल से जारी रखें"
   },
   "verifyEmail": {
     "successTitle": "आपका ईमेल सत्यापित हो गया है।",

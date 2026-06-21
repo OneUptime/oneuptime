@@ -59,6 +59,7 @@ export interface ComponentProps {
   id?: string | undefined;
   dataTestId?: string | undefined;
   ariaLabel?: string | undefined;
+  ariaLabelledby?: string | undefined;
 }
 
 const Dropdown: FunctionComponent<ComponentProps> = (
@@ -537,6 +538,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           props.onFocus?.();
         }}
         aria-label={props.ariaLabel}
+        aria-labelledby={props.ariaLabelledby}
         aria-invalid={props.error ? true : undefined}
         aria-describedby={props.error ? errorId : undefined}
         classNames={{

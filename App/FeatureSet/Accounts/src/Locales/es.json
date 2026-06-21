@@ -86,7 +86,9 @@
     "selectProjectSubtitle": "Seleccione el proyecto al que desea iniciar sesión.",
     "noConfigForEmail": "No se encontró configuración SSO para el correo electrónico: {{email}}",
     "emailRequired": "Se requiere correo electrónico para realizar esta acción",
-    "defaultProjectName": "Proyecto"
+    "defaultProjectName": "Proyecto",
+    "globalProvidersTitle": "Inicie sesión con su organización",
+    "globalProvidersDivider": "O continúe con su correo electrónico"
   },
   "verifyEmail": {
     "successTitle": "Su correo electrónico está verificado.",

@@ -7,6 +7,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import DuplicateModel from "Common/UI/Components/DuplicateModel/DuplicateModel";
+import ExportModelCard from "Common/UI/Components/ImportExport/ExportModelCard";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 
 const DashboardDelete: FunctionComponent<
@@ -43,6 +44,9 @@ const DashboardDelete: FunctionComponent<
             },
           ]}
         />
+      </div>
+      <div className="mt-5">
+        <ExportModelCard modelId={modelId} modelType={Dashboard} />
       </div>
     </Fragment>
   );

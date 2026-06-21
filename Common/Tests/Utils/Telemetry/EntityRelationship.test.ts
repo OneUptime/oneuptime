@@ -32,6 +32,18 @@ describe("inferRelationshipType", () => {
     ).toBe(EntityRelationshipType.InstanceOf);
   });
 
+  test("infers the proxmox topology (node → cluster, guest → node/cluster)", () => {
+    expect(
+      inferRelationshipType(EntityType.ProxmoxNode, EntityType.ProxmoxCluster),
+    ).toBe(EntityRelationshipType.MemberOf);
+    expect(
+      inferRelationshipType(EntityType.ProxmoxGuest, EntityType.ProxmoxNode),
+    ).toBe(EntityRelationshipType.RunsOn);
+    expect(
+      inferRelationshipType(EntityType.ProxmoxGuest, EntityType.ProxmoxCluster),
+    ).toBe(EntityRelationshipType.MemberOf);
+  });
+
   test("is directional (the reverse pair yields nothing)", () => {
     expect(
       inferRelationshipType(
@@ -42,6 +54,9 @@ describe("inferRelationshipType", () => {
     expect(
       inferRelationshipType(EntityType.Host, EntityType.Service),
     ).toBeNull();
+    expect(
+      inferRelationshipType(EntityType.ProxmoxCluster, EntityType.ProxmoxNode),
+    ).toBeNull();
   });
 
   test("unrelated or self type pairs yield null", () => {
@@ -50,6 +65,17 @@ describe("inferRelationshipType", () => {
     ).toBeNull();
     expect(
       inferRelationshipType(EntityType.Service, EntityType.Service),
+    ).toBeNull();
+    /*
+     * Deliberately absent (mirrors the missing host|k8s.cluster rule): a
+     * resource carrying both host.* and proxmox/ceph cluster attributes
+     * does not imply the host is a member of that cluster.
+     */
+    expect(
+      inferRelationshipType(EntityType.Host, EntityType.ProxmoxCluster),
+    ).toBeNull();
+    expect(
+      inferRelationshipType(EntityType.Host, EntityType.CephCluster),
     ).toBeNull();
   });
 
@@ -125,6 +151,29 @@ describe("deriveRelationships", () => {
     expect(hasEdge(edges, "host", "svc", EntityRelationshipType.HostedOn)).toBe(
       false,
     );
+  });
+
+  test("derives the full directed edge set for a proxmox resource", () => {
+    const edges: Array<EntityRelationshipEdge> = deriveRelationships([
+      { entityType: EntityType.ProxmoxCluster, entityKey: "cluster" },
+      { entityType: EntityType.ProxmoxNode, entityKey: "node" },
+      { entityType: EntityType.ProxmoxGuest, entityKey: "guest" },
+    ]);
+
+    expect(
+      hasEdge(edges, "node", "cluster", EntityRelationshipType.MemberOf),
+    ).toBe(true);
+    expect(hasEdge(edges, "guest", "node", EntityRelationshipType.RunsOn)).toBe(
+      true,
+    );
+    expect(
+      hasEdge(edges, "guest", "cluster", EntityRelationshipType.MemberOf),
+    ).toBe(true);
+    // No reverse edge.
+    expect(
+      hasEdge(edges, "cluster", "node", EntityRelationshipType.MemberOf),
+    ).toBe(false);
+    expect(edges.length).toBe(3);
   });
 
   test("empty / single-entity sets produce no edges", () => {

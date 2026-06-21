@@ -286,7 +286,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 ### Agent toont "Disconnected"
 
-De verbonden status van een cluster wordt puur bepaald door binnenkomende telemetrie — als er geen data binnenkomt, wordt het cluster na ~5 minuten als verbroken gemarkeerd. Dus "disconnected" en "geen metrieken" hebben vrijwel altijd **dezelfde** oorzaak: de telemetrie van de agent wordt niet geaccepteerd.
+De verbonden status van een cluster wordt puur bepaald door binnenkomende telemetrie — als er geen data binnenkomt, wordt het cluster na ~15 minuten als verbroken gemarkeerd. Dus "disconnected" en "geen metrieken" hebben vrijwel altijd **dezelfde** oorzaak: de telemetrie van de agent wordt niet geaccepteerd.
 
 De meest voorkomende reden — vooral na een herinstallatie — is een **verkeerde of ingetrokken ingestion-sleutel**. Dit wordt makkelijk over het hoofd gezien omdat de OTLP-ingest-endpoints bewust HTTP `200` retourneren, zelfs voor een ongeldig token (zodat een verkeerd geconfigureerde collector de server niet kan overspoelen met retries). Het gevolg: de collector rapporteert succes, de logs tonen geen fouten en de data wordt stilletjes verworpen.
 

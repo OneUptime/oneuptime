@@ -24,6 +24,7 @@ import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import Service from "Common/Models/DatabaseModels/Service";
 import Host from "Common/Models/DatabaseModels/Host";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import AnalyticsModelAPI, {
   ListResult,
@@ -60,6 +61,15 @@ import TelemetrySavedViewState from "Common/Types/Telemetry/TelemetrySavedViewSt
 import Search from "Common/Types/BaseDatabase/Search";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import LessThan from "Common/Types/BaseDatabase/LessThan";
+import TracesAnalyticsView, {
+  formatDurationMs,
+  TraceAnalyticsState,
+} from "./TracesAnalyticsView";
+import Navigation from "Common/UI/Utils/Navigation";
+import TraceAggregationType from "Common/Types/Trace/TraceAggregationType";
+import TraceRecordingRuleDefinition, {
+  TraceRecordingRuleAttributeFilter,
+} from "Common/Types/Trace/TraceRecordingRuleDefinition";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
@@ -155,9 +165,34 @@ const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
   },
   {
     syntax: "@<attribute>:<value>",
-    description: "Filter by span attribute",
+    description: "Filter by span attribute (exact match)",
     example: "@http.method:GET",
   },
+  {
+    syntax: "@<attribute>:~<value>",
+    description: "Filter by span attribute (contains match)",
+    example: "@url.host:~starship.online",
+  },
+];
+
+/*
+ * Facet sidebar entries backed by raw span attributes rather than top-level
+ * columns. Clicking a value adds an `attributes.<key>` chip — the same path
+ * as typed `@key:value` filters. resource.* attributes are flattened onto
+ * every span at ingest, so these give a first-class service-instance / host
+ * dimension without requiring a registered infra Host entity.
+ */
+const ATTRIBUTE_FACET_KEYS: Set<string> = new Set([
+  "resource.service.instance.id",
+  "resource.host.name",
+]);
+
+// Chart-metric options for the explorer's over-time chart.
+const CHART_METRIC_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "count", label: "Count" },
+  { value: "avgDuration", label: "Avg Response Time" },
+  { value: "p50Duration", label: "Median (P50)" },
+  { value: "p95Duration", label: "P95" },
 ];
 
 const FIELD_ALIAS_MAP: Record<string, string> = {
@@ -199,6 +234,8 @@ interface InitialUrlState {
   timeRange: RangeStartAndEndDateTime;
   page: number;
   pageSize: number;
+  viewMode: "spans" | "analytics";
+  rootOnly: boolean;
 }
 
 /*
@@ -285,7 +322,13 @@ function readInitialUrlState(): InitialUrlState {
       ? Math.max(1, parseInt(pageSizeRaw, 10))
       : DEFAULT_PAGE_SIZE;
 
-  return { search, filters, timeRange, page, pageSize };
+  const viewMode: "spans" | "analytics" =
+    params.get("view") === "analytics" ? "analytics" : "spans";
+
+  // Root-spans-only is the default; only `rootOnly=false` switches it off.
+  const rootOnly: boolean = params.get("rootOnly") !== "false";
+
+  return { search, filters, timeRange, page, pageSize, viewMode, rootOnly };
 }
 
 interface Props {
@@ -340,6 +383,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   const [services, setServices] = useState<Array<Service>>([]);
   const [hosts, setHosts] = useState<Array<Host>>([]);
   const [dockerHosts, setDockerHosts] = useState<Array<DockerHost>>([]);
+  const [podmanHosts, setPodmanHosts] = useState<Array<PodmanHost>>([]);
   const [kubernetesClusters, setKubernetesClusters] = useState<
     Array<KubernetesCluster>
   >([]);
@@ -358,6 +402,27 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   const [activeFilters, setActiveFilters] = useState<Array<ActiveFilter>>(
     initialUrlState.filters,
   );
+
+  // "spans" = list + histogram + facets; "analytics" = split-by-dimension view.
+  const [viewMode, setViewMode] = useState<"spans" | "analytics">(
+    initialUrlState.viewMode,
+  );
+
+  /*
+   * Root-spans-only (default). Switching it off includes non-root spans —
+   * needed when the endpoint span carrying http.route / url.host is not the
+   * trace root (e.g. behind a queue consumer or an upstream gateway).
+   */
+  const [rootOnly, setRootOnly] = useState<boolean>(initialUrlState.rootOnly);
+
+  /*
+   * Metric for the explorer's over-time chart: span counts (stacked by
+   * status, projection-backed) or a latency aggregate over the same filters.
+   */
+  const [chartMetric, setChartMetric] = useState<string>("count");
+
+  // Bumped by the toolbar Refresh button so the analytics view refetches.
+  const [analyticsRefreshTick, setAnalyticsRefreshTick] = useState<number>(0);
 
   /*
    * The search bar's X button (and full backspace) only updates `searchValue`
@@ -427,9 +492,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     freeText: string;
     fieldFilters: Record<string, Array<string>>;
     attributes: Record<string, string>;
+    attributeSearches: Record<string, string>;
   } = useCallback((raw: string) => {
     const fieldFilters: Record<string, Array<string>> = {};
     const attributes: Record<string, string> = {};
+    const attributeSearches: Record<string, string> = {};
     const freeTextParts: Array<string> = [];
     /*
      * Tokenizer:
@@ -440,7 +507,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
      *                       or unquoted `field:value` that fits in one word).
      */
     const rawTokens: Array<string> =
-      raw.match(/@?\S+:"[^"]*"|@\S+:[^\s]+|\S+/g) || [];
+      raw.match(/@?\S+:~?"[^"]*"|@\S+:[^\s]+|\S+/g) || [];
     /*
      * Two merges in this loop:
      *  - `name: POST` → `["name:", "POST"]` → `name:POST` (space after colon).
@@ -459,7 +526,10 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         if (isAttr || KNOWN_FIELD_KEYS.has(fieldName)) {
           let merged: string = token + rawTokens[i + 1]!;
           i++;
-          if (merged.includes(':"') && !merged.endsWith('"')) {
+          if (
+            (merged.includes(':"') || merged.includes(':~"')) &&
+            !merged.endsWith('"')
+          ) {
             while (i + 1 < rawTokens.length && !merged.endsWith('"')) {
               i++;
               merged = merged + " " + rawTokens[i]!;
@@ -470,7 +540,10 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         }
       }
       // Standalone token with an unclosed quote — absorb until close.
-      if (token.includes(':"') && !token.endsWith('"')) {
+      if (
+        (token.includes(':"') || token.includes(':~"')) &&
+        !token.endsWith('"')
+      ) {
         let merged: string = token;
         while (i + 1 < rawTokens.length && !merged.endsWith('"')) {
           i++;
@@ -488,11 +561,16 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       return s;
     };
     for (const token of tokens) {
-      // @attribute:value → attribute filter
+      // @attribute:value (exact) or @attribute:~value (contains)
       const attrMatch: RegExpMatchArray | null = token.match(/^@([^:]+):(.*)$/);
       if (attrMatch) {
         const attrValue: string = stripQuotes(attrMatch[2]!);
-        if (attrValue.length > 0) {
+        if (attrValue.startsWith("~")) {
+          const searchValue: string = stripQuotes(attrValue.substring(1));
+          if (searchValue.length > 0) {
+            attributeSearches[attrMatch[1]!] = searchValue;
+          }
+        } else if (attrValue.length > 0) {
           attributes[attrMatch[1]!] = attrValue;
         }
         continue;
@@ -517,13 +595,16 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       freeText: freeTextParts.join(" ").trim(),
       fieldFilters,
       attributes,
+      attributeSearches,
     };
   }, []);
 
   const baseQuery: Query<Span> = useMemo(() => {
-    const query: Query<Span> = {
-      isRootSpan: true,
-    };
+    const query: Query<Span> = {};
+
+    if (rootOnly) {
+      query.isRootSpan = true;
+    }
 
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
     if (projectId) {
@@ -544,12 +625,22 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     // Apply active facet filters
     const facetGroups: Record<string, Array<string>> = {};
     const attributeChips: Record<string, string> = {};
+    const attributeSearchChips: Record<string, string> = {};
     for (const filter of activeFilters) {
       /*
        * Chips with the `attributes.` prefix are telemetry attribute filters
        * (added when a user types `@key:value` in the search bar). Route them
        * into `query.attributes` rather than as top-level columns.
+       * `attributeSearches.` chips are the contains-match variant
+       * (`@key:~value`).
        */
+      if (filter.facetKey.startsWith("attributeSearches.")) {
+        const attrKey: string = filter.facetKey.substring(
+          "attributeSearches.".length,
+        );
+        attributeSearchChips[attrKey] = filter.value;
+        continue;
+      }
       if (filter.facetKey.startsWith("attributes.")) {
         const attrKey: string = filter.facetKey.substring("attributes.".length);
         attributeChips[attrKey] = filter.value;
@@ -570,6 +661,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       "primaryEntityId",
       "hostId",
       "dockerHostId",
+      "podmanHostId",
       "kubernetesClusterId",
     ]);
     const resourceIds: Set<string> = new Set<string>();
@@ -588,14 +680,31 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           : new Includes(Array.from(resourceIds));
     }
 
+    const { fieldFilters, freeText, attributes, attributeSearches } =
+      parseSearch(submittedSearch);
+
     /*
      * Text columns need substring matching, not exact equality. The search
      * bar turns typed `name:GET` into a chip via `onFieldValueSelect`, and
      * span names are full strings like "GET api/..." — exact-match would
-     * silently return zero rows. Mirror what `parseSearch` does for the same
-     * fields and wrap with `Search`.
+     * silently return zero rows.
+     *
+     * Search-bar tokens for these fields merge into the chip groups so chips
+     * and `name:` / `statusMessage:` tokens share one rule: a single value
+     * matches as a substring (Search → ILIKE), multiple values match exactly
+     * (Includes). The aggregation payload applies the same single/multi
+     * routing, keeping the histogram consistent with the list.
      */
     const TEXT_CHIP_FIELDS: Set<string> = new Set(["name", "statusMessage"]);
+    for (const textKey of TEXT_CHIP_FIELDS) {
+      const tokenValues: Array<string> | undefined = fieldFilters[textKey];
+      if (tokenValues && tokenValues.length > 0) {
+        facetGroups[textKey] = [
+          ...(facetGroups[textKey] || []),
+          ...tokenValues,
+        ];
+      }
+    }
     for (const key of Object.keys(facetGroups)) {
       if (resourceFacetKeys.has(key)) {
         continue;
@@ -612,8 +721,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       }
     }
 
-    // Apply search field filters
-    const { fieldFilters, attributes } = parseSearch(submittedSearch);
+    // Apply remaining search field filters
     for (const key of Object.keys(fieldFilters)) {
       const values: Array<string> = fieldFilters[key]!;
 
@@ -631,10 +739,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         (query as Record<string, unknown>)[key] =
           mapped.length === 1 ? mapped[0] : new Includes(mapped);
       } else if (key === "name" || key === "statusMessage") {
-        // Substring matching for text fields
-        if (values.length === 1) {
-          (query as Record<string, unknown>)[key] = new Search(values[0]!);
-        }
+        // Already merged into the chip groups above.
+        continue;
       } else if (key === "kind") {
         // Map friendly kind names (server, client, etc.) to backend enum
         const mapped: Array<string> = values.map((v: string): string => {
@@ -679,14 +785,40 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
 
     /*
+     * Bare free text matches span names as a substring — the aggregation
+     * payload already sends it as nameSearchText, so the list must apply it
+     * too or the chart filters tighter than the list. Query<Span> holds one
+     * predicate per column, so an explicit name filter wins when both are
+     * present (the chart then ANDs both and may be slightly narrower).
+     */
+    if (
+      freeText &&
+      freeText.length > 0 &&
+      !(query as Record<string, unknown>)["name"]
+    ) {
+      (query as Record<string, unknown>)["name"] = new Search(freeText);
+    }
+
+    /*
      * Apply attribute filters — merge chip + search sources with the
      * prop-level resource scope (Host / Docker / Kubernetes views).
+     * Contains-match filters become Search instances, which the analytics
+     * query layer compiles to a case-insensitive value ILIKE.
      */
-    const mergedAttributes: Record<string, string> = {
+    const mergedAttributes: Record<string, unknown> = {
       ...attributeChips,
       ...attributes,
-      ...(props.attributeFilters || {}),
     };
+    const mergedAttributeSearches: Record<string, string> = {
+      ...attributeSearchChips,
+      ...attributeSearches,
+    };
+    for (const [key, value] of Object.entries(mergedAttributeSearches)) {
+      // A contains filter on a key supersedes an exact filter on the same key…
+      mergedAttributes[key] = new Search(value);
+    }
+    // …but the read-only resource scope (Host / Docker / K8s pages) always wins.
+    Object.assign(mergedAttributes, props.attributeFilters || {});
     if (Object.keys(mergedAttributes).length > 0) {
       (query as Record<string, unknown>)["attributes"] = mergedAttributes;
     }
@@ -712,6 +844,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     activeFilters,
     submittedSearch,
     parseSearch,
+    rootOnly,
   ]);
 
   const listSelect: Select<Span> = useMemo(() => {
@@ -764,6 +897,12 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     if (pageSize !== DEFAULT_PAGE_SIZE) {
       params.set("pageSize", String(pageSize));
     }
+    if (viewMode === "analytics") {
+      params.set("view", "analytics");
+    }
+    if (!rootOnly) {
+      params.set("rootOnly", "false");
+    }
 
     const query: string = params.toString();
     const nextSearch: string = query ? `?${query}` : "";
@@ -774,7 +913,15 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         `${window.location.pathname}${nextSearch}${window.location.hash}`,
       );
     }
-  }, [submittedSearch, activeFilters, timeRange, page, pageSize]);
+  }, [
+    submittedSearch,
+    activeFilters,
+    timeRange,
+    page,
+    pageSize,
+    viewMode,
+    rootOnly,
+  ]);
 
   // Load services / hosts / docker hosts / k8s clusters once
   useEffect(() => {
@@ -784,10 +931,17 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         if (!projectId) {
           return;
         }
-        const [serviceResult, hostResult, dockerHostResult, clusterResult]: [
+        const [
+          serviceResult,
+          hostResult,
+          dockerHostResult,
+          podmanHostResult,
+          clusterResult,
+        ]: [
           ModelListResult<Service>,
           ModelListResult<Host>,
           ModelListResult<DockerHost>,
+          ModelListResult<PodmanHost>,
           ModelListResult<KubernetesCluster>,
         ] = await Promise.all([
           ModelAPI.getList({
@@ -815,6 +969,14 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
             sort: { name: SortOrder.Ascending },
           }),
           ModelAPI.getList({
+            modelType: PodmanHost,
+            query: { projectId: projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { name: true, hostIdentifier: true },
+            sort: { name: SortOrder.Ascending },
+          }),
+          ModelAPI.getList({
             modelType: KubernetesCluster,
             query: { projectId: projectId },
             limit: LIMIT_PER_PROJECT,
@@ -826,6 +988,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         setServices(serviceResult.data || []);
         setHosts(hostResult.data || []);
         setDockerHosts(dockerHostResult.data || []);
+        setPodmanHosts(podmanHostResult.data || []);
         setKubernetesClusters(clusterResult.data || []);
       } catch {
         // non-critical
@@ -921,6 +1084,10 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     skipLoadingState?: boolean;
   }) => Promise<void> = useCallback(
     async (options: { skipLoadingState?: boolean } = {}) => {
+      // Analytics mode hides the list — skip the fetch until switched back.
+      if (viewMode === "analytics") {
+        return;
+      }
       if (!options.skipLoadingState) {
         setIsLoading(true);
       }
@@ -948,7 +1115,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         }
       }
     },
-    [baseQuery, page, pageSize, listSelect],
+    [baseQuery, page, pageSize, listSelect, viewMode],
   );
 
   // Build the aggregation request payload — shared by histogram and facets
@@ -959,14 +1126,22 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     const payload: JSONObject = {
       startTime: dateRange.startValue.toISOString(),
       endTime: dateRange.endValue.toISOString(),
-      rootOnly: true,
+      rootOnly: rootOnly,
     };
 
     // Collect filter values from both active facet filters and parsed search
     const groups: Record<string, Array<string>> = {};
     const attributeChips: Record<string, string> = {};
+    const attributeSearchChips: Record<string, string> = {};
     for (const filter of activeFilters) {
       // `attributes.<key>` chips route into `payload.attributes`, not `groups`.
+      if (filter.facetKey.startsWith("attributeSearches.")) {
+        const attrKey: string = filter.facetKey.substring(
+          "attributeSearches.".length,
+        );
+        attributeSearchChips[attrKey] = filter.value;
+        continue;
+      }
       if (filter.facetKey.startsWith("attributes.")) {
         const attrKey: string = filter.facetKey.substring("attributes.".length);
         attributeChips[attrKey] = filter.value;
@@ -978,7 +1153,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       groups[filter.facetKey]!.push(filter.value);
     }
 
-    const { fieldFilters, freeText, attributes } = parseSearch(submittedSearch);
+    const { fieldFilters, freeText, attributes, attributeSearches } =
+      parseSearch(submittedSearch);
     for (const key of Object.keys(fieldFilters)) {
       if (!groups[key]) {
         groups[key] = [];
@@ -986,14 +1162,36 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       groups[key]!.push(...fieldFilters[key]!);
     }
 
-    // Pass attribute filters (chip + parsed + prop scope) to aggregation
+    /*
+     * Pass attribute filters (chip + parsed + prop scope) to aggregation,
+     * with the same precedence the list applies: a contains filter
+     * supersedes an exact filter on the same key, and the read-only
+     * resource scope supersedes both — otherwise the server would AND
+     * exact + contains and the chart would disagree with the list.
+     */
     const mergedAttributes: Record<string, string> = {
       ...attributeChips,
       ...attributes,
-      ...(props.attributeFilters || {}),
     };
+    const mergedAttributeSearches: Record<string, string> = {
+      ...attributeSearchChips,
+      ...attributeSearches,
+    };
+    const scopeAttributes: Record<string, string> =
+      props.attributeFilters || {};
+    for (const key of Object.keys(mergedAttributeSearches)) {
+      if (scopeAttributes[key] !== undefined) {
+        delete mergedAttributeSearches[key];
+        continue;
+      }
+      delete mergedAttributes[key];
+    }
+    Object.assign(mergedAttributes, scopeAttributes);
     if (Object.keys(mergedAttributes).length > 0) {
       payload["attributes"] = mergedAttributes;
+    }
+    if (Object.keys(mergedAttributeSearches).length > 0) {
+      payload["attributeSearches"] = mergedAttributeSearches;
     }
 
     /*
@@ -1021,6 +1219,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       "primaryEntityId",
       "hostId",
       "dockerHostId",
+      "podmanHostId",
       "kubernetesClusterId",
     ]) {
       const values: Array<string> | undefined = groups[k];
@@ -1054,8 +1253,20 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       });
     }
 
+    /*
+     * Mirror the list's name semantics: a single name value filters the list
+     * as a substring (Search → ILIKE, see TEXT_CHIP_FIELDS in baseQuery), so
+     * route it to spanNameSearches — exact-match spanNames would make the
+     * chart disagree with the list for partial names like "ShipShipment".
+     * Multiple name values filter the list exactly (Includes), which
+     * spanNames preserves.
+     */
     if (groups["name"] && groups["name"].length > 0) {
-      payload["spanNames"] = groups["name"];
+      if (groups["name"].length === 1) {
+        payload["spanNameSearches"] = groups["name"];
+      } else {
+        payload["spanNames"] = groups["name"];
+      }
     }
 
     if (groups["traceId"] && groups["traceId"].length > 0) {
@@ -1071,8 +1282,16 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         groups["hasException"][0]!.toLowerCase() === "true";
     }
 
+    /*
+     * Same single/multi routing as `name`: one value matches as a substring
+     * (mirrors the list's Search), several match exactly (mirrors Includes).
+     */
     if (groups["statusMessage"] && groups["statusMessage"].length > 0) {
-      payload["statusMessageSearchText"] = groups["statusMessage"][0];
+      if (groups["statusMessage"].length === 1) {
+        payload["statusMessageSearchText"] = groups["statusMessage"][0];
+      } else {
+        payload["statusMessages"] = groups["statusMessage"];
+      }
     }
 
     if (groups["durationUnixNano"] && groups["durationUnixNano"].length > 0) {
@@ -1087,6 +1306,12 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         const ms: number = Number(raw.substring(1));
         if (!isNaN(ms)) {
           payload["maxDurationNano"] = ms * msToNano;
+        }
+      } else {
+        // duration:N (no operator) filters the list as exact equality.
+        const ms: number = Number(raw);
+        if (!isNaN(ms)) {
+          payload["exactDurationNano"] = ms * msToNano;
         }
       }
     }
@@ -1104,10 +1329,16 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     props.primaryEntityId,
     props.attributeFilters,
     props.entityKeysFilter,
+    rootOnly,
   ]);
 
   // Fetch histogram + facets from dedicated backend endpoints
   const fetchHistogramAndFacets: () => Promise<void> = useCallback(async () => {
+    // Analytics mode renders its own chart/table — skip the spans fetches.
+    if (viewMode === "analytics") {
+      return;
+    }
+
     setHistogramLoading(true);
     setFacetLoading(true);
 
@@ -1125,11 +1356,23 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
      * queries are protected server-side by max_execution_time and the
      * ClickHouse client request_timeout cap (see TraceAggregationService
      * and ClickhouseConfig).
+     *
+     * Latency chart metrics (avg/p50/p95) ride the analytics endpoint with
+     * the same filters; counts keep the projection-backed histogram.
      */
-    const histogramPayload: JSONObject = {
-      ...aggregationRequest,
-      bucketSizeInMinutes,
-    };
+    const isLatencyChart: boolean = chartMetric !== "count";
+
+    const histogramPayload: JSONObject = isLatencyChart
+      ? {
+          ...aggregationRequest,
+          bucketSizeInMinutes,
+          chartType: "timeseries",
+          metric: chartMetric,
+        }
+      : {
+          ...aggregationRequest,
+          bucketSizeInMinutes,
+        };
 
     /*
      * Forward only non-empty per-facet search entries — saves bandwidth and
@@ -1149,9 +1392,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         "primaryEntityId",
         "hostId",
         "dockerHostId",
+        "podmanHostId",
         "kubernetesClusterId",
         "statusCode",
         "kind",
+        ...Array.from(ATTRIBUTE_FACET_KEYS),
       ],
     };
 
@@ -1160,15 +1405,34 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
 
     const [histogramResult, facetsResult] = await Promise.allSettled([
-      postApi("/telemetry/traces/histogram", histogramPayload),
+      postApi(
+        isLatencyChart
+          ? "/telemetry/traces/analytics"
+          : "/telemetry/traces/histogram",
+        histogramPayload,
+      ),
       postApi("/telemetry/traces/facets", facetsPayload),
     ]);
 
     if (histogramResult.status === "fulfilled") {
-      const buckets: Array<HistogramBucket> = (histogramResult.value.data[
-        "buckets"
-      ] || []) as unknown as Array<HistogramBucket>;
-      setHistogramBuckets(buckets);
+      if (isLatencyChart) {
+        // Analytics timeseries rows → single-series histogram buckets.
+        const rows: Array<{ time: string; value: number }> = (histogramResult
+          .value.data["data"] || []) as unknown as Array<{
+          time: string;
+          value: number;
+        }>;
+        setHistogramBuckets(
+          rows.map((row: { time: string; value: number }): HistogramBucket => {
+            return { time: row.time, series: "latency", count: row.value };
+          }),
+        );
+      } else {
+        const buckets: Array<HistogramBucket> = (histogramResult.value.data[
+          "buckets"
+        ] || []) as unknown as Array<HistogramBucket>;
+        setHistogramBuckets(buckets);
+      }
     } else {
       setHistogramBuckets([]);
     }
@@ -1197,7 +1461,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
     setHistogramLoading(false);
     setFacetLoading(false);
-  }, [aggregationRequest, timeRange, facetSearchText]);
+  }, [aggregationRequest, timeRange, facetSearchText, chartMetric, viewMode]);
 
   useEffect(() => {
     void fetchSpans();
@@ -1268,6 +1532,14 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       }
     }
 
+    const podmanHostNameMap: Record<string, string> = {};
+    for (const podmanHost of podmanHosts) {
+      if (podmanHost.id) {
+        podmanHostNameMap[podmanHost.id.toString()] =
+          podmanHost.name || podmanHost.hostIdentifier || "Unknown";
+      }
+    }
+
     const clusterNameMap: Record<string, string> = {};
     for (const cluster of kubernetesClusters) {
       if (cluster.id) {
@@ -1311,10 +1583,17 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         serverSearchable: true,
       },
       {
+        key: "podmanHostId",
+        title: "Podman Host",
+        valueDisplayMap: podmanHostNameMap,
+        priority: 4,
+        serverSearchable: true,
+      },
+      {
         key: "kubernetesClusterId",
         title: "Kubernetes Cluster",
         valueDisplayMap: clusterNameMap,
-        priority: 4,
+        priority: 5,
         serverSearchable: true,
       },
       {
@@ -1322,19 +1601,42 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         title: "Status",
         valueDisplayMap: statusLabelMap,
         valueColorMap: statusColorMap,
-        priority: 5,
+        priority: 6,
       },
       {
         key: "kind",
         title: "Span Kind",
         valueDisplayMap: SPAN_KIND_LABEL,
-        priority: 6,
+        priority: 7,
+      },
+      /*
+       * Attribute-backed instance facets (see ATTRIBUTE_FACET_KEYS) — a
+       * first-class service-instance / host-name dimension even when no
+       * infra Host entity is registered. Counts come from the recent-spans
+       * sample, like other attribute facets.
+       */
+      {
+        key: "resource.service.instance.id",
+        title: "Service Instance",
+        priority: 8,
+      },
+      {
+        key: "resource.host.name",
+        title: "Host Name",
+        priority: 9,
       },
     ];
-  }, [services, hosts, dockerHosts, kubernetesClusters]);
+  }, [services, hosts, dockerHosts, podmanHosts, kubernetesClusters]);
 
-  // Histogram series
+  // Histogram series — status-stacked counts, or a single latency series.
   const histogramSeries: Array<HistogramSeriesOption> = useMemo(() => {
+    if (chartMetric !== "count") {
+      const label: string =
+        CHART_METRIC_OPTIONS.find((opt: { value: string }) => {
+          return opt.value === chartMetric;
+        })?.label || chartMetric;
+      return [{ key: "latency", label, color: "#6366f1" }];
+    }
     return [
       { key: "ok", label: "Ok", color: SPAN_STATUS_COLOR[SpanStatus.Ok]! },
       {
@@ -1348,32 +1650,57 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         color: SPAN_STATUS_COLOR[SpanStatus.Error]!,
       },
     ];
-  }, []);
+  }, [chartMetric]);
+
+  // Service id → name map for the analytics view's dimension display.
+  const serviceNameMap: Record<string, string> = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const service of services) {
+      if (service.id) {
+        map[service.id.toString()] = service.name || "Unknown";
+      }
+    }
+    return map;
+  }, [services]);
 
   // Facet interaction
   const handleFacetInclude: (facetKey: string, value: string) => void =
     useCallback(
       (facetKey: string, value: string) => {
+        /*
+         * Attribute-backed facets (Service Instance / Host Name) filter via
+         * the attributes map — store their chips under the same
+         * `attributes.<key>` scheme as typed `@key:value` filters so query
+         * building has one path.
+         */
+        const config: FacetConfig | undefined = facetConfigs.find(
+          (c: FacetConfig): boolean => {
+            return c.key === facetKey;
+          },
+        );
+        const chipKey: string = ATTRIBUTE_FACET_KEYS.has(facetKey)
+          ? `attributes.${facetKey}`
+          : facetKey;
         setActiveFilters((prev: Array<ActiveFilter>): Array<ActiveFilter> => {
           if (
             prev.some((f: ActiveFilter): boolean => {
-              return f.facetKey === facetKey && f.value === value;
+              return f.facetKey === chipKey && f.value === value;
             })
           ) {
             return prev;
           }
-          const config: FacetConfig | undefined = facetConfigs.find(
-            (c: FacetConfig): boolean => {
-              return c.key === facetKey;
-            },
-          );
           // Attribute chips (`attributes.<key>`) display as just `<key>`.
-          const displayKey: string = facetKey.startsWith("attributes.")
-            ? facetKey.substring("attributes.".length)
-            : config?.title || facetKey;
+          const displayKey: string =
+            config?.title ||
+            (chipKey.startsWith("attributes.")
+              ? chipKey.substring("attributes.".length)
+              : chipKey);
           const displayValue: string =
             config?.valueDisplayMap?.[value] || value;
-          return [...prev, { facetKey, value, displayKey, displayValue }];
+          return [
+            ...prev,
+            { facetKey: chipKey, value, displayKey, displayValue },
+          ];
         });
         setPage(1);
       },
@@ -1410,11 +1737,15 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           return c.key === chip.facetKey;
         },
       );
-      const displayKey: string = chip.facetKey.startsWith("attributes.")
-        ? chip.facetKey.substring("attributes.".length)
-        : config?.title || chip.facetKey;
-      const displayValue: string =
+      let displayKey: string = config?.title || chip.facetKey;
+      let displayValue: string =
         config?.valueDisplayMap?.[chip.value] || chip.value;
+      if (chip.facetKey.startsWith("attributeSearches.")) {
+        displayKey = chip.facetKey.substring("attributeSearches.".length);
+        displayValue = `~${chip.value}`;
+      } else if (chip.facetKey.startsWith("attributes.")) {
+        displayKey = chip.facetKey.substring("attributes.".length);
+      }
       return { ...chip, displayKey, displayValue };
     };
 
@@ -1454,6 +1785,123 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     activeFilters,
     facetConfigs,
   ]);
+
+  /*
+   * "Create metric…" from the analytics view — prefill a Trace Recording
+   * Rule with the current analysis (filters + measure + split) and land on
+   * the recording-rules settings page with the create form open. This is
+   * how an ad-hoc analysis becomes a persistent, alertable metric.
+   */
+  const handleCreateMetric: (state: TraceAnalyticsState) => void = useCallback(
+    (state: TraceAnalyticsState): void => {
+      const metricToAggregation: Record<string, TraceAggregationType> = {
+        count: TraceAggregationType.Count,
+        errorCount: TraceAggregationType.ErrorCount,
+        avgDuration: TraceAggregationType.AvgDurationSeconds,
+        p50Duration: TraceAggregationType.P50DurationSeconds,
+        p90Duration: TraceAggregationType.P90DurationSeconds,
+        p95Duration: TraceAggregationType.P95DurationSeconds,
+        p99Duration: TraceAggregationType.P99DurationSeconds,
+        minDuration: TraceAggregationType.MinDurationSeconds,
+        maxDuration: TraceAggregationType.MaxDurationSeconds,
+      };
+
+      const escapeRegex: (value: string) => string = (
+        value: string,
+      ): string => {
+        return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      };
+
+      // Span-name filters → one regex the rule engine can evaluate.
+      let spanNameRegex: string | undefined = undefined;
+      const exactNames: Array<string> =
+        (aggregationRequest["spanNames"] as Array<string>) || [];
+      const nameSearches: Array<string> =
+        (aggregationRequest["spanNameSearches"] as Array<string>) || [];
+      if (exactNames.length > 0) {
+        spanNameRegex = `^(${exactNames.map(escapeRegex).join("|")})$`;
+      } else if (nameSearches.length > 0) {
+        spanNameRegex = escapeRegex(nameSearches[0]!);
+      } else if (aggregationRequest["nameSearchText"]) {
+        spanNameRegex = escapeRegex(
+          aggregationRequest["nameSearchText"] as string,
+        );
+      }
+
+      /*
+       * Exact attribute filters carry over; contains-filters have no
+       * rule-side equivalent and are dropped from the prefill.
+       */
+      const filterAttributes: Array<TraceRecordingRuleAttributeFilter> =
+        Object.entries(
+          (aggregationRequest["attributes"] as Record<string, string>) || {},
+        ).map(
+          ([key, value]: [
+            string,
+            string,
+          ]): TraceRecordingRuleAttributeFilter => {
+            return { key, value };
+          },
+        );
+
+      /*
+       * Rules group by attribute keys only — top-level dimensions (span
+       * name, service, status, kind) have no rule-side equivalent.
+       */
+      const TOP_LEVEL_DIMENSIONS: Set<string> = new Set([
+        "name",
+        "primaryEntityId",
+        "statusCode",
+        "kind",
+      ]);
+      const groupByAttribute: string =
+        state.groupBy.find((key: string): boolean => {
+          return !TOP_LEVEL_DIMENSIONS.has(key);
+        }) || "";
+
+      /*
+       * Filters with direct rule-side equivalents carry over. Rules cannot
+       * express service/duration/contains filters — those are dropped, so a
+       * heavily-filtered analysis may record a broader span set.
+       */
+      const statusCodes: Array<number> =
+        (aggregationRequest["statusCodes"] as Array<number>) || [];
+      const onlyErrors: boolean =
+        statusCodes.length === 1 && statusCodes[0] === 2;
+
+      const spanKinds: Array<string> =
+        (aggregationRequest["spanKinds"] as Array<string>) || [];
+      const spanKind: string | undefined =
+        spanKinds.length === 1 ? spanKinds[0] : undefined;
+
+      const definition: TraceRecordingRuleDefinition = {
+        sources: [
+          {
+            alias: "A",
+            aggregationType:
+              metricToAggregation[state.metric] || TraceAggregationType.Count,
+            ...(spanNameRegex ? { spanNameRegex } : {}),
+            ...(spanKind ? { spanKind } : {}),
+            ...(onlyErrors ? { onlyErrors } : {}),
+            ...(filterAttributes.length > 0 ? { filterAttributes } : {}),
+          },
+        ],
+        expression: "A",
+        groupByAttribute,
+      };
+
+      const route: Route = new Route(
+        RouteUtil.populateRouteParams(
+          RouteMap[PageMap.TRACES_SETTINGS_RECORDING_RULES]!,
+        ).toString(),
+      );
+      route.addQueryParams({
+        prefill: encodeURIComponent(JSON.stringify(definition)),
+      });
+      Navigation.navigate(route);
+    },
+    [aggregationRequest],
+  );
 
   // Histogram drag-to-zoom
   const handleHistogramTimeRangeSelect: (start: Date, end: Date) => void =
@@ -1510,8 +1958,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         }),
         timeRange: serializeTimeRange(timeRange),
         pageSize: pageSize,
+        rootOnly: rootOnly,
       };
-    }, [submittedSearch, activeFilters, timeRange, pageSize]);
+    }, [submittedSearch, activeFilters, timeRange, pageSize, rootOnly]);
 
   // Apply a saved view's state back into the explorer.
   const applySavedViewState: (state: TelemetrySavedViewState) => void =
@@ -1535,6 +1984,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       if (state.pageSize) {
         setPageSize(state.pageSize);
       }
+      // Views saved before the toggle existed default to root-spans-only.
+      setRootOnly(state.rootOnly ?? true);
       setPage(1);
     }, []);
 
@@ -1546,6 +1997,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       onRefresh={() => {
         void fetchSpans();
         void fetchHistogramAndFacets();
+        setAnalyticsRefreshTick((tick: number) => {
+          return tick + 1;
+        });
       }}
       toolbarLeadingActions={
         enableSavedViews ? (
@@ -1559,6 +2013,53 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
             onError={setError}
           />
         ) : undefined
+      }
+      toolbarTrailingActions={
+        <>
+          {/* Spans / Analytics view toggle */}
+          <div className="inline-flex overflow-hidden rounded-md border border-gray-200 shadow-sm">
+            {(["spans", "analytics"] as Array<"spans" | "analytics">).map(
+              (mode: "spans" | "analytics") => {
+                return (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={`px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                      viewMode === mode
+                        ? "bg-indigo-50 text-indigo-700"
+                        : "bg-white text-gray-600 hover:bg-gray-50"
+                    }`}
+                    onClick={() => {
+                      setViewMode(mode);
+                    }}
+                  >
+                    {mode === "spans" ? "Spans" : "Analytics"}
+                  </button>
+                );
+              },
+            )}
+          </div>
+          {/* Root-spans-only toggle */}
+          <button
+            type="button"
+            className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors ${
+              rootOnly
+                ? "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                : "border-indigo-300 bg-indigo-50 text-indigo-700"
+            }`}
+            onClick={() => {
+              setRootOnly(!rootOnly);
+              setPage(1);
+            }}
+            title={
+              rootOnly
+                ? "Showing root spans only — click to include all spans (e.g. when http.route / url.host live on a non-root span)"
+                : "Showing all spans — click to show root spans only"
+            }
+          >
+            {rootOnly ? "Root spans" : "All spans"}
+          </button>
+        </>
       }
       emptyMessage="No traces found"
       itemLabel="traces"
@@ -1619,13 +2120,30 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
          */
         const lowerFieldKey: string = fieldKey.toLowerCase();
         const isKnownField: boolean = KNOWN_FIELD_KEYS.has(lowerFieldKey);
-        const facetKey: string = isKnownField
-          ? FIELD_ALIAS_MAP[lowerFieldKey] || lowerFieldKey
-          : `attributes.${fieldKey}`;
-        const cleanValue: string =
+        let cleanValue: string =
           value.length >= 2 && value.startsWith('"') && value.endsWith('"')
             ? value.slice(1, -1)
             : value;
+        // `@key:~value` → contains-match chip (attributeSearches.<key>).
+        let facetKey: string;
+        if (isKnownField) {
+          facetKey = FIELD_ALIAS_MAP[lowerFieldKey] || lowerFieldKey;
+        } else if (cleanValue.startsWith("~")) {
+          facetKey = `attributeSearches.${fieldKey}`;
+          cleanValue = cleanValue.substring(1);
+          if (
+            cleanValue.length >= 2 &&
+            cleanValue.startsWith('"') &&
+            cleanValue.endsWith('"')
+          ) {
+            cleanValue = cleanValue.slice(1, -1);
+          }
+        } else {
+          facetKey = `attributes.${fieldKey}`;
+        }
+        if (cleanValue.length === 0) {
+          return;
+        }
         handleFacetInclude(facetKey, cleanValue);
       }}
       searchFieldAliasMap={FIELD_ALIAS_MAP}
@@ -1672,9 +2190,43 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       showHistogram={true}
       histogramBuckets={histogramBuckets}
       histogramSeries={histogramSeries}
-      histogramTitle="Traces over time"
+      histogramTitle={
+        chartMetric === "count" ? "Traces over time" : "Response time"
+      }
       histogramLoading={histogramLoading}
       onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}
+      histogramValueFormatter={
+        chartMetric === "count" ? undefined : formatDurationMs
+      }
+      histogramHeaderActions={
+        <select
+          className="rounded-md border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] font-medium text-gray-600 focus:border-indigo-400 focus:outline-none"
+          value={chartMetric}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+            setChartMetric(e.target.value);
+          }}
+          title="Chart metric"
+        >
+          {CHART_METRIC_OPTIONS.map((opt: { value: string; label: string }) => {
+            return (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            );
+          })}
+        </select>
+      }
+      mainContentOverride={
+        viewMode === "analytics" ? (
+          <TracesAnalyticsView
+            baseFilters={aggregationRequest}
+            attributeKeys={telemetryAttributes}
+            serviceNameMap={serviceNameMap}
+            onCreateMetric={handleCreateMetric}
+            refreshTick={analyticsRefreshTick}
+          />
+        ) : undefined
+      }
       // Pagination
       page={page}
       pageSize={pageSize}

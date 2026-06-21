@@ -1,4 +1,5 @@
 import DataMigrationBase from "./DataMigrationBase";
+import ClickHouseMigrationUtil from "./ClickHouseMigrationUtil";
 import MetricService from "Common/Server/Services/MetricService";
 import logger from "Common/Server/Utils/Logger";
 
@@ -64,9 +65,26 @@ export default class AddIdAndTimestampsToMVTargetTables extends DataMigrationBas
 
   public override async migrate(): Promise<void> {
     for (const table of TARGET_TABLES) {
+      /*
+       * Legacy tables may not exist: on fresh V3 installs the deprecated
+       * MetricItemAggMV1mByHost is never created (superseded by the
+       * model-owned ...ByHostV2), and an unguarded ALTER would throw
+       * UNKNOWN_TABLE and wedge the migration chain.
+       */
+      if (!(await ClickHouseMigrationUtil.tableExists(table))) {
+        logger.info(
+          `AddIdAndTimestampsToMVTargetTables: ${table} not present — skipping.`,
+        );
+        continue;
+      }
       await this.ensureColumn(table, "_id", "String", "generateUUIDv4()");
       await this.ensureColumn(table, "createdAt", "DateTime", "now()");
-      await this.ensureColumn(table, "updatedAt", "DateTime", "now()");
+      /*
+       * updatedAt was dropped from all telemetry tables in the V3 cut
+       * (DropUpdatedAtFromTelemetryTables); re-adding it here only to
+       * drop it again later is pointless churn, so it is no longer
+       * ensured. Legacy installs that still carry it lose nothing.
+       */
     }
   }
 

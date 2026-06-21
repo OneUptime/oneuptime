@@ -61,13 +61,16 @@ service:
                 protocol: http/protobuf
                 endpoint: {{ .Env.OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT }}
                 {{ if .Env.OPENTELEMETRY_EXPORTER_OTLP_HEADERS }}
+                # The collector's internal-telemetry schema (otelconf) takes
+                # OTLP headers as a list of name/value pairs, not a map.
                 headers:
                   # Add new line
                   {{ "" }}
                   {{- $headers := (strings.Split "," .Env.OPENTELEMETRY_EXPORTER_OTLP_HEADERS) -}}
                   {{- range $header := $headers }}
                   {{- $kv := (strings.Split "=" $header) }}
-                  {{- (index $kv 0) }}: {{ (index $kv 1) }}
+                  - name: {{ index $kv 0 }}
+                    value: {{ index $kv 1 }}
                   {{- end }}
                 {{ end }}
     metrics:
@@ -78,13 +81,16 @@ service:
                 protocol: http/protobuf
                 endpoint: {{ .Env.OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT }}
                 {{ if .Env.OPENTELEMETRY_EXPORTER_OTLP_HEADERS }}
+                # The collector's internal-telemetry schema (otelconf) takes
+                # OTLP headers as a list of name/value pairs, not a map.
                 headers:
                   # Add new line
                   {{ "" }}
                   {{- $headers := (strings.Split "," .Env.OPENTELEMETRY_EXPORTER_OTLP_HEADERS) -}}
                   {{- range $header := $headers }}
                   {{- $kv := (strings.Split "=" $header) }}
-                  {{- (index $kv 0) }}: {{ (index $kv 1) }}
+                  - name: {{ index $kv 0 }}
+                    value: {{ index $kv 1 }}
                   {{- end }}
                 {{ end }}
 {{ end }}

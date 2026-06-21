@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generic container-cluster glyph (a manager node orchestrating worker nodes/tasks). Not the official Docker logo — Docker and Docker Swarm are trademarks of Docker, Inc. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.5">
+  <rect x="9.5" y="2.5" width="5" height="5" rx="0.75" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="3" y="14" width="5" height="5" rx="0.75" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="9.5" y="14" width="5" height="5" rx="0.75" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="16" y="14" width="5" height="5" rx="0.75" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="12" y1="7.5" x2="12" y2="14" stroke-linecap="round"/>
+  <line x1="11" y1="9.5" x2="5.5" y2="14" stroke-linecap="round"/>
+  <line x1="13" y1="9.5" x2="18.5" y2="14" stroke-linecap="round"/>
+  <circle cx="12" cy="5" r="0.6" fill="#2563eb"/>
+  <circle cx="5.5" cy="16.5" r="0.6" fill="#2563eb"/>
+  <circle cx="12" cy="16.5" r="0.6" fill="#2563eb"/>
+  <circle cx="18.5" cy="16.5" r="0.6" fill="#2563eb"/>
+</svg>

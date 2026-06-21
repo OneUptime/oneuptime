@@ -9,6 +9,7 @@ import FacetSection from "./FacetSection";
 import Service from "../../../../Models/DatabaseModels/Service";
 import Host from "../../../../Models/DatabaseModels/Host";
 import DockerHost from "../../../../Models/DatabaseModels/DockerHost";
+import PodmanHost from "../../../../Models/DatabaseModels/PodmanHost";
 import KubernetesCluster from "../../../../Models/DatabaseModels/KubernetesCluster";
 import Dictionary from "../../../../Types/Dictionary";
 import ComponentLoader from "../../ComponentLoader/ComponentLoader";
@@ -21,6 +22,7 @@ export interface LogsFacetSidebarProps {
   serviceMap: Dictionary<Service>;
   hostMap?: Dictionary<Host>;
   dockerHostMap?: Dictionary<DockerHost>;
+  podmanHostMap?: Dictionary<PodmanHost>;
   kubernetesClusterMap?: Dictionary<KubernetesCluster>;
   onIncludeFilter: (facetKey: string, value: string) => void;
   onExcludeFilter: (facetKey: string, value: string) => void;
@@ -42,6 +44,7 @@ const RESOURCE_FACET_KEYS: ReadonlySet<string> = new Set([
   "primaryEntityId",
   "hostId",
   "dockerHostId",
+  "podmanHostId",
   "kubernetesClusterId",
 ]);
 
@@ -126,6 +129,23 @@ function buildDockerHostDisplayMap(
   return map;
 }
 
+function buildPodmanHostDisplayMap(
+  podmanHostMap: Dictionary<PodmanHost> | undefined,
+): Record<string, string> {
+  const map: Record<string, string> = {};
+  if (!podmanHostMap) {
+    return map;
+  }
+  for (const [id, podmanHost] of Object.entries(podmanHostMap)) {
+    const label: string | undefined =
+      podmanHost?.name || podmanHost?.hostIdentifier;
+    if (label) {
+      map[id] = label;
+    }
+  }
+  return map;
+}
+
 function buildClusterDisplayMap(
   clusterMap: Dictionary<KubernetesCluster> | undefined,
 ): Record<string, string> {
@@ -149,6 +169,7 @@ function getFacetTitle(key: string): string {
     primaryEntityId: "Service",
     hostId: "Host",
     dockerHostId: "Docker Host",
+    podmanHostId: "Podman Host",
     kubernetesClusterId: "Kubernetes Cluster",
     traceId: "Trace ID",
     spanId: "Span ID",
@@ -180,6 +201,10 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
     return buildDockerHostDisplayMap(props.dockerHostMap);
   }, [props.dockerHostMap]);
 
+  const podmanHostDisplayMap: Record<string, string> = useMemo(() => {
+    return buildPodmanHostDisplayMap(props.podmanHostMap);
+  }, [props.podmanHostMap]);
+
   const clusterDisplayMap: Record<string, string> = useMemo(() => {
     return buildClusterDisplayMap(props.kubernetesClusterMap);
   }, [props.kubernetesClusterMap]);
@@ -190,6 +215,7 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
       "primaryEntityId",
       "hostId",
       "dockerHostId",
+      "podmanHostId",
       "kubernetesClusterId",
     ];
     const otherKeys: Array<string> = Object.keys(props.facetData).filter(
@@ -287,6 +313,8 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
             valueDisplayMap = hostDisplayMap;
           } else if (key === "dockerHostId") {
             valueDisplayMap = dockerHostDisplayMap;
+          } else if (key === "podmanHostId") {
+            valueDisplayMap = podmanHostDisplayMap;
           } else if (key === "kubernetesClusterId") {
             valueDisplayMap = clusterDisplayMap;
           } else if (key === "severityText") {

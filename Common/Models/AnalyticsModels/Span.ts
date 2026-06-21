@@ -996,7 +996,8 @@ export default class Span extends AnalyticsBaseModel {
       sortKeys: ["projectId", "startTime", "primaryEntityId", "traceId"],
       primaryKeys: ["projectId", "startTime", "primaryEntityId", "traceId"],
       partitionKey: "toYYYYMMDD(startTime)",
-      tableSettings: "ttl_only_drop_parts = 1",
+      tableSettings:
+        "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
       ttlExpression: "retentionDate DELETE",
       defaultSortColumn: "startTime",
     });

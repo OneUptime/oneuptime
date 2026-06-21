@@ -4,6 +4,7 @@ import { JSONObject } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
 import logger from "Common/Server/Utils/Logger";
 import Dictionary from "Common/Types/Dictionary";
+import ObjectID from "Common/Types/ObjectID";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import {
   OtelPayloadEncoding,
@@ -75,18 +76,24 @@ export interface TelemetryIngestJobData {
   type: TelemetryType;
   projectId?: string;
   /*
-   * Parsed JSON body. Used by the non-OTel ingest paths
-   * (Fluent, Syslog) that hand the queue a decoded object
-   * directly. OTel paths go through `bodyKey` below instead.
+   * Parsed JSON body. Used ONLY by the non-OTel ingest paths
+   * (Fluent, Syslog) whose worker cases read `requestBody`
+   * directly. OTel-type jobs (logs / traces / metrics / profiles)
+   * must never use this field — their worker cases resolve the
+   * payload exclusively through `bodyKey` below and throw if it
+   * is missing.
    */
   requestBody?: JSONObject;
   /*
-   * Redis key for the raw HTTP request body, written out-of-band
-   * by TelemetryBodyStore before the job is enqueued. The worker
+   * Redis key for the raw request body, written out-of-band by
+   * TelemetryBodyStore before the job is enqueued. The worker
    * fetches the raw buffer via TelemetryBodyStore.readAndDeleteBody
    * and decodes (gunzip + protobuf or JSON) per `bodyFormat` /
-   * `bodyEncoding`. Used by every OTel ingest path so the HTTP
-   * request thread never pays the encode / inflate cost.
+   * `bodyEncoding`. Every OTel-type job carries
+   * `bodyKey` + `bodyFormat` + `productType` — raw HTTP bodies are
+   * stored as-is, while producers that hand us an already-parsed
+   * object (gRPC, Pyroscope conversion) are serialized to JSON
+   * before storage so the worker has a single resolution path.
    */
   bodyKey?: string;
   bodyFormat?: OtelPayloadFormat;
@@ -123,6 +130,70 @@ export interface SyslogIngestJobData extends TelemetryIngestJobData {
   type: TelemetryType.Syslog;
 }
 
+/*
+ * The OTel signal types whose worker cases resolve their payload via
+ * `bodyKey` (see resolveOtelBody in ProcessTelemetry). Jobs of these
+ * types MUST carry `bodyKey` + `bodyFormat` + `productType` or the
+ * worker throws. Syslog / FluentLogs are exempt — their worker cases
+ * read `requestBody` directly.
+ */
+const OTEL_TELEMETRY_TYPES: ReadonlyArray<TelemetryType> = [
+  TelemetryType.Logs,
+  TelemetryType.Traces,
+  TelemetryType.Metrics,
+  TelemetryType.Profiles,
+];
+
+/*
+ * Fallback ProductType per OTel signal. The HTTP and gRPC entry points
+ * stamp `req.productType` via middleware, but internal producers that
+ * assemble a partial TelemetryRequest by hand (e.g. the Pyroscope
+ * conversion path) may omit it — the worker needs it to pick the right
+ * decoder, so derive it from the queue type when absent.
+ */
+const PRODUCT_TYPE_BY_TELEMETRY_TYPE: Partial<
+  Record<TelemetryType, ProductType>
+> = {
+  [TelemetryType.Logs]: ProductType.Logs,
+  [TelemetryType.Traces]: ProductType.Traces,
+  [TelemetryType.Metrics]: ProductType.Metrics,
+  [TelemetryType.Profiles]: ProductType.Profiles,
+};
+
+/*
+ * JSON.stringify replacer that rewrites binary values to base64
+ * strings. The gRPC entry point hands us proto-loader output where
+ * `bytes` fields (traceId / spanId / profileId / ...) are Buffers;
+ * a plain stringify would serialize those as `{"type":"Buffer",
+ * "data":[...]}` which the downstream ingest services cannot read.
+ * protobufjs' `.toJSON()` (the deferred-decode path) emits base64
+ * for bytes fields, so converting here keeps both producer paths
+ * byte-for-byte compatible for the worker.
+ */
+function binaryToBase64Replacer(_key: string, value: unknown): unknown {
+  /*
+   * Buffer.prototype.toJSON runs before the replacer, so Buffers
+   * arrive here already reshaped as { type: "Buffer", data: [...] }.
+   */
+  if (
+    value &&
+    typeof value === "object" &&
+    (value as JSONObject)["type"] === "Buffer" &&
+    Array.isArray((value as JSONObject)["data"])
+  ) {
+    return Buffer.from((value as { data: Array<number> }).data).toString(
+      "base64",
+    );
+  }
+
+  // Plain Uint8Arrays have no toJSON and would serialize as index maps.
+  if (value instanceof Uint8Array) {
+    return Buffer.from(value).toString("base64");
+  }
+
+  return value;
+}
+
 export default class TelemetryQueueService {
   public static async addTelemetryIngestJob(
     req: TelemetryRequest,
@@ -136,18 +207,17 @@ export default class TelemetryQueueService {
         ingestionTimestamp: OneUptimeDate.getCurrentDate(),
       };
 
-      /*
-       * Deferred-decode path: when the OTel middleware leaves
-       * `req.body` as a raw Buffer (the new default), we ship the
-       * bytes + format metadata so the worker can run the protobuf
-       * decode and JSON normalization off the HTTP request thread.
-       * Legacy callers (Fluent / Syslog) hand us a parsed JSON body
-       * — fall back to the old `requestBody` path for those.
-       */
       const isRawBuffer: boolean =
         Buffer.isBuffer(req.body) || req.body instanceof Uint8Array;
+      const isOtelType: boolean = OTEL_TELEMETRY_TYPES.includes(type);
 
       if (isRawBuffer) {
+        /*
+         * Deferred-decode path: the OTel middleware leaves `req.body`
+         * as a raw Buffer, so we ship the bytes + format metadata and
+         * the worker runs the protobuf decode and JSON normalization
+         * off the HTTP request thread.
+         */
         const buffer: Buffer = Buffer.isBuffer(req.body)
           ? (req.body as Buffer)
           : Buffer.from(req.body as Uint8Array);
@@ -182,12 +252,33 @@ export default class TelemetryQueueService {
         jobData.bodyEncoding = contentEncoding?.includes("gzip")
           ? "gzip"
           : "none";
-        jobData.productType = req.productType;
+        jobData.productType =
+          req.productType ?? PRODUCT_TYPE_BY_TELEMETRY_TYPE[type];
+      } else if (isOtelType) {
+        /*
+         * Parsed-object producers (gRPC OTLP exports, Pyroscope's
+         * pprof->OTLP conversion) hand us a decoded JS object. The
+         * worker resolves OTel payloads exclusively through
+         * `bodyKey` (resolveOtelBody throws without it), so
+         * serialize the object back to JSON and store it the same
+         * way as a raw body — every OTel-type job then carries
+         * `bodyKey` + `bodyFormat` + `productType`, regardless of
+         * which producer enqueued it.
+         */
+        const buffer: Buffer = Buffer.from(
+          JSON.stringify(req.body, binaryToBase64Replacer),
+        );
+        jobData.bodyKey = await TelemetryBodyStore.storeBody(buffer);
+        jobData.bodyFormat = OtelPayloadFormat.Json;
+        jobData.bodyEncoding = "none";
+        jobData.productType =
+          req.productType ?? PRODUCT_TYPE_BY_TELEMETRY_TYPE[type];
       } else {
+        // Syslog / FluentLogs — their worker cases read `requestBody` directly.
         jobData.requestBody = req.body;
       }
 
-      const jobId: string = `${type}-${req.projectId?.toString()}-${OneUptimeDate.getCurrentDateAsUnixNano()}`;
+      const jobId: string = `${type}-${req.projectId?.toString()}-${OneUptimeDate.getCurrentDateAsUnixNano()}-${ObjectID.generate().toString()}`;
 
       await Queue.addJob(
         QueueName.Telemetry,
@@ -196,8 +287,10 @@ export default class TelemetryQueueService {
         jobData as unknown as JSONObject,
         {
           /*
-           * Job ids are unix-nano suffixed and therefore unique — skip
-           * the duplicate-id existence check (2 Redis round trips).
+           * Job ids carry a random UUID suffix and are therefore unique
+           * (the unix-nano prefix alone is millisecond-precision and
+           * collides under concurrency) — skip the duplicate-id
+           * existence check (2 Redis round trips).
            */
           skipExistenceCheck: true,
         },
@@ -254,7 +347,7 @@ export default class TelemetryQueueService {
         probeIngest: probeData,
       };
 
-      const jobId: string = `probe-${data.jobType}-${data.testId || "general"}-${OneUptimeDate.getCurrentDateAsUnixNano()}`;
+      const jobId: string = `probe-${data.jobType}-${data.testId || "general"}-${OneUptimeDate.getCurrentDateAsUnixNano()}-${ObjectID.generate().toString()}`;
 
       await Queue.addJob(
         QueueName.Telemetry,
@@ -263,8 +356,10 @@ export default class TelemetryQueueService {
         jobData as unknown as JSONObject,
         {
           /*
-           * Job ids are unix-nano suffixed and therefore unique — skip
-           * the duplicate-id existence check (2 Redis round trips).
+           * Job ids carry a random UUID suffix and are therefore unique
+           * (the unix-nano prefix alone is millisecond-precision and
+           * collides under concurrency) — skip the duplicate-id
+           * existence check (2 Redis round trips).
            */
           skipExistenceCheck: true,
         },
@@ -316,7 +411,7 @@ export default class TelemetryQueueService {
         probeIngest: probeData,
       };
 
-      const jobId: string = `incoming-email-${data.secretKey}-${OneUptimeDate.getCurrentDateAsUnixNano()}`;
+      const jobId: string = `incoming-email-${data.secretKey}-${OneUptimeDate.getCurrentDateAsUnixNano()}-${ObjectID.generate().toString()}`;
 
       await Queue.addJob(
         QueueName.Telemetry,
@@ -325,8 +420,10 @@ export default class TelemetryQueueService {
         jobData as unknown as JSONObject,
         {
           /*
-           * Job ids are unix-nano suffixed and therefore unique — skip
-           * the duplicate-id existence check (2 Redis round trips).
+           * Job ids carry a random UUID suffix and are therefore unique
+           * (the unix-nano prefix alone is millisecond-precision and
+           * collides under concurrency) — skip the duplicate-id
+           * existence check (2 Redis round trips).
            */
           skipExistenceCheck: true,
         },
@@ -357,7 +454,7 @@ export default class TelemetryQueueService {
         serverMonitorIngest: serverMonitorData,
       };
 
-      const jobId: string = `server-monitor-${data.secretKey}-${OneUptimeDate.getCurrentDateAsUnixNano()}`;
+      const jobId: string = `server-monitor-${data.secretKey}-${OneUptimeDate.getCurrentDateAsUnixNano()}-${ObjectID.generate().toString()}`;
 
       await Queue.addJob(
         QueueName.Telemetry,
@@ -366,8 +463,10 @@ export default class TelemetryQueueService {
         jobData as unknown as JSONObject,
         {
           /*
-           * Job ids are unix-nano suffixed and therefore unique — skip
-           * the duplicate-id existence check (2 Redis round trips).
+           * Job ids carry a random UUID suffix and are therefore unique
+           * (the unix-nano prefix alone is millisecond-precision and
+           * collides under concurrency) — skip the duplicate-id
+           * existence check (2 Redis round trips).
            */
           skipExistenceCheck: true,
         },
@@ -404,7 +503,7 @@ export default class TelemetryQueueService {
         incomingRequestIngest: incomingRequestData,
       };
 
-      const jobId: string = `incoming-request-${data.secretKey}-${OneUptimeDate.getCurrentDateAsUnixNano()}`;
+      const jobId: string = `incoming-request-${data.secretKey}-${OneUptimeDate.getCurrentDateAsUnixNano()}-${ObjectID.generate().toString()}`;
 
       await Queue.addJob(
         QueueName.Telemetry,
@@ -413,8 +512,10 @@ export default class TelemetryQueueService {
         jobData as unknown as JSONObject,
         {
           /*
-           * Job ids are unix-nano suffixed and therefore unique — skip
-           * the duplicate-id existence check (2 Redis round trips).
+           * Job ids carry a random UUID suffix and are therefore unique
+           * (the unix-nano prefix alone is millisecond-precision and
+           * collides under concurrency) — skip the duplicate-id
+           * existence check (2 Redis round trips).
            */
           skipExistenceCheck: true,
         },

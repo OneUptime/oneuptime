@@ -360,7 +360,12 @@ export default class MonitorTemplateUtil {
       if (
         data.monitorType === MonitorType.Metrics ||
         data.monitorType === MonitorType.Kubernetes ||
-        data.monitorType === MonitorType.Docker
+        data.monitorType === MonitorType.Docker ||
+        data.monitorType === MonitorType.Host ||
+        data.monitorType === MonitorType.Podman ||
+        data.monitorType === MonitorType.DockerSwarm ||
+        data.monitorType === MonitorType.Proxmox ||
+        data.monitorType === MonitorType.Ceph
       ) {
         const metricResponse: MetricMonitorResponse =
           data.dataToProcess as MetricMonitorResponse;

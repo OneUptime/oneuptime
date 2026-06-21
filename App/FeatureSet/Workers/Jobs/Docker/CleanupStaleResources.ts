@@ -25,9 +25,9 @@ import ObjectID from "Common/Types/ObjectID";
  *      show accurate numbers without doing a SQL aggregation per
  *      render.
  *
- * Marking disconnected hosts is the responsibility of an existing
- * cron (DockerHostService.markDisconnectedHosts). That runs in a
- * different worker; here we just respect the resulting status.
+ * Marking disconnected hosts happens first in this cron via
+ * DockerHostService.markDisconnectedHosts, so the inventory pruning
+ * below respects the freshly updated status.
  * ------------------------------------------------------------------
  */
 
@@ -51,6 +51,7 @@ RunCron(
         select: {
           _id: true,
           projectId: true,
+          lastSeenAt: true,
         },
         skip: 0,
         limit: LIMIT_MAX,
@@ -61,8 +62,6 @@ RunCron(
         return;
       }
 
-      const cutoff: Date = DockerResourceService.getStaleThresholdDate();
-
       let totalDeleted: number = 0;
       for (const host of connectedHosts) {
         if (!host._id || !host.projectId) {
@@ -71,6 +70,21 @@ RunCron(
 
         const hostId: ObjectID = new ObjectID(host._id.toString());
         const projectId: ObjectID = new ObjectID(host.projectId.toString());
+
+        /*
+         * Anchor the prune cutoff to the host's own lastSeenAt, not
+         * wall-clock now. Inventory rows refresh on the snapshot clock
+         * while host.lastSeenAt is fence-gated telemetry, so at agent
+         * death the rows are staler than the host record. With the
+         * disconnect threshold (15 min) equal to the prune threshold,
+         * a wall-clock cutoff would let a cron run late in an outage
+         * wipe the last-known inventory (and zero the cached container
+         * counts) of a still-"connected" host. Anchoring to lastSeenAt
+         * freezes the cutoff during an outage.
+         */
+        const cutoff: Date = DockerResourceService.getStaleThresholdDate(
+          host.lastSeenAt || undefined,
+        );
 
         try {
           const deleted: number =
@@ -110,7 +124,7 @@ RunCron(
 
       if (totalDeleted > 0) {
         logger.debug(
-          `Docker:CleanupStaleResources: pruned ${totalDeleted} stale DockerResource row(s) across ${connectedHosts.length} host(s) (cutoff ${cutoff.toISOString()})`,
+          `Docker:CleanupStaleResources: pruned ${totalDeleted} stale DockerResource row(s) across ${connectedHosts.length} host(s)`,
         );
       }
     } catch (err) {

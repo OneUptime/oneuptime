@@ -1,0 +1,58 @@
+services:
+  # The collector: docker_stats metrics + container logs + the
+  # filelog/inventory receiver that tails the shared snapshot file.
+  oneuptime-docker-swarm-agent:
+    image: oneuptime/docker-swarm-agent:release
+    container_name: oneuptime-docker-swarm-agent
+    user: "0:0"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      # Use the downloaded config (lets you customize without rebuilding
+      # the image). The image also bakes a copy at the same path, so this
+      # bind-mount is optional — remove it to use the baked-in config.
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      # Shared with the inventory sidecar; the collector reads the
+      # snapshot file the sidecar writes here.
+      - swarm-inventory:/var/log
+    environment:
+      - ONEUPTIME_URL=${ONEUPTIME_URL}
+      - ONEUPTIME_SERVICE_TOKEN=${ONEUPTIME_SERVICE_TOKEN}
+      - DOCKER_SWARM_CLUSTER_NAME=${DOCKER_SWARM_CLUSTER_NAME:-docker-swarm}
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Inventory poller — MUST run on a manager node (the /nodes, /services,
+  # /tasks endpoints are manager-only). Stock alpine + curl + jq; writes
+  # the JSON-line snapshot the collector tails on the shared volume.
+  oneuptime-docker-swarm-inventory:
+    image: alpine:3.20
+    container_name: oneuptime-docker-swarm-inventory
+    user: "0:0"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - "apk add --no-cache curl jq >/dev/null 2>&1 && exec /usr/local/bin/inventory-snapshot.sh"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./inventory-snapshot.sh:/usr/local/bin/inventory-snapshot.sh:ro
+      - swarm-inventory:/var/log
+    environment:
+      - DOCKER_INVENTORY_INTERVAL_SECONDS=${DOCKER_INVENTORY_INTERVAL_SECONDS:-300}
+    # Pin the sidecar to a manager node when deployed as a stack:
+    #   deploy:
+    #     placement:
+    #       constraints: [node.role == manager]
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  swarm-inventory:

@@ -159,6 +159,12 @@ const CloudResourceOverview: FunctionComponent<
     const end: Date = range.endValue;
     setChartWindow({ start, end });
 
+    /*
+     * Staleness guard: a slow wide-range fetch can resolve after a
+     * subsequently selected narrower range — without the guard the older
+     * response would clobber the newer one.
+     */
+    let ignore: boolean = false;
     Promise.all([
       fetchSpanMetrics({ attributes, start, end }),
       fetchMetricSeries({
@@ -170,13 +176,23 @@ const CloudResourceOverview: FunctionComponent<
       }),
     ])
       .then(([m, mem]: [SpanMetrics, Array<TimePoint>]) => {
+        if (ignore) {
+          return;
+        }
         setMetrics(m);
         setMemorySeries(mem);
         setMetricsLoading(false);
       })
       .catch(() => {
+        if (ignore) {
+          return;
+        }
         setMetricsLoading(false);
       });
+
+    return () => {
+      ignore = true;
+    };
   }, [cloudResource, timeRange]);
 
   if (isLoading) {

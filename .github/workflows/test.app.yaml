@@ -1,0 +1,25 @@
+name: App Test
+
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - 'hotfix-*'   # excludes hotfix branches
+      - 'release'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+      BILLING_PRIVATE_KEY: ${{secrets.TEST_BILLING_PRIVATE_KEY}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      - run: cd Common && bash test-setup.sh
+      # App tests import Common sources directly (jest maps Common/* to
+      # ../Common), so Common's own dependencies must be installed too.
+      - run: cd Common && npm install
+      - run: cd App && npm install && npm run test

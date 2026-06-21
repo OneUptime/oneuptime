@@ -5,6 +5,7 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import Text from "../../../Types/Text";
+import { combineWithPrivacyClause } from "../PrivacyFilterUtil";
 import { Raw } from "typeorm";
 
 export function shouldBypassAlertEpisodePrivacy(
@@ -107,7 +108,10 @@ export function applyAlertEpisodeSelfPrivacyFilter<T>(
     return { isPrivate: rawClause } as unknown as T;
   }
 
-  (query as any).isPrivate = rawClause;
+  (query as any).isPrivate = combineWithPrivacyClause(
+    (query as any).isPrivate,
+    rawClause,
+  );
   return query;
 }
 
@@ -126,6 +130,9 @@ export function applyAlertEpisodeRelatedRecordPrivacyFilter<T>(
     return { alertEpisodeId: rawClause } as unknown as T;
   }
 
-  (query as any).alertEpisodeId = rawClause;
+  (query as any).alertEpisodeId = combineWithPrivacyClause(
+    (query as any).alertEpisodeId,
+    rawClause,
+  );
   return query;
 }

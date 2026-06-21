@@ -102,6 +102,7 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       <ModelTable<Dashboard>
         modelType={Dashboard}
+        enableJsonImportExport={true}
         id="dashboard-table"
         userPreferencesKey="dashboards-table"
         topContent={filterBar}

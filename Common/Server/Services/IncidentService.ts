@@ -29,6 +29,7 @@ import { applyIncidentSelfPrivacyFilter } from "../Utils/Incident/IncidentPrivac
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
+import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import Host from "../../Models/DatabaseModels/Host";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import ServiceModel from "../../Models/DatabaseModels/Service";
@@ -571,6 +572,7 @@ export class Service extends DatabaseService<Model> {
             hosts: { _id: true },
             kubernetesClusters: { _id: true },
             dockerHosts: { _id: true },
+            podmanHosts: { _id: true },
             services: { _id: true },
             onCallDutyPolicies: { _id: true },
             labels: { _id: true },
@@ -687,6 +689,15 @@ export class Service extends DatabaseService<Model> {
           );
           if (stubs && stubs.length > 0) {
             createBy.data.dockerHosts = stubs;
+          }
+        }
+        if (createBy.data.podmanHosts === undefined) {
+          const stubs: Array<PodmanHost> | undefined = stubBy(
+            PodmanHost,
+            incidentTemplate.podmanHosts,
+          );
+          if (stubs && stubs.length > 0) {
+            createBy.data.podmanHosts = stubs;
           }
         }
         if (createBy.data.services === undefined) {

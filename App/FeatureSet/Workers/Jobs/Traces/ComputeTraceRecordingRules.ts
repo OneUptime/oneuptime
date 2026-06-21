@@ -1,10 +1,13 @@
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
+import { getQuerySettings } from "Common/Server/Utils/AnalyticsDatabase/QuerySettingsHelper";
 import RunCron from "../../Utils/Cron";
 import logger from "Common/Server/Utils/Logger";
 import TraceRecordingRuleService from "Common/Server/Services/TraceRecordingRuleService";
 import MetricService from "Common/Server/Services/MetricService";
 import TraceRecordingRule from "Common/Models/DatabaseModels/TraceRecordingRule";
 import TraceRecordingRuleDefinition, {
+  TraceRecordingRuleAttributeFilter,
+  TraceRecordingRuleDefinitionUtil,
   TraceRecordingRuleSource,
 } from "Common/Types/Trace/TraceRecordingRuleDefinition";
 import TraceAggregationType from "Common/Types/Trace/TraceAggregationType";
@@ -221,9 +224,17 @@ async function runSourceQuery(args: {
     filters.push(`statusCode = 2`);
   }
 
-  if (source.filterAttributeKey && source.filterAttributeValue) {
+  // Multi-filter array + legacy single pair, ANDed (e.g. route AND tenant).
+  /*
+   * Key matching is case-insensitive — the explorer/analytics filters that
+   * prefill these rules match attribute keys with lowerUTF8 (casings vary
+   * across OTel conventions), so the rule must count the same span set.
+   */
+  const attributeFilters: Array<TraceRecordingRuleAttributeFilter> =
+    TraceRecordingRuleDefinitionUtil.getSourceAttributeFilters(source);
+  for (const attributeFilter of attributeFilters) {
     filters.push(
-      `attributes['${esc(source.filterAttributeKey)}'] = '${esc(source.filterAttributeValue)}'`,
+      `arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8('${esc(attributeFilter.key)}') AND v = '${esc(attributeFilter.value)}', mapKeys(attributes), mapValues(attributes))`,
     );
   }
 
@@ -245,6 +256,7 @@ async function runSourceQuery(args: {
       AND startTime < toDateTime64('${endIso}', 9)
       ${filterSql}
     ${groupSqlGroupBy}
+    ${getQuerySettings({ maxExecutionTimeInSeconds: 60, additionalSettings: { max_threads: 4 } })}
   `;
 
   const resultSet: {
@@ -283,6 +295,8 @@ function toSpanAggregateSql(type: TraceAggregationType): string {
       return "avg(durationUnixNano) / 1e9";
     case TraceAggregationType.P50DurationSeconds:
       return "quantile(0.5)(durationUnixNano) / 1e9";
+    case TraceAggregationType.P90DurationSeconds:
+      return "quantile(0.9)(durationUnixNano) / 1e9";
     case TraceAggregationType.P95DurationSeconds:
       return "quantile(0.95)(durationUnixNano) / 1e9";
     case TraceAggregationType.P99DurationSeconds:
@@ -316,7 +330,7 @@ function buildDerivedMetricRow(args: {
   const retentionDate: Date = OneUptimeDate.addRemoveDays(now, 15);
 
   return {
-    _id: ObjectID.generate().toString(),
+    _id: ObjectID.generateTimeOrdered().toString(),
     projectId: rule.projectId!.toString(),
     createdAt: OneUptimeDate.toClickhouseDateTime(now),
     time: OneUptimeDate.toClickhouseDateTime(bucketStart),

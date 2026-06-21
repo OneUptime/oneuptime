@@ -290,7 +290,8 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
            * `autoDiscoverHost` still has to wait because it consumes
            * the two ids above.
            */
-          const [kubernetesClusterId, dockerHostId]: [
+          const [kubernetesClusterId, dockerHostId, podmanHostId]: [
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
           ] = await Promise.all([
@@ -299,6 +300,10 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
               attributes: resourceAttributes_raw,
             }),
             this.autoDiscoverDockerHost({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverPodmanHost({
               projectId,
               attributes: resourceAttributes_raw,
             }),
@@ -316,6 +321,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
             attributes: resourceAttributes_raw,
             hasInfraSignal: false,
             dockerHostId,
+            podmanHostId,
             kubernetesClusterId,
           });
 
@@ -343,6 +349,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
               projectId,
               hostId,
               dockerHostId,
+              podmanHostId,
               kubernetesClusterId,
               serverlessFunctionId,
               cloudResourceId,
@@ -381,6 +388,12 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
             ...(dockerHostId && stampHostName
               ? TelemetryUtil.getAttributesForDockerHostIdAndHostName({
                   dockerHostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(podmanHostId && stampHostName
+              ? TelemetryUtil.getAttributesForPodmanHostIdAndHostName({
+                  podmanHostId,
                   hostName: stampHostName,
                 })
               : {}),
@@ -1087,16 +1100,13 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     return duration.toString();
   }
 
+  /*
+   * OTLP/JSON sends trace/span ids as 16/32-char hex, OTLP/protobuf as
+   * base64 — Text.convertOtlpIdToHex tells them apart so hex ids are
+   * never base64-decoded into garbage.
+   */
   private static convertBase64ToHexSafe(value: string | undefined): string {
-    if (!value) {
-      return "";
-    }
-
-    try {
-      return Text.convertBase64ToHex(value);
-    } catch {
-      return "";
-    }
+    return Text.convertOtlpIdToHex(value);
   }
 
   private static toBoolean(value: unknown): boolean | null {

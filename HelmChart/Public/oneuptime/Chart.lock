@@ -1,12 +1,12 @@
 dependencies:
 - name: keda
   repository: https://kedacore.github.io/charts
-  version: 2.17.2
+  version: 2.20.1
 - name: cloudnative-pg
   repository: https://cloudnative-pg.github.io/charts
   version: 0.28.2
 - name: altinity-clickhouse-operator
   repository: https://helm.altinity.com/
   version: 0.27.1
-digest: sha256:9b37258e28da9bdbb3f04ea0591be756a3707c4b696ec61fed8aa2fea51a9e09
-generated: "2026-06-05T17:43:28.840276+03:00"
+digest: sha256:519806c4a5ac6283eac81c018f5b5851bd0f332fe030d3d615aa48ffbac5eb3d
+generated: "2026-06-12T11:50:12.056584+03:00"

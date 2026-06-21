@@ -19,6 +19,9 @@ import Permission, {
   PermissionHelper,
   UserPermission,
 } from "../../../../Types/Permission";
+import { combineWithPrivacyClause } from "../../../Utils/PrivacyFilterUtil";
+import QueryHelper from "../QueryHelper";
+import QueryUtil from "../QueryUtil";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class AccessControlPermission {
@@ -232,8 +235,50 @@ export default class AccessControlPermission {
         this.getAccessControlIdsForQuery(modelType, query, select, props, type);
 
       if (accessControlIds.length > 0) {
-        (query as any)[model.getAccessControlColumn() as string] =
-          accessControlIds;
+        const accessControlColumn: string =
+          model.getAccessControlColumn() as string;
+        const existingFilter: unknown = (query as any)[accessControlColumn];
+
+        if (existingFilter === undefined || existingFilter === null) {
+          (query as any)[accessControlColumn] = accessControlIds;
+        } else {
+          /*
+           * The caller already filters on the access-control column (e.g.
+           * "show monitors with label X"). Overwriting that filter with the
+           * permitted set would silently widen it to "any permitted label".
+           * Both predicates must hold independently — a record with labels
+           * {X, Y} (X requested, Y permitted) must match even when X itself
+           * is not permitted — so keep the caller's filter on the relation
+           * key and AND the permitted-set predicate onto _id as a join-table
+           * subquery.
+           */
+          const manyToManyMeta: {
+            joinTableName: string;
+            ownerColumnName: string;
+            relationColumnName: string;
+          } | null = QueryUtil.getManyToManyRelationMetadata(
+            modelType,
+            accessControlColumn,
+          );
+
+          if (manyToManyMeta) {
+            (query as any)._id = combineWithPrivacyClause(
+              (query as any)._id,
+              QueryHelper.anyOfEntitiesInManyToMany({
+                values: accessControlIds,
+                joinTableName: manyToManyMeta.joinTableName,
+                ownerColumnName: manyToManyMeta.ownerColumnName,
+                relationColumnName: manyToManyMeta.relationColumnName,
+              }),
+            );
+          } else {
+            /*
+             * Join metadata unavailable — fail closed to the permitted set.
+             * The caller's filter is dropped, but access never widens.
+             */
+            (query as any)[accessControlColumn] = accessControlIds;
+          }
+        }
       }
     }
 

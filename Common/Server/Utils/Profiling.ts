@@ -1,9 +1,20 @@
-import Pyroscope from "@pyroscope/nodejs";
 import { EnableProfiling } from "../EnvironmentConfig";
 import logger, { LogAttributes } from "./Logger";
 import GracefulShutdown, { ShutdownPriority } from "./GracefulShutdown";
 
+/*
+ * Type-only import: erased at compile time, so it emits NO runtime require.
+ * @pyroscope/nodejs pulls in @datadog/pprof, whose native (node-gyp) binding loads
+ * at require() time. When no prebuilt binary exists for the running Node ABI (e.g. a
+ * newer Node major than the pprof build ships for), that require throws — so the module
+ * must never be imported at the top level, or the throw takes down the whole process
+ * before init() is even reached. We load it lazily and defensively inside init() instead.
+ */
+type PyroscopeModule = typeof import("@pyroscope/nodejs");
+
 export default class Profiling {
+  private static pyroscope: PyroscopeModule | null = null;
+
   public static init(data: { serviceName: string }): void {
     if (!EnableProfiling) {
       return;
@@ -24,6 +35,25 @@ export default class Profiling {
       return;
     }
 
+    let Pyroscope: PyroscopeModule;
+    try {
+      /*
+       * Lazy load so the native pprof binding is only required when profiling is actually
+       * enabled, and so a load failure (missing/incompatible prebuilt binary for the running
+       * Node ABI) is caught here and degrades to "profiling disabled" instead of crashing
+       * the server. Profiling is a best-effort, optional feature.
+       */
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      Pyroscope = require("@pyroscope/nodejs") as PyroscopeModule;
+    } catch (err) {
+      logger.warn(
+        "Profiling enabled but the profiler native module could not be loaded. Continuing without profiling.",
+        profilingLogAttributes,
+      );
+      logger.warn(err, profilingLogAttributes);
+      return;
+    }
+
     try {
       Pyroscope.init({
         appName: data.serviceName,
@@ -36,6 +66,8 @@ export default class Profiling {
 
       Pyroscope.start();
 
+      this.pyroscope = Pyroscope;
+
       logger.info(
         `Profiling initialized for service: ${data.serviceName} -> ${serverAddress}`,
         profilingLogAttributes,
@@ -43,6 +75,7 @@ export default class Profiling {
     } catch (err) {
       logger.error("Failed to initialize profiling:", profilingLogAttributes);
       logger.error(err, profilingLogAttributes);
+      return;
     }
 
     // Stop the profiler last (Telemetry tier), alongside the OTEL flush.
@@ -51,7 +84,9 @@ export default class Profiling {
       ShutdownPriority.Telemetry,
       async (): Promise<void> => {
         try {
-          await Pyroscope.stop();
+          if (this.pyroscope) {
+            await this.pyroscope.stop();
+          }
         } catch (err) {
           logger.error("Error stopping profiler:", profilingLogAttributes);
           logger.error(err, profilingLogAttributes);

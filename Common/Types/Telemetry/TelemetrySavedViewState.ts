@@ -23,4 +23,6 @@ export default interface TelemetrySavedViewState {
   timeRange?: TelemetrySavedViewTimeRange | undefined;
   // Rows per page.
   pageSize?: number | undefined;
+  // Traces explorer: root-spans-only toggle (defaults to true when absent).
+  rootOnly?: boolean | undefined;
 }

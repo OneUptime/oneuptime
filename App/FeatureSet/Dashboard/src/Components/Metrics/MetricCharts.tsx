@@ -57,7 +57,6 @@ export interface ComponentProps {
   metricResults: Array<AggregatedResult>;
   metricTypes: Array<MetricType>;
   hideCard?: boolean | undefined;
-  heightInPx?: number | undefined;
   chartCssClass?: string | undefined;
 }
 
@@ -275,7 +274,7 @@ function renderSeriesControls(input: {
         </div>
       ) : null}
 
-      <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+      <div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
         {visibleForChips.length === 0 ? (
           <div className="py-1 text-xs italic text-gray-400">
             No series match &ldquo;{controls.searchQuery}&rdquo;
@@ -1125,7 +1124,6 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     <ChartGroup
       charts={getCharts()}
       hideCard={props.hideCard}
-      heightInPx={props.heightInPx}
       chartCssClass={props.chartCssClass}
     />
   );

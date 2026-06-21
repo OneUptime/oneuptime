@@ -75,6 +75,46 @@ const Settings: FunctionComponent = (): ReactElement => {
       />
 
       <CardModelDetail
+        name="SSO Settings"
+        cardProps={{
+          title: "Single Sign-On (SSO)",
+          description:
+            "Control whether users must sign in with SSO across this server.",
+        }}
+        isEditable={true}
+        editButtonText={"Edit SSO Settings"}
+        formFields={[
+          {
+            field: {
+              requireSsoForLogin: true,
+            },
+            title: "Require SSO for Login",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.",
+          },
+        ]}
+        modelDetailProps={{
+          modelType: GlobalConfig,
+          id: "model-detail-sso-settings",
+          fields: [
+            {
+              field: {
+                requireSsoForLogin: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Require SSO for Login",
+              placeholder: t("common.no"),
+              description:
+                "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt.",
+            },
+          ],
+          modelId: ObjectID.getZeroObjectID(),
+        }}
+      />
+
+      <CardModelDetail
         name="Project Creation Settings"
         cardProps={{
           title: t("pages.settings.authentication.projectCreationCardTitle"),

@@ -357,8 +357,17 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
               className="text-blue-600 hover:text-blue-800 text-[11px] font-medium"
               onClick={(e: React.MouseEvent) => {
                 e.stopPropagation();
-                const profilesRoute: Route = RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.PROFILES] as Route,
+                /*
+                 * Deep-link into the raw-profiles list filtered to this
+                 * trace — landing on the unfiltered overview would force
+                 * the user to re-find the trace by hand.
+                 */
+                const traceId: string =
+                  span.traceId?.toString() || props.traceId;
+                const profilesRoute: Route = new Route(
+                  `${RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.PROFILES_INSIGHTS] as Route,
+                  ).toString()}?traceId=${traceId}`,
                 );
                 Navigation.navigate(profilesRoute, {
                   openInNewTab: true,

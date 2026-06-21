@@ -3,10 +3,12 @@ import Host from "../../Models/DatabaseModels/Host";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
+import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import ScheduledMaintenance from "../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceLabelRule from "../../Models/DatabaseModels/ScheduledMaintenanceLabelRule";
 import Service from "../../Models/DatabaseModels/Service";
 import DockerHostService from "./DockerHostService";
+import PodmanHostService from "./PodmanHostService";
 import HostService from "./HostService";
 import KubernetesClusterService from "./KubernetesClusterService";
 import LabelService from "./LabelService";
@@ -32,6 +34,7 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass {
    *   - all labels of the event's hosts when `inheritLabelsFromHosts`
    *   - all labels of the event's Kubernetes clusters when `inheritLabelsFromKubernetesClusters`
    *   - all labels of the event's Docker hosts when `inheritLabelsFromDockerHosts`
+   *   - all labels of the event's Podman hosts when `inheritLabelsFromPodmanHosts`
    *   - all labels of the event's services when `inheritLabelsFromServices`
    * The union is deduped against labels already on the event before insert
    * to avoid PK conflicts on the ScheduledMaintenanceLabel join table.
@@ -67,6 +70,7 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass {
             inheritLabelsFromHosts: true,
             inheritLabelsFromKubernetesClusters: true,
             inheritLabelsFromDockerHosts: true,
+            inheritLabelsFromPodmanHosts: true,
             inheritLabelsFromServices: true,
           },
           limit: 100,
@@ -82,6 +86,7 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass {
       let inheritFromHosts: boolean = false;
       let inheritFromKubernetesClusters: boolean = false;
       let inheritFromDockerHosts: boolean = false;
+      let inheritFromPodmanHosts: boolean = false;
       let inheritFromServices: boolean = false;
       const matchedRules: Array<ScheduledMaintenanceLabelRule> = [];
 
@@ -111,6 +116,9 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass {
         if (rule.inheritLabelsFromDockerHosts) {
           inheritFromDockerHosts = true;
         }
+        if (rule.inheritLabelsFromPodmanHosts) {
+          inheritFromPodmanHosts = true;
+        }
         if (rule.inheritLabelsFromServices) {
           inheritFromServices = true;
         }
@@ -120,6 +128,7 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass {
         inheritFromHosts ||
         inheritFromKubernetesClusters ||
         inheritFromDockerHosts ||
+        inheritFromPodmanHosts ||
         inheritFromServices;
 
       let eventWithResources: ScheduledMaintenance | null = null;
@@ -130,6 +139,7 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass {
             hosts: { _id: true },
             kubernetesClusters: { _id: true },
             dockerHosts: { _id: true },
+            podmanHosts: { _id: true },
             services: { _id: true },
           },
           props: { isRoot: true },
@@ -206,6 +216,25 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass {
               props: { isRoot: true },
             });
           for (const label of dockerHost?.labels || []) {
+            if (label.id) {
+              labelIdsToAdd.add(label.id.toString());
+            }
+          }
+        }
+      }
+
+      if (inheritFromPodmanHosts && eventWithResources?.podmanHosts?.length) {
+        for (const eventPodmanHost of eventWithResources.podmanHosts) {
+          if (!eventPodmanHost.id) {
+            continue;
+          }
+          const podmanHost: PodmanHost | null =
+            await PodmanHostService.findOneById({
+              id: eventPodmanHost.id,
+              select: { labels: { _id: true } },
+              props: { isRoot: true },
+            });
+          for (const label of podmanHost?.labels || []) {
             if (label.id) {
               labelIdsToAdd.add(label.id.toString());
             }

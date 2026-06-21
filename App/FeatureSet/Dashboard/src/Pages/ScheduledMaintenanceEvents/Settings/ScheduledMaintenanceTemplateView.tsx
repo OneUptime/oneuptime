@@ -27,6 +27,7 @@ import ScheduledMaintenanceTemplateOwnerUser from "Common/Models/DatabaseModels/
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Service from "Common/Models/DatabaseModels/Service";
@@ -307,6 +308,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     values.kubernetesClusters as Array<KubernetesCluster>
                   }
                   dockerHosts={values.dockerHosts as Array<DockerHost>}
+                  podmanHosts={values.podmanHosts as Array<PodmanHost>}
                   services={values.services as Array<Service>}
                   onChange={(payload: unknown) => {
                     elementProps.onChange?.(payload);
@@ -330,6 +332,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     hosts: payload.hosts,
                     kubernetesClusters: payload.kubernetesClusters,
                     dockerHosts: payload.dockerHosts,
+                    podmanHosts: payload.podmanHosts,
                     services: payload.services,
                   } as FormValues<ScheduledMaintenanceTemplate>);
                 });
@@ -360,6 +363,15 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
           {
             field: { dockerHosts: true },
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { podmanHosts: true },
             title: "",
             fieldType: FormFieldSchemaType.Text,
             required: false,
@@ -416,6 +428,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   name: true,
                   _id: true,
                 },
+                podmanHosts: {
+                  name: true,
+                  _id: true,
+                },
                 services: {
                   name: true,
                   _id: true,
@@ -433,6 +449,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     hosts={item.hosts || []}
                     kubernetesClusters={item.kubernetesClusters || []}
                     dockerHosts={item.dockerHosts || []}
+                    podmanHosts={item.podmanHosts || []}
                     services={item.services || []}
                   />
                 );

@@ -203,6 +203,14 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
    * (verified on dev with EXPLAIN indexes=1: ReadFromMergeTree
    * (proj_agg_by_service), 9/2136 granules for a full-day window).
    *
+   * Count queries may additionally filter on statusCode / isRootSpan: the
+   * optimizer then serves them from proj_hist_by_minute, whose key is
+   * (projectId, minute, primaryEntityId, statusCode, isRootSpan). This is
+   * the error-rate series on the Service / RUM / Serverless overview
+   * pages. Those filters stay rejected for Avg/P99 — proj_agg_by_service
+   * cannot evaluate them, and quantile states for different levels do not
+   * merge.
+   *
    * Two things are load-bearing for the optimizer to pick the projection:
    *   1. The time predicates AND the bucket expression must be written
    *      over toStartOfMinute(startTime) — the projection's key
@@ -273,9 +281,26 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
     const query: Record<string, unknown> = (aggregateBy.query ||
       {}) as unknown as Record<string, unknown>;
 
-    // Bail out on any filter the projection cannot evaluate.
+    /*
+     * Filters the projections can evaluate. Avg/P99 are served by
+     * proj_agg_by_service, which is keyed only on (projectId,
+     * primaryEntityId, minute) — a statusCode/isRootSpan filter must bail.
+     * Count is also served by proj_hist_by_minute, whose key includes
+     * statusCode and isRootSpan, so those filters stay projection-servable
+     * for Count (this is the error-rate series on the overview pages).
+     */
+    const eligibleKeys: Array<string> = [
+      "projectId",
+      "startTime",
+      "primaryEntityId",
+    ];
+    if (aggregateBy.aggregationType === AggregationType.Count) {
+      eligibleKeys.push("statusCode", "isRootSpan");
+    }
+
+    // Bail out on any filter the projections cannot evaluate.
     for (const key of Object.keys(query)) {
-      if (!["projectId", "startTime", "primaryEntityId"].includes(key)) {
+      if (!eligibleKeys.includes(key)) {
         return null;
       }
     }
@@ -348,6 +373,40 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
         }})`,
       );
     } else if (primaryEntityIdValue !== undefined) {
+      return null;
+    }
+
+    /*
+     * Only reachable for Count (the whitelist above rejects these keys for
+     * Avg/P99). Predicate translation mirrors
+     * tryBuildProjectionCountStatement: scalar = equality, Includes = IN,
+     * anything else = bail to the generic path.
+     */
+    if (query["isRootSpan"] !== undefined) {
+      statement.append(
+        SQL` AND isRootSpan = ${{
+          type: TableColumnType.Boolean,
+          value: Boolean(query["isRootSpan"]),
+        }}`,
+      );
+    }
+
+    const statusCodeValue: unknown = query["statusCode"];
+    if (typeof statusCodeValue === "number") {
+      statement.append(
+        SQL` AND statusCode = ${{
+          type: TableColumnType.Number,
+          value: statusCodeValue,
+        }}`,
+      );
+    } else if (statusCodeValue instanceof Includes) {
+      statement.append(
+        SQL` AND statusCode IN (${{
+          type: TableColumnType.Number,
+          value: statusCodeValue,
+        }})`,
+      );
+    } else if (statusCodeValue !== undefined) {
       return null;
     }
 

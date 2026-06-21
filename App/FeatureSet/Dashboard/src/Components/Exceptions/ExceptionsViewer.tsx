@@ -20,6 +20,7 @@ import TelemetryException from "Common/Models/DatabaseModels/TelemetryException"
 import Service from "Common/Models/DatabaseModels/Service";
 import Host from "Common/Models/DatabaseModels/Host";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import ModelAPI, {
   ListResult as ModelListResult,
@@ -248,6 +249,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   const [services, setServices] = useState<Array<Service>>([]);
   const [hosts, setHosts] = useState<Array<Host>>([]);
   const [dockerHosts, setDockerHosts] = useState<Array<DockerHost>>([]);
+  const [podmanHosts, setPodmanHosts] = useState<Array<PodmanHost>>([]);
   const [kubernetesClusters, setKubernetesClusters] = useState<
     Array<KubernetesCluster>
   >([]);
@@ -367,10 +369,17 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         if (!projectId) {
           return;
         }
-        const [serviceResult, hostResult, dockerHostResult, clusterResult]: [
+        const [
+          serviceResult,
+          hostResult,
+          dockerHostResult,
+          podmanHostResult,
+          clusterResult,
+        ]: [
           ModelListResult<Service>,
           ModelListResult<Host>,
           ModelListResult<DockerHost>,
+          ModelListResult<PodmanHost>,
           ModelListResult<KubernetesCluster>,
         ] = await Promise.all([
           ModelAPI.getList({
@@ -398,6 +407,14 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
             sort: { name: SortOrder.Ascending },
           }),
           ModelAPI.getList({
+            modelType: PodmanHost,
+            query: { projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { name: true, hostIdentifier: true },
+            sort: { name: SortOrder.Ascending },
+          }),
+          ModelAPI.getList({
             modelType: KubernetesCluster,
             query: { projectId },
             limit: LIMIT_PER_PROJECT,
@@ -409,6 +426,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         setServices(serviceResult.data || []);
         setHosts(hostResult.data || []);
         setDockerHosts(dockerHostResult.data || []);
+        setPodmanHosts(podmanHostResult.data || []);
         setKubernetesClusters(clusterResult.data || []);
       } catch {
         // non-critical
@@ -613,6 +631,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       "primaryEntityId",
       "hostId",
       "dockerHostId",
+      "podmanHostId",
       "kubernetesClusterId",
     ]);
     const resourceIds: Set<string> = new Set<string>();
@@ -767,6 +786,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       "primaryEntityId",
       "hostId",
       "dockerHostId",
+      "podmanHostId",
       "kubernetesClusterId",
     ]) {
       const values: Array<string> | undefined = groups[k];
@@ -871,6 +891,14 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       }
     }
 
+    const podmanHostNameMap: Record<string, string> = {};
+    for (const podmanHost of podmanHosts) {
+      if (podmanHost.id) {
+        podmanHostNameMap[podmanHost.id.toString()] =
+          podmanHost.name || podmanHost.hostIdentifier || "Unknown";
+      }
+    }
+
     const clusterNameMap: Record<string, string> = {};
     for (const cluster of kubernetesClusters) {
       if (cluster.id) {
@@ -903,24 +931,31 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         serverSearchable: true,
       },
       {
+        key: "podmanHostId",
+        title: "Podman Host",
+        valueDisplayMap: podmanHostNameMap,
+        priority: 4,
+        serverSearchable: true,
+      },
+      {
         key: "kubernetesClusterId",
         title: "Kubernetes Cluster",
         valueDisplayMap: clusterNameMap,
-        priority: 4,
+        priority: 5,
         serverSearchable: true,
       },
       {
         key: "exceptionType",
         title: "Exception Type",
-        priority: 5,
+        priority: 6,
       },
       {
         key: "environment",
         title: "Environment",
-        priority: 6,
+        priority: 7,
       },
     ];
-  }, [services, hosts, dockerHosts, kubernetesClusters]);
+  }, [services, hosts, dockerHosts, podmanHosts, kubernetesClusters]);
 
   /*
    * Fetch facets from the backend. Counts come from ClickHouse aggregation
@@ -941,6 +976,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         "primaryEntityId",
         "hostId",
         "dockerHostId",
+        "podmanHostId",
         "kubernetesClusterId",
         "exceptionType",
         "environment",
@@ -978,6 +1014,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       "primaryEntityId",
       "hostId",
       "dockerHostId",
+      "podmanHostId",
       "kubernetesClusterId",
     ]) {
       const values: Array<string> | undefined = groups[k];

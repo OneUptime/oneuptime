@@ -12,11 +12,13 @@
         "emitDecoratorMetadata": true,
         "module": "es2022",
         "moduleResolution": "node",
+        "ignoreDeprecations": "6.0",
         "typeRoots": [
             "./node_modules/@types"
         ],
         "types": ["node"],
         "sourceMap": true,
+        "rootDir": "../../..",
         "outDir": "./build/dist",
         "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,

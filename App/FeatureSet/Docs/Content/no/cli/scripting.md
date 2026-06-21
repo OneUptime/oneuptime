@@ -128,7 +128,7 @@ oneuptime incident update "$INCIDENT_ID" --data '{"currentIncidentStateId":"'"$R
 ### Docker
 
 ```dockerfile
-FROM node:20-slim
+FROM node:26-slim
 RUN npm install -g @oneuptime/cli
 ENV ONEUPTIME_API_KEY=""
 ENV ONEUPTIME_URL=""

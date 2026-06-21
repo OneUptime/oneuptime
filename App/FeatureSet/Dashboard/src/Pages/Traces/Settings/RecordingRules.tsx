@@ -12,7 +12,7 @@ import TraceRecordingRuleDefinition, {
 } from "Common/Types/Trace/TraceRecordingRuleDefinition";
 import TraceRecordingRuleDefinitionEditor from "../../../Components/Traces/RecordingRule/TraceRecordingRuleDefinitionEditor";
 import ProjectUtil from "Common/UI/Utils/Project";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
 
 const documentationMarkdown: string = `
 ### How Trace Recording Rules Work
@@ -45,9 +45,114 @@ Every materialized row carries \`oneuptime.derived.trace_rule_id\` plus the grou
 const TraceRecordingRules: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  /*
+   * "Create metric…" in the traces analytics view deep-links here with a
+   * `?prefill=<json definition>` param — open the create form with the
+   * analysis (filters + aggregation + group-by) already filled in.
+   */
+  const prefillDefinition: TraceRecordingRuleDefinition | undefined =
+    useMemo(() => {
+      const raw: string | null = new URLSearchParams(
+        window.location.search,
+      ).get("prefill");
+      if (!raw) {
+        return undefined;
+      }
+      const candidates: Array<string> = [raw];
+      try {
+        candidates.push(decodeURIComponent(raw));
+      } catch {
+        // raw is not percent-encoded — fine.
+      }
+      /*
+       * Deep shape validation — the param is attacker-controllable (a
+       * shareable link), so rebuild the definition from validated parts
+       * rather than trusting the parsed object. Anything malformed is
+       * dropped; an unusable result falls back to the empty definition.
+       */
+      for (const candidate of candidates) {
+        try {
+          const parsed: unknown = JSON.parse(candidate);
+          if (
+            !parsed ||
+            typeof parsed !== "object" ||
+            !Array.isArray((parsed as TraceRecordingRuleDefinition).sources) ||
+            typeof (parsed as TraceRecordingRuleDefinition).expression !==
+              "string"
+          ) {
+            continue;
+          }
+          const rawDefinition: TraceRecordingRuleDefinition =
+            parsed as TraceRecordingRuleDefinition;
+
+          const sources: TraceRecordingRuleDefinition["sources"] =
+            rawDefinition.sources
+              .filter((source: unknown): boolean => {
+                return (
+                  Boolean(source) &&
+                  typeof source === "object" &&
+                  typeof (source as { alias?: unknown }).alias === "string" &&
+                  typeof (source as { aggregationType?: unknown })
+                    .aggregationType === "string"
+                );
+              })
+              .map(
+                (
+                  source: TraceRecordingRuleDefinition["sources"][0],
+                ): TraceRecordingRuleDefinition["sources"][0] => {
+                  return {
+                    alias: source.alias,
+                    aggregationType: source.aggregationType,
+                    ...(typeof source.spanNameRegex === "string"
+                      ? { spanNameRegex: source.spanNameRegex }
+                      : {}),
+                    ...(typeof source.spanKind === "string"
+                      ? { spanKind: source.spanKind }
+                      : {}),
+                    ...(source.onlyErrors === true ? { onlyErrors: true } : {}),
+                    ...(Array.isArray(source.filterAttributes)
+                      ? {
+                          filterAttributes: source.filterAttributes.filter(
+                            (filter: unknown): boolean => {
+                              return (
+                                Boolean(filter) &&
+                                typeof filter === "object" &&
+                                typeof (filter as { key?: unknown }).key ===
+                                  "string" &&
+                                typeof (filter as { value?: unknown }).value ===
+                                  "string"
+                              );
+                            },
+                          ),
+                        }
+                      : {}),
+                  };
+                },
+              );
+
+          if (sources.length === 0) {
+            continue;
+          }
+
+          return {
+            sources,
+            expression: rawDefinition.expression,
+            groupByAttribute:
+              typeof rawDefinition.groupByAttribute === "string"
+                ? rawDefinition.groupByAttribute
+                : "",
+          };
+        } catch {
+          // try next candidate
+        }
+      }
+      return undefined;
+    }, []);
+
   return (
     <ModelTable<TraceRecordingRule>
       modelType={TraceRecordingRule}
+      showCreateForm={Boolean(prefillDefinition)}
       query={{
         projectId: ProjectUtil.getCurrentProjectId()!,
       }}
@@ -74,7 +179,9 @@ const TraceRecordingRules: FunctionComponent<
       noItemsMessage={"No recording rules found."}
       createInitialValues={{
         isEnabled: true,
-        definition: TraceRecordingRuleDefinitionUtil.getEmptyDefinition(),
+        definition:
+          prefillDefinition ??
+          TraceRecordingRuleDefinitionUtil.getEmptyDefinition(),
       }}
       onBeforeCreate={async (item: TraceRecordingRule) => {
         if (!item.sortOrder) {

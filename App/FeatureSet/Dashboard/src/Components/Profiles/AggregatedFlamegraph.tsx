@@ -3,6 +3,7 @@ import React, {
   ReactElement,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import API from "Common/UI/Utils/API/API";
@@ -16,7 +17,11 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ProfileUtil from "../../Utils/ProfileUtil";
-import FlamegraphView, { FlamegraphNode } from "./FlamegraphView";
+import FlamegraphView, {
+  FlamegraphNode,
+  ServerFlamegraphNode,
+  normaliseServerFlamegraphNode,
+} from "./FlamegraphView";
 
 export interface AggregatedFlamegraphProps {
   startTime: Date;
@@ -25,20 +30,23 @@ export interface AggregatedFlamegraphProps {
   profileType?: string | undefined;
   unit?: string | undefined;
   compact?: boolean | undefined;
-}
-
-/**
- * Server shape returned by /telemetry/profiles/flamegraph. Matches
- * `ProfileFlamegraphNode` on the server.
- */
-interface ServerNode {
-  functionName: string;
-  fileName: string;
-  lineNumber: number;
-  selfValue: number;
-  totalValue: number;
-  children: Array<ServerNode>;
-  frameType: string;
+  /**
+   * Controlled search term, forwarded to {@link FlamegraphView} so the
+   * page can keep flame graph search in shareable state (e.g. the
+   * URL). Leave undefined for fully internal search.
+   */
+  searchTerm?: string | undefined;
+  /**
+   * Forwarded to {@link FlamegraphView}; called on every search edit.
+   */
+  onSearchTermChange?: ((term: string) => void) | undefined;
+  /**
+   * Forwarded to {@link FlamegraphView}; enables the "Callers &
+   * callees" affordance on the zoomed frame.
+   */
+  onFocusFunction?:
+    | ((frame: { functionName: string; fileName: string }) => void)
+    | undefined;
 }
 
 /**
@@ -50,17 +58,38 @@ interface ServerNode {
 const AggregatedFlamegraph: FunctionComponent<AggregatedFlamegraphProps> = (
   props: AggregatedFlamegraphProps,
 ): ReactElement => {
-  const [serverRoot, setServerRoot] = useState<ServerNode | null>(null);
+  const [serverRoot, setServerRoot] = useState<ServerFlamegraphNode | null>(
+    null,
+  );
+  const [isTruncated, setIsTruncated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
+  /*
+   * The selector pill stores either a category (e.g. "cpu") or a raw
+   * type — expand it to the raw type strings agents actually emit so
+   * the server filters with IN (...) instead of a literal equality
+   * that would miss rows.
+   */
+  const queryProfileTypes: Array<string> | undefined =
+    ProfileUtil.getQueryProfileTypes(props.profileType);
+
   const unit: string =
     props.unit ||
-    (props.profileType
-      ? ProfileUtil.getProfileTypeUnit(props.profileType)
+    (queryProfileTypes && queryProfileTypes.length > 0
+      ? ProfileUtil.getProfileTypeUnit(queryProfileTypes[0]!)
       : "nanoseconds");
 
-  const load: () => Promise<void> = async (): Promise<void> => {
+  /*
+   * Generation counter guards every fetch — including manual retries —
+   * so a slow stale response can never overwrite a newer one, and no
+   * setState fires after the props that started it are gone.
+   */
+  const loadGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
+
+  const load: (generation: number) => Promise<void> = async (
+    generation: number,
+  ): Promise<void> => {
     try {
       setIsLoading(true);
       setError("");
@@ -76,33 +105,44 @@ const AggregatedFlamegraph: FunctionComponent<AggregatedFlamegraphProps> = (
             serviceIds: props.serviceIds?.map((id: ObjectID) => {
               return id.toString();
             }),
-            profileType: props.profileType,
-            profileTypes: ProfileUtil.getRawProfileTypesForCategory(
-              props.profileType,
-            ),
+            profileTypes: queryProfileTypes,
           },
           headers: {
             ...ModelAPI.getCommonHeaders(),
           },
         });
 
+      if (generation !== loadGenerationRef.current) {
+        return;
+      }
+
       if (response instanceof HTTPErrorResponse) {
         throw response;
       }
 
-      const root: ServerNode = response.data[
+      const root: ServerFlamegraphNode = response.data[
         "flamegraph"
-      ] as unknown as ServerNode;
+      ] as unknown as ServerFlamegraphNode;
       setServerRoot(root);
+      setIsTruncated(Boolean(response.data["truncated"]));
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      if (generation === loadGenerationRef.current) {
+        setError(API.getFriendlyMessage(err));
+      }
     } finally {
-      setIsLoading(false);
+      if (generation === loadGenerationRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    void load();
+    loadGenerationRef.current += 1;
+    void load(loadGenerationRef.current);
+    return () => {
+      // Invalidate in-flight responses when scope changes or we unmount.
+      loadGenerationRef.current += 1;
+    };
   }, [
     props.startTime.getTime(),
     props.endTime.getTime(),
@@ -116,7 +156,7 @@ const AggregatedFlamegraph: FunctionComponent<AggregatedFlamegraphProps> = (
   ]);
 
   const root: FlamegraphNode = useMemo(() => {
-    return normalise(serverRoot);
+    return normaliseServerFlamegraphNode(serverRoot);
   }, [serverRoot]);
 
   if (isLoading) {
@@ -127,43 +167,24 @@ const AggregatedFlamegraph: FunctionComponent<AggregatedFlamegraphProps> = (
       <ErrorMessage
         message={error}
         onRefreshClick={() => {
-          void load();
+          loadGenerationRef.current += 1;
+          void load(loadGenerationRef.current);
         }}
       />
     );
   }
 
-  return <FlamegraphView root={root} unit={unit} compact={props.compact} />;
+  return (
+    <FlamegraphView
+      root={root}
+      unit={unit}
+      compact={props.compact}
+      truncated={isTruncated}
+      searchTerm={props.searchTerm}
+      onSearchTermChange={props.onSearchTermChange}
+      onFocusFunction={props.onFocusFunction}
+    />
+  );
 };
-
-/**
- * Recursively convert the server's wire shape to the client's
- * FlamegraphNode, inferring the module category from the filename
- * (so color-by-module works identically to the single-profile view).
- */
-function normalise(node: ServerNode | null): FlamegraphNode {
-  if (!node) {
-    return {
-      name: "(all)",
-      fileName: "",
-      lineNumber: 0,
-      frameType: "",
-      category: "unknown",
-      selfValue: 0,
-      totalValue: 0,
-      children: [],
-    };
-  }
-  return {
-    name: node.functionName || "(root)",
-    fileName: node.fileName || "",
-    lineNumber: node.lineNumber || 0,
-    frameType: node.frameType || "",
-    category: ProfileUtil.getModuleCategory(node.fileName || ""),
-    selfValue: Number(node.selfValue || 0),
-    totalValue: Number(node.totalValue || 0),
-    children: (node.children || []).map(normalise),
-  };
-}
 
 export default AggregatedFlamegraph;

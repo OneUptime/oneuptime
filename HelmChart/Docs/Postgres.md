@@ -265,3 +265,66 @@ lives in its own doc:
 
 ➡️ **[Migrating PostgreSQL: Standalone → CloudNativePG Operator](./MigratePostgresStandaloneToOperator.md)**
 
+### Connection pooling with PgBouncer (optional)
+
+Every OneUptime process that talks to Postgres (the `app`, the `worker`, and the
+`nginx`/ingress gateway) keeps its own node-postgres pool — up to
+`DATABASE_MAX_OPEN_CONNECTIONS` (default **50**) server connections per pod. With
+HPA/KEDA autoscaling, the fleet can open far more connections than Postgres's
+`max_connections` (the chart default is **100**). On a **managed/external**
+Postgres (RDS, Cloud SQL, Aurora, Neon, Azure) you usually cannot raise
+`max_connections` without paying for a bigger instance — so a pooler is the
+cleaner fix.
+
+The chart ships an **opt-in PgBouncer** that is *orthogonal* to the Postgres
+backend: enable it and it fronts whichever backend is active — the built-in
+`postgresql` StatefulSet, the `postgresOperator` CNPG cluster, **or**
+`externalPostgres`. The `app`/`worker`/`nginx` pods then connect to the pooler
+instead of directly to the database.
+
+```yaml
+pgbouncer:
+  enabled: true
+  poolMode: session       # default — see the caveat below before changing
+  defaultPoolSize: 50     # server connections per (user,db) to the backend
+  maxDbConnections: 0     # set at/below the backend's max_connections to cap it hard
+```
+
+For a **managed Postgres**, point the chart's `externalPostgres.host`/`.port` at
+the database as usual and turn the pooler on. If your provider already offers a
+managed pooled endpoint (RDS Proxy, Neon `-pooler`, Supabase Supavisor), you can
+instead just point `externalPostgres.host` at that endpoint and leave
+`pgbouncer.enabled: false`.
+
+**TLS.** When fronting an `externalPostgres` with `ssl.enabled: true`, the
+app→pooler hop is in-cluster plaintext and PgBouncer originates TLS to the
+backend (`server_tls_sslmode` defaults to `require`, verifying against
+`externalPostgres.ssl.ca` when provided). Override with `pgbouncer.serverTls.sslmode`.
+
+**Sizing.** Session mode keeps a backend connection busy for the life of each
+client connection, so to actually *reduce* backend connections (not just cap
+them) on a connection-limited managed DB, also lower the per-pod pool. Set it
+globally with `deployment.databaseMaxOpenConnections`, or per service with
+`app.databaseMaxOpenConnections` / `worker.databaseMaxOpenConnections` /
+`nginx.databaseMaxOpenConnections` (a service value overrides the global;
+unset = the app's built-in default of 50). The `worker` is usually the one to
+lower, since it fans out widest under KEDA.
+
+```yaml
+deployment:
+  databaseMaxOpenConnections: 20   # global default for app/worker/nginx pods
+worker:
+  databaseMaxOpenConnections: 10   # worker fans out widest — keep its pool small
+```
+
+**Why session mode is the default — the migration caveat.** OneUptime runs both
+its schema migrations (`migrationsRun`) **and** a data-migration runner on boot.
+The data-migration runner serializes across pods with a **session-level
+`pg_advisory_lock`** held across the whole run. Transaction/statement pooling
+would route those statements to different backends, so the lock loses its
+mutual-exclusion guarantee (and leaks onto a pooled backend). **Session** pooling
+keeps each client on one backend for its whole session, so the advisory lock and
+boot migrations work unchanged. Only switch `poolMode` to `transaction` if you
+have moved the migration path off the pooler (e.g. run migrations against the
+backend directly). Until then, keep `session`.
+

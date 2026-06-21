@@ -45,6 +45,11 @@ import Host from "../../Models/DatabaseModels/Host";
 import KubernetesResource from "../../Models/DatabaseModels/KubernetesResource";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import DockerResource from "../../Models/DatabaseModels/DockerResource";
+import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
+import PodmanResource from "../../Models/DatabaseModels/PodmanResource";
+import ProxmoxResource from "../../Models/DatabaseModels/ProxmoxResource";
+import CephResource from "../../Models/DatabaseModels/CephResource";
+import DockerSwarmResource from "../../Models/DatabaseModels/DockerSwarmResource";
 import Span from "../../Models/AnalyticsModels/Span";
 import Log from "../../Models/AnalyticsModels/Log";
 import IncidentService from "../Services/IncidentService";
@@ -54,6 +59,11 @@ import HostService from "../Services/HostService";
 import KubernetesResourceService from "../Services/KubernetesResourceService";
 import DockerHostService from "../Services/DockerHostService";
 import DockerResourceService from "../Services/DockerResourceService";
+import PodmanHostService from "../Services/PodmanHostService";
+import PodmanResourceService from "../Services/PodmanResourceService";
+import ProxmoxResourceService from "../Services/ProxmoxResourceService";
+import CephResourceService from "../Services/CephResourceService";
+import DockerSwarmResourceService from "../Services/DockerSwarmResourceService";
 import SpanService from "../Services/SpanService";
 import LogService from "../Services/LogService";
 
@@ -209,6 +219,131 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
       state: true,
       dockerHostId: true,
       dockerHost: { name: true },
+    },
+  },
+  "podman-host": {
+    modelType: PodmanHost,
+    service: PodmanHostService,
+    select: {
+      _id: true,
+      name: true,
+      otelCollectorStatus: true,
+      containersRunning: true,
+      containersStopped: true,
+      containersPaused: true,
+      osType: true,
+      osVersion: true,
+    },
+  },
+  "podman-container": {
+    modelType: PodmanResource,
+    service: PodmanResourceService,
+    select: {
+      _id: true,
+      name: true,
+      imageName: true,
+      state: true,
+      latestCpuPercent: true,
+      latestMemoryBytes: true,
+      podmanHostId: true,
+      podmanHost: { name: true },
+    },
+  },
+  "podman-image": {
+    modelType: PodmanResource,
+    service: PodmanResourceService,
+    select: {
+      _id: true,
+      name: true,
+      containerId: true,
+      podmanHostId: true,
+      podmanHost: { name: true },
+    },
+  },
+  "podman-network": {
+    modelType: PodmanResource,
+    service: PodmanResourceService,
+    select: {
+      _id: true,
+      name: true,
+      state: true,
+      podmanHostId: true,
+      podmanHost: { name: true },
+    },
+  },
+  "podman-volume": {
+    modelType: PodmanResource,
+    service: PodmanResourceService,
+    select: {
+      _id: true,
+      name: true,
+      state: true,
+      podmanHostId: true,
+      podmanHost: { name: true },
+    },
+  },
+  "proxmox-resource": {
+    modelType: ProxmoxResource,
+    service: ProxmoxResourceService,
+    select: {
+      _id: true,
+      name: true,
+      externalId: true,
+      kind: true,
+      vmid: true,
+      guestType: true,
+      parentNodeName: true,
+      isUp: true,
+      haState: true,
+      latestCpuPercent: true,
+      latestMemoryPercent: true,
+      lastSeenAt: true,
+      proxmoxClusterId: true,
+      proxmoxCluster: { name: true },
+    },
+  },
+  "ceph-resource": {
+    modelType: CephResource,
+    service: CephResourceService,
+    select: {
+      _id: true,
+      name: true,
+      externalId: true,
+      kind: true,
+      hostname: true,
+      deviceClass: true,
+      isUp: true,
+      isIn: true,
+      statBytes: true,
+      statBytesUsed: true,
+      storedBytes: true,
+      maxAvailBytes: true,
+      objects: true,
+      lastSeenAt: true,
+      cephClusterId: true,
+      cephCluster: { name: true },
+    },
+  },
+  "docker-swarm-resource": {
+    modelType: DockerSwarmResource,
+    service: DockerSwarmResourceService,
+    select: {
+      _id: true,
+      name: true,
+      externalId: true,
+      kind: true,
+      role: true,
+      state: true,
+      serviceMode: true,
+      desiredReplicas: true,
+      runningReplicas: true,
+      image: true,
+      isReady: true,
+      latestCpuPercent: true,
+      latestMemoryPercent: true,
+      lastSeenAt: true,
+      dockerSwarmClusterId: true,
+      dockerSwarmCluster: { name: true },
     },
   },
   span: {

@@ -1674,6 +1674,88 @@ export default class StatusPage extends BaseModel {
   })
   @TableColumn({
     isDefaultValueColumn: false,
+    type: TableColumnType.ShortText,
+    title: "Logo Alt Text",
+    description:
+      "Alternative text for the logo image, read by screen readers for accessibility.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: true,
+  })
+  public logoAltText?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    type: TableColumnType.ShortText,
+    title: "Cover Image Alt Text",
+    description:
+      "Alternative text for the cover image, read by screen readers for accessibility. Leave blank if the cover image is purely decorative.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: true,
+  })
+  public coverImageAltText?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
     required: false,
     type: TableColumnType.JSON,
     title: "Custom Fields",

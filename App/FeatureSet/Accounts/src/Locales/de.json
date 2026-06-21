@@ -86,7 +86,9 @@
     "selectProjectSubtitle": "Wählen Sie das Projekt aus, bei dem Sie sich anmelden möchten.",
     "noConfigForEmail": "Keine SSO-Konfiguration für die E-Mail-Adresse gefunden: {{email}}",
     "emailRequired": "E-Mail ist erforderlich, um diese Aktion auszuführen",
-    "defaultProjectName": "Projekt"
+    "defaultProjectName": "Projekt",
+    "globalProvidersTitle": "Mit Ihrer Organisation anmelden",
+    "globalProvidersDivider": "Oder mit E-Mail fortfahren"
   },
   "verifyEmail": {
     "successTitle": "Ihre E-Mail ist bestätigt.",

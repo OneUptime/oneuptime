@@ -1057,6 +1057,111 @@ describe("BillingService", () => {
         });
       });
 
+      it("should mark the customer's default payment method and order it first", async () => {
+        const mockPaymentMethodsResponse: {
+          data: Array<Stripe.PaymentMethod>;
+        } = {
+          data: [
+            {
+              id: "pm_123",
+              type: "card",
+              // @ts-expect-error - Simplified mock card object for testing without all required Stripe card properties
+              card: { last4: "4242", brand: "mastercard" },
+            },
+            {
+              id: "pm_456",
+              type: "card",
+              // @ts-expect-error - Simplified mock card object for testing without all required Stripe card properties
+              card: { last4: "4343", brand: "mastercard" },
+            },
+          ],
+        };
+        mockStripe.paymentMethods.list = getJestMockFunction()
+          .mockResolvedValueOnce(mockPaymentMethodsResponse)
+          .mockResolvedValue({ data: [] });
+
+        const customerWithDefault: Stripe.Customer = getStripeCustomer(
+          customer.id.toString(),
+        );
+        customerWithDefault.invoice_settings.default_payment_method = "pm_456";
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(customerWithDefault);
+
+        const paymentMethods: PaymentMethod[] =
+          await billingService.getPaymentMethods(customerId);
+
+        expect(paymentMethods).toHaveLength(2);
+        expect(paymentMethods[0]?.id).toBe("pm_456");
+        expect(paymentMethods[0]?.isDefault).toBe(true);
+        expect(paymentMethods[1]?.id).toBe("pm_123");
+        expect(paymentMethods[1]?.isDefault).toBe(false);
+        expect(mockStripe.customers.update).not.toHaveBeenCalled();
+      });
+
+      it("should not mark any payment method as default when the default is not in the list", async () => {
+        const mockPaymentMethodsResponse: {
+          data: Array<Stripe.PaymentMethod>;
+        } = {
+          data: [
+            {
+              id: "pm_123",
+              type: "card",
+              // @ts-expect-error - Simplified mock card object for testing without all required Stripe card properties
+              card: { last4: "4242", brand: "mastercard" },
+            },
+          ],
+        };
+        mockStripe.paymentMethods.list = getJestMockFunction()
+          .mockResolvedValueOnce(mockPaymentMethodsResponse)
+          .mockResolvedValue({ data: [] });
+
+        const customerWithDetachedDefault: Stripe.Customer = getStripeCustomer(
+          customer.id.toString(),
+        );
+        customerWithDetachedDefault.invoice_settings.default_payment_method =
+          "pm_detached";
+        mockStripe.customers.retrieve = getJestMockFunction().mockResolvedValue(
+          customerWithDetachedDefault,
+        );
+
+        const paymentMethods: PaymentMethod[] =
+          await billingService.getPaymentMethods(customerId);
+
+        expect(paymentMethods).toHaveLength(1);
+        expect(paymentMethods[0]?.isDefault).toBe(false);
+        expect(mockStripe.customers.update).not.toHaveBeenCalled();
+      });
+
+      it("should set the first payment method as default when none is set", async () => {
+        const mockPaymentMethodsResponse: {
+          data: Array<Stripe.PaymentMethod>;
+        } = {
+          data: [
+            {
+              id: "pm_123",
+              type: "card",
+              // @ts-expect-error - Simplified mock card object for testing without all required Stripe card properties
+              card: { last4: "4242", brand: "mastercard" },
+            },
+          ],
+        };
+        mockStripe.paymentMethods.list = getJestMockFunction()
+          .mockResolvedValueOnce(mockPaymentMethodsResponse)
+          .mockResolvedValue({ data: [] });
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
+
+        const paymentMethods: PaymentMethod[] =
+          await billingService.getPaymentMethods(customerId);
+
+        expect(paymentMethods[0]?.isDefault).toBe(true);
+        expect(mockStripe.customers.update).toHaveBeenCalledWith(customerId, {
+          invoice_settings: {
+            default_payment_method: "pm_123",
+          },
+        });
+      });
+
       it("should return an empty array if no payment methods are present", async () => {
         const mockEmptyPaymentMethodsResponse: {
           data: Array<PaymentMethod>;
@@ -1439,6 +1544,224 @@ describe("BillingService", () => {
             payment_method: paymentMethodId,
           },
         );
+      });
+
+      const mockTwoPaymentMethodsResponse: PaymentMethodsResponse = {
+        data: [
+          {
+            id: "pm_123",
+            type: "card",
+            last4Digits: "4242",
+            isDefault: false,
+          },
+          {
+            id: "pm_456",
+            type: "card",
+            last4Digits: "4343",
+            isDefault: false,
+          },
+        ],
+      };
+
+      type GetCardDeclinedErrorFunction = () => Error;
+
+      const getCardDeclinedError: GetCardDeclinedErrorFunction = (): Error => {
+        return Object.assign(new Error("Your card was declined."), {
+          type: "StripeCardError",
+          code: "card_declined",
+        });
+      };
+
+      it("should fall back to the next payment method when the first is declined", async () => {
+        mockStripe.paymentMethods.list = getJestMockFunction()
+          .mockResolvedValueOnce(mockTwoPaymentMethodsResponse)
+          .mockResolvedValue({ data: [] });
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
+
+        const mockPaidInvoice: Stripe.Invoice = getStripeInvoice();
+        mockStripe.invoices.pay = getJestMockFunction()
+          .mockRejectedValueOnce(getCardDeclinedError())
+          .mockResolvedValue(mockPaidInvoice);
+
+        const paidInvoice: Invoice = await billingService.payInvoice(
+          customerId,
+          mockPaidInvoice.id || "",
+        );
+
+        expect(paidInvoice.id).toBe(mockPaidInvoice.id);
+        expect(mockStripe.invoices.pay).toHaveBeenCalledTimes(2);
+        expect(mockStripe.invoices.pay).toHaveBeenNthCalledWith(
+          1,
+          mockPaidInvoice.id,
+          {
+            payment_method: "pm_123",
+          },
+        );
+        expect(mockStripe.invoices.pay).toHaveBeenNthCalledWith(
+          2,
+          mockPaidInvoice.id,
+          {
+            payment_method: "pm_456",
+          },
+        );
+      });
+
+      it("should charge the customer's default payment method first", async () => {
+        mockStripe.paymentMethods.list = getJestMockFunction()
+          .mockResolvedValueOnce(mockTwoPaymentMethodsResponse)
+          .mockResolvedValue({ data: [] });
+
+        const customerWithDefault: Stripe.Customer = getStripeCustomer(
+          customer.id.toString(),
+        );
+        customerWithDefault.invoice_settings.default_payment_method = "pm_456";
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(customerWithDefault);
+
+        const mockPaidInvoice: Stripe.Invoice = getStripeInvoice();
+        mockStripe.invoices.pay =
+          getJestMockFunction().mockResolvedValue(mockPaidInvoice);
+
+        await billingService.payInvoice(customerId, mockPaidInvoice.id || "");
+
+        expect(mockStripe.invoices.pay).toHaveBeenCalledTimes(1);
+        expect(mockStripe.invoices.pay).toHaveBeenCalledWith(
+          mockPaidInvoice.id,
+          {
+            payment_method: "pm_456",
+          },
+        );
+      });
+
+      it("should throw the last error when all payment methods are declined", async () => {
+        mockStripe.paymentMethods.list = getJestMockFunction()
+          .mockResolvedValueOnce(mockTwoPaymentMethodsResponse)
+          .mockResolvedValue({ data: [] });
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
+
+        const lastError: Error = Object.assign(
+          new Error("Insufficient funds."),
+          {
+            type: "StripeCardError",
+            code: "card_declined",
+          },
+        );
+        mockStripe.invoices.pay = getJestMockFunction()
+          .mockRejectedValueOnce(getCardDeclinedError())
+          .mockRejectedValueOnce(lastError);
+
+        await expect(
+          billingService.payInvoice(customerId, invoiceId),
+        ).rejects.toThrow(lastError);
+        expect(mockStripe.invoices.pay).toHaveBeenCalledTimes(2);
+      });
+
+      it("should not try other payment methods on errors unrelated to the payment method", async () => {
+        mockStripe.paymentMethods.list = getJestMockFunction()
+          .mockResolvedValueOnce(mockTwoPaymentMethodsResponse)
+          .mockResolvedValue({ data: [] });
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
+
+        const invoiceStateError: Error = Object.assign(
+          new Error("Invoice is already paid."),
+          {
+            type: "StripeInvalidRequestError",
+            code: "invoice_already_paid",
+          },
+        );
+        mockStripe.invoices.pay =
+          getJestMockFunction().mockRejectedValue(invoiceStateError);
+
+        await expect(
+          billingService.payInvoice(customerId, invoiceId),
+        ).rejects.toThrow(invoiceStateError);
+        expect(mockStripe.invoices.pay).toHaveBeenCalledTimes(1);
+      });
+
+      it("should fall back to the next payment method on payment method and bank account errors", async () => {
+        mockStripe.paymentMethods.list = getJestMockFunction()
+          .mockResolvedValueOnce(mockTwoPaymentMethodsResponse)
+          .mockResolvedValue({ data: [] });
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
+
+        const bankAccountError: Error = Object.assign(
+          new Error("This bank account cannot be used."),
+          {
+            type: "StripeInvalidRequestError",
+            code: "bank_account_unusable",
+          },
+        );
+
+        const mockPaidInvoice: Stripe.Invoice = getStripeInvoice();
+        mockStripe.invoices.pay = getJestMockFunction()
+          .mockRejectedValueOnce(bankAccountError)
+          .mockResolvedValue(mockPaidInvoice);
+
+        const paidInvoice: Invoice = await billingService.payInvoice(
+          customerId,
+          mockPaidInvoice.id || "",
+        );
+
+        expect(paidInvoice.id).toBe(mockPaidInvoice.id);
+        expect(mockStripe.invoices.pay).toHaveBeenCalledTimes(2);
+      });
+
+      it("should not try other payment methods when authentication is required", async () => {
+        /*
+         * the interactive 3DS flow in BillingInvoiceAPI must surface
+         * authentication for the default payment method instead.
+         */
+        mockStripe.paymentMethods.list = getJestMockFunction()
+          .mockResolvedValueOnce(mockTwoPaymentMethodsResponse)
+          .mockResolvedValue({ data: [] });
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
+
+        const requiresActionError: Error = Object.assign(
+          new Error("This payment requires additional authentication."),
+          {
+            type: "StripeInvalidRequestError",
+            code: "invoice_payment_intent_requires_action",
+          },
+        );
+        mockStripe.invoices.pay =
+          getJestMockFunction().mockRejectedValue(requiresActionError);
+
+        await expect(
+          billingService.payInvoice(customerId, invoiceId),
+        ).rejects.toThrow(requiresActionError);
+        expect(mockStripe.invoices.pay).toHaveBeenCalledTimes(1);
+      });
+
+      it("should try at most three payment methods", async () => {
+        const mockFourPaymentMethodsResponse: PaymentMethodsResponse = {
+          data: ["pm_1", "pm_2", "pm_3", "pm_4"].map((id: string) => {
+            return {
+              id,
+              type: "card",
+              last4Digits: "4242",
+              isDefault: false,
+            };
+          }),
+        };
+        mockStripe.paymentMethods.list = getJestMockFunction()
+          .mockResolvedValueOnce(mockFourPaymentMethodsResponse)
+          .mockResolvedValue({ data: [] });
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
+
+        mockStripe.invoices.pay = getJestMockFunction().mockRejectedValue(
+          getCardDeclinedError(),
+        );
+
+        await expect(
+          billingService.payInvoice(customerId, invoiceId),
+        ).rejects.toThrow("Your card was declined.");
+        expect(mockStripe.invoices.pay).toHaveBeenCalledTimes(3);
       });
     });
   });

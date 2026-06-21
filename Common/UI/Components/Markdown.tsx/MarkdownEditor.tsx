@@ -30,6 +30,7 @@ export interface ComponentProps {
   // Default: false (spell check enabled). Set to true to disable spell check.
   disableSpellCheck?: boolean | undefined;
   dataTestId?: string | undefined;
+  ariaLabelledby?: string | undefined;
 }
 
 type EditorMode = "wysiwyg" | "markdown";
@@ -1112,6 +1113,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               ref={editableRef}
               role="textbox"
               aria-multiline="true"
+              aria-labelledby={props.ariaLabelledby}
               contentEditable
               suppressContentEditableWarning
               spellCheck={props.disableSpellCheck !== true}
@@ -1159,6 +1161,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
             <textarea
               ref={textareaRef}
               autoFocus={false}
+              aria-labelledby={props.ariaLabelledby}
               placeholder={props.placeholder || "Type your markdown here..."}
               className={`${className} rounded-t-none min-h-32 ${
                 isDraggingOver

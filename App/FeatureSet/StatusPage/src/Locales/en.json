@@ -1,4 +1,7 @@
 {
+  "a11y": {
+    "skipToMainContent": "Skip to main content"
+  },
   "common": {
     "save": "Save",
     "cancel": "Cancel",
@@ -254,5 +257,17 @@
     "completed": "Completed"
   },
   "Subscriber ID is required": "Subscriber ID is required",
-  "Token is required": "Token is required"
+  "Token is required": "Token is required",
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}} cannot be less than {{minLength}} characters.",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} cannot be more than {{maxLength}} characters.",
+  "{{field}} should not have spaces.": "{{field}} should not have spaces.",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).",
+  "{{field}} should not have numbers.": "{{field}} should not have numbers.",
+  "{{field}} should be a future date.": "{{field}} should be a future date.",
+  "{{field}} should be a number.": "{{field}} should be a number.",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}} should not be more than {{maxValue}}.",
+  "{{field}} should not be less than {{minValue}}.": "{{field}} should not be less than {{minValue}}.",
+  "{{field}} is required.": "{{field}} is required.",
+  "{{field}} should match {{matchField}}": "{{field}} should match {{matchField}}",
+  "Email is not valid.": "Email is not valid."
 }

@@ -126,6 +126,28 @@ i18n
     },
   });
 
+/*
+ * Keep the document's <html lang> attribute in sync with the active language so
+ * screen readers apply the correct pronunciation rules (WCAG 3.1.2 Language of
+ * Parts). The server template renders lang="en"; we update it on initial load
+ * and on every language switch.
+ */
+const syncDocumentLanguage: (lng: string | undefined) => void = (
+  lng: string | undefined,
+): void => {
+  if (typeof window !== "undefined" && window.document && lng) {
+    window.document.documentElement.lang = lng;
+  }
+};
+
+i18n.on("languageChanged", (lng: string) => {
+  syncDocumentLanguage(lng);
+});
+
+syncDocumentLanguage(
+  i18n.resolvedLanguage || i18n.language || DEFAULT_LANGUAGE,
+);
+
 export const applyStatusPageLanguageSettings: (settings: {
   defaultLanguage?: string | null | undefined;
   enabledLanguages?: Array<string> | null | undefined;

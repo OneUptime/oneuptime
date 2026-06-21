@@ -5,6 +5,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 export interface ComponentProps {
   onClick?: () => void | undefined;
   file?: File | undefined;
+  alt?: string | undefined;
 }
 
 const Banner: FunctionComponent<ComponentProps> = (
@@ -24,6 +25,7 @@ const Banner: FunctionComponent<ComponentProps> = (
         }}
         className="rounded-xl w-full mt-3 mb-3 md:mt-5 md:mb-5 object-cover max-h-48 md:max-h-64 lg:max-h-80"
         file={props.file}
+        alt={props.alt || ""}
       />
     </div>
   );

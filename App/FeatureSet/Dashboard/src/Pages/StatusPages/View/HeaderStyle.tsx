@@ -39,12 +39,34 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
+              logoAltText: true,
+            },
+            title: "Logo Alt Text",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            placeholder: "Logo of My Company",
+            description:
+              "Alternative text for the logo, read by screen readers. If left blank, the status page title is used.",
+          },
+          {
+            field: {
               coverImageFile: true,
             },
             title: "Cover",
             fieldType: FormFieldSchemaType.ImageFile,
             required: false,
             placeholder: "Upload cover image",
+          },
+          {
+            field: {
+              coverImageAltText: true,
+            },
+            title: "Cover Image Alt Text",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            placeholder: "Description of the cover image",
+            description:
+              "Alternative text for the cover image, read by screen readers. Leave blank if the cover image is purely decorative.",
           },
         ]}
         modelDetailProps={{
@@ -65,6 +87,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             },
             {
               field: {
+                logoAltText: true,
+              },
+              fieldType: FieldType.Text,
+              title: "Logo Alt Text",
+              placeholder: "Status page title is used.",
+            },
+            {
+              field: {
                 coverImageFile: {
                   file: true,
                   fileType: true,
@@ -73,6 +103,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               fieldType: FieldType.ImageFile,
               title: "Cover Image",
               placeholder: "No cover uploaded.",
+            },
+            {
+              field: {
+                coverImageAltText: true,
+              },
+              fieldType: FieldType.Text,
+              title: "Cover Image Alt Text",
+              placeholder: "Decorative (no alt text).",
             },
           ],
           modelId: modelId,

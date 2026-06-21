@@ -14,7 +14,12 @@ enum AnalyticsTableName {
    * named here (they aren't queried directly).
    */
   MetricItemAggMV1m = "MetricItemAggMV1m",
-  MetricItemAggMV1mByHost = "MetricItemAggMV1mByHost",
+  /*
+   * Successor of MetricItemAggMV1mByHost (dropped by the
+   * RekeyMetricHostRollupToEntityKey migration), keyed by the stable
+   * hostEntityKey instead of the raw host.name spelling.
+   */
+  MetricItemAggMV1mByHostV2 = "MetricItemAggMV1mByHostV2",
   MetricBaselineHourly = "MetricBaselineHourly",
 }
 

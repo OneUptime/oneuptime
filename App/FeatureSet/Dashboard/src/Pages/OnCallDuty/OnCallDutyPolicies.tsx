@@ -48,6 +48,7 @@ const OnCallDutyPage: FunctionComponent<
     <Fragment>
       <ModelTable<OnCallDutyPolicy>
         modelType={OnCallDutyPolicy}
+        enableJsonImportExport={true}
         id="on-call-duty-table"
         userPreferencesKey="on-call-duty-table"
         topContent={filterBar}

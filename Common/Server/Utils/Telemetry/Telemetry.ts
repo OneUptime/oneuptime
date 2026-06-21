@@ -163,6 +163,16 @@ export default class TelemetryUtil {
     };
   }
 
+  public static getAttributesForPodmanHostIdAndHostName(data: {
+    podmanHostId: ObjectID;
+    hostName: string;
+  }): Dictionary<AttributeType> {
+    return {
+      "oneuptime.podman.host.id": data.podmanHostId.toString(),
+      "oneuptime.podman.host.name": data.hostName,
+    };
+  }
+
   public static getAttributesForKubernetesClusterIdAndName(data: {
     kubernetesClusterId: ObjectID;
     clusterName: string;

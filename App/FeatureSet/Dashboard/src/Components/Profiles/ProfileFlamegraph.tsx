@@ -3,85 +3,134 @@ import React, {
   ReactElement,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
-import ProfileSample from "Common/Models/AnalyticsModels/ProfileSample";
-import AnalyticsModelAPI, {
-  ListResult,
-} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import ProjectUtil from "Common/UI/Utils/Project";
 import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import ProfileUtil, { ParsedStackFrame } from "../../Utils/ProfileUtil";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import FlamegraphView, { FlamegraphNode } from "./FlamegraphView";
+import { APP_API_URL } from "Common/UI/Config";
+import URL from "Common/Types/API/URL";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import { JSONObject } from "Common/Types/JSON";
+import ProfileUtil from "../../Utils/ProfileUtil";
+import FlamegraphView, {
+  FlamegraphNode,
+  ServerFlamegraphNode,
+  normaliseServerFlamegraphNode,
+} from "./FlamegraphView";
 
 export interface ProfileFlamegraphProps {
   profileId: string;
   profileType?: string | undefined;
   unit?: string | undefined;
+  /**
+   * Forwarded to {@link FlamegraphView}; enables the "Callers &
+   * callees" affordance on the zoomed frame.
+   */
+  onFocusFunction?:
+    | ((frame: { functionName: string; fileName: string }) => void)
+    | undefined;
 }
 
 /**
- * Loads samples for a single profile and builds a flame graph tree
- * client-side. The actual rendering lives in {@link FlamegraphView}.
+ * Fetches the pre-built flame graph tree for a single profile from the
+ * server. The server merges stacks across all of the profile's samples
+ * — doing that client-side would mean shipping every raw sample over
+ * the wire and re-implementing the tree builder. The actual rendering
+ * lives in {@link FlamegraphView}.
  */
 const ProfileFlamegraph: FunctionComponent<ProfileFlamegraphProps> = (
   props: ProfileFlamegraphProps,
 ): ReactElement => {
-  const [samples, setSamples] = useState<Array<ProfileSample>>([]);
+  const [serverRoot, setServerRoot] = useState<ServerFlamegraphNode | null>(
+    null,
+  );
+  const [isTruncated, setIsTruncated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
+  /*
+   * The selector pill stores either a category (e.g. "cpu") or a raw
+   * type — expand it to the raw type strings agents actually emit so
+   * the server filters with IN (...) instead of a literal equality
+   * that would miss rows.
+   */
+  const queryProfileTypes: Array<string> | undefined =
+    ProfileUtil.getQueryProfileTypes(props.profileType);
+
   const unit: string =
     props.unit ||
-    (props.profileType
-      ? ProfileUtil.getProfileTypeUnit(props.profileType)
+    (queryProfileTypes && queryProfileTypes.length > 0
+      ? ProfileUtil.getProfileTypeUnit(queryProfileTypes[0]!)
       : "nanoseconds");
 
-  const loadSamples: () => Promise<void> = async (): Promise<void> => {
+  /*
+   * Generation counter guards every fetch — including manual retries —
+   * so a slow stale response can never overwrite a newer one, and no
+   * setState fires after the props that started it are gone.
+   */
+  const loadGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
+
+  const load: (generation: number) => Promise<void> = async (
+    generation: number,
+  ): Promise<void> => {
     try {
       setIsLoading(true);
       setError("");
 
-      const result: ListResult<ProfileSample> = await AnalyticsModelAPI.getList(
-        {
-          modelType: ProfileSample,
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            "/telemetry/profiles/flamegraph",
+          ),
+          data: {
             profileId: props.profileId,
-            ...(props.profileType ? { profileType: props.profileType } : {}),
+            profileTypes: queryProfileTypes,
           },
-          select: {
-            stacktrace: true,
-            frameTypes: true,
-            value: true,
-            profileType: true,
+          headers: {
+            ...ModelAPI.getCommonHeaders(),
           },
-          limit: 10000,
-          skip: 0,
-          sort: {
-            value: SortOrder.Descending,
-          },
-        },
-      );
+        });
 
-      setSamples(result.data || []);
+      if (generation !== loadGenerationRef.current) {
+        return;
+      }
+
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
+      }
+
+      const root: ServerFlamegraphNode = response.data[
+        "flamegraph"
+      ] as unknown as ServerFlamegraphNode;
+      setServerRoot(root);
+      setIsTruncated(Boolean(response.data["truncated"]));
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      if (generation === loadGenerationRef.current) {
+        setError(API.getFriendlyMessage(err));
+      }
     } finally {
-      setIsLoading(false);
+      if (generation === loadGenerationRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    void loadSamples();
+    loadGenerationRef.current += 1;
+    void load(loadGenerationRef.current);
+    return () => {
+      // Invalidate in-flight responses when scope changes or we unmount.
+      loadGenerationRef.current += 1;
+    };
   }, [props.profileId, props.profileType]);
 
   const root: FlamegraphNode = useMemo(() => {
-    return buildTreeFromSamples(samples);
-  }, [samples]);
+    return normaliseServerFlamegraphNode(serverRoot);
+  }, [serverRoot]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -91,102 +140,21 @@ const ProfileFlamegraph: FunctionComponent<ProfileFlamegraphProps> = (
       <ErrorMessage
         message={error}
         onRefreshClick={() => {
-          void loadSamples();
+          loadGenerationRef.current += 1;
+          void load(loadGenerationRef.current);
         }}
       />
     );
   }
 
-  return <FlamegraphView root={root} unit={unit} />;
+  return (
+    <FlamegraphView
+      root={root}
+      unit={unit}
+      truncated={isTruncated}
+      onFocusFunction={props.onFocusFunction}
+    />
+  );
 };
-
-/**
- * Build a flame graph tree from raw ProfileSample records. Each
- * sample's stacktrace is walked root→leaf and merged into the shared
- * tree. Nodes with the same (name, file, line) at the same position
- * merge into one.
- */
-function buildTreeFromSamples(samples: Array<ProfileSample>): FlamegraphNode {
-  const root: FlamegraphNode = {
-    name: "(all)",
-    fileName: "",
-    lineNumber: 0,
-    frameType: "",
-    category: "unknown",
-    selfValue: 0,
-    totalValue: 0,
-    children: [],
-  };
-
-  /*
-   * Temporary index so we can look children up in O(1) by frame string
-   * during construction, without mutating the final tree shape.
-   */
-  const childIndex: WeakMap<
-    FlamegraphNode,
-    Map<string, FlamegraphNode>
-  > = new WeakMap();
-
-  const getOrCreateChild: (
-    parent: FlamegraphNode,
-    frame: string,
-    frameType: string,
-  ) => FlamegraphNode = (
-    parent: FlamegraphNode,
-    frame: string,
-    frameType: string,
-  ): FlamegraphNode => {
-    let idx: Map<string, FlamegraphNode> | undefined = childIndex.get(parent);
-    if (!idx) {
-      idx = new Map<string, FlamegraphNode>();
-      childIndex.set(parent, idx);
-    }
-    const existing: FlamegraphNode | undefined = idx.get(frame);
-    if (existing) {
-      return existing;
-    }
-    const parsed: ParsedStackFrame = ProfileUtil.parseStackFrame(frame);
-    const node: FlamegraphNode = {
-      name: parsed.functionName,
-      fileName: parsed.fileName,
-      lineNumber: parsed.lineNumber,
-      frameType,
-      category: ProfileUtil.getModuleCategory(parsed.fileName),
-      selfValue: 0,
-      totalValue: 0,
-      children: [],
-    };
-    parent.children.push(node);
-    idx.set(frame, node);
-    return node;
-  };
-
-  for (const sample of samples) {
-    const stacktrace: Array<string> = sample.stacktrace || [];
-    const frameTypes: Array<string> = sample.frameTypes || [];
-    const value: number = sample.value || 0;
-
-    root.totalValue += value;
-
-    let currentNode: FlamegraphNode = root;
-    for (let i: number = 0; i < stacktrace.length; i++) {
-      const frame: string = stacktrace[i]!;
-      const frameType: string =
-        i < frameTypes.length ? frameTypes[i]! : "unknown";
-      const child: FlamegraphNode = getOrCreateChild(
-        currentNode,
-        frame,
-        frameType,
-      );
-      child.totalValue += value;
-      if (i === stacktrace.length - 1) {
-        child.selfValue += value;
-      }
-      currentNode = child;
-    }
-  }
-
-  return root;
-}
 
 export default ProfileFlamegraph;

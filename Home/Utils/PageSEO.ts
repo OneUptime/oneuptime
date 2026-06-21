@@ -473,6 +473,41 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/product/podman": {
+    title:
+      "Podman Observability | Monitor Hosts, Containers & Images | OneUptime",
+    description:
+      "Complete Podman observability with real-time host monitoring, container health tracking, image insights, and automated alerting. Daemonless and rootless-capable. OpenTelemetry native. Open source.",
+    canonicalPath: "/product/podman",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Podman", url: "/product/podman" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Podman Observability",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Monitor Podman hosts, containers, and images with real-time metrics, intelligent alerting, and pre-built dashboards. Daemonless and rootless-capable via Podman's Docker-compatible API socket.",
+      features: [
+        "Multi-host fleet monitoring",
+        "Container health and metrics",
+        "Image and volume insights",
+        "OOM kill detection",
+        "Restart loop alerting",
+        "CPU and memory tracking",
+        "Network and block I/O metrics",
+        "OpenTelemetry native",
+        "Podman Compose deployment",
+        "docker_stats receiver",
+        "Container logs correlation",
+      ],
+    },
+  },
+
   "/product/host": {
     title: "Host Observability | Server Metrics, Processes & Logs | OneUptime",
     description:
@@ -502,6 +537,111 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
         "Correlated host logs",
         "Last-seen + connection status",
         "OS, architecture, host.id capture",
+        "Open source",
+      ],
+    },
+  },
+
+  "/product/proxmox": {
+    title: "Proxmox Monitoring | Nodes, VMs, Storage & Backups | OneUptime",
+    description:
+      "Monitor Proxmox VE clusters end to end: node and guest health, storage usage, backup coverage, and replication alerting. One agent per cluster, flat project pricing, 10-minute setup. Open source.",
+    canonicalPath: "/product/proxmox",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Proxmox", url: "/product/proxmox" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Proxmox Monitoring",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Monitor Proxmox VE clusters with one agent: node, VM, and container health, storage capacity, backup coverage, replication alerting, and on-call escalation in a single product.",
+      features: [
+        "Whole-cluster monitoring from one agent",
+        "Node, VM, and LXC inventory with status pills",
+        "Backup coverage: guests without a backup job",
+        "Storage replication failure alerting",
+        "Quorum-risk and HA resource state alerts",
+        "Storage usage and growth tracking",
+        "Guest-to-host agent cross-linking",
+        "Copy-paste onboarding with token validator",
+        "Flat project pricing, not per-host",
+        "OpenTelemetry native",
+        "Open source",
+      ],
+    },
+  },
+
+  "/product/ceph": {
+    title:
+      "Ceph Monitoring | Cluster Health, OSDs, Pools & Capacity | OneUptime",
+    description:
+      "Monitor Ceph clusters without bolting Grafana onto the dashboard: health drill-downs, OSD and PG state, pool capacity with growth forecasts, and alerting with on-call built in. Open source.",
+    canonicalPath: "/product/ceph",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Ceph", url: "/product/ceph" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Ceph Monitoring",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Monitor Ceph clusters from the mgr Prometheus module: health status with reason drill-downs, OSD up/in state, PG breakdown, pool capacity and forecasts, and alert templates with on-call escalation built in.",
+      features: [
+        "Cluster health pill with reason drill-down",
+        "Capacity gauge with nearfull/full thresholds",
+        "Capacity growth forecasting",
+        "OSD up/in matrix and honeycomb view",
+        "Placement group state breakdown",
+        "Pool usage, IOPS, and throughput",
+        "Monitor quorum tracking",
+        "Fleet view across every cluster",
+        "Alert templates with on-call built in",
+        "No Grafana or Alertmanager required",
+        "Open source",
+      ],
+    },
+  },
+
+  "/product/docker-swarm": {
+    title:
+      "Docker Swarm Monitoring | Nodes, Services, Tasks & Stacks | OneUptime",
+    description:
+      "Monitor Docker Swarm clusters end to end: manager and worker node health, services and their task replicas, stacks, overlay networks, secrets, configs, and volumes. One agent on a manager node, flat project pricing, 10-minute setup. Open source.",
+    canonicalPath: "/product/docker-swarm",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Docker Swarm", url: "/product/docker-swarm" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Docker Swarm Monitoring",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Monitor an entire Docker Swarm cluster from one OpenTelemetry collector and inventory poller on a manager node: node, service, task, stack, overlay network, secret, config, and volume inventory, running-vs-desired replica convergence alerting, per-container CPU and memory, and logs.",
+      features: [
+        "Whole-cluster visibility from one manager-node agent",
+        "Manager & worker node health and roles",
+        "Service inventory with running vs desired replicas",
+        "Task-level (container instance) tracking",
+        "Stack, overlay network, secret & config inventory",
+        "Volume usage and growth",
+        "Raft manager quorum & service convergence alerting",
+        "Per-container CPU and memory metrics",
+        "Container and service logs",
+        "Flat project pricing",
+        "OpenTelemetry native",
         "Open source",
       ],
     },

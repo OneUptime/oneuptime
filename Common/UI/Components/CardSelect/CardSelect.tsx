@@ -30,6 +30,7 @@ export interface ComponentProps {
   error?: string | undefined;
   tabIndex?: number | undefined;
   dataTestId?: string | undefined;
+  ariaLabelledby?: string | undefined;
   // Force single-column (1 item per row). Default: responsive 1/2/3 grid.
   singleColumn?: boolean | undefined;
 }
@@ -67,7 +68,11 @@ const CardSelect: FunctionComponent<ComponentProps> = (
 
   return (
     <div data-testid={props.dataTestId}>
-      <div role="radiogroup" aria-label="Select an option">
+      <div
+        role="radiogroup"
+        aria-label="Select an option"
+        aria-labelledby={props.ariaLabelledby}
+      >
         {groups.map((group: RenderGroup, groupIndex: number) => {
           return (
             <div key={groupIndex} className={groupIndex > 0 ? "mt-8" : ""}>

@@ -18,7 +18,7 @@ import Label from "Common/Models/DatabaseModels/Label";
 const alertLabelDocumentation: string = `
 ### How Alert Label Rules Work
 
-Alert Label Rules attach labels to an alert automatically when it matches your criteria — including labels copied from the alert's monitor, hosts, Kubernetes clusters, and Docker hosts.
+Alert Label Rules attach labels to an alert automatically when it matches your criteria — including labels copied from the alert's monitor, hosts, Kubernetes clusters, Docker hosts, and Podman hosts.
 
 ### Match Criteria
 
@@ -36,6 +36,7 @@ When a rule matches:
 - If \`Inherit Labels From Hosts\` is on, every label of the alert's affected hosts is also attached.
 - If \`Inherit Labels From Kubernetes Clusters\` is on, every label of the alert's affected Kubernetes clusters is also attached.
 - If \`Inherit Labels From Docker Hosts\` is on, every label of the alert's affected Docker hosts is also attached.
+- If \`Inherit Labels From Podman Hosts\` is on, every label of the alert's affected Podman hosts is also attached.
 
 Labels already on the alert are not duplicated. Multiple matching rules contribute the union of their labels.
 `;
@@ -74,7 +75,7 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
       cardProps={{
         title: "Alert Label Rules",
         description:
-          "Auto-attach labels to alerts — including labels inherited from the alert's monitor, hosts, Kubernetes clusters, and Docker hosts — when matching alerts are created.",
+          "Auto-attach labels to alerts — including labels inherited from the alert's monitor, hosts, Kubernetes clusters, Docker hosts, and Podman hosts — when matching alerts are created.",
       }}
       helpContent={{
         title: "How Alert Label Rules Work",
@@ -288,6 +289,15 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
           required: false,
           description:
             "Copy every label of the alert's affected Docker hosts onto the alert.",
+        },
+        {
+          field: { inheritLabelsFromPodmanHosts: true },
+          title: "Inherit Labels From Podman Hosts",
+          stepId: "labels",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          description:
+            "Copy every label of the alert's affected Podman hosts onto the alert.",
         },
         {
           field: { inheritLabelsFromServices: true },

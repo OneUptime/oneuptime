@@ -32,6 +32,7 @@ export interface ComponentProps {
   isMultiFilePicker?: boolean | undefined;
   tabIndex?: number | undefined;
   error?: string | undefined;
+  ariaLabelledby?: string | undefined;
 }
 
 type UploadStatus = {
@@ -449,6 +450,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                       id="file-upload"
                       name="file-upload"
                       type="file"
+                      aria-labelledby={props.ariaLabelledby}
                       className="sr-only"
                     />
                   </label>

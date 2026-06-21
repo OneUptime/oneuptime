@@ -54,11 +54,6 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
     setRecords(records);
   }, [props.data]);
 
-  const className: string = props.heightInPx ? `` : "h-80";
-  const style: React.CSSProperties = props.heightInPx
-    ? { height: `${props.heightInPx}px` }
-    : {};
-
   const hasNoData: boolean =
     !props.data ||
     props.data.length === 0 ||
@@ -67,10 +62,11 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
     });
 
   return (
-    <div className="relative">
+    <div
+      className="relative flex flex-1"
+      style={props.heightInPx ? { height: `${props.heightInPx}px` } : undefined}
+    >
       <BarChart
-        className={className}
-        style={style}
         data={records}
         tickGap={30}
         index={"Time"}

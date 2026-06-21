@@ -100,22 +100,50 @@ export default abstract class Redis {
       const connectToDatabase: ConnectToDatabaseFunction = async (
         client: RedisClient,
       ): Promise<void> => {
-        try {
-          await client.connect();
-        } catch (err) {
-          if (retry < 3) {
-            logger.debug(
-              "Cannot connect to Redis. Retrying again in 5 seconds",
-            );
-            // sleep for 5 seconds.
-
-            await Sleep.sleep(5000);
-
-            retry++;
-            return await connectToDatabase(client);
-          }
-          throw err;
+        // A previous attempt (or ioredis' background reconnect) already succeeded.
+        if (client.status === "ready") {
+          return;
         }
+
+        /*
+         * The client is created with lazyConnect, so it starts in the "wait" state
+         * and only opens when we call connect(). If the first attempt fails, ioredis
+         * begins auto-reconnecting in the background (status "connecting" /
+         * "reconnecting"), and calling connect() again in that state throws
+         * "Redis is already connecting/connected" — which previously propagated out
+         * of init() and crashlooped the process. So only issue connect() when the
+         * client is idle; when a (re)connect is already in flight, skip the call and
+         * wait for it to settle on the next iteration.
+         */
+        const isIdle: boolean =
+          client.status === "wait" ||
+          client.status === "end" ||
+          client.status === "close";
+
+        try {
+          if (isIdle) {
+            await client.connect();
+            return;
+          }
+        } catch (err) {
+          if (retry >= 3) {
+            throw err;
+          }
+        }
+
+        if (retry >= 3) {
+          throw new Error(
+            `Unable to connect to Redis at ${RedisHostname}:${RedisPort.toNumber()} (status: ${client.status})`,
+          );
+        }
+
+        logger.debug("Cannot connect to Redis. Retrying again in 5 seconds");
+        // sleep for 5 seconds.
+
+        await Sleep.sleep(5000);
+
+        retry++;
+        return await connectToDatabase(client);
       };
 
       await connectToDatabase(this.client);

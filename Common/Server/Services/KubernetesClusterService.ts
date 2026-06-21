@@ -155,21 +155,33 @@ export class Service extends DatabaseService<Model> {
       )
       .digest("hex");
 
-    const cached: string | null = await GlobalCache.getString(
-      LAST_SEEN_CACHE_NAMESPACE,
-      cacheKey,
-    );
+    let cached: string | null = null;
+    try {
+      cached = await GlobalCache.getString(LAST_SEEN_CACHE_NAMESPACE, cacheKey);
+    } catch {
+      /*
+       * Cache unavailable — fail open and refresh lastSeenAt anyway. A
+       * cache error must never skip the DB write below, otherwise the
+       * resource is wrongly marked "disconnected" while telemetry is
+       * still flowing. Mirrors shouldRunMaintenance's fail-open stance.
+       */
+      cached = null;
+    }
 
     if (cached === extrasFingerprint) {
       return; // same data was written recently
     }
 
-    await GlobalCache.setString(
-      LAST_SEEN_CACHE_NAMESPACE,
-      cacheKey,
-      extrasFingerprint,
-      { expiresInSeconds: LAST_SEEN_THROTTLE_SECONDS },
-    );
+    try {
+      await GlobalCache.setString(
+        LAST_SEEN_CACHE_NAMESPACE,
+        cacheKey,
+        extrasFingerprint,
+        { expiresInSeconds: LAST_SEEN_THROTTLE_SECONDS },
+      );
+    } catch {
+      // Best-effort throttle write; proceed with the DB update regardless.
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data: any = {
@@ -269,15 +281,23 @@ export class Service extends DatabaseService<Model> {
 
   @CaptureSpan()
   public async markDisconnectedClusters(): Promise<void> {
-    const fiveMinutesAgo: Date = OneUptimeDate.addRemoveMinutes(
+    /*
+     * Threshold must stay well above the 5-minute OTel ingest
+     * maintenance fence (MAINTENANCE_FENCE_TTL_SECONDS in
+     * OtelIngestBaseService) — lastSeenAt is legitimately up to
+     * ~5 minutes stale during continuous telemetry, so a threshold
+     * equal to the fence TTL flaps healthy resources. 15 minutes
+     * gives 3x headroom.
+     */
+    const fifteenMinutesAgo: Date = OneUptimeDate.addRemoveMinutes(
       OneUptimeDate.getCurrentDate(),
-      -5,
+      -15,
     );
 
     const connectedClusters: Array<Model> = await this.findBy({
       query: {
         otelCollectorStatus: "connected",
-        lastSeenAt: QueryHelper.lessThan(fiveMinutesAgo),
+        lastSeenAt: QueryHelper.lessThan(fifteenMinutesAgo),
       },
       select: {
         _id: true,

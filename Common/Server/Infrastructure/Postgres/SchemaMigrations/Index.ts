@@ -382,7 +382,21 @@ import { MigrationName1781011482945 } from "./1781011482945-MigrationName";
 import { RenameTelemetryServiceIdToPrimaryEntityId1781100000001 } from "./1781100000001-RenameTelemetryServiceIdToPrimaryEntityId";
 import { AddTelemetryEntityTable1781200000000 } from "./1781200000000-AddTelemetryEntityTable";
 import { AddTelemetryEntityRelationshipTable1781200000001 } from "./1781200000001-AddTelemetryEntityRelationshipTable";
+import { MigrationName1781250074195 } from "./1781250074195-MigrationName";
 import { AddTelemetryEntityLabels1781300000000 } from "./1781300000000-AddTelemetryEntityLabels";
+import { AddServiceTelemetrySdkLanguage1781400000000 } from "./1781400000000-AddServiceTelemetrySdkLanguage";
+import { AddProxmoxAndCephClusterTables1781500000000 } from "./1781500000000-AddProxmoxAndCephClusterTables";
+import { AddProxmoxCephV2Columns1781600000000 } from "./1781600000000-AddProxmoxCephV2Columns";
+import { AddProxmoxCephActivityAndRules1781600000001 } from "./1781600000001-AddProxmoxCephActivityAndRules";
+import { AddProxmoxCephV3Columns1781700000000 } from "./1781700000000-AddProxmoxCephV3Columns";
+import { MigrationName1781750000000 } from "./1781750000000-MigrationName";
+import { AddGlobalSsoAndOidc1782000000000 } from "./1782000000000-AddGlobalSsoAndOidc";
+import { AddStatusPageImageAltText1782100000000 } from "./1782100000000-AddStatusPageImageAltText";
+import { AddRequireSsoForLoginToGlobalProviders1782200000000 } from "./1782200000000-AddRequireSsoForLoginToGlobalProviders";
+import { MoveRequireSsoForLoginToGlobalConfig1782300000000 } from "./1782300000000-MoveRequireSsoForLoginToGlobalConfig";
+import { MigrationName1782310000000 } from "./1782310000000-MigrationName";
+import { RemoveIsTestedFromGlobalSsoAndOidc1782400000000 } from "./1782400000000-RemoveIsTestedFromGlobalSsoAndOidc";
+import { OptimizeTelemetryExceptionWritePath1782500000000 } from "./1782500000000-OptimizeTelemetryExceptionWritePath";
 
 export default [
   InitialMigration,
@@ -770,4 +784,18 @@ export default [
   AddTelemetryEntityTable1781200000000,
   AddTelemetryEntityRelationshipTable1781200000001,
   AddTelemetryEntityLabels1781300000000,
+  AddServiceTelemetrySdkLanguage1781400000000,
+  MigrationName1781250074195,
+  AddProxmoxAndCephClusterTables1781500000000,
+  AddProxmoxCephV2Columns1781600000000,
+  AddProxmoxCephActivityAndRules1781600000001,
+  AddProxmoxCephV3Columns1781700000000,
+  MigrationName1781750000000,
+  AddGlobalSsoAndOidc1782000000000,
+  AddStatusPageImageAltText1782100000000,
+  AddRequireSsoForLoginToGlobalProviders1782200000000,
+  MoveRequireSsoForLoginToGlobalConfig1782300000000,
+  MigrationName1782310000000,
+  RemoveIsTestedFromGlobalSsoAndOidc1782400000000,
+  OptimizeTelemetryExceptionWritePath1782500000000,
 ];

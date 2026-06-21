@@ -27,6 +27,29 @@ enum EntityType {
   KubernetesNode = "k8s.node",
   KubernetesPod = "k8s.pod",
   KubernetesDeployment = "k8s.deployment",
+  /*
+   * Proxmox VE / Ceph types are OneUptime-defined (no upstream semconv
+   * exists for either) but follow the same dotted naming convention. The
+   * identifying attributes (`proxmox.cluster.name`, `proxmox.node.name`,
+   * `proxmox.guest.vmid`, `ceph.cluster.name`) are stamped by our agent
+   * collector configs — see Internal/Roadmap/ProxmoxCephProducts.md §1.
+   */
+  ProxmoxCluster = "proxmox.cluster",
+  ProxmoxNode = "proxmox.node",
+  ProxmoxGuest = "proxmox.guest",
+  CephCluster = "ceph.cluster",
+  /*
+   * Docker Swarm types are OneUptime-defined (no upstream semconv
+   * exists) but follow the same dotted naming convention. The
+   * identifying attributes (`docker.swarm.cluster.name`,
+   * `docker.swarm.node.id`, `docker.swarm.service.id`) are stamped by
+   * the OneUptime Docker Swarm agent's collector config / inventory
+   * poller.
+   */
+  DockerSwarmCluster = "docker.swarm.cluster",
+  DockerSwarmNode = "docker.swarm.node",
+  DockerSwarmService = "docker.swarm.service",
+  DockerSwarmTask = "docker.swarm.task",
   TelemetrySdk = "telemetry.sdk",
 }
 

@@ -47,6 +47,7 @@ import AffectedResourcesPicker, {
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Service from "Common/Models/DatabaseModels/Service";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
@@ -621,11 +622,13 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     values.kubernetesClusters as Array<KubernetesCluster>
                   }
                   dockerHosts={values.dockerHosts as Array<DockerHost>}
+                  podmanHosts={values.podmanHosts as Array<PodmanHost>}
                   services={values.services as Array<Service>}
                   resourceTypes={[
                     "Host",
                     "KubernetesCluster",
                     "DockerHost",
+                    "PodmanHost",
                     "Service",
                   ]}
                   onChange={(payload: unknown) => {
@@ -647,6 +650,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     hosts: payload.hosts,
                     kubernetesClusters: payload.kubernetesClusters,
                     dockerHosts: payload.dockerHosts,
+                    podmanHosts: payload.podmanHosts,
                     services: payload.services,
                   } as FormValues<Alert>);
                 });
@@ -668,6 +672,15 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
           {
             field: { dockerHosts: true },
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { podmanHosts: true },
             title: "",
             fieldType: FormFieldSchemaType.Text,
             required: false,
@@ -704,6 +717,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   name: true,
                   _id: true,
                 },
+                podmanHosts: {
+                  name: true,
+                  _id: true,
+                },
                 services: {
                   name: true,
                   _id: true,
@@ -718,6 +735,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     hosts={item.hosts || []}
                     kubernetesClusters={item.kubernetesClusters || []}
                     dockerHosts={item.dockerHosts || []}
+                    podmanHosts={item.podmanHosts || []}
                     services={item.services || []}
                     hideMonitors={true}
                   />

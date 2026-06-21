@@ -52,6 +52,13 @@ import KubernetesContainerService from "Common/Server/Services/KubernetesContain
 import DockerResourceService, {
   ParsedDockerResource,
 } from "Common/Server/Services/DockerResourceService";
+import PodmanResourceService, {
+  ParsedPodmanResource,
+} from "Common/Server/Services/PodmanResourceService";
+import DockerSwarmResourceService, {
+  ParsedDockerSwarmResource,
+} from "Common/Server/Services/DockerSwarmResourceService";
+import DockerSwarmClusterService from "Common/Server/Services/DockerSwarmClusterService";
 import {
   extractInventoryResource,
   ExtractedInventoryRecord,
@@ -65,6 +72,18 @@ import {
   INVENTORY_KIND_ATTRIBUTE as DOCKER_INVENTORY_KIND_ATTRIBUTE,
   isInventoriedDockerKind,
 } from "Common/Types/Docker/DockerInventoryExtractor";
+import {
+  extractPodmanInventoryResource,
+  ExtractedPodmanInventoryRecord,
+  INVENTORY_KIND_ATTRIBUTE as PODMAN_INVENTORY_KIND_ATTRIBUTE,
+  isInventoriedPodmanKind,
+} from "Common/Types/Podman/PodmanInventoryExtractor";
+import {
+  extractDockerSwarmInventoryResource,
+  ExtractedDockerSwarmInventoryRecord,
+  INVENTORY_KIND_ATTRIBUTE as DOCKER_SWARM_INVENTORY_KIND_ATTRIBUTE,
+  isInventoriedDockerSwarmKind,
+} from "Common/Types/DockerSwarm/DockerSwarmInventoryExtractor";
 
 const INVENTORIED_TYPE_SET: Set<string> = new Set(
   INVENTORIED_RESOURCE_TYPES.map((t: string) => {
@@ -219,6 +238,26 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         Array<ParsedDockerResource>
       > = new Map();
 
+      /*
+       * Podman inventory buffer keyed by podman host ID. Populated only
+       * when a log record carries the Podman agent's snapshot envelope
+       * attribute (oneuptime.podman.kind).
+       */
+      const podmanInventoryBuffer: Map<
+        string,
+        Array<ParsedPodmanResource>
+      > = new Map();
+
+      /*
+       * Docker Swarm inventory buffer keyed by swarm cluster ID.
+       * Populated only when a log record carries the Docker Swarm
+       * agent's snapshot envelope attribute (oneuptime.dockerswarm.kind).
+       */
+      const dockerSwarmInventoryBuffer: Map<
+        string,
+        Array<ParsedDockerSwarmResource>
+      > = new Map();
+
       // Load pipelines, drop filters, and scrub rules once per batch
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
       let loadedPipelines: Array<LoadedPipeline> = [];
@@ -255,13 +294,25 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             );
 
           /*
-           * Auto-discover Kubernetes cluster and Docker host from
-           * resource attributes. They look at disjoint attributes
-           * and don't share state, so we issue both Postgres
-           * lookups concurrently and only wait once. The cluster id
-           * is also what the inventory hook below keys its buffer on.
+           * Auto-discover Kubernetes cluster, Docker host, Proxmox
+           * cluster and Ceph cluster from resource attributes. They
+           * look at disjoint attributes and don't share state, so we
+           * issue all Postgres lookups concurrently and only wait
+           * once. The cluster id is also what the inventory hook
+           * below keys its buffer on.
            */
-          const [kubernetesClusterId, dockerHostId]: [
+          const [
+            kubernetesClusterId,
+            dockerHostId,
+            podmanHostId,
+            proxmoxClusterId,
+            cephClusterId,
+            dockerSwarmClusterId,
+          ]: [
+            ObjectID | null,
+            ObjectID | null,
+            ObjectID | null,
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
           ] = await Promise.all([
@@ -273,7 +324,32 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               projectId,
               attributes: resourceAttributes_raw,
             }),
+            this.autoDiscoverPodmanHost({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverProxmoxCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverCephCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverDockerSwarmCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
           ]);
+
+          /*
+           * Docker Swarm inventory eligibility — the agent's inventory
+           * poller tags each JSON-line log record with
+           * `oneuptime.dockerswarm.kind`. Per-record check happens in the
+           * loop below; zero cost on non-inventory batches.
+           */
+          const isDockerSwarmInventoryEligible: boolean =
+            Boolean(dockerSwarmClusterId);
 
           /*
            * The OTel k8sobjects receiver tags each log record (not the
@@ -292,6 +368,13 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           const isDockerInventoryEligible: boolean = Boolean(dockerHostId);
 
           /*
+           * Podman inventory eligibility — same shape as the Docker gate.
+           * Per-record check happens inside the loop below since the
+           * agent tags each line individually.
+           */
+          const isPodmanInventoryEligible: boolean = Boolean(podmanHostId);
+
+          /*
            * Generic Host auto-discovery. Logs don't carry infra metrics,
            * so we rely on resource attribute signals (host.id, host.arch,
            * os.type, container.runtime, k8s.cluster.name) to gate row
@@ -302,6 +385,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             attributes: resourceAttributes_raw,
             hasInfraSignal: false,
             dockerHostId,
+            podmanHostId,
             kubernetesClusterId,
           });
 
@@ -329,7 +413,11 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               projectId,
               hostId,
               dockerHostId,
+              podmanHostId,
               kubernetesClusterId,
+              proxmoxClusterId,
+              cephClusterId,
+              dockerSwarmClusterId,
               serverlessFunctionId,
               cloudResourceId,
               rumApplicationId,
@@ -367,6 +455,12 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             ...(dockerHostId && stampHostName
               ? TelemetryUtil.getAttributesForDockerHostIdAndHostName({
                   dockerHostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(podmanHostId && stampHostName
+              ? TelemetryUtil.getAttributesForPodmanHostIdAndHostName({
+                  podmanHostId,
                   hostName: stampHostName,
                 })
               : {}),
@@ -620,19 +714,104 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     }
                   }
 
-                  let traceId: string = "";
-                  try {
-                    traceId = Text.convertBase64ToHex(log["traceId"] as string);
-                  } catch {
-                    traceId = "";
+                  /*
+                   * Podman inventory hook: the agent's snapshot script
+                   * emits each container/image/network/volume as a JSON
+                   * envelope tagged with `oneuptime.podman.kind`. We
+                   * route these into the PodmanResource inventory table
+                   * exactly like the K8s flow above.
+                   */
+                  if (isPodmanInventoryEligible && podmanHostId && body) {
+                    const recordPodmanKind: unknown =
+                      attributesObject[PODMAN_INVENTORY_KIND_ATTRIBUTE];
+                    if (
+                      typeof recordPodmanKind === "string" &&
+                      isInventoriedPodmanKind(recordPodmanKind)
+                    ) {
+                      try {
+                        const parsed: ExtractedPodmanInventoryRecord | null =
+                          extractPodmanInventoryResource({
+                            kind: recordPodmanKind,
+                            logBody: body,
+                            lastSeenAt: timeDate,
+                          });
+                        if (parsed) {
+                          const key: string = podmanHostId.toString();
+                          let bucket: Array<ParsedPodmanResource> | undefined =
+                            podmanInventoryBuffer.get(key);
+                          if (!bucket) {
+                            bucket = [];
+                            podmanInventoryBuffer.set(key, bucket);
+                          }
+                          bucket.push(parsed.resource);
+                        }
+                      } catch (invErr) {
+                        logger.warn(
+                          `Podman inventory parse failed for kind=${recordPodmanKind}: ${invErr instanceof Error ? invErr.message : String(invErr)}`,
+                        );
+                      }
+                    }
                   }
 
-                  let spanId: string = "";
-                  try {
-                    spanId = Text.convertBase64ToHex(log["spanId"] as string);
-                  } catch {
-                    spanId = "";
+                  /*
+                   * Docker Swarm inventory hook: the agent's snapshot
+                   * poller (running on a manager node) emits each node /
+                   * service / task / stack / network / secret / config /
+                   * volume as a JSON envelope tagged with
+                   * `oneuptime.dockerswarm.kind`. Route these into the
+                   * DockerSwarmResource inventory table.
+                   */
+                  if (
+                    isDockerSwarmInventoryEligible &&
+                    dockerSwarmClusterId &&
+                    body
+                  ) {
+                    const recordSwarmKind: unknown =
+                      attributesObject[DOCKER_SWARM_INVENTORY_KIND_ATTRIBUTE];
+                    if (
+                      typeof recordSwarmKind === "string" &&
+                      isInventoriedDockerSwarmKind(recordSwarmKind)
+                    ) {
+                      try {
+                        const parsed: ExtractedDockerSwarmInventoryRecord | null =
+                          extractDockerSwarmInventoryResource({
+                            kind: recordSwarmKind,
+                            logBody: body,
+                            lastSeenAt: timeDate,
+                          });
+                        if (parsed) {
+                          const key: string = dockerSwarmClusterId.toString();
+                          let bucket:
+                            | Array<ParsedDockerSwarmResource>
+                            | undefined = dockerSwarmInventoryBuffer.get(key);
+                          if (!bucket) {
+                            bucket = [];
+                            dockerSwarmInventoryBuffer.set(key, bucket);
+                          }
+                          bucket.push(parsed.resource);
+                        }
+                      } catch (invErr) {
+                        logger.warn(
+                          `Docker Swarm inventory parse failed for kind=${recordSwarmKind}: ${invErr instanceof Error ? invErr.message : String(invErr)}`,
+                        );
+                      }
+                    }
                   }
+
+                  /*
+                   * OTLP/JSON sends trace/span ids as 16/32-char hex,
+                   * OTLP/protobuf as base64 — Text.convertOtlpIdToHex
+                   * tells them apart so hex ids are never base64-decoded
+                   * into garbage (which would also break log↔trace
+                   * correlation).
+                   */
+                  const traceId: string = Text.convertOtlpIdToHex(
+                    log["traceId"] as string | undefined,
+                  );
+
+                  const spanId: string = Text.convertOtlpIdToHex(
+                    log["spanId"] as string | undefined,
+                  );
 
                   // Extract observedTimeUnixNano
                   let observedTimeUnixNano: number = 0;
@@ -886,6 +1065,108 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           } catch (invErr) {
             logger.error(
               `Error upserting DockerResource inventory for host ${hostIdStr}: ${invErr instanceof Error ? invErr.message : String(invErr)}`,
+            );
+          }
+        }
+      }
+
+      if (podmanInventoryBuffer.size > 0) {
+        for (const [hostIdStr, resources] of podmanInventoryBuffer.entries()) {
+          if (resources.length === 0) {
+            continue;
+          }
+          try {
+            await PodmanResourceService.bulkUpsert({
+              projectId,
+              podmanHostId: new ObjectID(hostIdStr),
+              resources,
+            });
+          } catch (invErr) {
+            logger.error(
+              `Error upserting PodmanResource inventory for host ${hostIdStr}: ${invErr instanceof Error ? invErr.message : String(invErr)}`,
+            );
+          }
+        }
+      }
+
+      if (dockerSwarmInventoryBuffer.size > 0) {
+        for (const [
+          clusterIdStr,
+          resources,
+        ] of dockerSwarmInventoryBuffer.entries()) {
+          if (resources.length === 0) {
+            continue;
+          }
+          try {
+            await DockerSwarmResourceService.bulkUpsert({
+              projectId,
+              dockerSwarmClusterId: new ObjectID(clusterIdStr),
+              resources,
+            });
+
+            /*
+             * Derive the cluster snapshot counts from the kinds present
+             * in this batch only — never zero a count for a kind the
+             * batch did not carry (the snapshot poller emits all kinds
+             * together, so a steady-state batch is complete).
+             */
+            const sawKind: Set<string> = new Set(
+              resources.map((r: ParsedDockerSwarmResource) => {
+                return r.kind;
+              }),
+            );
+            const countOf: (k: string) => number = (k: string): number => {
+              return resources.filter((r: ParsedDockerSwarmResource) => {
+                return r.kind === k;
+              }).length;
+            };
+            const extras: {
+              nodeCount?: number;
+              readyNodeCount?: number;
+              managerNodeCount?: number;
+              serviceCount?: number;
+              taskCount?: number;
+              runningTaskCount?: number;
+              stackCount?: number;
+              networkCount?: number;
+            } = {};
+            if (sawKind.has("Node")) {
+              extras.nodeCount = countOf("Node");
+              extras.readyNodeCount = resources.filter(
+                (r: ParsedDockerSwarmResource) => {
+                  return r.kind === "Node" && r.isReady === true;
+                },
+              ).length;
+              extras.managerNodeCount = resources.filter(
+                (r: ParsedDockerSwarmResource) => {
+                  return r.kind === "Node" && r.role === "manager";
+                },
+              ).length;
+            }
+            if (sawKind.has("Service")) {
+              extras.serviceCount = countOf("Service");
+            }
+            if (sawKind.has("Task")) {
+              extras.taskCount = countOf("Task");
+              extras.runningTaskCount = resources.filter(
+                (r: ParsedDockerSwarmResource) => {
+                  return r.kind === "Task" && r.isReady === true;
+                },
+              ).length;
+            }
+            if (sawKind.has("Stack")) {
+              extras.stackCount = countOf("Stack");
+            }
+            if (sawKind.has("Network")) {
+              extras.networkCount = countOf("Network");
+            }
+            await DockerSwarmClusterService.updateLastSeen(
+              new ObjectID(clusterIdStr),
+              extras,
+            );
+          } catch (invErr) {
+            logger.error(
+              `Error upserting DockerSwarmResource inventory for cluster ${clusterIdStr}: ${invErr instanceof Error ? invErr.message : String(invErr)}`,
             );
           }
         }

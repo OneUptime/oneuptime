@@ -5,11 +5,15 @@ import Link from "Common/Types/Link";
 
 export function getProfilesBreadcrumbs(path: string): Array<Link> | undefined {
   const breadcrumpLinksMap: Dictionary<Link[]> = {
-    ...BuildBreadcrumbLinksByTitles(PageMap.PROFILES, ["Project", "Profiler"]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PROFILES, [
+      "Project",
+      "Profiler",
+      "Overview",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.PROFILES_INSIGHTS, [
       "Project",
       "Profiler",
-      "Raw profiles",
+      "All profiles",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.PROFILE_VIEW, [
       "Project",

@@ -1,4 +1,4 @@
-import BadRequestException from "../../Types/Exception/BadRequestException";
+import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ProductType from "../../Types/MeteredPlan/ProductType";
 import ObjectID from "../../Types/ObjectID";
 import {
@@ -27,8 +27,6 @@ export default class TelemetryIngest {
     try {
       // check header.
 
-      const isOpenTelemetryAPI: boolean = req.path.includes("/otlp/v1");
-
       let oneuptimeToken: string | undefined = req.headers[
         "x-oneuptime-token"
       ] as string | undefined;
@@ -53,15 +51,20 @@ export default class TelemetryIngest {
           getLogAttributesFromRequest(req as any),
         );
 
-        if (isOpenTelemetryAPI) {
-          /*
-           * then accept the response and return success.
-           * do not return error because it causes Otel to retry the request.
-           */
-          return Response.sendEmptySuccessResponse(req, res);
-        }
-
-        throw new BadRequestException("Missing header: x-oneuptime-token");
+        /*
+         * 401 is deliberate: the OTLP spec classifies it as
+         * non-retryable, so compliant SDKs / collectors surface the
+         * error in their own logs instead of retry-storming. A silent
+         * 200 here would make the client believe the data landed and
+         * leave the user staring at empty dashboards with no clue why.
+         */
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException(
+            "Missing ingestion token. Send your OneUptime telemetry ingestion key in the x-oneuptime-token header.",
+          ),
+        );
       }
 
       const projectId: ObjectID | null =
@@ -75,16 +78,18 @@ export default class TelemetryIngest {
           getLogAttributesFromRequest(req as any),
         );
 
-        if (isOpenTelemetryAPI) {
-          /*
-           * then accept the response and return success.
-           * do not return error because it causes Otel to retry the request.
-           */
-          return Response.sendEmptySuccessResponse(req, res);
-        }
-
-        throw new BadRequestException(
-          "Invalid service token: " + oneuptimeToken,
+        /*
+         * 401 is deliberate (see the missing-token branch above): a
+         * silent 200 drops the payload while the client believes the
+         * export succeeded. The token value is logged server-side but
+         * intentionally not echoed back in the response body.
+         */
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException(
+            "Invalid ingestion token. Send a valid OneUptime telemetry ingestion key in the x-oneuptime-token header.",
+          ),
         );
       }
 

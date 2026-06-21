@@ -39,12 +39,16 @@ const ENTITY_TTL_HOURS: ReadonlyMap<EntityType, number> = new Map<
   [EntityType.ServiceInstance, 24],
   [EntityType.Container, 24],
   [EntityType.Process, 24],
+  [EntityType.ProxmoxGuest, 24],
   [EntityType.KubernetesNode, 7 * 24],
   [EntityType.KubernetesNamespace, 7 * 24],
+  [EntityType.ProxmoxNode, 7 * 24],
   [EntityType.TelemetrySdk, 30 * 24],
   [EntityType.Service, 30 * 24],
   [EntityType.Host, 30 * 24],
   [EntityType.KubernetesCluster, 30 * 24],
+  [EntityType.ProxmoxCluster, 30 * 24],
+  [EntityType.CephCluster, 30 * 24],
 ]);
 
 // Edges carry no entity type, so they get the longest entity TTL.

@@ -163,12 +163,11 @@ router.post(
 /**
  * Ingestion-key validation endpoint.
  *
- * The /otlp/v1/{traces,metrics,logs,profiles} ingest endpoints above
- * deliberately answer HTTP 200 even for a missing/invalid token — returning an
- * error would make a misconfigured OpenTelemetry collector retry-storm the
- * server. The cost is that a wrong or revoked token is invisible from the
- * agent side: the collector reports success while every byte is silently
- * dropped, and the cluster never shows as connected.
+ * The /otlp/v1/{traces,metrics,logs,profiles} ingest endpoints above answer
+ * 401 for a missing/invalid token (non-retryable per the OTLP spec, so
+ * compliant collectors log it instead of retry-storming), but that error is
+ * easy to miss in collector logs and impossible to see from an install
+ * script.
  *
  * This endpoint exists so an agent, install script, or human can ask "is my
  * token actually accepted?" and get a REAL answer:

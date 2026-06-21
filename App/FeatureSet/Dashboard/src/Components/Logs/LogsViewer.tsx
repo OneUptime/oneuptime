@@ -790,6 +790,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           "primaryEntityId",
           "hostId",
           "dockerHostId",
+          "podmanHostId",
           "kubernetesClusterId",
         ]) {
           const values: Set<string> | undefined =
@@ -871,6 +872,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
             "primaryEntityId",
             "hostId",
             "dockerHostId",
+            "podmanHostId",
             "kubernetesClusterId",
           ],
         } as JSONObject;
@@ -1238,6 +1240,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         "primaryEntityId",
         "hostId",
         "dockerHostId",
+        "podmanHostId",
         "kubernetesClusterId",
       ]);
 
@@ -1545,6 +1548,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       primaryEntityId: "Service",
       hostId: "Host",
       dockerHostId: "Docker Host",
+      podmanHostId: "Podman Host",
       kubernetesClusterId: "Kubernetes Cluster",
       traceId: "Trace",
       spanId: "Span",

@@ -5,6 +5,7 @@ import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
 import ServiceModel from "../../../Models/DatabaseModels/Service";
 import HostModel from "../../../Models/DatabaseModels/Host";
 import DockerHostModel from "../../../Models/DatabaseModels/DockerHost";
+import PodmanHostModel from "../../../Models/DatabaseModels/PodmanHost";
 import KubernetesClusterModel from "../../../Models/DatabaseModels/KubernetesCluster";
 import ServerlessFunctionModel from "../../../Models/DatabaseModels/ServerlessFunction";
 import CloudResourceModel from "../../../Models/DatabaseModels/CloudResource";
@@ -12,6 +13,7 @@ import RumApplicationModel from "../../../Models/DatabaseModels/RumApplication";
 import ServiceService from "../../Services/ServiceService";
 import HostService from "../../Services/HostService";
 import DockerHostService from "../../Services/DockerHostService";
+import PodmanHostService from "../../Services/PodmanHostService";
 import KubernetesClusterService from "../../Services/KubernetesClusterService";
 import ServerlessFunctionService from "../../Services/ServerlessFunctionService";
 import CloudResourceService from "../../Services/CloudResourceService";
@@ -34,6 +36,7 @@ export const RESOURCE_FACET_KEYS: ReadonlySet<string> = new Set([
   "serviceId",
   "hostId",
   "dockerHostId",
+  "podmanHostId",
   "kubernetesClusterId",
   "serverlessFunctionId",
   "cloudResourceId",
@@ -113,6 +116,13 @@ export default class ResourceFacetResolver {
         );
       case "dockerHostId":
         return ResourceFacetResolver.queryDockerHosts(
+          projectId,
+          spec.counts,
+          searchText,
+          limit,
+        );
+      case "podmanHostId":
+        return ResourceFacetResolver.queryPodmanHosts(
           projectId,
           spec.counts,
           searchText,
@@ -253,6 +263,45 @@ export default class ResourceFacetResolver {
           return {
             id: d._id ? d._id.toString() : "",
             displayName: d.name || d.hostIdentifier || "Unknown",
+          };
+        },
+      ),
+      counts,
+    );
+  }
+
+  private static async queryPodmanHosts(
+    projectId: ObjectID,
+    counts: Map<string, number>,
+    searchText: string | undefined,
+    limit: number,
+  ): Promise<Array<ResolvedFacetValue>> {
+    const query: Record<string, unknown> = { projectId };
+    if (searchText) {
+      query["name"] = new MultiSearch({
+        fields: ["name", "hostIdentifier"],
+        value: searchText,
+      });
+    }
+
+    const podmanHosts: Array<PodmanHostModel> = await PodmanHostService.findBy({
+      query: query as any,
+      select: {
+        _id: true,
+        name: true,
+        hostIdentifier: true,
+      },
+      limit: new PositiveNumber(limit),
+      skip: new PositiveNumber(0),
+      props: { isRoot: true },
+    });
+
+    return ResourceFacetResolver.mergeCounts(
+      podmanHosts.map(
+        (p: PodmanHostModel): { id: string; displayName: string } => {
+          return {
+            id: p._id ? p._id.toString() : "",
+            displayName: p.name || p.hostIdentifier || "Unknown",
           };
         },
       ),

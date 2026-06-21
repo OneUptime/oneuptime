@@ -86,11 +86,6 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
     });
   }, [props.exemplarPoints, props.xAxis]);
 
-  const className: string = props.heightInPx ? `` : "h-80";
-  const style: React.CSSProperties = props.heightInPx
-    ? { height: `${props.heightInPx}px` }
-    : {};
-
   const hasNoData: boolean =
     !props.data ||
     props.data.length === 0 ||
@@ -114,10 +109,11 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
     typeof yAxisMaxOption === "number" ? { maxValue: yAxisMaxOption } : {};
 
   return (
-    <div className="relative">
+    <div
+      className="relative flex flex-1"
+      style={props.heightInPx ? { height: `${props.heightInPx}px` } : undefined}
+    >
       <LineChart
-        className={className}
-        style={style}
         data={records}
         tickGap={30}
         index={"Time"}

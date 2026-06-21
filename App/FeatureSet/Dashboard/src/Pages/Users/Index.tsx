@@ -32,6 +32,10 @@ import {
   FilterChipDropdownOption,
   FilterOperator,
 } from "../../Components/ResourceOwners/FilterChipDropdown";
+import {
+  loadProjectUserOptions,
+  resolveProjectUserOptions,
+} from "../../Components/ResourceOwners/ProjectUserFacetOptions";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Search from "Common/Types/BaseDatabase/Search";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -49,6 +53,22 @@ const Users: FunctionComponent<PageComponentProps> = (
     React.useState<boolean>(false);
 
   const userExtraFacets: Array<ResourceFacet> = [
+    {
+      key: "user",
+      queryField: "userId",
+      label: "User",
+      icon: IconProp.User,
+      isMultiSelect: true,
+      searchPlaceholder: "Search users...",
+      loadOptions: loadProjectUserOptions,
+      resolveOptions: resolveProjectUserOptions,
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildEntityFacetQuery(values, operator, true);
+      },
+    },
     {
       key: "hasAcceptedInvitation",
       label: "Status",

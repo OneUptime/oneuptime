@@ -903,9 +903,16 @@ const MetricView: FunctionComponent<ComponentProps> = (
           <div
             className={
               props.hideCardInCharts
-                ? "pt-4 mt-2 border-t border-gray-200"
+                ? "pt-4 mt-2 border-t border-gray-200 flex flex-col flex-1 w-full"
                 : "grid grid-cols-1 gap-4"
             }
+            style={{
+              /*
+               * Give each metric result ~20rem of height (matching the
+               * chart's previous fixed h-80 / 320px height).
+               */
+              height: metricResults.length * 20 + "rem",
+            }}
           >
             <MetricCharts
               hideCard={props.hideCardInCharts}

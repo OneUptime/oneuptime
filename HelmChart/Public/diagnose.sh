@@ -398,7 +398,7 @@ check_postgres() {
       crit "Postgres connection pool near exhaustion: ${conn_used}/${conn_max}"
       add_finding "CRIT" "postgresql" \
         "Connection pool at ${pct}% (${conn_used}/${conn_max})" \
-        "Increase postgresql.primary.extendedConfiguration.max_connections in values.yaml, or check app/worker for connection leaks. Also confirm pgbouncer is in front if you have many app replicas."
+        "Raise max_connections in values.yaml — edit the postgresql.primary.configuration block (StatefulSet) or postgresOperator.cnpg.parameters.max_connections (CloudNativePG operator). Or check app/worker for connection leaks. Also confirm pgbouncer is in front if you have many app replicas."
     elif [ "$pct" -ge 70 ]; then
       warn "Postgres connections at ${pct}%"
       add_finding "WARN" "postgresql" \
@@ -450,7 +450,7 @@ check_postgres() {
       warn "Postgres cache hit ratio ${cache_hit}% is low (target >99%)"
       add_finding "WARN" "postgresql" \
         "Cache hit ratio ${cache_hit}% — shared_buffers likely too small for working set" \
-        "Raise postgresql.primary.extendedConfiguration.shared_buffers (rule of thumb: 25% of pod memory). Also bump effective_cache_size to ~50%."
+        "Raise shared_buffers (rule of thumb: 25% of pod memory) in values.yaml — edit the postgresql.primary.configuration block (StatefulSet) or postgresOperator.cnpg.parameters.shared_buffers (CloudNativePG operator). Also bump effective_cache_size to ~50%."
     fi
   fi
 }

@@ -86,7 +86,9 @@
     "selectProjectSubtitle": "Sélectionnez le projet auquel vous souhaitez vous connecter.",
     "noConfigForEmail": "Aucune configuration SSO trouvée pour l'e-mail : {{email}}",
     "emailRequired": "L'e-mail est requis pour effectuer cette action",
-    "defaultProjectName": "Projet"
+    "defaultProjectName": "Projet",
+    "globalProvidersTitle": "Connectez-vous avec votre organisation",
+    "globalProvidersDivider": "Ou continuer avec votre e-mail"
   },
   "verifyEmail": {
     "successTitle": "Votre e-mail est vérifié.",

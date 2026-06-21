@@ -86,7 +86,9 @@
     "selectProjectSubtitle": "Velg prosjektet du vil logge inn på.",
     "noConfigForEmail": "Ingen SSO-konfigurasjon funnet for e-posten: {{email}}",
     "emailRequired": "E-post er nødvendig for å utføre denne handlingen",
-    "defaultProjectName": "Prosjekt"
+    "defaultProjectName": "Prosjekt",
+    "globalProvidersTitle": "Logg på med organisasjonen din",
+    "globalProvidersDivider": "Eller fortsett med e-post"
   },
   "verifyEmail": {
     "successTitle": "E-posten din er bekreftet.",

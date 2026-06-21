@@ -1,4 +1,5 @@
 import DataMigrationBase from "./DataMigrationBase";
+import ClickHouseMigrationUtil from "./ClickHouseMigrationUtil";
 import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
 import Span from "Common/Models/AnalyticsModels/Span";
 import SpanService from "Common/Server/Services/SpanService";
@@ -10,6 +11,20 @@ export default class AddIsRootSpanToSpanTable extends DataMigrationBase {
   }
 
   public override async migrate(): Promise<void> {
+    /*
+     * Legacy V2-era migration. On fresh installs of the V3 cut SpanItemV2
+     * never exists (models create SpanItemV3 with isRootSpan built in) and
+     * the unguarded ALTER below would throw UNKNOWN_TABLE and wedge the
+     * whole migration chain — skip entirely.
+     */
+    if (!(await ClickHouseMigrationUtil.tableExists("SpanItemV2"))) {
+      logger.info(
+        "AddIsRootSpanToSpanTable: SpanItemV2 not present (fresh V3 install) — skipping.",
+        { service: "workers" },
+      );
+      return;
+    }
+
     // Step 1: Add isRootSpan column if it doesn't exist
     const hasColumnAlready: boolean =
       await SpanService.doesColumnExist("isRootSpan");

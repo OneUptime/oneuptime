@@ -6,6 +6,15 @@ import KubernetesClusterService from "Common/Server/Services/KubernetesClusterSe
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import DockerHostService from "Common/Server/Services/DockerHostService";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import PodmanHostService from "Common/Server/Services/PodmanHostService";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
+import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
+import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import CephClusterService from "Common/Server/Services/CephClusterService";
+import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import DockerSwarmClusterService from "Common/Server/Services/DockerSwarmClusterService";
+import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
+import ProxmoxResourceService from "Common/Server/Services/ProxmoxResourceService";
 import HostService from "Common/Server/Services/HostService";
 import Host from "Common/Models/DatabaseModels/Host";
 import ServerlessFunctionService from "Common/Server/Services/ServerlessFunctionService";
@@ -45,6 +54,11 @@ export default abstract class OtelIngestBaseService {
   private static readonly DOCKER_CONTAINER_NAME_CACHE_EXPIRY_SECONDS: number =
     24 * 60 * 60; // 1 day
 
+  private static readonly PODMAN_CONTAINER_NAME_CACHE_NAMESPACE: string =
+    "podman-container-name";
+  private static readonly PODMAN_CONTAINER_NAME_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
   /*
    * Per-resource Postgres maintenance (updateLastSeen, label promotion)
    * runs on every ingest batch even when nothing has changed. With 100
@@ -54,6 +68,12 @@ export default abstract class OtelIngestBaseService {
    * we only re-run the maintenance work once per window. Race-safe is
    * not required — two workers re-running updateLastSeen at the same
    * instant is harmless; we just want to drop the steady-state cost.
+   *
+   * lastSeenAt staleness is bounded by this TTL, so every
+   * markDisconnected* threshold in the *Service classes must stay
+   * well above it (they use 15 minutes, 3x). A threshold at or near
+   * the TTL flaps healthy resources between connected and
+   * disconnected.
    */
   private static readonly MAINTENANCE_FENCE_NAMESPACE: string =
     "otel-maintenance-fence";
@@ -79,6 +99,32 @@ export default abstract class OtelIngestBaseService {
     } catch {
       // If the cache is down, default to running the maintenance.
       return true;
+    }
+  }
+
+  /*
+   * Release the maintenance fence for a (scope, id) pair after the
+   * gated work (updateLastSeen + label promotion) failed. The fence is
+   * armed on *attempt* — inside shouldRunMaintenance, before the work
+   * runs — to collapse the steady-state write storm from many workers.
+   * If the work then throws, the fence would otherwise suppress every
+   * retry for the full TTL window, leaving lastSeenAt stale and
+   * stranding the resource as "disconnected" even while telemetry keeps
+   * flowing. Clearing it lets the next ingest batch retry immediately.
+   * Best-effort: if the cache is unavailable the fence just expires on
+   * its own TTL.
+   */
+  protected static async clearMaintenanceFence(
+    scope: string,
+    id: string,
+  ): Promise<void> {
+    try {
+      await GlobalCache.deleteKey(
+        this.MAINTENANCE_FENCE_NAMESPACE,
+        `${scope}:${id}`,
+      );
+    } catch {
+      // best-effort — the fence TTL will expire the key regardless.
     }
   }
 
@@ -159,6 +205,27 @@ export default abstract class OtelIngestBaseService {
     }
 
     /*
+     * Podman-aware fallback: when telemetry arrives from a OneUptime Podman
+     * Agent (container.runtime == "podman"), there is no explicit
+     * service.name. Synthesize a per-container service name so each
+     * container shows up as its own service in the OneUptime UI instead of
+     * every Podman log collapsing into "Unknown Service". A container
+     * name is a meaningful logical service (e.g. "oneuptime-postgres")
+     * and is intentionally still backed by a Service row. Batches that
+     * only carry container.id with no resolvable name fall through to
+     * null and get routed to the PodmanHost record instead.
+     */
+    if (this.isPodmanRuntime(attributes)) {
+      const podmanServiceName: string | null = await this.getPodmanServiceName(
+        req,
+        attributes,
+      );
+      if (podmanServiceName) {
+        return podmanServiceName;
+      }
+    }
+
+    /*
      * Host-level telemetry (OTel hostmetrics receiver, infrastructure
      * agent over OTLP, eBPF profiler) without an explicit service.name
      * used to be folded into a synthetic `host/<name>` Service row,
@@ -209,6 +276,20 @@ export default abstract class OtelIngestBaseService {
    *      ServiceType.KubernetesCluster, primaryEntityId = Cluster._id.
    *      Rare in practice — most k8s batches also carry host.name
    *      and route via #2.
+   *   4b. Else if a ProxmoxCluster / CephCluster was discovered →
+   *      ServiceType.ProxmoxCluster / ServiceType.CephCluster,
+   *      primaryEntityId = cluster row id. The shipped Proxmox / Ceph
+   *      agent configs use the OTel prometheus receiver, which
+   *      synthesizes `service.name` (= scrape job name) on every batch;
+   *      both configs therefore explicitly DELETE service.name /
+   *      service.instance.id in their resource processor and stamp only
+   *      `proxmox.cluster.name` / `ceph.cluster.name`, so their batches
+   *      land here instead of registering a phantom Service via #1.
+   *      Caveat: sources that keep a service.name (e.g. the PVE 9+
+   *      native OTLP push, which stamps service.name="proxmox-ve")
+   *      still route via #1 — cluster discovery and the
+   *      attribute-scoped dashboards work regardless, but per-cluster
+   *      retention only applies to batches that land here.
    *   5. Fallback: no Service row at all. primaryEntityId = projectId,
    *      ServiceType.Unknown. The read side groups these under a
    *      synthetic "Unknown Service" bucket. No oneuptime.label.*
@@ -223,7 +304,11 @@ export default abstract class OtelIngestBaseService {
     projectId: ObjectID;
     hostId?: ObjectID | null;
     dockerHostId?: ObjectID | null;
+    podmanHostId?: ObjectID | null;
     kubernetesClusterId?: ObjectID | null;
+    proxmoxClusterId?: ObjectID | null;
+    cephClusterId?: ObjectID | null;
+    dockerSwarmClusterId?: ObjectID | null;
     serverlessFunctionId?: ObjectID | null;
     cloudResourceId?: ObjectID | null;
     rumApplicationId?: ObjectID | null;
@@ -338,7 +423,11 @@ export default abstract class OtelIngestBaseService {
     projectId: ObjectID;
     hostId?: ObjectID | null;
     dockerHostId?: ObjectID | null;
+    podmanHostId?: ObjectID | null;
     kubernetesClusterId?: ObjectID | null;
+    proxmoxClusterId?: ObjectID | null;
+    cephClusterId?: ObjectID | null;
+    dockerSwarmClusterId?: ObjectID | null;
     serverlessFunctionId?: ObjectID | null;
     cloudResourceId?: ObjectID | null;
     rumApplicationId?: ObjectID | null;
@@ -378,6 +467,15 @@ export default abstract class OtelIngestBaseService {
       });
     }
 
+    if (data.podmanHostId) {
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: hostName ? `podman-host/${hostName}` : "Podman Host",
+        resourceId: data.podmanHostId,
+        primaryEntityType: ServiceType.PodmanHost,
+        projectId: data.projectId,
+      });
+    }
+
     if (data.kubernetesClusterId) {
       const clusterName: string | null = this.getClusterNameFromAttributes(
         data.attributes,
@@ -386,6 +484,42 @@ export default abstract class OtelIngestBaseService {
         serviceName: clusterName ? `k8s/${clusterName}` : "Kubernetes Cluster",
         resourceId: data.kubernetesClusterId,
         primaryEntityType: ServiceType.KubernetesCluster,
+        projectId: data.projectId,
+      });
+    }
+
+    if (data.proxmoxClusterId) {
+      const clusterName: string | null =
+        this.getProxmoxClusterNameFromAttributes(data.attributes);
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: clusterName ? `proxmox/${clusterName}` : "Proxmox Cluster",
+        resourceId: data.proxmoxClusterId,
+        primaryEntityType: ServiceType.ProxmoxCluster,
+        projectId: data.projectId,
+      });
+    }
+
+    if (data.cephClusterId) {
+      const clusterName: string | null = this.getCephClusterNameFromAttributes(
+        data.attributes,
+      );
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: clusterName ? `ceph/${clusterName}` : "Ceph Cluster",
+        resourceId: data.cephClusterId,
+        primaryEntityType: ServiceType.CephCluster,
+        projectId: data.projectId,
+      });
+    }
+
+    if (data.dockerSwarmClusterId) {
+      const clusterName: string | null =
+        this.getDockerSwarmClusterNameFromAttributes(data.attributes);
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: clusterName
+          ? `docker-swarm/${clusterName}`
+          : "Docker Swarm Cluster",
+        resourceId: data.dockerSwarmClusterId,
+        primaryEntityType: ServiceType.DockerSwarmCluster,
         projectId: data.projectId,
       });
     }
@@ -530,6 +664,88 @@ export default abstract class OtelIngestBaseService {
     return null;
   }
 
+  @CaptureSpan()
+  private static async getPodmanServiceName(
+    req: ExpressRequest,
+    attributes: JSONArray,
+  ): Promise<string | null> {
+    const containerName: string | null = this.getStringAttribute(
+      attributes,
+      "container.name",
+    );
+    const containerId: string | null = this.getStringAttribute(
+      attributes,
+      "container.id",
+    );
+
+    /*
+     * docker_stats metric batches carry both container.id and
+     * container.name as resource attributes, while filelog-originated log
+     * batches only carry container.id (the filelog receiver has no way to
+     * query the Podman API for names). Cache the id -> name mapping off
+     * the metrics path so later log batches for the same container can
+     * resolve to a proper service name.
+     */
+    if (containerId && containerName) {
+      try {
+        const projectId: ObjectID | undefined = (
+          req as ExpressRequest & { projectId?: ObjectID }
+        ).projectId;
+        if (projectId) {
+          await GlobalCache.setString(
+            this.PODMAN_CONTAINER_NAME_CACHE_NAMESPACE,
+            `${projectId.toString()}:${containerId}`,
+            containerName,
+            {
+              expiresInSeconds: this.PODMAN_CONTAINER_NAME_CACHE_EXPIRY_SECONDS,
+            },
+          );
+        }
+      } catch (err) {
+        logger.error(
+          "Error caching Podman container name: " + (err as Error).message,
+        );
+      }
+    }
+
+    if (containerName) {
+      return this.normalizePodmanContainerName(containerName);
+    }
+
+    // Logs path: try the id -> name cache populated by the metrics path.
+    if (containerId) {
+      try {
+        const projectId: ObjectID | undefined = (
+          req as ExpressRequest & { projectId?: ObjectID }
+        ).projectId;
+        if (projectId) {
+          const cached: string | null = await GlobalCache.getString(
+            this.PODMAN_CONTAINER_NAME_CACHE_NAMESPACE,
+            `${projectId.toString()}:${containerId}`,
+          );
+          if (cached) {
+            return this.normalizePodmanContainerName(cached);
+          }
+        }
+      } catch (err) {
+        logger.error(
+          "Error reading Podman container name cache: " +
+            (err as Error).message,
+        );
+      }
+    }
+
+    /*
+     * No resolvable container identity. Used to synthesise
+     * `podman/<hostName>/<shortId>` / `podman/<hostName>` / `podman/<shortId>`
+     * service rows, which created a duplicate alongside the PodmanHost
+     * record `autoDiscoverPodmanHost` had just upserted from the same
+     * batch. The caller now routes the batch through the PodmanHost id
+     * with ServiceType.PodmanHost.
+     */
+    return null;
+  }
+
   /**
    * Strip Docker Compose's replica index suffix (e.g. "-1", "-2") from a
    * container name so that multiple replicas of the same service — and the
@@ -556,6 +772,48 @@ export default abstract class OtelIngestBaseService {
 
     /*
      * Docker Compose's "/" prefix on the raw inspect output (e.g. "/oneuptime-app-1")
+     * is already stripped by the docker_stats receiver, but handle it defensively.
+     */
+    const withoutSlash: string = trimmed.startsWith("/")
+      ? trimmed.substring(1)
+      : trimmed;
+
+    const match: RegExpMatchArray | null =
+      withoutSlash.match(/^(.+)[-_](\d+)$/);
+
+    if (!match || !match[1]) {
+      return withoutSlash;
+    }
+
+    return match[1];
+  }
+
+  /**
+   * Strip Compose's replica index suffix (e.g. "-1", "-2") from a Podman
+   * container name so that multiple replicas of the same service — and the
+   * same service running on different hosts — roll up into a single
+   * OneUptime telemetry service.
+   *
+   * Podman Compose names containers as "{project}-{service}-{index}" (or
+   * "{project}_{service}_{index}" with the legacy separator), so the
+   * trailing "-N" or "_N" is the replica index. We only strip it
+   * when the prefix still looks like a valid service identifier, to avoid
+   * mangling container names that legitimately end in a digit.
+   *
+   * Examples:
+   *   oneuptime-postgres-1   -> oneuptime-postgres
+   *   oneuptime-probe-1-2    -> oneuptime-probe-1   (only the last "-2")
+   *   my-app_3               -> my-app
+   *   redis                  -> redis               (unchanged)
+   */
+  private static normalizePodmanContainerName(name: string): string {
+    const trimmed: string = name.trim();
+    if (!trimmed) {
+      return trimmed;
+    }
+
+    /*
+     * Compose's "/" prefix on the raw inspect output (e.g. "/oneuptime-app-1")
      * is already stripped by the docker_stats receiver, but handle it defensively.
      */
     const withoutSlash: string = trimmed.startsWith("/")
@@ -602,6 +860,7 @@ export default abstract class OtelIngestBaseService {
     projectId: ObjectID;
     attributes: JSONArray;
   }): Promise<ObjectID | null> {
+    let clusterIdStr: string | null = null;
     try {
       const clusterName: string | null = this.getClusterNameFromAttributes(
         data.attributes,
@@ -612,7 +871,7 @@ export default abstract class OtelIngestBaseService {
       }
 
       const cacheKey: string = `${data.projectId.toString()}:${clusterName}`;
-      let clusterIdStr: string | null = await GlobalCache.getString(
+      clusterIdStr = await GlobalCache.getString(
         this.CLUSTER_ID_CACHE_NAMESPACE,
         cacheKey,
       );
@@ -664,6 +923,16 @@ export default abstract class OtelIngestBaseService {
 
       return null;
     } catch (err) {
+      /*
+       * The fence for this cluster is armed before updateLastSeen runs,
+       * so a failure here (e.g. Postgres contention on the shared hot
+       * cluster row) would otherwise suppress the next ~5 minutes of
+       * lastSeenAt refreshes. Release it so the next batch retries and
+       * the cluster does not drift to "disconnected" while data flows.
+       */
+      if (clusterIdStr) {
+        await this.clearMaintenanceFence("k8s-cluster", clusterIdStr);
+      }
       logger.error(
         "Error auto-discovering Kubernetes cluster: " + (err as Error).message,
       );
@@ -706,6 +975,397 @@ export default abstract class OtelIngestBaseService {
     } catch (err) {
       logger.warn(
         `Kubernetes cluster label promotion failed for ${data.kubernetesClusterId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  /*
+   * `proxmox.cluster.name` is the Proxmox join key — a OneUptime-defined
+   * resource attribute (no upstream semconv exists) stamped by the
+   * Proxmox Agent collector config from the PROXMOX_CLUSTER_NAME env.
+   */
+  @CaptureSpan()
+  protected static getProxmoxClusterNameFromAttributes(
+    attributes: JSONArray,
+  ): string | null {
+    return this.getStringAttribute(attributes, "proxmox.cluster.name");
+  }
+
+  private static readonly PROXMOX_CLUSTER_ID_CACHE_NAMESPACE: string =
+    "proxmox-cluster-id";
+  private static readonly PROXMOX_CLUSTER_ID_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  @CaptureSpan()
+  protected static async autoDiscoverProxmoxCluster(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    try {
+      const clusterName: string | null =
+        this.getProxmoxClusterNameFromAttributes(data.attributes);
+
+      if (!clusterName) {
+        return null;
+      }
+
+      const cacheKey: string = `${data.projectId.toString()}:${clusterName}`;
+      let clusterIdStr: string | null = await GlobalCache.getString(
+        this.PROXMOX_CLUSTER_ID_CACHE_NAMESPACE,
+        cacheKey,
+      );
+
+      if (!clusterIdStr) {
+        const cluster: ProxmoxCluster =
+          await ProxmoxClusterService.findOrCreateByName({
+            projectId: data.projectId,
+            name: clusterName,
+          });
+
+        if (cluster._id) {
+          clusterIdStr = cluster._id.toString();
+          await GlobalCache.setString(
+            this.PROXMOX_CLUSTER_ID_CACHE_NAMESPACE,
+            cacheKey,
+            clusterIdStr,
+            { expiresInSeconds: this.PROXMOX_CLUSTER_ID_CACHE_EXPIRY_SECONDS },
+          );
+        }
+      }
+
+      if (clusterIdStr) {
+        const clusterId: ObjectID = new ObjectID(clusterIdStr);
+        /*
+         * Same fence rationale as the Kubernetes path — skip the
+         * per-batch maintenance UPDATE + label upsert when we
+         * already ran it within the fence window.
+         */
+        if (await this.shouldRunMaintenance("proxmox-cluster", clusterIdStr)) {
+          const agentVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "oneuptime.agent.version",
+          );
+          await ProxmoxClusterService.updateLastSeen(clusterId, {
+            agentVersion: agentVersion || undefined,
+          });
+          await this.promoteOneuptimeLabelsToProxmoxCluster({
+            projectId: data.projectId,
+            proxmoxClusterId: clusterId,
+            attributes: data.attributes,
+          });
+        }
+        return clusterId;
+      }
+
+      return null;
+    } catch (err) {
+      logger.error(
+        "Error auto-discovering Proxmox cluster: " + (err as Error).message,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * Promote `oneuptime.label.<dim>=<val>` resource attributes into
+   * project labels and attach them to the discovered Proxmox
+   * cluster. Mirrors the Kubernetes cluster label promotion.
+   * Throttled per-cluster inside `attachLabels` so steady-state
+   * ingest with unchanged labels costs one in-memory cache lookup.
+   */
+  @CaptureSpan()
+  protected static async promoteOneuptimeLabelsToProxmoxCluster(data: {
+    projectId: ObjectID;
+    proxmoxClusterId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      const labelNames: Array<string> = extractOneuptimeLabelNames(
+        data.attributes,
+      );
+      if (labelNames.length === 0) {
+        return;
+      }
+      const labelIds: Array<ObjectID> =
+        await LabelService.findOrCreateLabelsByNames({
+          projectId: data.projectId,
+          labelNames,
+        });
+      if (labelIds.length === 0) {
+        return;
+      }
+      await ProxmoxClusterService.attachLabels({
+        proxmoxClusterId: data.proxmoxClusterId,
+        labelIds,
+      });
+    } catch (err) {
+      logger.warn(
+        `Proxmox cluster label promotion failed for ${data.proxmoxClusterId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  /*
+   * `docker.swarm.cluster.name` is the Docker Swarm join key — a
+   * OneUptime-defined resource attribute (no upstream semconv exists)
+   * stamped by the Docker Swarm Agent collector config from the
+   * DOCKER_SWARM_CLUSTER_NAME env.
+   */
+  @CaptureSpan()
+  protected static getDockerSwarmClusterNameFromAttributes(
+    attributes: JSONArray,
+  ): string | null {
+    return this.getStringAttribute(attributes, "docker.swarm.cluster.name");
+  }
+
+  private static readonly DOCKER_SWARM_CLUSTER_ID_CACHE_NAMESPACE: string =
+    "docker-swarm-cluster-id";
+  private static readonly DOCKER_SWARM_CLUSTER_ID_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  @CaptureSpan()
+  protected static async autoDiscoverDockerSwarmCluster(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    try {
+      const clusterName: string | null =
+        this.getDockerSwarmClusterNameFromAttributes(data.attributes);
+
+      if (!clusterName) {
+        return null;
+      }
+
+      const cacheKey: string = `${data.projectId.toString()}:${clusterName}`;
+      let clusterIdStr: string | null = await GlobalCache.getString(
+        this.DOCKER_SWARM_CLUSTER_ID_CACHE_NAMESPACE,
+        cacheKey,
+      );
+
+      if (!clusterIdStr) {
+        const cluster: DockerSwarmCluster =
+          await DockerSwarmClusterService.findOrCreateByName({
+            projectId: data.projectId,
+            name: clusterName,
+          });
+
+        if (cluster._id) {
+          clusterIdStr = cluster._id.toString();
+          await GlobalCache.setString(
+            this.DOCKER_SWARM_CLUSTER_ID_CACHE_NAMESPACE,
+            cacheKey,
+            clusterIdStr,
+            {
+              expiresInSeconds:
+                this.DOCKER_SWARM_CLUSTER_ID_CACHE_EXPIRY_SECONDS,
+            },
+          );
+        }
+      }
+
+      if (clusterIdStr) {
+        const clusterId: ObjectID = new ObjectID(clusterIdStr);
+        if (
+          await this.shouldRunMaintenance("docker-swarm-cluster", clusterIdStr)
+        ) {
+          const agentVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "oneuptime.agent.version",
+          );
+          await DockerSwarmClusterService.updateLastSeen(clusterId, {
+            agentVersion: agentVersion || undefined,
+          });
+          await this.promoteOneuptimeLabelsToDockerSwarmCluster({
+            projectId: data.projectId,
+            dockerSwarmClusterId: clusterId,
+            attributes: data.attributes,
+          });
+        }
+        return clusterId;
+      }
+
+      return null;
+    } catch (err) {
+      logger.error(
+        "Error auto-discovering Docker Swarm cluster: " +
+          (err as Error).message,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * Promote `oneuptime.label.<dim>=<val>` resource attributes into
+   * project labels and attach them to the discovered Docker Swarm
+   * cluster. Mirrors the Proxmox cluster label promotion.
+   */
+  @CaptureSpan()
+  protected static async promoteOneuptimeLabelsToDockerSwarmCluster(data: {
+    projectId: ObjectID;
+    dockerSwarmClusterId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      const labelNames: Array<string> = extractOneuptimeLabelNames(
+        data.attributes,
+      );
+      if (labelNames.length === 0) {
+        return;
+      }
+      const labelIds: Array<ObjectID> =
+        await LabelService.findOrCreateLabelsByNames({
+          projectId: data.projectId,
+          labelNames,
+        });
+      if (labelIds.length === 0) {
+        return;
+      }
+      await DockerSwarmClusterService.attachLabels({
+        dockerSwarmClusterId: data.dockerSwarmClusterId,
+        labelIds,
+      });
+    } catch (err) {
+      logger.warn(
+        `Docker Swarm cluster label promotion failed for ${data.dockerSwarmClusterId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  /*
+   * `ceph.cluster.name` is the Ceph join key — a OneUptime-defined
+   * resource attribute (no upstream semconv exists) stamped by the
+   * Ceph Agent collector config from the CEPH_CLUSTER_NAME env.
+   */
+  @CaptureSpan()
+  protected static getCephClusterNameFromAttributes(
+    attributes: JSONArray,
+  ): string | null {
+    return this.getStringAttribute(attributes, "ceph.cluster.name");
+  }
+
+  private static readonly CEPH_CLUSTER_ID_CACHE_NAMESPACE: string =
+    "ceph-cluster-id";
+  private static readonly CEPH_CLUSTER_ID_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  @CaptureSpan()
+  protected static async autoDiscoverCephCluster(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    try {
+      const clusterName: string | null = this.getCephClusterNameFromAttributes(
+        data.attributes,
+      );
+
+      if (!clusterName) {
+        return null;
+      }
+
+      const cacheKey: string = `${data.projectId.toString()}:${clusterName}`;
+      let clusterIdStr: string | null = await GlobalCache.getString(
+        this.CEPH_CLUSTER_ID_CACHE_NAMESPACE,
+        cacheKey,
+      );
+
+      if (!clusterIdStr) {
+        const cluster: CephCluster =
+          await CephClusterService.findOrCreateByName({
+            projectId: data.projectId,
+            name: clusterName,
+          });
+
+        if (cluster._id) {
+          clusterIdStr = cluster._id.toString();
+          await GlobalCache.setString(
+            this.CEPH_CLUSTER_ID_CACHE_NAMESPACE,
+            cacheKey,
+            clusterIdStr,
+            { expiresInSeconds: this.CEPH_CLUSTER_ID_CACHE_EXPIRY_SECONDS },
+          );
+        }
+      }
+
+      if (clusterIdStr) {
+        const clusterId: ObjectID = new ObjectID(clusterIdStr);
+        /*
+         * Same fence rationale as the Kubernetes path — skip the
+         * per-batch maintenance UPDATE + label upsert when we
+         * already ran it within the fence window.
+         */
+        if (await this.shouldRunMaintenance("ceph-cluster", clusterIdStr)) {
+          const agentVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "oneuptime.agent.version",
+          );
+          // Optional fsid stamping (ships commented-out in the agent config).
+          const fsid: string | null = this.getStringAttribute(
+            data.attributes,
+            "ceph.cluster.fsid",
+          );
+          await CephClusterService.updateLastSeen(clusterId, {
+            agentVersion: agentVersion || undefined,
+            fsid: fsid || undefined,
+          });
+          await this.promoteOneuptimeLabelsToCephCluster({
+            projectId: data.projectId,
+            cephClusterId: clusterId,
+            attributes: data.attributes,
+          });
+        }
+        return clusterId;
+      }
+
+      return null;
+    } catch (err) {
+      logger.error(
+        "Error auto-discovering Ceph cluster: " + (err as Error).message,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * Promote `oneuptime.label.<dim>=<val>` resource attributes into
+   * project labels and attach them to the discovered Ceph cluster.
+   * Mirrors the Kubernetes cluster label promotion. Throttled
+   * per-cluster inside `attachLabels` so steady-state ingest with
+   * unchanged labels costs one in-memory cache lookup.
+   */
+  @CaptureSpan()
+  protected static async promoteOneuptimeLabelsToCephCluster(data: {
+    projectId: ObjectID;
+    cephClusterId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      const labelNames: Array<string> = extractOneuptimeLabelNames(
+        data.attributes,
+      );
+      if (labelNames.length === 0) {
+        return;
+      }
+      const labelIds: Array<ObjectID> =
+        await LabelService.findOrCreateLabelsByNames({
+          projectId: data.projectId,
+          labelNames,
+        });
+      if (labelIds.length === 0) {
+        return;
+      }
+      await CephClusterService.attachLabels({
+        cephClusterId: data.cephClusterId,
+        labelIds,
+      });
+    } catch (err) {
+      logger.warn(
+        `Ceph cluster label promotion failed for ${data.cephClusterId.toString()}: ${
           err instanceof Error ? err.message : String(err)
         }`,
       );
@@ -1431,6 +2091,20 @@ export default abstract class OtelIngestBaseService {
     return false;
   }
 
+  @CaptureSpan()
+  protected static isPodmanRuntime(attributes: JSONArray): boolean {
+    for (const attribute of attributes) {
+      if (
+        attribute["key"] === "container.runtime" &&
+        attribute["value"] &&
+        (attribute["value"] as JSONObject)["stringValue"] === "podman"
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /*
    * True when resource attributes carry a strong "this is a real host"
    * signal — os.type (set by the OTel system resourcedetector via
@@ -1452,6 +2126,11 @@ export default abstract class OtelIngestBaseService {
   private static readonly DOCKER_HOST_ID_CACHE_NAMESPACE: string =
     "docker-host-id";
   private static readonly DOCKER_HOST_ID_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  private static readonly PODMAN_HOST_ID_CACHE_NAMESPACE: string =
+    "podman-host-id";
+  private static readonly PODMAN_HOST_ID_CACHE_EXPIRY_SECONDS: number =
     24 * 60 * 60; // 1 day
 
   @CaptureSpan()
@@ -1580,6 +2259,132 @@ export default abstract class OtelIngestBaseService {
     }
   }
 
+  @CaptureSpan()
+  protected static async autoDiscoverPodmanHost(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    try {
+      if (!this.isPodmanRuntime(data.attributes)) {
+        return null;
+      }
+
+      const hostName: string | null = this.getHostNameFromAttributes(
+        data.attributes,
+      );
+
+      if (!hostName) {
+        return null;
+      }
+
+      const osType: string | null = this.getStringAttribute(
+        data.attributes,
+        "os.type",
+      );
+      const osVersion: string | null =
+        this.getStringAttribute(data.attributes, "os.description") ||
+        this.getStringAttribute(data.attributes, "os.version");
+
+      const cacheKey: string = `${data.projectId.toString()}:${hostName}`;
+      let hostIdStr: string | null = await GlobalCache.getString(
+        this.PODMAN_HOST_ID_CACHE_NAMESPACE,
+        cacheKey,
+      );
+
+      if (!hostIdStr) {
+        const host: PodmanHost =
+          await PodmanHostService.findOrCreateByHostIdentifier({
+            projectId: data.projectId,
+            hostIdentifier: hostName,
+          });
+
+        if (host._id) {
+          hostIdStr = host._id.toString();
+          await GlobalCache.setString(
+            this.PODMAN_HOST_ID_CACHE_NAMESPACE,
+            cacheKey,
+            hostIdStr,
+            { expiresInSeconds: this.PODMAN_HOST_ID_CACHE_EXPIRY_SECONDS },
+          );
+        }
+      }
+
+      if (hostIdStr) {
+        const podmanHostId: ObjectID = new ObjectID(hostIdStr);
+        /*
+         * Same fence rationale as the Kubernetes path — skip the
+         * per-batch maintenance UPDATE + label upsert when we
+         * already ran it within the fence window.
+         */
+        if (await this.shouldRunMaintenance("podman-host", hostIdStr)) {
+          const agentVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "oneuptime.agent.version",
+          );
+          await PodmanHostService.updateLastSeen(podmanHostId, {
+            osType: osType || undefined,
+            osVersion: osVersion || undefined,
+            agentVersion: agentVersion || undefined,
+          });
+          await this.promoteOneuptimeLabelsToPodmanHost({
+            projectId: data.projectId,
+            podmanHostId,
+            attributes: data.attributes,
+          });
+        }
+        return podmanHostId;
+      }
+
+      return null;
+    } catch (err) {
+      logger.error(
+        "Error auto-discovering Podman host: " + (err as Error).message,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * Promote `oneuptime.label.<dim>=<val>` resource attributes into
+   * project labels and attach them to the discovered Podman host.
+   * Mirrors the host/service label promotion. Throttled per-host
+   * inside `attachLabels` so steady-state ingest with unchanged
+   * labels costs one in-memory cache lookup.
+   */
+  @CaptureSpan()
+  protected static async promoteOneuptimeLabelsToPodmanHost(data: {
+    projectId: ObjectID;
+    podmanHostId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      const labelNames: Array<string> = extractOneuptimeLabelNames(
+        data.attributes,
+      );
+      if (labelNames.length === 0) {
+        return;
+      }
+      const labelIds: Array<ObjectID> =
+        await LabelService.findOrCreateLabelsByNames({
+          projectId: data.projectId,
+          labelNames,
+        });
+      if (labelIds.length === 0) {
+        return;
+      }
+      await PodmanHostService.attachLabels({
+        podmanHostId: data.podmanHostId,
+        labelIds,
+      });
+    } catch (err) {
+      logger.warn(
+        `Podman host label promotion failed for ${data.podmanHostId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
   private static readonly HOST_ID_CACHE_NAMESPACE: string = "host-id";
   private static readonly HOST_ID_CACHE_EXPIRY_SECONDS: number = 24 * 60 * 60; // 1 day
 
@@ -1626,6 +2431,7 @@ export default abstract class OtelIngestBaseService {
     attributes: JSONArray;
     hasInfraSignal?: boolean;
     dockerHostId?: ObjectID | null;
+    podmanHostId?: ObjectID | null;
     kubernetesClusterId?: ObjectID | null;
     cpuCores?: number | undefined;
     totalMemoryBytes?: number | undefined;
@@ -1633,10 +2439,11 @@ export default abstract class OtelIngestBaseService {
   }): Promise<ObjectID | null> {
     try {
       /*
-       * Docker hosts and Kubernetes clusters/nodes live in their own tables.
-       * If this batch already resolved to one, do not also create a Host row.
+       * Docker hosts, Podman hosts and Kubernetes clusters/nodes live in
+       * their own tables. If this batch already resolved to one, do not
+       * also create a Host row.
        */
-      if (data.dockerHostId || data.kubernetesClusterId) {
+      if (data.dockerHostId || data.podmanHostId || data.kubernetesClusterId) {
         return null;
       }
 
@@ -1808,6 +2615,19 @@ export default abstract class OtelIngestBaseService {
             cloudRegion: cloudRegion || undefined,
             cloudAccountId: cloudAccountId || undefined,
           });
+          /*
+           * Proxmox guest cross-link heuristic (best-effort): when this
+           * host's identifier matches a ProxmoxResource guest name in
+           * the same project, stamp Host.proxmoxClusterId so the
+           * GuestDetail page can show the linked Host card. Rides the
+           * same maintenance fence as updateLastSeen — at most one
+           * lookup per host per fence window.
+           */
+          await this.tryLinkHostToProxmoxGuest({
+            projectId: data.projectId,
+            hostId: new ObjectID(hostIdStr),
+            hostName,
+          });
         }
         return new ObjectID(hostIdStr);
       }
@@ -1816,6 +2636,106 @@ export default abstract class OtelIngestBaseService {
     } catch (err) {
       logger.error("Error auto-discovering Host: " + (err as Error).message);
       return null;
+    }
+  }
+
+  private static readonly HOST_PROXMOX_LINK_CACHE_NAMESPACE: string =
+    "host-proxmox-guest-link";
+  private static readonly HOST_PROXMOX_LINK_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  /**
+   * WI-17 ingest heuristic: a Host whose hostIdentifier
+   * case-insensitively equals a ProxmoxResource guest `name` in the
+   * same project is (almost certainly) the host agent running inside
+   * that VM — stamp Host.proxmoxClusterId so the two products
+   * cross-link. Best-effort and additive only:
+   *
+   *   - NEVER overwrites a non-null proxmoxClusterId (a manual or
+   *     earlier link wins; guest names are not guaranteed unique
+   *     across clusters).
+   *   - A successful (or already-present) link is cached for a day so
+   *     the steady state costs one Redis read.
+   *   - A miss is NOT negatively cached — the guest inventory may
+   *     simply not have been scraped yet; we retry on the next
+   *     maintenance fence window (≤ one indexed SELECT per host per
+   *     5 minutes).
+   *   - Failures are logged and swallowed; host discovery must never
+   *     depend on the Proxmox inventory.
+   */
+  protected static async tryLinkHostToProxmoxGuest(data: {
+    projectId: ObjectID;
+    hostId: ObjectID;
+    hostName: string;
+  }): Promise<void> {
+    try {
+      const cacheKey: string = `${data.projectId.toString()}:${data.hostId.toString()}`;
+      const alreadyLinked: string | null = await GlobalCache.getString(
+        this.HOST_PROXMOX_LINK_CACHE_NAMESPACE,
+        cacheKey,
+      );
+      if (alreadyLinked) {
+        return;
+      }
+
+      const host: Host | null = await HostService.findOneById({
+        id: data.hostId,
+        select: {
+          _id: true,
+          proxmoxClusterId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!host) {
+        return;
+      }
+
+      if (host.proxmoxClusterId) {
+        // Already linked — cache so we skip the SELECT next window.
+        await GlobalCache.setString(
+          this.HOST_PROXMOX_LINK_CACHE_NAMESPACE,
+          cacheKey,
+          "1",
+          { expiresInSeconds: this.HOST_PROXMOX_LINK_CACHE_EXPIRY_SECONDS },
+        );
+        return;
+      }
+
+      const proxmoxClusterId: ObjectID | null =
+        await ProxmoxResourceService.findGuestClusterIdByName({
+          projectId: data.projectId,
+          name: data.hostName,
+        });
+
+      if (!proxmoxClusterId) {
+        return; // No matching guest (yet) — retry next fence window.
+      }
+
+      await HostService.updateOneById({
+        id: data.hostId,
+        data: {
+          proxmoxClusterId: proxmoxClusterId,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      await GlobalCache.setString(
+        this.HOST_PROXMOX_LINK_CACHE_NAMESPACE,
+        cacheKey,
+        "1",
+        { expiresInSeconds: this.HOST_PROXMOX_LINK_CACHE_EXPIRY_SECONDS },
+      );
+    } catch (err) {
+      logger.warn(
+        `Host → Proxmox guest link failed for host ${data.hostId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
     }
   }
 

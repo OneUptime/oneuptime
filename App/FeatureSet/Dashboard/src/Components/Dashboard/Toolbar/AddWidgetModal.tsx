@@ -77,6 +77,13 @@ const WIDGET_CATALOG: ReadonlyArray<CatalogCategory> = [
         icon: IconProp.Waterfall,
         description: "Most recent traces for a service or operation.",
       },
+      {
+        type: DashboardComponentType.TraceChart,
+        label: "Trace Chart",
+        icon: IconProp.ChartBar,
+        description:
+          "Span counts or response-time percentiles over time, optionally split by an attribute (e.g. per tenant).",
+      },
     ],
   },
   {
@@ -207,6 +214,106 @@ const WIDGET_CATALOG: ReadonlyArray<CatalogCategory> = [
         label: "Volumes",
         icon: IconProp.Database,
         description: "Volumes defined on selected hosts.",
+      },
+    ],
+  },
+  {
+    name: "Podman",
+    description:
+      "Live inventory from any connected Podman host — populated by the OneUptime Podman Agent.",
+    items: [
+      {
+        type: DashboardComponentType.PodmanHostList,
+        label: "Hosts",
+        icon: IconProp.Server,
+        description:
+          "Podman hosts with connection status and container counts.",
+      },
+      {
+        type: DashboardComponentType.PodmanContainerList,
+        label: "Containers",
+        icon: IconProp.Cube,
+        description: "Containers with state, image, and CPU/memory.",
+      },
+      {
+        type: DashboardComponentType.PodmanImageList,
+        label: "Images",
+        icon: IconProp.Cube,
+        description: "Images present on selected hosts.",
+      },
+      {
+        type: DashboardComponentType.PodmanNetworkList,
+        label: "Networks",
+        icon: IconProp.Globe,
+        description: "Networks defined on selected hosts.",
+      },
+      {
+        type: DashboardComponentType.PodmanVolumeList,
+        label: "Volumes",
+        icon: IconProp.Database,
+        description: "Volumes defined on selected hosts.",
+      },
+    ],
+  },
+  {
+    name: "Proxmox",
+    description:
+      "Live inventory from any connected Proxmox VE cluster — populated by the OneUptime Proxmox Agent.",
+    items: [
+      {
+        type: DashboardComponentType.ProxmoxNodeList,
+        label: "Nodes",
+        icon: IconProp.ServerStack,
+        description: "PVE nodes with online status and CPU/memory.",
+      },
+      {
+        type: DashboardComponentType.ProxmoxGuestList,
+        label: "Guests",
+        icon: IconProp.Cube,
+        description:
+          "QEMU VMs and LXC containers with run state, HA state, and node.",
+      },
+    ],
+  },
+  {
+    name: "Docker Swarm",
+    description:
+      "Live inventory from any connected Docker Swarm cluster — populated by the OneUptime Docker Swarm Agent.",
+    items: [
+      {
+        type: DashboardComponentType.DockerSwarmNodeList,
+        label: "Nodes",
+        icon: IconProp.ServerStack,
+        description:
+          "Swarm nodes with manager/worker role, ready state, and CPU/memory.",
+      },
+      {
+        type: DashboardComponentType.DockerSwarmServiceList,
+        label: "Services",
+        icon: IconProp.Cube,
+        description:
+          "Replicated and global services with replicas, image, and converge state.",
+      },
+    ],
+  },
+  {
+    name: "Ceph",
+    description:
+      "Live inventory from any connected Ceph cluster — populated by the OneUptime Ceph Agent.",
+    items: [
+      {
+        type: DashboardComponentType.CephOsdList,
+        label: "OSDs",
+        icon: IconProp.SquareStack,
+        description:
+          "The OSD wall — a honeycomb of OSDs colored by up/in state.",
+      },
+      {
+        type: DashboardComponentType.CephPoolList,
+        label: "Pools",
+        icon: IconProp.Database,
+        description:
+          "Pools with stored bytes, capacity-used bars, and object counts.",
       },
     ],
   },

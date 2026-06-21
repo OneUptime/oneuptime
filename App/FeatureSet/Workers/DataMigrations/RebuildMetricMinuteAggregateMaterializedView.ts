@@ -1,4 +1,5 @@
 import DataMigrationBase from "./DataMigrationBase";
+import ClickHouseMigrationUtil from "./ClickHouseMigrationUtil";
 import AnalyticsTableManagement from "../Utils/AnalyticsDatabase/TableManegement";
 import MetricService from "Common/Server/Services/MetricService";
 import logger from "Common/Server/Utils/Logger";
@@ -31,15 +32,36 @@ export default class RebuildMetricMinuteAggregateMaterializedView extends DataMi
      * exists with the correct source so we never drop a healthy view (and
      * its accumulated rows) on a fresh or already-fixed install.
      */
+    /*
+     * Only applicable while MetricItemV2 is the live metric table. On a
+     * fresh install of the V3 cut, V2 never exists and the model-created
+     * MV reads FROM MetricItemV3 — falling through here would DROP the
+     * healthy V3 rollup table, recreate the obsolete serviceId-keyed
+     * schema, and then crash on `FROM MetricItemV2` (UNKNOWN_TABLE),
+     * leaving an orphan that poisons boot schema-sync forever.
+     */
+    const v2Exists: boolean =
+      await ClickHouseMigrationUtil.tableExists("MetricItemV2");
+    if (!v2Exists) {
+      logger.info(
+        "RebuildMetricMinuteAggregateMaterializedView: MetricItemV2 not present (fresh V3 install) — skipping.",
+      );
+      return;
+    }
+
     const existingDefinition: string | null =
       await AnalyticsTableManagement.getMaterializedViewCreateQuery(
         MetricService,
         "MetricItemAggMV1m_mv",
       );
 
-    if (existingDefinition && existingDefinition.includes("MetricItemV2")) {
+    if (
+      existingDefinition &&
+      (existingDefinition.includes("MetricItemV2") ||
+        existingDefinition.includes("MetricItemV3"))
+    ) {
       logger.info(
-        "MetricItemAggMV1m_mv already exists with the correct source - skipping rebuild.",
+        "MetricItemAggMV1m_mv already exists with a correct source - skipping rebuild.",
       );
       return;
     }

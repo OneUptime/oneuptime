@@ -678,6 +678,37 @@ export default class Project extends TenantModel {
   public requireSsoForLogin?: boolean = undefined;
 
   @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ObjectID,
+    title: "Require SSO with specific provider",
+    description:
+      "If set, SSO-enforced login for this project is only satisfied by an SSO token issued by this specific provider id (a Project SSO/OIDC or a Global SSO/OIDC). When null, any trusted SSO provider satisfies enforcement.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public requireSsoWithSsoProviderId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
     create: [Permission.User],
     read: [],
     update: [],

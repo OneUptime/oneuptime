@@ -132,7 +132,7 @@ export default class MonitorMetricUtil {
     );
 
     return {
-      _id: ObjectID.generate().toString(),
+      _id: ObjectID.generateTimeOrdered().toString(),
       createdAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
       primaryEntityId: data.monitorId.toString(),

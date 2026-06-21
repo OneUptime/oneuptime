@@ -20,6 +20,7 @@ export interface ComponentProps {
   options: Array<RadioButton>;
   error?: string | undefined;
   dataTestId?: string | undefined;
+  ariaLabelledby?: string | undefined;
 }
 
 const RadioButtons: FunctionComponent<ComponentProps> = (
@@ -46,7 +47,11 @@ const RadioButtons: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
-      <fieldset role="radiogroup" data-testid={props.dataTestId}>
+      <fieldset
+        role="radiogroup"
+        aria-labelledby={props.ariaLabelledby}
+        data-testid={props.dataTestId}
+      >
         <div className="space-y-2 mt-2">
           {props.options &&
             props.options.map((radioButton: RadioButton, i: number) => {

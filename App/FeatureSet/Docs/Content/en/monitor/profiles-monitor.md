@@ -24,7 +24,7 @@ Profiles monitors count and filter profiling data matching specific criteria. Th
 
 ### Telemetry Services
 
-Select one or more services to monitor profiles from. Services must be sending continuous profiling data to OneUptime via OpenTelemetry.
+Select one or more services to monitor profiles from. Services must be sending continuous profiling data to OneUptime via Grafana Alloy (eBPF) or a Pyroscope SDK.
 
 ### Profile Filters
 
@@ -62,4 +62,4 @@ Select one or more services to monitor profiles from. Services must be sending c
 
 ## Setup Requirements
 
-Profiles monitoring requires your applications to send continuous profiling data to OneUptime via OpenTelemetry. See the [OpenTelemetry](/docs/telemetry/open-telemetry) documentation for setup instructions.
+Profiles monitoring requires your applications to send continuous profiling data to OneUptime. See the [Continuous Profiling](/docs/telemetry/profiles) documentation for setup instructions.

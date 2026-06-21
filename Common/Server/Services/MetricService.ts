@@ -7,6 +7,7 @@ import AggregateBy, {
 import DeleteBy from "../Types/AnalyticsDatabase/DeleteBy";
 import Query from "../Types/AnalyticsDatabase/Query";
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
+import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import AggregationType, {
   getPercentileLevel,
   isPercentileAggregation,
@@ -331,6 +332,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       ` FROM ${databaseName}.${this.model.tableName} WHERE TRUE `,
     );
     statement.append(whereStatement);
+    statement.append(this.getRetentionReadFilter());
     statement.append(SQL`) `);
 
     statement.append(SQL` GROUP BY `).append(`${aggregationTimestampColumn}`);
@@ -360,7 +362,13 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
      * cluster behavior consistent across aggregation kinds.
      */
     statement.append(
-      ` SETTINGS optimize_aggregation_in_order=1, optimize_move_to_prewhere=1, max_threads=4`,
+      getQuerySettings({
+        additionalSettings: {
+          optimize_aggregation_in_order: 1,
+          optimize_move_to_prewhere: 1,
+          max_threads: 4,
+        },
+      }),
     );
 
     const columns: Array<string> = [
@@ -512,7 +520,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     );
     statement.append(SQL` FROM ${databaseName}.MetricItemAggMV1m`);
     statement.append(
-      ` WHERE bucketTime >= toDateTime('${this.formatDateTime(aggregateBy.startTimestamp!)}') AND bucketTime <= toDateTime('${this.formatDateTime(aggregateBy.endTimestamp!)}')`,
+      ` WHERE bucketTime >= toDateTime('${this.formatDateTime(aggregateBy.startTimestamp!)}') AND bucketTime <= toDateTime('${this.formatDateTime(aggregateBy.endTimestamp!)}')${this.getRetentionReadFilter()}`,
     );
     statement.append(SQL` `).append(nonTimeWhere);
 
@@ -531,7 +539,13 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       }} `,
     );
     statement.append(
-      ` SETTINGS optimize_aggregation_in_order=1, optimize_move_to_prewhere=1, max_threads=4`,
+      getQuerySettings({
+        additionalSettings: {
+          optimize_aggregation_in_order: 1,
+          optimize_move_to_prewhere: 1,
+          max_threads: 4,
+        },
+      }),
     );
 
     logger.debug(`${this.model.tableName} MV Aggregate Statement`, {
@@ -724,7 +738,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     );
     statement.append(SQL` FROM ${databaseName}.MetricItemAggMV1mByHostV2`);
     statement.append(
-      ` WHERE bucketTime >= toDateTime('${this.formatDateTime(aggregateBy.startTimestamp!)}') AND bucketTime <= toDateTime('${this.formatDateTime(aggregateBy.endTimestamp!)}')`,
+      ` WHERE bucketTime >= toDateTime('${this.formatDateTime(aggregateBy.startTimestamp!)}') AND bucketTime <= toDateTime('${this.formatDateTime(aggregateBy.endTimestamp!)}')${this.getRetentionReadFilter()}`,
     );
     statement.append(
       SQL` AND hostEntityKey = ${{
@@ -749,7 +763,13 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       }} `,
     );
     statement.append(
-      ` SETTINGS optimize_aggregation_in_order=1, optimize_move_to_prewhere=1, max_threads=4`,
+      getQuerySettings({
+        additionalSettings: {
+          optimize_aggregation_in_order: 1,
+          optimize_move_to_prewhere: 1,
+          max_threads: 4,
+        },
+      }),
     );
 
     logger.debug(`${this.model.tableName} Host MV Aggregate Statement`, {

@@ -86,7 +86,9 @@
     "selectProjectSubtitle": "Select the project you want to login to.",
     "noConfigForEmail": "No SSO configuration found for the email: {{email}}",
     "emailRequired": "Email is required to perform this action",
-    "defaultProjectName": "Project"
+    "defaultProjectName": "Project",
+    "globalProvidersTitle": "Sign in with your organization",
+    "globalProvidersDivider": "Or continue with email"
   },
   "verifyEmail": {
     "successTitle": "Your email is verified.",

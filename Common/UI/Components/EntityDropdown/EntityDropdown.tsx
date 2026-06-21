@@ -86,6 +86,7 @@ export interface EntityDropdownProps {
   id?: string | undefined;
   dataTestId?: string | undefined;
   ariaLabel?: string | undefined;
+  ariaLabelledby?: string | undefined;
   disabled?: boolean | undefined;
 
   /*
@@ -1115,6 +1116,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
           <button
             type="button"
             disabled={props.disabled}
+            aria-labelledby={props.ariaLabelledby}
             onClick={(): void => {
               if (props.disabled) {
                 return;
@@ -1204,6 +1206,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
               aria-autocomplete="list"
               aria-expanded={isOpen}
               aria-label={props.ariaLabel}
+              aria-labelledby={props.ariaLabelledby}
               aria-invalid={props.error ? true : undefined}
               data-testid={props.dataTestId}
               role="combobox"

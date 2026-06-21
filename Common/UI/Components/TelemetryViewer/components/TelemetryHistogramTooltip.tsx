@@ -16,6 +16,11 @@ export interface TelemetryHistogramTooltipProps {
     payload: Record<string, number>;
   }>;
   seriesByKey: Record<string, HistogramSeriesOption>;
+  /*
+   * Formats values (e.g. milliseconds for latency series). When set, the
+   * Total row is suppressed — summing percentiles is meaningless.
+   */
+  valueFormatter?: ((value: number) => string) | undefined;
 }
 
 function formatTooltipTime(label: string | undefined): string {
@@ -104,13 +109,15 @@ const TelemetryHistogramTooltip: FunctionComponent<
                 <span className="text-xs text-gray-600">{label}</span>
               </div>
               <span className="font-mono text-xs font-semibold tabular-nums text-gray-800">
-                {entry.count.toLocaleString()}
+                {props.valueFormatter
+                  ? props.valueFormatter(entry.count)
+                  : entry.count.toLocaleString()}
               </span>
             </div>
           );
         })}
       </div>
-      {entries.length > 1 && (
+      {entries.length > 1 && !props.valueFormatter && (
         <div className="mt-1.5 flex items-center justify-between border-t border-gray-100 pt-1.5">
           <span className="text-xs text-gray-500">Total</span>
           <span className="font-mono text-xs font-semibold tabular-nums text-gray-800">

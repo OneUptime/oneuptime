@@ -15,7 +15,100 @@ export default class AnalyticsTableManagement {
       await service.execute(
         service.statementGenerator.toTableCreateStatement(),
       );
+
+      /*
+       * Self-heal column drift. `CREATE TABLE IF NOT EXISTS` above is a
+       * no-op once the table exists, so a column added to a model after
+       * the table was first created never reaches the physical table —
+       * and the one-time DataMigrations that `ALTER … ADD COLUMN` are
+       * tracked in Postgres and never re-run. Reconcile here, on every
+       * boot, the same way createMaterializedViews() self-heals MV
+       * triggers: add any model column the physical table is missing.
+       *
+       * Caveat: `ADD COLUMN` cannot change a table's ORDER BY / partition
+       * key, so a reconciled column lands as a plain (non-key) column.
+       * That is enough to keep schema-dependent statements valid — e.g.
+       * the entity-scoped lightweight DELETE that MetricService cascades
+       * into the metric MV tables, which only needs `primaryEntityId` to
+       * exist to evaluate its predicate. A migration that needs the
+       * column in the sort key still has to drop+recreate the table.
+       */
+      await this.reconcileColumns(service);
     }
+  }
+
+  /**
+   * Add any column declared on the model that is absent from the physical
+   * table. One `system.columns` lookup per table, then per-column
+   * `ADD COLUMN IF NOT EXISTS` (idempotent and race-safe across booting
+   * replicas). Failures are logged and skipped so a single bad column
+   * never aborts startup.
+   */
+  private static async reconcileColumns(
+    service: AnalyticsDatabaseService<AnalyticsBaseModel>,
+  ): Promise<void> {
+    let existingColumns: Set<string>;
+
+    try {
+      existingColumns = await this.getExistingColumnNames(service);
+    } catch (error) {
+      logger.error({
+        message: `Failed to read existing columns for ${service.model.tableName} - skipping column reconciliation.`,
+        error: (error as Error).message,
+      });
+      return;
+    }
+
+    /*
+     * No columns back ⇒ the table is genuinely absent (the CREATE above
+     * failed or raced). There is nothing to reconcile, and
+     * toTableCreateStatement() already owns creating it.
+     */
+    if (existingColumns.size === 0) {
+      return;
+    }
+
+    for (const column of service.model.tableColumns) {
+      if (existingColumns.has(column.key)) {
+        continue;
+      }
+
+      try {
+        logger.info(
+          `Column ${column.key} is missing on ${service.model.tableName} - adding it.`,
+        );
+        await service.addColumnInDatabase(column);
+      } catch (error) {
+        logger.error({
+          message: `Failed to add missing column ${column.key} on ${service.model.tableName}`,
+          error: (error as Error).message,
+        });
+      }
+    }
+  }
+
+  private static async getExistingColumnNames(
+    service: AnalyticsDatabaseService<AnalyticsBaseModel>,
+  ): Promise<Set<string>> {
+    const escapedTableName: string = this.escapeForQuery(
+      service.model.tableName,
+    );
+
+    const result: Results = await service.executeQuery(
+      `SELECT name FROM system.columns WHERE database = currentDatabase() AND table = '${escapedTableName}'`,
+    );
+
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const names: Set<string> = new Set<string>();
+
+    for (const row of response.data || []) {
+      names.add(String((row as JSONObject)["name"]));
+    }
+
+    return names;
   }
 
   /**

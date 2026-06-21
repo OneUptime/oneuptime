@@ -867,6 +867,44 @@ export default class ScheduledMaintenanceOwnerRule extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.Boolean,
+    title: "Inherit Owners From Podman Hosts",
+    description:
+      "When this rule matches, also assign every owner of the event's affected Podman hosts to the event.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public inheritOwnersFromPodmanHosts?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateScheduledMaintenanceOwnerRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadScheduledMaintenanceOwnerRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditScheduledMaintenanceOwnerRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
     title: "Inherit Owners From Services",
     description:
       "When this rule matches, also assign every owner of the event's affected services to the event.",

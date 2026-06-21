@@ -15,6 +15,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Service from "Common/Models/DatabaseModels/Service";
@@ -487,6 +488,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                     values.kubernetesClusters as Array<KubernetesCluster>
                   }
                   dockerHosts={values.dockerHosts as Array<DockerHost>}
+                  podmanHosts={values.podmanHosts as Array<PodmanHost>}
                   services={values.services as Array<Service>}
                   onChange={(payload: unknown) => {
                     elementProps.onChange?.(payload);
@@ -510,6 +512,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                     hosts: payload.hosts,
                     kubernetesClusters: payload.kubernetesClusters,
                     dockerHosts: payload.dockerHosts,
+                    podmanHosts: payload.podmanHosts,
                     services: payload.services,
                   } as FormValues<ScheduledMaintenance>);
                 });
@@ -540,6 +543,15 @@ const ScheduledMaintenanceView: FunctionComponent<
           },
           {
             field: { dockerHosts: true },
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { podmanHosts: true },
             title: "",
             fieldType: FormFieldSchemaType.Text,
             required: false,
@@ -580,6 +592,10 @@ const ScheduledMaintenanceView: FunctionComponent<
                   name: true,
                   _id: true,
                 },
+                podmanHosts: {
+                  name: true,
+                  _id: true,
+                },
                 services: {
                   name: true,
                   _id: true,
@@ -595,6 +611,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                     hosts={item.hosts || []}
                     kubernetesClusters={item.kubernetesClusters || []}
                     dockerHosts={item.dockerHosts || []}
+                    podmanHosts={item.podmanHosts || []}
                     services={item.services || []}
                   />
                 );

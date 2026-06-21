@@ -780,7 +780,7 @@ const BarChart: React.ForwardRefExoticComponent<
     return (
       <div
         ref={forwardedRef}
-        className={cx("h-80 w-full", className)}
+        className={cx("flex-1 w-full", className)}
         data-tremor-id="tremor-raw"
         {...other}
       >

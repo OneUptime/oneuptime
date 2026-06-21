@@ -24,10 +24,35 @@ export interface TraceFilters {
   statusCodes?: Array<number> | undefined;
   spanKinds?: Array<string> | undefined;
   spanNames?: Array<string> | undefined;
+  /*
+   * Substring name matches (ANDed). The span list compiles a single `name`
+   * filter to `name ILIKE '%v%'` (Search) — aggregations must use the same
+   * semantics or the histogram/facets disagree with the list. `spanNames`
+   * stays exact-match for multi-value filters (list-side `Includes`).
+   */
+  spanNameSearches?: Array<string> | undefined;
+  spanIds?: Array<string> | undefined;
   traceIds?: Array<string> | undefined;
   nameSearchText?: string | undefined;
+  statusMessageSearchText?: string | undefined;
+  // Exact-match for multi-value statusMessage filters (list-side `Includes`).
+  statusMessages?: Array<string> | undefined;
+  hasException?: boolean | undefined;
+  /*
+   * Strict bounds (`>` / `<`) — the list compiles duration:>N / duration:<N
+   * to GreaterThan / LessThan, which are strict comparisons. `duration:N`
+   * (no operator) is exact equality, carried by exactDurationNano.
+   */
+  minDurationNano?: number | undefined;
+  maxDurationNano?: number | undefined;
+  exactDurationNano?: number | undefined;
   rootOnly?: boolean | undefined;
   attributes?: Record<string, string> | undefined;
+  /*
+   * Substring (contains) attribute matches — `@key:~value` in the explorer.
+   * Same case-insensitive key matching as `attributes`, value via ILIKE.
+   */
+  attributeSearches?: Record<string, string> | undefined;
 }
 
 export interface HistogramRequest extends TraceFilters {
@@ -35,6 +60,57 @@ export interface HistogramRequest extends TraceFilters {
   startTime: Date;
   endTime: Date;
   bucketSizeInMinutes: number;
+}
+
+export type TraceAnalyticsChartType = "timeseries" | "toplist" | "table";
+
+export type TraceAnalyticsMetric =
+  | "count"
+  | "errorCount"
+  | "avgDuration"
+  | "minDuration"
+  | "maxDuration"
+  | "p50Duration"
+  | "p90Duration"
+  | "p95Duration"
+  | "p99Duration";
+
+export interface TraceAnalyticsRequest extends TraceFilters {
+  projectId: ObjectID;
+  startTime: Date;
+  endTime: Date;
+  bucketSizeInMinutes: number;
+  chartType: TraceAnalyticsChartType;
+  metric: TraceAnalyticsMetric;
+  /*
+   * Up to two dimensions: top-level Span columns (name, primaryEntityId,
+   * kind, statusCode, ...) or span attribute keys (e.g. url.host).
+   */
+  groupBy?: Array<string> | undefined;
+  limit?: number | undefined;
+}
+
+export interface TraceAnalyticsTimeseriesRow {
+  time: string;
+  // Metric value — a count, or milliseconds for duration metrics.
+  value: number;
+  groupValues: Record<string, string>;
+}
+
+export interface TraceAnalyticsTopItem {
+  value: string;
+  // The selected metric for this dimension value.
+  metricValue: number;
+  count: number;
+}
+
+export interface TraceAnalyticsTableRow {
+  groupValues: Record<string, string>;
+  count: number;
+  avgDurationMs: number;
+  p50DurationMs: number;
+  minDurationMs: number;
+  maxDurationMs: number;
 }
 
 export interface FacetValue {
@@ -82,7 +158,10 @@ export class TraceAggregationService {
     new Map([
       ["hostId", ServiceType.Host],
       ["dockerHostId", ServiceType.DockerHost],
+      ["podmanHostId", ServiceType.PodmanHost],
       ["kubernetesClusterId", ServiceType.KubernetesCluster],
+      ["proxmoxClusterId", ServiceType.ProxmoxCluster],
+      ["cephClusterId", ServiceType.CephCluster],
       ["serverlessFunctionId", ServiceType.ServerlessFunction],
       ["cloudResourceId", ServiceType.CloudResource],
       ["rumApplicationId", ServiceType.RealUserMonitor],
@@ -519,9 +598,11 @@ export class TraceAggregationService {
      * minute-bucketed output and only shifts the first/last bucket by the
      * partial boundary minute when the range is not minute-aligned.
      *
-     * If any non-projection filter (kind, name, traceId, nameSearchText,
-     * entityKeys, attributes) is active, ClickHouse transparently falls back
-     * to scanning the main table for the inner query — same cost as before.
+     * If any non-projection filter (kind, name, traceId, spanId,
+     * nameSearchText, spanNameSearches, statusMessageSearchText,
+     * hasException, duration bounds, entityKeys, attributes) is active,
+     * ClickHouse transparently falls back to scanning the main table for the
+     * inner query — same cost as before.
      * The retention read-filter is omitted for the same reason (see
      * RETENTION_FILTER).
      */
@@ -606,10 +687,10 @@ export class TraceAggregationService {
       );
     } else {
       statement.append(
-        SQL`SELECT JSONExtractRaw(attributes, ${{
+        SQL`SELECT attributes[${{
           type: TableColumnType.Text,
           value: request.facetKey,
-        }}) AS val, count() AS cnt FROM ${TraceAggregationService.TABLE_NAME}`,
+        }}] AS val, count() AS cnt FROM ${TraceAggregationService.TABLE_NAME}`,
       );
     }
 
@@ -642,10 +723,10 @@ export class TraceAggregationService {
       );
     } else if (!isTopLevelColumn) {
       statement.append(
-        SQL` AND JSONHas(attributes, ${{
+        SQL` AND mapContains(attributes, ${{
           type: TableColumnType.Text,
           value: request.facetKey,
-        }}) = 1`,
+        }})`,
       );
     }
 
@@ -735,6 +816,34 @@ export class TraceAggregationService {
       );
     }
 
+    /*
+     * Values are kept verbatim (no trim) — the list-side Search serialization
+     * wraps the raw value in %...%, and quoted search values deliberately
+     * preserve whitespace. Only blank entries are skipped.
+     */
+    if (request.spanNameSearches && request.spanNameSearches.length > 0) {
+      for (const search of request.spanNameSearches) {
+        if (search.trim().length === 0) {
+          continue;
+        }
+        statement.append(
+          SQL` AND name ILIKE ${{
+            type: TableColumnType.Text,
+            value: `%${search}%`,
+          }}`,
+        );
+      }
+    }
+
+    if (request.spanIds && request.spanIds.length > 0) {
+      statement.append(
+        SQL` AND spanId IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(request.spanIds),
+        }})`,
+      );
+    }
+
     if (request.traceIds && request.traceIds.length > 0) {
       statement.append(
         SQL` AND traceId IN (${{
@@ -749,6 +858,75 @@ export class TraceAggregationService {
         SQL` AND name ILIKE ${{
           type: TableColumnType.Text,
           value: `%${request.nameSearchText.trim()}%`,
+        }}`,
+      );
+    }
+
+    if (
+      request.statusMessageSearchText &&
+      request.statusMessageSearchText.trim().length > 0
+    ) {
+      statement.append(
+        SQL` AND statusMessage ILIKE ${{
+          type: TableColumnType.Text,
+          value: `%${request.statusMessageSearchText}%`,
+        }}`,
+      );
+    }
+
+    if (request.statusMessages && request.statusMessages.length > 0) {
+      statement.append(
+        SQL` AND statusMessage IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(request.statusMessages),
+        }})`,
+      );
+    }
+
+    if (request.hasException !== undefined) {
+      statement.append(
+        request.hasException
+          ? " AND hasException = 1"
+          : " AND hasException = 0",
+      );
+    }
+
+    /*
+     * durationUnixNano is LongNumber (Int128) — a Number (Int32) param would
+     * overflow for spans longer than ~2.1 seconds.
+     */
+    if (
+      request.minDurationNano !== undefined &&
+      !isNaN(request.minDurationNano)
+    ) {
+      statement.append(
+        SQL` AND durationUnixNano > ${{
+          type: TableColumnType.LongNumber,
+          value: request.minDurationNano,
+        }}`,
+      );
+    }
+
+    if (
+      request.maxDurationNano !== undefined &&
+      !isNaN(request.maxDurationNano)
+    ) {
+      statement.append(
+        SQL` AND durationUnixNano < ${{
+          type: TableColumnType.LongNumber,
+          value: request.maxDurationNano,
+        }}`,
+      );
+    }
+
+    if (
+      request.exactDurationNano !== undefined &&
+      !isNaN(request.exactDurationNano)
+    ) {
+      statement.append(
+        SQL` AND durationUnixNano = ${{
+          type: TableColumnType.LongNumber,
+          value: request.exactDurationNano,
         }}`,
       );
     }
@@ -773,6 +951,609 @@ export class TraceAggregationService {
         );
       }
     }
+
+    if (
+      request.attributeSearches &&
+      Object.keys(request.attributeSearches).length > 0
+    ) {
+      for (const [attrKey, attrValue] of Object.entries(
+        request.attributeSearches,
+      )) {
+        TraceAggregationService.validateFacetKey(attrKey);
+
+        if (attrValue.trim().length === 0) {
+          continue;
+        }
+
+        // Same key matching as `attributes`, contains-match on the value.
+        statement.append(
+          SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
+            type: TableColumnType.Text,
+            value: attrKey,
+          }}) AND v ILIKE ${{
+            type: TableColumnType.Text,
+            value: `%${attrValue}%`,
+          }}, mapKeys(attributes), mapValues(attributes))`,
+        );
+      }
+    }
+  }
+
+  private static readonly DEFAULT_ANALYTICS_LIMIT: number = 10;
+  private static readonly MAX_GROUP_BY_DIMENSIONS: number = 2;
+
+  /*
+   * Metric → ClickHouse aggregate expression. Values are an allowlist — the
+   * expression is interpolated into SQL, so it must never come from user
+   * input directly. Durations are converted to milliseconds.
+   */
+  private static readonly METRIC_EXPRESSIONS: Record<
+    TraceAnalyticsMetric,
+    string
+  > = {
+    count: "count()",
+    errorCount: "countIf(statusCode = 2)",
+    avgDuration: "avg(durationUnixNano) / 1000000",
+    minDuration: "min(durationUnixNano) / 1000000",
+    maxDuration: "max(durationUnixNano) / 1000000",
+    p50Duration: "quantile(0.5)(durationUnixNano) / 1000000",
+    p90Duration: "quantile(0.9)(durationUnixNano) / 1000000",
+    p95Duration: "quantile(0.95)(durationUnixNano) / 1000000",
+    p99Duration: "quantile(0.99)(durationUnixNano) / 1000000",
+  };
+
+  public static isValidAnalyticsMetric(
+    metric: string,
+  ): metric is TraceAnalyticsMetric {
+    return Object.prototype.hasOwnProperty.call(
+      TraceAggregationService.METRIC_EXPRESSIONS,
+      metric,
+    );
+  }
+
+  /*
+   * Multidimensional span analytics — the interactive "split by dimension"
+   * path (count / duration percentiles grouped by a span column or
+   * attribute). Mirrors the logs analytics architecture
+   * (LogAggregationService.getAnalyticsTimeseries and friends) and shares
+   * appendCommonFilters with the histogram/facets, so every explorer filter
+   * applies identically.
+   */
+  @CaptureSpan()
+  public static async getAnalyticsTimeseries(
+    request: TraceAnalyticsRequest,
+  ): Promise<Array<TraceAnalyticsTimeseriesRow>> {
+    const groupByKeys: Array<string> = request.groupBy || [];
+
+    /*
+     * Cap the series count: a high-cardinality dimension (e.g. url.host
+     * across hundreds of tenants) would otherwise return one series per
+     * value. Pre-resolve the top values of the first dimension — ranked by
+     * the SELECTED metric (so duration metrics chart the slowest dimension
+     * values, counts chart the busiest) — and constrain the timeseries to
+     * them. The full groupBy is passed so the ranking applies the same
+     * dimension-implied predicates (e.g. mapContains on the second
+     * dimension) as the final query.
+     */
+    let topValues: Array<string> | undefined = undefined;
+    if (groupByKeys.length > 0) {
+      const topItems: Array<TraceAnalyticsTopItem> =
+        await TraceAggregationService.getAnalyticsTopList(request);
+
+      topValues = topItems.map((item: TraceAnalyticsTopItem): string => {
+        return item.value;
+      });
+
+      /*
+       * No non-empty values → skip the cap rather than returning nothing:
+       * spans whose dimension value is an empty string still chart (as one
+       * "(empty)" series), consistent with the table view.
+       */
+      if (topValues.length === 0) {
+        topValues = undefined;
+      }
+    }
+
+    const statement: Statement =
+      TraceAggregationService.buildAnalyticsTimeseriesStatement(
+        request,
+        topValues,
+      );
+
+    const dbResult: Results = await SpanService.executeQuery(statement);
+
+    let rows: Array<JSONObject> = [];
+    try {
+      const response: DbJSONResponse = await dbResult.json<{
+        data?: Array<JSONObject>;
+      }>();
+      rows = response.data || [];
+    } catch {
+      logger.warn(
+        "Trace analytics timeseries query returned unparseable response, returning empty result",
+      );
+    }
+
+    return rows.map((row: JSONObject): TraceAnalyticsTimeseriesRow => {
+      const groupValues: Record<string, string> = {};
+
+      for (const [index, key] of groupByKeys.entries()) {
+        const alias: string = TraceAggregationService.groupByAlias(key, index);
+        groupValues[key] = String(row[alias] ?? "");
+      }
+
+      return {
+        time: String(row["bucket"] || ""),
+        value: Number(row["val"] || 0),
+        groupValues,
+      };
+    });
+  }
+
+  @CaptureSpan()
+  public static async getAnalyticsTopList(
+    request: TraceAnalyticsRequest,
+  ): Promise<Array<TraceAnalyticsTopItem>> {
+    if (!request.groupBy || request.groupBy.length === 0) {
+      throw new BadDataException(
+        "groupBy with at least one dimension is required for top list",
+      );
+    }
+
+    const statement: Statement =
+      TraceAggregationService.buildAnalyticsTopListStatement(request);
+
+    const dbResult: Results = await SpanService.executeQuery(statement);
+
+    let rows: Array<JSONObject> = [];
+    try {
+      const response: DbJSONResponse = await dbResult.json<{
+        data?: Array<JSONObject>;
+      }>();
+      rows = response.data || [];
+    } catch {
+      logger.warn(
+        "Trace analytics top list query returned unparseable response, returning empty result",
+      );
+    }
+
+    return rows
+      .map((row: JSONObject): TraceAnalyticsTopItem => {
+        return {
+          value: String(row["dim"] ?? ""),
+          metricValue: Number(row["val"] || 0),
+          count: Number(row["cnt"] || 0),
+        };
+      })
+      .filter((item: TraceAnalyticsTopItem): boolean => {
+        return item.value.length > 0;
+      });
+  }
+
+  @CaptureSpan()
+  public static async getAnalyticsTable(
+    request: TraceAnalyticsRequest,
+  ): Promise<Array<TraceAnalyticsTableRow>> {
+    if (!request.groupBy || request.groupBy.length === 0) {
+      throw new BadDataException(
+        "groupBy with at least one dimension is required for table",
+      );
+    }
+
+    const statement: Statement =
+      TraceAggregationService.buildAnalyticsTableStatement(request);
+
+    const dbResult: Results = await SpanService.executeQuery(statement);
+
+    let rows: Array<JSONObject> = [];
+    try {
+      const response: DbJSONResponse = await dbResult.json<{
+        data?: Array<JSONObject>;
+      }>();
+      rows = response.data || [];
+    } catch {
+      logger.warn(
+        "Trace analytics table query returned unparseable response, returning empty result",
+      );
+    }
+
+    const groupByKeys: Array<string> = request.groupBy;
+
+    return rows.map((row: JSONObject): TraceAnalyticsTableRow => {
+      const groupValues: Record<string, string> = {};
+
+      for (const [index, key] of groupByKeys.entries()) {
+        const alias: string = TraceAggregationService.groupByAlias(key, index);
+        groupValues[key] = String(row[alias] ?? "");
+      }
+
+      return {
+        groupValues,
+        count: Number(row["cnt"] || 0),
+        avgDurationMs: Number(row["avg_ms"] || 0),
+        p50DurationMs: Number(row["p50_ms"] || 0),
+        minDurationMs: Number(row["min_ms"] || 0),
+        maxDurationMs: Number(row["max_ms"] || 0),
+      };
+    });
+  }
+
+  private static groupByAlias(key: string, index: number): string {
+    if (
+      TraceAggregationService.isTopLevelColumn(key) ||
+      TraceAggregationService.RESOURCE_FACET_KEYS.has(key)
+    ) {
+      return key;
+    }
+
+    /*
+     * Attribute keys get a sanitized alias. The dimension index is included
+     * so two distinct keys that sanitize identically (url.host vs url:host)
+     * never collide into one alias (ClickHouse rejects duplicate aliases).
+     */
+    return `attr_${index}_${key.replace(/[^a-zA-Z0-9_]/g, "_")}`;
+  }
+
+  /*
+   * Append the SELECT expression for one group-by dimension. Resource facet
+   * keys (hostId / dockerHostId / ...) read out of primaryEntityId — the
+   * matching primaryEntityType predicate is added by
+   * appendGroupByDimensionFilters.
+   */
+  private static appendGroupBySelect(
+    statement: Statement,
+    groupByKeys: Array<string>,
+  ): void {
+    for (const [index, key] of groupByKeys.entries()) {
+      TraceAggregationService.validateFacetKey(key);
+
+      if (TraceAggregationService.RESOURCE_FACET_KEYS.has(key)) {
+        statement.append(`, toString(primaryEntityId) AS ${key}`);
+      } else if (TraceAggregationService.isTopLevelColumn(key)) {
+        statement.append(`, toString(${key}) AS ${key}`);
+      } else {
+        const alias: string = TraceAggregationService.groupByAlias(key, index);
+        statement.append(
+          SQL`, attributes[${{
+            type: TableColumnType.Text,
+            value: key,
+          }}] AS ${alias}`,
+        );
+      }
+    }
+  }
+
+  private static appendGroupByClause(
+    statement: Statement,
+    groupByKeys: Array<string>,
+  ): void {
+    for (const [index, key] of groupByKeys.entries()) {
+      statement.append(`, ${TraceAggregationService.groupByAlias(key, index)}`);
+    }
+  }
+
+  /*
+   * Dimension-implied WHERE predicates: attribute dimensions only count
+   * spans that carry the attribute (matching buildFacetStatement); resource
+   * dimensions constrain primaryEntityType to the matching resource type.
+   */
+  private static appendGroupByDimensionFilters(
+    statement: Statement,
+    groupByKeys: Array<string>,
+  ): void {
+    for (const key of groupByKeys) {
+      const resourceType: ServiceType | undefined =
+        TraceAggregationService.RESOURCE_FACET_KEYS.get(key);
+
+      if (resourceType !== undefined) {
+        statement.append(
+          SQL` AND primaryEntityType = ${{
+            type: TableColumnType.Text,
+            value: resourceType as string,
+          }}`,
+        );
+        continue;
+      }
+
+      if (key === "primaryEntityId") {
+        /*
+         * Same restriction as the Service facet: keep host/docker/k8s
+         * entity ids out of the "Service" dimension (they reuse the
+         * primaryEntityId slot, disambiguated by primaryEntityType).
+         */
+        statement.append(
+          SQL` AND (primaryEntityType = '' OR primaryEntityType = ${{
+            type: TableColumnType.Text,
+            value: ServiceType.OpenTelemetry as string,
+          }})`,
+        );
+        continue;
+      }
+
+      if (TraceAggregationService.isTopLevelColumn(key)) {
+        continue;
+      }
+
+      statement.append(
+        SQL` AND mapContains(attributes, ${{
+          type: TableColumnType.Text,
+          value: key,
+        }})`,
+      );
+    }
+  }
+
+  private static validateGroupBy(groupBy: Array<string> | undefined): void {
+    if (!groupBy) {
+      return;
+    }
+
+    if (groupBy.length > TraceAggregationService.MAX_GROUP_BY_DIMENSIONS) {
+      throw new BadDataException(
+        `groupBy supports at most ${TraceAggregationService.MAX_GROUP_BY_DIMENSIONS} dimensions`,
+      );
+    }
+
+    for (const key of groupBy) {
+      TraceAggregationService.validateFacetKey(key);
+    }
+  }
+
+  private static getMetricExpression(metric: TraceAnalyticsMetric): string {
+    const expression: string | undefined =
+      TraceAggregationService.METRIC_EXPRESSIONS[metric];
+
+    if (!expression) {
+      throw new BadDataException("Invalid analytics metric");
+    }
+
+    return expression;
+  }
+
+  private static appendAnalyticsTimeWindow(
+    statement: Statement,
+    request: TraceAnalyticsRequest,
+  ): void {
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }} AND startTime >= ${{
+        type: TableColumnType.Date,
+        value: request.startTime,
+      }} AND startTime <= ${{
+        type: TableColumnType.Date,
+        value: request.endTime,
+      }}`,
+    );
+  }
+
+  private static buildAnalyticsTimeseriesStatement(
+    request: TraceAnalyticsRequest,
+    topDimensionValues?: Array<string> | undefined,
+  ): Statement {
+    TraceAggregationService.validateGroupBy(request.groupBy);
+
+    const groupByKeys: Array<string> = request.groupBy || [];
+    const intervalSeconds: number = request.bucketSizeInMinutes * 60;
+    const metricExpr: string = TraceAggregationService.getMetricExpression(
+      request.metric,
+    );
+
+    const statement: Statement = SQL`SELECT toStartOfInterval(startTime, INTERVAL ${{
+      type: TableColumnType.Number,
+      value: intervalSeconds,
+    }} SECOND) AS bucket`;
+
+    statement.append(`, ${metricExpr} AS val`);
+
+    TraceAggregationService.appendGroupBySelect(statement, groupByKeys);
+
+    statement.append(` FROM ${TraceAggregationService.TABLE_NAME}`);
+
+    TraceAggregationService.appendAnalyticsTimeWindow(statement, request);
+
+    statement.append(TraceAggregationService.RETENTION_FILTER);
+
+    TraceAggregationService.appendGroupByDimensionFilters(
+      statement,
+      groupByKeys,
+    );
+
+    /*
+     * Series cap: constrain the first dimension to the pre-resolved top
+     * values (see getAnalyticsTimeseries).
+     */
+    if (
+      topDimensionValues &&
+      topDimensionValues.length > 0 &&
+      groupByKeys.length > 0
+    ) {
+      TraceAggregationService.appendDimensionExpression(
+        statement,
+        groupByKeys[0]!,
+        " AND ",
+      );
+      statement.append(
+        SQL` IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(topDimensionValues),
+        }})`,
+      );
+    }
+
+    TraceAggregationService.appendCommonFilters(statement, request);
+
+    statement.append(" GROUP BY bucket");
+    TraceAggregationService.appendGroupByClause(statement, groupByKeys);
+    statement.append(" ORDER BY bucket ASC");
+
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
+    );
+
+    return statement;
+  }
+
+  /*
+   * Append the bare dimension expression (no alias) prefixed by `prefix` —
+   * used in WHERE clauses where SELECT aliases are not yet visible.
+   */
+  private static appendDimensionExpression(
+    statement: Statement,
+    key: string,
+    prefix: string,
+  ): void {
+    TraceAggregationService.validateFacetKey(key);
+
+    if (
+      TraceAggregationService.RESOURCE_FACET_KEYS.has(key) ||
+      key === "primaryEntityId"
+    ) {
+      statement.append(`${prefix}toString(primaryEntityId)`);
+      return;
+    }
+
+    if (TraceAggregationService.isTopLevelColumn(key)) {
+      statement.append(`${prefix}toString(${key})`);
+      return;
+    }
+
+    statement.append(`${prefix}attributes[`);
+    statement.append(
+      SQL`${{
+        type: TableColumnType.Text,
+        value: key,
+      }}`,
+    );
+    statement.append("]");
+  }
+
+  private static buildAnalyticsTopListStatement(
+    request: TraceAnalyticsRequest,
+  ): Statement {
+    const groupByKey: string = request.groupBy![0]!;
+    TraceAggregationService.validateFacetKey(groupByKey);
+
+    const limit: number =
+      request.limit ?? TraceAggregationService.DEFAULT_ANALYTICS_LIMIT;
+    const metricExpr: string = TraceAggregationService.getMetricExpression(
+      request.metric,
+    );
+
+    const statement: Statement = new Statement();
+    statement.append("SELECT");
+    TraceAggregationService.appendDimensionExpression(
+      statement,
+      groupByKey,
+      " ",
+    );
+    statement.append(
+      ` AS dim, ${metricExpr} AS val, count() AS cnt FROM ${TraceAggregationService.TABLE_NAME}`,
+    );
+
+    TraceAggregationService.appendAnalyticsTimeWindow(statement, request);
+
+    statement.append(TraceAggregationService.RETENTION_FILTER);
+
+    /*
+     * Dimension-implied predicates for EVERY groupBy key — when this query
+     * pre-resolves the series cap for a two-dimension timeseries, the
+     * ranking must count the same span set the final chart counts.
+     */
+    TraceAggregationService.appendGroupByDimensionFilters(
+      statement,
+      request.groupBy!,
+    );
+
+    TraceAggregationService.appendCommonFilters(statement, request);
+
+    /*
+     * Duration metrics rank by the metric itself (slowest first); count-like
+     * metrics rank by volume. Either way `cnt` is returned for context.
+     */
+    statement.append(
+      SQL` GROUP BY dim ORDER BY val DESC LIMIT ${{
+        type: TableColumnType.Number,
+        value: limit,
+      }}`,
+    );
+
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
+    );
+
+    return statement;
+  }
+
+  private static buildAnalyticsTableStatement(
+    request: TraceAnalyticsRequest,
+  ): Statement {
+    TraceAggregationService.validateGroupBy(request.groupBy);
+
+    const groupByKeys: Array<string> = request.groupBy!;
+    const limit: number =
+      request.limit ?? TraceAggregationService.DEFAULT_ANALYTICS_LIMIT;
+
+    /*
+     * The "top dimensions" table always carries the full duration stat set
+     * (count, avg, median, min, max) — one query answers "requests and
+     * median response time per tenant" without a follow-up.
+     */
+    const statement: Statement = new Statement();
+    statement.append(
+      "SELECT count() AS cnt" +
+        ", avg(durationUnixNano) / 1000000 AS avg_ms" +
+        ", quantile(0.5)(durationUnixNano) / 1000000 AS p50_ms" +
+        ", min(durationUnixNano) / 1000000 AS min_ms" +
+        ", max(durationUnixNano) / 1000000 AS max_ms",
+    );
+
+    TraceAggregationService.appendGroupBySelect(statement, groupByKeys);
+
+    statement.append(` FROM ${TraceAggregationService.TABLE_NAME}`);
+
+    TraceAggregationService.appendAnalyticsTimeWindow(statement, request);
+
+    statement.append(TraceAggregationService.RETENTION_FILTER);
+
+    TraceAggregationService.appendGroupByDimensionFilters(
+      statement,
+      groupByKeys,
+    );
+
+    TraceAggregationService.appendCommonFilters(statement, request);
+
+    statement.append(" GROUP BY");
+    let first: boolean = true;
+    for (const [index, key] of groupByKeys.entries()) {
+      statement.append(
+        `${first ? " " : ", "}${TraceAggregationService.groupByAlias(key, index)}`,
+      );
+      first = false;
+    }
+
+    statement.append(
+      SQL` ORDER BY cnt DESC LIMIT ${{
+        type: TableColumnType.Number,
+        value: limit,
+      }}`,
+    );
+
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
+    );
+
+    return statement;
   }
 
   private static isTopLevelColumn(key: string): boolean {

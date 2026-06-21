@@ -8,6 +8,7 @@ import StatusPagePrivateUser from "../../Models/DatabaseModels/StatusPagePrivate
 import OneUptimeDate from "../../Types/Date";
 import PositiveNumber from "../../Types/PositiveNumber";
 import CookieName from "../../Types/CookieName";
+import SsoProviderType from "../../Types/SSO/SsoProviderType";
 import {
   MASTER_PASSWORD_COOKIE_IDENTIFIER,
   MASTER_PASSWORD_COOKIE_MAX_AGE_IN_DAYS,
@@ -38,15 +39,24 @@ export default class CookieUtil {
     return cookies;
   }
 
+  /*
+   * Builds a per-project SSO token. The optional `ssoProviderId` /
+   * `ssoProviderType` discriminator records WHICH identity provider issued the
+   * token, so a project that enforces SSO can require a specific provider
+   * (e.g. its own Project SSO, or an instance-wide Global SSO). Used by both
+   * the cookie flow (web) and the deep-link flow (mobile) so the token shape
+   * stays identical.
+   */
   @CaptureSpan()
-  public static setSSOCookie(data: {
+  public static getSSOToken(data: {
     user: User;
     projectId: ObjectID;
-    expressResponse: ExpressResponse;
-  }): void {
-    const { user, projectId, expressResponse: res } = data;
+    ssoProviderId?: ObjectID | undefined;
+    ssoProviderType?: SsoProviderType | undefined;
+  }): string {
+    const { user, projectId } = data;
 
-    const ssoToken: string = JSONWebToken.sign({
+    return JSONWebToken.sign({
       data: {
         userId: user.id!,
         projectId: projectId,
@@ -54,11 +64,86 @@ export default class CookieUtil {
         email: user.email,
         isMasterAdmin: false,
         isGeneralLogin: false,
+        ssoProviderId: data.ssoProviderId
+          ? data.ssoProviderId.toString()
+          : undefined,
+        ssoProviderType: data.ssoProviderType
+          ? data.ssoProviderType.toString()
+          : undefined,
       },
       expiresInSeconds: OneUptimeDate.getSecondsInDays(new PositiveNumber(30)),
     });
+  }
+
+  @CaptureSpan()
+  public static setSSOCookie(data: {
+    user: User;
+    projectId: ObjectID;
+    expressResponse: ExpressResponse;
+    ssoProviderId?: ObjectID | undefined;
+    ssoProviderType?: SsoProviderType | undefined;
+  }): void {
+    const { projectId, expressResponse: res } = data;
+
+    const ssoToken: string = CookieUtil.getSSOToken({
+      user: data.user,
+      projectId: projectId,
+      ssoProviderId: data.ssoProviderId,
+      ssoProviderType: data.ssoProviderType,
+    });
 
     CookieUtil.setCookie(res, CookieUtil.getUserSSOKey(projectId), ssoToken, {
+      maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
+      httpOnly: true,
+    });
+  }
+
+  /*
+   * Builds a Global SSO token. Unlike the per-project token, this is NOT bound
+   * to a single project — a Global SSO/OIDC login proves the user authenticated
+   * against the instance-wide IdP, so one token satisfies SSO enforcement for
+   * every project the user belongs to (including projects created after login).
+   * It carries the `ssoProviderId` / `ssoProviderType` discriminator so a
+   * project that pins a specific provider can still be enforced.
+   */
+  @CaptureSpan()
+  public static getGlobalSSOToken(data: {
+    user: User;
+    ssoProviderId: ObjectID;
+    ssoProviderType: SsoProviderType;
+  }): string {
+    const { user } = data;
+
+    return JSONWebToken.sign({
+      data: {
+        userId: user.id!,
+        name: user.name!,
+        email: user.email,
+        isMasterAdmin: false,
+        isGeneralLogin: false,
+        ssoProviderId: data.ssoProviderId.toString(),
+        ssoProviderType: data.ssoProviderType.toString(),
+      },
+      expiresInSeconds: OneUptimeDate.getSecondsInDays(new PositiveNumber(30)),
+    });
+  }
+
+  @CaptureSpan()
+  public static setGlobalSSOCookie(data: {
+    user: User;
+    expressResponse: ExpressResponse;
+    ssoProviderId: ObjectID;
+    ssoProviderType: SsoProviderType;
+  }): void {
+    const { expressResponse: res } = data;
+
+    const globalSsoToken: string = CookieUtil.getGlobalSSOToken({
+      user: data.user,
+      ssoProviderId: data.ssoProviderId,
+      ssoProviderType: data.ssoProviderType,
+    });
+
+    CookieUtil.setCookie(res, CookieUtil.getGlobalSSOKey(), globalSsoToken, {
       maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
       httpOnly: true,
     });
@@ -292,7 +377,11 @@ export default class CookieUtil {
     req: ExpressRequest,
     name: string,
   ): string | undefined {
-    return req.cookies[name];
+    /*
+     * req.cookies is only populated when the cookie-parser middleware has run.
+     * Guard against requests where it is absent (mirrors getAllCookies above).
+     */
+    return req.cookies?.[name];
   }
 
   @CaptureSpan()
@@ -408,6 +497,16 @@ export default class CookieUtil {
   @CaptureSpan()
   public static getSSOKey(): string {
     return `sso-`;
+  }
+
+  /*
+   * Fixed cookie name for the single Global SSO token. Deliberately does NOT
+   * start with the per-project `sso-` prefix so the project-scoped cookie
+   * parser in UserMiddleware.getSsoTokens never mis-keys it.
+   */
+  @CaptureSpan()
+  public static getGlobalSSOKey(): string {
+    return CookieName.GlobalSSOToken;
   }
 
   // delete all cookies.

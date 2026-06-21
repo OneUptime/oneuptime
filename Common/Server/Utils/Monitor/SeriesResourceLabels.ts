@@ -48,6 +48,22 @@ export const DockerHostNameLabelKeys: ReadonlyArray<string> = [
   "oneuptime.docker.host.name",
 ];
 
+/*
+ * For Podman hosts we deliberately ignore raw `host.name` /
+ * `oneuptime.host.name`: those are the Host's territory. The ingest
+ * pipeline stamps `oneuptime.podman.host.*` independently when the
+ * source is a podman host, so only those keys identify a PodmanHost.
+ */
+export const PodmanHostIdLabelKeys: ReadonlyArray<string> = [
+  "resource.oneuptime.podman.host.id",
+  "oneuptime.podman.host.id",
+];
+
+export const PodmanHostNameLabelKeys: ReadonlyArray<string> = [
+  "resource.oneuptime.podman.host.name",
+  "oneuptime.podman.host.name",
+];
+
 export const KubernetesClusterIdLabelKeys: ReadonlyArray<string> = [
   "resource.oneuptime.kubernetes.cluster.id",
   "oneuptime.kubernetes.cluster.id",
@@ -58,6 +74,29 @@ export const KubernetesClusterNameLabelKeys: ReadonlyArray<string> = [
   "oneuptime.kubernetes.cluster.name",
   "resource.k8s.cluster.name",
   "k8s.cluster.name",
+];
+
+/*
+ * Proxmox/Ceph cluster identity rides the agent-stamped resource
+ * attribute (`proxmox.cluster.name` / `ceph.cluster.name`) and its
+ * ClickHouse `resource.`-prefixed twin. Ingest keys cluster rows by
+ * name only — there is no `oneuptime.*.id` stamp for these clusters —
+ * so only name keys exist. The name maps to the cluster model's `name`
+ * column. Note the shipped Proxmox/Ceph alert templates group by
+ * datapoint labels (`id`, `ceph_daemon`, `pool_id`), so their series
+ * labels do NOT carry these keys; the deterministic cluster link for
+ * those monitors comes from the monitor step config instead (see
+ * MonitorClusterContext). These keys cover user-built monitors that
+ * group by the cluster attribute, exactly like the K8s keys above.
+ */
+export const ProxmoxClusterNameLabelKeys: ReadonlyArray<string> = [
+  "resource.proxmox.cluster.name",
+  "proxmox.cluster.name",
+];
+
+export const CephClusterNameLabelKeys: ReadonlyArray<string> = [
+  "resource.ceph.cluster.name",
+  "ceph.cluster.name",
 ];
 
 /*
@@ -89,8 +128,12 @@ export interface SeriesResourceRefs {
   hostNames: Array<string>;
   dockerHostIds: Array<string>;
   dockerHostNames: Array<string>;
+  podmanHostIds: Array<string>;
+  podmanHostNames: Array<string>;
   kubernetesClusterIds: Array<string>;
   kubernetesClusterNames: Array<string>;
+  proxmoxClusterNames: Array<string>;
+  cephClusterNames: Array<string>;
   serviceIds: Array<string>;
   serviceNames: Array<string>;
 }
@@ -141,6 +184,14 @@ export default class SeriesResourceLabels {
         seriesLabels,
         DockerHostNameLabelKeys,
       ),
+      podmanHostIds: this.collectLabelValues(
+        seriesLabels,
+        PodmanHostIdLabelKeys,
+      ),
+      podmanHostNames: this.collectLabelValues(
+        seriesLabels,
+        PodmanHostNameLabelKeys,
+      ),
       kubernetesClusterIds: this.collectLabelValues(
         seriesLabels,
         KubernetesClusterIdLabelKeys,
@@ -148,6 +199,14 @@ export default class SeriesResourceLabels {
       kubernetesClusterNames: this.collectLabelValues(
         seriesLabels,
         KubernetesClusterNameLabelKeys,
+      ),
+      proxmoxClusterNames: this.collectLabelValues(
+        seriesLabels,
+        ProxmoxClusterNameLabelKeys,
+      ),
+      cephClusterNames: this.collectLabelValues(
+        seriesLabels,
+        CephClusterNameLabelKeys,
       ),
       serviceIds: this.collectLabelValues(seriesLabels, ServiceIdLabelKeys),
       serviceNames: this.collectLabelValues(seriesLabels, ServiceNameLabelKeys),

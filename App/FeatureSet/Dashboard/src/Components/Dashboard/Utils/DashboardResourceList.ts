@@ -21,6 +21,14 @@ export type DashboardResourceType =
   | "docker-image"
   | "docker-network"
   | "docker-volume"
+  | "podman-host"
+  | "podman-container"
+  | "podman-image"
+  | "podman-network"
+  | "podman-volume"
+  | "proxmox-resource"
+  | "ceph-resource"
+  | "docker-swarm-resource"
   | "span"
   | "log";
 

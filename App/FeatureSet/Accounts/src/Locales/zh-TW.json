@@ -86,7 +86,9 @@
     "selectProjectSubtitle": "選擇您要登入的專案。",
     "noConfigForEmail": "找不到電子郵件的 SSO 設定：{{email}}",
     "emailRequired": "需要電子郵件才能執行此操作",
-    "defaultProjectName": "專案"
+    "defaultProjectName": "專案",
+    "globalProvidersTitle": "使用您的組織登入",
+    "globalProvidersDivider": "或使用電子郵件繼續"
   },
   "verifyEmail": {
     "successTitle": "您的電子郵件已驗證。",

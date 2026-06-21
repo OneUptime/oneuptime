@@ -20,17 +20,26 @@ import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionCo
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import Host from "../../Models/DatabaseModels/Host";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
+import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
+import ProxmoxCluster from "../../Models/DatabaseModels/ProxmoxCluster";
+import CephCluster from "../../Models/DatabaseModels/CephCluster";
+import DockerSwarmCluster from "../../Models/DatabaseModels/DockerSwarmCluster";
 import ServerlessFunction from "../../Models/DatabaseModels/ServerlessFunction";
 import CloudResource from "../../Models/DatabaseModels/CloudResource";
 import RumApplication from "../../Models/DatabaseModels/RumApplication";
 import HostService from "./HostService";
 import DockerHostService from "./DockerHostService";
+import PodmanHostService from "./PodmanHostService";
 import KubernetesClusterService from "./KubernetesClusterService";
+import ProxmoxClusterService from "./ProxmoxClusterService";
+import CephClusterService from "./CephClusterService";
+import DockerSwarmClusterService from "./DockerSwarmClusterService";
 import ServerlessFunctionService from "./ServerlessFunctionService";
 import CloudResourceService from "./CloudResourceService";
 import RumApplicationService from "./RumApplicationService";
 import GlobalCache from "../Infrastructure/GlobalCache";
+import ColumnLength from "../../Types/Database/ColumnLength";
 import EntityType from "../../Types/Telemetry/EntityType";
 import { ExtractedEntity } from "../Utils/Telemetry/TelemetryEntity";
 import { reconcileEntityRegistryThrottled } from "../Utils/Telemetry/EntityRegistry";
@@ -187,6 +196,21 @@ export default class OTelIngestService {
   }
 
   /*
+   * Truncate to the Service column width (ColumnLength.ShortText) so a
+   * pathological over-long resource attribute can't fail the UPDATE — a
+   * throw there would leave the throttle fingerprint cached and freeze
+   * lastSeenAt refreshes for the rest of the throttle window.
+   */
+  private static clampServiceMetadataValue(
+    value: string | null | undefined,
+  ): string | undefined {
+    if (!value) {
+      return undefined;
+    }
+    return value.slice(0, ColumnLength.ShortText);
+  }
+
+  /*
    * Build the metadata captured onto the Service row from OTel resource
    * attributes (service.version, deployment.environment, cloud.*, runtime.*).
    * Returns undefined when no resource attributes are available so the
@@ -201,6 +225,7 @@ export default class OTelIngestService {
         serviceNamespace?: string | undefined;
         runtimeName?: string | undefined;
         runtimeVersion?: string | undefined;
+        telemetrySdkLanguage?: string | undefined;
         cloudProvider?: string | undefined;
         cloudPlatform?: string | undefined;
         cloudRegion?: string | undefined;
@@ -211,39 +236,43 @@ export default class OTelIngestService {
       return undefined;
     }
     return {
-      serviceVersion:
-        this.getResourceStringAttribute(attributes, "service.version") ||
-        undefined,
-      deploymentEnvironment:
+      serviceVersion: this.clampServiceMetadataValue(
+        this.getResourceStringAttribute(attributes, "service.version"),
+      ),
+      deploymentEnvironment: this.clampServiceMetadataValue(
         this.getResourceStringAttribute(
           attributes,
           "deployment.environment.name",
         ) ||
-        this.getResourceStringAttribute(attributes, "deployment.environment") ||
-        undefined,
-      serviceNamespace:
-        this.getResourceStringAttribute(attributes, "service.namespace") ||
-        undefined,
-      runtimeName:
-        this.getResourceStringAttribute(attributes, "process.runtime.name") ||
-        undefined,
-      runtimeVersion:
+          this.getResourceStringAttribute(attributes, "deployment.environment"),
+      ),
+      serviceNamespace: this.clampServiceMetadataValue(
+        this.getResourceStringAttribute(attributes, "service.namespace"),
+      ),
+      runtimeName: this.clampServiceMetadataValue(
+        this.getResourceStringAttribute(attributes, "process.runtime.name"),
+      ),
+      runtimeVersion: this.clampServiceMetadataValue(
+        this.getResourceStringAttribute(attributes, "process.runtime.version"),
+      ),
+      telemetrySdkLanguage: this.clampServiceMetadataValue(
         this.getResourceStringAttribute(
           attributes,
-          "process.runtime.version",
-        ) || undefined,
-      cloudProvider:
-        this.getResourceStringAttribute(attributes, "cloud.provider") ||
-        undefined,
-      cloudPlatform:
-        this.getResourceStringAttribute(attributes, "cloud.platform") ||
-        undefined,
-      cloudRegion:
-        this.getResourceStringAttribute(attributes, "cloud.region") ||
-        undefined,
-      cloudAccountId:
-        this.getResourceStringAttribute(attributes, "cloud.account.id") ||
-        undefined,
+          "telemetry.sdk.language",
+        )?.toLowerCase(),
+      ),
+      cloudProvider: this.clampServiceMetadataValue(
+        this.getResourceStringAttribute(attributes, "cloud.provider"),
+      ),
+      cloudPlatform: this.clampServiceMetadataValue(
+        this.getResourceStringAttribute(attributes, "cloud.platform"),
+      ),
+      cloudRegion: this.clampServiceMetadataValue(
+        this.getResourceStringAttribute(attributes, "cloud.region"),
+      ),
+      cloudAccountId: this.clampServiceMetadataValue(
+        this.getResourceStringAttribute(attributes, "cloud.account.id"),
+      ),
     };
   }
 
@@ -650,9 +679,74 @@ export default class OTelIngestService {
             dockerHost?.telemetryRetentionConfig ?? null,
         };
       }
+      if (primaryEntityType === ServiceType.PodmanHost) {
+        const podmanHost: PodmanHost | null =
+          await PodmanHostService.findOneById({
+            id: resourceId,
+            select: {
+              retainTelemetryDataForDays: true,
+              telemetryRetentionConfig: true,
+            },
+            props: { isRoot: true },
+          });
+        return {
+          retainTelemetryDataForDays:
+            podmanHost?.retainTelemetryDataForDays ?? null,
+          telemetryRetentionConfig:
+            podmanHost?.telemetryRetentionConfig ?? null,
+        };
+      }
       if (primaryEntityType === ServiceType.KubernetesCluster) {
         const cluster: KubernetesCluster | null =
           await KubernetesClusterService.findOneById({
+            id: resourceId,
+            select: {
+              retainTelemetryDataForDays: true,
+              telemetryRetentionConfig: true,
+            },
+            props: { isRoot: true },
+          });
+        return {
+          retainTelemetryDataForDays:
+            cluster?.retainTelemetryDataForDays ?? null,
+          telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
+        };
+      }
+      if (primaryEntityType === ServiceType.ProxmoxCluster) {
+        const cluster: ProxmoxCluster | null =
+          await ProxmoxClusterService.findOneById({
+            id: resourceId,
+            select: {
+              retainTelemetryDataForDays: true,
+              telemetryRetentionConfig: true,
+            },
+            props: { isRoot: true },
+          });
+        return {
+          retainTelemetryDataForDays:
+            cluster?.retainTelemetryDataForDays ?? null,
+          telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
+        };
+      }
+      if (primaryEntityType === ServiceType.CephCluster) {
+        const cluster: CephCluster | null =
+          await CephClusterService.findOneById({
+            id: resourceId,
+            select: {
+              retainTelemetryDataForDays: true,
+              telemetryRetentionConfig: true,
+            },
+            props: { isRoot: true },
+          });
+        return {
+          retainTelemetryDataForDays:
+            cluster?.retainTelemetryDataForDays ?? null,
+          telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
+        };
+      }
+      if (primaryEntityType === ServiceType.DockerSwarmCluster) {
+        const cluster: DockerSwarmCluster | null =
+          await DockerSwarmClusterService.findOneById({
             id: resourceId,
             select: {
               retainTelemetryDataForDays: true,

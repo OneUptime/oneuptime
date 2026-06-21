@@ -50,6 +50,21 @@ import MonitorStepKubernetesMonitor, {
 import MonitorStepDockerMonitor, {
   MonitorStepDockerMonitorUtil,
 } from "./MonitorStepDockerMonitor";
+import MonitorStepHostMonitor, {
+  MonitorStepHostMonitorUtil,
+} from "./MonitorStepHostMonitor";
+import MonitorStepPodmanMonitor, {
+  MonitorStepPodmanMonitorUtil,
+} from "./MonitorStepPodmanMonitor";
+import MonitorStepProxmoxMonitor, {
+  MonitorStepProxmoxMonitorUtil,
+} from "./MonitorStepProxmoxMonitor";
+import MonitorStepDockerSwarmMonitor, {
+  MonitorStepDockerSwarmMonitorUtil,
+} from "./MonitorStepDockerSwarmMonitor";
+import MonitorStepCephMonitor, {
+  MonitorStepCephMonitorUtil,
+} from "./MonitorStepCephMonitor";
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 
 /*
@@ -169,6 +184,21 @@ export interface MonitorStepType {
 
   // Docker monitor
   dockerMonitor?: MonitorStepDockerMonitor | undefined;
+
+  // Host monitor
+  hostMonitor?: MonitorStepHostMonitor | undefined;
+
+  // Podman monitor
+  podmanMonitor?: MonitorStepPodmanMonitor | undefined;
+
+  // Proxmox monitor
+  proxmoxMonitor?: MonitorStepProxmoxMonitor | undefined;
+
+  // Docker Swarm monitor
+  dockerSwarmMonitor?: MonitorStepDockerSwarmMonitor | undefined;
+
+  // Ceph monitor
+  cephMonitor?: MonitorStepCephMonitor | undefined;
 }
 
 export default class MonitorStep extends DatabaseProperty {
@@ -208,6 +238,11 @@ export default class MonitorStep extends DatabaseProperty {
       externalStatusPageMonitor: undefined,
       kubernetesMonitor: undefined,
       dockerMonitor: undefined,
+      hostMonitor: undefined,
+      podmanMonitor: undefined,
+      proxmoxMonitor: undefined,
+      dockerSwarmMonitor: undefined,
+      cephMonitor: undefined,
     };
   }
 
@@ -252,6 +287,11 @@ export default class MonitorStep extends DatabaseProperty {
       externalStatusPageMonitor: undefined,
       kubernetesMonitor: undefined,
       dockerMonitor: undefined,
+      hostMonitor: undefined,
+      podmanMonitor: undefined,
+      proxmoxMonitor: undefined,
+      dockerSwarmMonitor: undefined,
+      cephMonitor: undefined,
     };
 
     return monitorStep;
@@ -441,6 +481,37 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
+  public setHostMonitor(hostMonitor: MonitorStepHostMonitor): MonitorStep {
+    this.data!.hostMonitor = hostMonitor;
+    return this;
+  }
+
+  public setPodmanMonitor(
+    podmanMonitor: MonitorStepPodmanMonitor,
+  ): MonitorStep {
+    this.data!.podmanMonitor = podmanMonitor;
+    return this;
+  }
+
+  public setProxmoxMonitor(
+    proxmoxMonitor: MonitorStepProxmoxMonitor,
+  ): MonitorStep {
+    this.data!.proxmoxMonitor = proxmoxMonitor;
+    return this;
+  }
+
+  public setDockerSwarmMonitor(
+    dockerSwarmMonitor: MonitorStepDockerSwarmMonitor,
+  ): MonitorStep {
+    this.data!.dockerSwarmMonitor = dockerSwarmMonitor;
+    return this;
+  }
+
+  public setCephMonitor(cephMonitor: MonitorStepCephMonitor): MonitorStep {
+    this.data!.cephMonitor = cephMonitor;
+    return this;
+  }
+
   public setCustomCode(customCode: string): MonitorStep {
     this.data!.customCode = customCode;
     return this;
@@ -477,6 +548,11 @@ export default class MonitorStep extends DatabaseProperty {
         exceptionMonitor: undefined,
         kubernetesMonitor: undefined,
         dockerMonitor: undefined,
+        hostMonitor: undefined,
+        podmanMonitor: undefined,
+        proxmoxMonitor: undefined,
+        dockerSwarmMonitor: undefined,
+        cephMonitor: undefined,
       },
     };
   }
@@ -643,6 +719,56 @@ export default class MonitorStep extends DatabaseProperty {
       }
     }
 
+    if (monitorType === MonitorType.Host) {
+      if (!value.data.hostMonitor) {
+        return "Host monitor configuration is required";
+      }
+
+      if (!value.data.hostMonitor.hostIdentifier) {
+        return "Host is required";
+      }
+    }
+
+    if (monitorType === MonitorType.Podman) {
+      if (!value.data.podmanMonitor) {
+        return "Podman monitor configuration is required";
+      }
+
+      if (!value.data.podmanMonitor.hostIdentifier) {
+        return "Podman host is required";
+      }
+    }
+
+    if (monitorType === MonitorType.Proxmox) {
+      if (!value.data.proxmoxMonitor) {
+        return "Proxmox monitor configuration is required";
+      }
+
+      if (!value.data.proxmoxMonitor.clusterIdentifier) {
+        return "Proxmox cluster is required";
+      }
+    }
+
+    if (monitorType === MonitorType.DockerSwarm) {
+      if (!value.data.dockerSwarmMonitor) {
+        return "Docker Swarm monitor configuration is required";
+      }
+
+      if (!value.data.dockerSwarmMonitor.clusterIdentifier) {
+        return "Docker Swarm cluster is required";
+      }
+    }
+
+    if (monitorType === MonitorType.Ceph) {
+      if (!value.data.cephMonitor) {
+        return "Ceph monitor configuration is required";
+      }
+
+      if (!value.data.cephMonitor.clusterIdentifier) {
+        return "Ceph cluster is required";
+      }
+    }
+
     return null;
   }
 
@@ -725,6 +851,23 @@ export default class MonitorStep extends DatabaseProperty {
             : undefined,
           dockerMonitor: this.data.dockerMonitor
             ? MonitorStepDockerMonitorUtil.toJSON(this.data.dockerMonitor)
+            : undefined,
+          hostMonitor: this.data.hostMonitor
+            ? MonitorStepHostMonitorUtil.toJSON(this.data.hostMonitor)
+            : undefined,
+          podmanMonitor: this.data.podmanMonitor
+            ? MonitorStepPodmanMonitorUtil.toJSON(this.data.podmanMonitor)
+            : undefined,
+          proxmoxMonitor: this.data.proxmoxMonitor
+            ? MonitorStepProxmoxMonitorUtil.toJSON(this.data.proxmoxMonitor)
+            : undefined,
+          dockerSwarmMonitor: this.data.dockerSwarmMonitor
+            ? MonitorStepDockerSwarmMonitorUtil.toJSON(
+                this.data.dockerSwarmMonitor,
+              )
+            : undefined,
+          cephMonitor: this.data.cephMonitor
+            ? MonitorStepCephMonitorUtil.toJSON(this.data.cephMonitor)
             : undefined,
         },
       });
@@ -864,6 +1007,21 @@ export default class MonitorStep extends DatabaseProperty {
       dockerMonitor: json["dockerMonitor"]
         ? (json["dockerMonitor"] as JSONObject)
         : undefined,
+      hostMonitor: json["hostMonitor"]
+        ? (json["hostMonitor"] as JSONObject)
+        : undefined,
+      podmanMonitor: json["podmanMonitor"]
+        ? (json["podmanMonitor"] as JSONObject)
+        : undefined,
+      proxmoxMonitor: json["proxmoxMonitor"]
+        ? (json["proxmoxMonitor"] as JSONObject)
+        : undefined,
+      dockerSwarmMonitor: json["dockerSwarmMonitor"]
+        ? (json["dockerSwarmMonitor"] as JSONObject)
+        : undefined,
+      cephMonitor: json["cephMonitor"]
+        ? (json["cephMonitor"] as JSONObject)
+        : undefined,
     }) as any;
 
     return monitorStep;
@@ -902,6 +1060,11 @@ export default class MonitorStep extends DatabaseProperty {
         externalStatusPageMonitor: Zod.any().optional(),
         kubernetesMonitor: Zod.any().optional(),
         dockerMonitor: Zod.any().optional(),
+        hostMonitor: Zod.any().optional(),
+        podmanMonitor: Zod.any().optional(),
+        proxmoxMonitor: Zod.any().optional(),
+        dockerSwarmMonitor: Zod.any().optional(),
+        cephMonitor: Zod.any().optional(),
       }).openapi({
         type: "object",
         example: {

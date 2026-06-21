@@ -5,42 +5,48 @@ import MetricService from "Common/Server/Services/MetricService";
 import logger from "Common/Server/Utils/Logger";
 
 /**
- * Telemetry V3 cut.
+ * Telemetry V3 cut — DDL ONLY.
  *
  * The analytics models were (a) renamed `serviceId`/`serviceType` →
  * `primaryEntityId`/`primaryEntityType` and (b) switched from
  * `sipHash64(projectId) % 16` to time-based partitioning. Neither can be
  * applied in place — `serviceId` is part of the ClickHouse sort key and
  * the partition key is fixed at table creation — so the signal tables are
- * cut to a new `…V3` name and data is copied across.
+ * cut to a new `…V3` name.
+ *
+ * This migration deliberately does NOT copy data — the V3 cut is
+ * FORWARD-ONLY by decision (2026-06-11). V3 tables start fresh; history
+ * ages in over the retention window. An in-app copy was tried twice and
+ * removed: inline it blocked the boot migration runner and kept timing
+ * out client-side at the 58s socket idle limit (re-running whole
+ * partitions every boot — duplicating rows and double-firing the metric
+ * MVs), and the background-cron replacement was machinery nobody needs
+ * by default. Operators who want to carry history forward run the
+ * documented per-partition clickhouse-client queries instead:
+ * App/FeatureSet/Docs/Content/en/installation/upgrading.md ('Upgrading from OneUptime 10 → 11') (the native protocol has no
+ * idle-timeout problem, and the V3 tables' dedup windows make a re-run
+ * with the documented token settings safe).
  *
  * Steps:
  *   1. Drop the 3 stale metric MVs (old `serviceId` column + sipHash
- *      partition, reading `FROM MetricItemV2`). Skipped on a retry once the
- *      views already read `FROM MetricItemV3`.
- *   2. Recreate every analytics table + MV from the updated models via the
- *      schema-sync helpers — creating the `…V3` signal tables and rebuilding
- *      the MVs (`FROM MetricItemV3`). Idempotent.
- *   3. Copy each `…V2` → `…V3` partition-by-partition with an explicit,
- *      NAME-BASED column mapping (`serviceId`→`primaryEntityId`,
- *      `serviceType`→`primaryEntityType`). A positional `SELECT *` is NOT
- *      safe: `serviceType` was appended to the V2 tables by an earlier ALTER,
- *      so it sits last in V2's physical column order whereas V3 places
- *      `primaryEntityType` second. Only V3 columns whose source column exists
- *      on V2 are copied — V3-only columns (e.g. `entityKeys`) fall back to
- *      their table DEFAULT. Per-partition progress lands in
- *      `TelemetryV3CopyProgress`, and any copy failure is re-thrown at the
- *      end so the migration is NOT marked executed and the next boot resumes
- *      from the partitions that are still missing.
+ *      partition, reading `FROM MetricItemV2`) and any pre-V3 target
+ *      table still missing `primaryEntityId`. The view drop is skipped on
+ *      a retry once the views already read `FROM MetricItemV3`; the table
+ *      drop is keyed off the column, so a rebuilt V3 table survives a
+ *      retry while a drifted old-schema table is still repaired.
+ *   2. Recreate every analytics table + MV from the updated models via
+ *      the schema-sync helpers — creating the `…V3` signal tables and
+ *      rebuilding the MVs (`FROM MetricItemV3`). Idempotent.
  *
- * The `…V2` tables are intentionally retained (rollback window; they
- * self-drain via their `retentionDate` TTL). A follow-up migration can DROP
- * them once V3 is confirmed.
+ * The `…V2` tables are not touched here — DropUnusedTelemetryTables
+ * (later in the chain) drops them. Operators who want the optional
+ * manual history copy rename them to `…_backup` names BEFORE upgrading,
+ * as documented in the upgrade guide.
  *
- * All statements run through `MetricService` — every analytics service shares
- * one ClickHouse connection, and each statement names its own table.
+ * All statements run through `MetricService` — every analytics service
+ * shares one ClickHouse connection, and each statement names its own
+ * table.
  */
-
 export default class MigrateTelemetryToV3PrimaryEntityId extends DataMigrationBase {
   public constructor() {
     super("MigrateTelemetryToV3PrimaryEntityId");
@@ -48,19 +54,36 @@ export default class MigrateTelemetryToV3PrimaryEntityId extends DataMigrationBa
 
   public override async migrate(): Promise<void> {
     /*
-     * 1. Drop the stale MV triggers + target tables — but only while the
-     *    view does not yet read `FROM MetricItemV3`. This migration
-     *    legitimately re-runs after a partial copy failure (see step 3), and
-     *    the rebuilt views/tables must survive a retry: dropping the rebuilt
-     *    target tables would silently discard the aggregates the MVs already
-     *    produced for the copied (and on retry skipped) partitions.
+     * 1. Drop the stale MV triggers and the pre-V3 target tables. The
+     *    view drop is gated on the view still reading `FROM MetricItemV2`
+     *    (a retry that already re-pointed it to MetricItemV3 leaves it
+     *    alone); the table drop is gated on the table still lacking
+     *    `primaryEntityId` (see the per-table comment below). Keying the
+     *    table drop off the column — not the view's source string — means
+     *    a rebuilt V3 table survives a retry (its aggregates are
+     *    preserved) while a table that drifted to a V3-pointed MV but kept
+     *    the old `serviceId` schema is still repaired.
      */
-    const staleMvPairs: Array<[string, string]> = [
-      ["MetricItemAggMV1m_mv", "MetricItemAggMV1m"],
-      ["MetricItemAggMV1mByHost_mv", "MetricItemAggMV1mByHost"],
-      ["MetricBaselineHourly_mv", "MetricBaselineHourly"],
+    /*
+     * MetricItemAggMV1mByHost is deliberately VIEW-ONLY here (dropTable:
+     * false): a manual V2 -> V3 raw-metric copy stamps hostEntityKey = ''
+     * (V2 has no such column), so the ByHostV2 MV cannot rebuild per-host
+     * rollup history from copied rows — the frozen old table (renamed to
+     * `…_backup` before the upgrade) is the ONLY source for the optional
+     * per-host history backfill in the upgrade guide. The un-renamed
+     * leftover is dropped by DropUnusedTelemetryTables later in the
+     * chain. MV1m/Baseline targets ARE droppable: a manual raw-metric
+     * copy re-fires their MVs via primaryEntityId, which copied rows do
+     * carry.
+     */
+    const staleMvPairs: Array<
+      [view: string, table: string, dropTable: boolean]
+    > = [
+      ["MetricItemAggMV1m_mv", "MetricItemAggMV1m", true],
+      ["MetricItemAggMV1mByHost_mv", "MetricItemAggMV1mByHost", false],
+      ["MetricBaselineHourly_mv", "MetricBaselineHourly", true],
     ];
-    for (const [view, table] of staleMvPairs) {
+    for (const [view, table, dropTable] of staleMvPairs) {
       const viewCreateQuery: string | null =
         await ClickHouseMigrationUtil.getCreateQuery(view);
       const viewIsStale: boolean =
@@ -69,13 +92,28 @@ export default class MigrateTelemetryToV3PrimaryEntityId extends DataMigrationBa
       if (viewIsStale) {
         await this.safeExec(`DROP VIEW IF EXISTS ${view}`);
       }
-      /*
-       * No view (never created, or a prior run crashed between the two
-       * drops) means the target table cannot be receiving rows — it is
-       * either the stale one or new-but-empty, so dropping is safe.
-       */
-      if (viewIsStale || viewCreateQuery === null) {
-        await this.safeExec(`DROP TABLE IF EXISTS ${table}`);
+
+      if (dropTable) {
+        /*
+         * Drop the target table only while it is still the pre-V3 schema,
+         * detected by the actual column set (the renamed `serviceId` →
+         * `primaryEntityId`) rather than the MV's source string. The view
+         * and the target table schema are independent — keying the table
+         * drop off the column means a retry that has already rebuilt the
+         * V3 table is correctly left alone (preserving the aggregates its
+         * MV produced), while a table that drifted to a V3-pointed MV but
+         * kept the old `serviceId` schema is still repaired here instead
+         * of silently surviving. A genuinely-absent table reports no
+         * columns and is left for createTables() below to create.
+         */
+        const tableColumns: Array<string> =
+          await ClickHouseMigrationUtil.getColumns(table);
+        const tableIsPreV3: boolean =
+          tableColumns.length > 0 && !tableColumns.includes("primaryEntityId");
+
+        if (tableIsPreV3) {
+          await this.safeExec(`DROP TABLE IF EXISTS ${table}`);
+        }
       }
     }
 
@@ -83,58 +121,9 @@ export default class MigrateTelemetryToV3PrimaryEntityId extends DataMigrationBa
     await AnalyticsTableManagement.createTables();
     await AnalyticsTableManagement.createMaterializedViews();
 
-    /*
-     * 3. Copy historical signal data V2 -> V3 with a name-based column map,
-     *    one partition at a time, resuming from the progress marker on retry.
-     */
-    const copies: Array<[string, string]> = [
-      ["LogItemV2", "LogItemV3"],
-      ["MetricItemV2", "MetricItemV3"],
-      ["SpanItemV2", "SpanItemV3"],
-      ["ExceptionItemV2", "ExceptionItemV3"],
-      ["ProfileItemV2", "ProfileItemV3"],
-      ["ProfileSampleItemV2", "ProfileSampleItemV3"],
-    ];
-
-    /*
-     * Map the two renamed columns back to their V2 source names; everything
-     * else maps by identical name.
-     */
-    const renameMap: Record<string, string> = {
-      primaryEntityId: "serviceId",
-      primaryEntityType: "serviceType",
-    };
-
-    const errors: Array<string> = [];
-
-    for (const [v2, v3] of copies) {
-      if (!(await ClickHouseMigrationUtil.tableExists(v2))) {
-        logger.info(
-          `MigrateTelemetryToV3: ${v2} not present (fresh install) — skipping copy.`,
-        );
-        continue;
-      }
-
-      errors.push(
-        ...(await ClickHouseMigrationUtil.copyTablePartitionwise({
-          sourceTable: v2,
-          destinationTable: v3,
-          renameMap: renameMap,
-          logPrefix: "MigrateTelemetryToV3",
-        })),
-      );
-    }
-
-    /*
-     * Throw on any failed copy so the runner does NOT mark this migration
-     * executed — the next boot retries it, and the progress marker limits
-     * the rework to the partitions that are still missing.
-     */
-    if (errors.length > 0) {
-      throw new Error(
-        `MigrateTelemetryToV3: ${errors.length} copy step(s) failed:\n${errors.join("\n")}`,
-      );
-    }
+    logger.info(
+      "MigrateTelemetryToV3: DDL complete. V3 tables start fresh (forward-only cut); to carry V2 history forward manually, see the v11 upgrade guide: https://oneuptime.com/docs/installation/upgrading",
+    );
   }
 
   private async safeExec(sql: string): Promise<void> {

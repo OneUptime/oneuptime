@@ -41,7 +41,9 @@ export default class UserAPI extends BaseAPI<
           }
 
           if (req.body["projectId"]) {
-            throw new BadDataException("projectId is required in request body");
+            throw new BadDataException(
+              "projectId should not be passed in the request body. The project is resolved from the tenantid header.",
+            );
           }
 
           const userPermissions: Array<UserPermission> = (
@@ -102,20 +104,57 @@ export default class UserAPI extends BaseAPI<
             throw new BadDataException("Invoice ID not found");
           }
 
-          if (!item.paymentProviderCustomerId) {
-            throw new BadDataException("Customer ID not found");
+          /*
+           * Never trust the customer id from the request body — always
+           * charge the authenticated project's own Stripe customer. A
+           * mismatch means the caller is trying to pay against another
+           * tenant's customer.
+           */
+          if (
+            item.paymentProviderCustomerId &&
+            item.paymentProviderCustomerId !== project.paymentProviderCustomerId
+          ) {
+            throw new BadDataException(
+              "Customer ID does not belong to this project",
+            );
           }
+
+          // the invoice must belong to this project.
+          const billingInvoice: BillingInvoice | null =
+            await BillingInvoiceService.findOneBy({
+              query: {
+                projectId: project.id!,
+                paymentProviderInvoiceId: item.paymentProviderInvoiceId,
+              },
+              select: {
+                _id: true,
+              },
+              props: {
+                isRoot: true,
+                /*
+                 * skip onBeforeFind: it requires props.tenantId and would
+                 * re-sync all invoices from Stripe on every pay attempt.
+                 * The query above is already scoped to the project.
+                 */
+                ignoreHooks: true,
+              },
+            });
+
+          if (!billingInvoice) {
+            throw new BadDataException("Invoice not found for this project");
+          }
+
           let invoice: Invoice | null = null;
 
           try {
             invoice = await BillingService.payInvoice(
-              item.paymentProviderCustomerId!,
-              item.paymentProviderInvoiceId!,
+              project.paymentProviderCustomerId,
+              item.paymentProviderInvoiceId,
             );
           } catch (err) {
             invoice = await BillingService.getInvoice(
-              item.paymentProviderCustomerId!,
-              item.paymentProviderInvoiceId!,
+              project.paymentProviderCustomerId,
+              item.paymentProviderInvoiceId,
             );
 
             // check if this invoice needs more authentication like 3ds secure.
@@ -142,6 +181,7 @@ export default class UserAPI extends BaseAPI<
 
           await this.service.updateOneBy({
             query: {
+              projectId: project.id!,
               paymentProviderInvoiceId: invoice.id!,
             },
             props: {

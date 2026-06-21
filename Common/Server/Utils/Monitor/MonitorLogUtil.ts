@@ -133,9 +133,8 @@ export default class MonitorLogUtil {
         );
 
         const monitorLogRow: JSONObject = {
-          _id: ObjectID.generate().toString(),
+          _id: ObjectID.generateTimeOrdered().toString(),
           createdAt: logTimestamp,
-          updatedAt: logTimestamp,
           projectId: data.projectId.toString(),
           monitorId: data.monitorId.toString(),
           time: logTimestamp,

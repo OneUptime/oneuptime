@@ -1,11 +1,5 @@
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
-import DashboardResourceListBase, {
+import React, { FunctionComponent, ReactElement } from "react";
+import {
   ResourceListColumn,
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
@@ -13,22 +7,25 @@ import {
   HoneycombLegendItem,
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import DashboardResourceList from "../Utils/DashboardResourceList";
+import DashboardModelResourceListBase from "../../Infrastructure/DashboardModelResourceListBase";
 import KubernetesResource from "Common/Models/DatabaseModels/KubernetesResource";
-import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Query from "Common/Types/BaseDatabase/Query";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Select from "Common/Types/BaseDatabase/Select";
-import ProjectUtil from "Common/UI/Utils/Project";
-import ObjectID from "Common/Types/ObjectID";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
-import DashboardModelQueryInterpolation, {
-  AttributeToColumnMap,
-} from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
+import { AttributeToColumnMap } from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
 
+/*
+ * Thin Kubernetes wrapper around the shared, model-class-driven
+ * DashboardModelResourceListBase
+ * (Components/Infrastructure/DashboardModelResourceListBase.tsx).
+ * Keeps the original public API (kind / kubernetesClusterIds /
+ * namespaces / extraQuery / extraSelect) so the per-kind Kubernetes
+ * widget components compile unchanged; all this wrapper does is fold
+ * those props into the generic query / select / sort contract.
+ */
 export interface KubernetesResourceListBaseProps {
   title?: string | undefined;
   pluralLabel: string;
@@ -78,151 +75,66 @@ const BASE_SELECT: Select<KubernetesResource> = {
 const DashboardKubernetesResourceListBase: FunctionComponent<
   KubernetesResourceListBaseProps
 > = (props: KubernetesResourceListBaseProps): ReactElement => {
-  const [resources, setResources] = useState<Array<KubernetesResource>>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const query: Query<KubernetesResource> = {
+    kind: props.kind,
+  } as Query<KubernetesResource>;
 
-  const clusterIdsKey: string = (props.kubernetesClusterIds || []).join(",");
-  const namespacesKey: string = (props.namespaces || "").trim();
-  const extraQueryKey: string = JSON.stringify(props.extraQuery || {});
-  const extraSelectKey: string = JSON.stringify(props.extraSelect || {});
-  const variablesKey: string = JSON.stringify(props.variables || []);
-  const attributeToColumnKey: string = JSON.stringify(
-    props.attributeToColumn || {},
-  );
+  if (props.kubernetesClusterIds && props.kubernetesClusterIds.length > 0) {
+    (query as Record<string, unknown>)["kubernetesClusterId"] = new Includes(
+      props.kubernetesClusterIds,
+    );
+  }
 
-  const fetchResources: () => Promise<void> = useCallback(async () => {
-    setIsLoading(true);
+  if (props.namespaces && props.namespaces.trim().length > 0) {
+    const parsed: Array<string> = props.namespaces
+      .split(",")
+      .map((s: string) => {
+        return s.trim();
+      })
+      .filter((s: string) => {
+        return s.length > 0;
+      });
 
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-    if (!DashboardResourceList.isPublic() && !projectId) {
-      setIsLoading(false);
-      setError("No project selected.");
-      return;
+    if (parsed.length > 0) {
+      (query as Record<string, unknown>)["namespaceKey"] = new Includes(parsed);
     }
+  }
 
-    try {
-      const query: Query<KubernetesResource> = {
-        projectId: projectId,
-        kind: props.kind,
-      } as Query<KubernetesResource>;
-
-      if (props.kubernetesClusterIds && props.kubernetesClusterIds.length > 0) {
-        (query as Record<string, unknown>)["kubernetesClusterId"] =
-          new Includes(props.kubernetesClusterIds);
-      }
-
-      if (props.namespaces && props.namespaces.trim().length > 0) {
-        const parsed: Array<string> = props.namespaces
-          .split(",")
-          .map((s: string) => {
-            return s.trim();
-          })
-          .filter((s: string) => {
-            return s.length > 0;
-          });
-
-        if (parsed.length > 0) {
-          (query as Record<string, unknown>)["namespaceKey"] = new Includes(
-            parsed,
-          );
-        }
-      }
-
-      if (props.extraQuery) {
-        for (const key of Object.keys(props.extraQuery)) {
-          (query as Record<string, unknown>)[key] = props.extraQuery[key];
-        }
-      }
-
-      /*
-       * Layer dashboard variable selections on top so e.g. a
-       * `k8s.namespace.name = $ns` variable narrows this list to the
-       * selected namespace.
-       */
-      const queryWithVariables: Query<KubernetesResource> =
-        DashboardModelQueryInterpolation.applyToQuery(
-          query as Record<string, unknown>,
-          props.variables,
-          props.attributeToColumn || {},
-        ) as Query<KubernetesResource>;
-
-      const select: Select<KubernetesResource> = {
-        ...BASE_SELECT,
-        ...((props.extraSelect as Select<KubernetesResource>) || {}),
-      };
-
-      const listResult: ListResult<KubernetesResource> =
-        await ModelAPI.getList<KubernetesResource>({
-          modelType: KubernetesResource,
-          requestOptions: DashboardResourceList.getRequestOptions(
-            "kubernetes-resource",
-          ),
-          query: queryWithVariables,
-          limit: props.maxRows,
-          skip: 0,
-          select: select,
-          sort: {
-            namespaceKey: SortOrder.Ascending,
-            name: SortOrder.Ascending,
-          },
-        });
-
-      setResources(listResult.data);
-      setError(null);
-    } catch (err: unknown) {
-      setError(API.getFriendlyErrorMessage(err as Error));
+  if (props.extraQuery) {
+    for (const key of Object.keys(props.extraQuery)) {
+      (query as Record<string, unknown>)[key] = props.extraQuery[key];
     }
+  }
 
-    setIsLoading(false);
-  }, [
-    props.kind,
-    props.maxRows,
-    clusterIdsKey,
-    namespacesKey,
-    extraQueryKey,
-    extraSelectKey,
-    variablesKey,
-    attributeToColumnKey,
-  ]);
-
-  useEffect(() => {
-    fetchResources();
-  }, [fetchResources, props.refreshTick]);
-
-  const viewMode: ResourceListViewMode = props.viewMode || "list";
-
-  const rows: Array<ReactElement> =
-    viewMode === "list"
-      ? resources.map((r: KubernetesResource): ReactElement => {
-          return props.renderRow(r);
-        })
-      : [];
-
-  const honeycombTiles: Array<HoneycombTile> | undefined =
-    viewMode === "honeycomb" && props.renderHoneycombTile
-      ? resources.map((r: KubernetesResource): HoneycombTile => {
-          return props.renderHoneycombTile!(r);
-        })
-      : undefined;
+  const select: Select<KubernetesResource> = {
+    ...BASE_SELECT,
+    ...((props.extraSelect as Select<KubernetesResource>) || {}),
+  };
 
   return (
-    <DashboardResourceListBase
+    <DashboardModelResourceListBase<KubernetesResource>
+      modelType={KubernetesResource}
+      publicResourceType="kubernetes-resource"
       title={props.title}
       pluralLabel={props.pluralLabel}
-      columns={props.columns}
-      count={resources.length}
-      isLoading={isLoading}
-      error={error}
-      isEmpty={resources.length === 0}
       emptyMessage={props.emptyMessage}
       emptyIcon={props.emptyIcon}
-      viewMode={viewMode}
-      honeycombTiles={honeycombTiles}
+      columns={props.columns}
+      maxRows={props.maxRows}
+      query={query}
+      select={select}
+      sort={{
+        namespaceKey: SortOrder.Ascending,
+        name: SortOrder.Ascending,
+      }}
+      refreshTick={props.refreshTick}
+      variables={props.variables}
+      attributeToColumn={props.attributeToColumn}
+      renderRow={props.renderRow}
+      viewMode={props.viewMode}
+      renderHoneycombTile={props.renderHoneycombTile}
       honeycombLegend={props.honeycombLegend}
-    >
-      {rows}
-    </DashboardResourceListBase>
+    />
   );
 };
 

@@ -4,7 +4,9 @@
 #
 
 # Pull base image nodejs image.
-FROM public.ecr.aws/docker/library/node:24.9
+# Floating on the 26 major so each rebuild picks up the latest Node security
+# patches without manual bumps. Lockfiles still keep JS deps reproducible.
+FROM public.ecr.aws/docker/library/node:26
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
 
 RUN npm config set fetch-retries 5
@@ -14,6 +16,11 @@ RUN npm config set fetch-retry-maxtimeout 60000
 # concurrent package extractions on BuildKit's overlayfs (ETXTBSY on
 # /Common/node_modules/esbuild/bin/esbuild). See esbuild#1711, #2785.
 RUN npm config set foreground-scripts true
+
+# Upgrade the bundled npm CLI so its vendored deps (tar, glob, minimatch,
+# brace-expansion, diff, ip-address, picomatch, ...) pick up security fixes
+# that the base image's npm still carries.
+RUN npm install -g npm@latest
 
 
 # Per-build args (GIT_SHA / APP_VERSION / IS_ENTERPRISE_EDITION) are declared at
@@ -29,9 +36,12 @@ LABEL org.opencontainers.image.documentation="https://oneuptime.com/docs"
 LABEL org.opencontainers.image.vendor="OneUptime"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
 
-# Install runtime tools (bash, curl, ca-certificates) in a single layer with
-# cache cleanup. ca-certificates is required by `update-ca-certificates` below.
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Upgrade OS packages (Debian security fixes published since the base image
+# was built) and install runtime tools (bash, curl, ca-certificates) in a
+# single layer with cache cleanup. ca-certificates is required by
+# `update-ca-certificates` below.
+RUN apt-get update && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends \
         ca-certificates \
         bash \
         curl \

@@ -77,6 +77,7 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
     >
       <ModelTable<MonitorGroup>
         modelType={MonitorGroup}
+        enableJsonImportExport={true}
         name="Monitor Groups"
         id="monitors-group-table"
         userPreferencesKey="monitor-groups-table"

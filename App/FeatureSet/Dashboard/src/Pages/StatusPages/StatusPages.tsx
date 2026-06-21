@@ -53,6 +53,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
           onResourcesFetched(data);
         }}
         modelType={StatusPage}
+        enableJsonImportExport={true}
         id="status-page-table"
         userPreferencesKey="status-page-table"
         isDeleteable={false}

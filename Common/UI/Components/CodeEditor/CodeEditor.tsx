@@ -25,6 +25,7 @@ export interface ComponentProps {
   value?: string | undefined;
   showLineNumbers?: boolean | undefined;
   disableSpellCheck?: boolean | undefined;
+  ariaLabelledby?: string | undefined;
 }
 
 const CodeEditor: FunctionComponent<ComponentProps> = (
@@ -119,6 +120,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
   return (
     <div
       data-testid={props.dataTestId}
+      aria-labelledby={props.ariaLabelledby}
       onClick={() => {
         if (props.onClick) {
           props.onClick();

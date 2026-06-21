@@ -1,4 +1,7 @@
 {
+  "a11y": {
+    "skipToMainContent": "본문으로 건너뛰기"
+  },
   "common": {
     "save": "저장",
     "cancel": "취소",
@@ -254,5 +257,17 @@
     "completed": "완료됨"
   },
   "Subscriber ID is required": "구독자 ID는 필수입니다",
-  "Token is required": "토큰이 필요합니다"
+  "Token is required": "토큰이 필요합니다",
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}}은(는) {{minLength}}자 이상이어야 합니다.",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}}은(는) {{maxLength}}자 이하여야 합니다.",
+  "{{field}} should not have spaces.": "{{field}}에는 공백을 포함할 수 없습니다.",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}}에는 문자, 숫자, 하이픈(-) 및 밑줄(_)만 사용할 수 있습니다.",
+  "{{field}} should not have numbers.": "{{field}}에는 숫자를 포함할 수 없습니다.",
+  "{{field}} should be a future date.": "{{field}}은(는) 미래의 날짜여야 합니다.",
+  "{{field}} should be a number.": "{{field}}은(는) 숫자여야 합니다.",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}}은(는) {{maxValue}} 이하여야 합니다.",
+  "{{field}} should not be less than {{minValue}}.": "{{field}}은(는) {{minValue}} 이상이어야 합니다.",
+  "{{field}} is required.": "{{field}}은(는) 필수입니다.",
+  "{{field}} should match {{matchField}}": "{{field}}은(는) {{matchField}}과(와) 일치해야 합니다",
+  "Email is not valid.": "이메일이 유효하지 않습니다."
 }

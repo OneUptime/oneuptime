@@ -6,7 +6,11 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import Text from "Common/Types/Text";
 import logger from "Common/Server/Utils/Logger";
 import xmlCrypto, { FileKeyInfo } from "xml-crypto";
-import xmldom from "xmldom";
+import {
+  DOMParser,
+  Document as XmlDocument,
+  Element as XmlElement,
+} from "@xmldom/xmldom";
 import zlib from "zlib";
 import Name from "Common/Types/Name";
 
@@ -119,8 +123,11 @@ export default class SSOUtil {
     certificate: string,
   ): boolean {
     try {
-      const dom: Document = new xmldom.DOMParser().parseFromString(samlPayload);
-      const signature: Element | undefined = dom.getElementsByTagNameNS(
+      const dom: XmlDocument = new DOMParser().parseFromString(
+        samlPayload,
+        "text/xml",
+      );
+      const signature: XmlElement | undefined = dom.getElementsByTagNameNS(
         "http://www.w3.org/2000/09/xmldsig#",
         "Signature",
       )[0];

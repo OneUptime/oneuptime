@@ -45,6 +45,7 @@ import ProjectOIDC from "Common/Models/DatabaseModels/ProjectOidc";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import { Client } from "openid-client";
+import SsoProviderType from "Common/Types/SSO/SsoProviderType";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -562,18 +563,11 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
         expiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
       });
 
-      const ssoToken: string = JSONWebToken.sign({
-        data: {
-          userId: alreadySavedUser.id!,
-          projectId: projectId,
-          name: alreadySavedUser.name!,
-          email: alreadySavedUser.email,
-          isMasterAdmin: false,
-          isGeneralLogin: false,
-        },
-        expiresInSeconds: OneUptimeDate.getSecondsInDays(
-          new PositiveNumber(30),
-        ),
+      const ssoToken: string = CookieUtil.getSSOToken({
+        user: alreadySavedUser,
+        projectId: projectId,
+        ssoProviderId: projectOidcId,
+        ssoProviderType: SsoProviderType.ProjectOIDC,
       });
 
       const params: URLSearchParams = new URLSearchParams();
@@ -607,6 +601,8 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
       user: alreadySavedUser,
       projectId: projectId,
       expressResponse: res,
+      ssoProviderId: projectOidcId,
+      ssoProviderType: SsoProviderType.ProjectOIDC,
     });
 
     CookieUtil.setUserCookie({

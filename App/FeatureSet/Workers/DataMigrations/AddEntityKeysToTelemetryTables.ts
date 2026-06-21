@@ -37,6 +37,7 @@ export default class AddEntityKeysToTelemetryTables extends DataMigrationBase {
   }
 
   public override async migrate(): Promise<void> {
+    this.failures = [];
     await this.addEntityKeysColumn(new Log(), LogService);
     await this.addEntityKeysColumn(new Metric(), MetricService);
     await this.addEntityKeysColumn(new Span(), SpanService);
@@ -46,7 +47,21 @@ export default class AddEntityKeysToTelemetryTables extends DataMigrationBase {
     );
     await this.addEntityKeysColumn(new Profile(), ProfileService);
     await this.addEntityKeysColumn(new ProfileSample(), ProfileSampleService);
+
+    /*
+     * Fail loudly if any table is missing the column: the runner then
+     * retries next boot instead of recording success — downstream
+     * migrations (MaterializeEntityKeysIndexOnTelemetryTables) and the
+     * ingest stamping path require entityKeys to exist everywhere.
+     */
+    if (this.failures.length > 0) {
+      throw new Error(
+        `AddEntityKeysToTelemetryTables failed on: ${this.failures.join(", ")}`,
+      );
+    }
   }
+
+  private failures: Array<string> = [];
 
   private async addEntityKeysColumn<TModel extends AnalyticsBaseModel>(
     model: TModel,
@@ -73,6 +88,7 @@ export default class AddEntityKeysToTelemetryTables extends DataMigrationBase {
         `AddEntityKeysToTelemetryTables: failed on ${model.tableName}:`,
       );
       logger.error(err as Error);
+      this.failures.push(model.tableName);
     }
   }
 

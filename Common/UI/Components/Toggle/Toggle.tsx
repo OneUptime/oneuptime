@@ -21,6 +21,7 @@ export interface ComponentProps {
   error?: string | undefined;
   dataTestId?: string | undefined;
   tooltip?: string | undefined;
+  ariaLabelledby?: string | undefined;
 }
 
 const Toggle: FunctionComponent<ComponentProps> = (
@@ -96,7 +97,7 @@ const Toggle: FunctionComponent<ComponentProps> = (
           className={buttonClassName}
           role="switch"
           aria-checked={isChecked ? "true" : "false"}
-          aria-labelledby={labelId}
+          aria-labelledby={props.ariaLabelledby || labelId}
           aria-describedby={props.error ? errorId : undefined}
           aria-invalid={props.error ? "true" : undefined}
         >

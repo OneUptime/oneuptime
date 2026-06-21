@@ -1,6 +1,6 @@
 {
     "name": "@oneuptime/dashboard",
-    "version": "10.8.2",
+    "version": "11.0.8",
     "private": false,
     "repository": {
         "type": "git",
@@ -46,6 +46,7 @@
         "react-i18next": "^15.7.4",
         "react-router-dom": "^6.30.2",
         "reactflow": "^11.11.2",
+        "recharts": "^3.0.0",
         "stripe": "^11.0.0",
         "use-async-effect": "^2.2.6"
     },
@@ -54,7 +55,7 @@
         "@types/react": "^18.2.38",
         "@types/react-beautiful-dnd": "^13.1.8",
         "@types/react-dom": "^18.0.4",
-        "nodemon": "^2.0.20",
+        "nodemon": "^3.1.14",
         "ts-node": "^10.9.1"
     }
 }

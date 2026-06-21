@@ -92,6 +92,17 @@ export interface TelemetryViewerProps<T> {
   onHistogramTimeRangeSelect?:
     | ((startTime: Date, endTime: Date) => void)
     | undefined;
+  // Extra controls in the histogram header (e.g. a chart-metric selector).
+  histogramHeaderActions?: ReactNode;
+  // Y-axis / tooltip value formatting (e.g. latency metrics in ms).
+  histogramValueFormatter?: ((value: number) => string) | undefined;
+
+  /*
+   * When set, replaces the histogram + facet sidebar + list with the given
+   * content (e.g. an analytics view). The toolbar, search bar, and active
+   * filter chips stay, so the override content can consume the same filters.
+   */
+  mainContentOverride?: ReactNode;
 
   // -- Pagination --
   page: number;
@@ -201,19 +212,31 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
         />
       )}
 
+      {/* Main content override (e.g. analytics view) */}
+      {props.mainContentOverride}
+
       {/* Histogram */}
-      {showHistogram && props.histogramBuckets && props.histogramSeries && (
-        <TelemetryHistogram
-          buckets={props.histogramBuckets}
-          isLoading={props.histogramLoading || false}
-          series={props.histogramSeries}
-          title={props.histogramTitle}
-          onTimeRangeSelect={props.onHistogramTimeRangeSelect}
-        />
-      )}
+      {!props.mainContentOverride &&
+        showHistogram &&
+        props.histogramBuckets &&
+        props.histogramSeries && (
+          <TelemetryHistogram
+            buckets={props.histogramBuckets}
+            isLoading={props.histogramLoading || false}
+            series={props.histogramSeries}
+            title={props.histogramTitle}
+            onTimeRangeSelect={props.onHistogramTimeRangeSelect}
+            headerActions={props.histogramHeaderActions}
+            valueFormatter={props.histogramValueFormatter}
+          />
+        )}
 
       {/* Main area: facets + list */}
-      <div className="flex min-h-0 flex-1 gap-3">
+      <div
+        className={`flex min-h-0 flex-1 gap-3 ${
+          props.mainContentOverride ? "hidden" : ""
+        }`}
+      >
         {showFacets && (
           <TelemetryFacetSidebar
             facetData={props.facetData || {}}

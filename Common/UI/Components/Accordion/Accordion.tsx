@@ -60,7 +60,9 @@ const Accordion: FunctionComponent<ComponentProps> = (
     className = "-ml-5 -mr-5 p-5 mt-1";
   }
 
-  const accordionId: string = `accordion-content-${React.useId()}`;
+  const generatedId: string = React.useId();
+  const accordionId: string = `accordion-content-${generatedId}`;
+  const accordionTitleId: string = `accordion-title-${generatedId}`;
 
   const handleKeyDown: (event: React.KeyboardEvent) => void = (
     event: React.KeyboardEvent,
@@ -84,6 +86,7 @@ const Accordion: FunctionComponent<ComponentProps> = (
           tabIndex={0}
           aria-expanded={isOpen}
           aria-controls={accordionId}
+          aria-labelledby={props.title ? accordionTitleId : undefined}
           onClick={() => {
             setIsOpen(!isOpen);
           }}
@@ -121,6 +124,7 @@ const Accordion: FunctionComponent<ComponentProps> = (
                 }`}
               >
                 <div
+                  id={accordionTitleId}
                   className={`text-gray-900 leading-snug ${props.titleClassName || ""}`}
                 >
                   {props.title}

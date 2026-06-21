@@ -286,7 +286,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 ### Agent 顯示 "Disconnected"
 
-叢集的連線狀態完全由是否有遙測資料抵達來決定——如果沒有任何資料抵達，該叢集會在約 5 分鐘後被標記為 disconnected。因此 "disconnected" 與 "no metrics" 幾乎總是出於**相同的**原因：agent 的遙測資料沒有被接受。
+叢集的連線狀態完全由是否有遙測資料抵達來決定——如果沒有任何資料抵達，該叢集會在約 15 分鐘後被標記為 disconnected。因此 "disconnected" 與 "no metrics" 幾乎總是出於**相同的**原因：agent 的遙測資料沒有被接受。
 
 最常見的原因——尤其是在重新安裝之後——是**錯誤或已撤銷的 ingestion key**。這很容易被忽略，因為 OTLP 接收端點即使對於錯誤的 token 也會刻意回傳 HTTP `200`（如此一來，設定錯誤的 collector 才不會用重試風暴轟炸伺服器）。結果就是：collector 回報成功、它的日誌顯示沒有錯誤，而資料卻被默默丟棄。
 

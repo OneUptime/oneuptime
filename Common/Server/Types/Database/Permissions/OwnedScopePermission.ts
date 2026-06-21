@@ -24,6 +24,7 @@ import Permission, {
   PermissionHelper,
   UserPermission,
 } from "../../../../Types/Permission";
+import { combineWithPrivacyClause } from "../../../Utils/PrivacyFilterUtil";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 /*
@@ -133,8 +134,17 @@ export default class OwnedScopePermission {
           ObjectID.getZeroObjectID().toString(),
         );
       } else {
+        /*
+         * AND-combine with any caller-supplied FK filter (e.g. the
+         * dashboard's `incidentId: <this incident>`) — overwriting it would
+         * widen the query to every owned parent.
+         */
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (query as any)[fkColumn] = QueryHelper.any(allowedIds);
+        (query as any)[fkColumn] = combineWithPrivacyClause(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (query as any)[fkColumn],
+          QueryHelper.any(allowedIds),
+        );
       }
     } else if (allowedIds.length === 0) {
       // Top-level operational resource: no accessible IDs -> match nothing.
@@ -143,9 +153,17 @@ export default class OwnedScopePermission {
         ObjectID.getZeroObjectID().toString(),
       );
     } else {
-      // Top-level operational resource: filter on _id.
+      /*
+       * Top-level operational resource: filter on _id, AND-combined with any
+       * caller-supplied _id (get/update of a specific record) — overwriting
+       * it would resolve the request against a different owned record.
+       */
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (query as any)._id = QueryHelper.any(allowedIds);
+      (query as any)._id = combineWithPrivacyClause(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (query as any)._id,
+        QueryHelper.any(allowedIds),
+      );
     }
 
     return query;

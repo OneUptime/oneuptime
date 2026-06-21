@@ -24,6 +24,7 @@ import DashboardTableComponentUtil from "Common/Utils/Dashboard/Components/Dashb
 import DashboardGaugeComponentUtil from "Common/Utils/Dashboard/Components/DashboardGaugeComponent";
 import DashboardLogStreamComponentUtil from "Common/Utils/Dashboard/Components/DashboardLogStreamComponent";
 import DashboardTraceListComponentUtil from "Common/Utils/Dashboard/Components/DashboardTraceListComponent";
+import DashboardTraceChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardTraceChartComponent";
 import DashboardIncidentListComponentUtil from "Common/Utils/Dashboard/Components/DashboardIncidentListComponent";
 import DashboardAlertListComponentUtil from "Common/Utils/Dashboard/Components/DashboardAlertListComponent";
 import DashboardMonitorListComponentUtil from "Common/Utils/Dashboard/Components/DashboardMonitorListComponent";
@@ -40,7 +41,18 @@ import DashboardDockerContainerListComponentUtil from "Common/Utils/Dashboard/Co
 import DashboardDockerImageListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerImageListComponent";
 import DashboardDockerNetworkListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerNetworkListComponent";
 import DashboardDockerVolumeListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerVolumeListComponent";
+import DashboardPodmanHostListComponentUtil from "Common/Utils/Dashboard/Components/DashboardPodmanHostListComponent";
+import DashboardPodmanContainerListComponentUtil from "Common/Utils/Dashboard/Components/DashboardPodmanContainerListComponent";
+import DashboardPodmanImageListComponentUtil from "Common/Utils/Dashboard/Components/DashboardPodmanImageListComponent";
+import DashboardPodmanNetworkListComponentUtil from "Common/Utils/Dashboard/Components/DashboardPodmanNetworkListComponent";
+import DashboardPodmanVolumeListComponentUtil from "Common/Utils/Dashboard/Components/DashboardPodmanVolumeListComponent";
 import DashboardHostListComponentUtil from "Common/Utils/Dashboard/Components/DashboardHostListComponent";
+import DashboardProxmoxNodeListComponentUtil from "Common/Utils/Dashboard/Components/DashboardProxmoxNodeListComponent";
+import DashboardProxmoxGuestListComponentUtil from "Common/Utils/Dashboard/Components/DashboardProxmoxGuestListComponent";
+import DashboardDockerSwarmNodeListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerSwarmNodeListComponent";
+import DashboardDockerSwarmServiceListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerSwarmServiceListComponent";
+import DashboardCephOsdListComponentUtil from "Common/Utils/Dashboard/Components/DashboardCephOsdListComponent";
+import DashboardCephPoolListComponentUtil from "Common/Utils/Dashboard/Components/DashboardCephPoolListComponent";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
@@ -539,6 +551,11 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
               DashboardTraceListComponentUtil.getDefaultComponent();
           }
 
+          if (componentType === DashboardComponentType.TraceChart) {
+            newComponent =
+              DashboardTraceChartComponentUtil.getDefaultComponent();
+          }
+
           if (componentType === DashboardComponentType.IncidentList) {
             newComponent =
               DashboardIncidentListComponentUtil.getDefaultComponent();
@@ -627,8 +644,63 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
               DashboardDockerVolumeListComponentUtil.getDefaultComponent();
           }
 
+          if (componentType === DashboardComponentType.PodmanHostList) {
+            newComponent =
+              DashboardPodmanHostListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.PodmanContainerList) {
+            newComponent =
+              DashboardPodmanContainerListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.PodmanImageList) {
+            newComponent =
+              DashboardPodmanImageListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.PodmanNetworkList) {
+            newComponent =
+              DashboardPodmanNetworkListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.PodmanVolumeList) {
+            newComponent =
+              DashboardPodmanVolumeListComponentUtil.getDefaultComponent();
+          }
+
           if (componentType === DashboardComponentType.HostList) {
             newComponent = DashboardHostListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.ProxmoxNodeList) {
+            newComponent =
+              DashboardProxmoxNodeListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.ProxmoxGuestList) {
+            newComponent =
+              DashboardProxmoxGuestListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.DockerSwarmNodeList) {
+            newComponent =
+              DashboardDockerSwarmNodeListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.DockerSwarmServiceList) {
+            newComponent =
+              DashboardDockerSwarmServiceListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.CephOsdList) {
+            newComponent =
+              DashboardCephOsdListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.CephPoolList) {
+            newComponent =
+              DashboardCephPoolListComponentUtil.getDefaultComponent();
           }
 
           if (!newComponent) {

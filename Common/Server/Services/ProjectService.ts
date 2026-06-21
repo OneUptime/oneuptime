@@ -104,6 +104,14 @@ export class ProjectService extends DatabaseService<Model> {
   private requireSsoForLoginCache: InMemoryTTLCache<boolean> =
     new InMemoryTTLCache(10_000);
   /*
+   * Caches the `requireSsoWithSsoProviderId` discriminator per project so the
+   * enforce-SSO middleware can require that the SSO token was issued by a
+   * specific provider. Stored as a string id (or null when unset). Populated
+   * alongside `getRequireSsoForLogin` so the common path stays a single query.
+   */
+  private requireSsoWithSsoProviderIdCache: InMemoryTTLCache<string | null> =
+    new InMemoryTTLCache(10_000);
+  /*
    * Caches the current billing plan per project. `getCurrentPlan` is hit
    * by `CommonAPI.getDatabaseCommonInteractionProps` on every
    * authenticated request when billing is enabled — without caching,
@@ -349,6 +357,10 @@ export class ProjectService extends DatabaseService<Model> {
      */
     if (updateBy.data.requireSsoForLogin !== undefined) {
       this.requireSsoForLoginCache.clear();
+    }
+
+    if (updateBy.data.requireSsoWithSsoProviderId !== undefined) {
+      this.requireSsoWithSsoProviderIdCache.clear();
     }
 
     if (IsBillingEnabled) {
@@ -1338,7 +1350,7 @@ export class ProjectService extends DatabaseService<Model> {
 
     const project: Model | null = await this.findOneById({
       id: projectId,
-      select: { requireSsoForLogin: true },
+      select: { requireSsoForLogin: true, requireSsoWithSsoProviderId: true },
       props: { isRoot: true },
     });
 
@@ -1349,7 +1361,38 @@ export class ProjectService extends DatabaseService<Model> {
 
     const value: boolean = Boolean(project.requireSsoForLogin);
     this.requireSsoForLoginCache.set(key, value, 60_000);
+    this.requireSsoWithSsoProviderIdCache.set(
+      key,
+      project.requireSsoWithSsoProviderId
+        ? project.requireSsoWithSsoProviderId.toString()
+        : null,
+      60_000,
+    );
     return value;
+  }
+
+  /**
+   * Returns the specific SSO provider id a project requires for SSO-enforced
+   * login, or null when any trusted provider is acceptable. Cached for 60s and
+   * populated by `getRequireSsoForLogin`, so the enforce path stays one query.
+   */
+  @CaptureSpan()
+  public async getRequireSsoWithSsoProviderId(
+    projectId: ObjectID,
+  ): Promise<ObjectID | null> {
+    const key: string = projectId.toString();
+    const cached: string | null | undefined =
+      this.requireSsoWithSsoProviderIdCache.get(key);
+    if (cached !== undefined) {
+      return cached ? new ObjectID(cached) : null;
+    }
+
+    // Populate both caches via the existing single-query path.
+    await this.getRequireSsoForLogin(projectId);
+
+    const populated: string | null | undefined =
+      this.requireSsoWithSsoProviderIdCache.get(key);
+    return populated ? new ObjectID(populated) : null;
   }
 
   @CaptureSpan()

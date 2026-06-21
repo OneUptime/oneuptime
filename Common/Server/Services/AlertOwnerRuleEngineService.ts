@@ -14,6 +14,9 @@ import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorOwnerTeam from "../../Models/DatabaseModels/MonitorOwnerTeam";
 import MonitorOwnerUser from "../../Models/DatabaseModels/MonitorOwnerUser";
+import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
+import PodmanHostOwnerTeam from "../../Models/DatabaseModels/PodmanHostOwnerTeam";
+import PodmanHostOwnerUser from "../../Models/DatabaseModels/PodmanHostOwnerUser";
 import Service from "../../Models/DatabaseModels/Service";
 import ServiceOwnerTeam from "../../Models/DatabaseModels/ServiceOwnerTeam";
 import ServiceOwnerUser from "../../Models/DatabaseModels/ServiceOwnerUser";
@@ -31,6 +34,8 @@ import KubernetesClusterOwnerUserService from "./KubernetesClusterOwnerUserServi
 import MonitorOwnerTeamService from "./MonitorOwnerTeamService";
 import MonitorOwnerUserService from "./MonitorOwnerUserService";
 import MonitorService from "./MonitorService";
+import PodmanHostOwnerTeamService from "./PodmanHostOwnerTeamService";
+import PodmanHostOwnerUserService from "./PodmanHostOwnerUserService";
 import ServiceOwnerTeamService from "./ServiceOwnerTeamService";
 import ServiceOwnerUserService from "./ServiceOwnerUserService";
 import TeamService from "./TeamService";
@@ -79,6 +84,7 @@ class AlertOwnerRuleEngineServiceClass {
           inheritOwnersFromHosts: true,
           inheritOwnersFromKubernetesClusters: true,
           inheritOwnersFromDockerHosts: true,
+          inheritOwnersFromPodmanHosts: true,
           inheritOwnersFromServices: true,
         },
         limit: 100,
@@ -105,6 +111,7 @@ class AlertOwnerRuleEngineServiceClass {
       let inheritFromHosts: boolean = false;
       let inheritFromKubernetesClusters: boolean = false;
       let inheritFromDockerHosts: boolean = false;
+      let inheritFromPodmanHosts: boolean = false;
       let inheritFromServices: boolean = false;
       const inheritNotifyMode: { value: boolean | null } = { value: null };
 
@@ -153,6 +160,12 @@ class AlertOwnerRuleEngineServiceClass {
           inheritNotifyMode.value =
             inheritNotifyMode.value === true ? true : notify;
         }
+        if (rule.inheritOwnersFromPodmanHosts) {
+          inheritFromPodmanHosts = true;
+          ruleAddedAny = true;
+          inheritNotifyMode.value =
+            inheritNotifyMode.value === true ? true : notify;
+        }
         if (rule.inheritOwnersFromServices) {
           inheritFromServices = true;
           ruleAddedAny = true;
@@ -172,6 +185,8 @@ class AlertOwnerRuleEngineServiceClass {
       const inheritedFromKubernetesClusterTeamIds: Set<string> = new Set();
       const inheritedFromDockerHostUserIds: Set<string> = new Set();
       const inheritedFromDockerHostTeamIds: Set<string> = new Set();
+      const inheritedFromPodmanHostUserIds: Set<string> = new Set();
+      const inheritedFromPodmanHostTeamIds: Set<string> = new Set();
       const inheritedFromServiceUserIds: Set<string> = new Set();
       const inheritedFromServiceTeamIds: Set<string> = new Set();
 
@@ -334,6 +349,47 @@ class AlertOwnerRuleEngineServiceClass {
         }
       }
 
+      if (inheritFromPodmanHosts && alert.podmanHosts?.length) {
+        const podmanHostIds: Array<ObjectID> = alert.podmanHosts
+          .map((p: PodmanHost) => {
+            return p.id;
+          })
+          .filter((id: ObjectID | null | undefined): id is ObjectID => {
+            return Boolean(id);
+          });
+        if (podmanHostIds.length > 0) {
+          const [podmanHostOwnerUsers, podmanHostOwnerTeams]: [
+            Array<PodmanHostOwnerUser>,
+            Array<PodmanHostOwnerTeam>,
+          ] = await Promise.all([
+            PodmanHostOwnerUserService.findBy({
+              query: { podmanHostId: QueryHelper.any(podmanHostIds) },
+              select: { userId: true },
+              props: { isRoot: true },
+              limit: LIMIT_MAX,
+              skip: 0,
+            }),
+            PodmanHostOwnerTeamService.findBy({
+              query: { podmanHostId: QueryHelper.any(podmanHostIds) },
+              select: { teamId: true },
+              props: { isRoot: true },
+              limit: LIMIT_MAX,
+              skip: 0,
+            }),
+          ]);
+          for (const ownerUser of podmanHostOwnerUsers) {
+            if (ownerUser.userId) {
+              inheritedFromPodmanHostUserIds.add(ownerUser.userId.toString());
+            }
+          }
+          for (const ownerTeam of podmanHostOwnerTeams) {
+            if (ownerTeam.teamId) {
+              inheritedFromPodmanHostTeamIds.add(ownerTeam.teamId.toString());
+            }
+          }
+        }
+      }
+
       if (inheritFromServices && alert.services?.length) {
         const serviceIds: Array<ObjectID> = alert.services
           .map((s: Service) => {
@@ -380,6 +436,7 @@ class AlertOwnerRuleEngineServiceClass {
         ...inheritedFromHostUserIds,
         ...inheritedFromKubernetesClusterUserIds,
         ...inheritedFromDockerHostUserIds,
+        ...inheritedFromPodmanHostUserIds,
         ...inheritedFromServiceUserIds,
       ]);
       const inheritedTeamIds: Set<string> = new Set([
@@ -387,6 +444,7 @@ class AlertOwnerRuleEngineServiceClass {
         ...inheritedFromHostTeamIds,
         ...inheritedFromKubernetesClusterTeamIds,
         ...inheritedFromDockerHostTeamIds,
+        ...inheritedFromPodmanHostTeamIds,
         ...inheritedFromServiceTeamIds,
       ]);
 
@@ -458,6 +516,10 @@ class AlertOwnerRuleEngineServiceClass {
           inheritedFromDockerHostUserIds.size +
             inheritedFromDockerHostTeamIds.size >
           0,
+        inheritedFromPodmanHosts:
+          inheritedFromPodmanHostUserIds.size +
+            inheritedFromPodmanHostTeamIds.size >
+          0,
         inheritedFromServices:
           inheritedFromServiceUserIds.size + inheritedFromServiceTeamIds.size >
           0,
@@ -480,6 +542,7 @@ class AlertOwnerRuleEngineServiceClass {
     inheritedFromHosts: boolean;
     inheritedFromKubernetesClusters: boolean;
     inheritedFromDockerHosts: boolean;
+    inheritedFromPodmanHosts: boolean;
     inheritedFromServices: boolean;
   }): Promise<void> {
     const {
@@ -491,6 +554,7 @@ class AlertOwnerRuleEngineServiceClass {
       inheritedFromHosts,
       inheritedFromKubernetesClusters,
       inheritedFromDockerHosts,
+      inheritedFromPodmanHosts,
       inheritedFromServices,
     } = data;
     if (
@@ -574,6 +638,9 @@ class AlertOwnerRuleEngineServiceClass {
       }
       if (inheritedFromDockerHosts) {
         inheritedSources.push("Docker hosts");
+      }
+      if (inheritedFromPodmanHosts) {
+        inheritedSources.push("Podman hosts");
       }
       if (inheritedFromServices) {
         inheritedSources.push("services");

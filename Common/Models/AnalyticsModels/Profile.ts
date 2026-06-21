@@ -809,7 +809,8 @@ export default class Profile extends AnalyticsBaseModel {
       sortKeys: ["projectId", "startTime", "primaryEntityId", "profileType"],
       primaryKeys: ["projectId", "startTime", "primaryEntityId", "profileType"],
       partitionKey: "toYYYYMMDD(startTime)",
-      tableSettings: "ttl_only_drop_parts = 1",
+      tableSettings:
+        "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
       ttlExpression: "retentionDate DELETE",
       defaultSortColumn: "startTime",
     });

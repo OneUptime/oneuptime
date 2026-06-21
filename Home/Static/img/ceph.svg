@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generic hexagon storage-cluster glyph. Not the official Ceph logo — Ceph is a trademark of the Ceph Foundation. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="1.5">
+  <polygon stroke-linecap="round" stroke-linejoin="round" points="7.6,3.6 11.24,5.7 11.24,9.9 7.6,12 3.96,9.9 3.96,5.7"/>
+  <polygon stroke-linecap="round" stroke-linejoin="round" points="16.4,3.6 20.04,5.7 20.04,9.9 16.4,12 12.76,9.9 12.76,5.7"/>
+  <polygon stroke-linecap="round" stroke-linejoin="round" points="12,12 15.64,14.1 15.64,18.3 12,20.4 8.36,18.3 8.36,14.1"/>
+  <circle cx="7.6" cy="7.8" r="0.8" fill="#dc2626"/>
+  <circle cx="16.4" cy="7.8" r="0.8" fill="#dc2626"/>
+  <circle cx="12" cy="16.2" r="0.8" fill="#dc2626"/>
+</svg>

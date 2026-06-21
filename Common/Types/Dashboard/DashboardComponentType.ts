@@ -6,6 +6,7 @@ enum DashboardComponentType {
   Gauge = `Gauge`,
   LogStream = `LogStream`,
   TraceList = `TraceList`,
+  TraceChart = `TraceChart`,
   IncidentList = `IncidentList`,
   AlertList = `AlertList`,
   MonitorList = `MonitorList`,
@@ -22,7 +23,18 @@ enum DashboardComponentType {
   DockerImageList = `DockerImageList`,
   DockerNetworkList = `DockerNetworkList`,
   DockerVolumeList = `DockerVolumeList`,
+  PodmanHostList = `PodmanHostList`,
+  PodmanContainerList = `PodmanContainerList`,
+  PodmanImageList = `PodmanImageList`,
+  PodmanNetworkList = `PodmanNetworkList`,
+  PodmanVolumeList = `PodmanVolumeList`,
   HostList = `HostList`,
+  ProxmoxNodeList = `ProxmoxNodeList`,
+  ProxmoxGuestList = `ProxmoxGuestList`,
+  DockerSwarmNodeList = `DockerSwarmNodeList`,
+  DockerSwarmServiceList = `DockerSwarmServiceList`,
+  CephOsdList = `CephOsdList`,
+  CephPoolList = `CephPoolList`,
 }
 
 export default DashboardComponentType;

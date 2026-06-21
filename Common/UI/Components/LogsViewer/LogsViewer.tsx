@@ -23,6 +23,7 @@ import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Service from "../../../Models/DatabaseModels/Service";
 import Host from "../../../Models/DatabaseModels/Host";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
+import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -228,6 +229,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   const [dockerHostMap, setDockerHostMap] = useState<Dictionary<DockerHost>>(
     {},
   );
+  const [podmanHostMap, setPodmanHostMap] = useState<Dictionary<PodmanHost>>(
+    {},
+  );
   const [kubernetesClusterMap, setKubernetesClusterMap] = useState<
     Dictionary<KubernetesCluster>
   >({});
@@ -394,10 +398,17 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         setIsPageLoading(true);
         setPageError("");
 
-        const [telemetryServices, hosts, dockerHosts, kubernetesClusters]: [
+        const [
+          telemetryServices,
+          hosts,
+          dockerHosts,
+          podmanHosts,
+          kubernetesClusters,
+        ]: [
           ListResult<Service>,
           ListResult<Host>,
           ListResult<DockerHost>,
+          ListResult<PodmanHost>,
           ListResult<KubernetesCluster>,
         ] = await Promise.all([
           ModelAPI.getList({
@@ -428,6 +439,19 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
           }),
           ModelAPI.getList({
             modelType: DockerHost,
+            query: {},
+            select: {
+              name: true,
+              hostIdentifier: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: {
+              name: SortOrder.Ascending,
+            },
+          }),
+          ModelAPI.getList({
+            modelType: PodmanHost,
             query: {},
             select: {
               name: true,
@@ -492,6 +516,14 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
           dockerHostsById[dockerHost.id.toString()] = dockerHost;
         });
 
+        const podmanHostsById: Dictionary<PodmanHost> = {};
+        podmanHosts.data.forEach((podmanHost: PodmanHost) => {
+          if (!podmanHost.id) {
+            return;
+          }
+          podmanHostsById[podmanHost.id.toString()] = podmanHost;
+        });
+
         const clustersById: Dictionary<KubernetesCluster> = {};
         kubernetesClusters.data.forEach((cluster: KubernetesCluster) => {
           if (!cluster.id) {
@@ -503,6 +535,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         setServiceMap(services);
         setHostMap(hostsById);
         setDockerHostMap(dockerHostsById);
+        setPodmanHostMap(podmanHostsById);
         setKubernetesClusterMap(clustersById);
       } catch (err) {
         setPageError(
@@ -846,6 +879,14 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
             dockerHost?.name || dockerHost?.hostIdentifier || filter.value,
         };
       }
+      if (filter.facetKey === "podmanHostId" && podmanHostMap[filter.value]) {
+        const podmanHost: PodmanHost | undefined = podmanHostMap[filter.value];
+        return {
+          ...filter,
+          displayValue:
+            podmanHost?.name || podmanHost?.hostIdentifier || filter.value,
+        };
+      }
       if (
         filter.facetKey === "kubernetesClusterId" &&
         kubernetesClusterMap[filter.value]
@@ -866,6 +907,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     serviceMap,
     hostMap,
     dockerHostMap,
+    podmanHostMap,
     kubernetesClusterMap,
   ]);
 
@@ -1084,6 +1126,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               serviceMap={serviceMap}
               hostMap={hostMap}
               dockerHostMap={dockerHostMap}
+              podmanHostMap={podmanHostMap}
               kubernetesClusterMap={kubernetesClusterMap}
               onIncludeFilter={props.onFacetInclude || (() => {})}
               onExcludeFilter={props.onFacetExclude || (() => {})}

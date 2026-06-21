@@ -236,6 +236,40 @@ const DockerRoutes: React.LazyExoticComponent<AllRoutesModule["DockerRoutes"]> =
       };
     });
   });
+const PodmanRoutes: React.LazyExoticComponent<AllRoutesModule["PodmanRoutes"]> =
+  lazy(() => {
+    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+      return {
+        default: m.PodmanRoutes,
+      };
+    });
+  });
+const ProxmoxRoutes: React.LazyExoticComponent<
+  AllRoutesModule["ProxmoxRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+    return {
+      default: m.ProxmoxRoutes,
+    };
+  });
+});
+const DockerSwarmRoutes: React.LazyExoticComponent<
+  AllRoutesModule["DockerSwarmRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+    return {
+      default: m.DockerSwarmRoutes,
+    };
+  });
+});
+const CephRoutes: React.LazyExoticComponent<AllRoutesModule["CephRoutes"]> =
+  lazy(() => {
+    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+      return {
+        default: m.CephRoutes,
+      };
+    });
+  });
 const HostRoutes: React.LazyExoticComponent<AllRoutesModule["HostRoutes"]> =
   lazy(() => {
     return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
@@ -656,6 +690,30 @@ const App: () => JSX.Element = () => {
           <PageRoute
             path={RouteMap[PageMap.DOCKER_ROOT]?.toString() || ""}
             element={<DockerRoutes {...commonPageProps} />}
+          />
+
+          {/* Podman */}
+          <PageRoute
+            path={RouteMap[PageMap.PODMAN_ROOT]?.toString() || ""}
+            element={<PodmanRoutes {...commonPageProps} />}
+          />
+
+          {/* Proxmox */}
+          <PageRoute
+            path={RouteMap[PageMap.PROXMOX_ROOT]?.toString() || ""}
+            element={<ProxmoxRoutes {...commonPageProps} />}
+          />
+
+          {/* Docker Swarm */}
+          <PageRoute
+            path={RouteMap[PageMap.DOCKER_SWARM_ROOT]?.toString() || ""}
+            element={<DockerSwarmRoutes {...commonPageProps} />}
+          />
+
+          {/* Ceph */}
+          <PageRoute
+            path={RouteMap[PageMap.CEPH_ROOT]?.toString() || ""}
+            element={<CephRoutes {...commonPageProps} />}
           />
 
           {/* Hosts */}

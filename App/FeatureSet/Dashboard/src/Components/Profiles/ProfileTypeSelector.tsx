@@ -16,9 +16,11 @@ interface Pill {
   label: string;
   description: string;
   /*
-   * The profileType value sent to the backend. `undefined` means "any".
-   * For Memory we pick `inuse_space` as the canonical representative;
-   * the backend can aggregate across all memory subtypes at a later date.
+   * The selection carried by the pill. `undefined` means "any". Pills
+   * carry the *category* token ("cpu", "memory", "locks") so the query
+   * layer (ProfileUtil.getQueryProfileTypes) expands it to every raw
+   * type in that category — carrying one raw type here would silently
+   * widen a specific-type selection back to its whole category.
    */
   value: string | undefined;
   category: ProfileCategory | "all";
@@ -47,14 +49,14 @@ const PRIMARY_PILLS: Array<Pill> = [
   {
     label: "Memory",
     description: "What's holding or allocating memory",
-    value: "inuse_space",
+    value: "memory",
     category: "memory",
     icon: "◧",
   },
   {
     label: "Locks",
     description: "Where code is waiting on locks",
-    value: "mutex",
+    value: "locks",
     category: "locks",
     icon: "⏸",
   },
@@ -80,6 +82,20 @@ const ProfileTypeSelector: FunctionComponent<ProfileTypeSelectorProps> = (
   const selectedCategory: ProfileCategory | "all" = props.selectedProfileType
     ? ProfileUtil.getProfileCategory(props.selectedProfileType)
     : "all";
+
+  /*
+   * The dropdown only ever displays a *specific* raw type. When the
+   * selection is a category token (from a pill) it has no matching
+   * option, so the dropdown falls back to its placeholder instead of
+   * silently rendering a value the user never picked.
+   */
+  const advancedValue: string =
+    props.selectedProfileType &&
+    ADVANCED_OPTIONS.some((option: { label: string; value: string }) => {
+      return option.value === props.selectedProfileType;
+    })
+      ? props.selectedProfileType
+      : "";
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -113,7 +129,7 @@ const ProfileTypeSelector: FunctionComponent<ProfileTypeSelectorProps> = (
       {props.showAdvanced !== false && (
         <select
           className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          value={props.selectedProfileType || ""}
+          value={advancedValue}
           onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
             const value: string = e.target.value;
             props.onChange(value === "" ? undefined : value);

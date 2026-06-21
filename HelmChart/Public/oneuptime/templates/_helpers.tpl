@@ -29,6 +29,70 @@ Usage:
   {{- printf "%s/%s/%s:%s" $values.image.registry $values.image.repository $imageName (include "oneuptime.image.tag" (dict "Values" $values)) -}}
 {{- end -}}
 
+{{/*
+Resolve the REAL Postgres backend (built-in StatefulSet, CloudNativePG, or
+externalPostgres) — never the pgbouncer pooler. These are what pgbouncer points
+its upstream at, and what the app points at directly when pgbouncer is disabled.
+*/}}
+{{- define "oneuptime.postgres.backendHost" -}}
+{{- if .Values.postgresOperator.cnpg.enabled -}}
+{{ .Release.Name }}-postgresql-cnpg-rw.{{ .Release.Namespace }}.svc.{{ .Values.global.clusterDomain }}
+{{- else if .Values.postgresql.enabled -}}
+{{ .Release.Name }}-postgresql.{{ .Release.Namespace }}.svc.{{ .Values.global.clusterDomain }}
+{{- else -}}
+{{ .Values.externalPostgres.host }}
+{{- end -}}
+{{- end -}}
+
+{{- define "oneuptime.postgres.backendPort" -}}
+{{- if .Values.postgresOperator.cnpg.enabled -}}
+5432
+{{- else if .Values.postgresql.enabled -}}
+{{ .Values.postgresql.primary.service.ports.postgresql }}
+{{- else -}}
+{{ .Values.externalPostgres.port }}
+{{- end -}}
+{{- end -}}
+
+{{- define "oneuptime.postgres.backendUser" -}}
+{{- if or .Values.postgresOperator.cnpg.enabled .Values.postgresql.enabled -}}
+postgres
+{{- else -}}
+{{ .Values.externalPostgres.username }}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Emit the backend Postgres password as a PGB_DB_PASSWORD env entry, sourced from
+the same secret the app uses (auto-generated for the StatefulSet/CNPG, or the
+externalPostgres password / existingSecret). Used by the pgbouncer pod to build
+its userlist at startup.
+*/}}
+{{- define "oneuptime.postgres.backendPasswordEnv" -}}
+- name: PGB_DB_PASSWORD
+  {{- if .Values.postgresOperator.cnpg.enabled }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ printf "%s-postgresql-cnpg-superuser" .Release.Name }}
+      key: password
+  {{- else if .Values.postgresql.enabled }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ printf "%s-postgresql" .Release.Name }}
+      key: postgres-password
+  {{- else if .Values.externalPostgres.existingSecret.name }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.externalPostgres.existingSecret.name }}
+      key: {{ .Values.externalPostgres.existingSecret.passwordKey }}
+  {{- else }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ printf "%s-external-postgres" .Release.Name }}
+      key: password
+  {{- end }}
+{{- end -}}
+
 {{- define "oneuptime.env.common" }}
 {{- $isEnterpriseEdition := eq (default "community-edition" $.Values.image.type) "enterprise-edition" }}
 {{- $provisionSSL := false -}}
@@ -453,7 +517,9 @@ Usage:
 {{- $cnpg := $.Values.postgresOperator.cnpg }}
 
 - name: DATABASE_HOST
-  {{- if $cnpg.enabled }}
+  {{- if $.Values.pgbouncer.enabled }}
+  value: {{ $.Release.Name }}-pgbouncer.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+  {{- else if $cnpg.enabled }}
   value: {{ $.Release.Name }}-postgresql-cnpg-rw.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
   {{- else if $.Values.postgresql.enabled }}
   value: {{ $.Release.Name }}-postgresql.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
@@ -461,7 +527,9 @@ Usage:
   value: {{ $.Values.externalPostgres.host }}
   {{- end }}
 - name: DATABASE_PORT
-  {{- if $cnpg.enabled }}
+  {{- if $.Values.pgbouncer.enabled }}
+  value: {{ $.Values.pgbouncer.service.port | quote }}
+  {{- else if $cnpg.enabled }}
   value: '5432'
   {{- else if $.Values.postgresql.enabled }}
   value: {{ printf "%s" $.Values.postgresql.primary.service.ports.postgresql | squote }}
@@ -507,11 +575,21 @@ Usage:
   {{- else }}
   value: {{ $.Values.externalPostgres.database }}
   {{- end }}
+{{- if .DatabaseMaxOpenConnections }}
+# Per-pod node-postgres pool ceiling. Resolved per service at the call site
+# (service override | deployment.databaseMaxOpenConnections | unset). Unset
+# falls back to the app's built-in default (50). Lower this to make a
+# connection-pooled / capped backend (e.g. pgbouncer in session mode, or a
+# managed DB) effective — see HelmChart/Docs/Postgres.md.
+- name: DATABASE_MAX_OPEN_CONNECTIONS
+  value: {{ .DatabaseMaxOpenConnections | quote }}
+{{- end }}
 
 
 ## DATABASE SSL BLOCK
-{{- if or $cnpg.enabled $.Values.postgresql.enabled }}
-# do nothing here.
+{{- if or $cnpg.enabled $.Values.postgresql.enabled $.Values.pgbouncer.enabled }}
+# do nothing here. (With pgbouncer in front, the app -> pgbouncer hop is
+# in-cluster plaintext; pgbouncer originates TLS to the backend instead.)
 {{- else }}
 {{- if $.Values.externalPostgres.ssl.enabled }}
 

@@ -162,6 +162,7 @@ const Settings: FunctionComponent<ComponentProps> = (
               const typeLabels: Record<string, string> = {
                 [ServiceType.Host]: "Host telemetry",
                 [ServiceType.DockerHost]: "Docker host telemetry",
+                [ServiceType.PodmanHost]: "Podman host telemetry",
                 [ServiceType.KubernetesCluster]: "Kubernetes telemetry",
               };
               const label: string | undefined = primaryEntityType

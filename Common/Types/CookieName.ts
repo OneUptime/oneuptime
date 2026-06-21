@@ -3,6 +3,7 @@ enum CookieName {
   Email = "user-email",
   Token = "user-token",
   RefreshToken = "user-refresh-token",
+  GlobalSSOToken = "global-sso-token",
   Name = "user-name",
   Timezone = "user-timezone",
   IsMasterAdmin = "user-is-master-admin",
