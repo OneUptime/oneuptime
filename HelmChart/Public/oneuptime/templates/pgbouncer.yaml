@@ -49,9 +49,12 @@ data:
     max_db_connections = {{ .Values.pgbouncer.maxDbConnections | int }}
     {{- end }}
     server_idle_timeout = {{ .Values.pgbouncer.serverIdleTimeoutSeconds | int }}
-    # The app sets `options=-c idle_session_timeout=...` and application_name as
-    # libpq startup parameters; accept and ignore the ones pgbouncer doesn't
-    # track so the connection is not rejected.
+    # node-postgres sends statement_timeout / idle_in_transaction_session_timeout
+    # (and idle_session_timeout via `options`) as startup parameters. pgbouncer
+    # rejects any startup parameter it does not track with a FATAL error and
+    # closes the connection, so every one the app sends MUST be listed here.
+    # These are accepted-and-ignored (not forwarded to the backend) — see the
+    # ignoreStartupParameters note in values.yaml.
     ignore_startup_parameters = {{ .Values.pgbouncer.ignoreStartupParameters }}
     {{- if $externalSsl }}
     # TLS from pgbouncer to the managed/external backend.
