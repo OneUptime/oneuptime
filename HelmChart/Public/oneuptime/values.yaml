@@ -456,6 +456,32 @@ clickhouseOperator:
       nodes: []
 
 # =============================================================================
+# Database migrations (opt-in dedicated Job).
+#
+# By default (enabled: false) every app/worker/nginx pod runs schema + data
+# migrations on boot, serialized across replicas by a Postgres session-level
+# advisory lock. That lock breaks under pgbouncer TRANSACTION-mode pooling.
+#
+# Set enabled: true to instead run migrations ONCE in a dedicated pre-upgrade /
+# post-install Job (App/Migrate.ts), connecting directly to the backend. Runtime
+# pods are then gated off (RUN_DATABASE_MIGRATIONS_ON_BOOT=false), so the
+# advisory lock never runs on a pooled connection — which is the prerequisite
+# for safely setting pgbouncer.poolMode=transaction. See HelmChart/Docs/Postgres.md.
+#
+# Trade-off: deploys then gate on the migration Job (cleaner, atomic, no race),
+# and on a FRESH install the app pods may briefly fail readiness until the Job
+# has created the schema. The advisory lock stays in the code (it still protects
+# the boot path used by docker-compose and enabled: false installs).
+migrate:
+  enabled: false
+  # Job retries (handles the DB not being ready yet on a fresh install).
+  backoffLimit: 6
+  # Optional hard timeout for the whole migration run (seconds). Empty = none.
+  activeDeadlineSeconds:
+  resources: {}
+  nodeSelector: {}
+
+# =============================================================================
 # PgBouncer connection pooler (opt-in). Orthogonal to the Postgres backend:
 # when enabled it fronts WHICHEVER of the three is active — the built-in
 # postgresql StatefulSet, the postgresOperator CNPG cluster, or externalPostgres
@@ -467,9 +493,10 @@ clickhouseOperator:
 #
 # Pool mode is SESSION by default: safe for everything OneUptime does, INCLUDING
 # the boot-time schema migrations and the session-level advisory lock used by
-# the data-migration runner. Transaction mode reduces connections further but
-# breaks that advisory lock unless the migration path is moved off the pooler —
-# see HelmChart/Docs/Postgres.md before changing poolMode.
+# the data-migration runner. Transaction mode reduces connections much further;
+# it is SAFE once you set migrate.enabled=true above (migrations then run in a
+# dedicated Job, not on the pooled runtime pods). Setting poolMode=transaction
+# WITHOUT migrate.enabled is rejected at render time — see HelmChart/Docs/Postgres.md.
 pgbouncer:
   enabled: false
   image:
@@ -477,9 +504,10 @@ pgbouncer:
     tag: latest
     pullPolicy: IfNotPresent
   replicaCount: 1
-  # session | transaction | statement. Keep "session" unless you have moved the
-  # migration path off the pooler (see docs). transaction/statement break the
-  # data-migration advisory lock and the boot-time migration session state.
+  # session | transaction | statement. "transaction" gives the biggest connection
+  # reduction and is SAFE only with migrate.enabled=true (so migrations don't run
+  # on the pooled runtime pods). "statement" is unsupported (breaks multi-statement
+  # transactions). Leave "session" if migrate.enabled is false.
   poolMode: session
   # Max client (app-side) connections pgbouncer accepts. Set comfortably above
   # the sum of every app/worker/ingress pool (DATABASE_MAX_OPEN_CONNECTIONS,

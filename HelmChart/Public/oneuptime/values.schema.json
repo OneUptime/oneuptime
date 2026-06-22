@@ -740,6 +740,30 @@
             },
             "additionalProperties": false
         },
+        "migrate": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "backoffLimit": {
+                    "type": "integer"
+                },
+                "activeDeadlineSeconds": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "resources": {
+                    "type": "object"
+                },
+                "nodeSelector": {
+                    "type": "object"
+                }
+            },
+            "additionalProperties": false
+        },
         "pgbouncer": {
             "type": "object",
             "properties": {

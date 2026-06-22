@@ -17,6 +17,7 @@ import {
   PostgresQueryTimeoutMs,
   PostgresSlowQueryLogThresholdMs,
   PostgresStatementTimeoutMs,
+  RunDatabaseMigrationsOnBoot,
   ShouldDatabaseSslEnable,
 } from "../../../Server/EnvironmentConfig";
 import Migrations from "./SchemaMigrations/Index";
@@ -33,7 +34,9 @@ const dataSourceOptions: DataSourceOptions = {
   database: DatabaseName,
   migrationsTableName: "migrations",
   migrations: Migrations,
-  migrationsRun: true,
+  // Schema migrations run on connect unless disabled (e.g. runtime pods when a
+  // dedicated migrate Job owns migrations). See RunDatabaseMigrationsOnBoot.
+  migrationsRun: RunDatabaseMigrationsOnBoot,
   entities: Entities,
   applicationName: "oneuptime",
   ssl: ShouldDatabaseSslEnable

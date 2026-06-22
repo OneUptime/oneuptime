@@ -27,6 +27,7 @@
     "watch-frontend:public-dashboard": "bash ./scripts/frontend-run.sh FeatureSet/PublicDashboard dev-build --watch",
     "dev:api": "npx nodemon",
     "start": "export NODE_OPTIONS=\"--max-old-space-size=8096${NODE_OPTIONS:+ $NODE_OPTIONS}\" && node --no-node-snapshot --require ts-node/register Index.ts",
+    "migrate": "export NODE_OPTIONS=\"--max-old-space-size=8096${NODE_OPTIONS:+ $NODE_OPTIONS}\" && node --no-node-snapshot --require ts-node/register Migrate.ts",
     "compile": "tsc",
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
     "dev": "bash ./scripts/dev.sh",

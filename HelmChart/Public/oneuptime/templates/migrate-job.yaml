@@ -1,0 +1,80 @@
+{{- if and .Values.migrate.enabled (not .Values.deployment.disableDeployments) }}
+# =============================================================================
+# Database migration Job (opt-in: migrate.enabled).
+#
+# Runs schema + data migrations ONCE per release, in a single dedicated pod,
+# instead of on every app/worker/nginx replica on boot. The runtime pods are
+# then gated off (RUN_DATABASE_MIGRATIONS_ON_BOOT=false), so the data-migration
+# session advisory lock never runs on a pooled runtime connection — which is
+# what makes PgBouncer transaction-mode pooling safe.
+#
+# Helm hook: runs post-install (fresh installs, after the DB exists) and
+# pre-upgrade (before new pods roll, while the old release + DB are still up).
+# Connects DIRECTLY to the backend (DirectPostgres) so migrations never depend
+# on the pooler.
+# =============================================================================
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-migrate-{{ .Release.Revision }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-migrate
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: migrate
+    appname: oneuptime
+  annotations:
+    "helm.sh/hook": post-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  backoffLimit: {{ .Values.migrate.backoffLimit | default 6 }}
+  {{- if .Values.migrate.activeDeadlineSeconds }}
+  activeDeadlineSeconds: {{ .Values.migrate.activeDeadlineSeconds }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-migrate
+        app.kubernetes.io/part-of: oneuptime
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: migrate
+        appname: oneuptime
+    spec:
+      restartPolicy: Never
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      {{- with .Values.migrate.nodeSelector | default .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Release.Name }}-migrate
+          image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "app") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          workingDir: /usr/src/app
+          command: ["npm", "run", "migrate"]
+          {{- if .Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          {{- end }}
+          env:
+            {{- include "oneuptime.env.common" . | nindent 12 }}
+            {{- /* DirectPostgres bypasses pgbouncer so migrations talk straight to the backend. RUN_DATABASE_MIGRATIONS_ON_BOOT is intentionally NOT set here, so it defaults true and this Job runs migrations. */ -}}
+            {{- include "oneuptime.env.runtime" (dict "Values" $.Values "Release" $.Release "DirectPostgres" true "DatabaseMaxOpenConnections" $.Values.deployment.databaseMaxOpenConnections) | nindent 12 }}
+          {{- with .Values.migrate.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

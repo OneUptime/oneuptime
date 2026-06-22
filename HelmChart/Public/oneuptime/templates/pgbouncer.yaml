@@ -1,4 +1,7 @@
 {{- if .Values.pgbouncer.enabled }}
+{{- if and (eq .Values.pgbouncer.poolMode "transaction") (not .Values.migrate.enabled) }}
+{{- fail "pgbouncer.poolMode=transaction requires migrate.enabled=true: in transaction mode the data-migration session advisory lock breaks unless migrations run in the dedicated Job instead of on the runtime pods. Set migrate.enabled=true, or use poolMode=session." }}
+{{- end }}
 {{- $isExternal := and (not .Values.postgresql.enabled) (not .Values.postgresOperator.cnpg.enabled) }}
 {{- $externalSsl := and $isExternal .Values.externalPostgres.ssl.enabled }}
 # =============================================================================
@@ -97,7 +100,7 @@ spec:
         # Roll the pods when the rendered pgbouncer.ini (its inputs) changes.
         checksum/config: {{ printf "%s|%s|%s|%s" (toYaml .Values.pgbouncer) (include "oneuptime.postgres.backendHost" .) (include "oneuptime.postgres.backendPort" .) (include "oneuptime.postgres.backendUser" .) | sha256sum }}
     spec:
-      {{- with .Values.image.imagePullSecrets }}
+      {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}

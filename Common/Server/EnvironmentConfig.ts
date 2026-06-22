@@ -359,6 +359,18 @@ export const DisableTelemetryIngestion: boolean =
 export const DisableQueueWorkers: boolean =
   process.env["DISABLE_QUEUE_WORKERS"] === "true";
 
+/*
+ * When "false", this process does NOT run schema or data migrations on boot.
+ * Set on runtime pods (app/worker/nginx) when a dedicated one-shot migrate Job
+ * (App/Migrate.ts) owns migrations instead, so the fleet's many replicas never
+ * run them — which is what makes PgBouncer transaction-mode pooling safe (the
+ * data-migration session advisory lock then only ever runs in the single Job).
+ * Default true preserves the original self-migrating-on-boot behavior used by
+ * docker-compose and any deploy that does not run the migrate Job.
+ */
+export const RunDatabaseMigrationsOnBoot: boolean =
+  process.env["RUN_DATABASE_MIGRATIONS_ON_BOOT"] !== "false";
+
 export const ClickhouseHost: Hostname = Hostname.fromString(
   process.env["CLICKHOUSE_HOST"] || "clickhouse",
 );
