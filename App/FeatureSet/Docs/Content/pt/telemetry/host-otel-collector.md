@@ -68,15 +68,20 @@ Você criará `/etc/otelcol-contrib/config.yaml` no Passo 2 e um plist do `launc
 
 ### Windows
 
-Baixe o `otelcol-contrib_*_windows_amd64.zip` mais recente (ou `arm64`) da [página de releases](https://github.com/open-telemetry/opentelemetry-collector-releases/releases). A partir de um prompt **elevado** do PowerShell:
+No Windows, instale o **OneUptime Host Collector** — o coletor pré-compilado da OneUptime que inclui o receiver `windows_service` (que alimenta a aba **Services** do host e *não* está no build upstream do `otelcol-contrib`). A partir de um prompt **elevado** do PowerShell:
 
 ```powershell
-$dest = "C:\Program Files\otelcol-contrib"
+$dest = "C:\Program Files\OneUptimeHostCollector"
+$zip  = "$env:TEMP\oneuptime-host-collector.zip"
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
-Expand-Archive -Path "$env:USERPROFILE\Downloads\otelcol-contrib_*_windows_amd64.zip" -DestinationPath $dest
+# amd64; use the _arm64.zip asset on ARM
+Invoke-WebRequest -Uri "https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-host-collector_windows_amd64.zip" -OutFile $zip
+Expand-Archive -Path $zip -DestinationPath $dest -Force
 ```
 
-Você criará `C:\Program Files\otelcol-contrib\config.yaml` no Passo 2 e registrará um serviço do Windows no Passo 3.
+Você criará `C:\Program Files\OneUptimeHostCollector\config.yaml` no Passo 2 e registrará um serviço do Windows no Passo 3.
+
+> Prefere o `otelcol-contrib` upstream? Baixe o `otelcol-contrib_*_windows_amd64.zip` da [página de releases do OpenTelemetry](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) em vez disso — tudo abaixo funciona da mesma forma, **exceto** a aba **Services** do host, que precisa do `windows_service` (não está no build upstream; veja "Windows Services (métricas)").
 
 ## Passo 2 — Configurar o coletor
 
@@ -86,7 +91,7 @@ O arquivo de configuração fica em:
 |---|---|
 | Linux | `/etc/otelcol-contrib/config.yaml` |
 | macOS | `/etc/otelcol-contrib/config.yaml` |
-| Windows | `C:\Program Files\otelcol-contrib\config.yaml` |
+| Windows | `C:\Program Files\OneUptimeHostCollector\config.yaml` |
 
 Toda configuração segue o mesmo formato — escolha os receivers que você quer, adicione um processador `batch` e `resource`, e exporte para o OneUptime via OTLP HTTP. Os exemplos abaixo mostram uma configuração completa e pronta para copiar e colar por SO e, em seguida, percorrem cada bloco de receiver para que você possa combiná-los à vontade.
 

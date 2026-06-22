@@ -68,15 +68,20 @@ sudo mkdir -p /etc/otelcol-contrib
 
 ### Windows
 
-Загрузите последний `otelcol-contrib_*_windows_amd64.zip` (или `arm64`) со [страницы релизов](https://github.com/open-telemetry/opentelemetry-collector-releases/releases). Из **командной строки PowerShell с повышенными правами**:
+В Windows установите **OneUptime Host Collector** — готовый коллектор от OneUptime, который включает приёмник `windows_service` (он питает вкладку **Services** хоста и *отсутствует* в сборке `otelcol-contrib` из апстрима). Из **командной строки PowerShell с повышенными правами**:
 
 ```powershell
-$dest = "C:\Program Files\otelcol-contrib"
+$dest = "C:\Program Files\OneUptimeHostCollector"
+$zip  = "$env:TEMP\oneuptime-host-collector.zip"
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
-Expand-Archive -Path "$env:USERPROFILE\Downloads\otelcol-contrib_*_windows_amd64.zip" -DestinationPath $dest
+# amd64; use the _arm64.zip asset on ARM
+Invoke-WebRequest -Uri "https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-host-collector_windows_amd64.zip" -OutFile $zip
+Expand-Archive -Path $zip -DestinationPath $dest -Force
 ```
 
-Вы создадите `C:\Program Files\otelcol-contrib\config.yaml` на Шаге 2 и зарегистрируете службу Windows на Шаге 3.
+Вы создадите `C:\Program Files\OneUptimeHostCollector\config.yaml` на Шаге 2 и зарегистрируете службу Windows на Шаге 3.
+
+> Предпочитаете `otelcol-contrib` из апстрима? Вместо этого загрузите `otelcol-contrib_*_windows_amd64.zip` со [страницы релизов OpenTelemetry](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) — всё, что ниже, работает так же, **кроме** вкладки **Services** хоста, для которой нужен `windows_service` (отсутствует в сборке из апстрима; см. «Службы Windows (метрики)»).
 
 ## Шаг 2 — Настройте коллектор
 
