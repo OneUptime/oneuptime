@@ -149,7 +149,8 @@ export const ShouldDatabaseSslEnable: boolean = Boolean(
  * Postgres pool size per API/Worker node. TypeORM's default is 10 which
  * starves the API under any meaningful load — pick a number that, when
  * multiplied by the number of running Node processes, stays under the
- * Postgres server's `max_connections` (default 100 on a stock cluster).
+ * Postgres server's `max_connections` (100 on a stock PostgreSQL cluster; the
+ * OneUptime Helm chart ships 500, or front the DB with the chart's pgbouncer).
  */
 export const MaxPostgresConnections: number = parseInt(
   process.env["DATABASE_MAX_OPEN_CONNECTIONS"] || "50",
