@@ -2896,37 +2896,31 @@ const Icon: FunctionComponent<ComponentProps> = ({
     );
   } else if (icon === IconProp.DockerSwarm) {
     /*
-     * Docker Swarm glyph — a swarm of Docker (Moby Dock) whales swimming in
-     * formation, rendered as a filled brand mark to sit with the other resource
-     * logos (Podman / Proxmox / Ceph). Docker Swarm has no official standalone
-     * logo, so this builds on Docker's whale mascot but multiplies it: a single
-     * whale = Docker, a swarm of whales = Docker Swarm — clearly distinct from
-     * the single Docker whale.
+     * Docker Swarm glyph — a honeycomb cluster of three hexagonal nodes, an
+     * abstract "swarm of nodes" mark. Rendered as filled hexagons to sit with
+     * the other resource brand logos (Podman / Proxmox / Ceph) and stay clearly
+     * distinct from the single Docker whale. (Docker Swarm has no official
+     * standalone logo, so this is a themed cluster mark rather than a real one.)
      */
-    const swarmWhale: string =
-      "M1 4.6C1 2.4 3 1.4 5.6 1.4C7.8 1.4 9.4 2.1 10.4 3.2L12.6 1.4C13 1.1 13.6 1.3 13.4 1.9L11.6 4L13.4 6.1C13.6 6.7 13 6.9 12.5 6.6L10.4 5.2C9.2 6.4 7.6 7 5.6 7C3 7 1 6 1 4.6Z";
     return getSvgWrapper(
       <>
-        {/* Lead whale */}
-        <path
+        {/* Top node */}
+        <polygon
           fill="currentColor"
           stroke="none"
-          d={swarmWhale}
-          transform="translate(1.2 12.5) scale(1.1)"
+          points="12,3.2 15.55,5.25 15.55,9.35 12,11.4 8.45,9.35 8.45,5.25"
         />
-        {/* Follower whale — upper right */}
-        <path
+        {/* Bottom-left node */}
+        <polygon
           fill="currentColor"
           stroke="none"
-          d={swarmWhale}
-          transform="translate(8 1) scale(0.78)"
+          points="7.7,11 11.25,13.05 11.25,17.15 7.7,19.2 4.15,17.15 4.15,13.05"
         />
-        {/* Follower whale — mid left */}
-        <path
+        {/* Bottom-right node */}
+        <polygon
           fill="currentColor"
           stroke="none"
-          d={swarmWhale}
-          transform="translate(1 6.8) scale(0.6)"
+          points="16.3,11 19.85,13.05 19.85,17.15 16.3,19.2 12.75,17.15 12.75,13.05"
         />
       </>,
     );
