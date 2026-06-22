@@ -148,7 +148,12 @@ postgresql:
       listen_addresses = '*'
       port = 5432
       # Core tuning (adjust as needed)
-      max_connections = 100
+      # max_connections must exceed (DATABASE_MAX_OPEN_CONNECTIONS x number of
+      # Postgres-connecting pods) plus headroom for replication, superuser, and
+      # boot migrations. The app's default per-pod pool is 50, so 500 comfortably
+      # supports a small/medium fleet directly, or a pgbouncer defaultPoolSize of
+      # 400 in front. Raise it (and pod memory) for larger deployments.
+      max_connections = 500
       shared_buffers = 128MB
     # pg_hba.conf rules. These enable password auth (md5) from any host/IP.
     # Tighten these for production to your pod/service/network CIDRs.
@@ -195,8 +200,10 @@ postgresOperator:
       size: 25Gi
       storageClass: ""
     # Extra postgresql.conf parameters. CloudNativePG manages everything else.
+    # max_connections sized like the StatefulSet path above: 500 supports a
+    # small/medium fleet (default per-pod pool 50) directly or behind pgbouncer.
     parameters:
-      max_connections: "100"
+      max_connections: "500"
       shared_buffers: "128MB"
     resources: {}
     nodeSelector: {}
@@ -480,17 +487,20 @@ pgbouncer:
   maxClientConn: 10000
   # Server connections pgbouncer opens to the backend per (user,db). In session
   # mode this caps concurrent in-use sessions, so size it to your real
-  # concurrency and keep it under the backend's max_connections. To benefit on a
-  # connection-capped managed DB, also lower DATABASE_MAX_OPEN_CONNECTIONS so app
-  # pods release client connections back to the pooler.
-  defaultPoolSize: 50
+  # concurrency and keep it under the backend's max_connections. Default 400
+  # leaves ~100 of the stock max_connections=500 for replication, superuser, and
+  # boot migrations. Raise BOTH this and the backend max_connections together for
+  # a larger fleet; to benefit on a connection-capped managed DB, also lower
+  # DATABASE_MAX_OPEN_CONNECTIONS so app pods release client connections sooner.
+  defaultPoolSize: 400
   # Server connections kept warm even when idle (faster first query; useful for
   # remote managed DBs). 0 = open lazily.
   minPoolSize: 0
   # Hard ceiling on total server connections to the backend across all pools.
-  # 0 = unlimited (bounded only by defaultPoolSize per pool). Set this at or
-  # below the managed DB's max_connections to make the pooler a safe chokepoint.
-  maxDbConnections: 0
+  # Kept under the stock max_connections=500 so the pooler can never starve
+  # replication/superuser/migrations. 0 = unlimited (bounded only by
+  # defaultPoolSize per pool). Raise alongside the backend max_connections.
+  maxDbConnections: 450
   # Close server connections idle longer than this (seconds).
   serverIdleTimeoutSeconds: 600
   # Startup parameters the app sends that pgbouncer must accept (otherwise it

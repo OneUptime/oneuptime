@@ -66,7 +66,7 @@ To increase the max_connections, you need to run this sql command in psql.
 
 
 ```
-ALTER SYSTEM SET max_connections = 200;
+ALTER SYSTEM SET max_connections = 1000;
 ```
 
 Then you need to restart the postgres pod. 
@@ -271,7 +271,7 @@ Every OneUptime process that talks to Postgres (the `app`, the `worker`, and the
 `nginx`/ingress gateway) keeps its own node-postgres pool — up to
 `DATABASE_MAX_OPEN_CONNECTIONS` (default **50**) server connections per pod. With
 HPA/KEDA autoscaling, the fleet can open far more connections than Postgres's
-`max_connections` (the chart default is **100**). On a **managed/external**
+`max_connections` (the chart default is **500**). On a **managed/external**
 Postgres (RDS, Cloud SQL, Aurora, Neon, Azure) you usually cannot raise
 `max_connections` without paying for a bigger instance — so a pooler is the
 cleaner fix.

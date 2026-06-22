@@ -169,7 +169,7 @@ postgresql:
   resources: {}
   # Optional PostgreSQL configuration
   # configuration: |-
-  #   max_connections = 100
+  #   max_connections = 500
   #   shared_buffers = 128MB
   #   effective_cache_size = 4GB
 ```
