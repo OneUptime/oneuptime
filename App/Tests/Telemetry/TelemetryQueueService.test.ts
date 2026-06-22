@@ -48,7 +48,8 @@ jest.mock("../../FeatureSet/Telemetry/Utils/TelemetryBodyStore", () => {
         keyCounter++;
         return Promise.resolve(`telemetry:body:test-key-${keyCounter}`);
       }),
-      readAndDeleteBody: jest.fn(),
+      readBody: jest.fn(),
+      deleteBody: jest.fn(),
     },
   };
 });

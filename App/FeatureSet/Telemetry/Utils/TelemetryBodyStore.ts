@@ -21,9 +21,11 @@ import ObjectID from "Common/Types/ObjectID";
  * SET the raw `Buffer` against a UUID key directly via ioredis
  * (binary-safe — `client.set(key, Buffer)` keeps bytes as bytes,
  * no string coercion), put only the key into the job data, and
- * the worker reads + best-effort deletes via `getBuffer`. A
- * 1-hour TTL handles the edge case where the worker crashes
- * between read and delete or never picks up the job at all.
+ * the worker reads it via `getBuffer` (readBody, no delete) and
+ * reclaims it via `deleteBody` only AFTER the job succeeds — so a
+ * transient-failure retry can re-read the same body. A 1-hour TTL
+ * handles the edge cases where the job is dropped, exhausts its
+ * retries, or is never picked up at all.
  *
  * Net effect: the HTTP path does a single binary `SET` per
  * request instead of a CPU-bound encode plus a larger `SET`.
@@ -74,13 +76,21 @@ export default class TelemetryBodyStore {
   }
 
   /*
-   * Fetch the raw payload buffer for a given key and best-effort
-   * delete the key. Returns `null` if the key is gone (TTL expired
-   * or it was processed by another worker before us). The DEL is
-   * fire-and-forget — leaving an orphan for TTL_SECONDS is cheap;
-   * blocking ingest on a DEL ack is not.
+   * Fetch the raw payload buffer for a given key WITHOUT deleting it.
+   * Returns `null` if the key is gone (the TTL elapsed before the worker
+   * got to it, or it was never stored).
+   *
+   * The body is deliberately NOT deleted on read. A worker job can fail a
+   * transient downstream error (e.g. "ClickHouse ingest client is not
+   * connected" while a freshly-deployed pod warms up) AFTER the body has
+   * been read; if we deleted here, every BullMQ retry would then decode an
+   * empty payload and fail permanently with a misleading "Invalid
+   * resourceSpans format", masking the real first-attempt error. Leaving
+   * the body in place lets the retry re-read and succeed. The body is
+   * reclaimed by deleteBody() once the job succeeds, with the TTL as the
+   * backstop for jobs that are dropped or exhaust their retries.
    */
-  public static async readAndDeleteBody(key: string): Promise<Buffer | null> {
+  public static async readBody(key: string): Promise<Buffer | null> {
     const client: ClientType | null = Redis.getClient();
     if (!client || !Redis.isConnected()) {
       throw new Error("Redis not connected; cannot read telemetry body");
@@ -95,12 +105,25 @@ export default class TelemetryBodyStore {
       return null;
     }
 
-    // Best-effort delete; TTL is the safety net.
+    return buffer;
+  }
+
+  /*
+   * Best-effort reclaim of a consumed body. Called only after the worker
+   * job succeeds, so the blob does not linger for the full TTL. The DEL is
+   * fire-and-forget — leaving an orphan until TTL_SECONDS is cheap, and a
+   * delete must never block (or fail) an already-successful job. A missing
+   * key or a disconnected Redis is a no-op (the TTL reclaims it).
+   */
+  public static async deleteBody(key: string): Promise<void> {
+    const client: ClientType | null = Redis.getClient();
+    if (!client || !Redis.isConnected()) {
+      return;
+    }
+
     client.del(key).catch((err: Error) => {
       logger.warn(`TelemetryBodyStore: DEL failed for ${key}`);
       logger.warn(err);
     });
-
-    return buffer;
   }
 }

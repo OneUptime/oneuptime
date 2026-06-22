@@ -208,11 +208,19 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       const resourceSpans: JSONArray = req.body["resourceSpans"] as JSONArray;
 
       if (!resourceSpans || !Array.isArray(resourceSpans)) {
-        logger.error(
-          "Invalid resourceSpans format in request body",
-          getLogAttributesFromRequest(req as RequestLike),
+        /*
+         * Nothing to ingest. Reached when the out-of-band body was lost
+         * (TTL elapsed before the worker ran — decodeFromQueue returns {})
+         * or the payload genuinely carried no resourceSpans. Skip, do NOT
+         * throw: this runs in the worker after the 200 was already sent, so
+         * throwing only burns retries (the body won't reappear) and masks
+         * the real first-attempt error behind "Invalid resourceSpans format".
+         */
+        logger.warn(
+          "No resourceSpans to ingest (empty or lost body); skipping batch.",
         );
-        throw new BadRequestException("Invalid resourceSpans format");
+        logger.warn(getLogAttributesFromRequest(req as RequestLike));
+        return;
       }
 
       /*

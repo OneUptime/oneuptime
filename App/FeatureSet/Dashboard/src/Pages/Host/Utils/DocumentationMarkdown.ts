@@ -42,7 +42,7 @@ export const HOST_INSTALL_METHODS: Array<HostInstallMethodOption> = [
   {
     key: "windows",
     label: "Windows",
-    description: "MSI installer, registered as a Windows service.",
+    description: "OneUptime Host Collector, registered as a Windows service.",
   },
   {
     key: "kubernetes",
@@ -338,79 +338,42 @@ Logs: \`tail -F $(brew --prefix)/var/log/opentelemetry-collector.log\` (path var
 
     case "windows":
       return `
-## Step 2 — Install on Windows (MSI)
+## Step 2 — Install on Windows (OneUptime Host Collector)
+
+On Windows, install the **OneUptime Host Collector** — a prebuilt OpenTelemetry Collector that bundles the \`windows_service\` receiver (which powers the host **Services** tab and is *not* in the upstream \`otelcol-contrib\` build). It's a drop-in collector that runs the same \`config.yaml\` from Step 1.
 
 Run from an elevated PowerShell prompt:
 
 \`\`\`powershell
-# Resolve the latest released version from GitHub (or pin a specific one, e.g. $VERSION = "0.151.0")
-$VERSION = (Invoke-RestMethod "https://api.github.com/repos/open-telemetry/opentelemetry-collector-releases/releases/latest").tag_name.TrimStart('v')
-$msi = "$env:TEMP\\otelcol-contrib.msi"
+# Download the latest OneUptime Host Collector for Windows (amd64; use _arm64.zip on ARM)
+$dest = "C:\\Program Files\\OneUptimeHostCollector"
+$zip  = "$env:TEMP\\oneuptime-host-collector.zip"
+New-Item -ItemType Directory -Force -Path $dest | Out-Null
+Invoke-WebRequest -Uri "https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-host-collector_windows_amd64.zip" -OutFile $zip
+Expand-Archive -Path $zip -DestinationPath $dest -Force
 
-Invoke-WebRequest \`
-  -Uri "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$VERSION/otelcol-contrib_\${VERSION}_windows_x64.msi" \`
-  -OutFile $msi
+# Use the config.yaml you saved in Step 1
+Copy-Item config.yaml "$dest\\config.yaml" -Force
 
-Start-Process msiexec.exe -ArgumentList "/i", "$msi", "/quiet" -Wait
-
-# Drop your config into the install dir
-Copy-Item config.yaml "C:\\Program Files\\OpenTelemetry Collector Contrib\\config.yaml" -Force
-
-# (Re)start the service that the installer registered
-Restart-Service otelcol-contrib
-Get-Service otelcol-contrib
+# Register and start it as a Windows service (runs as LocalSystem)
+sc.exe create "OneUptimeHostCollector" binPath= "\\"$dest\\oneuptime-host-collector.exe\\" --config=\\"$dest\\config.yaml\\"" start= auto DisplayName= "OneUptime Host Collector"
+sc.exe start "OneUptimeHostCollector"
 \`\`\`
 
-Logs are written to the Windows Application event log under source \`otelcol-contrib\`. Tail with:
+Logs are written to the Windows Application event log; view them in **Event Viewer → Windows Logs → Application**.
 
-\`\`\`powershell
-Get-WinEvent -ProviderName otelcol-contrib -MaxEvents 50 | Format-Table -AutoSize -Wrap
-\`\`\`
+> **Note:** The service runs as \`LocalSystem\` so it can read every Windows service. On Windows the \`load\` scraper only emulates a load average from the *Processor Queue Length* counter (it starts at 0); if it can't read the counter it is logged and skipped, so the rest of the \`hostmetrics\` config runs unchanged. Prefer the upstream collector or building your own? See the [Host OpenTelemetry Collector docs](https://oneuptime.com/docs/telemetry/host-otel-collector).
 
-> **Note:** The MSI registers \`otelcol-contrib\` as a Windows service that starts automatically on boot. On Windows the \`load\` scraper only emulates a load average from the *Processor Queue Length* counter (it starts at 0); if it can't read the counter it is logged and skipped, so the rest of the \`hostmetrics\` config runs unchanged.
+## Step 3 — Enable the Windows Services tab
 
-## Step 3 — Collect Windows services (optional)
-
-The host's **Services** tab is powered by the \`windows_service\` receiver ([\`windowsservicereceiver\`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver)), which reports the running state and startup type of each Windows service.
-
-> **This receiver is not in the upstream prebuilt collector.** The MSI / \`otelcol-contrib\` release does **not** include \`windowsservicereceiver\`, so adding it to the config above fails at startup with \`'receivers' unknown type: "windows_service"\` (no version upgrade fixes this). The receiver is **alpha** and **Windows-only**. If you don't need per-service status, skip this step — everything else works with the standard collector.
-
-### Option A — Use the OneUptime Host Collector (recommended)
-
-OneUptime publishes a prebuilt collector that already includes \`windows_service\`. Download \`oneuptime-host-collector_windows_amd64.zip\` (or \`_arm64.zip\`, or the \`.msi\` installer) from the [OneUptime releases page](https://github.com/OneUptime/oneuptime/releases), set your ingestion token in the bundled \`config.yaml\`, and run it as a Windows service (the [Host OpenTelemetry Collector docs](https://oneuptime.com/docs/telemetry/host-otel-collector) have the exact \`sc.exe\` command). The bundled config already enables \`windows_service\`, so the **Services** tab populates automatically once metrics arrive.
-
-### Option B — Build your own with \`ocb\`
-
-Prefer to build your own collector? Create \`builder-config.yaml\` (keep every version on the same collector release):
-
-\`\`\`yaml
-dist:
-  name: otelcol-oneuptime
-  output_path: ./otelcol-oneuptime
-  otelcol_version: 0.154.0
-receivers:
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.154.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowsservicereceiver v0.154.0
-processors:
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor v0.154.0
-  - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.154.0
-exporters:
-  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.154.0
-\`\`\`
-
-\`\`\`powershell
-go install go.opentelemetry.io/collector/cmd/builder@v0.154.0
-builder --config builder-config.yaml
-\`\`\`
-
-Run the resulting \`otelcol-oneuptime.exe\` in place of the MSI service, with the receiver added to your \`config.yaml\` from Step 1:
+The OneUptime Host Collector from Step 2 already includes the \`windows_service\` receiver — turn it on by adding it to your \`config.yaml\` and the metrics pipeline, then restart the service:
 
 \`\`\`yaml
 receivers:
   windows_service:
     collection_interval: 30s
-    # Leave include_services unset to collect every service, or list
-    # specific ones to cut volume and avoid access-denied noise:
+    # Collect every service by default. To cut volume / avoid access-denied
+    # noise, list only the ones you care about:
     # include_services: [Spooler, W3SVC, MSSQLSERVER]
 
 service:
@@ -420,7 +383,11 @@ service:
       receivers: [hostmetrics, windows_service]
 \`\`\`
 
-This receiver runs **only on Windows** — don't add it to a Linux or macOS collector, or it will fail to start. Run the collector as \`LocalSystem\` so it can read every service; any service it can't open is skipped. Once these metrics arrive, the **Services** tab appears automatically on the host.
+\`\`\`powershell
+Restart-Service OneUptimeHostCollector
+\`\`\`
+
+The receiver is **Windows-only** and **alpha**. Once metrics arrive, the host **Services** tab populates automatically with each service's running state and startup type.
 `;
 
     case "kubernetes":

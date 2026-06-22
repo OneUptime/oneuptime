@@ -183,11 +183,19 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
       ] as JSONArray;
 
       if (!resourceProfiles || !Array.isArray(resourceProfiles)) {
-        logger.error(
-          "Invalid resourceProfiles format in request body",
-          getLogAttributesFromRequest(req as RequestLike),
+        /*
+         * Nothing to ingest. Reached when the out-of-band body was lost
+         * (TTL elapsed before the worker ran — decodeFromQueue returns {})
+         * or the payload genuinely carried no resourceProfiles. Skip, do NOT
+         * throw: this runs in the worker after the 200 was already sent, so
+         * throwing only burns retries (the body won't reappear) and masks
+         * the real first-attempt error behind "Invalid resourceProfiles format".
+         */
+        logger.warn(
+          "No resourceProfiles to ingest (empty or lost body); skipping batch.",
         );
-        throw new BadRequestException("Invalid resourceProfiles format");
+        logger.warn(getLogAttributesFromRequest(req as RequestLike));
+        return;
       }
 
       /*

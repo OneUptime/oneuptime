@@ -68,15 +68,20 @@ Sie erstellen `/etc/otelcol-contrib/config.yaml` in Schritt 2 und eine `launchd`
 
 ### Windows
 
-Laden Sie die neueste `otelcol-contrib_*_windows_amd64.zip` (oder `arm64`) von der [Releases-Seite](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) herunter. Über eine PowerShell-Eingabeaufforderung **mit erhöhten Rechten**:
+Installieren Sie unter Windows den **OneUptime Host Collector** — den vorgefertigten Collector von OneUptime, der den `windows_service`-Receiver mitbringt (der den Host-Tab **Services** versorgt und *nicht* im Upstream-`otelcol-contrib`-Build enthalten ist). Über eine PowerShell-Eingabeaufforderung **mit erhöhten Rechten**:
 
 ```powershell
-$dest = "C:\Program Files\otelcol-contrib"
+$dest = "C:\Program Files\OneUptimeHostCollector"
+$zip  = "$env:TEMP\oneuptime-host-collector.zip"
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
-Expand-Archive -Path "$env:USERPROFILE\Downloads\otelcol-contrib_*_windows_amd64.zip" -DestinationPath $dest
+# amd64; use the _arm64.zip asset on ARM
+Invoke-WebRequest -Uri "https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-host-collector_windows_amd64.zip" -OutFile $zip
+Expand-Archive -Path $zip -DestinationPath $dest -Force
 ```
 
-Sie erstellen `C:\Program Files\otelcol-contrib\config.yaml` in Schritt 2 und registrieren in Schritt 3 einen Windows-Dienst.
+Sie erstellen `C:\Program Files\OneUptimeHostCollector\config.yaml` in Schritt 2 und registrieren in Schritt 3 einen Windows-Dienst.
+
+> Bevorzugen Sie das Upstream-`otelcol-contrib`? Laden Sie stattdessen `otelcol-contrib_*_windows_amd64.zip` von der [OpenTelemetry-Releases-Seite](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) herunter — alles Weitere funktioniert genauso, **außer** dem Host-Tab **Services**, der `windows_service` benötigt (nicht im Upstream-Build enthalten; siehe „Windows Services (Metriken)").
 
 ## Schritt 2 — Den Collector konfigurieren
 

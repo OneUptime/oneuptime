@@ -322,18 +322,30 @@ const TraceTable: FunctionComponent<ComponentProps> = (
           sortBy="startTime"
           sortOrder={SortOrder.Descending}
           onViewPage={(span: Span) => {
+            let route: Route;
+
             if (modelId) {
-              return Promise.resolve(
-                new Route(viewRoute.toString()).addRoute(
-                  span.traceId!.toString(),
-                ),
+              route = new Route(viewRoute.toString()).addRoute(
+                span.traceId!.toString(),
+              );
+            } else {
+              route = RouteUtil.populateRouteParams(
+                RouteMap[PageMap.TRACE_VIEW]!,
+                {
+                  modelId: span.traceId!.toString(),
+                },
               );
             }
-            return Promise.resolve(
-              RouteUtil.populateRouteParams(RouteMap[PageMap.TRACE_VIEW]!, {
-                modelId: span.traceId!.toString(),
-              }),
-            );
+
+            // Pass the clicked span so the trace explorer can highlight and
+            // scroll to it.
+            if (span.spanId) {
+              route = new Route(route.toString()).addQueryParams({
+                spanId: span.spanId.toString(),
+              });
+            }
+
+            return Promise.resolve(route);
           }}
           filters={[
             {

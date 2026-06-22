@@ -28,6 +28,7 @@ import {
   TELEMETRY_LOCK_DURATION_MS,
 } from "../../Config";
 import OtelPayloadDecoder from "../../Utils/OtelPayloadDecoder";
+import TelemetryBodyStore from "../../Utils/TelemetryBodyStore";
 import { JSONObject } from "Common/Types/JSON";
 
 /*
@@ -264,6 +265,18 @@ if (DisableQueueWorkers) {
           throw error;
         }
       });
+
+      /*
+       * The job succeeded (runJob re-throws on failure, so we only get here
+       * on success or a deliberately-swallowed non-actionable case). The
+       * out-of-band OTLP body is now fully consumed, so reclaim it — it is
+       * deliberately NOT deleted at read time (see TelemetryBodyStore.readBody)
+       * so a transient-failure retry can re-read it. Best-effort; the TTL
+       * backstops a missed delete. Only OTel-type jobs carry a bodyKey.
+       */
+      if (jobData.bodyKey) {
+        await TelemetryBodyStore.deleteBody(jobData.bodyKey);
+      }
     },
     {
       concurrency: TELEMETRY_CONCURRENCY,
