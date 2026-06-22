@@ -477,6 +477,22 @@ clickhouseOperator:
 # docker-compose and enabled: false installs.
 migrate:
   enabled: true
+  # Whether the deploy WAITS for migrations:
+  #   false (default): migrations run as an async background Job (both install and
+  #     upgrade) — helm returns immediately and pods roll while migrations run.
+  #     Non-blocking deploys, BUT pods may run before migrations finish, so keep
+  #     your migrations backward-compatible (expand/contract: new code must
+  #     tolerate the old schema). On a FRESH install the app pods come up against
+  #     an un-migrated database and stay unready (likely CrashLoopBackOff) until
+  #     the Job finishes creating the schema — they self-heal once it does.
+  #   true: migrations run as a BLOCKING Helm hook (post-install on install,
+  #     pre-upgrade on upgrade) — the deploy waits before rolling new pods, so new
+  #     code never hits an un-migrated schema.
+  # Note: `helm upgrade --wait` waits for the async Job too, so don't pass --wait
+  # if you want it non-blocking.
+  hook: false
+  # Auto-clean finished async Jobs after this many seconds (hook: false only).
+  ttlSecondsAfterFinished: 86400
   # Job retries (handles the DB not being ready yet on a fresh install).
   backoffLimit: 6
   # Optional hard timeout for the whole migration run (seconds). Empty = none.
