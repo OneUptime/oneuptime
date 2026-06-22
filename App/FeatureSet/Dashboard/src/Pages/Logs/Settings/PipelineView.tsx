@@ -10,6 +10,8 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import SimpleLogViewer from "Common/UI/Components/SimpleLogViewer/SimpleLogViewer";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -102,6 +104,10 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
   const [showProcessorForm, setShowProcessorForm] = useState<boolean>(false);
   const [refreshProcessorToggle, setRefreshProcessorToggle] =
     useState<string>("initial");
+  const [showProcessorConfig, setShowProcessorConfig] =
+    useState<boolean>(false);
+  const [processorConfig, setProcessorConfig] = useState<string>("");
+  const [processorConfigName, setProcessorConfigName] = useState<string>("");
 
   return (
     <Fragment>
@@ -210,6 +216,32 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
         sortOrder={SortOrder.Ascending}
         enableDragAndDrop={true}
         dragDropIndexField="sortOrder"
+        selectMoreFields={{
+          configuration: true,
+        }}
+        actionButtons={[
+          {
+            title: "View Config",
+            buttonStyleType: ButtonStyleType.NORMAL,
+            icon: IconProp.Code,
+            onClick: async (
+              item: LogPipelineProcessor,
+              onCompleteAction: VoidFunction,
+            ) => {
+              setProcessorConfigName(
+                item["name"] ? item["name"].toString() : "Processor",
+              );
+              setProcessorConfig(
+                item["configuration"]
+                  ? JSON.stringify(item["configuration"], null, 2)
+                  : "No configuration set for this processor.",
+              );
+              setShowProcessorConfig(true);
+
+              onCompleteAction();
+            },
+          },
+        ]}
         cardProps={{
           title: "Processors",
           description:
@@ -288,6 +320,26 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
             setShowProcessorForm(false);
           }}
         />
+      )}
+
+      {showProcessorConfig ? (
+        <Modal
+          title={`Processor Configuration: ${processorConfigName}`}
+          description="Read-only view of this processor's configuration. To change it, delete this processor and add a new one."
+          isLoading={false}
+          modalWidth={ModalWidth.Large}
+          onSubmit={() => {
+            setShowProcessorConfig(false);
+          }}
+          submitButtonText={"Close"}
+          submitButtonStyleType={ButtonStyleType.NORMAL}
+        >
+          <SimpleLogViewer title="Configuration (JSON)" height="500px">
+            {processorConfig}
+          </SimpleLogViewer>
+        </Modal>
+      ) : (
+        <></>
       )}
 
       {/* Section 4: Delete Pipeline */}
