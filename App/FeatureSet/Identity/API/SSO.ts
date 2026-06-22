@@ -1,5 +1,5 @@
 import AuthenticationEmail from "../Utils/AuthenticationEmail";
-import SSOUtil from "../Utils/SSO";
+import SSOUtil, { type AudienceValidationResult } from "../Utils/SSO";
 import { DashboardRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
@@ -361,6 +361,7 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         signOnURL: true,
         issuerURL: true,
         publicCertificate: true,
+        enforceAudienceValidation: true,
         teams: {
           _id: true,
         },
@@ -443,6 +444,38 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         req,
         res,
         new BadRequestException("Issuer URL does not match"),
+      );
+    }
+
+    /*
+     * Validate the assertion Audience against the SP Entity ID we advertise (the
+     * same value stamped into the outbound AuthnRequest Issuer). Default is
+     * warn-only; the provider's enforceAudienceValidation toggle hard-blocks.
+     */
+    const expectedAudience: string = `${HttpProtocol}${Host}/${req.params["projectId"]}/${req.params["projectSsoId"]}`;
+
+    const audienceValidation: AudienceValidationResult =
+      SSOUtil.validateAudience({
+        payload: response,
+        expectedAudience,
+      });
+
+    if (audienceValidation.isMismatch) {
+      if (projectSSO.enforceAudienceValidation) {
+        logger.error(
+          audienceValidation.message,
+          getLogAttributesFromRequest(req as RequestLike),
+        );
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadRequestException(audienceValidation.message),
+        );
+      }
+
+      logger.warn(
+        audienceValidation.message,
+        getLogAttributesFromRequest(req as RequestLike),
       );
     }
 

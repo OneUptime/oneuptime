@@ -14,6 +14,17 @@ import {
 import zlib from "zlib";
 import Name from "Common/Types/Name";
 
+export interface AudienceValidationResult {
+  // True when validation passed (match) or was skipped (no AudienceRestriction).
+  isOk: boolean;
+  // True only when an Audience was present and did not match the expected value.
+  isMismatch: boolean;
+  receivedAudiences: Array<string>;
+  expectedAudience: string;
+  // Human-readable detail, reused for both the warn log and the thrown error.
+  message: string;
+}
+
 export default class SSOUtil {
   public static createSAMLRequestUrl(data: {
     acsUrl: URL;
@@ -324,5 +335,162 @@ export default class SSOUtil {
     }
 
     return issuerUrl.trim();
+  }
+
+  /*
+   * Returns every <Audience> string declared under the assertion's
+   * <Conditions><AudienceRestriction>. Mirrors the defensive, namespace-prefix
+   * tolerant navigation used by getIssuer/getEmail. Never throws: returns an
+   * empty array when there are no Conditions/AudienceRestriction (some IdPs omit
+   * them), so callers can treat "absent" as "skip" rather than "fail".
+   */
+  public static getAudiences(payload: JSONObject): Array<string> {
+    const response: JSONObject =
+      (payload["saml2p:Response"] as JSONObject) ||
+      (payload["samlp:Response"] as JSONObject) ||
+      (payload["Response"] as JSONObject);
+
+    if (!response) {
+      return [];
+    }
+
+    const samlAssertion: JSONArray =
+      (response["saml2:Assertion"] as JSONArray) ||
+      (response["saml:Assertion"] as JSONArray) ||
+      (response["Assertion"] as JSONArray);
+
+    if (!samlAssertion || samlAssertion.length === 0) {
+      return [];
+    }
+
+    const assertion: JSONObject = samlAssertion[0] as JSONObject;
+
+    const conditions: JSONArray =
+      (assertion["saml2:Conditions"] as JSONArray) ||
+      (assertion["saml:Conditions"] as JSONArray) ||
+      (assertion["Conditions"] as JSONArray);
+
+    if (!conditions || conditions.length === 0) {
+      return [];
+    }
+
+    const audiences: Array<string> = [];
+
+    for (const condition of conditions) {
+      const conditionObject: JSONObject = condition as JSONObject;
+
+      // The spec allows multiple <AudienceRestriction> under <Conditions>.
+      const audienceRestrictions: JSONArray =
+        (conditionObject["saml2:AudienceRestriction"] as JSONArray) ||
+        (conditionObject["saml:AudienceRestriction"] as JSONArray) ||
+        (conditionObject["AudienceRestriction"] as JSONArray);
+
+      if (!audienceRestrictions || audienceRestrictions.length === 0) {
+        continue;
+      }
+
+      for (const restriction of audienceRestrictions) {
+        const restrictionObject: JSONObject = restriction as JSONObject;
+
+        // And multiple <Audience> under a single <AudienceRestriction>.
+        const audienceList: JSONArray =
+          (restrictionObject["saml2:Audience"] as JSONArray) ||
+          (restrictionObject["saml:Audience"] as JSONArray) ||
+          (restrictionObject["Audience"] as JSONArray);
+
+        if (!audienceList || audienceList.length === 0) {
+          continue;
+        }
+
+        for (const audience of audienceList) {
+          let audienceValue: string | undefined = undefined;
+
+          if (typeof audience === "string") {
+            audienceValue = audience;
+          } else if (audience && typeof audience === "object") {
+            audienceValue = (audience as JSONObject)["_"] as string;
+          }
+
+          if (audienceValue && audienceValue.trim()) {
+            audiences.push(audienceValue.trim());
+          }
+        }
+      }
+    }
+
+    return audiences;
+  }
+
+  /*
+   * Validates that the SP Entity ID OneUptime advertises (the same value it
+   * stamps into the outbound AuthnRequest Issuer) appears among the assertion's
+   * audiences. Absent audiences => skip (isOk:true). Present-but-no-match =>
+   * isMismatch:true. The caller decides whether a mismatch is a hard error
+   * (enforce) or just a warning, but the message names both values either way.
+   */
+  public static validateAudience(data: {
+    payload: JSONObject;
+    expectedAudience: string;
+  }): AudienceValidationResult {
+    const receivedAudiences: Array<string> = SSOUtil.getAudiences(data.payload);
+
+    if (receivedAudiences.length === 0) {
+      return {
+        isOk: true,
+        isMismatch: false,
+        receivedAudiences,
+        expectedAudience: data.expectedAudience,
+        message:
+          "SAML assertion contained no AudienceRestriction; audience validation skipped.",
+      };
+    }
+
+    const isMatch: boolean = receivedAudiences.some((audience: string) => {
+      return SSOUtil.audienceEquals(audience, data.expectedAudience);
+    });
+
+    if (isMatch) {
+      return {
+        isOk: true,
+        isMismatch: false,
+        receivedAudiences,
+        expectedAudience: data.expectedAudience,
+        message: "",
+      };
+    }
+
+    const message: string =
+      `SAML assertion Audience does not match this OneUptime SSO endpoint. ` +
+      `Received Audience(s): [${receivedAudiences.join(", ")}]. ` +
+      `Expected (Service Provider Entity ID / Identifier): "${data.expectedAudience}". ` +
+      `Fix: in your Identity Provider, set the application Identifier / Audience / Entity ID to exactly "${data.expectedAudience}". ` +
+      `(If you intentionally use the Azure AD GUID Sign-On-URL override, leave this provider's "Enforce Audience Validation" setting OFF.)`;
+
+    return {
+      isOk: false,
+      isMismatch: true,
+      receivedAudiences,
+      expectedAudience: data.expectedAudience,
+      message,
+    };
+  }
+
+  /*
+   * Entity IDs are case-sensitive URIs, so we do NOT lowercase. The only
+   * tolerated divergence is a trailing slash, because OneUptime builds its
+   * AuthnRequest Issuer without one while some IdPs append it.
+   */
+  private static audienceEquals(a: string, b: string): boolean {
+    if (a === b) {
+      return true;
+    }
+
+    const stripTrailingSlash: (value: string) => string = (
+      value: string,
+    ): string => {
+      return value.replace(/\/+$/, "");
+    };
+
+    return stripTrailingSlash(a) === stripTrailingSlash(b);
   }
 }

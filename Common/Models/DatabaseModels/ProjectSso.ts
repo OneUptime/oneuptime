@@ -629,6 +629,45 @@ export default class ProjectSSO extends BaseModel {
   })
   public isEnabled?: boolean = undefined;
 
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectSSO,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectUser,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectSSO,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectSSO,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enforce Audience Validation",
+    description:
+      "When enabled, OneUptime rejects a SAML assertion whose Audience does not exactly match this provider's Entity ID (instead of only warning). Leave OFF if you intentionally use the Azure AD GUID Sign-On-URL override.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public enforceAudienceValidation?: boolean = undefined;
+
   // Is this integration tested?
   @ColumnAccessControl({
     create: [

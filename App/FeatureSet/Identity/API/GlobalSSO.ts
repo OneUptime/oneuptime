@@ -1,5 +1,5 @@
 import AuthenticationEmail from "../Utils/AuthenticationEmail";
-import SSOUtil from "../Utils/SSO";
+import SSOUtil, { type AudienceValidationResult } from "../Utils/SSO";
 import { DashboardRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
@@ -253,6 +253,7 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
         issuerURL: true,
         publicCertificate: true,
         disableSignUpWithSso: true,
+        enforceAudienceValidation: true,
       },
       props: { isRoot: true },
     });
@@ -322,6 +323,40 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
         req,
         res,
         new BadRequestException("Issuer URL does not match"),
+      );
+    }
+
+    /*
+     * Validate the assertion Audience against the SP Entity ID we advertise (the
+     * same value stamped into the outbound AuthnRequest Issuer). A mismatch is
+     * surfaced loudly so a misconfigured IdP Identifier no longer silently
+     * "works" via IdP-initiated login. Default is warn-only; the provider's
+     * enforceAudienceValidation toggle upgrades it to a hard block.
+     */
+    const expectedAudience: string = `${HttpProtocol}${Host}/global-sso/${globalSsoId.toString()}`;
+
+    const audienceValidation: AudienceValidationResult =
+      SSOUtil.validateAudience({
+        payload: response,
+        expectedAudience,
+      });
+
+    if (audienceValidation.isMismatch) {
+      if (globalSso.enforceAudienceValidation) {
+        logger.error(
+          audienceValidation.message,
+          getLogAttributesFromRequest(req as RequestLike),
+        );
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadRequestException(audienceValidation.message),
+        );
+      }
+
+      logger.warn(
+        audienceValidation.message,
+        getLogAttributesFromRequest(req as RequestLike),
       );
     }
 

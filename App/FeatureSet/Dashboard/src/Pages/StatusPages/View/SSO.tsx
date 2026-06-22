@@ -9,7 +9,7 @@ import SignatureMethod from "Common/Types/SSO/SignatureMethod";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import IdentityProviderUrls from "Common/UI/Components/SSO/IdentityProviderUrls";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -242,6 +242,16 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
               fieldType: FormFieldSchemaType.Toggle,
               stepId: "more",
             },
+            {
+              field: {
+                enforceAudienceValidation: true,
+              },
+              title: "Enforce Audience Validation",
+              description:
+                "Reject SAML assertions whose Audience does not exactly match this provider's Entity ID. Leave off if you use the Azure AD GUID Sign-On-URL override.",
+              fieldType: FormFieldSchemaType.Toggle,
+              stepId: "more",
+            },
           ]}
           showRefreshButton={true}
           actionButtons={[
@@ -365,34 +375,14 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
         />
 
         {showSingleSignOnUrlId && (
-          <ConfirmModal
-            title={`SSO Configuration`}
-            description={
-              <div>
-                <div>
-                  <div className="font-semibold">Identifier (Entity ID):</div>
-
-                  <div>{`${HTTP_PROTOCOL}${HOST}/${modelId.toString()}/${showSingleSignOnUrlId}`}</div>
-                  <br />
-                </div>
-                <div>
-                  <div className="font-semibold">
-                    Reply URL (Assertion Consumer Service URL):
-                  </div>
-                  <div>
-                    {`${URL.fromString(IDENTITY_URL.toString()).addRoute(
-                      `/status-page-idp-login/${modelId.toString()}/${showSingleSignOnUrlId}`,
-                    )}`}
-                  </div>
-                  <br />
-                </div>
-              </div>
-            }
-            submitButtonText={"Close"}
-            onSubmit={() => {
-              setShowSingleSignOnUrlId("");
-            }}
-            submitButtonType={ButtonStyleType.NORMAL}
+          <IdentityProviderUrls
+            renderInCard={true}
+            entityId={`${HTTP_PROTOCOL}${HOST}/${modelId.toString()}/${showSingleSignOnUrlId}`}
+            acsUrl={`${URL.fromString(IDENTITY_URL.toString()).addRoute(
+              `/status-page-idp-login/${modelId.toString()}/${showSingleSignOnUrlId}`,
+            )}`}
+            acsLabel="Reply URL (Assertion Consumer Service URL)"
+            entityIdLabel="Identifier (Entity ID)"
           />
         )}
       </>

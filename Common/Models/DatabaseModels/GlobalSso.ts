@@ -204,6 +204,26 @@ export default class GlobalSSO extends BaseModel {
   @TableColumn({
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
+    title: "Enforce Audience Validation",
+    description:
+      "When enabled, OneUptime rejects a SAML assertion whose Audience does not exactly match this provider's Entity ID (instead of only warning). Leave OFF if you intentionally use the Azure AD GUID Sign-On-URL override.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public enforceAudienceValidation?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
     title: "Enabled",
     description: "Is this SSO provider enabled?",
     defaultValue: false,

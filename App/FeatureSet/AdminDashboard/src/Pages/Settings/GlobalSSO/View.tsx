@@ -14,6 +14,7 @@ import {
 import IconProp from "Common/Types/Icon/IconProp";
 import EnterpriseFeatureUpgrade from "../../../Components/EnterpriseEdition/EnterpriseFeatureUpgrade";
 import Card from "Common/UI/Components/Card/Card";
+import IdentityProviderUrls from "Common/UI/Components/SSO/IdentityProviderUrls";
 import Link from "Common/UI/Components/Link/Link";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
@@ -243,6 +244,15 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
             },
             {
               field: {
+                enforceAudienceValidation: true,
+              },
+              title: "Enforce Audience Validation",
+              description:
+                "Reject SAML assertions whose Audience does not exactly match this provider's Entity ID. Leave off if you use the Azure AD GUID Sign-On-URL override.",
+              fieldType: FormFieldSchemaType.Toggle,
+            },
+            {
+              field: {
                 isEnabled: true,
               },
               title: "Enabled",
@@ -305,6 +315,14 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
               },
               {
                 field: {
+                  enforceAudienceValidation: true,
+                },
+                title: "Enforce Audience Validation",
+                fieldType: FieldType.Boolean,
+                placeholder: t("common.no"),
+              },
+              {
+                field: {
                   isEnabled: true,
                 },
                 title: "Enabled",
@@ -316,26 +334,12 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
           }}
         />
 
-        <Card
-          title={"Identity Provider URLs"}
-          description={
-            <div>
-              <div className="mb-3">
-                Paste these values into your SAML identity provider (Okta, Azure
-                AD, OneLogin, JumpCloud and more).
-              </div>
-              <div className="mb-3">
-                <div className="font-semibold">
-                  ACS URL (Assertion Consumer Service / Reply URL):
-                </div>
-                <div className="break-all">{acsURL}</div>
-              </div>
-              <div>
-                <div className="font-semibold">Issuer (Entity ID):</div>
-                <div className="break-all">{issuerURL}</div>
-              </div>
-            </div>
-          }
+        <IdentityProviderUrls
+          renderInCard={true}
+          acsUrl={acsURL}
+          entityId={issuerURL}
+          acsLabel="ACS URL (Assertion Consumer Service / Reply URL)"
+          entityIdLabel="Issuer (Entity ID)"
         />
 
         <Card
