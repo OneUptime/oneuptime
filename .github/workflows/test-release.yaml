@@ -118,9 +118,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Expose GHA runtime tokens to buildx
-        uses: crazy-max/ghaction-github-runtime@v3
-
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
 
@@ -194,9 +191,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Expose GHA runtime tokens to buildx
-        uses: crazy-max/ghaction-github-runtime@v3
-
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
 
@@ -268,9 +262,6 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      - name: Expose GHA runtime tokens to buildx
-        uses: crazy-max/ghaction-github-runtime@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
@@ -355,9 +346,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Expose GHA runtime tokens to buildx
-        uses: crazy-max/ghaction-github-runtime@v3
-
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
 
@@ -429,9 +417,6 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      - name: Expose GHA runtime tokens to buildx
-        uses: crazy-max/ghaction-github-runtime@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
@@ -505,9 +490,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Expose GHA runtime tokens to buildx
-        uses: crazy-max/ghaction-github-runtime@v3
-
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
 
@@ -579,9 +561,6 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      - name: Expose GHA runtime tokens to buildx
-        uses: crazy-max/ghaction-github-runtime@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
@@ -655,9 +634,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Expose GHA runtime tokens to buildx
-        uses: crazy-max/ghaction-github-runtime@v3
-
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
 
@@ -729,9 +705,6 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      - name: Expose GHA runtime tokens to buildx
-        uses: crazy-max/ghaction-github-runtime@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
