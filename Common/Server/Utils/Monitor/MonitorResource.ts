@@ -318,10 +318,16 @@ export default class MonitorResourceUtil {
           if (!serverMonitorResponse.onlyCheckRequestReceivedAt) {
             /*
              * Heartbeat write: single-statement UPDATE, no hooks and no
-             * `version` bump. Monitor enables no update workflow/realtime/
-             * audit and these heartbeat columns trigger no onUpdateSuccess
-             * work, so nothing is lost; it also skips the pre-SELECT that
-             * would reload the large serverMonitorResponse jsonb row. See
+             * `version` bump. This DELIBERATELY drops the per-update workflow
+             * trigger and audit-log entry that Monitor's @EnableWorkflow /
+             * @EnableAuditLog fire on every changed update — the old
+             * `ignoreHooks: true` did NOT suppress those (they are gated on
+             * the model flag, not on ignoreHooks), so a heartbeat used to
+             * spam an on-update workflow + an audit row every ingest. A
+             * liveness ping should do neither. onUpdateSuccess is inert here
+             * regardless (gated on status/interval/steps/name/etc., none of
+             * which are written). Also skips the pre-SELECT that would reload
+             * the large serverMonitorResponse jsonb row. See
              * ServiceService.updateLastSeen.
              */
             await MonitorService.updateColumnsByIdWithoutHooks({
@@ -350,8 +356,10 @@ export default class MonitorResourceUtil {
 
           /*
            * Heartbeat write: single-statement UPDATE, no hooks and no
-           * `version` bump; skips the pre-SELECT of the large
-           * incomingMonitorRequest jsonb row. See
+           * `version` bump. As with the server-monitor branch above, this
+           * deliberately drops the per-update workflow trigger + audit-log
+           * entry Monitor would otherwise fire on every heartbeat, and skips
+           * the pre-SELECT of the large incomingMonitorRequest jsonb row. See
            * ServiceService.updateLastSeen.
            */
           await MonitorService.updateColumnsByIdWithoutHooks({

@@ -122,9 +122,11 @@ export async function processIncomingEmailFromQueue(
   /*
    * Update monitor with last email received time. Heartbeat write:
    * single-statement UPDATE, no hooks and no `version` bump. These columns
-   * trigger no onUpdateSuccess work and Monitor enables no update
-   * workflow/realtime/audit, so nothing is lost. See
-   * ServiceService.updateLastSeen.
+   * trigger no onUpdateSuccess work, and this deliberately drops the
+   * per-update workflow trigger + audit-log entry Monitor's
+   * @EnableWorkflow / @EnableAuditLog would otherwise fire on every email
+   * (those are gated on the model flag, not on ignoreHooks) — a heartbeat
+   * should not spam workflows/audit. See ServiceService.updateLastSeen.
    */
   await MonitorService.updateColumnsByIdWithoutHooks({
     id: new ObjectID(monitor._id.toString()),

@@ -207,9 +207,12 @@ export class Service extends DatabaseService<Model> {
      * write lock across several round trips and, when an event loop stalls
      * mid-`save()` transaction, leaves it open as the head of a lock convoy
      * that starves the Postgres connection pool. lastSeenAt is an internal
-     * liveness timestamp with no update hooks on this model (connected /
-     * disconnected status is derived from it at read time), so a bare
-     * single-statement UPDATE is both correct and far cheaper.
+     * liveness timestamp with no onBeforeUpdate/onUpdateSuccess hooks on this
+     * model (connected / disconnected status is derived from it at read
+     * time), so a bare single-statement UPDATE is both correct and far
+     * cheaper. This also intentionally drops the per-update workflow trigger
+     * Service's @EnableWorkflow({ update: true }) fired on every heartbeat —
+     * a liveness ping should not trigger user workflows.
      */
     await this.updateColumnsByIdWithoutHooks({
       id: serviceId,
