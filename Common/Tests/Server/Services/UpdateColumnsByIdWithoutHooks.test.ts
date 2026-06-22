@@ -133,7 +133,11 @@ describe("DatabaseService.updateColumnsByIdWithoutHooks", () => {
     await expect(
       ServiceService.updateColumnsByIdWithoutHooks({
         id: ObjectID.generate(),
-        data: { lastSeenAt: (() => "NOW()") as never } as never,
+        data: {
+          lastSeenAt: (() => {
+            return "NOW()";
+          }) as never,
+        } as never,
       }),
     ).rejects.toThrow(/SQL-expression values are not supported/);
     expect(query).not.toHaveBeenCalled();
