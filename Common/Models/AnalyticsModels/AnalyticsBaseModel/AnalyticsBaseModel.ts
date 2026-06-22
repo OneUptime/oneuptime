@@ -72,13 +72,13 @@ export default class AnalyticsBaseModel extends CommonModel {
      * cityHash64(ifNull(traceId, '')).
      */
     shardingKey?: string | undefined;
+    storagePolicy?: string | undefined;
     tableSettings?: string | undefined;
     projections?: Array<Projection> | undefined;
     materializedViews?: Array<MaterializedView> | undefined;
     enableMCP?: boolean | undefined;
     ttlExpression?: string | undefined; // e.g. "retentionDate DELETE"
     /*
-     * Column that `findBy` falls back to when the caller doesn't
      * specify a `sort`. Defaults to `createdAt` (matching the legacy
      * behavior), but heavy analytics tables should override this to
      * a column that participates in their ClickHouse sort key so the
@@ -187,11 +187,11 @@ export default class AnalyticsBaseModel extends CommonModel {
     this.enableRealtimeEventsOn = data.enableRealtimeEventsOn;
     this.partitionKey = data.partitionKey;
     this.shardingKey = data.shardingKey;
+    this.storagePolicy = data.storagePolicy;
     this.tableSettings = data.tableSettings;
     this.projections = data.projections || [];
     this.materializedViews = data.materializedViews || [];
     this.enableMCP = data.enableMCP || false;
-    this.ttlExpression = data.ttlExpression || "";
 
     /*
      * Validate the override matches the schema. We deliberately do
@@ -263,6 +263,13 @@ export default class AnalyticsBaseModel extends CommonModel {
   }
   public set partitionKey(v: string) {
     this._partitionKey = v;
+  }
+  private _storagePolicy: string | undefined = undefined;
+  public get storagePolicy(): string | undefined {
+    return this._storagePolicy;
+  }
+  public set storagePolicy(v: string | undefined) {
+    this._storagePolicy = v;
   }
 
   private _shardingKey: string | undefined = undefined;

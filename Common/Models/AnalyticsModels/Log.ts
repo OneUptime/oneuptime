@@ -14,6 +14,10 @@ import Permission from "../../Types/Permission";
 import LogSeverity from "../../Types/Log/LogSeverity";
 import Service from "../DatabaseModels/Service";
 import ServiceType from "../../Types/Telemetry/ServiceType";
+import {
+  getClickhouseColdTierStoragePolicy,
+  getTelemetryColdTierTtlExpression,
+} from "../../Utils/Telemetry/ColdTier";
 
 @OperationalResource()
 @OwnedThrough("primaryEntityId", Service, { includeProjectScope: true })
@@ -707,9 +711,13 @@ export default class Log extends AnalyticsBaseModel {
        * bloom-filter skip index and rare here.)
        */
       shardingKey: "cityHash64(projectId, primaryEntityId, time)",
+      storagePolicy: getClickhouseColdTierStoragePolicy(),
       tableSettings:
         "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
-      ttlExpression: "retentionDate DELETE",
+      ttlExpression: getTelemetryColdTierTtlExpression({
+        signal: "logs",
+        moveAfterExpression: "time",
+      }),
       defaultSortColumn: "time",
     });
   }

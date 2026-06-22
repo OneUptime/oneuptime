@@ -742,6 +742,103 @@ export default class AnalyticsTableManagement {
   }
 
   /**
+   * Reconcile model-owned MergeTree metadata that `CREATE TABLE IF NOT EXISTS`
+   * can never repair on an existing table: today that is the cold-tier
+   * storage policy + TTL clause on telemetry tables. Runs on every boot under
+   * the shared data-migration advisory lock, so upgrades self-heal when the
+   * ClickHouse S3 capability appears after the original table creation.
+   *
+   * Intentionally keyed off `model.storagePolicy`: when cold tier is disabled
+   * the models leave that unset, so the reconcile path is a clean no-op and
+   * preserves the historical delete-only behavior.
+   */
+  public static async reconcileModelOwnedTableSettings(): Promise<void> {
+    for (const service of AnalyticsServices) {
+      if (!service.model.storagePolicy) {
+        continue;
+      }
+
+      try {
+        const createQuery: string | null = await this.getTableCreateQuery(
+          service,
+        );
+
+        if (!createQuery) {
+          logger.warn(
+            `Cannot reconcile table settings for ${service.model.tableName} because the table does not exist yet.`,
+          );
+          continue;
+        }
+
+        const normalizedCreateQuery: string =
+          this.normalizeSqlForComparison(createQuery);
+        const storagePolicyClause: string = `storage_policy = '${service.model.storagePolicy}'`;
+        const ttlClause: string = `TTL ${service.model.ttlExpression}`;
+
+        if (
+          !normalizedCreateQuery.includes(
+            this.normalizeSqlForComparison(storagePolicyClause),
+          )
+        ) {
+          logger.info(
+            `Table ${service.model.tableName} is missing storage policy ${service.model.storagePolicy} - applying it.`,
+          );
+          await service.execute(
+            `ALTER TABLE ${service.model.tableName} MODIFY SETTING ${storagePolicyClause}`,
+          );
+        }
+
+        if (
+          !normalizedCreateQuery.includes(this.normalizeSqlForComparison(ttlClause))
+        ) {
+          logger.info(
+            `Table ${service.model.tableName} is missing cold-tier TTL - applying it.`,
+          );
+          await service.execute(
+            `ALTER TABLE ${service.model.tableName} MODIFY TTL ${service.model.ttlExpression}`,
+          );
+        }
+      } catch (error) {
+        logger.error({
+          message: `Failed to reconcile model-owned table settings on ${service.model.tableName}`,
+          error: (error as Error).message,
+        });
+      }
+    }
+  }
+
+  public static async getTableCreateQuery(
+    service: AnalyticsDatabaseService<AnalyticsBaseModel>,
+  ): Promise<string | null> {
+    const databaseName: string | undefined =
+      service.database.getDatasourceOptions().database;
+
+    if (!databaseName) {
+      return null;
+    }
+
+    const escapedDatabaseName: string = this.escapeForQuery(databaseName);
+    const escapedTableName: string = this.escapeForQuery(
+      service.model.tableName,
+    );
+    const statement: string = `SELECT create_table_query FROM system.tables WHERE database = '${escapedDatabaseName}' AND name = '${escapedTableName}' AND engine != 'MaterializedView' LIMIT 1`;
+    const result: Results = await service.executeQuery(statement);
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    if (!response.data || response.data.length === 0) {
+      return null;
+    }
+
+    const row: JSONObject = response.data[0] as JSONObject;
+    const createQuery: unknown = row["create_table_query"];
+
+    return typeof createQuery === "string" ? createQuery : null;
+  }
+
+
+  /**
    * Returns the stored CREATE statement of a materialized view (from
    * system.tables.create_table_query), or null if the view does not
    * exist. Callers use this to distinguish a correctly-defined view from
@@ -1072,6 +1169,10 @@ export default class AnalyticsTableManagement {
 
   public static escapeIdentifier(value: string): string {
     return `\`${value.replace(/`/g, "``")}\``;
+  }
+
+  private static normalizeSqlForComparison(value: string): string {
+    return value.replace(/\s+/g, " ").trim();
   }
 
   public static async doesMaterializedViewExist(

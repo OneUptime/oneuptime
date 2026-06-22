@@ -1,3 +1,4 @@
+import AnalyticsTableManagement from "./AnalyticsDatabase/TableManegement";
 import DataMigrations from "../DataMigrations/Index";
 import OneUptimeDate from "Common/Types/Date";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -58,6 +59,14 @@ const RunDatabaseMigrations: PromiseVoidFunction = async (): Promise<void> => {
     await queryRunner.query("SELECT pg_advisory_lock(hashtext($1))", [
       DATA_MIGRATION_LOCK_LABEL,
     ]);
+
+    /*
+     * Reconcile model-owned ClickHouse table metadata before the one-shot
+     * migration chain. Unlike DataMigrations, this must run on every boot so a
+     * deployment that gains cold-tier capability later still converges; the
+     * shared advisory lock keeps multiple pods from racing the same ALTERs.
+     */
+    await AnalyticsTableManagement.reconcileModelOwnedTableSettings();
 
     for (const migration of DataMigrations) {
       try {

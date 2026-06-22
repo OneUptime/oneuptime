@@ -13,6 +13,10 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import Service from "../DatabaseModels/Service";
 import ServiceType from "../../Types/Telemetry/ServiceType";
+import {
+  getClickhouseColdTierStoragePolicy,
+  getTelemetryColdTierTtlExpression,
+} from "../../Utils/Telemetry/ColdTier";
 
 @OperationalResource()
 @OwnedThrough("primaryEntityId", Service, { includeProjectScope: true })
@@ -818,9 +822,13 @@ export default class Profile extends AnalyticsBaseModel {
        * service buys little — even spread wins here.
        */
       shardingKey: "cityHash64(projectId, primaryEntityId, startTime)",
+      storagePolicy: getClickhouseColdTierStoragePolicy(),
       tableSettings:
         "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
-      ttlExpression: "retentionDate DELETE",
+      ttlExpression: getTelemetryColdTierTtlExpression({
+        signal: "traces",
+        moveAfterExpression: "startTime",
+      }),
       defaultSortColumn: "startTime",
     });
   }

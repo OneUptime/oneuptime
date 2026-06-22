@@ -7,6 +7,10 @@ import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import {
+  getClickhouseColdTierStoragePolicy,
+  getTelemetryColdTierTtlExpression,
+} from "../../Utils/Telemetry/ColdTier";
 
 export default class MonitorLog extends AnalyticsBaseModel {
   public constructor() {
@@ -196,9 +200,13 @@ export default class MonitorLog extends AnalyticsBaseModel {
       partitionKey: "toYYYYMMDD(time)",
       // Shard by monitorId so a monitor's logs co-locate; spreads across shards.
       shardingKey: "cityHash64(monitorId)",
+      storagePolicy: getClickhouseColdTierStoragePolicy(),
       tableSettings:
         "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
-      ttlExpression: "retentionDate DELETE",
+      ttlExpression: getTelemetryColdTierTtlExpression({
+        signal: "logs",
+        moveAfterExpression: "time",
+      }),
       defaultSortColumn: "time",
     });
   }

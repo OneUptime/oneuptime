@@ -1470,16 +1470,24 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     }
 
     /*
-     * Append table-level SETTINGS if specified (e.g. ttl_only_drop_parts = 1
-     * so TTL drops whole time-partitions instead of rewriting parts). In
-     * cluster mode the non-replicated dedup window is rewritten to its
-     * replicated equivalent so insert idempotency survives.
+     * Append table-level SETTINGS if specified. `storagePolicy` is rendered
+     * first so product-managed cold-tier semantics stay explicit. The
+     * free-form `tableSettings` string remains for low-level ClickHouse knobs
+     * (e.g. ttl_only_drop_parts = 1); in cluster mode it is rewritten from
+     * non_replicated_deduplication_window to replicated_deduplication_window
+     * so insert idempotency survives on Replicated* engines.
      */
-    const tableSettings: string | undefined = adaptTableSettingsForStorage(
-      this.model.tableSettings,
-    );
-    if (tableSettings) {
-      statement.append(`\nSETTINGS ${tableSettings}`);
+    const tableSettings: Array<string> = [];
+    if (this.model.storagePolicy) {
+      tableSettings.push(`storage_policy = '${this.model.storagePolicy}'`);
+    }
+    const adaptedTableSettings: string | undefined =
+      adaptTableSettingsForStorage(this.model.tableSettings);
+    if (adaptedTableSettings) {
+      tableSettings.push(adaptedTableSettings);
+    }
+    if (tableSettings.length > 0) {
+      statement.append(`\nSETTINGS ${tableSettings.join(", ")}`);
     }
 
     /* eslint-enable prettier/prettier */

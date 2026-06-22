@@ -13,6 +13,10 @@ import Permission from "../../Types/Permission";
 import Service from "../DatabaseModels/Service";
 import { SpanStatus } from "./Span";
 import ServiceType from "../../Types/Telemetry/ServiceType";
+import {
+  getClickhouseColdTierStoragePolicy,
+  getTelemetryColdTierTtlExpression,
+} from "../../Utils/Telemetry/ColdTier";
 
 @OperationalResource()
 @OwnedThrough("primaryEntityId", Service, { includeProjectScope: true })
@@ -807,9 +811,13 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
        * big project's distinct exceptions spread across shards.
        */
       shardingKey: "cityHash64(projectId, fingerprint)",
+      storagePolicy: getClickhouseColdTierStoragePolicy(),
       tableSettings:
         "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
-      ttlExpression: "retentionDate DELETE",
+      ttlExpression: getTelemetryColdTierTtlExpression({
+        signal: "traces",
+        moveAfterExpression: "time",
+      }),
       defaultSortColumn: "time",
     });
   }

@@ -13,6 +13,10 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import Service from "../DatabaseModels/Service";
 import ServiceType from "../../Types/Telemetry/ServiceType";
+import {
+  getClickhouseColdTierStoragePolicy,
+  getTelemetryColdTierTtlExpression,
+} from "../../Utils/Telemetry/ColdTier";
 
 export enum AggregationTemporality {
   Delta = "Delta",
@@ -1216,9 +1220,13 @@ export default class Metric extends AnalyticsBaseModel {
        * (the MV GROUP BY starts with these columns).
        */
       shardingKey: "cityHash64(projectId, name, primaryEntityId)",
+      storagePolicy: getClickhouseColdTierStoragePolicy(),
       tableSettings:
         "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
-      ttlExpression: "retentionDate DELETE",
+      ttlExpression: getTelemetryColdTierTtlExpression({
+        signal: "metrics",
+        moveAfterExpression: "time",
+      }),
       /*
        * `time` is the 4th column of the Metric sort key (after
        * projectId + name + primaryEntityId). A list query that filters

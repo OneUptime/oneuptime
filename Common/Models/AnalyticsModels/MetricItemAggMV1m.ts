@@ -3,6 +3,10 @@ import AnalyticsTableEngine from "../../Types/AnalyticsDatabase/AnalyticsTableEn
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
+import {
+  getClickhouseColdTierStoragePolicy,
+  getTelemetryColdTierTtlExpression,
+} from "../../Utils/Telemetry/ColdTier";
 
 /**
  * Per-minute pre-aggregated rollup of `MetricItemV3` value samples.
@@ -169,9 +173,13 @@ GROUP BY projectId, name, primaryEntityId, bucketTime`,
        * states stay on a single shard — no cross-shard partial-state merge.
        */
       shardingKey: "cityHash64(projectId, name, primaryEntityId)",
+      storagePolicy: getClickhouseColdTierStoragePolicy(),
       tableSettings:
         "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
-      ttlExpression: "retentionDate DELETE",
+      ttlExpression: getTelemetryColdTierTtlExpression({
+        signal: "metrics",
+        moveAfterExpression: "bucketTime",
+      }),
     });
   }
 }

@@ -3,6 +3,10 @@ import ClickHouseMigrationUtil from "./ClickHouseMigrationUtil";
 import AnalyticsTableManagement from "../Utils/AnalyticsDatabase/TableManegement";
 import MetricService from "Common/Server/Services/MetricService";
 import logger from "Common/Server/Utils/Logger";
+import {
+  getClickhouseColdTierStoragePolicy,
+  getTelemetryColdTierTtlExpression,
+} from "Common/Utils/Telemetry/ColdTier";
 
 /*
  * Per-host 1-minute aggregate of Metric data.
@@ -80,6 +84,16 @@ export default class AddMetricMinuteAggregateByHostMaterializedView extends Data
       return;
     }
 
+    const storagePolicy: string | undefined =
+      getClickhouseColdTierStoragePolicy();
+    const tableSettings: string = storagePolicy
+      ? `storage_policy = '${storagePolicy}', index_granularity = 8192`
+      : "index_granularity = 8192";
+    const ttlExpression: string = getTelemetryColdTierTtlExpression({
+      signal: "metrics",
+      moveAfterExpression: "bucketTime",
+    });
+
     /*
      * Destination table. Keyed by hostIdentifier directly after
      * (projectId, name) so a query like
@@ -103,8 +117,8 @@ export default class AddMetricMinuteAggregateByHostMaterializedView extends Data
        ENGINE = AggregatingMergeTree
        PARTITION BY sipHash64(projectId) % 16
        ORDER BY (projectId, name, hostIdentifier, bucketTime)
-       TTL retentionDate DELETE
-       SETTINGS index_granularity = 8192`,
+       TTL ${ttlExpression}
+       SETTINGS ${tableSettings}`,
     );
     logger.info("Created MetricItemAggMV1mByHost table");
 

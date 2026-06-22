@@ -3,6 +3,10 @@ import AnalyticsTableEngine from "../../Types/AnalyticsDatabase/AnalyticsTableEn
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
+import {
+  getClickhouseColdTierStoragePolicy,
+  getTelemetryColdTierTtlExpression,
+} from "../../Utils/Telemetry/ColdTier";
 
 /**
  * Per-(host, minute) pre-aggregated rollup of `MetricItemV3` value
@@ -173,9 +177,13 @@ GROUP BY projectId, name, hostEntityKey, bucketTime`,
       partitionKey: "toYYYYMM(bucketTime)",
       // Align with this MV's GROUP BY (projectId, name, hostEntityKey).
       shardingKey: "cityHash64(projectId, name, hostEntityKey)",
+      storagePolicy: getClickhouseColdTierStoragePolicy(),
       tableSettings:
         "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
-      ttlExpression: "retentionDate DELETE",
+      ttlExpression: getTelemetryColdTierTtlExpression({
+        signal: "metrics",
+        moveAfterExpression: "bucketTime",
+      }),
     });
   }
 }

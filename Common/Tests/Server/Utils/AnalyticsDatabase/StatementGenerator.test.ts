@@ -896,5 +896,26 @@ PARTITION BY (column_ObjectID)
         expectedStatement.query_params,
       );
     });
+
+    test("should append storage policy before table settings", () => {
+      generator.model.storagePolicy = "tiered";
+      generator.model.tableSettings = "ttl_only_drop_parts = 1";
+      generator.model.ttlExpression =
+        "time + INTERVAL 7 DAY TO VOLUME 's3_cold', retentionDate DELETE";
+
+      const statement: Statement = generator.toTableCreateStatement();
+
+      const normalizeWhitespace: (s: string) => string = (
+        s: string,
+      ): string => {
+        return s.replace(/\s+/g, " ").trim();
+      };
+
+      expect(normalizeWhitespace(statement.query)).toContain(
+        normalizeWhitespace(
+          "TTL time + INTERVAL 7 DAY TO VOLUME 's3_cold', retentionDate DELETE SETTINGS storage_policy = 'tiered', ttl_only_drop_parts = 1",
+        ),
+      );
+    });
   });
 });

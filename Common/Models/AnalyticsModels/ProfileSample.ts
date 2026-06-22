@@ -13,6 +13,10 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import Service from "../DatabaseModels/Service";
 import ServiceType from "../../Types/Telemetry/ServiceType";
+import {
+  getClickhouseColdTierStoragePolicy,
+  getTelemetryColdTierTtlExpression,
+} from "../../Utils/Telemetry/ColdTier";
 
 @OperationalResource()
 @OwnedThrough("primaryEntityId", Service, { includeProjectScope: true })
@@ -667,9 +671,13 @@ export default class ProfileSample extends AnalyticsBaseModel {
       partitionKey: "toYYYYMMDD(time)",
       // Shard by profileId so all samples of a profile co-locate on one shard.
       shardingKey: "cityHash64(profileId)",
+      storagePolicy: getClickhouseColdTierStoragePolicy(),
       tableSettings:
         "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
-      ttlExpression: "retentionDate DELETE",
+      ttlExpression: getTelemetryColdTierTtlExpression({
+        signal: "traces",
+        moveAfterExpression: "time",
+      }),
       defaultSortColumn: "time",
     });
   }

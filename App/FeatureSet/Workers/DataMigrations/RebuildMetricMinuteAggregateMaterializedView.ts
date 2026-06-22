@@ -3,6 +3,10 @@ import ClickHouseMigrationUtil from "./ClickHouseMigrationUtil";
 import AnalyticsTableManagement from "../Utils/AnalyticsDatabase/TableManegement";
 import MetricService from "Common/Server/Services/MetricService";
 import logger from "Common/Server/Utils/Logger";
+import {
+  getClickhouseColdTierStoragePolicy,
+  getTelemetryColdTierTtlExpression,
+} from "Common/Utils/Telemetry/ColdTier";
 
 /*
  * The original AddMetricMinuteAggregateMaterializedView migration
@@ -70,6 +74,16 @@ export default class RebuildMetricMinuteAggregateMaterializedView extends DataMi
       return;
     }
 
+
+    const storagePolicy: string | undefined =
+      getClickhouseColdTierStoragePolicy();
+    const tableSettings: string = storagePolicy
+      ? `storage_policy = '${storagePolicy}', index_granularity = 8192`
+      : "index_granularity = 8192";
+    const ttlExpression: string = getTelemetryColdTierTtlExpression({
+      signal: "metrics",
+      moveAfterExpression: "bucketTime",
+    });
     await MetricService.execute(`DROP VIEW IF EXISTS MetricItemAggMV1m_mv`);
     await MetricService.execute(`DROP TABLE IF EXISTS MetricItemAggMV1m`);
 
@@ -96,8 +110,8 @@ export default class RebuildMetricMinuteAggregateMaterializedView extends DataMi
        ENGINE = AggregatingMergeTree
        PARTITION BY sipHash64(projectId) % 16
        ORDER BY (projectId, name, serviceId, bucketTime)
-       TTL retentionDate DELETE
-       SETTINGS index_granularity = 8192`,
+       TTL ${ttlExpression}
+       SETTINGS ${tableSettings}`,
     );
 
     await MetricService.execute(
