@@ -68,15 +68,20 @@ sudo mkdir -p /etc/otelcol-contrib
 
 ### Windows
 
-从[发布页面](https://github.com/open-telemetry/opentelemetry-collector-releases/releases)下载最新的 `otelcol-contrib_*_windows_amd64.zip`（或 `arm64`）。在**提升权限的** PowerShell 提示符下：
+在 Windows 上，请安装 **OneUptime Host Collector**——OneUptime 的预构建 collector，它打包了 `windows_service` 接收器（为主机的 **Services** 标签页提供数据，*未*包含在上游的 `otelcol-contrib` 构建中）。在**提升权限的** PowerShell 提示符下：
 
 ```powershell
-$dest = "C:\Program Files\otelcol-contrib"
+$dest = "C:\Program Files\OneUptimeHostCollector"
+$zip  = "$env:TEMP\oneuptime-host-collector.zip"
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
-Expand-Archive -Path "$env:USERPROFILE\Downloads\otelcol-contrib_*_windows_amd64.zip" -DestinationPath $dest
+# amd64; use the _arm64.zip asset on ARM
+Invoke-WebRequest -Uri "https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-host-collector_windows_amd64.zip" -OutFile $zip
+Expand-Archive -Path $zip -DestinationPath $dest -Force
 ```
 
-你将在第 2 步中创建 `C:\Program Files\otelcol-contrib\config.yaml`，并在第 3 步中注册一个 Windows 服务。
+你将在第 2 步中创建 `C:\Program Files\OneUptimeHostCollector\config.yaml`，并在第 3 步中注册一个 Windows 服务。
+
+> 更偏好上游的 `otelcol-contrib`？请改为从 [OpenTelemetry 发布页面](https://github.com/open-telemetry/opentelemetry-collector-releases/releases)下载 `otelcol-contrib_*_windows_amd64.zip`——下文的所有内容同样适用，**唯独**主机的 **Services** 标签页除外，它需要 `windows_service`（不在上游构建中；见“Windows 服务（指标）”）。
 
 ## 第 2 步——配置 collector
 
@@ -86,7 +91,7 @@ Expand-Archive -Path "$env:USERPROFILE\Downloads\otelcol-contrib_*_windows_amd64
 |---|---|
 | Linux | `/etc/otelcol-contrib/config.yaml` |
 | macOS | `/etc/otelcol-contrib/config.yaml` |
-| Windows | `C:\Program Files\otelcol-contrib\config.yaml` |
+| Windows | `C:\Program Files\OneUptimeHostCollector\config.yaml` |
 
 每份配置都遵循相同的结构——选择你想要的接收器，添加一个 `batch` 和 `resource` 处理器，并通过 OTLP HTTP 导出到 OneUptime。下面的示例为每种操作系统展示了一份完整的、可复制粘贴的配置，然后逐一介绍各个接收器块，以便你可以混合搭配。
 
@@ -263,35 +268,30 @@ receivers:
 
 主机的 **Services** 标签页由 [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver)（配置类型 `windows_service`）提供数据，它以指标形式报告 Windows 服务的运行状态和启动类型。
 
-> **该接收器_未_包含在上游预构建的 `otelcol-contrib` 二进制文件中。** 尽管其元数据声明了 `contrib` 发行版，但它尚未被加入 contrib 的发布清单，因此你在第 1 步安装的官方预构建 collector 并不包含它。向该 collector 添加 `windows_service` 会在启动时失败，并报 `'receivers' unknown type: "windows_service"`——而且**升级版本也无法解决这个问题**，因为它没有随任何已发布的 `otelcol-contrib` 构建一起提供。该接收器还处于 **alpha** 阶段，且**仅支持 Windows**。
+**OneUptime Host Collector（在第 1 步中安装，Windows 上的默认选择）已经包含此接收器。** 在你的 `config.yaml` 中启用它，并将它加入指标流水线：
 
-要获得包含它的 collector，你有两种方式。如果你不需要按服务粒度的状态，可完全跳过本节——主机指标、Windows 事件日志以及其他所有内容都能在标准 collector 上正常工作。
+```yaml
+receivers:
+  windows_service:
+    collection_interval: 30s
+    # Collect every service by default. To cut volume — and avoid the
+    # "access denied" noise from services the collector can't open —
+    # list just the ones you care about:
+    # include_services: [Spooler, W3SVC, MSSQLSERVER]
+    # Or collect everything except a few:
+    # exclude_services: [TrustedInstaller]
 
-#### Option A——使用 OneUptime Host Collector（推荐）
-
-OneUptime 发布了一个预构建的 collector——**OneUptime Host Collector**——它已经包含 `windows_service`（以及 `hostmetrics`、`windowseventlog`、`filelog` 和 OTLP 导出器）。无需 Go 工具链，也无需自行构建。
-
-1. 从 [OneUptime 发布页面](https://github.com/OneUptime/oneuptime/releases)下载 Windows 资产——可以是 `oneuptime-host-collector_windows_amd64.zip`（或 `_arm64.zip`），也可以是 `oneuptime-host-collector-amd64.msi` 安装程序。
-2. 解压到 `C:\Program Files\OneUptimeHostCollector\`（MSI 会为你安装到那里）。压缩包中附带的 `config.yaml` 已经启用了 `windows_service`。
-3. 编辑 `config.yaml` 并设置你的 `x-oneuptime-token`（如果你自托管，还需设置端点）。
-4. 从**提升权限的** PowerShell 提示符下将其注册为 Windows 服务并启动：
-
-```powershell
-sc.exe create "OneUptimeHostCollector" `
-  binPath= "\"C:\Program Files\OneUptimeHostCollector\oneuptime-host-collector.exe\" --config=\"C:\Program Files\OneUptimeHostCollector\config.yaml\"" `
-  start= auto `
-  DisplayName= "OneUptime Host Collector"
-
-sc.exe start "OneUptimeHostCollector"
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics, windows_service]
 ```
 
-它以 `LocalSystem` 身份运行（`sc.exe` 的默认设置），因此能够读取每个服务。一旦指标到达，**Services** 标签页便会自动填充。这同样是适用于 Linux/macOS 的 collector（那些资产只是省略了仅支持 Windows 的接收器）。
+该接收器为每个服务发出一个 `windows.service.status` 量规（gauge）——其整数值为 Win32 服务状态（`4` = 正在运行，`1` = 已停止）——并带有 `name` 和 `startup_mode` 属性。以 `LocalSystem` 身份运行该 collector（`sc.exe` 的默认设置），它便能读取每个服务；任何无法打开的服务都会被跳过。该接收器处于 **alpha** 阶段，且**仅支持 Windows**；已知问题包括一个可能导致 collector 崩溃的抓取错误，以及某一个服务上的 `access denied` 会影响到其他服务——如果遇到这些问题，请用 `include_services` 加以限制。
 
-#### Option B——用 `ocb` 自行构建
+#### 改用上游 collector？
 
-如果你更愿意自行构建 collector（或者已经在运行自定义发行版），请用 [OpenTelemetry Collector Builder（`ocb`）](https://github.com/open-telemetry/opentelemetry-collector/tree/main/cmd/builder) 编译一个。
-
-**1. 用 `ocb` 构建自定义 collector。** 创建 `builder-config.yaml`（让每个版本都保持在同一个 collector 发布版上）：
+上游预构建的 `otelcol-contrib` 二进制文件**未**包含 `windowsservicereceiver`——添加 `windows_service` 会在启动时失败并报 `'receivers' unknown type: "windows_service"`，而且**升级版本也无法解决这个问题**（它没有随任何已发布的 `otelcol-contrib` 构建一起提供）。你可以切换到 OneUptime Host Collector（第 1 步），也可以用 [OpenTelemetry Collector Builder（`ocb`）](https://github.com/open-telemetry/opentelemetry-collector/tree/main/cmd/builder) 自行构建一个——创建 `builder-config.yaml`（让每个版本都保持在同一个 collector 发布版上）：
 
 ```yaml
 dist:
@@ -314,33 +314,12 @@ exporters:
   - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.154.0
 ```
 
-然后构建它（需要 Go）——输出是单个 `otelcol-oneuptime.exe`，你可用它来代替 `otelcol-contrib` 运行：
-
 ```powershell
 go install go.opentelemetry.io/collector/cmd/builder@v0.154.0
 builder --config builder-config.yaml
 ```
 
-**2. 启用该接收器**，在你的 `config.yaml` 中添加它，并将它加入指标流水线：
-
-```yaml
-receivers:
-  windows_service:
-    collection_interval: 30s
-    # Collect every service by default. To cut volume — and avoid the
-    # "access denied" noise from services the collector can't open —
-    # list just the ones you care about:
-    # include_services: [Spooler, W3SVC, MSSQLSERVER]
-    # Or collect everything except a few:
-    # exclude_services: [TrustedInstaller]
-
-service:
-  pipelines:
-    metrics:
-      receivers: [hostmetrics, windows_service]
-```
-
-该接收器为每个服务发出一个 `windows.service.status` 量规（gauge）——其整数值为 Win32 服务状态（`4` = 正在运行，`1` = 已停止）——并带有 `name` 和 `startup_mode` 属性。以 `LocalSystem` 身份运行该 collector（`sc.exe create` 的默认设置），它便能读取每个服务；任何无法打开的服务都会被跳过。由于该接收器处于 alpha 阶段，请在投入生产前固定并测试版本——已知问题包括一个可能导致 collector 崩溃的抓取错误，以及某一个服务上的 `access denied` 会影响到其他服务；如果遇到这些问题，请用 `include_services` 加以限制。
+然后运行生成的 `otelcol-oneuptime.exe`，并如上文所示启用 `windows_service`。
 
 ### 完整示例——Linux 主机
 
@@ -453,7 +432,7 @@ service:
 
 ### 完整示例——Windows 主机
 
-`C:\Program Files\otelcol-contrib\config.yaml`：
+`C:\Program Files\OneUptimeHostCollector\config.yaml`：
 
 ```yaml
 receivers:
@@ -482,9 +461,9 @@ receivers:
     channel: Security
     start_at: end
 
-  # Windows service status (the Services tab) needs the windows_service
-  # receiver, which is NOT in the prebuilt collector — see
-  # "Windows Services (metrics)" above to build a collector that includes it.
+  # Powers the Services tab. Included in the OneUptime Host Collector (Step 1).
+  windows_service:
+    collection_interval: 30s
 
 processors:
   batch:
@@ -505,7 +484,7 @@ exporters:
 service:
   pipelines:
     metrics:
-      receivers: [hostmetrics]
+      receivers: [hostmetrics, windows_service]
       processors: [resource, batch]
       exporters: [otlphttp]
     logs:
@@ -569,15 +548,15 @@ sudo launchctl list | grep otelcol-contrib
 从**提升权限的** PowerShell 提示符下：
 
 ```powershell
-sc.exe create "otelcol-contrib" `
-  binPath= "\"C:\Program Files\otelcol-contrib\otelcol-contrib.exe\" --config=\"C:\Program Files\otelcol-contrib\config.yaml\"" `
+sc.exe create "OneUptimeHostCollector" `
+  binPath= "\"C:\Program Files\OneUptimeHostCollector\oneuptime-host-collector.exe\" --config=\"C:\Program Files\OneUptimeHostCollector\config.yaml\"" `
   start= auto `
-  DisplayName= "OpenTelemetry Collector"
+  DisplayName= "OneUptime Host Collector"
 
-sc.exe description "otelcol-contrib" "Collects host telemetry and forwards it to OneUptime over OTLP."
+sc.exe description "OneUptimeHostCollector" "Collects host telemetry and forwards it to OneUptime over OTLP."
 
-sc.exe start "otelcol-contrib"
-sc.exe query "otelcol-contrib"
+sc.exe start "OneUptimeHostCollector"
+sc.exe query "OneUptimeHostCollector"
 ```
 
 该服务默认以 `LocalSystem` 身份运行，它拥有读取 `Security` Windows 事件日志通道所需的权限。

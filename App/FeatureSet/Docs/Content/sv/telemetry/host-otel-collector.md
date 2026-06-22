@@ -68,15 +68,20 @@ Du skapar `/etc/otelcol-contrib/config.yaml` i Steg 2 och en `launchd`-plist i S
 
 ### Windows
 
-Ladda ner den senaste `otelcol-contrib_*_windows_amd64.zip` (eller `arm64`) från [versionssidan](https://github.com/open-telemetry/opentelemetry-collector-releases/releases). Från en **förhöjd** PowerShell-prompt:
+På Windows installerar du **OneUptime Host Collector** — OneUptimes förbyggda collector som inkluderar mottagaren `windows_service` (som driver fliken **Services** på värden och *inte* finns i det uppströms `otelcol-contrib`-bygget). Från en **förhöjd** PowerShell-prompt:
 
 ```powershell
-$dest = "C:\Program Files\otelcol-contrib"
+$dest = "C:\Program Files\OneUptimeHostCollector"
+$zip  = "$env:TEMP\oneuptime-host-collector.zip"
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
-Expand-Archive -Path "$env:USERPROFILE\Downloads\otelcol-contrib_*_windows_amd64.zip" -DestinationPath $dest
+# amd64; use the _arm64.zip asset on ARM
+Invoke-WebRequest -Uri "https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-host-collector_windows_amd64.zip" -OutFile $zip
+Expand-Archive -Path $zip -DestinationPath $dest -Force
 ```
 
-Du skapar `C:\Program Files\otelcol-contrib\config.yaml` i Steg 2 och registrerar en Windows-tjänst i Steg 3.
+Du skapar `C:\Program Files\OneUptimeHostCollector\config.yaml` i Steg 2 och registrerar en Windows-tjänst i Steg 3.
+
+> Föredrar du det uppströms `otelcol-contrib`? Ladda ner `otelcol-contrib_*_windows_amd64.zip` från [OpenTelemetrys versionssida](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) i stället — allt nedan fungerar likadant, **förutom** fliken **Services** på värden, som behöver `windows_service` (finns inte i det uppströms bygget; se "Windows Services (metriker)").
 
 ## Steg 2 — Konfigurera collectorn
 
@@ -86,7 +91,7 @@ Konfigurationsfilen finns på:
 |---|---|
 | Linux | `/etc/otelcol-contrib/config.yaml` |
 | macOS | `/etc/otelcol-contrib/config.yaml` |
-| Windows | `C:\Program Files\otelcol-contrib\config.yaml` |
+| Windows | `C:\Program Files\OneUptimeHostCollector\config.yaml` |
 
 Varje konfiguration följer samma form — välj de mottagare du vill ha, lägg till en `batch`- och `resource`-processor och exportera till OneUptime över OTLP HTTP. Exemplen nedan visar en komplett, kopiera-och-klistra-bar konfiguration per operativsystem och går sedan igenom varje mottagarblock så att du kan blanda och matcha.
 
@@ -263,35 +268,30 @@ För att läsa en anpassad eller applikationsspecifik kanal (allt du kan se unde
 
 Fliken **Services** på värden drivs av [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) (konfigurationstyp `windows_service`), som rapporterar körningstillståndet och starttypen för Windows-tjänster som metriker.
 
-> **Den här mottagaren ingår _inte_ i den uppströms förbyggda `otelcol-contrib`-binären.** Även om dess metadata deklarerar `contrib`-distributionen har den inte lagts till i contrib-utgåvans manifest, så den officiella förbyggda collectorn som du installerade i Steg 1 innehåller den inte. Att lägga till `windows_service` i den collectorn misslyckas vid start med `'receivers' unknown type: "windows_service"` — och **ingen versionsuppgradering åtgärdar detta**, eftersom den inte levereras i något utgivet `otelcol-contrib`-bygge. Mottagaren är dessutom **alpha** och **endast för Windows**.
+**OneUptime Host Collector (installerad i Steg 1, standardvalet på Windows) inkluderar redan den här mottagaren.** Aktivera den i din `config.yaml` och lägg till den i metrikpipelinen:
 
-Du har två sätt att få en collector som inkluderar den. Om du inte behöver status per tjänst kan du hoppa över detta helt — värdmetriker, Windows Event Logs och allt annat fungerar med standardcollectorn.
+```yaml
+receivers:
+  windows_service:
+    collection_interval: 30s
+    # Collect every service by default. To cut volume — and avoid the
+    # "access denied" noise from services the collector can't open —
+    # list just the ones you care about:
+    # include_services: [Spooler, W3SVC, MSSQLSERVER]
+    # Or collect everything except a few:
+    # exclude_services: [TrustedInstaller]
 
-#### Alternativ A — Använd OneUptime Host Collector (rekommenderas)
-
-OneUptime publicerar en förbyggd collector — **OneUptime Host Collector** — som redan inkluderar `windows_service` (plus `hostmetrics`, `windowseventlog`, `filelog` och OTLP-exportören). Ingen Go-verktygskedja eller bygge krävs.
-
-1. Ladda ner Windows-tillgången från [OneUptime-versionssidan](https://github.com/OneUptime/oneuptime/releases) — antingen `oneuptime-host-collector_windows_amd64.zip` (eller `_arm64.zip`) eller installationsprogrammet `oneuptime-host-collector-amd64.msi`.
-2. Packa upp till `C:\Program Files\OneUptimeHostCollector\` (MSI:n installerar dit åt dig). Arkivet levereras med en `config.yaml` som redan aktiverar `windows_service`.
-3. Redigera `config.yaml` och ange din `x-oneuptime-token` (och slutpunkten om du självhostar).
-4. Registrera och starta den som en Windows-tjänst från en **förhöjd** PowerShell-prompt:
-
-```powershell
-sc.exe create "OneUptimeHostCollector" `
-  binPath= "\"C:\Program Files\OneUptimeHostCollector\oneuptime-host-collector.exe\" --config=\"C:\Program Files\OneUptimeHostCollector\config.yaml\"" `
-  start= auto `
-  DisplayName= "OneUptime Host Collector"
-
-sc.exe start "OneUptimeHostCollector"
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics, windows_service]
 ```
 
-Den körs som `LocalSystem` (standard för `sc.exe`) så att den kan läsa varje tjänst. Fliken **Services** fylls i automatiskt så snart metriker kommer in. Detta är samma collector för Linux/macOS också (de tillgångarna utelämnar bara den Windows-specifika mottagaren).
+Mottagaren avger en `windows.service.status`-gauge per tjänst — heltalet är Win32-tjänstens tillstånd (`4` = körs, `1` = stoppad) — med attributen `name` och `startup_mode`. Kör collectorn som `LocalSystem` (standard för `sc.exe`) så att den kan läsa varje tjänst; alla den inte kan öppna hoppas över. Mottagaren är **alpha** och **endast för Windows**; kända problem inkluderar ett skrapfel som kan krascha collectorn och en `access denied` på en tjänst som påverkar andra — begränsa till `include_services` om du stöter på dem.
 
-#### Alternativ B — Bygg din egen med `ocb`
+#### Använda den uppströms collectorn i stället?
 
-Om du hellre vill bygga din egen collector (eller redan kör en anpassad distribution), kompilera en med [OpenTelemetry Collector Builder (`ocb`)](https://github.com/open-telemetry/opentelemetry-collector/tree/main/cmd/builder).
-
-**1. Bygg en anpassad collector med `ocb`.** Skapa `builder-config.yaml` (håll varje version på samma collector-utgåva):
+Den uppströms förbyggda `otelcol-contrib`-binären inkluderar **inte** `windowsservicereceiver` — att lägga till `windows_service` misslyckas vid start med `'receivers' unknown type: "windows_service"`, och **ingen versionsuppgradering åtgärdar detta** (den finns inte i något utgivet `otelcol-contrib`-bygge). Antingen byter du till OneUptime Host Collector (Steg 1), eller så bygger du din egen med [OpenTelemetry Collector Builder (`ocb`)](https://github.com/open-telemetry/opentelemetry-collector/tree/main/cmd/builder) — skapa `builder-config.yaml` (håll varje version på samma collector-utgåva):
 
 ```yaml
 dist:
@@ -314,33 +314,12 @@ exporters:
   - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.154.0
 ```
 
-Bygg den sedan (kräver Go) — utdatan är en enda `otelcol-oneuptime.exe` som du kör i stället för `otelcol-contrib`:
-
 ```powershell
 go install go.opentelemetry.io/collector/cmd/builder@v0.154.0
 builder --config builder-config.yaml
 ```
 
-**2. Aktivera mottagaren** i din `config.yaml` och lägg till den i metrikpipelinen:
-
-```yaml
-receivers:
-  windows_service:
-    collection_interval: 30s
-    # Collect every service by default. To cut volume — and avoid the
-    # "access denied" noise from services the collector can't open —
-    # list just the ones you care about:
-    # include_services: [Spooler, W3SVC, MSSQLSERVER]
-    # Or collect everything except a few:
-    # exclude_services: [TrustedInstaller]
-
-service:
-  pipelines:
-    metrics:
-      receivers: [hostmetrics, windows_service]
-```
-
-Mottagaren avger en `windows.service.status`-gauge per tjänst — heltalet är Win32-tjänstens tillstånd (`4` = körs, `1` = stoppad) — med attributen `name` och `startup_mode`. Kör collectorn som `LocalSystem` (standard med `sc.exe create`) så att den kan läsa varje tjänst; alla den inte kan öppna hoppas över. Eftersom mottagaren är alpha, fäst och testa versionen innan produktion — kända problem inkluderar ett skrapfel som kan krascha collectorn och en `access denied` på en tjänst som påverkar andra; begränsa till `include_services` om du stöter på dem.
+Kör sedan den resulterande `otelcol-oneuptime.exe` och aktivera `windows_service` som visas ovan.
 
 ### Komplett exempel — Linux-värd
 
@@ -453,7 +432,7 @@ service:
 
 ### Komplett exempel — Windows-värd
 
-`C:\Program Files\otelcol-contrib\config.yaml`:
+`C:\Program Files\OneUptimeHostCollector\config.yaml`:
 
 ```yaml
 receivers:
@@ -482,9 +461,9 @@ receivers:
     channel: Security
     start_at: end
 
-  # Windows service status (the Services tab) needs the windows_service
-  # receiver, which is NOT in the prebuilt collector — see
-  # "Windows Services (metrics)" above to build a collector that includes it.
+  # Powers the Services tab. Included in the OneUptime Host Collector (Step 1).
+  windows_service:
+    collection_interval: 30s
 
 processors:
   batch:
@@ -505,7 +484,7 @@ exporters:
 service:
   pipelines:
     metrics:
-      receivers: [hostmetrics]
+      receivers: [hostmetrics, windows_service]
       processors: [resource, batch]
       exporters: [otlphttp]
     logs:
@@ -569,15 +548,15 @@ sudo launchctl list | grep otelcol-contrib
 Från en **förhöjd** PowerShell-prompt:
 
 ```powershell
-sc.exe create "otelcol-contrib" `
-  binPath= "\"C:\Program Files\otelcol-contrib\otelcol-contrib.exe\" --config=\"C:\Program Files\otelcol-contrib\config.yaml\"" `
+sc.exe create "OneUptimeHostCollector" `
+  binPath= "\"C:\Program Files\OneUptimeHostCollector\oneuptime-host-collector.exe\" --config=\"C:\Program Files\OneUptimeHostCollector\config.yaml\"" `
   start= auto `
-  DisplayName= "OpenTelemetry Collector"
+  DisplayName= "OneUptime Host Collector"
 
-sc.exe description "otelcol-contrib" "Collects host telemetry and forwards it to OneUptime over OTLP."
+sc.exe description "OneUptimeHostCollector" "Collects host telemetry and forwards it to OneUptime over OTLP."
 
-sc.exe start "otelcol-contrib"
-sc.exe query "otelcol-contrib"
+sc.exe start "OneUptimeHostCollector"
+sc.exe query "OneUptimeHostCollector"
 ```
 
 Tjänsten körs under `LocalSystem` som standard, vilket har de behörigheter som behövs för att läsa Windows Event Log-kanalen `Security`.
