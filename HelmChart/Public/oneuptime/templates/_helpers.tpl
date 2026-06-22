@@ -517,7 +517,7 @@ its userlist at startup.
 {{- $cnpg := $.Values.postgresOperator.cnpg }}
 
 - name: DATABASE_HOST
-  {{- if $.Values.pgbouncer.enabled }}
+  {{- if and $.Values.pgbouncer.enabled (not $.DirectPostgres) }}
   value: {{ $.Release.Name }}-pgbouncer.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
   {{- else if $cnpg.enabled }}
   value: {{ $.Release.Name }}-postgresql-cnpg-rw.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
@@ -527,7 +527,7 @@ its userlist at startup.
   value: {{ $.Values.externalPostgres.host }}
   {{- end }}
 - name: DATABASE_PORT
-  {{- if $.Values.pgbouncer.enabled }}
+  {{- if and $.Values.pgbouncer.enabled (not $.DirectPostgres) }}
   value: {{ $.Values.pgbouncer.service.port | quote }}
   {{- else if $cnpg.enabled }}
   value: '5432'
@@ -584,12 +584,23 @@ its userlist at startup.
 - name: DATABASE_MAX_OPEN_CONNECTIONS
   value: {{ .DatabaseMaxOpenConnections | quote }}
 {{- end }}
+{{- if and $.Values.migrate.enabled (not $.DirectPostgres) }}
+# A dedicated migrate Job owns schema + data migrations, so runtime pods must
+# NOT run them on boot — this keeps the data-migration session advisory lock
+# off the pooled runtime connection, which is what makes pgbouncer
+# transaction-mode pooling safe. (The migrate Job sets DirectPostgres, so it is
+# excluded here and runs migrations itself.)
+- name: RUN_DATABASE_MIGRATIONS_ON_BOOT
+  value: "false"
+{{- end }}
 
 
 ## DATABASE SSL BLOCK
-{{- if or $cnpg.enabled $.Values.postgresql.enabled $.Values.pgbouncer.enabled }}
+{{- if or $cnpg.enabled $.Values.postgresql.enabled (and $.Values.pgbouncer.enabled (not $.DirectPostgres)) }}
 # do nothing here. (With pgbouncer in front, the app -> pgbouncer hop is
-# in-cluster plaintext; pgbouncer originates TLS to the backend instead.)
+# in-cluster plaintext; pgbouncer originates TLS to the backend instead. A
+# DirectPostgres consumer — the migrate Job — falls through to the external
+# SSL env below so it can talk TLS straight to a managed backend.)
 {{- else }}
 {{- if $.Values.externalPostgres.ssl.enabled }}
 

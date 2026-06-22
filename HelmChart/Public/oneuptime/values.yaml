@@ -456,6 +456,35 @@ clickhouseOperator:
       nodes: []
 
 # =============================================================================
+# Database migrations (dedicated Job — enabled by default).
+#
+# Schema + data migrations run ONCE per release in a dedicated pre-upgrade /
+# post-install Job (App/Migrate.ts), connecting directly to the backend. The
+# runtime app/worker/nginx pods are gated off (RUN_DATABASE_MIGRATIONS_ON_BOOT=
+# false), so the data-migration session advisory lock never runs on a pooled
+# connection — which is the prerequisite for safely setting
+# pgbouncer.poolMode=transaction. See HelmChart/Docs/Postgres.md.
+#
+# Set enabled: false to fall back to the legacy model where every pod runs
+# migrations on boot (serialized by the advisory lock). That fallback is NOT
+# compatible with pgbouncer.poolMode=transaction (the chart rejects that combo).
+#
+# Behavior: deploys gate on the migration Job (cleaner, atomic, no cross-pod
+# race). An init container waits for the database first, so a fresh install does
+# not race the bundled Postgres / CNPG bootstrap; on a very slow first-time
+# cluster bootstrap you may need a longer `helm upgrade --install --timeout`.
+# The advisory lock stays in the code — it still protects the boot path used by
+# docker-compose and enabled: false installs.
+migrate:
+  enabled: true
+  # Job retries (handles the DB not being ready yet on a fresh install).
+  backoffLimit: 6
+  # Optional hard timeout for the whole migration run (seconds). Empty = none.
+  activeDeadlineSeconds:
+  resources: {}
+  nodeSelector: {}
+
+# =============================================================================
 # PgBouncer connection pooler (opt-in). Orthogonal to the Postgres backend:
 # when enabled it fronts WHICHEVER of the three is active — the built-in
 # postgresql StatefulSet, the postgresOperator CNPG cluster, or externalPostgres
@@ -465,11 +494,14 @@ clickhouseOperator:
 # Most valuable in front of a managed/external Postgres, whose max_connections
 # is capped by instance size and usually cannot be raised cheaply.
 #
-# Pool mode is SESSION by default: safe for everything OneUptime does, INCLUDING
-# the boot-time schema migrations and the session-level advisory lock used by
-# the data-migration runner. Transaction mode reduces connections further but
-# breaks that advisory lock unless the migration path is moved off the pooler —
-# see HelmChart/Docs/Postgres.md before changing poolMode.
+# Pool mode is TRANSACTION by default: it returns a backend connection to the
+# pool after every transaction, so many mostly-idle client connections share a
+# small set of backend connections — the real connection reduction. This is safe
+# here because migrate.enabled=true above runs migrations in a dedicated Job, so
+# the data-migration session advisory lock never runs on a pooled connection
+# (OneUptime's runtime traffic uses no other session-level Postgres features).
+# If you set migrate.enabled=false, you MUST also set poolMode=session — the
+# chart rejects transaction+no-migrate-Job at render time. See HelmChart/Docs/Postgres.md.
 pgbouncer:
   enabled: false
   image:
@@ -477,21 +509,27 @@ pgbouncer:
     tag: latest
     pullPolicy: IfNotPresent
   replicaCount: 1
-  # session | transaction | statement. Keep "session" unless you have moved the
-  # migration path off the pooler (see docs). transaction/statement break the
-  # data-migration advisory lock and the boot-time migration session state.
-  poolMode: session
+  # session | transaction | statement.
+  #   transaction (default): biggest connection reduction; requires
+  #     migrate.enabled=true (the default).
+  #   session: a backend connection is held for the whole client session — less
+  #     reduction, but tolerates session-level features; use it with
+  #     migrate.enabled=false.
+  #   statement: unsupported (breaks multi-statement transactions).
+  poolMode: transaction
   # Max client (app-side) connections pgbouncer accepts. Set comfortably above
   # the sum of every app/worker/ingress pool (DATABASE_MAX_OPEN_CONNECTIONS,
   # default 50 each).
   maxClientConn: 10000
-  # Server connections pgbouncer opens to the backend per (user,db). In session
-  # mode this caps concurrent in-use sessions, so size it to your real
-  # concurrency and keep it under the backend's max_connections. Default 400
-  # leaves ~100 of the stock max_connections=500 for replication, superuser, and
-  # boot migrations. Raise BOTH this and the backend max_connections together for
-  # a larger fleet; to benefit on a connection-capped managed DB, also lower
-  # DATABASE_MAX_OPEN_CONNECTIONS so app pods release client connections sooner.
+  # Max backend connections pgbouncer opens per (user,db). In the default
+  # TRANSACTION mode this is the cap on concurrent IN-FLIGHT transactions, so it
+  # can be far smaller than the fleet's open-connection count (idle clients hold
+  # no backend connection) — the source of the real connection reduction. In
+  # SESSION mode it instead caps concurrent open sessions and must cover them.
+  # Keep it under the backend's max_connections. Default 400 leaves ~100 of the
+  # stock max_connections=500 for replication, superuser, and migrations; in
+  # transaction mode you can usually run far below 400. Raise this and the
+  # backend max_connections together for very high concurrency.
   defaultPoolSize: 400
   # Server connections kept warm even when idle (faster first query; useful for
   # remote managed DBs). 0 = open lazily.
