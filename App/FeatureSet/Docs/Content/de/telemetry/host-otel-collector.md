@@ -268,35 +268,30 @@ Um einen benutzerdefinierten oder anwendungsspezifischen Kanal zu lesen (alles, 
 
 Der Host-**Services**-Tab wird vom [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) (Konfigurationstyp `windows_service`) versorgt, der den Laufzustand und den Starttyp von Windows-Diensten als Metriken meldet.
 
-> **Dieser Receiver ist _nicht_ in der vorgefertigten Upstream-`otelcol-contrib`-Binärdatei enthalten.** Obwohl seine Metadaten die `contrib`-Distribution deklarieren, wurde er nicht zum contrib-Release-Manifest hinzugefügt, sodass der offizielle vorgefertigte Collector, den Sie in Schritt 1 installiert haben, ihn nicht enthält. Das Hinzufügen von `windows_service` zu diesem Collector schlägt beim Start mit `'receivers' unknown type: "windows_service"` fehl — und **kein Versions-Upgrade behebt dies**, da er in keinem veröffentlichten `otelcol-contrib`-Build ausgeliefert wird. Der Receiver ist außerdem **Alpha** und **nur für Windows**.
+**Der OneUptime Host Collector (in Schritt 1 installiert, der Standard unter Windows) enthält diesen Receiver bereits.** Aktivieren Sie ihn in Ihrer `config.yaml` und fügen Sie ihn der Metriken-Pipeline hinzu:
 
-Sie haben zwei Möglichkeiten, einen Collector zu erhalten, der ihn enthält. Wenn Sie keinen Dienststatus pro Dienst benötigen, können Sie dies vollständig überspringen — Host-Metriken, Windows Event Logs und alles andere funktionieren mit dem Standard-Collector.
+```yaml
+receivers:
+  windows_service:
+    collection_interval: 30s
+    # Collect every service by default. To cut volume — and avoid the
+    # "access denied" noise from services the collector can't open —
+    # list just the ones you care about:
+    # include_services: [Spooler, W3SVC, MSSQLSERVER]
+    # Or collect everything except a few:
+    # exclude_services: [TrustedInstaller]
 
-#### Option A — Den OneUptime Host Collector verwenden (empfohlen)
-
-OneUptime veröffentlicht einen vorgefertigten Collector — den **OneUptime Host Collector** —, der `windows_service` bereits enthält (zusätzlich zu `hostmetrics`, `windowseventlog`, `filelog` und dem OTLP-Exporter). Keine Go-Toolchain und kein Bauen erforderlich.
-
-1. Laden Sie das Windows-Asset von der [OneUptime-Releases-Seite](https://github.com/OneUptime/oneuptime/releases) herunter — entweder `oneuptime-host-collector_windows_amd64.zip` (oder `_arm64.zip`) oder den Installer `oneuptime-host-collector-amd64.msi`.
-2. Entpacken Sie es nach `C:\Program Files\OneUptimeHostCollector\` (die MSI installiert es dort für Sie). Das Archiv liefert eine `config.yaml`, die `windows_service` bereits aktiviert.
-3. Bearbeiten Sie `config.yaml` und setzen Sie Ihr `x-oneuptime-token` (und den Endpunkt, falls Sie selbst hosten).
-4. Registrieren und starten Sie ihn als Windows-Dienst über eine PowerShell-Eingabeaufforderung **mit erhöhten Rechten**:
-
-```powershell
-sc.exe create "OneUptimeHostCollector" `
-  binPath= "\"C:\Program Files\OneUptimeHostCollector\oneuptime-host-collector.exe\" --config=\"C:\Program Files\OneUptimeHostCollector\config.yaml\"" `
-  start= auto `
-  DisplayName= "OneUptime Host Collector"
-
-sc.exe start "OneUptimeHostCollector"
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics, windows_service]
 ```
 
-Er läuft als `LocalSystem` (der `sc.exe`-Standard), sodass er jeden Dienst lesen kann. Der **Services**-Tab füllt sich automatisch, sobald Metriken eintreffen. Dies ist derselbe Collector auch für Linux/macOS (diese Assets lassen lediglich den nur für Windows verfügbaren Receiver weg).
+Der Receiver gibt pro Dienst einen `windows.service.status`-Gauge aus — die Ganzzahl ist der Win32-Dienstzustand (`4` = läuft, `1` = gestoppt) — mit den Attributen `name` und `startup_mode`. Führen Sie den Collector als `LocalSystem` aus (der `sc.exe`-Standard), damit er jeden Dienst lesen kann; jeder Dienst, den er nicht öffnen kann, wird übersprungen. Der Receiver ist **Alpha** und **nur für Windows**; bekannte Probleme umfassen einen Scrape-Fehler, der den Collector zum Absturz bringen könnte, und ein `access denied` bei einem Dienst, das andere beeinträchtigt — beschränken Sie sich auf `include_services`, falls Sie darauf stoßen.
 
-#### Option B — Mit `ocb` Ihren eigenen erstellen
+#### Lieber den Upstream-Collector verwenden?
 
-Wenn Sie lieber Ihren eigenen Collector erstellen möchten (oder bereits eine benutzerdefinierte Distribution betreiben), kompilieren Sie einen mit dem [OpenTelemetry Collector Builder (`ocb`)](https://github.com/open-telemetry/opentelemetry-collector/tree/main/cmd/builder).
-
-**1. Erstellen Sie einen benutzerdefinierten Collector mit `ocb`.** Erstellen Sie `builder-config.yaml` (halten Sie jede Version auf demselben Collector-Release):
+Die vorgefertigte Upstream-`otelcol-contrib`-Binärdatei enthält `windowsservicereceiver` **nicht** — das Hinzufügen von `windows_service` schlägt beim Start mit `'receivers' unknown type: "windows_service"` fehl, und **kein Versions-Upgrade behebt dies** (er ist in keinem veröffentlichten `otelcol-contrib`-Build enthalten). Wechseln Sie entweder zum OneUptime Host Collector (Schritt 1) oder erstellen Sie Ihren eigenen mit dem [OpenTelemetry Collector Builder (`ocb`)](https://github.com/open-telemetry/opentelemetry-collector/tree/main/cmd/builder) — erstellen Sie `builder-config.yaml` (halten Sie jede Version auf demselben Collector-Release):
 
 ```yaml
 dist:
@@ -319,33 +314,12 @@ exporters:
   - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.154.0
 ```
 
-Erstellen Sie ihn dann (erfordert Go) — die Ausgabe ist eine einzelne `otelcol-oneuptime.exe`, die Sie anstelle von `otelcol-contrib` ausführen:
-
 ```powershell
 go install go.opentelemetry.io/collector/cmd/builder@v0.154.0
 builder --config builder-config.yaml
 ```
 
-**2. Aktivieren Sie den Receiver** in Ihrer `config.yaml` und fügen Sie ihn der Metriken-Pipeline hinzu:
-
-```yaml
-receivers:
-  windows_service:
-    collection_interval: 30s
-    # Collect every service by default. To cut volume — and avoid the
-    # "access denied" noise from services the collector can't open —
-    # list just the ones you care about:
-    # include_services: [Spooler, W3SVC, MSSQLSERVER]
-    # Or collect everything except a few:
-    # exclude_services: [TrustedInstaller]
-
-service:
-  pipelines:
-    metrics:
-      receivers: [hostmetrics, windows_service]
-```
-
-Der Receiver gibt pro Dienst einen `windows.service.status`-Gauge aus — die Ganzzahl ist der Win32-Dienstzustand (`4` = läuft, `1` = gestoppt) — mit den Attributen `name` und `startup_mode`. Führen Sie den Collector als `LocalSystem` aus (der Standard bei `sc.exe create`), damit er jeden Dienst lesen kann; jeder Dienst, den er nicht öffnen kann, wird übersprungen. Da der Receiver Alpha ist, pinnen und testen Sie die Version vor dem Produktiveinsatz — bekannte Probleme umfassen einen Scrape-Fehler, der den Collector zum Absturz bringen könnte, und ein `access denied` bei einem Dienst, das andere beeinträchtigt; beschränken Sie sich auf `include_services`, falls Sie darauf stoßen.
+Führen Sie dann die resultierende `otelcol-oneuptime.exe` aus und aktivieren Sie `windows_service` wie oben gezeigt.
 
 ### Vollständiges Beispiel — Linux-Host
 
@@ -458,7 +432,7 @@ service:
 
 ### Vollständiges Beispiel — Windows-Host
 
-`C:\Program Files\otelcol-contrib\config.yaml`:
+`C:\Program Files\OneUptimeHostCollector\config.yaml`:
 
 ```yaml
 receivers:
@@ -487,9 +461,9 @@ receivers:
     channel: Security
     start_at: end
 
-  # Windows service status (the Services tab) needs the windows_service
-  # receiver, which is NOT in the prebuilt collector — see
-  # "Windows Services (metrics)" above to build a collector that includes it.
+  # Powers the Services tab. Included in the OneUptime Host Collector (Step 1).
+  windows_service:
+    collection_interval: 30s
 
 processors:
   batch:
@@ -510,7 +484,7 @@ exporters:
 service:
   pipelines:
     metrics:
-      receivers: [hostmetrics]
+      receivers: [hostmetrics, windows_service]
       processors: [resource, batch]
       exporters: [otlphttp]
     logs:
@@ -574,18 +548,18 @@ sudo launchctl list | grep otelcol-contrib
 Über eine PowerShell-Eingabeaufforderung **mit erhöhten Rechten**:
 
 ```powershell
-sc.exe create "otelcol-contrib" `
-  binPath= "\"C:\Program Files\otelcol-contrib\otelcol-contrib.exe\" --config=\"C:\Program Files\otelcol-contrib\config.yaml\"" `
+sc.exe create "OneUptimeHostCollector" `
+  binPath= "\"C:\Program Files\OneUptimeHostCollector\oneuptime-host-collector.exe\" --config=\"C:\Program Files\OneUptimeHostCollector\config.yaml\"" `
   start= auto `
-  DisplayName= "OpenTelemetry Collector"
+  DisplayName= "OneUptime Host Collector"
 
-sc.exe description "otelcol-contrib" "Collects host telemetry and forwards it to OneUptime over OTLP."
+sc.exe description "OneUptimeHostCollector" "Collects host telemetry and forwards it to OneUptime over OTLP."
 
-sc.exe start "otelcol-contrib"
-sc.exe query "otelcol-contrib"
+sc.exe start "OneUptimeHostCollector"
+sc.exe query "OneUptimeHostCollector"
 ```
 
-Der Dienst läuft standardmäßig unter `LocalSystem`, das über die nötigen Berechtigungen verfügt, um den Windows-Event-Log-Kanal `Security` zu lesen.
+Der Dienst läuft standardmäßig unter `LocalSystem`, das über die nötigen Berechtigungen verfügt, um den Windows-Event-Log-Kanal `Security` und jeden Windows-Dienst zu lesen.
 
 ## Schritt 4 — In OneUptime verifizieren
 
