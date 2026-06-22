@@ -62,10 +62,15 @@ import API from "../../Utils/API";
 import Slug from "../../Utils/Slug";
 import {
   DataSource,
+  Driver,
   EntityManager,
   Repository,
   SelectQueryBuilder,
 } from "typeorm";
+import { ColumnMetadata } from "typeorm/metadata/ColumnMetadata";
+import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
+import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
+import { ObjectLiteral } from "typeorm/common/ObjectLiteral";
 import { FindWhere } from "../../Types/BaseDatabase/Query";
 import Realtime from "../Utils/Realtime";
 import ModelEventType from "../../Types/Realtime/ModelEventType";
@@ -1966,6 +1971,94 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       select: updateById.select,
       props: updateById.props,
     });
+  }
+
+  /*
+   * Fast, side-effect-free single-statement column update by id.
+   *
+   * `updateOneById` is heavy: an access-control pre-check SELECT, then
+   * `_updateBy` (a `_findBy` SELECT to load the row, `getRepository().save()`,
+   * then workflow / realtime / audit-log hooks). That is several round
+   * trips, each holding the row's write lock and pinning a pool connection.
+   * On a hot row written on every ingest batch — e.g. a telemetry
+   * liveness/heartbeat timestamp — that pipeline becomes the head of a
+   * Postgres lock convoy: one slow writer (or a save() transaction left open
+   * across other async work) blocks every other writer of the same row, and
+   * the waiters each pin a pool connection until the whole pool is starved.
+   *
+   * This issues exactly ONE auto-committed UPDATE (raw parameterized SQL).
+   * The row's write lock is held only for that statement, so the write can
+   * never head a convoy and never spans other async work. It deliberately
+   * runs NO hooks, workflow triggers, realtime events, audit-log writes, or
+   * access-control checks, and does NOT bump the optimistic-lock `version`
+   * column. (We can't use the entity-aware QueryBuilder for the
+   * no-version-bump part: TypeORM resolves even a table-name string back to
+   * the entity metadata, whose UpdateQueryBuilder branch always appends
+   * `version = version + 1`.) `updatedAt` is refreshed to preserve the
+   * behaviour of the normal update path.
+   *
+   * Column and table identifiers are taken from entity metadata (never from
+   * the caller), and every value is bound as a parameter, so this is not an
+   * injection surface. Use ONLY for trusted, internal, side-effect-free
+   * column writes where the full pipeline is pure overhead.
+   */
+  @CaptureSpan()
+  public async updateColumnsByIdWithoutHooks(input: {
+    id: ObjectID;
+    data: QueryDeepPartialEntity<TBaseModel>;
+  }): Promise<void> {
+    if (!input.id) {
+      throw new BadDataException("id is required");
+    }
+
+    const repository: Repository<TBaseModel> = this.getRepository();
+    const metadata: EntityMetadata = repository.metadata;
+    const driver: Driver = repository.manager.connection.driver;
+
+    const setClauses: Array<string> = [];
+    const params: Array<unknown> = [];
+
+    for (const [propertyName, value] of Object.entries(
+      input.data as ObjectLiteral,
+    )) {
+      const column: ColumnMetadata | undefined =
+        metadata.findColumnWithPropertyName(propertyName);
+      if (!column) {
+        throw new BadDataException(
+          `updateColumnsByIdWithoutHooks: unknown column "${propertyName}" on "${metadata.tableName}"`,
+        );
+      }
+      /*
+       * Run the value through the driver's persist path so column
+       * transformers (e.g. ObjectID <-> uuid), JSON stringification, and
+       * boolean/date coercion are applied exactly as getRepository().save()
+       * would. Without this, the raw bind below would write an ObjectID
+       * object (or a raw JS object) straight to Postgres.
+       */
+      params.push(driver.preparePersistentValue(value, column));
+      setClauses.push(`"${column.databaseName}" = $${params.length}`);
+    }
+
+    if (setClauses.length === 0) {
+      return;
+    }
+
+    // The raw path has no entity machinery to touch updateDate — do it here.
+    if (metadata.updateDateColumn) {
+      setClauses.push(
+        `"${metadata.updateDateColumn.databaseName}" = CURRENT_TIMESTAMP`,
+      );
+    }
+
+    const primaryColumnName: string =
+      metadata.primaryColumns[0]?.databaseName || "_id";
+    params.push(input.id.toString());
+
+    const sql: string = `UPDATE "${metadata.tableName}" SET ${setClauses.join(
+      ", ",
+    )} WHERE "${primaryColumnName}" = $${params.length}`;
+
+    await repository.manager.query(sql, params);
   }
 
   @CaptureSpan()

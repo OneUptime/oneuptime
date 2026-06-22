@@ -198,12 +198,22 @@ export class Service extends DatabaseService<Model> {
       data.cloudAccountId = extra.cloudAccountId;
     }
 
-    await this.updateOneById({
+    /*
+     * Heartbeat write. This is the single hottest UPDATE in the system —
+     * every telemetry batch for a service re-resolves the same serviceId —
+     * so it must NOT go through the full updateOneById pipeline (permission
+     * SELECT -> _findBy SELECT -> save() with `version = version + 1` ->
+     * workflow/realtime/audit hooks). That pipeline holds the Service row's
+     * write lock across several round trips and, when an event loop stalls
+     * mid-`save()` transaction, leaves it open as the head of a lock convoy
+     * that starves the Postgres connection pool. lastSeenAt is an internal
+     * liveness timestamp with no update hooks on this model (connected /
+     * disconnected status is derived from it at read time), so a bare
+     * single-statement UPDATE is both correct and far cheaper.
+     */
+    await this.updateColumnsByIdWithoutHooks({
       id: serviceId,
       data: data,
-      props: {
-        isRoot: true,
-      },
     });
   }
 

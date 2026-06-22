@@ -250,12 +250,14 @@ export class Service extends DatabaseService<Model> {
       data.guestsWithoutBackupCount = extra.guestsWithoutBackupCount;
     }
 
-    await this.updateOneById({
+    /*
+     * Heartbeat write: a single-statement UPDATE with no hooks and no
+     * `version` bump, avoiding the hot-row Postgres lock convoy that the
+     * full updateOneById pipeline causes. See ServiceService.updateLastSeen.
+     */
+    await this.updateColumnsByIdWithoutHooks({
       id: clusterId,
       data: data,
-      props: {
-        isRoot: true,
-      },
     });
   }
 

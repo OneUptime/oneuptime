@@ -236,12 +236,14 @@ export class Service extends DatabaseService<Model> {
       data.agentVersion = extra.agentVersion;
     }
 
-    await this.updateOneById({
+    /*
+     * Heartbeat write: a single-statement UPDATE with no hooks and no
+     * `version` bump, avoiding the hot-row Postgres lock convoy that the
+     * full updateOneById pipeline causes. See ServiceService.updateLastSeen.
+     */
+    await this.updateColumnsByIdWithoutHooks({
       id: hostId,
       data: data,
-      props: {
-        isRoot: true,
-      },
     });
   }
 

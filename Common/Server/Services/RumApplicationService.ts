@@ -185,12 +185,14 @@ export class Service extends DatabaseService<Model> {
       data.sdkLanguage = extra.sdkLanguage;
     }
 
-    await this.updateOneById({
+    /*
+     * Heartbeat write: a single-statement UPDATE with no hooks and no
+     * `version` bump, avoiding the hot-row Postgres lock convoy that the
+     * full updateOneById pipeline causes. See ServiceService.updateLastSeen.
+     */
+    await this.updateColumnsByIdWithoutHooks({
       id: rumApplicationId,
       data: data,
-      props: {
-        isRoot: true,
-      },
     });
   }
 
