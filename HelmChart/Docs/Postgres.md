@@ -285,9 +285,9 @@ instead of directly to the database.
 ```yaml
 pgbouncer:
   enabled: true
-  poolMode: session       # default — see the caveat below before changing
-  defaultPoolSize: 50     # server connections per (user,db) to the backend
-  maxDbConnections: 0     # set at/below the backend's max_connections to cap it hard
+  poolMode: transaction   # default; multiplexes idle clients → fewer backend connections
+  defaultPoolSize: 400    # max in-flight transactions to the backend (< max_connections)
+  maxDbConnections: 450   # hard ceiling on total backend connections
 ```
 
 For a **managed Postgres**, point the chart's `externalPostgres.host`/`.port` at
@@ -301,10 +301,13 @@ app→pooler hop is in-cluster plaintext and PgBouncer originates TLS to the
 backend (`server_tls_sslmode` defaults to `require`, verifying against
 `externalPostgres.ssl.ca` when provided). Override with `pgbouncer.serverTls.sslmode`.
 
-**Sizing.** Session mode keeps a backend connection busy for the life of each
-client connection, so to actually *reduce* backend connections (not just cap
-them) on a connection-limited managed DB, also lower the per-pod pool. Set it
-globally with `deployment.databaseMaxOpenConnections`, or per service with
+**Sizing.** In the default **transaction** mode, idle client connections hold no
+backend connection, so the pooler reduces the connection count on its own — just
+keep `defaultPoolSize` at/below your backend headroom; you do **not** need to
+shrink the per-pod pools. In **session** mode, each client connection pins a
+backend connection for its whole session, so to actually *reduce* backend
+connections you must also lower the per-pod pool. Set it globally with
+`deployment.databaseMaxOpenConnections`, or per service with
 `app.databaseMaxOpenConnections` / `worker.databaseMaxOpenConnections` /
 `nginx.databaseMaxOpenConnections` (a service value overrides the global;
 unset = the app's built-in default of 50). The `worker` is usually the one to
@@ -328,14 +331,17 @@ told to accept. node-postgres sends `statement_timeout` and
 `statement_timeout` on the backend if you need server-side enforcement — the
 app's client-side `query_timeout` still aborts slow queries.
 
-**Why session mode is the default — the migration caveat.** OneUptime runs both
-its schema migrations (`migrationsRun`) **and** a data-migration runner on boot.
-The data-migration runner serializes across pods with a **session-level
-`pg_advisory_lock`** held across the whole run. Transaction/statement pooling
-would route those statements to different backends, so the lock loses its
-mutual-exclusion guarantee (and leaks onto a pooled backend). **Session** pooling
-keeps each client on one backend for its whole session, so the advisory lock and
-boot migrations work unchanged.
+**The migration constraint (why transaction mode needs the Job).** OneUptime
+runs both its schema migrations (`migrationsRun`) **and** a data-migration runner
+on boot. The data-migration runner serializes across pods with a **session-level
+`pg_advisory_lock`** held across the whole run. Transaction pooling would route
+those statements to different backends, so the lock would lose its
+mutual-exclusion guarantee (and leak onto a pooled backend). The dedicated
+migration Job (`migrate.enabled`, on by default) removes that hazard by keeping
+migrations off the pooled runtime pods entirely — which is why transaction mode
+is safe and the default. If you instead run `migrate.enabled: false` (legacy
+boot migrations), you must use **session** mode so the advisory lock keeps
+working; the chart enforces this.
 
 ### Transaction mode (real connection reduction)
 
