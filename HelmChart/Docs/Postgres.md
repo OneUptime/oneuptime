@@ -373,11 +373,31 @@ The chart **rejects `poolMode: transaction` unless `migrate.enabled: true`** to
 prevent the unsafe combination.
 
 Notes on the migration Job:
-- It is a `pre-upgrade` + `post-install` Helm hook. On upgrades it runs before
-  the new pods roll (old release still serving). On a **fresh** install an init
-  container waits for the database first, then the Job creates the schema; the
-  app pods may briefly fail readiness until it completes. A very slow first-time
-  cluster bootstrap may need a longer `helm upgrade --install --timeout`.
+- **Deploys do not block by default** (`migrate.hook: false`): the migration Job
+  runs as a regular async Job for both install and upgrade, so `helm` returns
+  immediately and pods roll while migrations run in the background. The trade-off
+  is that **pods can start before migrations finish**, so keep your migrations
+  *backward-compatible* (the new code tolerates the old schema — the
+  expand/contract pattern). Set `migrate.hook: true` to make deploys block on a
+  Helm hook instead (`post-install` on install, `pre-upgrade` on upgrade); the
+  deploy then waits and new code never hits an un-migrated schema.
+- **Fresh-install caveat with `migrate.hook: false`:** on a brand-new install the
+  app pods come up against an empty (un-migrated) database and will stay unready —
+  likely `CrashLoopBackOff` — until the async Job finishes creating the schema,
+  then self-heal. The Job's own init container waits for the database first, so a
+  slow first-time cluster bootstrap may need a longer `helm upgrade --install
+  --timeout`. If you want a clean first install, run it once with
+  `--set migrate.hook=true` (blocks until the schema exists), then drop back to
+  the async default for routine upgrades.
+
+More on the migration Job:
+- `helm upgrade --wait` waits for Jobs too, so don't pass `--wait` if you want
+  the async upgrade to stay non-blocking.
+- Finished async Jobs auto-clean after `migrate.ttlSecondsAfterFinished` (default
+  1 day).
+- Alternatively, run migrations as a **separate step** before the deploy (e.g.
+  `helm template` the Job and `kubectl apply` it, or a CI stage) and keep the
+  app deploy itself migration-free.
 - Set `migrate.enabled: false` to restore the legacy "every pod migrates on
   boot" model (required if you keep `poolMode: session` and want boot
   migrations). The advisory lock stays in the code — it still protects that boot

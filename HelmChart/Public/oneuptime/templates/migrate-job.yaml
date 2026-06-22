@@ -1,6 +1,15 @@
 {{- if and .Values.migrate.enabled (not .Values.deployment.disableDeployments) }}
+{{- /*
+  Block the deploy on migrations (as a Helm hook) only when migrate.hook is true.
+  When false (default), render a regular async Job for BOTH install and upgrade,
+  so helm returns immediately and migrations run in the background. NOTE: on a
+  FRESH install with hook=false the app pods come up against an un-migrated
+  database and stay unready (likely CrashLoopBackOff) until this async Job
+  finishes creating the schema — set hook=true if you need the install to block.
+*/ -}}
+{{- $useHook := .Values.migrate.hook }}
 # =============================================================================
-# Database migration Job (opt-in: migrate.enabled).
+# Database migration Job.
 #
 # Runs schema + data migrations ONCE per release, in a single dedicated pod,
 # instead of on every app/worker/nginx replica on boot. The runtime pods are
@@ -8,10 +17,8 @@
 # session advisory lock never runs on a pooled runtime connection — which is
 # what makes PgBouncer transaction-mode pooling safe.
 #
-# Helm hook: runs post-install (fresh installs, after the DB exists) and
-# pre-upgrade (before new pods roll, while the old release + DB are still up).
 # Connects DIRECTLY to the backend (DirectPostgres) so migrations never depend
-# on the pooler.
+# on the pooler. Blocking (hook) vs async is controlled by migrate.hook.
 # =============================================================================
 apiVersion: batch/v1
 kind: Job
@@ -24,12 +31,22 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: migrate
     appname: oneuptime
+  {{- if $useHook }}
+  # Blocking: a Helm hook — the deploy waits for migrations before rolling the
+  # new pods (new code never runs against an un-migrated schema). post-install on
+  # a fresh install; pre-upgrade on an upgrade (only when migrate.hook=true).
   annotations:
-    "helm.sh/hook": post-install,pre-upgrade
+    "helm.sh/hook": {{ ternary "post-install" "pre-upgrade" .Release.IsInstall }}
     "helm.sh/hook-weight": "-5"
     "helm.sh/hook-delete-policy": before-hook-creation
+  {{- end }}
 spec:
   backoffLimit: {{ .Values.migrate.backoffLimit | default 6 }}
+  {{- if not $useHook }}
+  # Async (non-hook) Job — `helm upgrade` does not wait for it. Auto-clean after
+  # it finishes so old per-revision Jobs don't accumulate.
+  ttlSecondsAfterFinished: {{ .Values.migrate.ttlSecondsAfterFinished | default 86400 }}
+  {{- end }}
   {{- if .Values.migrate.activeDeadlineSeconds }}
   activeDeadlineSeconds: {{ .Values.migrate.activeDeadlineSeconds }}
   {{- end }}

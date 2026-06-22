@@ -746,6 +746,12 @@
                 "enabled": {
                     "type": "boolean"
                 },
+                "hook": {
+                    "type": "boolean"
+                },
+                "ttlSecondsAfterFinished": {
+                    "type": "integer"
+                },
                 "backoffLimit": {
                     "type": "integer"
                 },
