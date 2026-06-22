@@ -1624,6 +1624,57 @@ jobs:
           tag_name: ${{needs.read-version.outputs.major_minor}}
 
 
+  # Build the OneUptime Host Collector (a custom OpenTelemetry Collector that
+  # includes windowsservicereceiver, which is not in the upstream prebuilt
+  # binary) and attach the cross-platform binaries + Windows MSIs to the release.
+  host-collector-deploy:
+    needs: [draft-github-release, generate-build-number, read-version]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "stable"
+
+      # Cross-compiles the collector with ocb for Windows/Linux/macOS and
+      # packages zip/tar.gz archives under HostCollector/dist.
+      - name: Build collector binaries
+        run: cd HostCollector && bash build.sh ${{needs.read-version.outputs.major_minor}}
+
+      # Wraps the Windows binaries into MSI installers (uses msitools/wixl).
+      - name: Build Windows MSI installers
+        run: cd HostCollector && bash build-msi.sh ${{needs.read-version.outputs.major_minor}}
+
+      # Upload archives + MSIs to the draft GitHub release.
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            HostCollector/dist/*.zip
+            HostCollector/dist/*.tar.gz
+            HostCollector/dist/*.msi
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: true
+          prerelease: false
+          tag_name: ${{needs.read-version.outputs.major_minor}}
+
+
   # Build Android release APK and attach to GitHub Release.
   # Required secrets setup guide: MobileApp/docs/RELEASE_SIGNING.md
   mobile-app-android-deploy:
@@ -1821,7 +1872,7 @@ jobs:
 
   finalize-github-release:
     name: Publish GitHub release
-    needs: [infrastructure-agent-deploy, generate-build-number, read-version]
+    needs: [infrastructure-agent-deploy, host-collector-deploy, generate-build-number, read-version]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/release'
     permissions:

@@ -367,11 +367,43 @@ Logs are written to the Windows Application event log under source \`otelcol-con
 Get-WinEvent -ProviderName otelcol-contrib -MaxEvents 50 | Format-Table -AutoSize -Wrap
 \`\`\`
 
-> **Note:** The MSI registers \`otelcol-contrib\` as a Windows service that starts automatically on boot. The \`load\` scraper isn't supported on Windows — the rest of the \`hostmetrics\` config above runs unchanged.
+> **Note:** The MSI registers \`otelcol-contrib\` as a Windows service that starts automatically on boot. On Windows the \`load\` scraper only emulates a load average from the *Processor Queue Length* counter (it starts at 0); if it can't read the counter it is logged and skipped, so the rest of the \`hostmetrics\` config runs unchanged.
 
 ## Step 3 — Collect Windows services (optional)
 
-To populate this host's **Services** tab with the running state and startup type of each Windows service, add the \`windows_service\` receiver and include it in the metrics pipeline. Append to the \`config.yaml\` from Step 1:
+The host's **Services** tab is powered by the \`windows_service\` receiver ([\`windowsservicereceiver\`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver)), which reports the running state and startup type of each Windows service.
+
+> **This receiver is not in the upstream prebuilt collector.** The MSI / \`otelcol-contrib\` release does **not** include \`windowsservicereceiver\`, so adding it to the config above fails at startup with \`'receivers' unknown type: "windows_service"\` (no version upgrade fixes this). The receiver is **alpha** and **Windows-only**. If you don't need per-service status, skip this step — everything else works with the standard collector.
+
+### Option A — Use the OneUptime Host Collector (recommended)
+
+OneUptime publishes a prebuilt collector that already includes \`windows_service\`. Download \`oneuptime-host-collector_windows_amd64.zip\` (or \`_arm64.zip\`, or the \`.msi\` installer) from the [OneUptime releases page](https://github.com/OneUptime/oneuptime/releases), set your ingestion token in the bundled \`config.yaml\`, and run it as a Windows service (the [Host OpenTelemetry Collector docs](https://oneuptime.com/docs/telemetry/host-otel-collector) have the exact \`sc.exe\` command). The bundled config already enables \`windows_service\`, so the **Services** tab populates automatically once metrics arrive.
+
+### Option B — Build your own with \`ocb\`
+
+Prefer to build your own collector? Create \`builder-config.yaml\` (keep every version on the same collector release):
+
+\`\`\`yaml
+dist:
+  name: otelcol-oneuptime
+  output_path: ./otelcol-oneuptime
+  otelcol_version: 0.154.0
+receivers:
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.154.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowsservicereceiver v0.154.0
+processors:
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor v0.154.0
+  - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.154.0
+exporters:
+  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.154.0
+\`\`\`
+
+\`\`\`powershell
+go install go.opentelemetry.io/collector/cmd/builder@v0.154.0
+builder --config builder-config.yaml
+\`\`\`
+
+Run the resulting \`otelcol-oneuptime.exe\` in place of the MSI service, with the receiver added to your \`config.yaml\` from Step 1:
 
 \`\`\`yaml
 receivers:
@@ -388,7 +420,7 @@ service:
       receivers: [hostmetrics, windows_service]
 \`\`\`
 
-This receiver ships only in the **contrib** distribution and runs **only on Windows** — don't add it to a Linux or macOS collector, or the collector will fail to start. Keep the service running as \`LocalSystem\` (the MSI default) so it can read every service; any service it can't open is skipped. Once these metrics arrive, the **Services** tab appears automatically on the host.
+This receiver runs **only on Windows** — don't add it to a Linux or macOS collector, or it will fail to start. Run the collector as \`LocalSystem\` so it can read every service; any service it can't open is skipped. Once these metrics arrive, the **Services** tab appears automatically on the host.
 `;
 
     case "kubernetes":

@@ -1,0 +1,43 @@
+# OneUptime Host OpenTelemetry Collector — ocb (OpenTelemetry Collector Builder) manifest.
+#
+# This builds a custom collector distribution that includes the host receivers
+# OneUptime needs — most importantly `windowsservicereceiver` (config type
+# `windows_service`), which powers the host **Services** tab and is NOT shipped
+# in the upstream prebuilt `otelcol-contrib` binary (it isn't in the contrib
+# release manifest, so no version of the official collector contains it).
+#
+# Build everything (cross-platform) with the helper script:
+#     bash build.sh <version>
+#
+# Or generate + compile for the current platform manually:
+#     go install go.opentelemetry.io/collector/cmd/builder@v0.154.0
+#     builder --config builder-config.yaml
+#
+# Keep every component on the SAME collector release as `otelcol_version`.
+dist:
+  name: oneuptime-host-collector
+  description: OneUptime OpenTelemetry Host Collector (includes windowsservicereceiver)
+  output_path: ./_build
+  otelcol_version: 0.154.0
+
+receivers:
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.154.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowsservicereceiver v0.154.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.154.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver v0.154.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/journaldreceiver v0.154.0
+  - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.154.0
+
+processors:
+  - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.154.0
+  - gomod: go.opentelemetry.io/collector/processor/memorylimiterprocessor v0.154.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourceprocessor v0.154.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor v0.154.0
+
+exporters:
+  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.154.0
+  - gomod: go.opentelemetry.io/collector/exporter/otlpexporter v0.154.0
+  - gomod: go.opentelemetry.io/collector/exporter/debugexporter v0.154.0
+
+extensions:
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.154.0

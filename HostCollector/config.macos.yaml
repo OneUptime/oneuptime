@@ -1,0 +1,64 @@
+# OneUptime Host Collector — macOS sample config.
+#
+# Set x-oneuptime-token below (and the endpoint if you self-host), then run under
+# launchd. (windows_service and journald are not applicable on macOS.)
+receivers:
+  hostmetrics:
+    collection_interval: 30s
+    scrapers:
+      cpu:
+        metrics:
+          system.cpu.utilization: { enabled: true }
+          system.cpu.logical.count: { enabled: true }
+      memory:
+        metrics:
+          system.memory.utilization: { enabled: true }
+      disk:
+      filesystem:
+        metrics:
+          system.filesystem.utilization: { enabled: true }
+      network:
+      load:
+      paging:
+      processes:
+      process:
+        mute_process_name_error: true
+        mute_process_exe_error: true
+        mute_process_io_error: true
+
+  filelog/system:
+    include:
+      - /var/log/install.log
+      - /var/log/wifi.log
+    start_at: end
+
+processors:
+  resourcedetection:
+    detectors: [system, env]
+    system:
+      hostname_sources: [os]
+      resource_attributes:
+        host.name: { enabled: true }
+        host.id: { enabled: true }
+        host.arch: { enabled: true }
+        host.ip: { enabled: true }
+        os.type: { enabled: true }
+        os.description: { enabled: true }
+  batch:
+
+exporters:
+  otlphttp/oneuptime:
+    endpoint: https://oneuptime.com/otlp
+    headers:
+      x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN
+
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics]
+      processors: [resourcedetection, batch]
+      exporters: [otlphttp/oneuptime]
+    logs:
+      receivers: [filelog/system]
+      processors: [resourcedetection, batch]
+      exporters: [otlphttp/oneuptime]
