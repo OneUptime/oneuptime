@@ -13,6 +13,7 @@ import TraceRecordingRuleDefinition, {
 import TraceAggregationType from "Common/Types/Trace/TraceAggregationType";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
+import { getClickhouseTelemetryDistributedTableName } from "Common/Utils/Telemetry/Sharding";
 import ObjectID from "Common/Types/ObjectID";
 import { MetricPointType } from "Common/Models/AnalyticsModels/Metric";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
@@ -32,6 +33,9 @@ import {
  * rest of the system (dashboards, alerts) can use derived values like any
  * other metric.
  */
+
+const SPAN_READ_TABLE_NAME: string =
+  getClickhouseTelemetryDistributedTableName("SpanItemV3");
 
 type PerGroupBindings = Map<string, Record<string, number>>;
 
@@ -250,7 +254,7 @@ async function runSourceQuery(args: {
 
   const sql: string = `
     SELECT ${groupSqlSelect}, ${aggregateSql} AS value
-    FROM oneuptime.SpanItemV3
+    FROM oneuptime.${SPAN_READ_TABLE_NAME}
     WHERE projectId = '${esc(projectIdStr)}'
       AND startTime >= toDateTime64('${startIso}', 9)
       AND startTime < toDateTime64('${endIso}', 9)

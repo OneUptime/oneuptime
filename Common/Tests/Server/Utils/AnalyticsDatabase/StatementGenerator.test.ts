@@ -66,6 +66,33 @@ describe("StatementGenerator", () => {
     }
   }
 
+  class ShardedTestModel extends AnalyticsBaseModel {
+    public constructor() {
+      super({
+        tableName: "MetricItemV3",
+        distributedTableName: "MetricItemV3Distributed",
+        distributedClusterName: "ou",
+        distributedShardingKey: "cityHash64(projectId)",
+        singularName: "<singular-name>",
+        pluralName: "<plural-name>",
+        tableColumns: [
+          new AnalyticsTableColumn({
+            key: "projectId",
+            title: "<title>",
+            description: "<description>",
+            required: true,
+            type: TableColumnType.ObjectID,
+          }),
+        ],
+        crudApiPath: new Route("route"),
+        primaryKeys: ["projectId"],
+        sortKeys: ["projectId"],
+        partitionKey: "projectId",
+        tableEngine: AnalyticsTableEngine.MergeTree,
+      });
+    }
+  }
+
   let generator: StatementGenerator<TestModel>;
   beforeEach(async () => {
     generator = new StatementGenerator<TestModel>({
@@ -118,9 +145,8 @@ describe("StatementGenerator", () => {
                 ALTER TABLE ${"oneuptime"}.${"<table-name>Local"} ON CLUSTER 'oneuptime'
                 UPDATE <set-statement>
                 WHERE TRUE <where-statement>
-            `,
-      );
-      /* eslint-enable prettier/prettier */
+            `);
+            /* eslint-enable prettier/prettier */
     });
   });
 
@@ -878,10 +904,10 @@ describe("StatementGenerator", () => {
     ENGINE = ReplicatedMergeTree
 PARTITION BY (column_ObjectID)
 
-    PRIMARY KEY (${"column_ObjectID"})
-    ORDER BY (${"column_ObjectID"})
+    PRIMARY KEY (${'column_ObjectID'})
+    ORDER BY (${'column_ObjectID'})
     `;
-      /* eslint-enable prettier/prettier */
+            /* eslint-enable prettier/prettier */
 
       // Normalize whitespace for comparison to avoid formatting issues
       const normalizeWhitespace: (s: string) => string = (
@@ -916,6 +942,46 @@ PARTITION BY (column_ObjectID)
           "TTL time + INTERVAL 7 DAY TO VOLUME 's3_cold', retentionDate DELETE SETTINGS storage_policy = 'tiered', ttl_only_drop_parts = 1",
         ),
       );
+    });
+  });
+
+  describe("distributed telemetry tables", () => {
+    test("creates replicated local table DDL on cluster", () => {
+      const shardedGenerator: StatementGenerator<ShardedTestModel> =
+        new StatementGenerator<ShardedTestModel>({
+          modelType: ShardedTestModel,
+          database: ClickhouseAppInstance,
+        });
+
+      const statement: Statement = shardedGenerator.toTableCreateStatement();
+      const normalizedQuery: string = statement.query.replace(/\s+/g, " ").trim();
+
+      expect(normalizedQuery).toContain(
+        "CREATE TABLE IF NOT EXISTS {p0:Identifier}.{p1:Identifier}{p2:Identifier}",
+      );
+      expect(statement.query_params).toMatchObject({
+        p2: " ON CLUSTER ou",
+      });
+      expect(normalizedQuery).toContain(
+        "ENGINE = ReplicatedMergeTree('/clickhouse/tables/{shard}/oneuptime/MetricItemV3', '{replica}')",
+      );
+    });
+
+    test("creates distributed wrapper table DDL", () => {
+      const shardedGenerator: StatementGenerator<ShardedTestModel> =
+        new StatementGenerator<ShardedTestModel>({
+          modelType: ShardedTestModel,
+          database: ClickhouseAppInstance,
+        });
+
+      const statement: Statement | null =
+        shardedGenerator.toDistributedTableCreateStatement();
+
+      expect(statement).not.toBeNull();
+      expect(statement!.query.replace(/\s+/g, " ").trim()).toBe(
+        "CREATE TABLE IF NOT EXISTS oneuptime.MetricItemV3Distributed ON CLUSTER ou AS oneuptime.MetricItemV3 ENGINE = Distributed(ou, oneuptime, MetricItemV3, cityHash64(projectId))",
+      );
+      expect(statement!.query_params).toStrictEqual({});
     });
   });
 });

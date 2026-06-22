@@ -10,6 +10,7 @@ import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import ServiceType from "../../Types/Telemetry/ServiceType";
+import { getClickhouseTelemetryDistributedTableName } from "../../Utils/Telemetry/Sharding";
 
 export interface HistogramBucket {
   time: string;
@@ -90,7 +91,8 @@ export interface AnalyticsTableRow {
 
 export class LogAggregationService {
   private static readonly DEFAULT_FACET_LIMIT: number = 500;
-  private static readonly TABLE_NAME: string = AnalyticsTableName.Log;
+  private static readonly TABLE_NAME: string =
+    getClickhouseTelemetryDistributedTableName(AnalyticsTableName.Log);
   private static readonly TOP_LEVEL_COLUMNS: Set<string> = new Set([
     "severityText",
     "primaryEntityId",

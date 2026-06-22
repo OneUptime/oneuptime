@@ -8,6 +8,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import Includes from "../../Types/BaseDatabase/Includes";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { getClickhouseTelemetryDistributedTableName } from "../../Utils/Telemetry/Sharding";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 
@@ -39,7 +40,8 @@ export interface FacetRequest extends MetricFilters {
  */
 export class MetricAggregationService {
   private static readonly DEFAULT_FACET_LIMIT: number = 500;
-  private static readonly TABLE_NAME: string = AnalyticsTableName.Metric;
+  private static readonly TABLE_NAME: string =
+    getClickhouseTelemetryDistributedTableName(AnalyticsTableName.Metric);
   private static readonly TOP_LEVEL_COLUMNS: Set<string> = new Set([
     "primaryEntityId",
     "name",

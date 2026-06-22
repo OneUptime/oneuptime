@@ -9,6 +9,7 @@ import Includes from "../../Types/BaseDatabase/Includes";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
+import { getClickhouseTelemetryDistributedTableName } from "../../Utils/Telemetry/Sharding";
 
 // --- Interfaces ---
 
@@ -249,9 +250,12 @@ interface ParsedFrame {
 // --- Service ---
 
 export class ProfileAggregationService {
-  private static readonly TABLE_NAME: string = AnalyticsTableName.ProfileSample;
+  private static readonly TABLE_NAME: string =
+    getClickhouseTelemetryDistributedTableName(
+      AnalyticsTableName.ProfileSample,
+    );
   private static readonly PROFILE_TABLE_NAME: string =
-    AnalyticsTableName.Profile;
+    getClickhouseTelemetryDistributedTableName(AnalyticsTableName.Profile);
   private static readonly DEFAULT_FUNCTION_LIST_LIMIT: number = 50;
   private static readonly DEFAULT_BREAKDOWN_LIMIT: number = 10;
   /**

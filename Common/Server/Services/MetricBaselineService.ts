@@ -3,6 +3,8 @@ import ClickhouseDatabase from "../Infrastructure/ClickhouseDatabase";
 import MetricBaselineHourly from "../../Models/AnalyticsModels/MetricBaselineHourly";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ObjectID from "../../Types/ObjectID";
+import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
+import { getClickhouseTelemetryDistributedTableName } from "../../Utils/Telemetry/Sharding";
 
 /**
  * Result of a baseline lookup for a single (metric, service, hour-of-week)
@@ -64,6 +66,11 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
     super({ modelType: MetricBaselineHourly, database: clickhouseDatabase });
   }
+
+  private static readonly READ_TABLE_NAME: string =
+    getClickhouseTelemetryDistributedTableName(
+      AnalyticsTableName.MetricBaselineHourly,
+    );
 
   /**
    * Default minimum samples per (hour-of-week) cell to call a baseline
@@ -150,7 +157,7 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
         quantileBFloat16Merge(0.95)(p95State)       AS p95,
         minMerge(minObsState)                       AS minObserved,
         maxMerge(maxObsState)                       AS maxObserved
-      FROM MetricBaselineHourly
+      FROM ${MetricBaselineService.READ_TABLE_NAME}
       WHERE projectId = '${projectIdStr}'
         AND name = '${metricNameStr}'
         ${primaryEntityIdClause}
@@ -250,7 +257,7 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
       SELECT
         countMerge(sampleCountState) AS totalSamples,
         toString(min(day))           AS oldestDay
-      FROM MetricBaselineHourly
+      FROM ${MetricBaselineService.READ_TABLE_NAME}
       WHERE projectId = '${projectIdStr}'
         AND name = '${metricNameStr}'
         ${primaryEntityIdClause}
@@ -331,7 +338,7 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
         countMerge(sampleCountState) AS sampleCount,
         avgMerge(meanState)          AS mean,
         stddevPopMerge(stddevState)  AS stddev
-      FROM MetricBaselineHourly
+      FROM ${MetricBaselineService.READ_TABLE_NAME}
       WHERE projectId = '${projectIdStr}'
         AND name = '${metricNameStr}'
         ${primaryEntityIdClause}

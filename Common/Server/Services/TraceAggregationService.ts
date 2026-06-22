@@ -12,6 +12,7 @@ import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import logger from "../Utils/Logger";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 
+import { getClickhouseTelemetryDistributedTableName } from "../../Utils/Telemetry/Sharding";
 export interface HistogramBucket {
   time: string;
   series: string;
@@ -138,7 +139,8 @@ export interface MultiFacetRequest extends TraceFilters {
 
 export class TraceAggregationService {
   private static readonly DEFAULT_FACET_LIMIT: number = 500;
-  private static readonly TABLE_NAME: string = AnalyticsTableName.Span;
+  private static readonly TABLE_NAME: string =
+    getClickhouseTelemetryDistributedTableName(AnalyticsTableName.Span);
   private static readonly TOP_LEVEL_COLUMNS: Set<string> = new Set([
     "primaryEntityId",
     "traceId",

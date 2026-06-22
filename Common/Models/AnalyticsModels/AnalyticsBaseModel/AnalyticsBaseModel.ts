@@ -23,6 +23,12 @@ import Permission, {
 } from "../../../Types/Permission";
 import Text from "../../../Types/Text";
 import CommonModel from "./CommonModel";
+import {
+  getClickhouseClusterName,
+  getClickhouseTelemetryDistributedTableName,
+  getClickhouseTelemetryShardingKey,
+  isClickhouseTelemetryTableSharded,
+} from "../../../Utils/Telemetry/Sharding";
 
 export type AnalyticsBaseModelType = { new (): AnalyticsBaseModel };
 
@@ -76,6 +82,9 @@ export default class AnalyticsBaseModel extends CommonModel {
     tableSettings?: string | undefined;
     projections?: Array<Projection> | undefined;
     materializedViews?: Array<MaterializedView> | undefined;
+    distributedTableName?: string | undefined;
+    distributedClusterName?: string | undefined;
+    distributedShardingKey?: string | undefined;
     enableMCP?: boolean | undefined;
     ttlExpression?: string | undefined; // e.g. "retentionDate DELETE"
     /*
@@ -93,6 +102,12 @@ export default class AnalyticsBaseModel extends CommonModel {
     });
 
     this.tableName = data.tableName;
+    if (data.distributedTableName) {
+      this.distributedTableName = data.distributedTableName;
+    } else if (isClickhouseTelemetryTableSharded(data.tableName)) {
+      this.distributedTableName =
+        getClickhouseTelemetryDistributedTableName(data.tableName);
+    }
 
     const columns: Array<AnalyticsTableColumn> = [...data.tableColumns];
 
@@ -191,6 +206,16 @@ export default class AnalyticsBaseModel extends CommonModel {
     this.tableSettings = data.tableSettings;
     this.projections = data.projections || [];
     this.materializedViews = data.materializedViews || [];
+    if (data.distributedClusterName) {
+      this.distributedClusterName = data.distributedClusterName;
+    } else if (this.distributedTableName) {
+      this.distributedClusterName = getClickhouseClusterName();
+    }
+    if (data.distributedShardingKey) {
+      this.distributedShardingKey = data.distributedShardingKey;
+    } else if (this.distributedTableName) {
+      this.distributedShardingKey = getClickhouseTelemetryShardingKey();
+    }
     this.enableMCP = data.enableMCP || false;
 
     /*
@@ -402,6 +427,54 @@ export default class AnalyticsBaseModel extends CommonModel {
   }
   public set materializedViews(v: Array<MaterializedView>) {
     this._materializedViews = v;
+  }
+
+  private _distributedTableName: string | undefined = undefined;
+  public get distributedTableName(): string | undefined {
+    return this._distributedTableName;
+  }
+  public set distributedTableName(v: string | undefined) {
+    this._distributedTableName = v;
+  }
+
+  private _distributedClusterName: string | undefined = undefined;
+  public get distributedClusterName(): string | undefined {
+    return this._distributedClusterName;
+  }
+  public set distributedClusterName(v: string | undefined) {
+    this._distributedClusterName = v;
+  }
+
+  private _distributedShardingKey: string | undefined = undefined;
+  public get distributedShardingKey(): string | undefined {
+    return this._distributedShardingKey;
+  }
+  public set distributedShardingKey(v: string | undefined) {
+    this._distributedShardingKey = v;
+  }
+
+  public isDistributedTableEnabled(): boolean {
+    return Boolean(
+      this.distributedTableName &&
+        this.distributedClusterName &&
+        this.distributedShardingKey,
+    );
+  }
+
+  public getReadTableName(): string {
+    return this.distributedTableName || this.tableName;
+  }
+
+  public getWriteTableName(): string {
+    return this.distributedTableName || this.tableName;
+  }
+
+  public getSchemaTableName(): string {
+    return this.tableName;
+  }
+
+  public getMutationTableName(): string {
+    return this.tableName;
   }
 
   private _enableMCP: boolean = false;

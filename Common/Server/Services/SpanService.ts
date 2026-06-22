@@ -118,7 +118,7 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
       return null;
     }
 
-    const statement: Statement = SQL`SELECT count() AS count FROM ${databaseName}.${this.model.tableName} WHERE projectId = ${{
+    const statement: Statement = SQL`SELECT count() AS count FROM ${databaseName}.${this.model.getReadTableName()} WHERE projectId = ${{
       type: TableColumnType.ObjectID,
       value: projectId,
     }} AND toStartOfMinute(startTime) >= toStartOfMinute(${{
@@ -345,7 +345,7 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
       `SELECT ${aggregateExpression} as durationUnixNano, date_trunc('${aggregationInterval}', toStartOfMinute(startTime)) as startTime`,
     );
     statement.append(
-      SQL` FROM ${databaseName}.${this.model.tableName} WHERE projectId = ${{
+      SQL` FROM ${databaseName}.${this.model.getReadTableName()} WHERE projectId = ${{
         type: TableColumnType.ObjectID,
         value: projectId,
       }} AND toStartOfMinute(startTime) >= toStartOfMinute(${{

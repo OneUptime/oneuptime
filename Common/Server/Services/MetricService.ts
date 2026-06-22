@@ -17,6 +17,7 @@ import AggregationIntervalUtil from "../../Types/BaseDatabase/AggregationInterva
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { keyForHost } from "../../Utils/Telemetry/EntityKey";
+import { getClickhouseTelemetryDistributedTableName } from "../../Utils/Telemetry/Sharding";
 import ObjectID from "../../Types/ObjectID";
 import logger, { LogAttributes } from "../Utils/Logger";
 
@@ -75,6 +76,10 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     const databaseName: string = this.database.getDatasourceOptions().database!;
     const whereStatement: Statement =
       this.statementGenerator.toWhereStatement(cascadeQuery);
+    const onClusterClause: string =
+      this.model.isDistributedTableEnabled() && this.model.distributedClusterName
+        ? ` ON CLUSTER ${this.model.distributedClusterName}`
+        : "";
 
     const cascadeTargets: ReadonlyArray<AnalyticsTableName> = [
       AnalyticsTableName.MetricItemAggMV1m,
@@ -90,7 +95,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
          * ALTER mutations queue which is capped at 1000 per table).
          */
         const statement: Statement =
-          SQL`DELETE FROM ${databaseName}.${tableName} WHERE TRUE `.append(
+          SQL`DELETE FROM ${databaseName}.${tableName}${onClusterClause} WHERE TRUE `.append(
             whereStatement,
           );
         await this.execute(statement);
@@ -360,7 +365,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     statement.append(SQL` FROM (`);
     statement.append(`SELECT ${innerSelectClause}`);
     statement.append(
-      ` FROM ${databaseName}.${this.model.tableName} WHERE TRUE `,
+      ` FROM ${databaseName}.${this.model.getReadTableName()} WHERE TRUE `,
     );
     statement.append(whereStatement);
     statement.append(this.getRetentionReadFilter());
@@ -1028,7 +1033,9 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     statement.append(
       `SELECT ${mergedExpr} as value, date_trunc('${intervalLower}', toStartOfInterval(bucketTime, INTERVAL 1 ${intervalLower})) as time`,
     );
-    statement.append(SQL` FROM ${databaseName}.MetricItemAggMV1m`);
+    statement.append(
+      SQL` FROM ${databaseName}.${getClickhouseTelemetryDistributedTableName(AnalyticsTableName.MetricItemAggMV1m)}`,
+    );
     statement.append(
       ` WHERE bucketTime >= toDateTime('${this.formatDateTime(aggregateBy.startTimestamp!)}') AND bucketTime <= toDateTime('${this.formatDateTime(aggregateBy.endTimestamp!)}')${this.getRetentionReadFilter()}`,
     );
@@ -1246,7 +1253,9 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     statement.append(
       `SELECT ${mergedExpr} as value, date_trunc('${intervalLower}', toStartOfInterval(bucketTime, INTERVAL 1 ${intervalLower})) as time`,
     );
-    statement.append(SQL` FROM ${databaseName}.MetricItemAggMV1mByHostV2`);
+    statement.append(
+      SQL` FROM ${databaseName}.${getClickhouseTelemetryDistributedTableName(AnalyticsTableName.MetricItemAggMV1mByHostV2)}`,
+    );
     statement.append(
       ` WHERE bucketTime >= toDateTime('${this.formatDateTime(aggregateBy.startTimestamp!)}') AND bucketTime <= toDateTime('${this.formatDateTime(aggregateBy.endTimestamp!)}')${this.getRetentionReadFilter()}`,
     );

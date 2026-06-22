@@ -16,6 +16,9 @@ type MockAnalyticsService = {
     tableName: string;
     storagePolicy?: string;
     ttlExpression: string;
+    distributedClusterName?: string;
+    getSchemaTableName: () => string;
+    isDistributedTableEnabled: () => boolean;
   };
   database: {
     getDatasourceOptions: () => {
@@ -36,9 +39,17 @@ const makeService = (options?: {
   return {
     model: {
       tableName: "MetricItemV3",
-      storagePolicy: options?.storagePolicy,
+      ...(options?.storagePolicy
+        ? { storagePolicy: options.storagePolicy }
+        : {}),
       ttlExpression:
         "time + INTERVAL 7 DAY TO VOLUME 's3_cold', retentionDate DELETE",
+      getSchemaTableName: () => {
+        return "MetricItemV3";
+      },
+      isDistributedTableEnabled: () => {
+        return false;
+      },
     },
     database: {
       getDatasourceOptions: () => {

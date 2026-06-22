@@ -12,6 +12,7 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
+import { getClickhouseTelemetryDistributedTableName } from "Common/Utils/Telemetry/Sharding";
 import { MetricPointType } from "Common/Models/AnalyticsModels/Metric";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { JSONObject } from "Common/Types/JSON";
@@ -29,6 +30,9 @@ import {
  * Using SQL directly keeps the cron tight and avoids bending the existing
  * AggregateBy type (which is designed for charting, not rule-compute).
  */
+
+const METRIC_READ_TABLE_NAME: string =
+  getClickhouseTelemetryDistributedTableName("MetricItemV3");
 
 /*
  * The empty string is used as the "no-group" group key when the rule has no
@@ -257,7 +261,7 @@ async function runSourceQuery(args: {
 
   const sql: string = `
     SELECT ${groupSqlSelect}, ${aggregateSql} AS value
-    FROM oneuptime.MetricItemV3
+    FROM oneuptime.${METRIC_READ_TABLE_NAME}
     WHERE projectId = '${esc(projectIdStr)}'
       AND name = '${esc(source.metricName)}'
       AND time >= toDateTime64('${startIso}', 9)

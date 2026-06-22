@@ -10,6 +10,7 @@ import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import ServiceType from "../../Types/Telemetry/ServiceType";
+import { getClickhouseTelemetryDistributedTableName } from "../../Utils/Telemetry/Sharding";
 
 export interface HistogramBucket {
   time: string;
@@ -51,7 +52,9 @@ export interface FacetRequest extends ExceptionFilters {
 export class ExceptionAggregationService {
   private static readonly DEFAULT_FACET_LIMIT: number = 500;
   private static readonly TABLE_NAME: string =
-    AnalyticsTableName.ExceptionInstance;
+    getClickhouseTelemetryDistributedTableName(
+      AnalyticsTableName.ExceptionInstance,
+    );
   private static readonly TOP_LEVEL_COLUMNS: Set<string> = new Set([
     "primaryEntityId",
     "exceptionType",

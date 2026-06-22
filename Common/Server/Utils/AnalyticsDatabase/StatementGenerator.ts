@@ -109,9 +109,8 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             WHERE TRUE `,
       )
       .append(whereStatement);
-    /* eslint-enable prettier/prettier */
 
-    logger.debug(`${this.model.tableName} Update Statement`);
+    logger.debug(`${this.model.getMutationTableName()} Update Statement`);
     logger.debug(statement);
 
     return statement;
@@ -183,7 +182,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
     const statement: string = `INSERT INTO ${
       this.database.getDatasourceOptions().database
-    }.${this.model.tableName} 
+    }.${this.model.getWriteTableName()} 
         ( 
             ${columnNames.join(", ")}
         ) SETTINGS async_insert=1, wait_for_async_insert=0
@@ -191,7 +190,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         ${this.getValuesStatement(records)}
         `;
 
-    logger.debug(`${this.model.tableName} Create Statement`);
+    logger.debug(`${this.model.getWriteTableName()} Create Statement`);
     logger.debug(statement);
 
     return statement;
@@ -1094,9 +1093,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   }
 
   public getColumnTypesStatement(columnName: string): string {
-    return `SELECT type FROM system.columns WHERE table = '${
-      this.model.tableName
-    }' AND database = '${
+    return `SELECT type FROM system.columns WHERE table = '${getStorageTableName(
+      this.model.tableName,
+    )}' AND database = '${
       this.database.getDatasourceOptions().database
     }' AND name = '${columnName}'`;
   }
@@ -1110,7 +1109,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       this.database.getDatasourceOptions().database
     }.${getStorageTableName(
       this.model.tableName,
-    )} RENAME COLUMN IF EXISTS ${oldColumnName} TO ${newColumnName}`;
+    )}${onClusterClause()} RENAME COLUMN IF EXISTS ${oldColumnName} TO ${newColumnName}`;
 
     return SQL`${statement}`;
   }
@@ -1301,12 +1300,12 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   }
 
   public toDoesColumnExistStatement(columnName: string): string {
-    const statement: string = `SELECT name FROM system.columns WHERE table = '${
-      this.model.tableName
-    }' AND database = '${this.database.getDatasourceOptions()
+    const statement: string = `SELECT name FROM system.columns WHERE table = '${getStorageTableName(
+      this.model.tableName,
+    )}' AND database = '${this.database.getDatasourceOptions()
       .database!}' AND name = '${columnName}'`;
 
-    logger.debug(`${this.model.tableName} Does Column Exist Statement`);
+    logger.debug(`${this.model.getSchemaTableName()} Does Column Exist Statement`);
     logger.debug(statement);
 
     return statement;
@@ -1330,10 +1329,12 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     const statement: Statement = SQL`
             ALTER TABLE ${this.database.getDatasourceOptions().database!}.${getStorageTableName(
               this.model.tableName,
-            )} ADD COLUMN IF NOT EXISTS `.append(columnDef);
+            )}`
+      .append(onClusterClause())
+      .append(SQL` ADD COLUMN IF NOT EXISTS `)
+      .append(columnDef);
 
-    logger.debug(`${this.model.tableName} Add Column Statement`);
-    logger.debug(statement);
+    logger.debug(`${this.model.getSchemaTableName()} Add Column Statement`);
 
     return statement;
   }
@@ -1360,10 +1361,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     const databaseName: string = this.database.getDatasourceOptions().database!;
     const statement: Statement = new Statement();
     statement.append(
-      `ALTER TABLE ${databaseName}.${getStorageTableName(this.model.tableName)} ADD INDEX IF NOT EXISTS ${idx.name} ${columnExpr} TYPE ${idx.type}${paramsStr} GRANULARITY ${idx.granularity}`,
+      `ALTER TABLE ${databaseName}.${getStorageTableName(this.model.tableName)}${onClusterClause()} ADD INDEX IF NOT EXISTS ${idx.name} ${columnExpr} TYPE ${idx.type}${paramsStr} GRANULARITY ${idx.granularity}`,
     );
 
-    logger.debug(`${this.model.tableName} Add Skip Index Statement`);
+    logger.debug(`${this.model.getSchemaTableName()} Add Skip Index Statement`);
     logger.debug(statement);
 
     return statement;
@@ -1371,9 +1372,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
   public toDropSkipIndexStatement(indexName: string): string {
     const databaseName: string = this.database.getDatasourceOptions().database!;
-    const statement: string = `ALTER TABLE ${databaseName}.${getStorageTableName(this.model.tableName)} DROP INDEX IF EXISTS ${indexName}`;
+    const statement: string = `ALTER TABLE ${databaseName}.${getStorageTableName(this.model.tableName)}${onClusterClause()} DROP INDEX IF EXISTS ${indexName}`;
 
-    logger.debug(`${this.model.tableName} Drop Skip Index Statement`);
+    logger.debug(`${this.model.getSchemaTableName()} Drop Skip Index Statement`);
     logger.debug(statement);
 
     return statement;
@@ -1383,9 +1384,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     const statement: string = `ALTER TABLE ${this.database.getDatasourceOptions()
       .database!}.${getStorageTableName(
       this.model.tableName,
-    )} DROP COLUMN IF EXISTS ${columnName}`;
+    )}${onClusterClause()} DROP COLUMN IF EXISTS ${columnName}`;
 
-    logger.debug(`${this.model.tableName} Drop Column Statement`);
+    logger.debug(`${this.model.getSchemaTableName()} Drop Column Statement`);
     logger.debug(statement);
 
     return statement;
@@ -1492,7 +1493,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
     /* eslint-enable prettier/prettier */
 
-    logger.debug(`${this.model.tableName} Table Create Statement`);
+    logger.debug(`${this.model.getSchemaTableName()} Table Create Statement`);
     logger.debug(statement);
 
     return statement;

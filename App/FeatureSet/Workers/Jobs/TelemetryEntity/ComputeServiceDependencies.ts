@@ -8,6 +8,7 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
+import { getClickhouseTelemetryDistributedTableName } from "Common/Utils/Telemetry/Sharding";
 import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { EntityRelationshipEdge } from "Common/Utils/Telemetry/EntityRelationship";
@@ -39,6 +40,9 @@ import { keyForService } from "Common/Utils/Telemetry/EntityKey";
  * are pre-filtered subqueries pruned by the (projectId, startTime) sort
  * key with LIMIT guards, so memory stays bounded on busy projects.
  */
+
+const SPAN_READ_TABLE_NAME: string =
+  getClickhouseTelemetryDistributedTableName("SpanItemV3");
 
 // CronTime.ts has no ten-minute constant; this job is its only user.
 const EVERY_TEN_MINUTES: string = "*/10 * * * *";
@@ -72,7 +76,7 @@ async function findProjectsWithRecentSpans(window: {
 }): Promise<Array<string>> {
   const sql: string = `
     SELECT DISTINCT projectId
-    FROM oneuptime.SpanItemV3
+    FROM oneuptime.${SPAN_READ_TABLE_NAME}
     WHERE startTime >= ${window.startSql}
       AND startTime < ${window.endSql}
     LIMIT ${MAX_PROJECTS_PER_RUN}
@@ -117,7 +121,7 @@ async function findServiceDependencyPairs(args: {
     FROM
     (
       SELECT traceId, spanId, primaryEntityId
-      FROM oneuptime.SpanItemV3
+      FROM oneuptime.${SPAN_READ_TABLE_NAME}
       WHERE projectId = '${projectIdSql}'
         AND startTime >= ${args.startSql}
         AND startTime < ${args.endSql}
@@ -127,7 +131,7 @@ async function findServiceDependencyPairs(args: {
     INNER JOIN
     (
       SELECT traceId, parentSpanId, primaryEntityId
-      FROM oneuptime.SpanItemV3
+      FROM oneuptime.${SPAN_READ_TABLE_NAME}
       WHERE projectId = '${projectIdSql}'
         AND startTime >= ${args.startSql}
         AND startTime < ${args.endSql}
