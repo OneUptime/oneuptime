@@ -34,8 +34,10 @@ const dataSourceOptions: DataSourceOptions = {
   database: DatabaseName,
   migrationsTableName: "migrations",
   migrations: Migrations,
-  // Schema migrations run on connect unless disabled (e.g. runtime pods when a
-  // dedicated migrate Job owns migrations). See RunDatabaseMigrationsOnBoot.
+  /*
+   * Schema migrations run on connect unless disabled (e.g. runtime pods when a
+   * dedicated migrate Job owns migrations). See RunDatabaseMigrationsOnBoot.
+   */
   migrationsRun: RunDatabaseMigrationsOnBoot,
   entities: Entities,
   applicationName: "oneuptime",

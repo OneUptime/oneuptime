@@ -23,15 +23,21 @@ import logger from "Common/Server/Utils/Logger";
 const APP_NAME: string = "migrate";
 
 const migrate = async (): Promise<void> => {
-  logger.debug(`${APP_NAME}: connecting to Postgres (applies schema migrations)`);
-  // migrationsRun on this DataSource applies all pending TypeORM schema
-  // migrations during initialize(). RUN_DATABASE_MIGRATIONS_ON_BOOT is left
-  // unset (true) for this process, so schema migrations run here.
+  logger.debug(
+    `${APP_NAME}: connecting to Postgres (applies schema migrations)`,
+  );
+  /*
+   * migrationsRun on this DataSource applies all pending TypeORM schema
+   * migrations during initialize(). RUN_DATABASE_MIGRATIONS_ON_BOOT is left
+   * unset (true) for this process, so schema migrations run here.
+   */
   await PostgresAppInstance.connect();
 
-  // Data migrations write through the Service layer, which emits realtime
-  // events (Redis) and reads/writes ClickHouse — connect the same datastores a
-  // normal app boot would, so migrations behave identically.
+  /*
+   * Data migrations write through the Service layer, which emits realtime
+   * events (Redis) and reads/writes ClickHouse — connect the same datastores a
+   * normal app boot would, so migrations behave identically.
+   */
   await Redis.connect();
   await ClickhouseAppInstance.connect(
     ClickhouseAppInstance.getDatasourceOptions(),
@@ -40,11 +46,13 @@ const migrate = async (): Promise<void> => {
     ClickhouseIngestInstance.getDatasourceOptions(),
   );
 
-  // Ensure the ClickHouse analytics tables + materialized views exist BEFORE
-  // running data migrations — mirrors the worker boot order (Workers/Index.ts).
-  // Several data migrations ALTER ClickHouse tables and would throw
-  // UNKNOWN_TABLE on a fresh ClickHouse if the tables aren't created first.
-  // Both are idempotent (CREATE ... IF NOT EXISTS), so this is safe on upgrades.
+  /*
+   * Ensure the ClickHouse analytics tables + materialized views exist BEFORE
+   * running data migrations — mirrors the worker boot order (Workers/Index.ts).
+   * Several data migrations ALTER ClickHouse tables and would throw
+   * UNKNOWN_TABLE on a fresh ClickHouse if the tables aren't created first.
+   * Both are idempotent (CREATE ... IF NOT EXISTS), so this is safe on upgrades.
+   */
   logger.debug(`${APP_NAME}: ensuring ClickHouse tables + materialized views`);
   await AnalyticsTableManagement.createTables();
   await AnalyticsTableManagement.createMaterializedViews();
