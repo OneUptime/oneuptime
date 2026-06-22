@@ -91,7 +91,7 @@ Expand-Archive -Path $zip -DestinationPath $dest -Force
 |---|---|
 | Linux | `/etc/otelcol-contrib/config.yaml` |
 | macOS | `/etc/otelcol-contrib/config.yaml` |
-| Windows | `C:\Program Files\otelcol-contrib\config.yaml` |
+| Windows | `C:\Program Files\OneUptimeHostCollector\config.yaml` |
 
 모든 구성은 동일한 형태를 따릅니다 — 원하는 receiver를 선택하고, `batch` 및 `resource` 프로세서를 추가한 다음, OTLP HTTP를 통해 OneUptime으로 내보냅니다. 아래 예제는 OS별로 완전하고 복사하여 붙여넣을 수 있는 구성을 보여준 다음, 자유롭게 조합할 수 있도록 각 receiver 블록을 설명합니다.
 
